@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/time/zone"
+	timeZone "github.com/tidepool-org/platform/time/zone"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -37,7 +37,7 @@ const (
 )
 
 type Base struct {
-	Active            bool                                         `json:"-" bson:"_active,omitempty"`
+	Active            bool                                         `json:"-" bson:"_active"`
 	Annotations       *data.BlobArray                              `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ArchivedDataSetID *string                                      `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
 	ArchivedTime      *string                                      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
@@ -156,18 +156,13 @@ func (b *Base) Validate(validator structure.Validator) {
 		} else {
 			validator.String("deletedUserId", b.DeletedUserID).NotExists()
 		}
-
-		if b.Deduplicator != nil {
-			b.Deduplicator.Validate(validator.WithReference("_deduplicator"))
-		}
 	}
 
-	deviceIDValidator := validator.String("deviceId", b.DeviceID)
-	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
-		deviceIDValidator.Exists()
+	if b.Deduplicator != nil {
+		b.Deduplicator.Validate(validator.WithReference("deduplicator"))
 	}
-	deviceIDValidator.NotEmpty()
 
+	validator.String("deviceId", b.DeviceID).NotEmpty()
 	validator.String("deviceTime", b.DeviceTime).AsTime(DeviceTimeFormat)
 
 	validator.String("id", b.ID).Using(data.IDValidator)
@@ -217,7 +212,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 	timeValidator.AsTime(TimeFormat)
 
-	validator.String("timezone", b.TimeZoneName).OneOf(zone.Names()...)
+	validator.String("timezone", b.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
 
@@ -238,7 +233,7 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 		b.Associations.Normalize(normalizer.WithReference("associations"))
 	}
 	if b.Deduplicator != nil {
-		b.Deduplicator.Normalize(normalizer.WithReference("_deduplicator"))
+		b.Deduplicator.NormalizeDEPRECATED(normalizer.WithReference("deduplicator"))
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {
@@ -292,6 +287,10 @@ func (b *Base) IdentityFields() ([]string, error) {
 	}
 
 	return []string{*b.UserID, *b.DeviceID, *b.Time, b.Type}, nil
+}
+
+func (b *Base) GetOrigin() *dataTypesCommonOrigin.Origin {
+	return b.Origin
 }
 
 func (b *Base) GetPayload() *data.Blob {

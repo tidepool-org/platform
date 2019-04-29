@@ -9,15 +9,13 @@ import (
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	testDataTypes "github.com/tidepool-org/platform/data/types/test"
 	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
 
 func NewDisplay() *pump.Display {
 	datum := pump.NewDisplay()
-	datum.Units = pointer.FromString(test.RandomStringFromArray(pump.DisplayUnits()))
+	datum.BloodGlucose = NewDisplayBloodGlucose()
 	return datum
 }
 
@@ -26,23 +24,11 @@ func CloneDisplay(datum *pump.Display) *pump.Display {
 		return nil
 	}
 	clone := pump.NewDisplay()
-	clone.Units = test.CloneString(datum.Units)
+	clone.BloodGlucose = CloneDisplayBloodGlucose(datum.BloodGlucose)
 	return clone
 }
 
 var _ = Describe("Display", func() {
-	It("DisplayUnitsMgPerDL is expected", func() {
-		Expect(pump.DisplayUnitsMgPerDL).To(Equal("mg/dL"))
-	})
-
-	It("DisplayUnitsMmolPerL is expected", func() {
-		Expect(pump.DisplayUnitsMmolPerL).To(Equal("mmol/L"))
-	})
-
-	It("DisplayUnits returns expected", func() {
-		Expect(pump.DisplayUnits()).To(Equal([]string{"mg/dL", "mmol/L"}))
-	})
-
 	Context("ParseDisplay", func() {
 		// TODO
 	})
@@ -68,25 +54,21 @@ var _ = Describe("Display", func() {
 				Entry("succeeds",
 					func(datum *pump.Display) {},
 				),
-				Entry("units missing",
-					func(datum *pump.Display) { datum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				Entry("blood glucose missing",
+					func(datum *pump.Display) { datum.BloodGlucose = nil },
 				),
-				Entry("units invalid",
-					func(datum *pump.Display) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL", "mmol/L"}), "/units"),
+				Entry("blood glucose invalid",
+					func(datum *pump.Display) { datum.BloodGlucose.Units = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
 				),
-				Entry("units mg/dL",
-					func(datum *pump.Display) { datum.Units = pointer.FromString("mg/dL") },
-				),
-				Entry("units mmol/L",
-					func(datum *pump.Display) { datum.Units = pointer.FromString("mmol/L") },
+				Entry("blood glucose valid",
+					func(datum *pump.Display) { datum.BloodGlucose = NewDisplayBloodGlucose() },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Display) {
-						datum.Units = nil
+						datum.BloodGlucose.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
 				),
 			)
 		})
@@ -109,8 +91,8 @@ var _ = Describe("Display", func() {
 				Entry("does not modify the datum",
 					func(datum *pump.Display) {},
 				),
-				Entry("does not modify the datum; units missing",
-					func(datum *pump.Display) { datum.Units = nil },
+				Entry("does not modify the datum; blood glucose missing",
+					func(datum *pump.Display) { datum.BloodGlucose = nil },
 				),
 			)
 		})

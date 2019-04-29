@@ -130,7 +130,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns an error if aws returns an error, but not awserr.Error", func() {
-						awsErr := errorsTest.NewError()
+						awsErr := errorsTest.RandomError()
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := str.Exists(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to head object with key %q; %s", keyPath, awsErr)))
@@ -207,7 +207,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns an error if aws returns an error", func() {
-						awsErr := errorsTest.NewError()
+						awsErr := errorsTest.RandomError()
 						awsS3Manager.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: awsErr}}
 						Expect(str.Put(ctx, key, reader)).To(MatchError(fmt.Sprintf("unable to upload object with key %q; %s", keyPath, awsErr)))
 					})
@@ -274,7 +274,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns an error if aws returns an error, but not awserr.Error", func() {
-						awsErr := errorsTest.NewError()
+						awsErr := errorsTest.RandomError()
 						awsS3Manager.DownloadWithContextOutputs = []awsTest.DownloadWithContextOutput{{BytesWritten: 0, Error: awsErr}}
 						var err error
 						reader, err = str.Get(ctx, key)
@@ -353,7 +353,7 @@ var _ = Describe("S3", func() {
 					})
 
 					It("returns an error if aws returns an error, but not awserr.Error", func() {
-						awsErr := errorsTest.NewError()
+						awsErr := errorsTest.RandomError()
 						awsS3.HeadObjectWithContextOutputs = []awsTest.HeadObjectWithContextOutput{{Output: nil, Error: awsErr}}
 						exists, err := str.Delete(ctx, key)
 						Expect(err).To(MatchError(fmt.Sprintf("unable to head object with key %q; %s", keyPath, awsErr)))
@@ -393,7 +393,7 @@ var _ = Describe("S3", func() {
 						})
 
 						It("returns an error if aws returns an error", func() {
-							awsErr := errorsTest.NewError()
+							awsErr := errorsTest.RandomError()
 							awsS3.DeleteObjectWithContextOutputs = []awsTest.DeleteObjectWithContextOutput{{Output: nil, Error: awsErr}}
 							exists, err := str.Delete(ctx, key)
 							Expect(err).To(MatchError(fmt.Sprintf("unable to delete object with key %q; %s", keyPath, awsErr)))

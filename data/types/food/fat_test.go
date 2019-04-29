@@ -17,7 +17,7 @@ import (
 
 func NewFat() *food.Fat {
 	datum := food.NewFat()
-	datum.Total = pointer.FromInt(test.RandomIntFromRange(food.FatTotalGramsMinimum, food.FatTotalGramsMaximum))
+	datum.Total = pointer.FromFloat64(test.RandomFloat64FromRange(food.FatTotalGramsMinimum, food.FatTotalGramsMaximum))
 	datum.Units = pointer.FromString(test.RandomStringFromArray(food.FatUnits()))
 	return datum
 }
@@ -27,18 +27,18 @@ func CloneFat(datum *food.Fat) *food.Fat {
 		return nil
 	}
 	clone := food.NewFat()
-	clone.Total = test.CloneInt(datum.Total)
+	clone.Total = test.CloneFloat64(datum.Total)
 	clone.Units = test.CloneString(datum.Units)
 	return clone
 }
 
 var _ = Describe("Fat", func() {
 	It("FatTotalGramsMaximum is expected", func() {
-		Expect(food.FatTotalGramsMaximum).To(Equal(1000))
+		Expect(food.FatTotalGramsMaximum).To(Equal(1000.0))
 	})
 
 	It("FatTotalGramsMinimum is expected", func() {
-		Expect(food.FatTotalGramsMinimum).To(Equal(0))
+		Expect(food.FatTotalGramsMinimum).To(Equal(0.0))
 	})
 
 	It("FatUnitsGrams is expected", func() {
@@ -79,18 +79,18 @@ var _ = Describe("Fat", func() {
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/total"),
 				),
 				Entry("total out of range (lower)",
-					func(datum *food.Fat) { datum.Total = pointer.FromInt(-1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/total"),
+					func(datum *food.Fat) { datum.Total = pointer.FromFloat64(-0.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
 				),
 				Entry("total in range (lower)",
-					func(datum *food.Fat) { datum.Total = pointer.FromInt(0) },
+					func(datum *food.Fat) { datum.Total = pointer.FromFloat64(0.0) },
 				),
 				Entry("total in range (upper)",
-					func(datum *food.Fat) { datum.Total = pointer.FromInt(1000) },
+					func(datum *food.Fat) { datum.Total = pointer.FromFloat64(1000.0) },
 				),
 				Entry("total out of range (upper)",
-					func(datum *food.Fat) { datum.Total = pointer.FromInt(1001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, 0, 1000), "/total"),
+					func(datum *food.Fat) { datum.Total = pointer.FromFloat64(1000.1) },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/total"),
 				),
 				Entry("units missing",
 					func(datum *food.Fat) { datum.Units = nil },

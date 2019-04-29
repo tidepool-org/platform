@@ -16,7 +16,7 @@ import (
 func NewBolus() *pump.Bolus {
 	datum := pump.NewBolus()
 	datum.AmountMaximum = NewBolusAmountMaximum()
-	datum.Combination = NewBolusCombination()
+	datum.Extended = NewBolusExtended()
 	return datum
 }
 
@@ -26,7 +26,7 @@ func CloneBolus(datum *pump.Bolus) *pump.Bolus {
 	}
 	clone := pump.NewBolus()
 	clone.AmountMaximum = CloneBolusAmountMaximum(datum.AmountMaximum)
-	clone.Combination = CloneBolusCombination(datum.Combination)
+	clone.Extended = CloneBolusExtended(datum.Extended)
 	return clone
 }
 
@@ -66,23 +66,23 @@ var _ = Describe("Bolus", func() {
 				Entry("amount maximum valid",
 					func(datum *pump.Bolus) { datum.AmountMaximum = NewBolusAmountMaximum() },
 				),
-				Entry("combination missing",
-					func(datum *pump.Bolus) { datum.Combination = nil },
+				Entry("extended missing",
+					func(datum *pump.Bolus) { datum.Extended = nil },
 				),
-				Entry("combination invalid",
-					func(datum *pump.Bolus) { datum.Combination.Enabled = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/combination/enabled"),
+				Entry("extended invalid",
+					func(datum *pump.Bolus) { datum.Extended.Enabled = nil },
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
 				),
-				Entry("combination valid",
-					func(datum *pump.Bolus) { datum.Combination = NewBolusCombination() },
+				Entry("extended valid",
+					func(datum *pump.Bolus) { datum.Extended = NewBolusExtended() },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Bolus) {
 						datum.AmountMaximum.Units = nil
-						datum.Combination.Enabled = nil
+						datum.Extended.Enabled = nil
 					},
 					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amountMaximum/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/combination/enabled"),
+					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
 				),
 			)
 		})
@@ -108,8 +108,8 @@ var _ = Describe("Bolus", func() {
 				Entry("does not modify the datum; amount maximum missing",
 					func(datum *pump.Bolus) { datum.AmountMaximum = nil },
 				),
-				Entry("does not modify the datum; combination missing",
-					func(datum *pump.Bolus) { datum.Combination = nil },
+				Entry("does not modify the datum; extended missing",
+					func(datum *pump.Bolus) { datum.Extended = nil },
 				),
 			)
 		})

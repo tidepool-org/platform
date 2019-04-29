@@ -6,6 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/onsi/gomega"
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/test"
@@ -23,8 +24,53 @@ func NewSourcePointer() string {
 	return sourcePointer
 }
 
-func NewError() error {
+func RandomError() error {
 	return errors.New(test.NewText(1, 64))
+}
+
+func CloneError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return err // TODO: Is there a reasonable way to clone an error?
+}
+
+func RandomSerializable() *errors.Serializable {
+	return errors.NewSerializable(RandomError())
+}
+
+func CloneSerializable(serializable *errors.Serializable) *errors.Serializable {
+	if serializable == nil {
+		return nil
+	}
+	return errors.NewSerializable(CloneError(serializable.Error))
+}
+
+func NewObjectFromSerializable(serializable *errors.Serializable, objectFormat test.ObjectFormat) map[string]interface{} {
+	if serializable == nil {
+		return nil
+	}
+
+	object := map[string]interface{}{}
+
+	switch objectFormat {
+	case test.ObjectFormatBSON:
+		if bytes, err := bson.Marshal(serializable); err != nil {
+			return nil
+		} else if err = bson.Unmarshal(bytes, &object); err != nil {
+			return nil
+		}
+	case test.ObjectFormatJSON:
+		if bytes, err := json.Marshal(serializable); err != nil {
+			return nil
+		} else if err = json.Unmarshal(bytes, &object); err != nil {
+			return nil
+		}
+	default:
+		return nil
+	}
+
+	return object
 }
 
 func NewMeta() interface{} {

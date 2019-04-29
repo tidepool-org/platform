@@ -701,7 +701,6 @@ var _ = Describe("Physical", func() {
 						datum.ActivityType = pointer.FromString("other")
 						datum.ActivityTypeOther = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/activityTypeOther", NewMeta()),
 				),
 				Entry("activity type other; activity type other empty",
 					func(datum *physical.Physical) {

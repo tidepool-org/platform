@@ -142,7 +142,7 @@ func (a *API) addObjectBody(requestBody interface{}) requestFunc {
 
 func (a *API) addStringBody(requestBody string, contentType string) requestFunc {
 	return func(request *http.Request) error {
-		if len(requestBody) != 0 {
+		if len(requestBody) > 0 {
 			a.info("Request body:", requestBody)
 		}
 

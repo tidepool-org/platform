@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	FatTotalGramsMaximum = 1000
-	FatTotalGramsMinimum = 0
+	FatTotalGramsMaximum = 1000.0
+	FatTotalGramsMinimum = 0.0
 	FatUnitsGrams        = "grams"
 )
 
@@ -18,8 +18,8 @@ func FatUnits() []string {
 }
 
 type Fat struct {
-	Total *int    `json:"total,omitempty" bson:"total,omitempty"`
-	Units *string `json:"units,omitempty" bson:"units,omitempty"`
+	Total *float64 `json:"total,omitempty" bson:"total,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseFat(parser data.ObjectParser) *Fat {
@@ -37,12 +37,12 @@ func NewFat() *Fat {
 }
 
 func (f *Fat) Parse(parser data.ObjectParser) {
-	f.Total = parser.ParseInteger("total")
+	f.Total = parser.ParseFloat("total")
 	f.Units = parser.ParseString("units")
 }
 
 func (f *Fat) Validate(validator structure.Validator) {
-	validator.Int("total", f.Total).Exists().InRange(FatTotalGramsMinimum, FatTotalGramsMaximum)
+	validator.Float64("total", f.Total).Exists().InRange(FatTotalGramsMinimum, FatTotalGramsMaximum)
 	validator.String("units", f.Units).Exists().OneOf(FatUnits()...)
 }
 

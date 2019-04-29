@@ -1,21 +1,8 @@
 package mongo_test
 
-// import (
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
-
-// 	"time"
-
-// 	mgo "gopkg.in/mgo.v2"
-// 	"gopkg.in/mgo.v2/bson"
-
-// 	"github.com/tidepool-org/platform/id"
-// 	"github.com/tidepool-org/platform/log/null"
-// 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-// 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-// 	"github.com/tidepool-org/platform/synctask/store"
-// 	"github.com/tidepool-org/platform/synctask/store/mongo"
-// )
+import (
+	. "github.com/onsi/ginkgo"
+)
 
 // func NewSyncTask(userID string) bson.M {
 // 	return bson.M{
@@ -47,115 +34,115 @@ package mongo_test
 // 	Expect(actualSyncTasks).To(ConsistOf(expectedSyncTasks))
 // }
 
-// var _ = Describe("Mongo", func() {
-// 	var mongoConfig *storeStructuredMongo.Config
-// 	var mongoStore *mongo.Store
-// 	var mongoSession store.SyncTaskSession
+var _ = Describe("Mongo", func() {
+	// 	var mongoConfig *storeStructuredMongo.Config
+	// 	var mongoStore *mongo.Store
+	// 	var mongoSession store.SyncTaskSession
 
-// 	BeforeEach(func() {
-// 		mongoConfig = storeStructuredMongoTest.NewConfig()
-// 	})
+	// 	BeforeEach(func() {
+	// 		mongoConfig = storeStructuredMongoTest.NewConfig()
+	// 	})
 
-// 	AfterEach(func() {
-// 		if mongoSession != nil {
-// 			mongoSession.Close()
-// 		}
-// 		if mongoStore != nil {
-// 			mongoStore.Close()
-// 		}
-// 	})
+	// 	AfterEach(func() {
+	// 		if mongoSession != nil {
+	// 			mongoSession.Close()
+	// 		}
+	// 		if mongoStore != nil {
+	// 			mongoStore.Close()
+	// 		}
+	// 	})
 
-// 	Context("New", func() {
-// 		It("returns an error if unsuccessful", func() {
-// 			var err error
-// 			mongoStore, err = mongo.NewStore(nil, nil)
-// 			Expect(err).To(HaveOccurred())
-// 			Expect(mongoStore).To(BeNil())
-// 		})
+	// 	Context("New", func() {
+	// 		It("returns an error if unsuccessful", func() {
+	// 			var err error
+	// 			mongoStore, err = mongo.NewStore(nil, nil)
+	// 			Expect(err).To(HaveOccurred())
+	// 			Expect(mongoStore).To(BeNil())
+	// 		})
 
-// 		It("returns a new store and no error if successful", func() {
-// 			var err error
-// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(mongoStore).ToNot(BeNil())
-// 		})
-// 	})
+	// 		It("returns a new store and no error if successful", func() {
+	// 			var err error
+	// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(mongoStore).ToNot(BeNil())
+	// 		})
+	// 	})
 
-// 	Context("with a new store", func() {
-// 		BeforeEach(func() {
-// 			var err error
-// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(mongoStore).ToNot(BeNil())
-// 		})
+	// 	Context("with a new store", func() {
+	// 		BeforeEach(func() {
+	// 			var err error
+	// 			mongoStore, err = mongo.NewStore(mongoConfig, null.NewLogger())
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(mongoStore).ToNot(BeNil())
+	// 		})
 
-// 		Context("NewSyncTaskSession", func() {
-// 			It("returns a new session", func() {
-// 				mongoSession = mongoStore.NewSyncTaskSession()
-// 				Expect(mongoSession).ToNot(BeNil())
-// 			})
-// 		})
+	// 		Context("NewSyncTaskSession", func() {
+	// 			It("returns a new session", func() {
+	// 				mongoSession = mongoStore.NewSyncTaskSession()
+	// 				Expect(mongoSession).ToNot(BeNil())
+	// 			})
+	// 		})
 
-// 		Context("with a new session", func() {
-// 			BeforeEach(func() {
-// 				mongoSession = mongoStore.NewSyncTaskSession()
-// 				Expect(mongoSession).ToNot(BeNil())
-// 			})
+	// 		Context("with a new session", func() {
+	// 			BeforeEach(func() {
+	// 				mongoSession = mongoStore.NewSyncTaskSession()
+	// 				Expect(mongoSession).ToNot(BeNil())
+	// 			})
 
-// 			Context("with persisted data", func() {
-// 				var testMongoSession *mgo.Session
-// 				var testMongoCollection *mgo.Collection
-// 				var syncTasks []interface{}
+	// 			Context("with persisted data", func() {
+	// 				var testMongoSession *mgo.Session
+	// 				var testMongoCollection *mgo.Collection
+	// 				var syncTasks []interface{}
 
-// 				BeforeEach(func() {
-// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
-// 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "syncTasks")
-// 					syncTasks = NewSyncTasks(id.New())
-// 				})
+	// 				BeforeEach(func() {
+	// 					testMongoSession = storeStructuredMongoTest.Session().Copy()
+	// 					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "syncTasks")
+	// 					syncTasks = NewSyncTasks(id.New())
+	// 				})
 
-// 				JustBeforeEach(func() {
-// 					Expect(testMongoCollection.Insert(syncTasks...)).To(Succeed())
-// 				})
+	// 				JustBeforeEach(func() {
+	// 					Expect(testMongoCollection.Insert(syncTasks...)).To(Succeed())
+	// 				})
 
-// 				AfterEach(func() {
-// 					if testMongoSession != nil {
-// 						testMongoSession.Close()
-// 					}
-// 				})
+	// 				AfterEach(func() {
+	// 					if testMongoSession != nil {
+	// 						testMongoSession.Close()
+	// 					}
+	// 				})
 
-// 				Context("DestroySyncTasksForUserByID", func() {
-// 					var destroyUserID string
-// 					var destroySyncTasks []interface{}
+	// 				Context("DestroySyncTasksForUserByID", func() {
+	// 					var destroyUserID string
+	// 					var destroySyncTasks []interface{}
 
-// 					BeforeEach(func() {
-// 						destroyUserID = id.New()
-// 						destroySyncTasks = NewSyncTasks(destroyUserID)
-// 					})
+	// 					BeforeEach(func() {
+	// 						destroyUserID = id.New()
+	// 						destroySyncTasks = NewSyncTasks(destroyUserID)
+	// 					})
 
-// 					JustBeforeEach(func() {
-// 						Expect(testMongoCollection.Insert(destroySyncTasks...)).To(Succeed())
-// 					})
+	// 					JustBeforeEach(func() {
+	// 						Expect(testMongoCollection.Insert(destroySyncTasks...)).To(Succeed())
+	// 					})
 
-// 					It("succeeds if it successfully removes sync tasks", func() {
-// 						Expect(mongoSession.DestroySyncTasksForUserByID(destroyUserID)).To(Succeed())
-// 					})
+	// 					It("succeeds if it successfully removes sync tasks", func() {
+	// 						Expect(mongoSession.DestroySyncTasksForUserByID(destroyUserID)).To(Succeed())
+	// 					})
 
-// 					It("returns an error if the user id is missing", func() {
-// 						Expect(mongoSession.DestroySyncTasksForUserByID("")).To(MatchError("user id is missing"))
-// 					})
+	// 					It("returns an error if the user id is missing", func() {
+	// 						Expect(mongoSession.DestroySyncTasksForUserByID("")).To(MatchError("user id is missing"))
+	// 					})
 
-// 					It("returns an error if the session is closed", func() {
-// 						mongoSession.Close()
-// 						Expect(mongoSession.DestroySyncTasksForUserByID(destroyUserID)).To(MatchError("session closed"))
-// 					})
+	// 					It("returns an error if the session is closed", func() {
+	// 						mongoSession.Close()
+	// 						Expect(mongoSession.DestroySyncTasksForUserByID(destroyUserID)).To(MatchError("session closed"))
+	// 					})
 
-// 					It("has the correct stored sync tasks", func() {
-// 						ValidateSyncTasks(testMongoCollection, bson.M{}, append(syncTasks, destroySyncTasks...))
-// 						Expect(mongoSession.DestroySyncTasksForUserByID(destroyUserID)).To(Succeed())
-// 						ValidateSyncTasks(testMongoCollection, bson.M{}, syncTasks)
-// 					})
-// 				})
-// 			})
-// 		})
-// 	})
-// })
+	// 					It("has the correct stored sync tasks", func() {
+	// 						ValidateSyncTasks(testMongoCollection, bson.M{}, append(syncTasks, destroySyncTasks...))
+	// 						Expect(mongoSession.DestroySyncTasksForUserByID(destroyUserID)).To(Succeed())
+	// 						ValidateSyncTasks(testMongoCollection, bson.M{}, syncTasks)
+	// 					})
+	// 				})
+	// 			})
+	// 		})
+	// 	})
+})

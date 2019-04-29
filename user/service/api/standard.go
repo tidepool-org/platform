@@ -8,12 +8,12 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/metric"
+	"github.com/tidepool-org/platform/permission"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStore "github.com/tidepool-org/platform/profile/store"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	sessionStore "github.com/tidepool-org/platform/session/store"
-	"github.com/tidepool-org/platform/user"
 	userService "github.com/tidepool-org/platform/user/service"
 	userContext "github.com/tidepool-org/platform/user/service/context"
 	userStore "github.com/tidepool-org/platform/user/store"
@@ -23,7 +23,7 @@ type Standard struct {
 	*api.API
 	dataClient        dataClient.Client
 	metricClient      metric.Client
-	userClient        user.Client
+	permissionClient  permission.Client
 	confirmationStore confirmationStore.Store
 	messageStore      messageStore.Store
 	permissionStore   permissionStore.Store
@@ -32,7 +32,7 @@ type Standard struct {
 	userStore         userStore.Store
 }
 
-func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient metric.Client, userClient user.Client,
+func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient metric.Client, permissionClient permission.Client,
 	confirmationStore confirmationStore.Store, messageStore messageStore.Store, permissionStore permissionStore.Store,
 	profileStore profileStore.Store, sessionStore sessionStore.Store, userStore userStore.Store) (*Standard, error) {
 	if dataClient == nil {
@@ -41,8 +41,8 @@ func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
-	if userClient == nil {
-		return nil, errors.New("user client is missing")
+	if permissionClient == nil {
+		return nil, errors.New("permission client is missing")
 	}
 	if confirmationStore == nil {
 		return nil, errors.New("confirmation store is missing")
@@ -72,7 +72,7 @@ func NewStandard(svc service.Service, dataClient dataClient.Client, metricClient
 		API:               a,
 		dataClient:        dataClient,
 		metricClient:      metricClient,
-		userClient:        userClient,
+		permissionClient:  permissionClient,
 		confirmationStore: confirmationStore,
 		messageStore:      messageStore,
 		permissionStore:   permissionStore,
@@ -110,7 +110,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []userService.Route) error 
 }
 
 func (s *Standard) withContext(handler userService.HandlerFunc) rest.HandlerFunc {
-	return userContext.WithContext(s.AuthClient(), s.dataClient, s.metricClient, s.userClient,
+	return userContext.WithContext(s.AuthClient(), s.dataClient, s.metricClient, s.permissionClient,
 		s.confirmationStore, s.messageStore, s.permissionStore, s.profileStore,
 		s.sessionStore, s.userStore, handler)
 }

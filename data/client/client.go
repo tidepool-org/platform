@@ -17,7 +17,6 @@ import (
 // TODO: Once above complete, rename ClientImpl to Client
 
 type Client interface {
-	data.DataSourceAccessor
 	data.DataSetAccessor
 
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
@@ -38,112 +37,6 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, e
 	return &ClientImpl{
 		client: clnt,
 	}, nil
-}
-
-func (c *ClientImpl) ListUserDataSources(ctx context.Context, userID string, filter *data.DataSourceFilter, pagination *page.Pagination) (data.DataSources, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	}
-	if filter == nil {
-		filter = data.NewDataSourceFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
-		return nil, errors.Wrap(err, "filter is invalid")
-	}
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
-	dataSources := data.DataSources{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &dataSources); err != nil {
-		return nil, err
-	}
-
-	return dataSources, nil
-}
-
-func (c *ClientImpl) CreateUserDataSource(ctx context.Context, userID string, create *data.DataSourceCreate) (*data.DataSource, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	}
-	if create == nil {
-		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
-		return nil, errors.Wrap(err, "create is invalid")
-	}
-
-	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
-	dataSource := &data.DataSource{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, dataSource); err != nil {
-		return nil, err
-	}
-
-	return dataSource, nil
-}
-
-func (c *ClientImpl) GetDataSource(ctx context.Context, id string) (*data.DataSource, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	url := c.client.ConstructURL("v1", "data_sources", id)
-	dataSource := &data.DataSource{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, dataSource); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return dataSource, nil
-}
-
-func (c *ClientImpl) UpdateDataSource(ctx context.Context, id string, update *data.DataSourceUpdate) (*data.DataSource, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-	if update == nil {
-		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
-		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	url := c.client.ConstructURL("v1", "data_sources", id)
-	dataSource := &data.DataSource{}
-	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, dataSource); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return dataSource, nil
-}
-
-func (c *ClientImpl) DeleteDataSource(ctx context.Context, id string) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if id == "" {
-		return errors.New("id is missing")
-	}
-
-	url := c.client.ConstructURL("v1", "data_sources", id)
-	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
 func (c *ClientImpl) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {

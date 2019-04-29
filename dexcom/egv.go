@@ -39,6 +39,7 @@ func (e *EGVsResponse) Parse(parser structure.ObjectParser) {
 }
 
 func (e *EGVsResponse) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(e)
 	validator.String("unit", &e.Unit).OneOf(UnitMgdL)            // TODO: Add UnitMmolL
 	validator.String("rateUnit", &e.RateUnit).OneOf(UnitMgdLMin) // TODO: Add UnitMmolLMin
 
@@ -88,6 +89,7 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 }
 
 func (e *EGV) Validate(validator structure.Validator) {
+	validator = validator.WithMeta(e)
 	validator.Time("systemTime", &e.SystemTime).BeforeNow(NowThreshold)
 	validator.Time("displayTime", &e.DisplayTime).NotZero()
 	validator.String("unit", &e.Unit).OneOf(UnitMgdL) // TODO: Add UnitMmolL

@@ -1,49 +1,44 @@
 package v1_test
 
-// TODO
-// import (
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
+import (
+	. "github.com/onsi/ginkgo"
+)
 
-// 	"github.com/tidepool-org/platform/task/service/api/v1"
-// 	testService "github.com/tidepool-org/platform/task/service/test"
-// )
+var _ = Describe("V1", func() {
+	// var svc *testService.Service
 
-// var _ = Describe("V1", func() {
-// 	var svc *testService.Service
+	// 	BeforeEach(func() {
+	// 		svc = testService.NewService()
+	// 	})
 
-// 	BeforeEach(func() {
-// 		svc = testService.NewService()
-// 	})
+	// 	Context("NewRouter", func() {
+	// 		It("returns an error if context is missing", func() {
+	// 			rtr, err := v1.NewRouter(nil)
+	// 			Expect(err).To(MatchError("service is missing"))
+	// 			Expect(rtr).To(BeNil())
+	// 		})
 
-// 	Context("NewRouter", func() {
-// 		It("returns an error if context is missing", func() {
-// 			rtr, err := v1.NewRouter(nil)
-// 			Expect(err).To(MatchError("service is missing"))
-// 			Expect(rtr).To(BeNil())
-// 		})
+	// 		It("returns successfully", func() {
+	// 			rtr, err := v1.NewRouter(svc)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(rtr).ToNot(BeNil())
+	// 		})
+	// 	})
 
-// 		It("returns successfully", func() {
-// 			rtr, err := v1.NewRouter(svc)
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(rtr).ToNot(BeNil())
-// 		})
-// 	})
+	// 	Context("with new router", func() {
+	// 		var rtr *v1.Router
 
-// 	Context("with new router", func() {
-// 		var rtr *v1.Router
+	// 		BeforeEach(func() {
+	// 			var err error
+	// 			rtr, err = v1.NewRouter(svc)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(rtr).ToNot(BeNil())
+	// 		})
 
-// 		BeforeEach(func() {
-// 			var err error
-// 			rtr, err = v1.NewRouter(svc)
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(rtr).ToNot(BeNil())
-// 		})
-
-// 		Context("Routes", func() {
-// 			It("returns the expected routes", func() {
-// 				Expect(rtr.Routes()).To(BeEmpty())
-// 			})
-// 		})
-// 	})
-// })
+	// 		Context("Routes", func() {
+	// 			It("returns the expected routes", func() {
+	// 				Expect(rtr.Routes()).To(BeEmpty())
+	// 			})
+	// 		})
+	// 	})
+})

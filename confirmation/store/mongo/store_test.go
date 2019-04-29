@@ -15,10 +15,10 @@ import (
 	"github.com/tidepool-org/platform/confirmation/store/mongo"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
+	netTest "github.com/tidepool-org/platform/net/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/test"
-	testInternet "github.com/tidepool-org/platform/test/internet"
 )
 
 func NewConfirmation(userID string, typ string) bson.M {
@@ -27,7 +27,7 @@ func NewConfirmation(userID string, typ string) bson.M {
 		"created":   now.Format(time.RFC3339),
 		"creator":   bson.M{},
 		"creatorId": "",
-		"email":     testInternet.NewEmail(),
+		"email":     netTest.RandomEmail(),
 		"modified":  now.Format(time.RFC3339),
 		"status":    "completed",
 		"type":      typ,

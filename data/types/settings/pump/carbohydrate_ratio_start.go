@@ -82,8 +82,7 @@ func (c *CarbohydrateRatioStartArray) Parse(parser data.ArrayParser) {
 func (c *CarbohydrateRatioStartArray) Validate(validator structure.Validator) {
 	startMinimum := pointer.FromInt(CarbohydrateRatioStartStartMinimum)
 	for index, datum := range *c {
-		datumValidator := validator.WithReference(strconv.Itoa(index))
-		if datum != nil {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
 			datum.Validate(datumValidator, startMinimum)
 			if index == 0 {
 				startMinimum = pointer.FromInt(CarbohydrateRatioStartStartMinimum + 1)

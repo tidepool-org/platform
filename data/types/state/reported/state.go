@@ -96,8 +96,7 @@ func (s *StateArray) Parse(parser data.ArrayParser) {
 func (s *StateArray) Validate(validator structure.Validator) {
 	// TODO: Validate no duplicates?
 	for index, state := range *s {
-		stateValidator := validator.WithReference(strconv.Itoa(index))
-		if state != nil {
+		if stateValidator := validator.WithReference(strconv.Itoa(index)); state != nil {
 			state.Validate(stateValidator)
 		} else {
 			stateValidator.ReportError(structureValidator.ErrorValueNotExists())

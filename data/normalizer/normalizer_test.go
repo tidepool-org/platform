@@ -36,7 +36,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("returns any reported error", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				normalizer.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -49,7 +49,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("reports the error", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				normalizer.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -72,7 +72,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("returns any error", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				normalizable.NormalizeStub = func(normalizer data.Normalizer) { normalizer.ReportError(err) }
 				Expect(normalizer.Normalize(normalizable)).To(Equal(errors.Normalize(err)))
 			})
@@ -126,7 +126,7 @@ var _ = Describe("Normalizer", func() {
 			It("retains the source", func() {
 				source.ParameterOutput = pointer.FromString("123")
 				source.PointerOutput = pointer.FromString("/a/b/c")
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				normalizerWithSource.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.WithSource(err, source)))
 			})
@@ -147,7 +147,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("retains the meta", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				normalizerWithMeta.ReportError(err)
 				Expect(normalizer.Error()).To(Equal(errors.WithMeta(err, meta)))
 			})
@@ -168,7 +168,7 @@ var _ = Describe("Normalizer", func() {
 			})
 
 			It("retains the reference", func() {
-				err := testErrors.NewError()
+				err := testErrors.RandomError()
 				source := testStructure.NewSource()
 				source.ParameterOutput = pointer.FromString("")
 				source.PointerOutput = pointer.FromString(fmt.Sprintf("/%s", reference))

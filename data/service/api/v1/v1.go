@@ -12,10 +12,11 @@ func Routes() []service.Route {
 		service.MakeRoute("GET", "/v1/users/:userId/datasets", Authenticate(UsersDataSetsGet)),
 
 		service.MakeRoute("POST", "/v1/data_sets/:dataSetId/data", Authenticate(DataSetsDataCreate)),
+		service.MakeRoute("DELETE", "/v1/data_sets/:dataSetId/data", Authenticate(DataSetsDataDelete)),
 		service.MakeRoute("DELETE", "/v1/data_sets/:dataSetId", Authenticate(DataSetsDelete)),
 		service.MakeRoute("PUT", "/v1/data_sets/:dataSetId", Authenticate(DataSetsUpdate)),
 		service.MakeRoute("GET", "/v1/time", TimeGet),
 		service.MakeRoute("POST", "/v1/users/:userId/data_sets", Authenticate(UsersDataSetsCreate)),
 	}
-	return append(append(routes, DataSetsRoutes()...), DataSourcesRoutes()...)
+	return append(append(routes, DataSetsRoutes()...), SourcesRoutes()...)
 }

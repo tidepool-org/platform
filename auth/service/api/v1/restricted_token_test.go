@@ -1,3 +1,8 @@
 package v1_test
 
-// TODO
+import (
+	. "github.com/onsi/ginkgo"
+)
+
+var _ = Describe("RestrictedToken", func() {
+})

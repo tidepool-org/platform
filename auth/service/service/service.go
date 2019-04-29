@@ -1,8 +1,6 @@
 package service
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
-
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
@@ -10,7 +8,8 @@ import (
 	"github.com/tidepool-org/platform/auth/service/api/v1"
 	"github.com/tidepool-org/platform/auth/store"
 	authMongo "github.com/tidepool-org/platform/auth/store/mongo"
-	dataClient "github.com/tidepool-org/platform/data/client"
+	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
@@ -24,12 +23,12 @@ import (
 
 type Service struct {
 	*serviceService.Service
-	domain          string
-	authStore       *authMongo.Store
-	dataClient      dataClient.Client
-	taskClient      task.Client
-	providerFactory provider.Factory
-	authClient      *Client
+	domain           string
+	authStore        *authMongo.Store
+	dataSourceClient *dataSourceClient.Client
+	taskClient       task.Client
+	providerFactory  provider.Factory
+	authClient       *Client
 }
 
 func New() *Service {
@@ -52,7 +51,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
-	if err := s.initializeDataClient(); err != nil {
+	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
 	if err := s.initializeTaskClient(); err != nil {
@@ -68,7 +67,7 @@ func (s *Service) Terminate() {
 	s.terminateAuthClient()
 	s.terminateProviderFactory()
 	s.terminateTaskClient()
-	s.terminateDataClient()
+	s.terminateDataSourceClient()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
@@ -84,8 +83,8 @@ func (s *Service) AuthStore() store.Store {
 	return s.authStore
 }
 
-func (s *Service) DataClient() dataClient.Client {
-	return s.dataClient
+func (s *Service) DataSourceClient() dataSource.Client {
+	return s.dataSourceClient
 }
 
 func (s *Service) TaskClient() task.Client {
@@ -124,15 +123,12 @@ func (s *Service) terminateDomain() {
 }
 
 func (s *Service) initializeRouter() error {
-	routes := []*rest.Route{}
-
 	s.Logger().Debug("Creating api router")
 
 	apiRouter, err := api.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api router")
 	}
-	routes = append(routes, apiRouter.Routes()...)
 
 	s.Logger().Debug("Creating v1 router")
 
@@ -140,12 +136,11 @@ func (s *Service) initializeRouter() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}
-	routes = append(routes, v1Router.Routes()...)
 
-	s.Logger().Debug("Initializing router")
+	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouter(routes...); err != nil {
-		return errors.Wrap(err, "unable to initialize router")
+	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
+		return errors.Wrap(err, "unable to initialize routers")
 	}
 
 	return nil
@@ -190,30 +185,30 @@ func (s *Service) terminateAuthStore() {
 	}
 }
 
-func (s *Service) initializeDataClient() error {
-	s.Logger().Debug("Loading data client config")
+func (s *Service) initializeDataSourceClient() error {
+	s.Logger().Debug("Loading data source client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
-		return errors.Wrap(err, "unable to load data client config")
+	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "client")); err != nil {
+		return errors.Wrap(err, "unable to load data source client config")
 	}
 
-	s.Logger().Debug("Creating data client")
+	s.Logger().Debug("Creating data source client")
 
-	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
+	clnt, err := dataSourceClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
-		return errors.Wrap(err, "unable to create data client")
+		return errors.Wrap(err, "unable to create data source client")
 	}
-	s.dataClient = clnt
+	s.dataSourceClient = clnt
 
 	return nil
 }
 
-func (s *Service) terminateDataClient() {
-	if s.dataClient != nil {
-		s.Logger().Debug("Destroying data client")
-		s.dataClient = nil
+func (s *Service) terminateDataSourceClient() {
+	if s.dataSourceClient != nil {
+		s.Logger().Debug("Destroying data source client")
+		s.dataSourceClient = nil
 	}
 }
 
@@ -254,7 +249,7 @@ func (s *Service) initializeProviderFactory() error {
 
 	s.providerFactory = prvdrFctry
 
-	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataClient(), s.TaskClient()); prvdrErr != nil {
+	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")

@@ -1,4 +1,4 @@
-required = ["github.com/onsi/ginkgo/ginkgo"]
+required = ["github.com/githubnemo/CompileDaemon", "github.com/mjibson/esc", "github.com/onsi/ginkgo/ginkgo", "golang.org/x/lint/golint", "golang.org/x/tools/cmd/goimports"]
 ignored = ["google.golang.org/appengine/urlfetch"]
 
 [[constraint]]
@@ -36,6 +36,14 @@ ignored = ["google.golang.org/appengine/urlfetch"]
 [[constraint]]
   name = "gopkg.in/tylerb/graceful.v1"
   version = "1.2.15"
+
+[[constraint]]
+  name = "golang.org/x/lint"
+  revision = "06c8688daad7faa9da5a0c2f163a3d14aac986ca"
+
+[[constraint]]
+  name = "golang.org/x/tools"
+  revision = "7ca132754999accbaa5c1735eda29e7ce0f3bf03"
 
 [prune]
   go-tests = true

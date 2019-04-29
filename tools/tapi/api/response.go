@@ -48,7 +48,7 @@ func (a *API) asEmpty(responseBody io.Reader, err error) error {
 		return err
 	}
 
-	if responseBuffer.Len() != 0 {
+	if responseBuffer.Len() > 0 {
 		a.info("Ignoring non-empty response body.")
 	}
 

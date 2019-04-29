@@ -3,7 +3,7 @@ package test
 import (
 	"math/rand"
 
-	"github.com/tidepool-org/platform/data"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/common/association"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -14,7 +14,7 @@ func NewAssociation() *association.Association {
 	typ := test.RandomStringFromArray(association.Types())
 	datum := association.NewAssociation()
 	if typ == association.TypeDatum {
-		datum.ID = pointer.FromString(data.NewID())
+		datum.ID = pointer.FromString(dataTest.RandomID())
 	}
 	datum.Reason = pointer.FromString(test.NewText(1, 1000))
 	datum.Type = pointer.FromString(typ)
@@ -38,7 +38,7 @@ func CloneAssociation(datum *association.Association) *association.Association {
 
 func NewAssociationArray() *association.AssociationArray {
 	datum := association.NewAssociationArray()
-	for count := rand.Intn(100); count >= 0; count-- {
+	for count := rand.Intn(3); count >= 0; count-- {
 		*datum = append(*datum, NewAssociation())
 	}
 	return datum

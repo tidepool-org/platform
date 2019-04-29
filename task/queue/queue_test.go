@@ -1,3 +1,8 @@
 package queue_test
 
-// TODO
+import (
+	. "github.com/onsi/ginkgo"
+)
+
+var _ = Describe("Queue", func() {
+})

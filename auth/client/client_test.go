@@ -1,494 +1,481 @@
 package client_test
 
-// TODO
-// import (
-// 	. "github.com/onsi/ginkgo"
-// 	. "github.com/onsi/gomega"
-// 	. "github.com/onsi/gomega/ghttp"
+import (
+	. "github.com/onsi/ginkgo"
+)
 
-// 	"net/http"
-// 	"time"
+var _ = Describe("Client", func() {
+	// 	var serverTokenSecret string
+	// 	var serverTokenTimeout int
+	// 	var name string
+	// 	var logger log.Logger
+	// 	var ctx *testAuth.Context
+	// 	var serverToken string
+	// 	var token string
 
-// 	"github.com/tidepool-org/platform/auth/client"
-// 	testAuth "github.com/tidepool-org/platform/auth/test"
-// 	"github.com/tidepool-org/platform/log"
-// 	nullLog "github.com/tidepool-org/platform/log/null"
-// 	"github.com/tidepool-org/platform/test"
-// 	testHTTP "github.com/tidepool-org/platform/test/http"
-// )
+	// 	BeforeEach(func() {
+	// 		serverTokenSecret = test.NewText(32, 128)
+	// 		serverTokenTimeout = testHTTP.NewTimeout()
+	// 		name = test.NewText(4, 16)
+	// 		logger = nullLog.NewLogger()
+	// 		Expect(logger).ToNot(BeNil())
+	// 		ctx = testAuth.NewContext()
+	// 		Expect(ctx).ToNot(BeNil())
+	// 		serverToken = testAuth.NewSessionToken()
+	// 		token = testAuth.NewSessionToken()
+	// 	})
 
-// var _ = Describe("Client", func() {
-// 	var serverTokenSecret string
-// 	var serverTokenTimeout int
-// 	var name string
-// 	var logger log.Logger
-// 	var ctx *testAuth.Context
-// 	var serverToken string
-// 	var token string
+	// 	Context("NewClient", func() {
+	// 		var config *client.Config
 
-// 	BeforeEach(func() {
-// 		serverTokenSecret = test.NewText(32, 128)
-// 		serverTokenTimeout = testHTTP.NewTimeout()
-// 		name = test.NewText(4, 16)
-// 		logger = nullLog.NewLogger()
-// 		Expect(logger).ToNot(BeNil())
-// 		ctx = testAuth.NewContext()
-// 		Expect(ctx).ToNot(BeNil())
-// 		serverToken = testAuth.NewSessionToken()
-// 		token = testAuth.NewSessionToken()
-// 	})
+	// 		BeforeEach(func() {
+	// 			config = client.NewConfig()
+	// 			Expect(config).ToNot(BeNil())
+	// 			Expect(config.Config).ToNot(BeNil())
+	// 			config.Address = testHTTP.NewAddress()
+	// 			config.Timeout = time.Duration(testHTTP.NewTimeout()) * time.Second
+	// 			config.ServerSessionTokenSecret = serverTokenSecret
+	// 			config.ServerSessionTokenTimeout = time.Duration(serverTokenTimeout) * time.Second
+	// 		})
 
-// 	Context("NewClient", func() {
-// 		var config *client.Config
+	// 		It("returns an error if config is missing", func() {
+	// 			clnt, err := client.NewClient(nil, name, logger)
+	// 			Expect(err).To(MatchError("config is missing"))
+	// 			Expect(clnt).To(BeNil())
+	// 		})
 
-// 		BeforeEach(func() {
-// 			config = client.NewConfig()
-// 			Expect(config).ToNot(BeNil())
-// 			Expect(config.Config).ToNot(BeNil())
-// 			config.Address = testHTTP.NewAddress()
-// 			config.Timeout = time.Duration(testHTTP.NewTimeout()) * time.Second
-// 			config.ServerSessionTokenSecret = serverTokenSecret
-// 			config.ServerSessionTokenTimeout = time.Duration(serverTokenTimeout) * time.Second
-// 		})
+	// 		It("returns an error if name is missing", func() {
+	// 			clnt, err := client.NewClient(config, "", logger)
+	// 			Expect(err).To(MatchError("name is missing"))
+	// 			Expect(clnt).To(BeNil())
+	// 		})
 
-// 		It("returns an error if config is missing", func() {
-// 			clnt, err := client.NewClient(nil, name, logger)
-// 			Expect(err).To(MatchError("config is missing"))
-// 			Expect(clnt).To(BeNil())
-// 		})
+	// 		It("returns an error if logger is missing", func() {
+	// 			clnt, err := client.NewClient(config, name, nil)
+	// 			Expect(err).To(MatchError("logger is missing"))
+	// 			Expect(clnt).To(BeNil())
+	// 		})
 
-// 		It("returns an error if name is missing", func() {
-// 			clnt, err := client.NewClient(config, "", logger)
-// 			Expect(err).To(MatchError("name is missing"))
-// 			Expect(clnt).To(BeNil())
-// 		})
+	// 		It("returns an error if config address is missing", func() {
+	// 			config.Address = ""
+	// 			clnt, err := client.NewClient(config, name, logger)
+	// 			Expect(err).To(MatchError("config is invalid; address is missing"))
+	// 			Expect(clnt).To(BeNil())
+	// 		})
 
-// 		It("returns an error if logger is missing", func() {
-// 			clnt, err := client.NewClient(config, name, nil)
-// 			Expect(err).To(MatchError("logger is missing"))
-// 			Expect(clnt).To(BeNil())
-// 		})
+	// 		It("returns an error if config server token secret is missing", func() {
+	// 			config.ServerSessionTokenSecret = ""
+	// 			clnt, err := client.NewClient(config, name, logger)
+	// 			Expect(err).To(MatchError("config is invalid; server token secret is missing"))
+	// 			Expect(clnt).To(BeNil())
+	// 		})
 
-// 		It("returns an error if config address is missing", func() {
-// 			config.Address = ""
-// 			clnt, err := client.NewClient(config, name, logger)
-// 			Expect(err).To(MatchError("config is invalid; address is missing"))
-// 			Expect(clnt).To(BeNil())
-// 		})
+	// 		It("returns success", func() {
+	// 			clnt, err := client.NewClient(config, name, logger)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(clnt).ToNot(BeNil())
+	// 			clnt.Close()
+	// 		})
+	// 	})
 
-// 		It("returns an error if config server token secret is missing", func() {
-// 			config.ServerSessionTokenSecret = ""
-// 			clnt, err := client.NewClient(config, name, logger)
-// 			Expect(err).To(MatchError("config is invalid; server token secret is missing"))
-// 			Expect(clnt).To(BeNil())
-// 		})
+	// 	Context("with started server and new client", func() {
+	// 		var svr *Server
+	// 		var config *client.Config
+	// 		var clnt *client.Client
 
-// 		It("returns success", func() {
-// 			clnt, err := client.NewClient(config, name, logger)
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(clnt).ToNot(BeNil())
-// 			clnt.Close()
-// 		})
-// 	})
+	// 		BeforeEach(func() {
+	// 			svr = NewServer()
+	// 			config = client.NewConfig()
+	// 			Expect(config).ToNot(BeNil())
+	// 			Expect(config.Config).ToNot(BeNil())
+	// 			config.Address = svr.URL()
+	// 			config.ServerSessionTokenSecret = serverTokenSecret
+	// 		})
 
-// 	Context("with started server and new client", func() {
-// 		var svr *Server
-// 		var config *client.Config
-// 		var clnt *client.Client
+	// 		JustBeforeEach(func() {
+	// 			var err error
+	// 			clnt, err = client.NewClient(config, name, logger)
+	// 			Expect(err).ToNot(HaveOccurred())
+	// 			Expect(clnt).ToNot(BeNil())
+	// 			ctx.AuthClientMock = clnt
+	// 		})
 
-// 		BeforeEach(func() {
-// 			svr = NewServer()
-// 			config = client.NewConfig()
-// 			Expect(config).ToNot(BeNil())
-// 			Expect(config.Config).ToNot(BeNil())
-// 			config.Address = svr.URL()
-// 			config.ServerSessionTokenSecret = serverTokenSecret
-// 		})
+	// 		AfterEach(func() {
+	// 			clnt.Close()
+	// 			if svr != nil {
+	// 				svr.Close()
+	// 			}
+	// 		})
 
-// 		JustBeforeEach(func() {
-// 			var err error
-// 			clnt, err = client.NewClient(config, name, logger)
-// 			Expect(err).ToNot(HaveOccurred())
-// 			Expect(clnt).ToNot(BeNil())
-// 			ctx.AuthClientMock = clnt
-// 		})
+	// 		Context("Start", func() {
+	// 			Context("with immediate success of server login", func() {
+	// 				BeforeEach(func() {
+	// 					svr.AppendHandlers(
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 					)
+	// 				})
 
-// 		AfterEach(func() {
-// 			clnt.Close()
-// 			if svr != nil {
-// 				svr.Close()
-// 			}
-// 		})
+	// 				It("returns nil and only invokes server login once", func() {
+	// 					Expect(clnt.Start()).To(Succeed())
+	// 					Eventually(func() []*http.Request {
+	// 						return svr.ReceivedRequests()
+	// 					}, 10, 1).Should(HaveLen(1))
+	// 				})
+	// 			})
 
-// 		Context("Start", func() {
-// 			Context("with immediate success of server login", func() {
-// 				BeforeEach(func() {
-// 					svr.AppendHandlers(
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 					)
-// 				})
+	// 			Context("with one failure and then success of server login (delay 1 second)", func() {
+	// 				BeforeEach(func() {
+	// 					svr.AppendHandlers(
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusBadRequest, nil)),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 					)
+	// 				})
 
-// 				It("returns nil and only invokes server login once", func() {
-// 					Expect(clnt.Start()).To(Succeed())
-// 					Eventually(func() []*http.Request {
-// 						return svr.ReceivedRequests()
-// 					}, 10, 1).Should(HaveLen(1))
-// 				})
-// 			})
+	// 				It("returns nil and only invokes server login twice", func() {
+	// 					Expect(clnt.Start()).To(Succeed())
+	// 					Eventually(func() []*http.Request {
+	// 						return svr.ReceivedRequests()
+	// 					}, 10, 1).Should(HaveLen(2))
 
-// 			Context("with one failure and then success of server login (delay 1 second)", func() {
-// 				BeforeEach(func() {
-// 					svr.AppendHandlers(
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusBadRequest, nil)),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 					)
-// 				})
+	// 				})
+	// 			})
 
-// 				It("returns nil and only invokes server login twice", func() {
-// 					Expect(clnt.Start()).To(Succeed())
-// 					Eventually(func() []*http.Request {
-// 						return svr.ReceivedRequests()
-// 					}, 10, 1).Should(HaveLen(2))
+	// 			Context("with two failures and then success of server login (delay 1 second, then 2 seconds)", func() {
+	// 				BeforeEach(func() {
+	// 					svr.AppendHandlers(
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusBadRequest, nil)),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusBadRequest, nil)),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 					)
+	// 				})
 
-// 				})
-// 			})
+	// 				It("returns nil and only invokes server login thrice", func() {
+	// 					Expect(clnt.Start()).To(Succeed())
+	// 					Eventually(func() []*http.Request {
+	// 						return svr.ReceivedRequests()
+	// 					}, 10, 1).Should(HaveLen(3))
+	// 				})
+	// 			})
 
-// 			Context("with two failures and then success of server login (delay 1 second, then 2 seconds)", func() {
-// 				BeforeEach(func() {
-// 					svr.AppendHandlers(
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusBadRequest, nil)),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusBadRequest, nil)),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 					)
-// 				})
+	// 			Context("with one missing session header and then success of server login (delay 1 second)", func() {
+	// 				BeforeEach(func() {
+	// 					svr.AppendHandlers(
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil)),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 					)
+	// 				})
 
-// 				It("returns nil and only invokes server login thrice", func() {
-// 					Expect(clnt.Start()).To(Succeed())
-// 					Eventually(func() []*http.Request {
-// 						return svr.ReceivedRequests()
-// 					}, 10, 1).Should(HaveLen(3))
-// 				})
-// 			})
+	// 				It("returns nil and only invokes server login twice", func() {
+	// 					Expect(clnt.Start()).To(Succeed())
+	// 					Eventually(func() []*http.Request {
+	// 						return svr.ReceivedRequests()
+	// 					}, 10, 1).Should(HaveLen(2))
+	// 				})
+	// 			})
 
-// 			Context("with one missing session header and then success of server login (delay 1 second)", func() {
-// 				BeforeEach(func() {
-// 					svr.AppendHandlers(
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil)),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 					)
-// 				})
+	// 			Context("with 1 second token timeout", func() {
+	// 				BeforeEach(func() {
+	// 					config.ServerSessionTokenTimeout = 1 * time.Second
+	// 					svr.AppendHandlers(
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 						CombineHandlers(
+	// 							VerifyRequest("POST", "/auth/serverlogin"),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 							VerifyBody(nil),
+	// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 					)
+	// 				})
 
-// 				It("returns nil and only invokes server login twice", func() {
-// 					Expect(clnt.Start()).To(Succeed())
-// 					Eventually(func() []*http.Request {
-// 						return svr.ReceivedRequests()
-// 					}, 10, 1).Should(HaveLen(2))
-// 				})
-// 			})
+	// 				It("returns nil and only invokes server login thrice", func() {
+	// 					Expect(clnt.Start()).To(Succeed())
+	// 					Eventually(func() []*http.Request {
+	// 						return svr.ReceivedRequests()
+	// 					}, 10, 1).Should(HaveLen(3))
+	// 				})
+	// 			})
 
-// 			Context("with 1 second token timeout", func() {
-// 				BeforeEach(func() {
-// 					config.ServerSessionTokenTimeout = 1 * time.Second
-// 					svr.AppendHandlers(
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 						CombineHandlers(
-// 							VerifyRequest("POST", "/auth/serverlogin"),
-// 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 							VerifyBody(nil),
-// 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 					)
-// 				})
+	// 			It("returns nil and even if server is unreachable", func() {
+	// 				svr.Close()
+	// 				svr = nil
+	// 				Expect(clnt.Start()).To(Succeed())
+	// 			})
+	// 		})
 
-// 				It("returns nil and only invokes server login thrice", func() {
-// 					Expect(clnt.Start()).To(Succeed())
-// 					Eventually(func() []*http.Request {
-// 						return svr.ReceivedRequests()
-// 					}, 10, 1).Should(HaveLen(3))
-// 				})
-// 			})
+	// 		Context("with client started and obtained a server token", func() {
+	// 			BeforeEach(func() {
+	// 				svr.AppendHandlers(
+	// 					CombineHandlers(
+	// 						VerifyRequest("POST", "/auth/serverlogin"),
+	// 						VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 						VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 						VerifyBody(nil),
+	// 						RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+	// 				)
+	// 			})
 
-// 			It("returns nil and even if server is unreachable", func() {
-// 				svr.Close()
-// 				svr = nil
-// 				Expect(clnt.Start()).To(Succeed())
-// 			})
-// 		})
+	// 			JustBeforeEach(func() {
+	// 				Expect(clnt.Start()).To(Succeed())
+	// 			})
 
-// 		Context("with client started and obtained a server token", func() {
-// 			BeforeEach(func() {
-// 				svr.AppendHandlers(
-// 					CombineHandlers(
-// 						VerifyRequest("POST", "/auth/serverlogin"),
-// 						VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 						VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 						VerifyBody(nil),
-// 						RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-// 				)
-// 			})
+	// 			Context("ServerSessionToken", func() {
+	// 				It("returns a server token", func() {
+	// 					returnedServerSessionToken, err := clnt.ServerSessionToken()
+	// 					Expect(err).ToNot(HaveOccurred())
+	// 					Expect(returnedServerSessionToken).To(Equal(serverToken))
+	// 				})
 
-// 			JustBeforeEach(func() {
-// 				Expect(clnt.Start()).To(Succeed())
-// 			})
+	// 				It("returns error if client is closed", func() {
+	// 					clnt.Close()
+	// 					returnedServerSessionToken, err := clnt.ServerSessionToken()
+	// 					Expect(err).To(MatchError("client is closed"))
+	// 					Expect(returnedServerSessionToken).To(BeEmpty())
+	// 				})
+	// 			})
 
-// 			Context("ServerSessionToken", func() {
-// 				It("returns a server token", func() {
-// 					returnedServerSessionToken, err := clnt.ServerSessionToken()
-// 					Expect(err).ToNot(HaveOccurred())
-// 					Expect(returnedServerSessionToken).To(Equal(serverToken))
-// 				})
+	// 			Context("ValidateSessionToken", func() {
+	// 				It("returns error if context is missing", func() {
+	// 					details, err := clnt.ValidateSessionToken(nil, token)
+	// 					Expect(err).To(MatchError("context is missing"))
+	// 					Expect(details).To(BeNil())
+	// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
+	// 				})
 
-// 				It("returns error if client is closed", func() {
-// 					clnt.Close()
-// 					returnedServerSessionToken, err := clnt.ServerSessionToken()
-// 					Expect(err).To(MatchError("client is closed"))
-// 					Expect(returnedServerSessionToken).To(BeEmpty())
-// 				})
-// 			})
+	// 				It("returns error if session token is missing", func() {
+	// 					details, err := clnt.ValidateSessionToken(ctx, "")
+	// 					Expect(err).To(MatchError("token is missing"))
+	// 					Expect(details).To(BeNil())
+	// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
+	// 				})
 
-// 			Context("ValidateSessionToken", func() {
-// 				It("returns error if context is missing", func() {
-// 					details, err := clnt.ValidateSessionToken(nil, token)
-// 					Expect(err).To(MatchError("context is missing"))
-// 					Expect(details).To(BeNil())
-// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
-// 				})
+	// 				It("returns error if client is closed", func() {
+	// 					clnt.Close()
+	// 					details, err := clnt.ValidateSessionToken(ctx, token)
+	// 					Expect(err).To(MatchError("client is closed"))
+	// 					Expect(details).To(BeNil())
+	// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
+	// 				})
 
-// 				It("returns error if session token is missing", func() {
-// 					details, err := clnt.ValidateSessionToken(ctx, "")
-// 					Expect(err).To(MatchError("token is missing"))
-// 					Expect(details).To(BeNil())
-// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
-// 				})
+	// 				It("returns error if the server is not reachable", func() {
+	// 					svr.Close()
+	// 					svr = nil
+	// 					details, err := clnt.ValidateSessionToken(ctx, token)
+	// 					Expect(err).To(HaveOccurred())
+	// 					Expect(details).To(BeNil())
+	// 					Expect(err.Error()).To(HavePrefix("unable to perform request GET "))
+	// 				})
 
-// 				It("returns error if client is closed", func() {
-// 					clnt.Close()
-// 					details, err := clnt.ValidateSessionToken(ctx, token)
-// 					Expect(err).To(MatchError("client is closed"))
-// 					Expect(details).To(BeNil())
-// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
-// 				})
+	// 				Context("with an unexpected response", func() {
+	// 					BeforeEach(func() {
+	// 						svr.AppendHandlers(
+	// 							CombineHandlers(
+	// 								VerifyRequest("GET", "/auth/token/"+token),
+	// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
+	// 								VerifyBody(nil),
+	// 								RespondWith(http.StatusBadRequest, nil)),
+	// 						)
+	// 					})
 
-// 				It("returns error if the server is not reachable", func() {
-// 					svr.Close()
-// 					svr = nil
-// 					details, err := clnt.ValidateSessionToken(ctx, token)
-// 					Expect(err).To(HaveOccurred())
-// 					Expect(details).To(BeNil())
-// 					Expect(err.Error()).To(HavePrefix("unable to perform request GET "))
-// 				})
+	// 					It("returns an error", func() {
+	// 						details, err := clnt.ValidateSessionToken(ctx, token)
+	// 						Expect(err).To(HaveOccurred())
+	// 						Expect(details).To(BeNil())
+	// 						Expect(err.Error()).To(HavePrefix("unexpected response status code 400 from GET "))
+	// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
+	// 					})
+	// 				})
 
-// 				Context("with an unexpected response", func() {
-// 					BeforeEach(func() {
-// 						svr.AppendHandlers(
-// 							CombineHandlers(
-// 								VerifyRequest("GET", "/auth/token/"+token),
-// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-// 								VerifyBody(nil),
-// 								RespondWith(http.StatusBadRequest, nil)),
-// 						)
-// 					})
+	// 				Context("with an unauthorized response", func() {
+	// 					BeforeEach(func() {
+	// 						svr.AppendHandlers(
+	// 							CombineHandlers(
+	// 								VerifyRequest("GET", "/auth/token/"+token),
+	// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
+	// 								VerifyBody(nil),
+	// 								RespondWith(http.StatusUnauthorized, nil)),
+	// 						)
+	// 					})
 
-// 					It("returns an error", func() {
-// 						details, err := clnt.ValidateSessionToken(ctx, token)
-// 						Expect(err).To(HaveOccurred())
-// 						Expect(details).To(BeNil())
-// 						Expect(err.Error()).To(HavePrefix("unexpected response status code 400 from GET "))
-// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
-// 					})
-// 				})
+	// 					It("returns an error", func() {
+	// 						details, err := clnt.ValidateSessionToken(ctx, token)
+	// 						Expect(err).To(MatchError("unauthorized"))
+	// 						Expect(details).To(BeNil())
+	// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
+	// 					})
+	// 				})
 
-// 				Context("with an unauthorized response", func() {
-// 					BeforeEach(func() {
-// 						svr.AppendHandlers(
-// 							CombineHandlers(
-// 								VerifyRequest("GET", "/auth/token/"+token),
-// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-// 								VerifyBody(nil),
-// 								RespondWith(http.StatusUnauthorized, nil)),
-// 						)
-// 					})
+	// 				Context("with a successful response, but not parseable", func() {
+	// 					BeforeEach(func() {
+	// 						svr.AppendHandlers(
+	// 							CombineHandlers(
+	// 								VerifyRequest("GET", "/auth/token/"+token),
+	// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
+	// 								VerifyBody(nil),
+	// 								RespondWith(http.StatusOK, "}{")),
+	// 						)
+	// 					})
 
-// 					It("returns an error", func() {
-// 						details, err := clnt.ValidateSessionToken(ctx, token)
-// 						Expect(err).To(MatchError("unauthorized"))
-// 						Expect(details).To(BeNil())
-// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
-// 					})
-// 				})
+	// 					It("returns an error", func() {
+	// 						details, err := clnt.ValidateSessionToken(ctx, token)
+	// 						Expect(err).To(HaveOccurred())
+	// 						Expect(details).To(BeNil())
+	// 						Expect(err.Error()).To(HavePrefix("error decoding JSON response from GET "))
+	// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
+	// 					})
+	// 				})
 
-// 				Context("with a successful response, but not parseable", func() {
-// 					BeforeEach(func() {
-// 						svr.AppendHandlers(
-// 							CombineHandlers(
-// 								VerifyRequest("GET", "/auth/token/"+token),
-// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-// 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, "}{")),
-// 						)
-// 					})
+	// 				Context("with a successful response, but is not a server and missing the user id", func() {
+	// 					BeforeEach(func() {
+	// 						svr.AppendHandlers(
+	// 							CombineHandlers(
+	// 								VerifyRequest("GET", "/auth/token/"+token),
+	// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
+	// 								VerifyBody(nil),
+	// 								RespondWith(http.StatusOK, "{}")),
+	// 						)
+	// 					})
 
-// 					It("returns an error", func() {
-// 						details, err := clnt.ValidateSessionToken(ctx, token)
-// 						Expect(err).To(HaveOccurred())
-// 						Expect(details).To(BeNil())
-// 						Expect(err.Error()).To(HavePrefix("error decoding JSON response from GET "))
-// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
-// 					})
-// 				})
+	// 					It("returns an error", func() {
+	// 						details, err := clnt.ValidateSessionToken(ctx, token)
+	// 						Expect(err).To(MatchError("user id is missing"))
+	// 						Expect(details).To(BeNil())
+	// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
+	// 					})
+	// 				})
 
-// 				Context("with a successful response, but is not a server and missing the user id", func() {
-// 					BeforeEach(func() {
-// 						svr.AppendHandlers(
-// 							CombineHandlers(
-// 								VerifyRequest("GET", "/auth/token/"+token),
-// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-// 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, "{}")),
-// 						)
-// 					})
+	// 				Context("with a successful response and a user id", func() {
+	// 					BeforeEach(func() {
+	// 						svr.AppendHandlers(
+	// 							CombineHandlers(
+	// 								VerifyRequest("GET", "/auth/token/"+token),
+	// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
+	// 								VerifyBody(nil),
+	// 								RespondWith(http.StatusOK, `{"userid": "session-user-id"}`)),
+	// 						)
+	// 					})
 
-// 					It("returns an error", func() {
-// 						details, err := clnt.ValidateSessionToken(ctx, token)
-// 						Expect(err).To(MatchError("user id is missing"))
-// 						Expect(details).To(BeNil())
-// 						Expect(svr.ReceivedRequests()).To(HaveLen(2))
-// 					})
-// 				})
+	// 					It("returns the user id", func() {
+	// 						details, err := clnt.ValidateSessionToken(ctx, token)
+	// 						Expect(details).ToNot(BeNil())
+	// 						Expect(err).ToNot(HaveOccurred())
+	// 						Expect(details.Token()).To(Equal(token))
+	// 						Expect(details.IsService()).To(BeFalse())
+	// 						Expect(details.UserID()).To(Equal("session-user-id"))
+	// 					})
+	// 				})
 
-// 				Context("with a successful response and a user id", func() {
-// 					BeforeEach(func() {
-// 						svr.AppendHandlers(
-// 							CombineHandlers(
-// 								VerifyRequest("GET", "/auth/token/"+token),
-// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-// 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, `{"userid": "session-user-id"}`)),
-// 						)
-// 					})
+	// 				Context("with a successful response and is server", func() {
+	// 					BeforeEach(func() {
+	// 						svr.AppendHandlers(
+	// 							CombineHandlers(
+	// 								VerifyRequest("GET", "/auth/token/"+token),
+	// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
+	// 								VerifyBody(nil),
+	// 								RespondWith(http.StatusOK, "{\"isserver\": true}")),
+	// 						)
+	// 					})
 
-// 					It("returns the user id", func() {
-// 						details, err := clnt.ValidateSessionToken(ctx, token)
-// 						Expect(details).ToNot(BeNil())
-// 						Expect(err).ToNot(HaveOccurred())
-// 						Expect(details.Token()).To(Equal(token))
-// 						Expect(details.IsService()).To(BeFalse())
-// 						Expect(details.UserID()).To(Equal("session-user-id"))
-// 					})
-// 				})
+	// 					It("returns is server", func() {
+	// 						details, err := clnt.ValidateSessionToken(ctx, token)
+	// 						Expect(details).ToNot(BeNil())
+	// 						Expect(err).ToNot(HaveOccurred())
+	// 						Expect(details.Token()).To(Equal(token))
+	// 						Expect(details.IsService()).To(BeTrue())
+	// 						Expect(details.UserID()).To(BeEmpty())
+	// 					})
+	// 				})
+	// 			})
+	// 		})
 
-// 				Context("with a successful response and is server", func() {
-// 					BeforeEach(func() {
-// 						svr.AppendHandlers(
-// 							CombineHandlers(
-// 								VerifyRequest("GET", "/auth/token/"+token),
-// 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
-// 								VerifyBody(nil),
-// 								RespondWith(http.StatusOK, "{\"isserver\": true}")),
-// 						)
-// 					})
+	// 		Context("with client started and did NOT obtain a server token", func() {
+	// 			BeforeEach(func() {
+	// 				svr.AppendHandlers(
+	// 					CombineHandlers(
+	// 						VerifyRequest("POST", "/auth/serverlogin"),
+	// 						VerifyHeaderKV("X-Tidepool-Server-Name", name),
+	// 						VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+	// 						VerifyBody(nil),
+	// 						RespondWith(http.StatusBadRequest, nil)),
+	// 				)
+	// 			})
 
-// 					It("returns is server", func() {
-// 						details, err := clnt.ValidateSessionToken(ctx, token)
-// 						Expect(details).ToNot(BeNil())
-// 						Expect(err).ToNot(HaveOccurred())
-// 						Expect(details.Token()).To(Equal(token))
-// 						Expect(details.IsService()).To(BeTrue())
-// 						Expect(details.UserID()).To(BeEmpty())
-// 					})
-// 				})
-// 			})
-// 		})
+	// 			JustBeforeEach(func() {
+	// 				Expect(clnt.Start()).To(Succeed())
+	// 			})
 
-// 		Context("with client started and did NOT obtain a server token", func() {
-// 			BeforeEach(func() {
-// 				svr.AppendHandlers(
-// 					CombineHandlers(
-// 						VerifyRequest("POST", "/auth/serverlogin"),
-// 						VerifyHeaderKV("X-Tidepool-Server-Name", name),
-// 						VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-// 						VerifyBody(nil),
-// 						RespondWith(http.StatusBadRequest, nil)),
-// 				)
-// 			})
+	// 			Context("ServerSessionToken", func() {
+	// 				It("returns an error", func() {
+	// 					returnedServiceToken, err := clnt.ServerSessionToken()
+	// 					Expect(err).To(MatchError("unable to obtain server token"))
+	// 					Expect(returnedServiceToken).To(BeEmpty())
+	// 				})
+	// 			})
 
-// 			JustBeforeEach(func() {
-// 				Expect(clnt.Start()).To(Succeed())
-// 			})
-
-// 			Context("ServerSessionToken", func() {
-// 				It("returns an error", func() {
-// 					returnedServiceToken, err := clnt.ServerSessionToken()
-// 					Expect(err).To(MatchError("unable to obtain server token"))
-// 					Expect(returnedServiceToken).To(BeEmpty())
-// 				})
-// 			})
-
-// 			Context("ValidateSessionToken", func() {
-// 				It("returns an error", func() {
-// 					details, err := clnt.ValidateSessionToken(ctx, token)
-// 					Expect(err).To(MatchError("unable to obtain server token"))
-// 					Expect(details).To(BeNil())
-// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
-// 				})
-// 			})
-// 		})
-// 	})
-// })
+	// 			Context("ValidateSessionToken", func() {
+	// 				It("returns an error", func() {
+	// 					details, err := clnt.ValidateSessionToken(ctx, token)
+	// 					Expect(err).To(MatchError("unable to obtain server token"))
+	// 					Expect(details).To(BeNil())
+	// 					Expect(svr.ReceivedRequests()).To(HaveLen(1))
+	// 				})
+	// 			})
+	// 		})
+	// 	})
+})

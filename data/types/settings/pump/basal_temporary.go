@@ -6,12 +6,14 @@ import (
 )
 
 const (
+	BasalTemporaryTypeOff          = "off"
 	BasalTemporaryTypePercent      = "percent"
 	BasalTemporaryTypeUnitsPerHour = "Units/hour"
 )
 
 func BasalTemporaryTypes() []string {
 	return []string{
+		BasalTemporaryTypeOff,
 		BasalTemporaryTypePercent,
 		BasalTemporaryTypeUnitsPerHour,
 	}

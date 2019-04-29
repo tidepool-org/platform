@@ -55,6 +55,14 @@ func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 		dialInfo.Password = *cfg.Password
 	}
 	dialInfo.Timeout = cfg.Timeout
+	if cfg.Source != nil {
+		dialInfo.Source = *cfg.Source
+	}
+	if cfg.Mechanism != nil {
+		dialInfo.Mechanism = *cfg.Mechanism
+	} else {
+		dialInfo.Mechanism = "SCRAM-SHA-1"
+	}
 
 	lgr.WithField("config", cfg).Debug("Dialing Mongo database")
 
@@ -178,13 +186,16 @@ func (s *Session) C() *mgo.Collection {
 
 func (s *Session) ConstructUpdate(set bson.M, unset bson.M) bson.M {
 	update := bson.M{}
-	if len(set) != 0 {
+	if len(set) > 0 {
 		update["$set"] = set
 	}
-	if len(unset) != 0 {
+	if len(unset) > 0 {
 		update["$unset"] = unset
 	}
-	if len(update) != 0 {
+	if len(update) > 0 {
+		update["$inc"] = bson.M{
+			"revision": 1,
+		}
 		return update
 	}
 	return nil

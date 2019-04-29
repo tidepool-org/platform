@@ -2,32 +2,37 @@ package service
 
 import (
 	"github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/data/deduplicator"
+	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	"github.com/tidepool-org/platform/data/service/api"
 	"github.com/tidepool-org/platform/data/service/api/v1"
-	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
+	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
+	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
-	userClient "github.com/tidepool-org/platform/user/client"
 )
 
 type Standard struct {
 	*service.DEPRECATEDService
-	metricClient            *metricClient.Client
-	userClient              *userClient.Client
-	dataDeduplicatorFactory deduplicator.Factory
-	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Store
-	dataStore               *dataStoreMongo.Store
-	syncTaskStore           *syncTaskMongo.Store
-	dataClient              *Client
-	api                     *api.Standard
-	server                  *server.Standard
+	metricClient              *metricClient.Client
+	permissionClient          *permissionClient.Client
+	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
+	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
+	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
+	syncTaskStore             *syncTaskMongo.Store
+	dataClient                *Client
+	dataSourceClient          *dataSourceServiceClient.Client
+	api                       *api.Standard
+	server                    *server.Standard
 }
 
 func NewStandard() *Standard {
@@ -44,7 +49,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeMetricClient(); err != nil {
 		return err
 	}
-	if err := s.initializeUserClient(); err != nil {
+	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
@@ -53,13 +58,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataStoreDEPRECATED(); err != nil {
 		return err
 	}
-	if err := s.initializeDataStore(); err != nil {
+	if err := s.initializeDataSourceStructuredStore(); err != nil {
 		return err
 	}
 	if err := s.initializeSyncTaskStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataClient(); err != nil {
+		return err
+	}
+	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -76,16 +84,16 @@ func (s *Standard) Terminate() {
 		s.syncTaskStore.Close()
 		s.syncTaskStore = nil
 	}
-	if s.dataStore != nil {
-		s.dataStore.Close()
-		s.dataStore = nil
+	if s.dataSourceStructuredStore != nil {
+		s.dataSourceStructuredStore.Close()
+		s.dataSourceStructuredStore = nil
 	}
 	if s.dataStoreDEPRECATED != nil {
 		s.dataStoreDEPRECATED.Close()
 		s.dataStoreDEPRECATED = nil
 	}
 	s.dataDeduplicatorFactory = nil
-	s.userClient = nil
+	s.permissionClient = nil
 	s.metricClient = nil
 
 	s.DEPRECATEDService.Terminate()
@@ -97,6 +105,14 @@ func (s *Standard) Run() error {
 	}
 
 	return s.server.Serve()
+}
+
+func (s *Standard) PermissionClient() permission.Client {
+	return s.permissionClient
+}
+
+func (s *Standard) DataSourceStructuredStore() dataSourceStoreStructured.Store {
+	return s.dataSourceStructuredStore
 }
 
 func (s *Standard) initializeMetricClient() error {
@@ -119,61 +135,69 @@ func (s *Standard) initializeMetricClient() error {
 	return nil
 }
 
-func (s *Standard) initializeUserClient() error {
-	s.Logger().Debug("Loading user client config")
+func (s *Standard) initializePermissionClient() error {
+	s.Logger().Debug("Loading permission client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "unable to load user client config")
+	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
 	}
 
-	s.Logger().Debug("Creating user client")
+	s.Logger().Debug("Creating permission client")
 
-	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
+	clnt, err := permissionClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
-		return errors.Wrap(err, "unable to create user client")
+		return errors.Wrap(err, "unable to create permission client")
 	}
-	s.userClient = clnt
+	s.permissionClient = clnt
 
 	return nil
 }
 
 func (s *Standard) initializeDataDeduplicatorFactory() error {
-	s.Logger().Debug("Creating truncate data deduplicator factory")
+	s.Logger().Debug("Creating device deactivate hash deduplicator")
 
-	truncateDeduplicatorFactory, err := deduplicator.NewTruncateFactory()
+	deviceDeactivateHashDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceDeactivateHash()
 	if err != nil {
-		return errors.Wrap(err, "unable to create truncate data deduplicator factory")
+		return errors.Wrap(err, "unable to create device deactivate hash deduplicator")
 	}
 
-	s.Logger().Debug("Creating hash-deactivate-old data deduplicator factory")
+	s.Logger().Debug("Creating device truncate data set deduplicator")
 
-	hashDeactivateOldDeduplicatorFactory, err := deduplicator.NewHashDeactivateOldFactory()
+	deviceTruncateDataSetDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceTruncateDataSet()
 	if err != nil {
-		return errors.Wrap(err, "unable to create hash-deactivate-old data deduplicator factory")
+		return errors.Wrap(err, "unable to create device truncate data set deduplicator")
 	}
 
-	s.Logger().Debug("Creating continuous data deduplicator factory")
+	s.Logger().Debug("Creating data set delete origin deduplicator")
 
-	continuousDeduplicatorFactory, err := deduplicator.NewContinuousFactory()
+	dataSetDeleteOriginDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOrigin()
 	if err != nil {
-		return errors.Wrap(err, "unable to create continuous data deduplicator factory")
+		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
+	}
+
+	s.Logger().Debug("Creating none deduplicator")
+
+	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone()
+	if err != nil {
+		return errors.Wrap(err, "unable to create none deduplicator")
 	}
 
 	s.Logger().Debug("Creating data deduplicator factory")
 
-	factories := []deduplicator.Factory{
-		truncateDeduplicatorFactory,
-		hashDeactivateOldDeduplicatorFactory,
-		continuousDeduplicatorFactory,
+	deduplicators := []dataDeduplicatorFactory.Deduplicator{
+		deviceDeactivateHashDeduplicator,
+		deviceTruncateDataSetDeduplicator,
+		dataSetDeleteOriginDeduplicator,
+		noneDeduplicator,
 	}
 
-	dataDeduplicatorFactory, err := deduplicator.NewDelegateFactory(factories)
+	factory, err := dataDeduplicatorFactory.New(deduplicators)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data deduplicator factory")
 	}
-	s.dataDeduplicatorFactory = dataDeduplicatorFactory
+	s.dataDeduplicatorFactory = factory
 
 	return nil
 }
@@ -197,21 +221,21 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	return nil
 }
 
-func (s *Standard) initializeDataStore() error {
-	s.Logger().Debug("Loading data store config")
+func (s *Standard) initializeDataSourceStructuredStore() error {
+	s.Logger().Debug("Loading data source structured store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "store")); err != nil {
-		return errors.Wrap(err, "unable to load data store config")
+	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
-	s.Logger().Debug("Creating data store")
+	s.Logger().Debug("Creating data source structured store")
 
-	str, err := dataStoreMongo.NewStore(cfg, s.Logger())
+	str, err := dataSourceStoreStructuredMongo.NewStore(cfg, s.Logger())
 	if err != nil {
-		return errors.Wrap(err, "unable to create data store")
+		return errors.Wrap(err, "unable to create data source structured store")
 	}
-	s.dataStore = str
+	s.dataSourceStructuredStore = str
 
 	return nil
 }
@@ -238,7 +262,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStore, s.dataStoreDEPRECATED)
+	clnt, err := NewClient(s.dataStoreDEPRECATED)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -247,12 +271,24 @@ func (s *Standard) initializeDataClient() error {
 	return nil
 }
 
+func (s *Standard) initializeDataSourceClient() error {
+	s.Logger().Debug("Creating data client")
+
+	clnt, err := dataSourceServiceClient.New(s)
+	if err != nil {
+		return errors.Wrap(err, "unable to create source data client")
+	}
+	s.dataSourceClient = clnt
+
+	return nil
+}
+
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s, s.metricClient, s.userClient,
-		s.dataDeduplicatorFactory, s.dataStore,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient)
+	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
+		s.dataDeduplicatorFactory,
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}

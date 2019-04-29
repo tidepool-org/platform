@@ -212,11 +212,11 @@ var _ = Describe("Mongo", func() {
 				Entry("where set is empty and unset is nil", bson.M{}, nil, nil),
 				Entry("where set is nil and unset is empty", nil, bson.M{}, nil),
 				Entry("where set is empty and unset is empty", bson.M{}, bson.M{}, nil),
-				Entry("where set is present and unset is nil", bson.M{"one": "alpha", "two": true}, nil, bson.M{"$set": bson.M{"one": "alpha", "two": true}}),
-				Entry("where set is present and unset is empty", bson.M{"one": "alpha", "two": true}, bson.M{}, bson.M{"$set": bson.M{"one": "alpha", "two": true}}),
-				Entry("where set is nil and unset is present", nil, bson.M{"three": "charlie", "four": false}, bson.M{"$unset": bson.M{"three": "charlie", "four": false}}),
-				Entry("where set is empty and unset is present", bson.M{}, bson.M{"three": "charlie", "four": false}, bson.M{"$unset": bson.M{"three": "charlie", "four": false}}),
-				Entry("where set is empty and unset is present", bson.M{"one": "alpha", "two": true}, bson.M{"three": "charlie", "four": false}, bson.M{"$set": bson.M{"one": "alpha", "two": true}, "$unset": bson.M{"three": "charlie", "four": false}}),
+				Entry("where set is present and unset is nil", bson.M{"one": "alpha", "two": true}, nil, bson.M{"$set": bson.M{"one": "alpha", "two": true}, "$inc": bson.M{"revision": 1}}),
+				Entry("where set is present and unset is empty", bson.M{"one": "alpha", "two": true}, bson.M{}, bson.M{"$set": bson.M{"one": "alpha", "two": true}, "$inc": bson.M{"revision": 1}}),
+				Entry("where set is nil and unset is present", nil, bson.M{"three": "charlie", "four": false}, bson.M{"$unset": bson.M{"three": "charlie", "four": false}, "$inc": bson.M{"revision": 1}}),
+				Entry("where set is empty and unset is present", bson.M{}, bson.M{"three": "charlie", "four": false}, bson.M{"$unset": bson.M{"three": "charlie", "four": false}, "$inc": bson.M{"revision": 1}}),
+				Entry("where set is present and unset is present", bson.M{"one": "alpha", "two": true}, bson.M{"three": "charlie", "four": false}, bson.M{"$set": bson.M{"one": "alpha", "two": true}, "$unset": bson.M{"three": "charlie", "four": false}, "$inc": bson.M{"revision": 1}}),
 			)
 		})
 	})

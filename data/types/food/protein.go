@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	ProteinTotalGramsMaximum = 1000
-	ProteinTotalGramsMinimum = 0
+	ProteinTotalGramsMaximum = 1000.0
+	ProteinTotalGramsMinimum = 0.0
 	ProteinUnitsGrams        = "grams"
 )
 
@@ -18,8 +18,8 @@ func ProteinUnits() []string {
 }
 
 type Protein struct {
-	Total *int    `json:"total,omitempty" bson:"total,omitempty"`
-	Units *string `json:"units,omitempty" bson:"units,omitempty"`
+	Total *float64 `json:"total,omitempty" bson:"total,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseProtein(parser data.ObjectParser) *Protein {
@@ -37,12 +37,12 @@ func NewProtein() *Protein {
 }
 
 func (p *Protein) Parse(parser data.ObjectParser) {
-	p.Total = parser.ParseInteger("total")
+	p.Total = parser.ParseFloat("total")
 	p.Units = parser.ParseString("units")
 }
 
 func (p *Protein) Validate(validator structure.Validator) {
-	validator.Int("total", p.Total).Exists().InRange(ProteinTotalGramsMinimum, ProteinTotalGramsMaximum)
+	validator.Float64("total", p.Total).Exists().InRange(ProteinTotalGramsMinimum, ProteinTotalGramsMaximum)
 	validator.String("units", p.Units).Exists().OneOf(ProteinUnits()...)
 }
 

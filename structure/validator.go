@@ -119,8 +119,8 @@ type String interface {
 	AsTime(layout string) Time
 }
 
-type StringEachFunc func(stringValidator String)
-
+type StringArrayEachFunc func(stringValidator String)
+type StringArrayEachUsingFunc func(value string, errorReporter ErrorReporter)
 type StringArrayUsingFunc func(value []string, errorReporter ErrorReporter)
 
 type StringArray interface {
@@ -138,7 +138,7 @@ type StringArray interface {
 	LengthGreaterThanOrEqualTo(limit int) StringArray
 	LengthInRange(lowerLimit int, upperLimit int) StringArray
 
-	Each(eachFunc StringEachFunc) StringArray
+	Each(eachFunc StringArrayEachFunc) StringArray
 
 	EachNotEmpty() StringArray
 
@@ -147,6 +147,8 @@ type StringArray interface {
 
 	EachMatches(expression *regexp.Regexp) StringArray
 	EachNotMatches(expression *regexp.Regexp) StringArray
+
+	EachUsing(eachUsingFunc StringArrayEachUsingFunc) StringArray
 
 	EachUnique() StringArray
 

@@ -33,7 +33,6 @@ var _ = Describe("Service", func() {
 		var authClientConfig map[string]interface{}
 		var blobStructuredStoreConfig map[string]interface{}
 		var blobUnstructuredStoreConfig map[string]interface{}
-		var userClientConfig map[string]interface{}
 		var blobServiceConfig map[string]interface{}
 		var service *blobService.Service
 
@@ -72,9 +71,6 @@ var _ = Describe("Service", func() {
 					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				},
 			}
-			userClientConfig = map[string]interface{}{
-				"address": server.URL(),
-			}
 			blobServiceConfig = map[string]interface{}{
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
@@ -89,9 +85,6 @@ var _ = Describe("Service", func() {
 				"server": map[string]interface{}{
 					"address": testHttp.NewAddress(),
 					"tls":     "false",
-				},
-				"user": map[string]interface{}{
-					"client": userClientConfig,
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = blobServiceConfig
@@ -137,11 +130,6 @@ var _ = Describe("Service", func() {
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create unstructured store"))
 				})
 
-				It("returns an error when the user client returns an error", func() {
-					userClientConfig["address"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create user client"))
-				})
-
 				It("returns successfully", func() {
 					Expect(service.Initialize(provider)).To(Succeed())
 				})
@@ -173,12 +161,6 @@ var _ = Describe("Service", func() {
 				Context("BlobUnstructuredStore", func() {
 					It("returns successfully", func() {
 						Expect(service.BlobUnstructuredStore()).ToNot(BeNil())
-					})
-				})
-
-				Context("UserClient", func() {
-					It("returns successfully", func() {
-						Expect(service.UserClient()).ToNot(BeNil())
 					})
 				})
 

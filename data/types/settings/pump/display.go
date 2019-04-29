@@ -5,20 +5,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
-const (
-	DisplayUnitsMgPerDL  = "mg/dL"
-	DisplayUnitsMmolPerL = "mmol/L"
-)
-
-func DisplayUnits() []string {
-	return []string{
-		DisplayUnitsMgPerDL,
-		DisplayUnitsMmolPerL,
-	}
-}
-
 type Display struct {
-	Units *string `json:"units,omitempty" bson:"units,omitempty"`
+	BloodGlucose *DisplayBloodGlucose `json:"bloodGlucose,omitempty" bson:"bloodGlucose,omitempty"`
 }
 
 func ParseDisplay(parser data.ObjectParser) *Display {
@@ -36,11 +24,17 @@ func NewDisplay() *Display {
 }
 
 func (d *Display) Parse(parser data.ObjectParser) {
-	d.Units = parser.ParseString("units")
+	d.BloodGlucose = ParseDisplayBloodGlucose(parser.NewChildObjectParser("bloodGlucose"))
 }
 
 func (d *Display) Validate(validator structure.Validator) {
-	validator.String("units", d.Units).Exists().OneOf(DisplayUnits()...)
+	if d.BloodGlucose != nil {
+		d.BloodGlucose.Validate(validator.WithReference("bloodGlucose"))
+	}
 }
 
-func (d *Display) Normalize(normalizer data.Normalizer) {}
+func (d *Display) Normalize(normalizer data.Normalizer) {
+	if d.BloodGlucose != nil {
+		d.BloodGlucose.Normalize(normalizer.WithReference("bloodGlucose"))
+	}
+}

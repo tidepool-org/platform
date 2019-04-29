@@ -74,8 +74,7 @@ func (b *BlobArray) Parse(parser ArrayParser) {
 
 func (b *BlobArray) Validate(validator structure.Validator) {
 	for index, blob := range *b {
-		blobValidator := validator.WithReference(strconv.Itoa(index))
-		if blob != nil {
+		if blobValidator := validator.WithReference(strconv.Itoa(index)); blob != nil {
 			blob.Validate(blobValidator)
 		} else {
 			blobValidator.ReportError(structureValidator.ErrorValueNotExists())

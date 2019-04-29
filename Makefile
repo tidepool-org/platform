@@ -1,3 +1,8 @@
+# variables that have to be setup for Docker
+# DOCKER_REGISTRY
+# DOCKER_USERNAME
+# DOCKER_PASSWORD
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
@@ -7,9 +12,9 @@ REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 ifdef TRAVIS_TAG
 	VERSION_BASE:=$(TRAVIS_TAG)
 else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
+	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'dblp.0.0.0')
 endif
-VERSION_BASE:=$(VERSION_BASE:v%=%)
+VERSION_BASE:=$(VERSION_BASE:dblp.%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
@@ -20,7 +25,7 @@ FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	DOCKER:=true
 endif
@@ -28,7 +33,7 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPOSITORY:="tidepool/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
+	DOCKER_REPOSITORY:="${DOCKER_REGISTRY}/mdblp/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
 endif
 
 default: test
@@ -44,51 +49,32 @@ endif
 
 check-environment: check-gopath
 
-godep: check-environment
-ifeq ($(shell which godep),)
-	go get -u github.com/tools/godep
-endif
-
-goimports: check-environment
-ifeq ($(shell which goimports),)
-	go get -u golang.org/x/tools/cmd/goimports
-endif
-
-golint: check-environment
-ifeq ($(shell which golint),)
-	go get -u github.com/golang/lint/golint
-endif
-
-gocode: check-environment
-ifeq ($(shell which gocode),)
-	go get -u github.com/nsf/gocode
-endif
-
-godef: check-environment
-ifeq ($(shell which godef),)
-	go get -u github.com/rogpeppe/godef
-endif
-
 CompileDaemon: check-environment
 ifeq ($(shell which CompileDaemon),)
-	go get -u github.com/githubnemo/CompileDaemon
+	cd vendor/github.com/githubnemo/CompileDaemon && go install .
 endif
 
 esc: check-environment
 ifeq ($(shell which esc),)
-	go get -u github.com/mjibson/esc
+	cd vendor/github.com/mjibson/esc && go install .
 endif
 
 ginkgo: check-environment
 ifeq ($(shell which ginkgo),)
-	mkdir -p $(REPOSITORY_GOPATH)/src/github.com/onsi/
-	cp -r vendor/github.com/onsi/ginkgo $(REPOSITORY_GOPATH)/src/github.com/onsi/
-	go install github.com/onsi/ginkgo/ginkgo
+	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
 endif
 
-buildable: goimports golint ginkgo
+goimports: check-environment
+ifeq ($(shell which goimports),)
+	cd vendor/golang.org/x/tools/cmd/goimports && go install .
+endif
 
-editable: buildable gocode godef
+golint: check-environment
+ifeq ($(shell which golint),)
+	cd vendor/golang.org/x/lint/golint && go install .
+endif
+
+buildable: CompileDaemon esc ginkgo goimports golint
 
 generate: check-environment esc
 	@echo "go generate ./..."
@@ -116,6 +102,12 @@ imports: goimports
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
+imports-write: goimports
+	@echo "goimports -e -w"
+	@cd $(ROOT_DIRECTORY) && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w {} \; 2>&1` && \
+		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
 vet: check-environment tmp
 	@echo "go tool vet -all -shadow -shadowstrict"
 	@cd $(ROOT_DIRECTORY) && \
@@ -128,7 +120,7 @@ vet-ignore:
 lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './vendor/*' -name '*.go' -type f | sort | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
+		find . -not -path './vendor/*' -name '*.go' -type f | sort -d | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
 		diff .golintignore _tmp/golint.out || \
 		exit 0
 
@@ -222,7 +214,7 @@ endif
 
 docker:
 ifdef DOCKER
-	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
+	@echo $(DOCKER_PASSWORD) | docker login --username "$(DOCKER_USERNAME)" --password-stdin $(DOCKER_REGISTRY)
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
 endif
@@ -233,7 +225,7 @@ ifdef DOCKER_FILE
 	@docker build --tag "$(DOCKER_REPOSITORY):development" --target=development --file "$(DOCKER_FILE)" .
 	@docker build --tag "$(DOCKER_REPOSITORY)" --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_TAG
-	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)"
+	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
@@ -241,13 +233,13 @@ endif
 docker-push:
 ifdef DOCKER
 ifdef DOCKER_REPOSITORY
-ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	@docker push "$(DOCKER_REPOSITORY)"
 endif
 endif
 ifdef TRAVIS_TAG
-	@docker push "$(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)"
+	@docker push "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
@@ -277,7 +269,7 @@ gopath-implode: check-environment
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
 .PHONY: default tmp check-gopath check-environment \
-	godep goimports golint gocode godef CompileDaemon ginkgo buildable editable \
+	CompileDaemon esc ginkgo goimports golint buildable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \

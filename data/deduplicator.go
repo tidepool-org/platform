@@ -1,65 +1,61 @@
 package data
 
 import (
-	"context"
-
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 )
 
-// TODO: Need to update all deduplicator descriptors in the database to have a name and version
-
-type Deduplicator interface {
-	Name() string
-	Version() string
-
-	RegisterDataSet(ctx context.Context) error
-
-	AddDataSetData(ctx context.Context, dataSetData []Datum) error
-	DeduplicateDataSet(ctx context.Context) error
-
-	DeleteDataSet(ctx context.Context) error
+type DeduplicatorDescriptor struct {
+	Name    *string `json:"name,omitempty" bson:"name,omitempty"`
+	Version *string `json:"version,omitempty" bson:"version,omitempty"`
+	Hash    *string `json:"hash,omitempty" bson:"hash,omitempty"`
 }
 
-type DeduplicatorDescriptor struct {
-	Name    string `bson:"name,omitempty"`
-	Version string `bson:"version,omitempty"`
-	Hash    string `bson:"hash,omitempty"`
+func ParseDeduplicatorDescriptor(parser structure.ObjectParser) *DeduplicatorDescriptor {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewDeduplicatorDescriptor()
+	parser.Parse(datum)
+	return datum
+}
+
+func ParseDeduplicatorDescriptorDEPRECATED(parser ObjectParser) *DeduplicatorDescriptor {
+	if parser.Object() == nil {
+		return nil
+	}
+	datum := NewDeduplicatorDescriptor()
+	datum.ParseDEPRECATED(parser)
+	parser.ProcessNotParsed()
+	return datum
 }
 
 func NewDeduplicatorDescriptor() *DeduplicatorDescriptor {
 	return &DeduplicatorDescriptor{}
 }
 
+func (d *DeduplicatorDescriptor) Parse(parser structure.ObjectParser) {
+	d.Name = parser.String("name")
+}
+
+func (d *DeduplicatorDescriptor) ParseDEPRECATED(parser ObjectParser) {
+	d.Name = parser.ParseString("name")
+}
+
 func (d *DeduplicatorDescriptor) Validate(validator structure.Validator) {
-	if d.Name != "" { // TODO: Remove once all deduplicator descriptions have a name and version
-		validator.String("name", &d.Name).Exists().Using(net.ReverseDomainValidator)
-	}
-	if d.Version != "" { // TODO: Remove once all deduplicator descriptions have a name and version
-		validator.String("version", &d.Version).Exists().Using(net.SemanticVersionValidator)
-	}
+	validator.String("name", d.Name).Using(net.ReverseDomainValidator)
+	validator.String("version", d.Version).Using(net.SemanticVersionValidator)
+	validator.String("hash", d.Hash).NotEmpty()
 }
 
-func (d *DeduplicatorDescriptor) Normalize(normalizer Normalizer) {}
+func (d *DeduplicatorDescriptor) Normalize(normalizer structure.Normalizer) {}
 
-func (d *DeduplicatorDescriptor) IsRegisteredWithAnyDeduplicator() bool {
-	return d.Name != ""
+func (d *DeduplicatorDescriptor) NormalizeDEPRECATED(normalizer Normalizer) {}
+
+func (d *DeduplicatorDescriptor) HasName() bool {
+	return d.Name != nil
 }
 
-func (d *DeduplicatorDescriptor) IsRegisteredWithNamedDeduplicator(name string) bool {
-	return d.Name == name
-}
-
-func (d *DeduplicatorDescriptor) RegisterWithDeduplicator(deduplicator Deduplicator) error {
-	if d.Name != "" {
-		return errors.Newf("deduplicator descriptor already registered with %q", d.Name)
-	}
-	if d.Version != "" {
-		return errors.New("deduplicator descriptor already registered with unknown deduplicator")
-	}
-
-	d.Name = deduplicator.Name()
-	d.Version = deduplicator.Version()
-	return nil
+func (d *DeduplicatorDescriptor) HasNameMatch(name string) bool {
+	return d.Name != nil && *d.Name == name
 }
