@@ -1,5 +1,6 @@
-## HEAD
+## Unreleased
 
+* Add Diabeloop device DBL4K
 * Update tool dependencies
 * Add build tools as additional dependencies
 * Update Makefile to install build tools from vendor directory
