@@ -1,12 +1,17 @@
 ## Unreleased
 
-* Add Diabeloop device DBL4K
-* Update tool dependencies
-* Add build tools as additional dependencies
-* Update Makefile to install build tools from vendor directory
-* Update Makefile to remove unused tools
+## v0.3.0 [2019-05-07]
 
-## v1.29.0
+### Added
+
+- Add Diabeloop device DBL4K
+
+## v0.2.1 [2018-12-06]
+
+- Bring back DBLG1 device
+
+
+## tidepool/platform v1.29.0
 
 * Allow physical activity other field as optional
 * Update mongo queries for data using selectors to more effectively use indexes
