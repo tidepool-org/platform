@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"time"
 
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data"
