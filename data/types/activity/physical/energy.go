@@ -37,13 +37,12 @@ type Energy struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseEnergy(parser data.ObjectParser) *Energy {
-	if parser.Object() == nil {
+func ParseEnergy(parser structure.ObjectParser) *Energy {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewEnergy()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -51,9 +50,9 @@ func NewEnergy() *Energy {
 	return &Energy{}
 }
 
-func (e *Energy) Parse(parser data.ObjectParser) {
-	e.Units = parser.ParseString("units")
-	e.Value = parser.ParseFloat("value")
+func (e *Energy) Parse(parser structure.ObjectParser) {
+	e.Units = parser.String("units")
+	e.Value = parser.Float64("value")
 }
 
 func (e *Energy) Validate(validator structure.Validator) {

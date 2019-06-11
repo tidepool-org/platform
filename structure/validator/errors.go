@@ -26,9 +26,11 @@ const (
 	ErrorCodeValueNotAfter        = "value-not-after"
 	ErrorCodeValueNotBefore       = "value-not-before"
 	ErrorCodeValueNotValid        = "value-not-valid"
+	ErrorCodeValueNotSerializable = "value-not-serializable"
 	ErrorCodeValuesNotExistForAny = "values-not-exist-for-any"
 	ErrorCodeValuesNotExistForOne = "values-not-exist-for-one"
 	ErrorCodeLengthOutOfRange     = "length-out-of-range"
+	ErrorCodeSizeOutOfRange       = "size-out-of-range"
 )
 
 func ErrorValueNotExists() error {
@@ -85,6 +87,10 @@ func ErrorValueNotGreaterThanOrEqualTo(value interface{}, limit interface{}) err
 
 func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit interface{}) error {
 	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not between %s and %s", stringify(value), stringify(lowerLimit), stringify(upperLimit))
+}
+
+func ErrorValueNotSerializable() error {
+	return errors.Preparedf(ErrorCodeValueNotSerializable, "value is not serializable", "value is not serializable")
 }
 
 func ErrorValueFloat64OneOf(value float64, disallowedValues []float64) error {
@@ -175,6 +181,34 @@ func ErrorLengthNotInRange(length int, lowerLimit int, upperLimit int) error {
 	return errors.Preparedf(ErrorCodeLengthOutOfRange, "length is out of range", "length %d is not between %d and %d", length, lowerLimit, upperLimit)
 }
 
+func ErrorSizeNotEqualTo(size int, limit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not equal to %d", size, limit)
+}
+
+func ErrorSizeEqualTo(size int, limit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is equal to %d", size, limit)
+}
+
+func ErrorSizeNotLessThan(size int, limit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not less than %d", size, limit)
+}
+
+func ErrorSizeNotLessThanOrEqualTo(size int, limit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not less than or equal to %d", size, limit)
+}
+
+func ErrorSizeNotGreaterThan(size int, limit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not greater than %d", size, limit)
+}
+
+func ErrorSizeNotGreaterThanOrEqualTo(size int, limit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not greater than or equal to %d", size, limit)
+}
+
+func ErrorSizeNotInRange(size int, lowerLimit int, upperLimit int) error {
+	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not between %d and %d", size, lowerLimit, upperLimit)
+}
+
 func stringify(interfaceValue interface{}) string {
 	switch typeValue := interfaceValue.(type) {
 	case float64:
@@ -200,7 +234,7 @@ func stringify(interfaceValue interface{}) string {
 		}
 		return fmt.Sprintf("[%s]", strings.Join(values, ", "))
 	case time.Time:
-		return strconv.Quote(typeValue.Format(time.RFC3339))
+		return strconv.Quote(typeValue.Format(time.RFC3339Nano))
 	case *regexp.Regexp:
 		if typeValue == nil {
 			return strconv.Quote("<MISSING>")

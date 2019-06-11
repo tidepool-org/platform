@@ -7,9 +7,9 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/insulin"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -38,42 +38,42 @@ var _ = Describe("Compound", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Compound), expectedErrors ...error) {
-					datum := testDataTypesInsulin.NewCompound(3)
+					datum := dataTypesInsulinTest.NewCompound(3)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *insulin.Compound) {},
 				),
 				Entry("amount missing",
 					func(datum *insulin.Compound) { datum.Amount = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("amount out of range (lower)",
 					func(datum *insulin.Compound) { datum.Amount = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-0.1, 0.0), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-0.1, 0.0), "/amount"),
 				),
 				Entry("amount in range (lower)",
 					func(datum *insulin.Compound) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("formulation missing",
 					func(datum *insulin.Compound) { datum.Formulation = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/formulation"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/formulation"),
 				),
 				Entry("formulation invalid",
 					func(datum *insulin.Compound) { datum.Formulation.Name = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/formulation/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/formulation/name"),
 				),
 				Entry("formulation valid",
-					func(datum *insulin.Compound) { datum.Formulation = testDataTypesInsulin.NewFormulation(3) },
+					func(datum *insulin.Compound) { datum.Formulation = dataTypesInsulinTest.NewFormulation(3) },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Compound) {
 						datum.Amount = nil
 						datum.Formulation = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/formulation"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/formulation"),
 				),
 			)
 		})
@@ -82,9 +82,9 @@ var _ = Describe("Compound", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Compound)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesInsulin.NewCompound(3)
+						datum := dataTypesInsulinTest.NewCompound(3)
 						mutator(datum)
-						expectedDatum := testDataTypesInsulin.CloneCompound(datum)
+						expectedDatum := dataTypesInsulinTest.CloneCompound(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -126,7 +126,7 @@ var _ = Describe("Compound", func() {
 				func(mutator func(datum *insulin.CompoundArray), expectedErrors ...error) {
 					datum := insulin.NewCompoundArray()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *insulin.CompoundArray) {},
@@ -138,57 +138,57 @@ var _ = Describe("Compound", func() {
 				),
 				Entry("nil",
 					func(datum *insulin.CompoundArray) { *datum = append(*datum, nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
 					func(datum *insulin.CompoundArray) {
-						invalid := testDataTypesInsulin.NewCompound(3)
+						invalid := dataTypesInsulinTest.NewCompound(3)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/amount"),
 				),
 				Entry("single valid",
 					func(datum *insulin.CompoundArray) {
-						*datum = append(*datum, testDataTypesInsulin.NewCompound(3))
+						*datum = append(*datum, dataTypesInsulinTest.NewCompound(3))
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *insulin.CompoundArray) {
-						invalid := testDataTypesInsulin.NewCompound(3)
+						invalid := dataTypesInsulinTest.NewCompound(3)
 						invalid.Amount = nil
-						*datum = append(*datum, testDataTypesInsulin.NewCompound(3), invalid, testDataTypesInsulin.NewCompound(3))
+						*datum = append(*datum, dataTypesInsulinTest.NewCompound(3), invalid, dataTypesInsulinTest.NewCompound(3))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
 					func(datum *insulin.CompoundArray) {
-						*datum = append(*datum, testDataTypesInsulin.NewCompound(3), testDataTypesInsulin.NewCompound(3), testDataTypesInsulin.NewCompound(3))
+						*datum = append(*datum, dataTypesInsulinTest.NewCompound(3), dataTypesInsulinTest.NewCompound(3), dataTypesInsulinTest.NewCompound(3))
 					},
 				),
 				Entry("multiple; length in range (upper)",
 					func(datum *insulin.CompoundArray) {
 						for len(*datum) < 100 {
-							*datum = append(*datum, testDataTypesInsulin.NewCompound(1))
+							*datum = append(*datum, dataTypesInsulinTest.NewCompound(1))
 						}
 					},
 				),
 				Entry("multiple; length out of range (upper)",
 					func(datum *insulin.CompoundArray) {
 						for len(*datum) < 101 {
-							*datum = append(*datum, testDataTypesInsulin.NewCompound(1))
+							*datum = append(*datum, dataTypesInsulinTest.NewCompound(1))
 						}
 					},
 					structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100),
 				),
 				Entry("multiple errors",
 					func(datum *insulin.CompoundArray) {
-						invalid := testDataTypesInsulin.NewCompound(3)
+						invalid := dataTypesInsulinTest.NewCompound(3)
 						invalid.Amount = nil
-						*datum = append(*datum, nil, invalid, testDataTypesInsulin.NewCompound(3))
+						*datum = append(*datum, nil, invalid, dataTypesInsulinTest.NewCompound(3))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 			)
 		})
@@ -197,9 +197,9 @@ var _ = Describe("Compound", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.CompoundArray)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesInsulin.NewCompoundArray(3)
+						datum := dataTypesInsulinTest.NewCompoundArray(3)
 						mutator(datum)
-						expectedDatum := testDataTypesInsulin.CloneCompoundArray(datum)
+						expectedDatum := dataTypesInsulinTest.CloneCompoundArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

@@ -1,15 +1,15 @@
 package server_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"net/http"
 
 	"github.com/tidepool-org/platform/log"
 	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/service/server"
-	testService "github.com/tidepool-org/platform/service/test"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 )
 
 type ServeHTTPInput struct {
@@ -28,13 +28,13 @@ func (t *TestHandler) ServeHTTP(response http.ResponseWriter, request *http.Requ
 var _ = Describe("Standard", func() {
 	var lgr log.Logger
 	var hndlr *TestHandler
-	var api *testService.API
+	var api *serviceTest.API
 	var cfg *server.Config
 
 	BeforeEach(func() {
 		lgr = nullLog.NewLogger()
 		hndlr = &TestHandler{}
-		api = testService.NewAPI()
+		api = serviceTest.NewAPI()
 		api.HandlerOutputs = []http.Handler{hndlr}
 		cfg = server.NewConfig()
 		cfg.Address = ":9001"

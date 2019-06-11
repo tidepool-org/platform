@@ -1,13 +1,13 @@
 package structure_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"fmt"
-
 	"github.com/tidepool-org/platform/structure"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
 )
 
 var _ = Describe("Structure", func() {
@@ -44,7 +44,7 @@ var _ = Describe("Structure", func() {
 
 			Context("WithReference", func() {
 				It("returns a source", func() {
-					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+					Expect(src.WithReference(structureTest.NewReference())).ToNot(BeNil())
 				})
 			})
 		})
@@ -53,7 +53,7 @@ var _ = Describe("Structure", func() {
 			var reference string
 
 			BeforeEach(func() {
-				reference = testStructure.NewReference()
+				reference = structureTest.NewReference()
 				src = src.WithReference(reference)
 			})
 
@@ -71,7 +71,7 @@ var _ = Describe("Structure", func() {
 
 			Context("WithReference", func() {
 				It("returns the same source", func() {
-					Expect(src.WithReference(testStructure.NewReference())).To(BeIdenticalTo(src))
+					Expect(src.WithReference(structureTest.NewReference())).To(BeIdenticalTo(src))
 				})
 			})
 		})
@@ -82,8 +82,8 @@ var _ = Describe("Structure", func() {
 			var reference string
 
 			BeforeEach(func() {
-				referenceLeft = testStructure.NewReference()
-				referenceRight = testStructure.NewReference()
+				referenceLeft = structureTest.NewReference()
+				referenceRight = structureTest.NewReference()
 				reference = fmt.Sprintf("%s/%s", referenceLeft, referenceRight)
 				src = src.WithReference(reference)
 			})
@@ -102,7 +102,7 @@ var _ = Describe("Structure", func() {
 
 			Context("WithReference", func() {
 				It("returns the same source", func() {
-					Expect(src.WithReference(testStructure.NewReference())).To(BeIdenticalTo(src))
+					Expect(src.WithReference(structureTest.NewReference())).To(BeIdenticalTo(src))
 				})
 			})
 		})
@@ -137,7 +137,7 @@ var _ = Describe("Structure", func() {
 
 			Context("WithReference", func() {
 				It("returns a source", func() {
-					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+					Expect(src.WithReference(structureTest.NewReference())).ToNot(BeNil())
 				})
 			})
 		})
@@ -146,7 +146,7 @@ var _ = Describe("Structure", func() {
 			var reference1 string
 
 			BeforeEach(func() {
-				reference1 = testStructure.NewReference()
+				reference1 = structureTest.NewReference()
 				src = src.WithReference(reference1)
 			})
 
@@ -164,7 +164,7 @@ var _ = Describe("Structure", func() {
 
 			Context("WithReference", func() {
 				It("returns a source", func() {
-					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+					Expect(src.WithReference(structureTest.NewReference())).ToNot(BeNil())
 				})
 			})
 
@@ -172,7 +172,7 @@ var _ = Describe("Structure", func() {
 				var reference2 string
 
 				BeforeEach(func() {
-					reference2 = testStructure.NewReference()
+					reference2 = structureTest.NewReference()
 					src = src.WithReference(reference2)
 				})
 
@@ -190,7 +190,7 @@ var _ = Describe("Structure", func() {
 
 				Context("WithReference", func() {
 					It("returns a source", func() {
-						Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+						Expect(src.WithReference(structureTest.NewReference())).ToNot(BeNil())
 					})
 				})
 
@@ -198,7 +198,7 @@ var _ = Describe("Structure", func() {
 					var reference3 string
 
 					BeforeEach(func() {
-						reference3 = testStructure.NewReference()
+						reference3 = structureTest.NewReference()
 						src = src.WithReference(reference3)
 					})
 
@@ -216,7 +216,7 @@ var _ = Describe("Structure", func() {
 
 					Context("WithReference", func() {
 						It("returns a source", func() {
-							Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+							Expect(src.WithReference(structureTest.NewReference())).ToNot(BeNil())
 						})
 					})
 				})
@@ -229,8 +229,8 @@ var _ = Describe("Structure", func() {
 			var reference string
 
 			BeforeEach(func() {
-				referenceLeft = testStructure.NewReference()
-				referenceRight = testStructure.NewReference()
+				referenceLeft = structureTest.NewReference()
+				referenceRight = structureTest.NewReference()
 				reference = fmt.Sprintf("%s/%s", referenceLeft, referenceRight)
 				src = src.WithReference(reference)
 			})
@@ -249,7 +249,7 @@ var _ = Describe("Structure", func() {
 
 			Context("WithReference", func() {
 				It("returns a source", func() {
-					Expect(src.WithReference(testStructure.NewReference())).ToNot(BeNil())
+					Expect(src.WithReference(structureTest.NewReference())).ToNot(BeNil())
 				})
 			})
 		})
@@ -257,7 +257,7 @@ var _ = Describe("Structure", func() {
 
 	Context("EncodePointerReference", func() {
 		It("returns same string that does not require encoding", func() {
-			reference := testStructure.NewReference()
+			reference := structureTest.NewReference()
 			Expect(structure.EncodePointerReference(reference)).To(Equal(reference))
 		})
 

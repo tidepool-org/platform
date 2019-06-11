@@ -1,13 +1,13 @@
 package source_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-
 	"net/http"
 	"net/url"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -30,10 +30,6 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var futureTime = time.Unix(4102444800, 0)
-var nearPastTime = time.Unix(1500000000, 0)
-var farPastTime = time.Unix(1200000000, 0)
-
 var _ = Describe("Source", func() {
 	It("StateConnected is expected", func() {
 		Expect(dataSource.StateConnected).To(Equal("connected"))
@@ -53,12 +49,7 @@ var _ = Describe("Source", func() {
 
 	Context("NewFilter", func() {
 		It("returns successfully with default values", func() {
-			filter := dataSource.NewFilter()
-			Expect(filter).ToNot(BeNil())
-			Expect(filter.ProviderType).To(BeNil())
-			Expect(filter.ProviderName).To(BeNil())
-			Expect(filter.ProviderSessionID).To(BeNil())
-			Expect(filter.State).To(BeNil())
+			Expect(dataSource.NewFilter()).To(Equal(&dataSource.Filter{}))
 		})
 	})
 
@@ -76,12 +67,6 @@ var _ = Describe("Source", func() {
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {},
 				),
-				Entry("provider type missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						delete(object, "providerType")
-						expectedDatum.ProviderType = nil
-					},
-				),
 				Entry("provider type invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						object["providerType"] = true
@@ -89,23 +74,11 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerType"),
 				),
-				Entry("provider type empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["providerType"] = []string{}
-						expectedDatum.ProviderType = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("provider type valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						valid := authTest.RandomProviderTypes()
 						object["providerType"] = valid
 						expectedDatum.ProviderType = pointer.FromStringArray(valid)
-					},
-				),
-				Entry("provider name missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						delete(object, "providerName")
-						expectedDatum.ProviderName = nil
 					},
 				),
 				Entry("provider name invalid type",
@@ -115,23 +88,11 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerName"),
 				),
-				Entry("provider name empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["providerName"] = []string{}
-						expectedDatum.ProviderName = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("provider name valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						valid := authTest.RandomProviderNames()
 						object["providerName"] = valid
 						expectedDatum.ProviderName = pointer.FromStringArray(valid)
-					},
-				),
-				Entry("provider session id missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						delete(object, "providerSessionId")
-						expectedDatum.ProviderSessionID = nil
 					},
 				),
 				Entry("provider session id invalid type",
@@ -141,23 +102,11 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerSessionId"),
 				),
-				Entry("provider session id empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["providerSessionId"] = []string{}
-						expectedDatum.ProviderSessionID = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("provider session id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						valid := authTest.RandomProviderSessionIDs()
 						object["providerSessionId"] = valid
 						expectedDatum.ProviderSessionID = pointer.FromStringArray(valid)
-					},
-				),
-				Entry("state missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						delete(object, "state")
-						expectedDatum.State = nil
 					},
 				),
 				Entry("state invalid type",
@@ -166,12 +115,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/state"),
-				),
-				Entry("state empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						object["state"] = []string{}
-						expectedDatum.State = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("state valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
@@ -403,12 +346,7 @@ var _ = Describe("Source", func() {
 
 	Context("NewCreate", func() {
 		It("returns successfully with default values", func() {
-			create := dataSource.NewCreate()
-			Expect(create).ToNot(BeNil())
-			Expect(create.ProviderType).To(BeNil())
-			Expect(create.ProviderName).To(BeNil())
-			Expect(create.ProviderSessionID).To(BeNil())
-			Expect(create.State).To(BeNil())
+			Expect(dataSource.NewCreate()).To(Equal(&dataSource.Create{}))
 		})
 	})
 
@@ -417,7 +355,7 @@ var _ = Describe("Source", func() {
 			func(mutator func(datum *dataSource.Create)) {
 				datum := dataSourceTest.RandomCreate()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Create) {},
@@ -440,12 +378,6 @@ var _ = Describe("Source", func() {
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {},
 				),
-				Entry("provider type missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						delete(object, "providerType")
-						expectedDatum.ProviderType = nil
-					},
-				),
 				Entry("provider type invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
 						object["providerType"] = true
@@ -458,12 +390,6 @@ var _ = Describe("Source", func() {
 						valid := authTest.RandomProviderType()
 						object["providerType"] = valid
 						expectedDatum.ProviderType = pointer.FromString(valid)
-					},
-				),
-				Entry("provider name missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						delete(object, "providerName")
-						expectedDatum.ProviderName = nil
 					},
 				),
 				Entry("provider name invalid type",
@@ -480,12 +406,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderName = pointer.FromString(valid)
 					},
 				),
-				Entry("provider session id missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						delete(object, "providerSessionId")
-						expectedDatum.ProviderSessionID = nil
-					},
-				),
 				Entry("provider session id invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
 						object["providerSessionId"] = true
@@ -498,12 +418,6 @@ var _ = Describe("Source", func() {
 						valid := authTest.RandomProviderSessionID()
 						object["providerSessionId"] = valid
 						expectedDatum.ProviderSessionID = pointer.FromString(valid)
-					},
-				),
-				Entry("state missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						delete(object, "state")
-						expectedDatum.State = nil
 					},
 				),
 				Entry("state invalid type",
@@ -656,15 +570,7 @@ var _ = Describe("Source", func() {
 
 	Context("NewUpdate", func() {
 		It("returns successfully with default values", func() {
-			update := dataSource.NewUpdate()
-			Expect(update).ToNot(BeNil())
-			Expect(update.ProviderSessionID).To(BeNil())
-			Expect(update.State).To(BeNil())
-			Expect(update.Error).To(BeNil())
-			Expect(update.DataSetIDs).To(BeNil())
-			Expect(update.EarliestDataTime).To(BeNil())
-			Expect(update.LatestDataTime).To(BeNil())
-			Expect(update.LastImportTime).To(BeNil())
+			Expect(dataSource.NewUpdate()).To(Equal(&dataSource.Update{}))
 		})
 	})
 
@@ -673,7 +579,7 @@ var _ = Describe("Source", func() {
 			func(mutator func(datum *dataSource.Update)) {
 				datum := dataSourceTest.RandomUpdate()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Update) {},
@@ -691,16 +597,10 @@ var _ = Describe("Source", func() {
 					mutator(object, expectedDatum)
 					datum := &dataSource.Update{}
 					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
-					dataSourceTest.ExpectEqualUpdate(datum, expectedDatum)
+					Expect(datum).To(dataSourceTest.MatchUpdate(expectedDatum))
 				},
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {},
-				),
-				Entry("provider session id missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "providerSessionId")
-						expectedDatum.ProviderSessionID = nil
-					},
 				),
 				Entry("provider session id invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
@@ -714,12 +614,6 @@ var _ = Describe("Source", func() {
 						valid := authTest.RandomProviderSessionID()
 						object["providerSessionId"] = valid
 						expectedDatum.ProviderSessionID = pointer.FromString(valid)
-					},
-				),
-				Entry("state missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "state")
-						expectedDatum.State = nil
 					},
 				),
 				Entry("state invalid type",
@@ -736,12 +630,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = pointer.FromString(valid)
 					},
 				),
-				Entry("error missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "error")
-						expectedDatum.Error = nil
-					},
-				),
 				Entry("error invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
 						object["error"] = true
@@ -756,12 +644,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.Error = valid
 					},
 				),
-				Entry("data set ids missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "dataSetIds")
-						expectedDatum.DataSetIDs = nil
-					},
-				),
 				Entry("data set ids invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
 						object["dataSetIds"] = true
@@ -769,23 +651,11 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 				),
-				Entry("data set ids empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						object["dataSetIds"] = []string{}
-						expectedDatum.DataSetIDs = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("data set ids valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
 						valid := dataTest.RandomSetIDs()
 						object["dataSetIds"] = valid
 						expectedDatum.DataSetIDs = pointer.FromStringArray(valid)
-					},
-				),
-				Entry("earliest data time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "earliestDataTime")
-						expectedDatum.EarliestDataTime = nil
 					},
 				),
 				Entry("earliest data time invalid type",
@@ -800,19 +670,13 @@ var _ = Describe("Source", func() {
 						object["earliestDataTime"] = "invalid"
 						expectedDatum.EarliestDataTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/earliestDataTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/earliestDataTime"),
 				),
 				Entry("earliest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["earliestDataTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["earliestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.EarliestDataTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("latest data time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "latestDataTime")
-						expectedDatum.LatestDataTime = nil
 					},
 				),
 				Entry("latest data time invalid type",
@@ -827,19 +691,13 @@ var _ = Describe("Source", func() {
 						object["latestDataTime"] = "invalid"
 						expectedDatum.LatestDataTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/latestDataTime"),
 				),
 				Entry("latest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["latestDataTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["latestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LatestDataTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("last import time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						delete(object, "lastImportTime")
-						expectedDatum.LastImportTime = nil
 					},
 				),
 				Entry("last import time invalid type",
@@ -854,12 +712,12 @@ var _ = Describe("Source", func() {
 						object["lastImportTime"] = "invalid"
 						expectedDatum.LastImportTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/lastImportTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/lastImportTime"),
 				),
 				Entry("last import time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["lastImportTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["lastImportTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LastImportTime = pointer.FromTime(valid)
 					},
 				),
@@ -1093,14 +951,14 @@ var _ = Describe("Source", func() {
 				),
 				Entry("earliest data time after now",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(futureTime)
+						datum.EarliestDataTime = pointer.FromTime(test.FutureFarTime())
 						datum.LatestDataTime = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/earliestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/earliestDataTime"),
 				),
 				Entry("earliest data time valid",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 						datum.LatestDataTime = nil
 					},
 				),
@@ -1120,40 +978,40 @@ var _ = Describe("Source", func() {
 				Entry("earliest data time missing; latest data time after now",
 					func(datum *dataSource.Update) {
 						datum.EarliestDataTime = nil
-						datum.LatestDataTime = pointer.FromTime(futureTime)
+						datum.LatestDataTime = pointer.FromTime(test.FutureFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/latestDataTime"),
 				),
 				Entry("earliest data time missing; latest data time valid",
 					func(datum *dataSource.Update) {
 						datum.EarliestDataTime = nil
-						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 					},
 				),
 				Entry("earliest data time valid; latest data time missing",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
 						datum.LatestDataTime = nil
 					},
 				),
 				Entry("earliest data time valid; latest data time before earliest data time",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
-						datum.LatestDataTime = pointer.FromTime(farPastTime)
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
+						datum.LatestDataTime = pointer.FromTime(test.PastFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(farPastTime, nearPastTime), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/latestDataTime"),
 				),
 				Entry("earliest data time valid; latest data time after now",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
-						datum.LatestDataTime = pointer.FromTime(futureTime)
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
+						datum.LatestDataTime = pointer.FromTime(test.FutureFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/latestDataTime"),
 				),
 				Entry("earliest data time valid; latest data time valid",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
-						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(nearPastTime, time.Now()).Truncate(time.Second))
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
+						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.PastNearTime(), time.Now()))
 					},
 				),
 				Entry("last import time missing",
@@ -1167,13 +1025,13 @@ var _ = Describe("Source", func() {
 				),
 				Entry("last import time after now",
 					func(datum *dataSource.Update) {
-						datum.LastImportTime = pointer.FromTime(futureTime)
+						datum.LastImportTime = pointer.FromTime(test.FutureFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/lastImportTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/lastImportTime"),
 				),
 				Entry("last import time valid",
 					func(datum *dataSource.Update) {
-						datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 					},
 				),
 				Entry("multiple errors",
@@ -1209,66 +1067,62 @@ var _ = Describe("Source", func() {
 					}
 					Expect(datum).To(Equal(expectedDatum))
 				},
-				Entry("modifies the datum",
+				Entry("does not modify the datum",
 					func(datum *dataSource.Update) {},
-					func(datum *dataSource.Update, expectedDatum *dataSource.Update) {
-						expectedDatum.EarliestDataTime = pointer.FromTime(expectedDatum.EarliestDataTime.UTC().Truncate(time.Second))
-						expectedDatum.LatestDataTime = pointer.FromTime(expectedDatum.LatestDataTime.UTC().Truncate(time.Second))
-						expectedDatum.LastImportTime = pointer.FromTime(expectedDatum.LastImportTime.UTC().Truncate(time.Second))
-					},
+					func(datum *dataSource.Update, expectedDatum *dataSource.Update) {},
 				),
 			)
 		})
 
-		Context("HasUpdates", func() {
-			var update *dataSource.Update
+		Context("IsEmpty", func() {
+			var datum *dataSource.Update
 
 			BeforeEach(func() {
-				update = dataSource.NewUpdate()
+				datum = dataSource.NewUpdate()
 			})
 
-			It("returns false when no fields are specified", func() {
-				Expect(update.HasUpdates()).To(BeFalse())
+			It("returns true when no fields are specified", func() {
+				Expect(datum.IsEmpty()).To(BeTrue())
 			})
 
-			It("returns true when provider session id is not nil", func() {
-				update.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when provider session id is not nil", func() {
+				datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when state is not nil", func() {
-				update.State = pointer.FromString(dataSourceTest.RandomState())
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when state is not nil", func() {
+				datum.State = pointer.FromString(dataSourceTest.RandomState())
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when error is not nil", func() {
-				update.Error = errorsTest.RandomSerializable()
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when error is not nil", func() {
+				datum.Error = errorsTest.RandomSerializable()
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when data set ids is not nil", func() {
-				update.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when data set ids is not nil", func() {
+				datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when earliest data time is not nil", func() {
-				update.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Millisecond))
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when earliest data time is not nil", func() {
+				datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when latest data time is not nil", func() {
-				update.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Millisecond))
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when latest data time is not nil", func() {
+				datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when last import time is not nil", func() {
-				update.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Millisecond))
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when last import time is not nil", func() {
+				datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns true when all fields are not nil", func() {
-				update = dataSourceTest.RandomUpdate()
-				Expect(update.HasUpdates()).To(BeTrue())
+			It("returns false when all fields are not nil", func() {
+				datum = dataSourceTest.RandomUpdate()
+				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 		})
 	})
@@ -1278,8 +1132,8 @@ var _ = Describe("Source", func() {
 			func(mutator func(datum *dataSource.Source)) {
 				datum := dataSourceTest.RandomSource()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedBSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Source) {},
@@ -1297,16 +1151,10 @@ var _ = Describe("Source", func() {
 					mutator(object, expectedDatum)
 					datum := &dataSource.Source{}
 					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
-					dataSourceTest.ExpectEqualSource(datum, expectedDatum)
+					Expect(datum).To(dataSourceTest.MatchSource(expectedDatum))
 				},
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {},
-				),
-				Entry("id missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "id")
-						expectedDatum.ID = nil
-					},
 				),
 				Entry("id invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
@@ -1320,12 +1168,6 @@ var _ = Describe("Source", func() {
 						valid := dataSourceTest.RandomID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
-					},
-				),
-				Entry("user id missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "userId")
-						expectedDatum.UserID = nil
 					},
 				),
 				Entry("user id invalid type",
@@ -1342,12 +1184,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
 				),
-				Entry("provider type missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "providerType")
-						expectedDatum.ProviderType = nil
-					},
-				),
 				Entry("provider type invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
 						object["providerType"] = true
@@ -1360,12 +1196,6 @@ var _ = Describe("Source", func() {
 						valid := authTest.RandomProviderType()
 						object["providerType"] = valid
 						expectedDatum.ProviderType = pointer.FromString(valid)
-					},
-				),
-				Entry("provider name missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "providerName")
-						expectedDatum.ProviderName = nil
 					},
 				),
 				Entry("provider name invalid type",
@@ -1382,12 +1212,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderName = pointer.FromString(valid)
 					},
 				),
-				Entry("provider session id missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "providerSessionId")
-						expectedDatum.ProviderSessionID = nil
-					},
-				),
 				Entry("provider session id invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
 						object["providerSessionId"] = true
@@ -1400,12 +1224,6 @@ var _ = Describe("Source", func() {
 						valid := authTest.RandomProviderSessionID()
 						object["providerSessionId"] = valid
 						expectedDatum.ProviderSessionID = pointer.FromString(valid)
-					},
-				),
-				Entry("state missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "state")
-						expectedDatum.State = nil
 					},
 				),
 				Entry("state invalid type",
@@ -1422,12 +1240,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = pointer.FromString(valid)
 					},
 				),
-				Entry("error missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "error")
-						expectedDatum.Error = nil
-					},
-				),
 				Entry("error invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
 						object["error"] = true
@@ -1442,12 +1254,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.Error = valid
 					},
 				),
-				Entry("data set ids missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "dataSetIds")
-						expectedDatum.DataSetIDs = nil
-					},
-				),
 				Entry("data set ids invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
 						object["dataSetIds"] = true
@@ -1455,23 +1261,11 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 				),
-				Entry("data set ids empty",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						object["dataSetIds"] = []string{}
-						expectedDatum.DataSetIDs = pointer.FromStringArray([]string{})
-					},
-				),
 				Entry("data set ids valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
 						valid := dataTest.RandomSetIDs()
 						object["dataSetIds"] = valid
 						expectedDatum.DataSetIDs = pointer.FromStringArray(valid)
-					},
-				),
-				Entry("earliest data time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "earliestDataTime")
-						expectedDatum.EarliestDataTime = nil
 					},
 				),
 				Entry("earliest data time invalid type",
@@ -1486,19 +1280,13 @@ var _ = Describe("Source", func() {
 						object["earliestDataTime"] = "invalid"
 						expectedDatum.EarliestDataTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/earliestDataTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/earliestDataTime"),
 				),
 				Entry("earliest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["earliestDataTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["earliestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.EarliestDataTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("latest data time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "latestDataTime")
-						expectedDatum.LatestDataTime = nil
 					},
 				),
 				Entry("latest data time invalid type",
@@ -1513,19 +1301,13 @@ var _ = Describe("Source", func() {
 						object["latestDataTime"] = "invalid"
 						expectedDatum.LatestDataTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/latestDataTime"),
 				),
 				Entry("latest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["latestDataTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["latestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LatestDataTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("last import time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "lastImportTime")
-						expectedDatum.LastImportTime = nil
 					},
 				),
 				Entry("last import time invalid type",
@@ -1540,19 +1322,13 @@ var _ = Describe("Source", func() {
 						object["lastImportTime"] = "invalid"
 						expectedDatum.LastImportTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/lastImportTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/lastImportTime"),
 				),
 				Entry("last import time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["lastImportTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["lastImportTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LastImportTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("created time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "createdTime")
-						expectedDatum.CreatedTime = nil
 					},
 				),
 				Entry("created time invalid type",
@@ -1567,19 +1343,13 @@ var _ = Describe("Source", func() {
 						object["createdTime"] = "invalid"
 						expectedDatum.CreatedTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/createdTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/createdTime"),
 				),
 				Entry("created time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["createdTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["createdTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("modified time missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "modifiedTime")
-						expectedDatum.ModifiedTime = nil
 					},
 				),
 				Entry("modified time invalid type",
@@ -1594,19 +1364,13 @@ var _ = Describe("Source", func() {
 						object["modifiedTime"] = "invalid"
 						expectedDatum.ModifiedTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/modifiedTime"),
 				),
 				Entry("modified time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["modifiedTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("revision missing",
-					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						delete(object, "revision")
-						expectedDatum.Revision = nil
 					},
 				),
 				Entry("revision invalid type",
@@ -1870,14 +1634,14 @@ var _ = Describe("Source", func() {
 				),
 				Entry("earliest data time after now",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(futureTime)
+						datum.EarliestDataTime = pointer.FromTime(test.FutureFarTime())
 						datum.LatestDataTime = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/earliestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/earliestDataTime"),
 				),
 				Entry("earliest data time valid",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 						datum.LatestDataTime = nil
 					},
 				),
@@ -1897,40 +1661,40 @@ var _ = Describe("Source", func() {
 				Entry("earliest data time missing; latest data time after now",
 					func(datum *dataSource.Source) {
 						datum.EarliestDataTime = nil
-						datum.LatestDataTime = pointer.FromTime(futureTime)
+						datum.LatestDataTime = pointer.FromTime(test.FutureFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/latestDataTime"),
 				),
 				Entry("earliest data time missing; latest data time valid",
 					func(datum *dataSource.Source) {
 						datum.EarliestDataTime = nil
-						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 					},
 				),
 				Entry("earliest data time valid; latest data time missing",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
 						datum.LatestDataTime = nil
 					},
 				),
 				Entry("earliest data time valid; latest data time before earliest data time",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
-						datum.LatestDataTime = pointer.FromTime(farPastTime)
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
+						datum.LatestDataTime = pointer.FromTime(test.PastFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(farPastTime, nearPastTime), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/latestDataTime"),
 				),
 				Entry("earliest data time valid; latest data time after now",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
-						datum.LatestDataTime = pointer.FromTime(futureTime)
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
+						datum.LatestDataTime = pointer.FromTime(test.FutureFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/latestDataTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/latestDataTime"),
 				),
 				Entry("earliest data time valid; latest data time valid",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(nearPastTime)
-						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(nearPastTime, time.Now()).Truncate(time.Second))
+						datum.EarliestDataTime = pointer.FromTime(test.PastNearTime())
+						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.PastNearTime(), time.Now()))
 					},
 				),
 				Entry("last import time missing",
@@ -1944,13 +1708,13 @@ var _ = Describe("Source", func() {
 				),
 				Entry("last import time after now",
 					func(datum *dataSource.Source) {
-						datum.LastImportTime = pointer.FromTime(futureTime)
+						datum.LastImportTime = pointer.FromTime(test.FutureFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/lastImportTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/lastImportTime"),
 				),
 				Entry("last import time valid",
 					func(datum *dataSource.Source) {
-						datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 					},
 				),
 				Entry("created time missing",
@@ -1963,14 +1727,14 @@ var _ = Describe("Source", func() {
 				),
 				Entry("created time after now",
 					func(datum *dataSource.Source) {
-						datum.CreatedTime = pointer.FromTime(futureTime)
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
 						datum.ModifiedTime = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/createdTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/createdTime"),
 				),
 				Entry("created time valid",
 					func(datum *dataSource.Source) {
-						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 						datum.ModifiedTime = nil
 					},
 				),
@@ -1979,18 +1743,18 @@ var _ = Describe("Source", func() {
 				),
 				Entry("modified time before created time",
 					func(datum *dataSource.Source) {
-						datum.CreatedTime = pointer.FromTime(nearPastTime)
-						datum.ModifiedTime = pointer.FromTime(farPastTime)
+						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
+						datum.ModifiedTime = pointer.FromTime(test.PastFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(farPastTime, nearPastTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/modifiedTime"),
 				),
 				Entry("modified time after now",
-					func(datum *dataSource.Source) { datum.ModifiedTime = pointer.FromTime(futureTime) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					func(datum *dataSource.Source) { datum.ModifiedTime = pointer.FromTime(test.FutureFarTime()) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
 				),
 				Entry("modified time valid",
 					func(datum *dataSource.Source) {
-						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 					},
 				),
 				Entry("revision missing",
@@ -2074,7 +1838,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns an error when the details are missing", func() {
-				Expect(sanitized.Sanitize(nil)).To(MatchError("unable to sanitize"))
+				errorsTest.ExpectEqual(sanitized.Sanitize(nil), errors.New("unable to sanitize"))
 			})
 
 			It("does not modify the original when the details are server", func() {
@@ -2111,18 +1875,18 @@ var _ = Describe("Source", func() {
 		})
 	})
 
-	Context("Sources", func() {
+	Context("SourceArray", func() {
 		Context("Sanitize", func() {
-			var originals dataSource.Sources
-			var sanitized dataSource.Sources
+			var originals dataSource.SourceArray
+			var sanitized dataSource.SourceArray
 
 			BeforeEach(func() {
-				originals = dataSourceTest.RandomSources(1, 3)
-				sanitized = dataSourceTest.CloneSources(originals)
+				originals = dataSourceTest.RandomSourceArray(1, 3)
+				sanitized = dataSourceTest.CloneSourceArray(originals)
 			})
 
 			It("returns an error when the details are missing", func() {
-				Expect(sanitized.Sanitize(nil)).To(MatchError("unable to sanitize"))
+				errorsTest.ExpectEqual(sanitized.Sanitize(nil), errors.New("unable to sanitize"))
 			})
 
 			It("does not modify the originals when the details are server", func() {

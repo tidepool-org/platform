@@ -5,8 +5,8 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/insulin"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -23,7 +23,7 @@ const (
 )
 
 type Suppressed interface {
-	Parse(parser data.ObjectParser) error
+	Parse(parser structure.ObjectParser)
 	Validate(validator structure.Validator)
 	Normalize(normalizer data.Normalizer)
 }
@@ -45,19 +45,19 @@ func New() *Temporary {
 	}
 }
 
-func (t *Temporary) Parse(parser data.ObjectParser) error {
-	if err := t.Basal.Parse(parser); err != nil {
-		return err
+func (t *Temporary) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(t.Meta())
 	}
 
-	t.Duration = parser.ParseInteger("duration")
-	t.DurationExpected = parser.ParseInteger("expectedDuration")
-	t.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
-	t.Percent = parser.ParseFloat("percent")
-	t.Rate = parser.ParseFloat("rate")
-	t.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
+	t.Basal.Parse(parser)
 
-	return nil
+	t.Duration = parser.Int("duration")
+	t.DurationExpected = parser.Int("expectedDuration")
+	t.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	t.Percent = parser.Float64("percent")
+	t.Rate = parser.Float64("rate")
+	t.Suppressed = parseSuppressed(parser.WithReferenceObjectParser("suppressed"))
 }
 
 func (t *Temporary) Validate(validator structure.Validator) {
@@ -105,21 +105,20 @@ type SuppressedTemporary struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations        *data.BlobArray      `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Annotations        *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *insulin.Formulation    `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Percent            *float64                `json:"percent,omitempty" bson:"percent,omitempty"`
+	Rate               *float64                `json:"rate,omitempty" bson:"rate,omitempty"`
+	Suppressed         Suppressed              `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
-func ParseSuppressedTemporary(parser data.ObjectParser) *SuppressedTemporary {
-	if parser.Object() == nil {
+func ParseSuppressedTemporary(parser structure.ObjectParser) *SuppressedTemporary {
+	if !parser.Exists() {
 		return nil
 	}
-	suppressed := NewSuppressedTemporary()
-	suppressed.Parse(parser)
-	parser.ProcessNotParsed()
-	return suppressed
+	datum := NewSuppressedTemporary()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewSuppressedTemporary() *SuppressedTemporary {
@@ -129,17 +128,15 @@ func NewSuppressedTemporary() *SuppressedTemporary {
 	}
 }
 
-func (s *SuppressedTemporary) Parse(parser data.ObjectParser) error {
-	s.Type = parser.ParseString("type")
-	s.DeliveryType = parser.ParseString("deliveryType")
+func (s *SuppressedTemporary) Parse(parser structure.ObjectParser) {
+	s.Type = parser.String("type")
+	s.DeliveryType = parser.String("deliveryType")
 
-	s.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
-	s.InsulinFormulation = insulin.ParseFormulation(parser.NewChildObjectParser("insulinFormulation"))
-	s.Percent = parser.ParseFloat("percent")
-	s.Rate = parser.ParseFloat("rate")
-	s.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
-
-	return nil
+	s.Annotations = metadata.ParseMetadataArray(parser.WithReferenceArrayParser("annotations"))
+	s.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	s.Percent = parser.Float64("percent")
+	s.Rate = parser.Float64("rate")
+	s.Suppressed = parseSuppressed(parser.WithReferenceObjectParser("suppressed"))
 }
 
 func (s *SuppressedTemporary) Validate(validator structure.Validator) {
@@ -158,9 +155,6 @@ func (s *SuppressedTemporary) Validate(validator structure.Validator) {
 }
 
 func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
-	if s.Annotations != nil {
-		s.Annotations.Normalize(normalizer.WithReference("annotations"))
-	}
 	if s.InsulinFormulation != nil {
 		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
@@ -173,13 +167,13 @@ var suppressedDeliveryTypes = []string{
 	dataTypesBasalScheduled.DeliveryType,
 }
 
-func parseSuppressed(parser data.ObjectParser) Suppressed {
+func parseSuppressed(parser structure.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
 		case dataTypesBasalScheduled.DeliveryType:
 			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
 		default:
-			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+			parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
 		}
 	}
 	return nil

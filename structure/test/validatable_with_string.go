@@ -1,9 +1,6 @@
 package test
 
-import (
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
-)
+import "github.com/tidepool-org/platform/structure"
 
 type ValidatableWithStringInput struct {
 	Validator structure.Validator
@@ -11,15 +8,12 @@ type ValidatableWithStringInput struct {
 }
 
 type ValidatableWithString struct {
-	*test.Mock
 	ValidateInvocations int
 	ValidateInputs      []ValidatableWithStringInput
 }
 
 func NewValidatableWithString() *ValidatableWithString {
-	return &ValidatableWithString{
-		Mock: test.NewMock(),
-	}
+	return &ValidatableWithString{}
 }
 
 func (v *ValidatableWithString) Validate(validator structure.Validator, str *string) {
@@ -28,6 +22,4 @@ func (v *ValidatableWithString) Validate(validator structure.Validator, str *str
 	v.ValidateInputs = append(v.ValidateInputs, ValidatableWithStringInput{Validator: validator, String: str})
 }
 
-func (v *ValidatableWithString) Expectations() {
-	v.Mock.Expectations()
-}
+func (v *ValidatableWithString) Expectations() {}

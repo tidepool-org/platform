@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
@@ -61,7 +61,7 @@ func (s *Session) EnsureIndexes() error {
 	})
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -88,7 +88,7 @@ func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Fi
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	result := dataSource.Sources{}
+	result := dataSource.SourceArray{}
 	query := bson.M{
 		"userId": userID,
 	}
@@ -150,7 +150,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 		ProviderName:      create.ProviderName,
 		ProviderSessionID: create.ProviderSessionID,
 		State:             create.State,
-		CreatedTime:       pointer.FromTime(now.Truncate(time.Second)),
+		CreatedTime:       pointer.FromTime(now),
 		Revision:          pointer.FromInt(0),
 	}
 
@@ -179,6 +179,36 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 
 	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("Create")
 	return result, nil
+}
+
+func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+	if userID == "" {
+		return false, errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return false, errors.New("user id is invalid")
+	}
+
+	if s.IsClosed() {
+		return false, errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
+
+	query := bson.M{
+		"userId": userID,
+	}
+	changeInfo, err := s.C().RemoveAll(query)
+	if err != nil {
+		logger.WithError(err).Error("Unable to destroy all data sources")
+		return false, errors.Wrap(err, "unable to destroy all data sources")
+	}
+
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyAll")
+	return changeInfo.Removed > 0, nil
 }
 
 func (s *Session) Get(ctx context.Context, id string) (*dataSource.Source, error) {
@@ -234,7 +264,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition, "update": update})
 
-	if update.HasUpdates() {
+	if !update.IsEmpty() {
 		query := bson.M{
 			"id": id,
 		}
@@ -242,7 +272,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			query["revision"] = *condition.Revision
 		}
 		set := bson.M{
-			"modifiedTime": now.Truncate(time.Second),
+			"modifiedTime": now,
 		}
 		unset := bson.M{}
 		if update.ProviderSessionID != nil {
@@ -267,13 +297,13 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 			set["dataSetIds"] = *update.DataSetIDs
 		}
 		if update.EarliestDataTime != nil {
-			set["earliestDataTime"] = (*update.EarliestDataTime).Truncate(time.Second)
+			set["earliestDataTime"] = *update.EarliestDataTime
 		}
 		if update.LatestDataTime != nil {
-			set["latestDataTime"] = (*update.LatestDataTime).Truncate(time.Second)
+			set["latestDataTime"] = *update.LatestDataTime
 		}
 		if update.LastImportTime != nil {
-			set["lastImportTime"] = (*update.LastImportTime).Truncate(time.Second)
+			set["lastImportTime"] = *update.LastImportTime
 		}
 		changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
 		if err != nil {
@@ -300,7 +330,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -330,16 +360,16 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 	}
 	changeInfo, err := s.C().RemoveAll(query)
 	if err != nil {
-		logger.WithError(err).Error("Unable to delete data source")
-		return false, errors.Wrap(err, "unable to delete data source")
+		logger.WithError(err).Error("Unable to destroy data source")
+		return false, errors.Wrap(err, "unable to destroy data source")
 	}
 
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
 	return changeInfo.Removed > 0, nil
 }
 
 func (s *Session) get(logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
-	results := dataSource.Sources{}
+	results := dataSource.SourceArray{}
 	query := bson.M{
 		"id": id,
 	}

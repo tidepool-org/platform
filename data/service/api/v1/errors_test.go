@@ -4,14 +4,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/service/api/v1"
+	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/service"
 )
 
 var _ = Describe("Errors", func() {
 	Context("ErrorUserIDMissing", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorUserIDMissing()).To(Equal(
+			Expect(dataServiceApiV1.ErrorUserIDMissing()).To(Equal(
 				&service.Error{
 					Code:   "user-id-missing",
 					Status: 400,
@@ -23,7 +23,7 @@ var _ = Describe("Errors", func() {
 
 	Context("ErrorUserIDNotFound", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorUserIDNotFound("1234567890abcdef")).To(Equal(
+			Expect(dataServiceApiV1.ErrorUserIDNotFound("1234567890abcdef")).To(Equal(
 				&service.Error{
 					Code:   "user-id-not-found",
 					Status: 404,
@@ -35,7 +35,7 @@ var _ = Describe("Errors", func() {
 
 	Context("ErrorDataSetIDMissing", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorDataSetIDMissing()).To(Equal(
+			Expect(dataServiceApiV1.ErrorDataSetIDMissing()).To(Equal(
 				&service.Error{
 					Code:   "data-set-id-missing",
 					Status: 400,
@@ -47,7 +47,7 @@ var _ = Describe("Errors", func() {
 
 	Context("ErrorDataSetIDNotFound", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorDataSetIDNotFound("1234567890abcdef")).To(Equal(
+			Expect(dataServiceApiV1.ErrorDataSetIDNotFound("1234567890abcdef")).To(Equal(
 				&service.Error{
 					Code:   "data-set-id-not-found",
 					Status: 404,
@@ -59,7 +59,7 @@ var _ = Describe("Errors", func() {
 
 	Context("ErrorDataSetClosed", func() {
 		It("matches the expected error", func() {
-			Expect(v1.ErrorDataSetClosed("1234567890abcdef")).To(Equal(
+			Expect(dataServiceApiV1.ErrorDataSetClosed("1234567890abcdef")).To(Equal(
 				&service.Error{
 					Code:   "data-set-closed",
 					Status: 409,

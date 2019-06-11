@@ -72,7 +72,7 @@ func (t *Token) Parse(parser structure.ObjectParser) {
 	if refreshToken := parser.String("refreshToken"); refreshToken != nil {
 		t.RefreshToken = *refreshToken
 	}
-	if expirationTime := parser.Time("expirationTime", time.RFC3339); expirationTime != nil {
+	if expirationTime := parser.Time("expirationTime", time.RFC3339Nano); expirationTime != nil {
 		t.ExpirationTime = *expirationTime
 	}
 }

@@ -3,7 +3,6 @@ package insulin
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -29,13 +28,12 @@ type Simple struct {
 	Concentration *Concentration `json:"concentration,omitempty" bson:"concentration,omitempty"`
 }
 
-func ParseSimple(parser data.ObjectParser) *Simple {
-	if parser.Object() == nil {
+func ParseSimple(parser structure.ObjectParser) *Simple {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewSimple()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -43,10 +41,10 @@ func NewSimple() *Simple {
 	return &Simple{}
 }
 
-func (s *Simple) Parse(parser data.ObjectParser) {
-	s.ActingType = parser.ParseString("actingType")
-	s.Brand = parser.ParseString("brand")
-	s.Concentration = ParseConcentration(parser.NewChildObjectParser("concentration"))
+func (s *Simple) Parse(parser structure.ObjectParser) {
+	s.ActingType = parser.String("actingType")
+	s.Brand = parser.String("brand")
+	s.Concentration = ParseConcentration(parser.WithReferenceObjectParser("concentration"))
 }
 
 func (s *Simple) Validate(validator structure.Validator) {
@@ -54,8 +52,6 @@ func (s *Simple) Validate(validator structure.Validator) {
 	validator.String("brand", s.Brand).NotEmpty().LengthLessThanOrEqualTo(SimpleBrandLengthMaximum)
 	if s.Concentration != nil {
 		s.Concentration.Validate(validator.WithReference("concentration"))
-	} else {
-		validator.WithReference("concentration").ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 

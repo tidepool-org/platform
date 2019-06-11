@@ -24,13 +24,12 @@ type Concentration struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseConcentration(parser data.ObjectParser) *Concentration {
-	if parser.Object() == nil {
+func ParseConcentration(parser structure.ObjectParser) *Concentration {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewConcentration()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -38,9 +37,9 @@ func NewConcentration() *Concentration {
 	return &Concentration{}
 }
 
-func (c *Concentration) Parse(parser data.ObjectParser) {
-	c.Units = parser.ParseString("units")
-	c.Value = parser.ParseFloat("value")
+func (c *Concentration) Parse(parser structure.ObjectParser) {
+	c.Units = parser.String("units")
+	c.Value = parser.Float64("value")
 }
 
 func (c *Concentration) Validate(validator structure.Validator) {

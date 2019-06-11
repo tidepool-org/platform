@@ -25,14 +25,14 @@ func New() *ReservoirChange {
 	}
 }
 
-func (r *ReservoirChange) Parse(parser data.ObjectParser) error {
-	if err := r.Device.Parse(parser); err != nil {
-		return err
+func (r *ReservoirChange) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(r.Meta())
 	}
 
-	r.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.NewChildObjectParser("status"))
+	r.Device.Parse(parser)
 
-	return nil
+	r.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.WithReferenceObjectParser("status"))
 }
 
 func (r *ReservoirChange) Validate(validator structure.Validator) {

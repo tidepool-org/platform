@@ -26,18 +26,16 @@ func New() *Insulin {
 	}
 }
 
-func (i *Insulin) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(i.Meta())
-
-	if err := i.Base.Parse(parser); err != nil {
-		return err
+func (i *Insulin) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(i.Meta())
 	}
 
-	i.Dose = ParseDose(parser.NewChildObjectParser("dose"))
-	i.Formulation = ParseFormulation(parser.NewChildObjectParser("formulation"))
-	i.Site = parser.ParseString("site")
+	i.Base.Parse(parser)
 
-	return nil
+	i.Dose = ParseDose(parser.WithReferenceObjectParser("dose"))
+	i.Formulation = ParseFormulation(parser.WithReferenceObjectParser("formulation"))
+	i.Site = parser.String("site")
 }
 
 func (i *Insulin) Validate(validator structure.Validator) {

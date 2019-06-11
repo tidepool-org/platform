@@ -48,11 +48,13 @@ var _ = Describe("ID", func() {
 
 	Context("Must", func() {
 		It("panics if the error is not nil", func() {
-			Expect(func() { id.Must(test.NewString(32, test.CharsetHexidecimalLowercase), errorsTest.RandomError()) }).To(Panic())
+			Expect(func() {
+				id.Must(test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexidecimalLowercase), errorsTest.RandomError())
+			}).To(Panic())
 		})
 
 		It("returns the value if the error is nil", func() {
-			value := test.NewString(32, test.CharsetHexidecimalLowercase)
+			value := test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexidecimalLowercase)
 			Expect(id.Must(value, nil)).To(Equal(value))
 		})
 	})

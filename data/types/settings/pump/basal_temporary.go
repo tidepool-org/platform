@@ -23,13 +23,12 @@ type BasalTemporary struct {
 	Type *string `json:"type,omitempty" bson:"type,omitempty"`
 }
 
-func ParseBasalTemporary(parser data.ObjectParser) *BasalTemporary {
-	if parser.Object() == nil {
+func ParseBasalTemporary(parser structure.ObjectParser) *BasalTemporary {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBasalTemporary()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -37,8 +36,8 @@ func NewBasalTemporary() *BasalTemporary {
 	return &BasalTemporary{}
 }
 
-func (b *BasalTemporary) Parse(parser data.ObjectParser) {
-	b.Type = parser.ParseString("type")
+func (b *BasalTemporary) Parse(parser structure.ObjectParser) {
+	b.Type = parser.String("type")
 }
 
 func (b *BasalTemporary) Validate(validator structure.Validator) {

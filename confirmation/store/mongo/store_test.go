@@ -1,15 +1,14 @@
 package mongo_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-
 	"context"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/confirmation/store"
 	"github.com/tidepool-org/platform/confirmation/store/mongo"
@@ -22,13 +21,14 @@ import (
 )
 
 func NewConfirmation(userID string, typ string) bson.M {
-	now := time.Now().UTC()
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now())
 	return bson.M{
-		"created":   now.Format(time.RFC3339),
+		"created":   createdTime.Format(time.RFC3339Nano),
 		"creator":   bson.M{},
 		"creatorId": "",
 		"email":     netTest.RandomEmail(),
-		"modified":  now.Format(time.RFC3339),
+		"modified":  modifiedTime.Format(time.RFC3339Nano),
 		"status":    "completed",
 		"type":      typ,
 		"userId":    userID,
@@ -143,7 +143,7 @@ var _ = Describe("Store", func() {
 				var confirmations []interface{}
 
 				BeforeEach(func() {
-					confirmations = NewConfirmations(test.NewString(10, test.CharsetHexidecimalLowercase), test.NewString(10, test.CharsetHexidecimalLowercase))
+					confirmations = NewConfirmations(test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase))
 					Expect(mgoCollection.Insert(confirmations...)).To(Succeed())
 				})
 
@@ -152,8 +152,8 @@ var _ = Describe("Store", func() {
 					var userConfirmations []interface{}
 
 					BeforeEach(func() {
-						userID = test.NewString(10, test.CharsetHexidecimalLowercase)
-						userConfirmations = NewConfirmations(userID, test.NewString(10, test.CharsetHexidecimalLowercase))
+						userID = test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)
+						userConfirmations = NewConfirmations(userID, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase))
 						Expect(mgoCollection.Insert(userConfirmations...)).To(Succeed())
 					})
 

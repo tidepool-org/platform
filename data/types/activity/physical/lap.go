@@ -16,13 +16,12 @@ type Lap struct {
 	Distance *Distance `json:"distance,omitempty" bson:"distance,omitempty"`
 }
 
-func ParseLap(parser data.ObjectParser) *Lap {
-	if parser.Object() == nil {
+func ParseLap(parser structure.ObjectParser) *Lap {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewLap()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -30,9 +29,9 @@ func NewLap() *Lap {
 	return &Lap{}
 }
 
-func (l *Lap) Parse(parser data.ObjectParser) {
-	l.Count = parser.ParseInteger("count")
-	l.Distance = ParseDistance(parser.NewChildObjectParser("distance"))
+func (l *Lap) Parse(parser structure.ObjectParser) {
+	l.Count = parser.Int("count")
+	l.Distance = ParseDistance(parser.WithReferenceObjectParser("distance"))
 }
 
 func (l *Lap) Validate(validator structure.Validator) {

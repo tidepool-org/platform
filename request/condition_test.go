@@ -1,13 +1,13 @@
 package request_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-
 	"net/http"
 	"net/url"
 	"strconv"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -23,9 +23,9 @@ import (
 var _ = Describe("Condition", func() {
 	Context("NewCondition", func() {
 		It("returns successfully with default values", func() {
-			condition := request.NewCondition()
-			Expect(condition).ToNot(BeNil())
-			Expect(condition.Revision).To(BeNil())
+			datum := request.NewCondition()
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Revision).To(BeNil())
 		})
 	})
 
@@ -42,12 +42,6 @@ var _ = Describe("Condition", func() {
 				},
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *request.Condition) {},
-				),
-				Entry("revision missing",
-					func(object map[string]interface{}, expectedDatum *request.Condition) {
-						delete(object, "revision")
-						expectedDatum.Revision = nil
-					},
 				),
 				Entry("revision invalid type",
 					func(object map[string]interface{}, expectedDatum *request.Condition) {

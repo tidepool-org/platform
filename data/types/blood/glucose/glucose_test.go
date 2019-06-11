@@ -6,13 +6,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
-	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
+	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	testDataTypesBloodGlucose "github.com/tidepool-org/platform/data/types/blood/glucose/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -22,7 +22,7 @@ import (
 var _ = Describe("Glucose", func() {
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
-			typ := testDataTypes.NewType()
+			typ := dataTypesTest.NewType()
 			datum := glucose.New(typ)
 			Expect(datum.Type).To(Equal(typ))
 			Expect(datum.Units).To(BeNil())
@@ -35,7 +35,7 @@ var _ = Describe("Glucose", func() {
 		var datum glucose.Glucose
 
 		BeforeEach(func() {
-			typ = testDataTypes.NewType()
+			typ = dataTypesTest.NewType()
 			datum = glucose.New(typ)
 		})
 
@@ -49,9 +49,9 @@ var _ = Describe("Glucose", func() {
 	Context("Validate", func() {
 		DescribeTable("validates the datum",
 			func(units *string, mutator func(datum *glucose.Glucose, units *string), expectedErrors ...error) {
-				datum := testDataTypesBloodGlucose.NewGlucose(units)
+				datum := dataTypesBloodGlucoseTest.NewGlucose(units)
 				mutator(datum, units)
-				testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+				dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 			},
 			Entry("succeeds",
 				pointer.FromString("mmol/L"),
@@ -60,97 +60,97 @@ var _ = Describe("Glucose", func() {
 			Entry("type missing",
 				pointer.FromString("mmol/L"),
 				func(datum *glucose.Glucose, units *string) { datum.Type = "" },
-				testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 			),
 			Entry("type exists",
 				pointer.FromString("mmol/L"),
-				func(datum *glucose.Glucose, units *string) { datum.Type = testDataTypes.NewType() },
+				func(datum *glucose.Glucose, units *string) { datum.Type = dataTypesTest.NewType() },
 			),
 			Entry("units missing; value missing",
 				nil,
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 			Entry("units missing; value out of range (lower)",
 				nil,
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(-0.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 			),
 			Entry("units missing; value in range (lower)",
 				nil,
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(0.0)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 			),
 			Entry("units missing; value in range (upper)",
 				nil,
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(55.0)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 			),
 			Entry("units missing; value out of range (upper)",
 				nil,
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(1000.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 			),
 			Entry("units invalid; value missing",
 				pointer.FromString("invalid"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 			Entry("units invalid; value out of range (lower)",
 				pointer.FromString("invalid"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(-0.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
 			),
 			Entry("units invalid; value in range (lower)",
 				pointer.FromString("invalid"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(0.0)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
 			),
 			Entry("units invalid; value in range (upper)",
 				pointer.FromString("invalid"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(55.0)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
 			),
 			Entry("units invalid; value out of range (upper)",
 				pointer.FromString("invalid"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(1000.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units"),
 			),
 			Entry("units mmol/L; value missing",
 				pointer.FromString("mmol/L"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 			Entry("units mmol/L; value out of range (lower)",
 				pointer.FromString("mmol/L"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(-0.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value"),
 			),
 			Entry("units mmol/L; value in range (lower)",
 				pointer.FromString("mmol/L"),
@@ -169,21 +169,21 @@ var _ = Describe("Glucose", func() {
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(55.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value"),
 			),
 			Entry("units mmol/l; value missing",
 				pointer.FromString("mmol/l"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 			Entry("units mmol/l; value out of range (lower)",
 				pointer.FromString("mmol/l"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(-0.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/value"),
 			),
 			Entry("units mmol/l; value in range (lower)",
 				pointer.FromString("mmol/l"),
@@ -202,21 +202,21 @@ var _ = Describe("Glucose", func() {
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(55.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/value"),
 			),
 			Entry("units mg/dL; value missing",
 				pointer.FromString("mg/dL"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 			Entry("units mg/dL; value out of range (lower)",
 				pointer.FromString("mg/dL"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(-0.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value"),
 			),
 			Entry("units mg/dL; value in range (lower)",
 				pointer.FromString("mg/dL"),
@@ -235,21 +235,21 @@ var _ = Describe("Glucose", func() {
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(1000.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value"),
 			),
 			Entry("units mg/dl; value missing",
 				pointer.FromString("mg/dl"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 			Entry("units mg/dl; value out of range (lower)",
 				pointer.FromString("mg/dl"),
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(-0.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/value"),
 			),
 			Entry("units mg/dl; value in range (lower)",
 				pointer.FromString("mg/dl"),
@@ -268,7 +268,7 @@ var _ = Describe("Glucose", func() {
 				func(datum *glucose.Glucose, units *string) {
 					datum.Value = pointer.FromFloat64(1000.1)
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value"),
 			),
 			Entry("multiple errors",
 				nil,
@@ -276,9 +276,9 @@ var _ = Describe("Glucose", func() {
 					datum.Type = ""
 					datum.Value = nil
 				},
-				testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-				testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
+				errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 			),
 		)
 	})
@@ -287,9 +287,9 @@ var _ = Describe("Glucose", func() {
 		DescribeTable("normalizes the datum",
 			func(units *string, mutator func(datum *glucose.Glucose, units *string), expectator func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string)) {
 				for _, origin := range structure.Origins() {
-					datum := testDataTypesBloodGlucose.NewGlucose(units)
+					datum := dataTypesBloodGlucoseTest.NewGlucose(units)
 					mutator(datum, units)
-					expectedDatum := testDataTypesBloodGlucose.CloneGlucose(datum)
+					expectedDatum := dataTypesBloodGlucoseTest.CloneGlucose(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(origin))
@@ -325,9 +325,9 @@ var _ = Describe("Glucose", func() {
 
 		DescribeTable("normalizes the datum with origin external",
 			func(units *string, mutator func(datum *glucose.Glucose, units *string), expectator func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string)) {
-				datum := testDataTypesBloodGlucose.NewGlucose(units)
+				datum := dataTypesBloodGlucoseTest.NewGlucose(units)
 				mutator(datum, units)
-				expectedDatum := testDataTypesBloodGlucose.CloneGlucose(datum)
+				expectedDatum := dataTypesBloodGlucoseTest.CloneGlucose(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -362,14 +362,14 @@ var _ = Describe("Glucose", func() {
 				pointer.FromString("mmol/l"),
 				func(datum *glucose.Glucose, units *string) {},
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 				},
 			),
 			Entry("modifies the datum; units mmol/l; value missing",
 				pointer.FromString("mmol/l"),
 				func(datum *glucose.Glucose, units *string) { datum.Value = nil },
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 				},
 			),
 			Entry("modifies the datum; units mg/dL",
@@ -378,15 +378,15 @@ var _ = Describe("Glucose", func() {
 					datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
 				},
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 				},
 			),
 			Entry("modifies the datum; units mg/dL; value missing",
 				pointer.FromString("mg/dL"),
 				func(datum *glucose.Glucose, units *string) { datum.Value = nil },
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 				},
 			),
 			Entry("modifies the datum; units mg/dl",
@@ -395,15 +395,15 @@ var _ = Describe("Glucose", func() {
 					datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
 				},
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-					testDataBloodGlucose.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 				},
 			),
 			Entry("modifies the datum; units mg/dl; value missing",
 				pointer.FromString("mg/dl"),
 				func(datum *glucose.Glucose, units *string) { datum.Value = nil },
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string) {
-					testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 				},
 			),
 		)
@@ -411,9 +411,9 @@ var _ = Describe("Glucose", func() {
 		DescribeTable("normalizes the datum with origin internal/store",
 			func(units *string, mutator func(datum *glucose.Glucose, units *string), expectator func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string)) {
 				for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-					datum := testDataTypesBloodGlucose.NewGlucose(units)
+					datum := dataTypesBloodGlucoseTest.NewGlucose(units)
 					mutator(datum, units)
-					expectedDatum := testDataTypesBloodGlucose.CloneGlucose(datum)
+					expectedDatum := dataTypesBloodGlucoseTest.CloneGlucose(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(origin))

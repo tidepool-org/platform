@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
+	gomegaGstruct "github.com/onsi/gomega/gstruct"
+	gomegaTypes "github.com/onsi/gomega/types"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -90,9 +92,9 @@ func RandomUpdate() *dataSource.Update {
 	datum.State = pointer.FromString(state)
 	datum.Error = errorsTest.RandomSerializable()
 	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
-	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Millisecond))
-	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()).Truncate(time.Millisecond))
-	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()).Truncate(time.Millisecond))
+	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
+	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
 	return datum
 }
 
@@ -101,13 +103,13 @@ func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 		return nil
 	}
 	clone := &dataSource.Update{}
-	clone.ProviderSessionID = test.CloneString(datum.ProviderSessionID)
-	clone.State = test.CloneString(datum.State)
+	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
+	clone.State = pointer.CloneString(datum.State)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
-	clone.DataSetIDs = test.CloneStringArray(datum.DataSetIDs)
-	clone.EarliestDataTime = test.CloneTime(datum.EarliestDataTime)
-	clone.LatestDataTime = test.CloneTime(datum.LatestDataTime)
-	clone.LastImportTime = test.CloneTime(datum.LastImportTime)
+	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
+	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
+	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
+	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
 	return clone
 }
 
@@ -140,28 +142,19 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 	return object
 }
 
-func ExpectEqualUpdate(actual *dataSource.Update, expected *dataSource.Update) {
-	gomega.Expect(actual).ToNot(gomega.BeNil())
-	gomega.Expect(expected).ToNot(gomega.BeNil())
-	gomega.Expect(actual.ProviderSessionID).To(gomega.Equal(expected.ProviderSessionID))
-	gomega.Expect(actual.State).To(gomega.Equal(expected.State))
-	gomega.Expect(actual.Error).To(gomega.Equal(expected.Error))
-	gomega.Expect(actual.DataSetIDs).To(gomega.Equal(expected.DataSetIDs))
-	if actual.EarliestDataTime != nil && expected.EarliestDataTime != nil {
-		gomega.Expect(actual.EarliestDataTime.Local()).To(gomega.Equal(expected.EarliestDataTime.Local()))
-	} else {
-		gomega.Expect(actual.EarliestDataTime).To(gomega.Equal(expected.EarliestDataTime))
+func MatchUpdate(datum *dataSource.Update) gomegaTypes.GomegaMatcher {
+	if datum == nil {
+		return gomega.BeNil()
 	}
-	if actual.LatestDataTime != nil && expected.LatestDataTime != nil {
-		gomega.Expect(actual.LatestDataTime.Local()).To(gomega.Equal(expected.LatestDataTime.Local()))
-	} else {
-		gomega.Expect(actual.LatestDataTime).To(gomega.Equal(expected.LatestDataTime))
-	}
-	if actual.LastImportTime != nil && expected.LastImportTime != nil {
-		gomega.Expect(actual.LastImportTime.Local()).To(gomega.Equal(expected.LastImportTime.Local()))
-	} else {
-		gomega.Expect(actual.LastImportTime).To(gomega.Equal(expected.LastImportTime))
-	}
+	return gomegaGstruct.PointTo(gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
+		"ProviderSessionID": gomega.Equal(datum.ProviderSessionID),
+		"State":             gomega.Equal(datum.State),
+		"Error":             gomega.Equal(datum.Error),
+		"DataSetIDs":        gomega.Equal(datum.DataSetIDs),
+		"EarliestDataTime":  test.MatchTime(datum.EarliestDataTime),
+		"LatestDataTime":    test.MatchTime(datum.LatestDataTime),
+		"LastImportTime":    test.MatchTime(datum.LastImportTime),
+	}))
 }
 
 func RandomSource() *dataSource.Source {
@@ -174,11 +167,11 @@ func RandomSource() *dataSource.Source {
 	datum.State = pointer.FromString(RandomState())
 	datum.Error = errorsTest.RandomSerializable()
 	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
-	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Millisecond))
-	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()).Truncate(time.Millisecond))
-	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()).Truncate(time.Millisecond))
-	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
-	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
+	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
+	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
 }
@@ -201,7 +194,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
-	clone.Revision = test.CloneInt(datum.Revision)
+	clone.Revision = pointer.CloneInt(datum.Revision)
 	return clone
 }
 
@@ -255,69 +248,53 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 	return object
 }
 
-func ExpectEqualSource(actual *dataSource.Source, expected *dataSource.Source) {
-	gomega.Expect(actual).ToNot(gomega.BeNil())
-	gomega.Expect(expected).ToNot(gomega.BeNil())
-	gomega.Expect(actual.ID).To(gomega.Equal(expected.ID))
-	gomega.Expect(actual.UserID).To(gomega.Equal(expected.UserID))
-	gomega.Expect(actual.ProviderType).To(gomega.Equal(expected.ProviderType))
-	gomega.Expect(actual.ProviderName).To(gomega.Equal(expected.ProviderName))
-	gomega.Expect(actual.ProviderSessionID).To(gomega.Equal(expected.ProviderSessionID))
-	gomega.Expect(actual.State).To(gomega.Equal(expected.State))
-	gomega.Expect(actual.Error).To(gomega.Equal(expected.Error))
-	gomega.Expect(actual.DataSetIDs).To(gomega.Equal(expected.DataSetIDs))
-	if actual.EarliestDataTime != nil && expected.EarliestDataTime != nil {
-		gomega.Expect(actual.EarliestDataTime.Local()).To(gomega.Equal(expected.EarliestDataTime.Local()))
-	} else {
-		gomega.Expect(actual.EarliestDataTime).To(gomega.Equal(expected.EarliestDataTime))
+func MatchSource(datum *dataSource.Source) gomegaTypes.GomegaMatcher {
+	if datum == nil {
+		return gomega.BeNil()
 	}
-	if actual.LatestDataTime != nil && expected.LatestDataTime != nil {
-		gomega.Expect(actual.LatestDataTime.Local()).To(gomega.Equal(expected.LatestDataTime.Local()))
-	} else {
-		gomega.Expect(actual.LatestDataTime).To(gomega.Equal(expected.LatestDataTime))
-	}
-	if actual.LastImportTime != nil && expected.LastImportTime != nil {
-		gomega.Expect(actual.LastImportTime.Local()).To(gomega.Equal(expected.LastImportTime.Local()))
-	} else {
-		gomega.Expect(actual.LastImportTime).To(gomega.Equal(expected.LastImportTime))
-	}
-	if actual.CreatedTime != nil && expected.CreatedTime != nil {
-		gomega.Expect(actual.CreatedTime.Local()).To(gomega.Equal(expected.CreatedTime.Local()))
-	} else {
-		gomega.Expect(actual.CreatedTime).To(gomega.Equal(expected.CreatedTime))
-	}
-	if actual.ModifiedTime != nil && expected.ModifiedTime != nil {
-		gomega.Expect(actual.ModifiedTime.Local()).To(gomega.Equal(expected.ModifiedTime.Local()))
-	} else {
-		gomega.Expect(actual.ModifiedTime).To(gomega.Equal(expected.ModifiedTime))
-	}
-	gomega.Expect(actual.Revision).To(gomega.Equal(expected.Revision))
+	return gomegaGstruct.PointTo(gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
+		"ID":                gomega.Equal(datum.ID),
+		"UserID":            gomega.Equal(datum.UserID),
+		"ProviderType":      gomega.Equal(datum.ProviderType),
+		"ProviderName":      gomega.Equal(datum.ProviderName),
+		"ProviderSessionID": gomega.Equal(datum.ProviderSessionID),
+		"State":             gomega.Equal(datum.State),
+		"Error":             gomega.Equal(datum.Error),
+		"DataSetIDs":        gomega.Equal(datum.DataSetIDs),
+		"EarliestDataTime":  test.MatchTime(datum.EarliestDataTime),
+		"LatestDataTime":    test.MatchTime(datum.LatestDataTime),
+		"LastImportTime":    test.MatchTime(datum.LastImportTime),
+		"CreatedTime":       test.MatchTime(datum.CreatedTime),
+		"ModifiedTime":      test.MatchTime(datum.ModifiedTime),
+		"Revision":          gomega.Equal(datum.Revision),
+	}))
 }
 
-func RandomSources(minimumLength int, maximumLength int) dataSource.Sources {
-	datum := make(dataSource.Sources, test.RandomIntFromRange(minimumLength, maximumLength))
+func RandomSourceArray(minimumLength int, maximumLength int) dataSource.SourceArray {
+	datum := make(dataSource.SourceArray, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
 		datum[index] = RandomSource()
 	}
 	return datum
 }
 
-func CloneSources(datum dataSource.Sources) dataSource.Sources {
+func CloneSourceArray(datum dataSource.SourceArray) dataSource.SourceArray {
 	if len(datum) == 0 {
 		return datum
 	}
-	clone := dataSource.Sources{}
+	clone := dataSource.SourceArray{}
 	for _, source := range datum {
 		clone = append(clone, CloneSource(source))
 	}
 	return clone
 }
 
-func ExpectEqualSources(actual dataSource.Sources, expected dataSource.Sources) {
-	gomega.Expect(actual).To(gomega.HaveLen(len(expected)))
-	for index := range expected {
-		ExpectEqualSource(actual[index], expected[index])
+func MatchSourceArray(datum dataSource.SourceArray) gomegaTypes.GomegaMatcher {
+	matchers := []gomegaTypes.GomegaMatcher{}
+	for _, d := range datum {
+		matchers = append(matchers, MatchSource(d))
 	}
+	return test.MatchArray(matchers)
 }
 
 func RandomID() string {

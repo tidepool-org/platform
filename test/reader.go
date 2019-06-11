@@ -8,7 +8,7 @@ type ReadOutput struct {
 type Reader struct {
 	ReadInvocations int
 	ReadInputs      [][]byte
-	ReadStub        func(bytes []byte) (int, error)
+	ReadStub        func(bites []byte) (int, error)
 	ReadOutputs     []ReadOutput
 	ReadOutput      *ReadOutput
 }
@@ -17,11 +17,11 @@ func NewReader() *Reader {
 	return &Reader{}
 }
 
-func (r *Reader) Read(bytes []byte) (int, error) {
+func (r *Reader) Read(bites []byte) (int, error) {
 	r.ReadInvocations++
-	r.ReadInputs = append(r.ReadInputs, bytes)
+	r.ReadInputs = append(r.ReadInputs, bites)
 	if r.ReadStub != nil {
-		return r.ReadStub(bytes)
+		return r.ReadStub(bites)
 	}
 	if len(r.ReadOutputs) > 0 {
 		output := r.ReadOutputs[0]

@@ -34,7 +34,7 @@ type ValidatableWithStringAdapter struct {
 func NewValidatableWithStringAdapter(validatableWithString ValidatableWithString, str *string) *ValidatableWithStringAdapter {
 	return &ValidatableWithStringAdapter{
 		validatableWithString: validatableWithString,
-		str: str,
+		str:                   str,
 	}
 }
 

@@ -29,13 +29,12 @@ type ElevationChange struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseElevationChange(parser data.ObjectParser) *ElevationChange {
-	if parser.Object() == nil {
+func ParseElevationChange(parser structure.ObjectParser) *ElevationChange {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewElevationChange()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -43,9 +42,9 @@ func NewElevationChange() *ElevationChange {
 	return &ElevationChange{}
 }
 
-func (e *ElevationChange) Parse(parser data.ObjectParser) {
-	e.Units = parser.ParseString("units")
-	e.Value = parser.ParseFloat("value")
+func (e *ElevationChange) Parse(parser structure.ObjectParser) {
+	e.Units = parser.String("units")
+	e.Value = parser.Float64("value")
 }
 
 func (e *ElevationChange) Validate(validator structure.Validator) {

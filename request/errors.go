@@ -7,18 +7,23 @@ import (
 )
 
 const (
-	ErrorCodeInternalServerError = "internal-server-error"
-	ErrorCodeUnexpectedResponse  = "unexpected-response"
-	ErrorCodeTooManyRequests     = "too-many-requests"
-	ErrorCodeBadRequest          = "bad-request"
-	ErrorCodeUnauthenticated     = "unauthenticated"
-	ErrorCodeUnauthorized        = "unauthorized"
-	ErrorCodeResourceNotFound    = "resource-not-found"
-	ErrorCodeHeaderMissing       = "header-missing"
-	ErrorCodeHeaderInvalid       = "header-invalid"
-	ErrorCodeParameterMissing    = "parameter-missing"
-	ErrorCodeParameterInvalid    = "parameter-invalid"
-	ErrorCodeJSONMalformed       = "json-malformed"
+	ErrorCodeInternalServerError   = "internal-server-error"
+	ErrorCodeUnexpectedResponse    = "unexpected-response"
+	ErrorCodeTooManyRequests       = "too-many-requests"
+	ErrorCodeBadRequest            = "bad-request"
+	ErrorCodeUnauthenticated       = "unauthenticated"
+	ErrorCodeUnauthorized          = "unauthorized"
+	ErrorCodeResourceNotFound      = "resource-not-found"
+	ErrorCodeResourceTooLarge      = "resource-too-large"
+	ErrorCodeHeaderMissing         = "header-missing"
+	ErrorCodeHeaderInvalid         = "header-invalid"
+	ErrorCodeParameterMissing      = "parameter-missing"
+	ErrorCodeParameterInvalid      = "parameter-invalid"
+	ErrorCodeJSONNotFound          = "json-not-found"
+	ErrorCodeJSONMalformed         = "json-malformed"
+	ErrorCodeDigestsNotEqual       = "digests-not-equal"
+	ErrorCodeMediaTypeNotSupported = "media-type-not-supported"
+	ErrorCodeExtensionNotSupported = "extension-not-supported"
 )
 
 func ErrorInternalServerError(err error) error {
@@ -64,6 +69,10 @@ func ErrorResourceNotFoundWithIDAndOptionalRevision(id string, revision *int) er
 	return ErrorResourceNotFoundWithID(id)
 }
 
+func ErrorResourceTooLarge() error {
+	return errors.Preparedf(ErrorCodeResourceTooLarge, "resource too large", "resource too large")
+}
+
 func ErrorHeaderMissing(key string) error {
 	return errors.Preparedf(ErrorCodeHeaderMissing, "header is missing", "header %q is missing", key)
 }
@@ -80,8 +89,24 @@ func ErrorParameterInvalid(key string) error {
 	return errors.Preparedf(ErrorCodeParameterInvalid, "parameter is invalid", "parameter %q is invalid", key)
 }
 
+func ErrorJSONNotFound() error {
+	return errors.Prepared(ErrorCodeJSONNotFound, "json not found", "json not found")
+}
+
 func ErrorJSONMalformed() error {
 	return errors.Prepared(ErrorCodeJSONMalformed, "json is malformed", "json is malformed")
+}
+
+func ErrorDigestsNotEqual(value string, calculated string) error {
+	return errors.Preparedf(ErrorCodeDigestsNotEqual, "digests not equal", "digest %q does not equal calculated digest %q", value, calculated)
+}
+
+func ErrorMediaTypeNotSupported(value string) error {
+	return errors.Preparedf(ErrorCodeMediaTypeNotSupported, "media type not supported", "media type %q not supported", value)
+}
+
+func ErrorExtensionNotSupported(value string) error {
+	return errors.Preparedf(ErrorCodeExtensionNotSupported, "extension not supported", "extension %q not supported", value)
 }
 
 func StatusCodeForError(err error) int {
@@ -97,6 +122,8 @@ func StatusCodeForError(err error) int {
 			return http.StatusForbidden
 		case ErrorCodeResourceNotFound:
 			return http.StatusNotFound
+		case ErrorCodeResourceTooLarge:
+			return http.StatusRequestEntityTooLarge
 		}
 	}
 	return http.StatusInternalServerError

@@ -1,0 +1,421 @@
+openapi: '3.0.0'
+info:
+  title: Tidepool API
+  termsOfService: https://tidepool.org/terms
+  contact:
+    name: API Support
+    url: https://support.tidepool.org/
+    email: support@tidepool.org
+  license:
+    name: BSD 2-Clause "Simplified" License
+    url: https://github.com/tidepool-org/platform/blob/master/LICENSE
+  version: v1
+servers:
+    - url: http://localhost:8009
+      description: Local
+    - url: https://dev-api.tidepool.org
+      description: Development [Internal Use Only]
+    - url: https://stg-api.tidepool.org
+      description: Staging [Internal Use Only]
+    - url: https://int-api.tidepool.org
+      description: Integration
+    - url: https://api.tidepool.org
+      description: Production [Requires Approval]
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - title
+        - detail
+      properties:
+        code:
+          type: string
+          description: The error code.
+        title:
+          type: string
+          description: The error title.
+        detail:
+          type: string
+          description: The error detail.
+        source:
+          type: string
+          description: The error source.
+        metadata:
+          type: string
+          description: The error metadata.
+    CreatedTime:
+      type: string
+      format: date-time
+      description: The RFC3339-formatted time the resource was created.
+      example: '2018-06-15T13:45:56Z'
+    ModifiedTime:
+      type: string
+      format: date-time
+      description: The RFC3339-formatted time the resource was last modified.
+      example: '2018-06-15T13:45:56Z'
+    DeletedTime:
+      type: string
+      format: date-time
+      description: The RFC3339-formatted time the resource was deleted.
+      example: '2018-06-15T13:45:56Z'
+    Revision:
+      type: integer
+      description: The revision of the resource. Initially set to 0 and incremented each time the resource is modified.
+      minimum: 0
+      example: 3
+    Metadata:
+      type: object
+      description: Additional user-specified metadata. The maximum size is 4K bytes.
+      additionalProperties: {}
+      example:
+        interesting: true
+    URL:
+      type: string
+      description: A URL.
+      format: url
+      minLength: 1
+      maxLength: 2047
+      example: https://www.wikipedia.org/
+    MediaType:
+      type: string
+      format: mimeType
+      description: The media type of the content.
+      example: application/octet-stream
+    DigestMD5:
+      type: string
+      description: The Base64 encoded MD5 hash of the content.
+      example: 1c55693d6c55b9baa1f32f4e4af1d0e2
+    Association:
+      type: object
+      description: Associate this resource with another Tidepool resource id.
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: |-
+            The type of the association. If type is blob, datum, or image then id must also be
+            specified. If type is url, then url must also be specified.
+          enum: [blob, datum, image, url]
+        id:
+          type: string
+          description: The id of the associated Tidepool resource if type is blob, datum, or image.
+        url:
+          $ref: common.yaml#/components/schemas/URL
+          description: The URL of the asssociation if type is url.
+        reason:
+          type: string
+          description: The reason for the association.
+          minLength: 1
+          maxLength: 1000
+      example:
+        type: datum
+        id: 4581bb9a5c1be2f127d6281c011c80ff
+        reason: Bolus associated with lunch at Disneyland.
+    AssociationArray:
+      type: array
+      description: An array of associations for the resource.
+      items:
+        $ref: common.yaml#/components/schemas/Association
+        minItems: 1
+        maxItems: 100
+      example:
+        - type: datum
+          id: 4581bb9a5c1be2f127d6281c011c80ff
+          reason: Bolus for with lunch at Disneyland.
+        - type: url
+          url: https://disneyland.disney.go.com/
+          reason: Disneyland is the greatest place on earth!
+    GPS:
+      type: object
+      description: GPS coordinates and related information.
+      required:
+        - latitude
+        - longitude
+      properties:
+        elevation:
+          type: object
+          required:
+            - units
+            - value
+          properties:
+            units:
+              type: string
+              enum: [feet, meters]
+              example: meters
+            value:
+              type: number
+              format: double
+              minimum: 0.0
+              example: 43
+        floor:
+          type: integer
+          minimum: -1000
+          maximum: 1000
+          example: 1
+        horizontalAccuracy:
+          type: object
+          required:
+            - units
+            - value
+          properties:
+            units:
+              type: string
+              enum: [feet, meters]
+              example: meters
+            value:
+              type: number
+              format: double
+              minimum: 0.0
+              example: 3.41
+        latitude:
+          type: object
+          required:
+            - units
+            - value
+          properties:
+            units:
+              type: string
+              enum: [degrees]
+              example: degrees
+            value:
+              type: number
+              format: double
+              minimum: -90.0
+              maximum: 90.0
+              example: 33.812101
+        longitude:
+          type: object
+          required:
+            - units
+            - value
+          properties:
+            units:
+              type: string
+              enum: [degrees]
+              example: degrees
+            value:
+              type: number
+              format: double
+              minimum: -180.0
+              maximum: 180.0
+              example: -117.918975
+        origin:
+          $ref: common.yaml#/components/schemas/Origin
+        verticalAccuracy:
+          type: object
+          required:
+            - units
+            - value
+          properties:
+            units:
+              type: string
+              enum: [feet, meters]
+              example: meters
+            value:
+              type: number
+              format: double
+              minimum: 0.0
+              example: 5.1
+    Location:
+      type: object
+      description: Location information associated with the resource. One or both of name and gps must be specified.
+      properties:
+        name:
+          type: string
+          description: A name for the location.
+          minLength: 1
+          maxLength: 100
+        gps:
+          $ref: common.yaml#/components/schemas/GPS
+      example:
+        name: Disneyland Park, Anaheim, CA, USA
+        gps:
+          latitude:
+            units: degrees
+            value: 33.812101
+          longitude:
+            units: degrees
+            value: -117.918975
+          origin:
+            name: Google Maps
+            time: '2018-10-26T23:23:04Z'
+            type: service
+    Origin:
+      type: object
+      description: External origin information for the source of the resource.
+      properties:
+        id:
+          type: string
+          description: Any external identifier uniquely identifying the resource at the origin source.
+          minLength: 1
+          maxLength: 100
+        name:
+          type: string
+          description: A human-readable name for the origin source.
+          minLength: 1
+          maxLength: 100
+        payload:
+          $ref: common.yaml#/components/schemas/Payload
+        time:
+          type: string
+          description: A RFC3339-formatted time related to the resource at the origin source.
+          format: date-time
+        type:
+          type: string
+          description: The type of the origin source.
+          enum: [device, manual, service]
+        version:
+          type: string
+          description: The version of the origin source at the time the resources was obtained.
+          minLength: 1
+          maxLength: 100
+      example:
+        id: AA5634B2-387A-415E-AB32-166C9EDAC32D
+        name: com.apple.HealthKit
+        time: 2018-10-26T23:23:04Z
+        type: service
+    Payload:
+      type: object
+      description: Additional user-specified metadata. The maximum size is 4K bytes.
+      additionalProperties: {}
+      example:
+        ticks: 67834
+    Note:
+      type: string
+      description: A note associated with the resource.
+      minLength: 1
+      maxLength: 1000
+      example: This is the best dog, Pluto!
+    NoteArray:
+      type: array
+      description: A list of notes associated with the resource.
+      items:
+        $ref: common.yaml#/components/schemas/Note
+        minItems: 1
+        maxItems: 100
+    Tag:
+      type: string
+      description: A tag associated with the resource.
+      minLength: 1
+      maxLength: 100
+      example: dog
+    TagArray:
+      type: array
+      description: A list of tags associated with the resource.
+      items:
+        $ref: common.yaml#/components/schemas/Tag
+        minItems: 1
+        maxItems: 100
+        uniqueItems: true
+  parameters:
+    X-Tidepool-Trace-Request:
+      name: X-Tidepool-Trace-Request
+      in: header
+      description: |-
+        An optional, unique identifier specified by the client automatically associated with all server logging occurring during the request.
+        If not specified, then a new identifier is generated and returned in the matching response header.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: 1d2d63f9ddaf9ecd217d695f8cc574a4
+    X-Tidepool-Trace-Session:
+      name: X-Tidepool-Trace-Session
+      in: header
+      description: |-
+        An optional, unique identifier specified by the client automatically associated with all server logging occurring during a "session" of requests.
+        It is up to the client to determine how a "session" is defined. If specified, then the identifer is returned in the matching response header.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: d77faa04c9efe9f6309c69d731980c67
+  responses:
+    '400':
+      description: The request is bad.
+      content:
+        application/json:
+          schema:
+            $ref: common.yaml#/components/schemas/Error
+          example:
+            code: length-out-of-range
+            title: length is out of range
+            detail: length 101 is not less than or equal to 100
+            source: /name
+      headers:
+        X-Tidepool-Trace-Request:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Request
+        X-Tidepool-Trace-Session:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Session
+    '401':
+      description: The authentication token is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: common.yaml#/components/schemas/Error
+          example:
+            code: unauthenticated
+            title: authentication token is invalid
+            detail: authentication token is invalid
+      headers:
+        X-Tidepool-Trace-Request:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Request
+        X-Tidepool-Trace-Session:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Session
+    '403':
+      description: The authentication token is not authorized to perform the requested action.
+      content:
+        application/json:
+          schema:
+            $ref: common.yaml#/components/schemas/Error
+          example:
+            code: unauthorized
+            title: authentication token is not authorized for requested action
+            detail: authentication token is not authorized for requested action
+      headers:
+        X-Tidepool-Trace-Request:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Request
+        X-Tidepool-Trace-Session:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Session
+    '404':
+      description: The specified resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: common.yaml#/components/schemas/Error
+          example:
+            code: resource-not-found
+            title: resource not found
+            detail: resource with id "b2d58a0d1757e52776bedaa3f0b16650" not found
+      headers:
+        X-Tidepool-Trace-Request:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Request
+        X-Tidepool-Trace-Session:
+          $ref: common.yaml#/components/headers/X-Tidepool-Trace-Session
+  headers:
+    X-Tidepool-Trace-Request:
+      description: |-
+        A unique identifier associated with all server logging occurring during the request. The client should capture this identifier with any failure
+        for future analysis.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: 1d2d63f9ddaf9ecd217d695f8cc574a4
+    X-Tidepool-Trace-Session:
+      description: |-
+        If specified by the client, a unique identifier associated with all server logging occurring during a "session" of requests.
+        The client should capture this identifier with any failure for future analysis.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+      example: d77faa04c9efe9f6309c69d731980c67
+  securitySchemes:
+    X-Tidepool-Session-Token:
+      type: apiKey
+      name: X-Tidepool-Session-Token
+      in: header

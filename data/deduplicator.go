@@ -20,26 +20,12 @@ func ParseDeduplicatorDescriptor(parser structure.ObjectParser) *DeduplicatorDes
 	return datum
 }
 
-func ParseDeduplicatorDescriptorDEPRECATED(parser ObjectParser) *DeduplicatorDescriptor {
-	if parser.Object() == nil {
-		return nil
-	}
-	datum := NewDeduplicatorDescriptor()
-	datum.ParseDEPRECATED(parser)
-	parser.ProcessNotParsed()
-	return datum
-}
-
 func NewDeduplicatorDescriptor() *DeduplicatorDescriptor {
 	return &DeduplicatorDescriptor{}
 }
 
 func (d *DeduplicatorDescriptor) Parse(parser structure.ObjectParser) {
 	d.Name = parser.String("name")
-}
-
-func (d *DeduplicatorDescriptor) ParseDEPRECATED(parser ObjectParser) {
-	d.Name = parser.ParseString("name")
 }
 
 func (d *DeduplicatorDescriptor) Validate(validator structure.Validator) {

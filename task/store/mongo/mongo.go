@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -191,7 +191,7 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
-		"modifiedTime": now.Truncate(time.Second),
+		"modifiedTime": now,
 	}
 	if update.Priority != nil {
 		set["priority"] = *update.Priority
@@ -200,10 +200,10 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 		set["data"] = *update.Data
 	}
 	if update.AvailableTime != nil {
-		set["availableTime"] = (*update.AvailableTime).Truncate(time.Second)
+		set["availableTime"] = *update.AvailableTime
 	}
 	if update.ExpirationTime != nil {
-		set["expirationTime"] = (*update.ExpirationTime).Truncate(time.Second)
+		set["expirationTime"] = *update.ExpirationTime
 	}
 	changeInfo, err := t.C().UpdateAll(bson.M{"id": id}, t.ConstructUpdate(set, bson.M{}))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
@@ -255,18 +255,7 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
 
-	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Second))
-
-	if tsk.AvailableTime != nil {
-		tsk.AvailableTime = pointer.FromTime((*tsk.AvailableTime).Truncate(time.Second))
-	}
-	if tsk.ExpirationTime != nil {
-		tsk.ExpirationTime = pointer.FromTime((*tsk.ExpirationTime).Truncate(time.Second))
-	}
-	if tsk.RunTime != nil {
-		tsk.RunTime = pointer.FromTime((*tsk.RunTime).Truncate(time.Second))
-	}
-	tsk.CreatedTime = tsk.CreatedTime.Truncate(time.Second)
+	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Millisecond))
 
 	selector := bson.M{
 		"id":    tsk.ID,

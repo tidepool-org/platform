@@ -121,7 +121,7 @@ func IDValidator(value string, errorReporter structure.ErrorReporter) {
 func ValidateID(value string) error {
 	if value == "" {
 		return structureValidator.ErrorValueEmpty()
-	} else if !setIDExpression.MatchString(value) {
+	} else if !idExpression.MatchString(value) {
 		return ErrorValueStringAsIDNotValid(value)
 	}
 	return nil
@@ -131,4 +131,4 @@ func ErrorValueStringAsIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as data id", value)
 }
 
-var idExpression = regexp.MustCompile("^[0-9a-z]{32}$")
+var idExpression = regexp.MustCompile("^[0-9a-z]{32}$") // TODO: Want just "[0-9a-f]{32}" (Jellyfish uses [0-9a-z])

@@ -6,10 +6,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -32,8 +32,8 @@ func CloneCarbohydrateRatioStart(datum *pump.CarbohydrateRatioStart) *pump.Carbo
 		return nil
 	}
 	clone := pump.NewCarbohydrateRatioStart()
-	clone.Amount = test.CloneFloat64(datum.Amount)
-	clone.Start = test.CloneInt(datum.Start)
+	clone.Amount = pointer.CloneFloat64(datum.Amount)
+	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 
@@ -58,7 +58,7 @@ func CloneCarbohydrateRatioStartArray(datumArray *pump.CarbohydrateRatioStartArr
 
 func NewCarbohydrateRatioStartArrayMap() *pump.CarbohydrateRatioStartArrayMap {
 	datum := pump.NewCarbohydrateRatioStartArrayMap()
-	datum.Set(testDataTypesBasal.NewScheduleName(), NewCarbohydrateRatioStartArray())
+	datum.Set(dataTypesBasalTest.NewScheduleName(), NewCarbohydrateRatioStartArray())
 	return datum
 }
 
@@ -110,18 +110,18 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
 					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.CarbohydrateRatioStart) {},
 				),
 				Entry("amount missing",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 				Entry("amount out of range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/amount"),
 				),
 				Entry("amount in range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(0.0) },
@@ -131,19 +131,19 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("amount out of range (upper)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(250.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/amount"),
 				),
 				Entry("start missing",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 				Entry("multiple errors",
 					func(datum *pump.CarbohydrateRatioStart) {
 						datum.Amount = nil
 						datum.Start = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 			)
 
@@ -151,18 +151,18 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
 					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(-1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
 				),
 				Entry("start in range",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(0) },
 				),
 				Entry("start out of range (upper)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
 				),
 			)
 
@@ -170,11 +170,11 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
 					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(0) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
 				),
 				Entry("start in range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(1) },
@@ -184,7 +184,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("start out of range (upper)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = pointer.FromInt(86400001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
 				),
 			)
 		})
@@ -237,7 +237,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStartArray), expectedErrors ...error) {
 					datum := pump.NewCarbohydrateRatioStartArray()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.CarbohydrateRatioStartArray) {},
@@ -247,7 +247,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("nil",
 					func(datum *pump.CarbohydrateRatioStartArray) { *datum = append(*datum, nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
@@ -255,7 +255,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/amount"),
 				),
 				Entry("single valid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
@@ -270,7 +270,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						*datum = append(*datum, invalid)
 						*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
@@ -286,9 +286,9 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						*datum = append(*datum, nil, invalid)
 						*datum = append(*datum, nil, NewCarbohydrateRatioStart(*datum.Last().Start+1))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/2"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/2"),
 				),
 			)
 		})
@@ -389,7 +389,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				func(mutator func(datum *pump.CarbohydrateRatioStartArrayMap), expectedErrors ...error) {
 					datum := pump.NewCarbohydrateRatioStartArrayMap()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {},
@@ -402,7 +402,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("nil value",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) { datum.Set("", nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/"),
 				),
 				Entry("single invalid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
@@ -410,7 +410,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						(*invalid)[0].Start = nil
 						datum.Set("one", invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one/0/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one/0/start"),
 				),
 				Entry("single valid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
@@ -425,7 +425,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						datum.Set("two", invalid)
 						datum.Set("three", NewCarbohydrateRatioStartArray())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
@@ -442,8 +442,8 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						datum.Set("two", invalid)
 						datum.Set("three", NewCarbohydrateRatioStartArray())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 			)
 		})

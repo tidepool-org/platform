@@ -18,7 +18,7 @@ import (
 	"github.com/tidepool-org/platform/task/queue"
 	"github.com/tidepool-org/platform/task/service"
 	"github.com/tidepool-org/platform/task/service/api"
-	"github.com/tidepool-org/platform/task/service/api/v1"
+	taskServiceApiV1 "github.com/tidepool-org/platform/task/service/api/v1"
 	"github.com/tidepool-org/platform/task/store"
 	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
 )
@@ -284,7 +284,7 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating v1 router")
 
-	v1Router, err := v1.NewRouter(s)
+	v1Router, err := taskServiceApiV1.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}

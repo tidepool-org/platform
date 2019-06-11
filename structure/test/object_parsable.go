@@ -1,20 +1,14 @@
 package test
 
-import (
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
-)
+import "github.com/tidepool-org/platform/structure"
 
 type ObjectParsable struct {
-	*test.Mock
 	ParseInvocations int
 	ParseInputs      []structure.ObjectParser
 }
 
 func NewObjectParsable() *ObjectParsable {
-	return &ObjectParsable{
-		Mock: test.NewMock(),
-	}
+	return &ObjectParsable{}
 }
 
 func (o *ObjectParsable) Parse(objectParser structure.ObjectParser) {
@@ -23,6 +17,4 @@ func (o *ObjectParsable) Parse(objectParser structure.ObjectParser) {
 	o.ParseInputs = append(o.ParseInputs, objectParser)
 }
 
-func (o *ObjectParsable) Expectations() {
-	o.Mock.Expectations()
-}
+func (o *ObjectParsable) Expectations() {}

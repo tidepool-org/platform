@@ -2,9 +2,11 @@ package test
 
 import (
 	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
 )
 
 type IdentityFieldsOutput struct {
@@ -13,12 +15,10 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
-	*test.Mock
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
 	ParseInvocations                     int
-	ParseInputs                          []data.ObjectParser
-	ParseOutputs                         []error
+	ParseInputs                          []structure.ObjectParser
 	ValidateInvocations                  int
 	ValidateInputs                       []structure.Validator
 	NormalizeInvocations                 int
@@ -26,7 +26,9 @@ type Datum struct {
 	IdentityFieldsInvocations            int
 	IdentityFieldsOutputs                []IdentityFieldsOutput
 	GetPayloadInvocations                int
-	GetPayloadOutputs                    []*data.Blob
+	GetPayloadOutputs                    []*metadata.Metadata
+	GetOriginInvocations                 int
+	GetOriginOutputs                     []*origin.Origin
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -53,9 +55,7 @@ type Datum struct {
 }
 
 func NewDatum() *Datum {
-	return &Datum{
-		Mock: test.NewMock(),
-	}
+	return &Datum{}
 }
 
 func (d *Datum) Meta() interface{} {
@@ -68,16 +68,10 @@ func (d *Datum) Meta() interface{} {
 	return output
 }
 
-func (d *Datum) Parse(parser data.ObjectParser) error {
+func (d *Datum) Parse(parser structure.ObjectParser) {
 	d.ParseInvocations++
 
 	d.ParseInputs = append(d.ParseInputs, parser)
-
-	gomega.Expect(d.ParseOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.ParseOutputs[0]
-	d.ParseOutputs = d.ParseOutputs[1:]
-	return output
 }
 
 func (d *Datum) Validate(validator structure.Validator) {
@@ -102,13 +96,23 @@ func (d *Datum) IdentityFields() ([]string, error) {
 	return output.IdentityFields, output.Error
 }
 
-func (d *Datum) GetPayload() *data.Blob {
+func (d *Datum) GetPayload() *metadata.Metadata {
 	d.GetPayloadInvocations++
 
 	gomega.Expect(d.GetPayloadOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.GetPayloadOutputs[0]
 	d.GetPayloadOutputs = d.GetPayloadOutputs[1:]
+	return output
+}
+
+func (d *Datum) GetOrigin() *origin.Origin {
+	d.GetOriginInvocations++
+
+	gomega.Expect(d.GetOriginOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetOriginOutputs[0]
+	d.GetOriginOutputs = d.GetOriginOutputs[1:]
 	return output
 }
 
@@ -185,9 +189,8 @@ func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplica
 }
 
 func (d *Datum) Expectations() {
-	d.Mock.Expectations()
 	gomega.Expect(d.MetaOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.ParseOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetOriginOutputs).To(gomega.BeEmpty())
 }

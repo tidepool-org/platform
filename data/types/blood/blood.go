@@ -3,9 +3,9 @@ package blood
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
 )
 
 type Blood struct {
@@ -21,17 +21,11 @@ func New(typ string) Blood {
 	}
 }
 
-func (b *Blood) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(b.Meta())
+func (b *Blood) Parse(parser structure.ObjectParser) {
+	b.Base.Parse(parser)
 
-	if err := b.Base.Parse(parser); err != nil {
-		return err
-	}
-
-	b.Units = parser.ParseString("units")
-	b.Value = parser.ParseFloat("value")
-
-	return nil
+	b.Units = parser.String("units")
+	b.Value = parser.Float64("value")
 }
 
 func (b *Blood) IdentityFields() ([]string, error) {

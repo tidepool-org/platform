@@ -5,13 +5,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/null"
+	logNull "github.com/tidepool-org/platform/log/null"
 )
 
 var _ = Describe("Serializer", func() {
 	Context("NewSerializer", func() {
 		It("returns successfully", func() {
-			Expect(null.NewSerializer()).ToNot(BeNil())
+			Expect(logNull.NewSerializer()).ToNot(BeNil())
 		})
 	})
 
@@ -19,7 +19,7 @@ var _ = Describe("Serializer", func() {
 		var serializer log.Serializer
 
 		BeforeEach(func() {
-			serializer = null.NewSerializer()
+			serializer = logNull.NewSerializer()
 			Expect(serializer).ToNot(BeNil())
 		})
 

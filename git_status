@@ -1,0 +1,1241 @@
+	modified:   .golintignore
+	new file:   .vscode/settings.json
+	modified:   Dockerfile.auth
+	modified:   Dockerfile.blob
+	modified:   Dockerfile.data
+	new file:   Dockerfile.image
+	modified:   Dockerfile.migrations
+	modified:   Dockerfile.notification
+	modified:   Dockerfile.task
+	modified:   Dockerfile.tools
+	modified:   Dockerfile.user
+	modified:   Gopkg.lock
+	modified:   Gopkg.toml
+	modified:   README.md
+	modified:   application/provider_test.go
+	modified:   application/runner_test.go
+	new file:   association/association.go
+	renamed:    data/types/common/association/association_suite_test.go -> association/association_suite_test.go
+	new file:   association/association_test.go
+	new file:   association/test/association.go
+	modified:   auth/client/client.go
+	modified:   auth/client/client_test.go
+	modified:   auth/client/external.go
+	modified:   auth/client/external_test.go
+	modified:   auth/provider_session.go
+	modified:   auth/restricted_token.go
+	modified:   auth/service/api/router_test.go
+	modified:   auth/service/api/status_get_test.go
+	modified:   auth/service/api/v1/provider_session.go
+	modified:   auth/service/api/v1/restricted_token.go
+	modified:   auth/service/api/v1/router_test.go
+	modified:   auth/service/service/client.go
+	modified:   auth/service/service/service.go
+	modified:   auth/service/service/service_test.go
+	modified:   auth/service/test/service.go
+	modified:   auth/store/mongo/provider_session_session.go
+	modified:   auth/store/mongo/restricted_token_session.go
+	modified:   auth/test/auth.go
+	modified:   auth/test/external_accessor.go
+	modified:   auth/test/provider_session_accessor.go
+	modified:   auth/test/restricted_token_accessor.go
+	new file:   auth/test/user.go
+	new file:   auth/user.go
+	new file:   auth/user_test.go
+	modified:   aws/api/api.go
+	modified:   aws/api/api_test.go
+	modified:   aws/aws.go
+	modified:   aws/aws_test.go
+	modified:   aws/test/api.go
+	modified:   aws/test/aws.go
+	new file:   aws/test/batch_delete_iterator.go
+	new file:   aws/test/batch_delete_with_client.go
+	new file:   aws/test/downloader.go
+	modified:   aws/test/s3.go
+	new file:   aws/test/s3_manager.go
+	deleted:    aws/test/s3manager.go
+	new file:   aws/test/uploader.go
+	modified:   blob/blob.go
+	modified:   blob/blob_test.go
+	modified:   blob/client/client.go
+	modified:   blob/client/client_test.go
+	new file:   blob/errors.go
+	new file:   blob/errors_test.go
+	modified:   blob/service/api/v1/v1.go
+	modified:   blob/service/api/v1/v1_test.go
+	modified:   blob/service/client/client.go
+	modified:   blob/service/client/client_test.go
+	modified:   blob/service/service.go
+	modified:   blob/service/service_test.go
+	modified:   blob/store/structured/mongo/mongo.go
+	modified:   blob/store/structured/mongo/mongo_test.go
+	modified:   blob/store/structured/structured.go
+	modified:   blob/store/structured/structured_test.go
+	modified:   blob/store/structured/test/session.go
+	modified:   blob/store/unstructured/test/store.go
+	modified:   blob/store/unstructured/unstructured.go
+	modified:   blob/store/unstructured/unstructured_test.go
+	modified:   blob/test/blob.go
+	modified:   blob/test/client.go
+	modified:   client/client.go
+	modified:   client/client_test.go
+	modified:   client/config_test.go
+	modified:   config/env/reporter_test.go
+	modified:   config/test/reporter.go
+	modified:   confirmation/store/mongo/store.go
+	modified:   confirmation/store/mongo/store_test.go
+	modified:   crypto/crypto.go
+	modified:   crypto/crypto_test.go
+	deleted:    data/blob.go
+	deleted:    data/blob_test.go
+	modified:   data/blood/glucose/glucose_test.go
+	modified:   data/blood/glucose/target.go
+	modified:   data/blood/glucose/target_test.go
+	modified:   data/blood/glucose/test/target.go
+	modified:   data/blood/ketone/ketone_test.go
+	modified:   data/client/client_test.go
+	deleted:    data/context/context_suite_test.go
+	deleted:    data/context/standard.go
+	deleted:    data/context/standard_test.go
+	modified:   data/data.go
+	modified:   data/data_set.go
+	modified:   data/data_test.go
+	modified:   data/datum.go
+	modified:   data/deduplicator.go
+	modified:   data/deduplicator/deduplicator/base_test.go
+	modified:   data/deduplicator/deduplicator/data_set_delete_origin.go
+	modified:   data/deduplicator/deduplicator/data_set_delete_origin_test.go
+	modified:   data/deduplicator/deduplicator/device_deactivate_hash_test.go
+	modified:   data/deduplicator/deduplicator/device_truncate_data_set_test.go
+	modified:   data/deduplicator/deduplicator/none_test.go
+	modified:   data/deduplicator_test.go
+	modified:   data/normalizer/normalizer_test.go
+	deleted:    data/parser.go
+	deleted:    data/parser/errors.go
+	deleted:    data/parser/errors_test.go
+	deleted:    data/parser/inspector.go
+	deleted:    data/parser/inspector_test.go
+	deleted:    data/parser/not_parsed_policy.go
+	deleted:    data/parser/parser_suite_test.go
+	deleted:    data/parser/standard_array.go
+	deleted:    data/parser/standard_array_test.go
+	deleted:    data/parser/standard_object.go
+	deleted:    data/parser/standard_object_test.go
+	deleted:    data/parser/test_test.go
+	modified:   data/service/api/v1/data_source.go
+	modified:   data/service/api/v1/datasets_data_create.go
+	modified:   data/service/api/v1/datasets_delete_test.go
+	modified:   data/service/api/v1/errors_test.go
+	modified:   data/service/api/v1/time.go
+	modified:   data/service/api/v1/users_datasets_create.go
+	modified:   data/service/api/v1/v1_test.go
+	modified:   data/service/service/standard.go
+	modified:   data/source/client/client.go
+	modified:   data/source/client/client_test.go
+	modified:   data/source/service/client/client.go
+	modified:   data/source/service/client/client_test.go
+	modified:   data/source/source.go
+	modified:   data/source/source_test.go
+	modified:   data/source/store/structured/mongo/mongo.go
+	modified:   data/source/store/structured/mongo/mongo_test.go
+	modified:   data/source/store/structured/structured.go
+	modified:   data/source/store/structured/test/session.go
+	modified:   data/source/test/client.go
+	modified:   data/source/test/source.go
+	modified:   data/storeDEPRECATED/mongo/mongo.go
+	modified:   data/storeDEPRECATED/mongo/mongo_test.go
+	modified:   data/storeDEPRECATED/store_test.go
+	modified:   data/storeDEPRECATED/test/data_session.go
+	deleted:    data/test/blob.go
+	modified:   data/test/data.go
+	modified:   data/test/data_set.go
+	modified:   data/test/datum.go
+	modified:   data/test/deduplicator.go
+	modified:   data/test/normalizable.go
+	deleted:    data/test/test.go
+	modified:   data/types/activity/physical/distance.go
+	modified:   data/types/activity/physical/distance_test.go
+	modified:   data/types/activity/physical/duration.go
+	modified:   data/types/activity/physical/duration_test.go
+	modified:   data/types/activity/physical/elevation_change.go
+	modified:   data/types/activity/physical/elevation_change_test.go
+	modified:   data/types/activity/physical/energy.go
+	modified:   data/types/activity/physical/energy_test.go
+	modified:   data/types/activity/physical/flight.go
+	modified:   data/types/activity/physical/flight_test.go
+	modified:   data/types/activity/physical/lap.go
+	modified:   data/types/activity/physical/lap_test.go
+	modified:   data/types/activity/physical/physical.go
+	modified:   data/types/activity/physical/physical_test.go
+	modified:   data/types/activity/physical/step.go
+	modified:   data/types/activity/physical/step_test.go
+	modified:   data/types/basal/automated/automated.go
+	modified:   data/types/basal/automated/automated_test.go
+	modified:   data/types/basal/automated/test/automated.go
+	modified:   data/types/basal/basal.go
+	modified:   data/types/basal/basal_test.go
+	modified:   data/types/basal/factory/factory.go
+	modified:   data/types/basal/scheduled/scheduled.go
+	modified:   data/types/basal/scheduled/scheduled_test.go
+	modified:   data/types/basal/scheduled/test/scheduled.go
+	modified:   data/types/basal/suspend/suspend.go
+	modified:   data/types/basal/suspend/suspend_test.go
+	modified:   data/types/basal/temporary/temporary.go
+	modified:   data/types/basal/temporary/temporary_test.go
+	modified:   data/types/basal/temporary/test/temporary.go
+	modified:   data/types/basal/test/basal.go
+	modified:   data/types/base.go
+	modified:   data/types/base_test.go
+	modified:   data/types/blood/blood.go
+	modified:   data/types/blood/blood_test.go
+	modified:   data/types/blood/glucose/continuous/continuous.go
+	modified:   data/types/blood/glucose/continuous/continuous_test.go
+	modified:   data/types/blood/glucose/glucose_test.go
+	modified:   data/types/blood/glucose/selfmonitored/selfmonitored.go
+	modified:   data/types/blood/glucose/selfmonitored/selfmonitored_test.go
+	modified:   data/types/blood/glucose/test/glucose.go
+	modified:   data/types/blood/ketone/ketone.go
+	modified:   data/types/blood/ketone/ketone_test.go
+	modified:   data/types/blood/test/blood.go
+	modified:   data/types/bolus/bolus.go
+	modified:   data/types/bolus/bolus_test.go
+	modified:   data/types/bolus/combination/combination.go
+	modified:   data/types/bolus/combination/combination_test.go
+	modified:   data/types/bolus/combination/test/combination.go
+	modified:   data/types/bolus/extended/extended.go
+	modified:   data/types/bolus/extended/extended_test.go
+	modified:   data/types/bolus/extended/test/extended.go
+	modified:   data/types/bolus/factory/factory.go
+	modified:   data/types/bolus/normal/normal.go
+	modified:   data/types/bolus/normal/normal_test.go
+	modified:   data/types/bolus/normal/test/normal.go
+	modified:   data/types/bolus/test/bolus.go
+	modified:   data/types/calculator/calculator.go
+	modified:   data/types/calculator/calculator_test.go
+	modified:   data/types/calculator/recommended.go
+	modified:   data/types/calculator/recommended_test.go
+	deleted:    data/types/common/association/association.go
+	deleted:    data/types/common/association/association_test.go
+	deleted:    data/types/common/association/test/association.go
+	deleted:    data/types/common/location/accuracy.go
+	deleted:    data/types/common/location/accuracy_test.go
+	deleted:    data/types/common/location/elevation.go
+	deleted:    data/types/common/location/elevation_test.go
+	deleted:    data/types/common/location/gps.go
+	deleted:    data/types/common/location/gps_test.go
+	deleted:    data/types/common/location/latitude.go
+	deleted:    data/types/common/location/latitude_test.go
+	deleted:    data/types/common/location/location.go
+	deleted:    data/types/common/location/location_test.go
+	deleted:    data/types/common/location/longitude.go
+	deleted:    data/types/common/location/longitude_test.go
+	deleted:    data/types/common/location/test/accuracy.go
+	deleted:    data/types/common/location/test/elevation.go
+	deleted:    data/types/common/location/test/gps.go
+	deleted:    data/types/common/location/test/latitude.go
+	deleted:    data/types/common/location/test/location.go
+	deleted:    data/types/common/location/test/longitude.go
+	deleted:    data/types/common/origin/origin.go
+	deleted:    data/types/common/origin/origin_test.go
+	deleted:    data/types/common/origin/test/origin.go
+	modified:   data/types/device/alarm/alarm.go
+	modified:   data/types/device/alarm/alarm_test.go
+	modified:   data/types/device/calibration/calibration.go
+	modified:   data/types/device/calibration/calibration_test.go
+	modified:   data/types/device/device.go
+	modified:   data/types/device/device_test.go
+	modified:   data/types/device/factory/factory.go
+	modified:   data/types/device/prime/prime.go
+	modified:   data/types/device/prime/prime_test.go
+	modified:   data/types/device/reservoirchange/reservoirchange.go
+	modified:   data/types/device/reservoirchange/reservoirchange_test.go
+	modified:   data/types/device/status/status.go
+	modified:   data/types/device/status/status_test.go
+	modified:   data/types/device/status/test/status.go
+	modified:   data/types/device/test/device.go
+	modified:   data/types/device/timechange/change.go
+	modified:   data/types/device/timechange/change_test.go
+	modified:   data/types/device/timechange/info.go
+	modified:   data/types/device/timechange/info_test.go
+	modified:   data/types/device/timechange/test/change.go
+	modified:   data/types/device/timechange/test/info.go
+	modified:   data/types/device/timechange/test/timechange.go
+	modified:   data/types/device/timechange/timechange.go
+	modified:   data/types/device/timechange/timechange_test.go
+	modified:   data/types/factory/factory.go
+	modified:   data/types/food/amount.go
+	modified:   data/types/food/amount_test.go
+	modified:   data/types/food/carbohydrate.go
+	modified:   data/types/food/carbohydrate_test.go
+	modified:   data/types/food/energy.go
+	modified:   data/types/food/energy_test.go
+	modified:   data/types/food/fat.go
+	modified:   data/types/food/fat_test.go
+	modified:   data/types/food/food.go
+	modified:   data/types/food/ingredient.go
+	modified:   data/types/food/ingredient_test.go
+	modified:   data/types/food/nutrition.go
+	modified:   data/types/food/nutrition_test.go
+	modified:   data/types/food/protein.go
+	modified:   data/types/food/protein_test.go
+	modified:   data/types/insulin/compound.go
+	modified:   data/types/insulin/compound_test.go
+	modified:   data/types/insulin/concentration.go
+	modified:   data/types/insulin/concentration_test.go
+	modified:   data/types/insulin/dose.go
+	modified:   data/types/insulin/dose_test.go
+	modified:   data/types/insulin/formulation.go
+	modified:   data/types/insulin/formulation_test.go
+	modified:   data/types/insulin/insulin.go
+	modified:   data/types/insulin/insulin_test.go
+	modified:   data/types/insulin/simple.go
+	modified:   data/types/insulin/simple_test.go
+	modified:   data/types/insulin/test/compound.go
+	modified:   data/types/insulin/test/concentration.go
+	modified:   data/types/insulin/test/dose.go
+	modified:   data/types/insulin/test/formulation.go
+	modified:   data/types/insulin/test/insulin.go
+	modified:   data/types/insulin/test/simple.go
+	new file:   data/types/settings/cgm/alert.go
+	new file:   data/types/settings/cgm/alert_test.go
+	modified:   data/types/settings/cgm/cgm.go
+	modified:   data/types/settings/cgm/cgm_test.go
+	new file:   data/types/settings/cgm/duration_alert.go
+	new file:   data/types/settings/cgm/duration_alert_test.go
+	modified:   data/types/settings/cgm/level_alert.go
+	new file:   data/types/settings/cgm/level_alert_DEPRECATED.go
+	new file:   data/types/settings/cgm/level_alert_DEPRECATED_test.go
+	modified:   data/types/settings/cgm/level_alert_test.go
+	deleted:    data/types/settings/cgm/out_of_range_alert.go
+	new file:   data/types/settings/cgm/out_of_range_alert_DEPRECATED.go
+	new file:   data/types/settings/cgm/out_of_range_alert_DEPRECATED_test.go
+	deleted:    data/types/settings/cgm/out_of_range_alert_test.go
+	modified:   data/types/settings/cgm/rate_alert.go
+	new file:   data/types/settings/cgm/rate_alert_DEPRECATED.go
+	new file:   data/types/settings/cgm/rate_alert_DEPRECATED_test.go
+	modified:   data/types/settings/cgm/rate_alert_test.go
+	new file:   data/types/settings/cgm/scheduled_alert.go
+	new file:   data/types/settings/cgm/scheduled_alert_test.go
+	new file:   data/types/settings/cgm/snooze.go
+	new file:   data/types/settings/cgm/snooze_test.go
+	new file:   data/types/settings/cgm/test/alert.go
+	new file:   data/types/settings/cgm/test/cgm.go
+	new file:   data/types/settings/cgm/test/duration_alert.go
+	new file:   data/types/settings/cgm/test/level_alert.go
+	new file:   data/types/settings/cgm/test/level_alert_DEPRECATED.go
+	new file:   data/types/settings/cgm/test/out_of_range_alert_DEPRECATED.go
+	new file:   data/types/settings/cgm/test/rate_alert.go
+	new file:   data/types/settings/cgm/test/rate_alert_DEPRECATED.go
+	new file:   data/types/settings/cgm/test/scheduled_alert.go
+	new file:   data/types/settings/cgm/test/snooze.go
+	modified:   data/types/settings/pump/basal.go
+	modified:   data/types/settings/pump/basal_rate_maximum.go
+	modified:   data/types/settings/pump/basal_rate_maximum_test.go
+	modified:   data/types/settings/pump/basal_rate_start.go
+	modified:   data/types/settings/pump/basal_rate_start_test.go
+	modified:   data/types/settings/pump/basal_temporary.go
+	modified:   data/types/settings/pump/basal_temporary_test.go
+	modified:   data/types/settings/pump/basal_test.go
+	modified:   data/types/settings/pump/blood_glucose_target_start.go
+	modified:   data/types/settings/pump/blood_glucose_target_start_test.go
+	modified:   data/types/settings/pump/bolus.go
+	modified:   data/types/settings/pump/bolus_amount_maximum.go
+	modified:   data/types/settings/pump/bolus_amount_maximum_test.go
+	modified:   data/types/settings/pump/bolus_calculator.go
+	modified:   data/types/settings/pump/bolus_calculator_insulin.go
+	modified:   data/types/settings/pump/bolus_calculator_insulin_test.go
+	modified:   data/types/settings/pump/bolus_calculator_test.go
+	modified:   data/types/settings/pump/bolus_extended.go
+	modified:   data/types/settings/pump/bolus_extended_test.go
+	modified:   data/types/settings/pump/bolus_test.go
+	modified:   data/types/settings/pump/carbohydrate_ratio_start.go
+	modified:   data/types/settings/pump/carbohydrate_ratio_start_test.go
+	modified:   data/types/settings/pump/display.go
+	modified:   data/types/settings/pump/display_blood_glucose.go
+	modified:   data/types/settings/pump/display_blood_glucose_test.go
+	modified:   data/types/settings/pump/display_test.go
+	modified:   data/types/settings/pump/insulin_sensitivity_start.go
+	modified:   data/types/settings/pump/insulin_sensitivity_start_test.go
+	modified:   data/types/settings/pump/pump.go
+	modified:   data/types/settings/pump/pump_test.go
+	modified:   data/types/settings/pump/units.go
+	modified:   data/types/settings/pump/units_test.go
+	modified:   data/types/state/reported/reported.go
+	modified:   data/types/state/reported/reported_test.go
+	modified:   data/types/state/reported/state.go
+	modified:   data/types/state/reported/state_test.go
+	modified:   data/types/test/base.go
+	modified:   data/types/test/test.go
+	modified:   data/types/upload/client.go
+	modified:   data/types/upload/client_test.go
+	modified:   data/types/upload/test/client.go
+	modified:   data/types/upload/test/upload.go
+	modified:   data/types/upload/upload.go
+	modified:   data/types/upload/upload_test.go
+	modified:   data/types/water/amount.go
+	modified:   data/types/water/amount_test.go
+	modified:   data/types/water/water.go
+	modified:   data/types/water/water_test.go
+	new file:   dexcom/alert.go
+	new file:   dexcom/alert_test.go
+	modified:   dexcom/calibration.go
+	modified:   dexcom/calibration_test.go
+	modified:   dexcom/client/client.go
+	modified:   dexcom/client/client_test.go
+	modified:   dexcom/device.go
+	modified:   dexcom/device_test.go
+	modified:   dexcom/dexcom.go
+	modified:   dexcom/dexcom_test.go
+	modified:   dexcom/egv.go
+	modified:   dexcom/egv_test.go
+	modified:   dexcom/event.go
+	modified:   dexcom/event_test.go
+	modified:   dexcom/fetch/runner.go
+	modified:   dexcom/fetch/translate.go
+	new file:   dexcom/test/alert.go
+	deleted:    dexcom/test/alert_setting.go
+	new file:   dexcom/test/calibration.go
+	new file:   dexcom/test/device.go
+	new file:   dexcom/test/dexcom.go
+	new file:   dexcom/test/egv.go
+	new file:   dexcom/test/event.go
+	new file:   dexcom/test/time.go
+	new file:   dexcom/time.go
+	new file:   dexcom/time_test.go
+	new file:   docs/api/serve/.envrc
+	new file:   docs/api/serve/.gitignore
+	new file:   docs/api/serve/README.md
+	new file:   docs/api/serve/package.json
+	new file:   docs/api/serve/yarn.lock
+	new file:   docs/api/v1/common.yaml
+	new file:   docs/api/v1/images.yaml
+	new file:   docs/api/v1/users.yaml
+	modified:   env.sh
+	modified:   errors/errors.go
+	modified:   errors/errors_test.go
+	modified:   errors/test/errors.go
+	modified:   id/id.go
+	modified:   id/id_test.go
+	new file:   image/client/client.go
+	new file:   image/client/client_suite_test.go
+	new file:   image/client/client_test.go
+	new file:   image/errors.go
+	new file:   image/errors_test.go
+	new file:   image/image.go
+	new file:   image/image_suite_test.go
+	new file:   image/image_test.go
+	new file:   image/multipart/form_decoder.go
+	new file:   image/multipart/form_decoder_test.go
+	new file:   image/multipart/form_encoder.go
+	new file:   image/multipart/form_encoder_test.go
+	new file:   image/multipart/multipart_suite_test.go
+	new file:   image/multipart/multipart_test.go
+	new file:   image/multipart/test/form_decoder.go
+	new file:   image/multipart/test/form_encoder.go
+	new file:   image/service/api/v1/test/provider.go
+	new file:   image/service/api/v1/test/v1.go
+	new file:   image/service/api/v1/v1.go
+	new file:   image/service/api/v1/v1_suite_test.go
+	new file:   image/service/api/v1/v1_test.go
+	new file:   image/service/client/client.go
+	new file:   image/service/client/client_suite_test.go
+	new file:   image/service/client/client_test.go
+	new file:   image/service/client/test/provider.go
+	new file:   image/service/service.go
+	renamed:    user/service/service/service_suite_test.go -> image/service/service_suite_test.go
+	new file:   image/service/service_test.go
+	new file:   image/store/structured/mongo/mongo.go
+	renamed:    profile/store/mongo/mongo_suite_test.go -> image/store/structured/mongo/mongo_suite_test.go
+	new file:   image/store/structured/mongo/mongo_test.go
+	new file:   image/store/structured/structured.go
+	new file:   image/store/structured/structured_suite_test.go
+	new file:   image/store/structured/structured_test.go
+	new file:   image/store/structured/test/session.go
+	new file:   image/store/structured/test/store.go
+	new file:   image/store/structured/test/structured.go
+	new file:   image/store/unstructured/test/store.go
+	new file:   image/store/unstructured/unstructured.go
+	new file:   image/store/unstructured/unstructured_suite_test.go
+	new file:   image/store/unstructured/unstructured_test.go
+	new file:   image/test/client.go
+	new file:   image/test/image.go
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=100_h=150_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=240_h=240_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=250_h=250_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=300_h=200_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.jpeg/w=360_h=270_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=100_h=150_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=240_h=240_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=250_h=250_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=300_h=200_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_180_240.png/w=360_h=270_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=100_h=150_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=240_h=240_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=250_h=250_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=300_h=200_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.jpeg/w=360_h=270_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=100_h=150_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=240_h=240_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=250_h=250_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=300_h=200_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_180.png/w=360_h=270_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=100_h=150_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=240_h=240_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=250_h=250_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=300_h=200_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.jpeg/w=360_h=270_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=100_h=150_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=240_h=240_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=250_h=250_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=300_h=200_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fillDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fillDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fill_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fill_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fitDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fitDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fit_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=fit_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=padDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=padDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=pad_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=pad_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=scaleDown_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=scaleDown_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=scale_b=ff00ffff.png
+	new file:   image/transform/test/fixtures/renditions/astronaut_240_240.png/w=360_h=270_m=scale_b=ff00ffff_q=80.jpeg
+	new file:   image/transform/test/fixtures/sources/astronaut_180_240.jpeg
+	new file:   image/transform/test/fixtures/sources/astronaut_180_240.png
+	new file:   image/transform/test/fixtures/sources/astronaut_240_180.jpeg
+	new file:   image/transform/test/fixtures/sources/astronaut_240_180.png
+	new file:   image/transform/test/fixtures/sources/astronaut_240_240.jpeg
+	new file:   image/transform/test/fixtures/sources/astronaut_240_240.png
+	new file:   image/transform/test/transform.go
+	new file:   image/transform/test/transformer.go
+	new file:   image/transform/transform.go
+	new file:   image/transform/transform_suite_test.go
+	new file:   image/transform/transform_test.go
+	new file:   location/accuracy.go
+	new file:   location/accuracy_test.go
+	new file:   location/elevation.go
+	new file:   location/elevation_test.go
+	new file:   location/gps.go
+	new file:   location/gps_test.go
+	new file:   location/latitude.go
+	new file:   location/latitude_test.go
+	new file:   location/location.go
+	renamed:    data/types/common/location/location_suite_test.go -> location/location_suite_test.go
+	new file:   location/location_test.go
+	new file:   location/longitude.go
+	new file:   location/longitude_test.go
+	new file:   location/test/accuracy.go
+	new file:   location/test/elevation.go
+	new file:   location/test/gps.go
+	new file:   location/test/latitude.go
+	new file:   location/test/location.go
+	new file:   location/test/longitude.go
+	modified:   log/context.go
+	modified:   log/context_test.go
+	modified:   log/json/logger_test.go
+	modified:   log/json/serializer.go
+	modified:   log/json/serializer_test.go
+	modified:   log/logger.go
+	modified:   log/logger_test.go
+	modified:   log/null/logger_test.go
+	modified:   log/null/serializer_test.go
+	new file:   log/test/log.go
+	modified:   message/store/mongo/mongo.go
+	modified:   message/store/mongo/mongo_test.go
+	new file:   metadata/metadata.go
+	new file:   metadata/metadata_suite_test.go
+	new file:   metadata/metadata_test.go
+	new file:   metadata/test/metadata.go
+	modified:   metric/client/client_test.go
+	modified:   metric/test/client.go
+	modified:   migration/mongo/migration.go
+	modified:   migrations/20160823040044_data_gid_to_uid/20160823040044_data_gid_to_uid.go
+	modified:   migrations/20160923093857_session_expand/20160923093857_session_expand.go
+	modified:   migrations/20170228082050_metadata_pmid_to_uid/20170228082050_metadata_pmid_to_uid.go
+	modified:   migrations/20170809093903_data_deduplicator_descriptor/20170809093903_data_deduplicator_descriptor.go
+	modified:   migrations/20180824161319_data_deduplicator_descriptor/20180824161319_data_deduplicator_descriptor.go
+	modified:   net/net_test.go
+	modified:   net/test/net.go
+	modified:   notification/client/client_test.go
+	modified:   notification/service/api/router_test.go
+	modified:   notification/service/api/status_get_test.go
+	modified:   notification/service/api/v1/router_test.go
+	modified:   notification/service/context/context_test.go
+	modified:   notification/service/service/service.go
+	modified:   notification/service/service/service_test.go
+	modified:   notification/service/test/service.go
+	modified:   notification/test/client.go
+	modified:   oauth/client/client.go
+	new file:   oauth/client/client_suite_test.go
+	new file:   oauth/client/client_test.go
+	modified:   oauth/oauth.go
+	new file:   oauth/test/http_client_source.go
+	new file:   oauth/test/token_source.go
+	new file:   oauth/test/token_source_source.go
+	new file:   origin/origin.go
+	renamed:    data/types/common/origin/origin_suite_test.go -> origin/origin_suite_test.go
+	new file:   origin/origin_test.go
+	new file:   origin/test/origin.go
+	modified:   page/pagination.go
+	modified:   page/pagination_test.go
+	modified:   page/test/pagination.go
+	modified:   permission/client/client_test.go
+	modified:   permission/store/mongo/config_test.go
+	modified:   permission/store/mongo/mongo.go
+	modified:   permission/store/mongo/mongo_test.go
+	modified:   platform/client_test.go
+	modified:   platform/config_test.go
+	modified:   platform/mutator_test.go
+	new file:   pointer/equal.go
+	new file:   pointer/equal_test.go
+	modified:   pointer/to_test.go
+	modified:   profile/profile.go
+	deleted:    profile/store/mongo/mongo.go
+	deleted:    profile/store/mongo/mongo_test.go
+	deleted:    profile/store/store.go
+	new file:   profile/store/structured/mongo/mongo.go
+	renamed:    user/store/mongo/mongo_suite_test.go -> profile/store/structured/mongo/mongo_suite_test.go
+	new file:   profile/store/structured/mongo/mongo_test.go
+	new file:   profile/store/structured/structured.go
+	new file:   profile/test/profile.go
+	modified:   provider/test/factory.go
+	modified:   provider/test/provider.go
+	modified:   request/condition_test.go
+	modified:   request/errors.go
+	modified:   request/errors_test.go
+	modified:   request/inspector_test.go
+	modified:   request/mutator_test.go
+	modified:   request/parser.go
+	modified:   request/parser_test.go
+	modified:   request/request.go
+	modified:   request/request_test.go
+	modified:   request/responder.go
+	modified:   request/responder_test.go
+	modified:   request/test/request.go
+	modified:   request/test/request_mutator.go
+	modified:   request/values_parser.go
+	modified:   service/api/auth_test.go
+	modified:   service/api/status_router_test.go
+	modified:   service/context/context_test.go
+	modified:   service/context/responder_test.go
+	modified:   service/error_test.go
+	modified:   service/errors_test.go
+	modified:   service/middleware/access_log.go
+	modified:   service/middleware/access_log_test.go
+	modified:   service/middleware/auth_test.go
+	modified:   service/middleware/error_test.go
+	modified:   service/middleware/logger_test.go
+	modified:   service/middleware/recover_test.go
+	modified:   service/middleware/trace_test.go
+	modified:   service/request_test.go
+	modified:   service/response_test.go
+	modified:   service/server/config_test.go
+	modified:   service/server/standard_test.go
+	modified:   service/service/DEPRECATED_service_test.go
+	modified:   service/test/api.go
+	modified:   service/test/service.go
+	new file:   services/image/image.go
+	new file:   services/image/start.sh
+	modified:   services/user/user.go
+	modified:   session/store/mongo/mongo.go
+	modified:   session/store/mongo/mongo_test.go
+	modified:   store/structured/mongo/config_test.go
+	modified:   store/structured/mongo/mongo_test.go
+	modified:   store/structured/mongo/test/config.go
+	modified:   store/structured/mongo/test/test.go
+	modified:   store/unstructured/factory/factory_test.go
+	modified:   store/unstructured/file/config_test.go
+	modified:   store/unstructured/file/file.go
+	modified:   store/unstructured/file/file_test.go
+	modified:   store/unstructured/s3/config_test.go
+	modified:   store/unstructured/s3/s3.go
+	modified:   store/unstructured/s3/s3_test.go
+	modified:   store/unstructured/test/store.go
+	modified:   store/unstructured/test/unstructured.go
+	modified:   store/unstructured/unstructured.go
+	modified:   store/unstructured/unstructured_test.go
+	modified:   structure/base/base_test.go
+	modified:   structure/normalizer/normalizer_test.go
+	modified:   structure/parser.go
+	modified:   structure/parser/array_parser.go
+	modified:   structure/parser/array_parser_test.go
+	modified:   structure/parser/errors_test.go
+	modified:   structure/parser/object_parser.go
+	modified:   structure/parser/object_parser_test.go
+	modified:   structure/structure_test.go
+	modified:   structure/test/array_parsable.go
+	modified:   structure/test/normalizable.go
+	modified:   structure/test/object_parsable.go
+	modified:   structure/test/source.go
+	modified:   structure/test/structure.go
+	modified:   structure/test/validatable.go
+	modified:   structure/test/validatable_with_int.go
+	modified:   structure/test/validatable_with_string.go
+	modified:   structure/test/validatable_with_string_array.go
+	modified:   structure/validator/adapter.go
+	modified:   structure/validator/adapter_test.go
+	modified:   structure/validator/array_test.go
+	modified:   structure/validator/bool_test.go
+	modified:   structure/validator/errors.go
+	modified:   structure/validator/errors_test.go
+	modified:   structure/validator/float64_test.go
+	modified:   structure/validator/int_test.go
+	modified:   structure/validator/object_test.go
+	modified:   structure/validator/string.go
+	modified:   structure/validator/string_array_test.go
+	modified:   structure/validator/string_test.go
+	modified:   structure/validator/time_test.go
+	modified:   structure/validator/validator_test.go
+	modified:   sync/writer.go
+	modified:   sync/writer_test.go
+	modified:   synctask/store/mongo/mongo.go
+	modified:   synctask/store/mongo/mongo_test.go
+	modified:   synctask/store/test/sync_task_session.go
+	modified:   task/client/client_test.go
+	modified:   task/service/api/api.go
+	modified:   task/service/api/api_test.go
+	modified:   task/service/api/v1/v1_test.go
+	modified:   task/service/service/service.go
+	modified:   task/service/service/service_test.go
+	modified:   task/service/test/service.go
+	modified:   task/store/mongo/mongo.go
+	modified:   task/store/mongo/mongo_test.go
+	modified:   task/task.go
+	modified:   task/test/task_accessor.go
+	new file:   test/array.go
+	new file:   test/body.go
+	new file:   test/bool.go
+	new file:   test/bytes.go
+	new file:   test/charset.go
+	deleted:    test/clone.go
+	new file:   test/directory.go
+	new file:   test/duration.go
+	modified:   test/file.go
+	new file:   test/float64.go
+	modified:   test/http/http.go
+	deleted:    test/init.go
+	new file:   test/int.go
+	deleted:    test/mock.go
+	deleted:    test/must.go
+	new file:   test/object.go
+	deleted:    test/random.go
+	modified:   test/reader.go
+	deleted:    test/request.go
+	modified:   test/rest/request.go
+	modified:   test/rest/response_writer.go
+	deleted:    test/serialize.go
+	modified:   test/string.go
+	new file:   test/string_array.go
+	modified:   test/test.go
+	modified:   test/time.go
+	modified:   tool/mongo/tool.go
+	modified:   tool/tool.go
+	new file:   tools/benchmark_data_store/benchmark_data_store.go
+	modified:   tools/dump_users/dump_users.go
+	modified:   tools/metric_hash/metric_hash.go
+	modified:   tools/permission_gid/permission_gid.go
+	modified:   tools/tapi/api/request.go
+	modified:   tools/tapi/api/user.go
+	modified:   tools/tapi/cmd/common.go
+	deleted:    user/client.go
+	modified:   user/client/client.go
+	modified:   user/client/client_test.go
+	new file:   user/errors.go
+	new file:   user/errors_test.go
+	deleted:    user/role.go
+	deleted:    user/role_test.go
+	deleted:    user/service/api/api_suite_test.go
+	deleted:    user/service/api/standard.go
+	deleted:    user/service/api/standard_test.go
+	deleted:    user/service/api/status_get.go
+	deleted:    user/service/api/status_get_test.go
+	deleted:    user/service/api/v1/authenticate_middleware.go
+	deleted:    user/service/api/v1/authenticate_middleware_test.go
+	deleted:    user/service/api/v1/errors.go
+	deleted:    user/service/api/v1/errors_test.go
+	new file:   user/service/api/v1/test/provider.go
+	deleted:    user/service/api/v1/test_test.go
+	deleted:    user/service/api/v1/users_delete.go
+	deleted:    user/service/api/v1/users_delete_test.go
+	modified:   user/service/api/v1/v1.go
+	modified:   user/service/api/v1/v1_test.go
+	deleted:    user/service/api/version_get.go
+	deleted:    user/service/api/version_get_test.go
+	new file:   user/service/client/client.go
+	new file:   user/service/client/client_suite_test.go
+	new file:   user/service/client/client_test.go
+	new file:   user/service/client/test/password_hasher.go
+	new file:   user/service/client/test/provider.go
+	deleted:    user/service/context.go
+	deleted:    user/service/context/context_suite_test.go
+	deleted:    user/service/context/standard.go
+	deleted:    user/service/context/standard_test.go
+	new file:   user/service/password_hasher.go
+	new file:   user/service/password_hasher_test.go
+	deleted:    user/service/route.go
+	deleted:    user/service/route_test.go
+	new file:   user/service/service.go
+	deleted:    user/service/service/standard.go
+	deleted:    user/service/service/standard_test.go
+	new file:   user/service/service_test.go
+	deleted:    user/store/mongo/config.go
+	deleted:    user/store/mongo/config_test.go
+	deleted:    user/store/mongo/mongo.go
+	deleted:    user/store/mongo/mongo_test.go
+	deleted:    user/store/store.go
+	new file:   user/store/structured/mongo/mongo.go
+	new file:   user/store/structured/mongo/mongo_suite_test.go
+	new file:   user/store/structured/mongo/mongo_test.go
+	new file:   user/store/structured/structured.go
+	new file:   user/store/structured/test/session.go
+	new file:   user/store/structured/test/store.go
+	modified:   user/test/client.go
+	modified:   user/test/user.go
+	modified:   user/user.go
+	modified:   user/user_test.go
+	both modified:   .travis.yml
+	both modified:   CHANGELOG.md
+	both modified:   Makefile
+	both modified:   data/types/food/food_test.go
+	both modified:   store/structured/mongo/config.go
+	both modified:   store/structured/mongo/mongo.go
+	modified:   image/transform/transform_test.go

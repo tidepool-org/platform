@@ -5,20 +5,16 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
-	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
-	testDataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
-	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log/null"
+	dataTypesBasalScheduledTest "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
+	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -33,13 +29,13 @@ func NewMeta() interface{} {
 
 func NewScheduled() *scheduled.Scheduled {
 	datum := scheduled.New()
-	datum.Basal = *testDataTypesBasal.NewBasal()
+	datum.Basal = *dataTypesBasalTest.NewBasal()
 	datum.DeliveryType = "scheduled"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(scheduled.DurationMinimum, scheduled.DurationMaximum))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, scheduled.DurationMaximum))
-	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
+	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(scheduled.RateMinimum, scheduled.RateMaximum))
-	datum.ScheduleName = pointer.FromString(testDataTypesBasal.NewScheduleName())
+	datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
 	return datum
 }
 
@@ -48,34 +44,13 @@ func CloneScheduled(datum *scheduled.Scheduled) *scheduled.Scheduled {
 		return nil
 	}
 	clone := scheduled.New()
-	clone.Basal = *testDataTypesBasal.CloneBasal(&datum.Basal)
-	clone.Duration = test.CloneInt(datum.Duration)
-	clone.DurationExpected = test.CloneInt(datum.DurationExpected)
-	clone.InsulinFormulation = testDataTypesInsulin.CloneFormulation(datum.InsulinFormulation)
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.ScheduleName = test.CloneString(datum.ScheduleName)
+	clone.Basal = *dataTypesBasalTest.CloneBasal(&datum.Basal)
+	clone.Duration = pointer.CloneInt(datum.Duration)
+	clone.DurationExpected = pointer.CloneInt(datum.DurationExpected)
+	clone.InsulinFormulation = dataTypesInsulinTest.CloneFormulation(datum.InsulinFormulation)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.ScheduleName = pointer.CloneString(datum.ScheduleName)
 	return clone
-}
-
-func NewTestScheduled(sourceTime interface{}, sourceDuration interface{}, sourceDurationExpected interface{}, sourceRate interface{}, scheduleName interface{}) *scheduled.Scheduled {
-	datum := scheduled.New()
-	datum.DeviceID = pointer.FromString(testData.NewDeviceID())
-	if val, ok := sourceTime.(string); ok {
-		datum.Time = &val
-	}
-	if val, ok := sourceDuration.(int); ok {
-		datum.Duration = &val
-	}
-	if val, ok := sourceDurationExpected.(int); ok {
-		datum.DurationExpected = &val
-	}
-	if val, ok := sourceRate.(float64); ok {
-		datum.Rate = &val
-	}
-	if val, ok := scheduleName.(string); ok {
-		datum.ScheduleName = &val
-	}
-	return datum
 }
 
 var _ = Describe("Scheduled", func() {
@@ -115,102 +90,7 @@ var _ = Describe("Scheduled", func() {
 
 	Context("Scheduled", func() {
 		Context("Parse", func() {
-			var datum *scheduled.Scheduled
-
-			BeforeEach(func() {
-				datum = scheduled.New()
-				Expect(datum).ToNot(BeNil())
-			})
-
-			DescribeTable("parses the datum",
-				func(sourceObject *map[string]interface{}, expectedDatum *scheduled.Scheduled, expectedErrors []*service.Error) {
-					testContext, err := context.NewStandard(null.NewLogger())
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testContext).ToNot(BeNil())
-					testParser, err := parser.NewStandardObject(testContext, sourceObject, parser.AppendErrorNotParsed)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(testParser).ToNot(BeNil())
-					Expect(datum.Parse(testParser)).To(Succeed())
-					Expect(datum.Time).To(Equal(expectedDatum.Time))
-					Expect(datum.Duration).To(Equal(expectedDatum.Duration))
-					Expect(datum.DurationExpected).To(Equal(expectedDatum.DurationExpected))
-					Expect(datum.Rate).To(Equal(expectedDatum.Rate))
-					Expect(datum.ScheduleName).To(Equal(expectedDatum.ScheduleName))
-					Expect(testContext.Errors()).To(ConsistOf(expectedErrors))
-				},
-				Entry("parses object that is nil",
-					nil,
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that is empty",
-					&map[string]interface{}{},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has valid time",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00"},
-					NewTestScheduled("2016-09-06T13:45:58-07:00", nil, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid time",
-					&map[string]interface{}{"time": 0},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-					}),
-				Entry("parses object that has valid duration",
-					&map[string]interface{}{"duration": 3600000},
-					NewTestScheduled(nil, 3600000, nil, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration",
-					&map[string]interface{}{"duration": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-					}),
-				Entry("parses object that has valid duration expected",
-					&map[string]interface{}{"expectedDuration": 7200000},
-					NewTestScheduled(nil, nil, 7200000, nil, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid duration expected",
-					&map[string]interface{}{"expectedDuration": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-					}),
-				Entry("parses object that has valid rate",
-					&map[string]interface{}{"rate": 1.0},
-					NewTestScheduled(nil, nil, nil, 1.0, nil),
-					[]*service.Error{}),
-				Entry("parses object that has invalid rate",
-					&map[string]interface{}{"rate": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", NewMeta()),
-					}),
-				Entry("parses object that has valid schedule name",
-					&map[string]interface{}{"scheduleName": "Weekday"},
-					NewTestScheduled(nil, nil, nil, nil, "Weekday"),
-					[]*service.Error{}),
-				Entry("parses object that has invalid schedule name",
-					&map[string]interface{}{"scheduleName": 0},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", NewMeta()),
-					}),
-				Entry("parses object that has multiple valid fields",
-					&map[string]interface{}{"time": "2016-09-06T13:45:58-07:00", "duration": 3600000, "expectedDuration": 7200000, "rate": 1.0, "scheduleName": "Weekday"},
-					NewTestScheduled("2016-09-06T13:45:58-07:00", 3600000, 7200000, 1.0, "Weekday"),
-					[]*service.Error{}),
-				Entry("parses object that has multiple invalid fields",
-					&map[string]interface{}{"time": 0, "duration": "invalid", "expectedDuration": "invalid", "rate": "invalid", "scheduleName": 0, "suppressed": "invalid"},
-					NewTestScheduled(nil, nil, nil, nil, nil),
-					[]*service.Error{
-						testData.ComposeError(service.ErrorTypeNotString(0), "/time", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/duration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotInteger("invalid"), "/expectedDuration", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotFloat("invalid"), "/rate", NewMeta()),
-						testData.ComposeError(service.ErrorTypeNotString(0), "/scheduleName", NewMeta()),
-					}),
-			)
+			// TODO
 		})
 
 		Context("Validate", func() {
@@ -218,29 +98,29 @@ var _ = Describe("Scheduled", func() {
 				func(mutator func(datum *scheduled.Scheduled), expectedErrors ...error) {
 					datum := NewScheduled()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *scheduled.Scheduled) {},
 				),
 				Entry("type missing",
 					func(datum *scheduled.Scheduled) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &basal.Meta{DeliveryType: "scheduled"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &basal.Meta{DeliveryType: "scheduled"}),
 				),
 				Entry("type invalid",
 					func(datum *scheduled.Scheduled) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "scheduled"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "scheduled"}),
 				),
 				Entry("type basal",
 					func(datum *scheduled.Scheduled) { datum.Type = "basal" },
 				),
 				Entry("delivery type missing",
 					func(datum *scheduled.Scheduled) { datum.DeliveryType = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deliveryType", &basal.Meta{Type: "basal"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deliveryType", &basal.Meta{Type: "basal"}),
 				),
 				Entry("delivery type invalid",
 					func(datum *scheduled.Scheduled) { datum.DeliveryType = "invalidDeliveryType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType", &basal.Meta{Type: "basal", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType", &basal.Meta{Type: "basal", DeliveryType: "invalidDeliveryType"}),
 				),
 				Entry("delivery type scheduled",
 					func(datum *scheduled.Scheduled) { datum.DeliveryType = "scheduled" },
@@ -250,74 +130,74 @@ var _ = Describe("Scheduled", func() {
 						datum.Duration = nil
 						datum.DurationExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected out of range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected in range (upper)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(604800000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
 				Entry("duration missing; duration expected out of range (upper)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected missing",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected in range (upper)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(604800000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (lower); duration expected out of range (upper)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected missing",
 					func(datum *scheduled.Scheduled) {
@@ -330,7 +210,7 @@ var _ = Describe("Scheduled", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (lower); duration expected in range (lower)",
 					func(datum *scheduled.Scheduled) {
@@ -349,7 +229,7 @@ var _ = Describe("Scheduled", func() {
 						datum.Duration = pointer.FromInt(0)
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected missing",
 					func(datum *scheduled.Scheduled) {
@@ -362,7 +242,7 @@ var _ = Describe("Scheduled", func() {
 						datum.Duration = pointer.FromInt(604800000)
 						datum.DurationExpected = pointer.FromInt(604799999)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604799999, 604800000, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604799999, 604800000, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected in range (lower)",
 					func(datum *scheduled.Scheduled) {
@@ -381,44 +261,44 @@ var _ = Describe("Scheduled", func() {
 						datum.Duration = pointer.FromInt(604800000)
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 604800000, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 604800000, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected missing",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800001)
 						datum.DurationExpected = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected out of range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800001)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected in range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800001)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected in range (upper)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800001)
 						datum.DurationExpected = pointer.FromInt(604800000)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected out of range (upper)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800001)
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("insulin formulation missing",
 					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = nil },
@@ -429,18 +309,18 @@ var _ = Describe("Scheduled", func() {
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", NewMeta()),
 				),
 				Entry("insulin formulation valid",
-					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3) },
+					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3) },
 				),
 				Entry("rate missing",
 					func(datum *scheduled.Scheduled) { datum.Rate = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rate", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rate", NewMeta()),
 				),
 				Entry("rate out of range (lower)",
 					func(datum *scheduled.Scheduled) { datum.Rate = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate", NewMeta()),
 				),
 				Entry("rate in range (lower)",
 					func(datum *scheduled.Scheduled) { datum.Rate = pointer.FromFloat64(0.0) },
@@ -450,15 +330,15 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("rate out of range (upper)",
 					func(datum *scheduled.Scheduled) { datum.Rate = pointer.FromFloat64(100.1) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", NewMeta()),
 				),
 				Entry("schedule name empty",
 					func(datum *scheduled.Scheduled) { datum.ScheduleName = pointer.FromString("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/scheduleName", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/scheduleName", NewMeta()),
 				),
 				Entry("schedule name valid",
 					func(datum *scheduled.Scheduled) {
-						datum.ScheduleName = pointer.FromString(testDataTypesBasal.NewScheduleName())
+						datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
 					},
 				),
 				Entry("multiple errors",
@@ -473,13 +353,13 @@ var _ = Describe("Scheduled", func() {
 						datum.Rate = pointer.FromFloat64(100.1)
 						datum.ScheduleName = pointer.FromString("")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/scheduleName", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/scheduleName", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
 			)
 		})
@@ -548,33 +428,33 @@ var _ = Describe("Scheduled", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *scheduled.SuppressedScheduled), expectedErrors ...error) {
-					datum := testDataTypesBasalScheduled.NewSuppressedScheduled()
+					datum := dataTypesBasalScheduledTest.NewSuppressedScheduled()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *scheduled.SuppressedScheduled) {},
 				),
 				Entry("type missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.Type = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
 				),
 				Entry("type invalid",
 					func(datum *scheduled.SuppressedScheduled) { datum.Type = pointer.FromString("invalidType") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
 				),
 				Entry("type basal",
 					func(datum *scheduled.SuppressedScheduled) { datum.Type = pointer.FromString("basal") },
 				),
 				Entry("delivery type missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.DeliveryType = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/deliveryType"),
 				),
 				Entry("delivery type invalid",
 					func(datum *scheduled.SuppressedScheduled) {
 						datum.DeliveryType = pointer.FromString("invalidDeliveryType")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
 				),
 				Entry("delivery type scheduled",
 					func(datum *scheduled.SuppressedScheduled) { datum.DeliveryType = pointer.FromString("scheduled") },
@@ -583,7 +463,9 @@ var _ = Describe("Scheduled", func() {
 					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = nil },
 				),
 				Entry("annotations valid",
-					func(datum *scheduled.SuppressedScheduled) { datum.Annotations = testData.NewBlobArray() },
+					func(datum *scheduled.SuppressedScheduled) {
+						datum.Annotations = metadataTest.RandomMetadataArray()
+					},
 				),
 				Entry("insulin formulation missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.InsulinFormulation = nil },
@@ -594,20 +476,20 @@ var _ = Describe("Scheduled", func() {
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
 				Entry("insulin formulation valid",
 					func(datum *scheduled.SuppressedScheduled) {
-						datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
+						datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
 					},
 				),
 				Entry("rate missing",
 					func(datum *scheduled.SuppressedScheduled) { datum.Rate = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("rate out of range (lower)",
 					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/rate"),
 				),
 				Entry("rate in range (lower)",
 					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.FromFloat64(0.0) },
@@ -617,15 +499,15 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("rate out of range (upper)",
 					func(datum *scheduled.SuppressedScheduled) { datum.Rate = pointer.FromFloat64(100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
 				),
 				Entry("schedule name empty",
 					func(datum *scheduled.SuppressedScheduled) { datum.ScheduleName = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
 				),
 				Entry("schedule name valid",
 					func(datum *scheduled.SuppressedScheduled) {
-						datum.ScheduleName = pointer.FromString(testDataTypesBasal.NewScheduleName())
+						datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
 					},
 				),
 				Entry("multiple errors",
@@ -638,11 +520,11 @@ var _ = Describe("Scheduled", func() {
 						datum.Rate = pointer.FromFloat64(100.1)
 						datum.ScheduleName = pointer.FromString("")
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "scheduled"), "/deliveryType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scheduleName"),
 				),
 			)
 		})
@@ -651,9 +533,9 @@ var _ = Describe("Scheduled", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *scheduled.SuppressedScheduled)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesBasalScheduled.NewSuppressedScheduled()
+						datum := dataTypesBasalScheduledTest.NewSuppressedScheduled()
 						mutator(datum)
-						expectedDatum := testDataTypesBasalScheduled.CloneSuppressedScheduled(datum)
+						expectedDatum := dataTypesBasalScheduledTest.CloneSuppressedScheduled(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

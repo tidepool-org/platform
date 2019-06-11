@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
@@ -141,7 +141,7 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	dataSet.CreatedTime = pointer.FromString(timestamp)
 
@@ -192,7 +192,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
@@ -248,7 +248,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var err error
 	var removeInfo *mgo.ChangeInfo
@@ -306,7 +306,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	insertData := make([]interface{}, len(dataSetData))
 	for index, datum := range dataSetData {
@@ -348,6 +348,7 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	}
 
 	now := time.Now()
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -357,7 +358,7 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      true,
-		"modifiedTime": now.Format(time.RFC3339),
+		"modifiedTime": timestamp,
 	}
 	unset := bson.M{
 		"archivedDatasetId": 1,
@@ -391,6 +392,7 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	}
 
 	now := time.Now()
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -400,8 +402,8 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
-		"archivedTime": now.Format(time.RFC3339),
-		"modifiedTime": now.Format(time.RFC3339),
+		"archivedTime": timestamp,
+		"modifiedTime": timestamp,
 	}
 	unset := bson.M{
 		"archivedDatasetId": 1,
@@ -434,6 +436,7 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	}
 
 	now := time.Now()
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -442,9 +445,9 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
-		"archivedTime": now.Format(time.RFC3339),
-		"deletedTime":  now.Format(time.RFC3339),
-		"modifiedTime": now.Format(time.RFC3339),
+		"archivedTime": timestamp,
+		"deletedTime":  timestamp,
+		"modifiedTime": timestamp,
 	}
 	unset := bson.M{
 		"archivedDatasetId": 1,
@@ -542,12 +545,13 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var updateInfo *mgo.ChangeInfo
 
 	var hashes []string
 	selector := bson.M{
+		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
 		"type":     bson.M{"$ne": "upload"},
 	}
@@ -595,7 +599,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	pipeline := []bson.M{
 		{
@@ -679,48 +683,6 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	return overallErr
 }
 
-func (d *DataSession) ArchiveDataSetDataUsingOriginIDs(ctx context.Context, dataSet *upload.Upload, originIDs []string) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if err := validateDataSet(dataSet); err != nil {
-		return err
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
-	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
-
-	var changeInfo *mgo.ChangeInfo
-	var err error
-	if len(originIDs) > 0 {
-		selector := bson.M{
-			"_userId":   dataSet.UserID,
-			"uploadId":  dataSet.UploadID,
-			"type":      bson.M{"$ne": "upload"},
-			"origin.id": bson.M{"$in": originIDs},
-		}
-		set := bson.M{
-			"_active":      false,
-			"archivedTime": timestamp,
-			"modifiedTime": timestamp,
-		}
-		unset := bson.M{}
-		changeInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
-	}
-
-	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetID": dataSet.UploadID, "changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("ArchiveDataSetDataUsingOriginIDs")
-
-	if err != nil {
-		return errors.Wrap(err, "unable to archive data set data using origin ids")
-	}
-	return nil
-}
-
 func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -738,7 +700,7 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 	}
 
 	now := time.Now()
-	timestamp := now.Format(time.RFC3339)
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var err error
 	var removeInfo *mgo.ChangeInfo

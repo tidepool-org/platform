@@ -1,61 +1,94 @@
 package api_test
 
 import (
+	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
+	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-
-	"github.com/tidepool-org/platform/aws/api"
+	"github.com/tidepool-org/platform/aws"
+	awsApi "github.com/tidepool-org/platform/aws/api"
+	awsTest "github.com/tidepool-org/platform/aws/test"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 var _ = Describe("API", func() {
-	var awsSession *session.Session
+	var session *awsSdkGoAwsSession.Session
 
 	BeforeEach(func() {
 		var err error
-		awsSession, err = session.NewSession()
+		session, err = awsSdkGoAwsSession.NewSession()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(awsSession).ToNot(BeNil())
+		Expect(session).ToNot(BeNil())
 	})
 
 	Context("New", func() {
 		It("returns an error if the aws session is missing", func() {
-			ehpi, err := api.New(nil)
+			api, err := awsApi.New(nil)
 			Expect(err).To(MatchError("aws session is missing"))
-			Expect(ehpi).To(BeNil())
+			Expect(api).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(api.New(awsSession)).ToNot(BeNil())
+			Expect(awsApi.New(session)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new api", func() {
-		var ehpi *api.API
+		var api *awsApi.API
 
 		BeforeEach(func() {
 			var err error
-			ehpi, err = api.New(awsSession)
+			api, err = awsApi.New(session)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ehpi).ToNot(BeNil())
+			Expect(api).ToNot(BeNil())
 		})
 
 		Context("S3", func() {
 			It("returns successfully", func() {
-				Expect(ehpi.S3()).ToNot(BeNil())
+				Expect(api.S3()).ToNot(BeNil())
 			})
 		})
 
-		Context("S3ManagerDownloader", func() {
+		Context("S3Manager", func() {
 			It("returns successfully", func() {
-				Expect(ehpi.S3ManagerDownloader()).ToNot(BeNil())
+				Expect(api.S3Manager()).ToNot(BeNil())
 			})
 		})
 
-		Context("S3ManagerUploader", func() {
-			It("returns successfully", func() {
-				Expect(ehpi.S3ManagerUploader()).ToNot(BeNil())
+		Context("with s3 manager", func() {
+			var s3Manager aws.S3Manager
+
+			BeforeEach(func() {
+				s3Manager = api.S3Manager()
+				Expect(s3Manager).ToNot(BeNil())
+			})
+
+			Context("Downloader", func() {
+				It("returns successfully", func() {
+					Expect(s3Manager.Downloader()).ToNot(BeNil())
+				})
+			})
+
+			Context("Uploader", func() {
+				It("returns successfully", func() {
+					Expect(s3Manager.Uploader()).ToNot(BeNil())
+				})
+			})
+
+			Context("NewBatchDeleteWithClient", func() {
+				It("returns successfully", func() {
+					Expect(s3Manager.NewBatchDeleteWithClient()).ToNot(BeNil())
+				})
+			})
+
+			Context("NewDeleteListIterator", func() {
+				It("returns successfully", func() {
+					listObjectsInput := &awsSdkGoServiceS3.ListObjectsInput{
+						Bucket: pointer.FromString(awsTest.RandomBucket()),
+					}
+					Expect(s3Manager.NewDeleteListIterator(listObjectsInput)).ToNot(BeNil())
+				})
 			})
 		})
 	})

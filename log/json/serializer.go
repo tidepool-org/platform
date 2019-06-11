@@ -29,14 +29,14 @@ func (s *serializer) Serialize(fields log.Fields) error {
 		return errors.New("fields are missing")
 	}
 
-	bytes, err := json.Marshal(fields)
+	bites, err := json.Marshal(fields)
 	if err != nil {
 		return errors.Wrapf(err, "unable to serialize fields")
 	}
 
-	bytes = append(bytes, []byte("\n")...)
+	bites = append(bites, []byte("\n")...)
 
-	_, err = s.writer.Write(bytes)
+	_, err = s.writer.Write(bites)
 	if err != nil {
 		return errors.Wrapf(err, "unable to write serialized field")
 	}

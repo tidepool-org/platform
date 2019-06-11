@@ -123,9 +123,13 @@ func NewAddress() string {
 func NewPath() string {
 	segments := make([]string, rand.Intn(4))
 	for index := range segments {
-		segments[index] = test.NewVariableString(1, 8, CharsetPath)
+		segments[index] = test.RandomStringFromRangeAndCharset(1, 8, CharsetPath)
 	}
 	return "/" + strings.Join(segments, "/")
+}
+
+func RandomPathPart() string {
+	return url.PathEscape(test.RandomStringFromRange(1, 8))
 }
 
 func NewURLString() string {
@@ -139,24 +143,44 @@ func NewURL() *url.URL {
 	return earl
 }
 
+func RandomHeader() http.Header {
+	header := http.Header{}
+	for i := test.RandomIntFromRange(2, 4); i > 0; i-- {
+		values := []string{}
+		for j := test.RandomIntFromRange(0, 2); j > 0; j-- {
+			values = append(values, RandomHeaderValue())
+		}
+		header[RandomHeaderKey()] = values
+	}
+	return header
+}
+
+func RandomHeaderKey() string {
+	return textproto.CanonicalMIMEHeaderKey(test.RandomStringFromRangeAndCharset(1, 16, CharsetName))
+}
+
+func RandomHeaderValue() string {
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
+}
+
 func NewHeaderKey() string {
-	return textproto.CanonicalMIMEHeaderKey(test.NewVariableString(1, 8, CharsetName))
+	return textproto.CanonicalMIMEHeaderKey(test.RandomStringFromRangeAndCharset(1, 8, CharsetName))
 }
 
 func NewHeaderValue() string {
-	return test.NewVariableString(1, 16, CharsetValue)
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewParameterKey() string {
-	return test.NewVariableString(1, 8, CharsetName)
+	return test.RandomStringFromRangeAndCharset(1, 8, CharsetName)
 }
 
 func NewParameterValue() string {
-	return test.NewVariableString(1, 16, CharsetValue)
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewUserAgent() string {
-	return test.NewVariableString(1, 16, CharsetValue)
+	return test.RandomStringFromRangeAndCharset(1, 16, CharsetValue)
 }
 
 func NewTimeout() int {

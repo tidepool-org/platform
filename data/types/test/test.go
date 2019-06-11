@@ -5,7 +5,7 @@ import (
 
 	"github.com/onsi/gomega"
 
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -20,7 +20,7 @@ func NewConversionOffset() int {
 }
 
 func NewNote(minimumLength int, maximumLength int) string {
-	return test.NewText(minimumLength, maximumLength)
+	return test.RandomStringFromRange(minimumLength, maximumLength)
 }
 
 func NewNotes(minimumLength int, maximumLength int) []string {
@@ -32,7 +32,7 @@ func NewNotes(minimumLength int, maximumLength int) []string {
 }
 
 func NewTag(minimumLength int, maximumLength int) string {
-	return test.NewText(minimumLength, maximumLength)
+	return test.RandomStringFromRange(minimumLength, maximumLength)
 }
 
 func NewTags(minimumLength int, maximumLength int) []string {
@@ -52,7 +52,7 @@ func NewTimeZoneOffset() int {
 }
 
 func NewType() string {
-	return test.NewVariableString(1, 32, test.CharsetAlphaNumeric+"/")
+	return test.RandomStringFromRangeAndCharset(1, 32, test.CharsetAlphaNumeric+"/")
 }
 
 func NewVersion() int {
@@ -63,7 +63,7 @@ func ValidateWithOrigin(validatable structure.Validatable, origin structure.Orig
 	validator := structureValidator.New()
 	gomega.Expect(validator).ToNot(gomega.BeNil())
 	validatable.Validate(validator.WithOrigin(origin))
-	testErrors.ExpectEqual(validator.Error(), expectedErrors...)
+	errorsTest.ExpectEqual(validator.Error(), expectedErrors...)
 }
 
 func ValidateWithExpectedOrigins(validatable structure.Validatable, expectedOrigins []structure.Origin, expectedErrors ...error) {

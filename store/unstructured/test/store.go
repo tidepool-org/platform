@@ -3,12 +3,9 @@ package test
 import (
 	"context"
 	"io"
-)
 
-type ExistsInput struct {
-	Context context.Context
-	Key     string
-}
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
+)
 
 type ExistsOutput struct {
 	Exists bool
@@ -16,24 +13,14 @@ type ExistsOutput struct {
 }
 
 type PutInput struct {
-	Context context.Context
 	Key     string
 	Reader  io.Reader
-}
-
-type GetInput struct {
-	Context context.Context
-	Key     string
+	Options *storeUnstructured.Options
 }
 
 type GetOutput struct {
 	Reader io.ReadCloser
 	Error  error
-}
-
-type DeleteInput struct {
-	Context context.Context
-	Key     string
 }
 
 type DeleteOutput struct {
@@ -42,26 +29,31 @@ type DeleteOutput struct {
 }
 
 type Store struct {
-	ExistsInvocations int
-	ExistsInputs      []ExistsInput
-	ExistsStub        func(ctx context.Context, key string) (bool, error)
-	ExistsOutputs     []ExistsOutput
-	ExistsOutput      *ExistsOutput
-	PutInvocations    int
-	PutInputs         []PutInput
-	PutStub           func(ctx context.Context, key string, reader io.Reader) error
-	PutOutputs        []error
-	PutOutput         *error
-	GetInvocations    int
-	GetInputs         []GetInput
-	GetStub           func(ctx context.Context, key string) (io.ReadCloser, error)
-	GetOutputs        []GetOutput
-	GetOutput         *GetOutput
-	DeleteInvocations int
-	DeleteInputs      []DeleteInput
-	DeleteStub        func(ctx context.Context, key string) (bool, error)
-	DeleteOutputs     []DeleteOutput
-	DeleteOutput      *DeleteOutput
+	ExistsInvocations          int
+	ExistsInputs               []string
+	ExistsStub                 func(ctx context.Context, key string) (bool, error)
+	ExistsOutputs              []ExistsOutput
+	ExistsOutput               *ExistsOutput
+	PutInvocations             int
+	PutInputs                  []PutInput
+	PutStub                    func(ctx context.Context, key string, reader io.Reader, options *storeUnstructured.Options) error
+	PutOutputs                 []error
+	PutOutput                  *error
+	GetInvocations             int
+	GetInputs                  []string
+	GetStub                    func(ctx context.Context, key string) (io.ReadCloser, error)
+	GetOutputs                 []GetOutput
+	GetOutput                  *GetOutput
+	DeleteInvocations          int
+	DeleteInputs               []string
+	DeleteStub                 func(ctx context.Context, key string) (bool, error)
+	DeleteOutputs              []DeleteOutput
+	DeleteOutput               *DeleteOutput
+	DeleteDirectoryInvocations int
+	DeleteDirectoryInputs      []string
+	DeleteDirectoryStub        func(ctx context.Context, key string) error
+	DeleteDirectoryOutputs     []error
+	DeleteDirectoryOutput      *error
 }
 
 func NewStore() *Store {
@@ -70,7 +62,7 @@ func NewStore() *Store {
 
 func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 	s.ExistsInvocations++
-	s.ExistsInputs = append(s.ExistsInputs, ExistsInput{Context: ctx, Key: key})
+	s.ExistsInputs = append(s.ExistsInputs, key)
 	if s.ExistsStub != nil {
 		return s.ExistsStub(ctx, key)
 	}
@@ -85,11 +77,11 @@ func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
 	panic("Exists has no output")
 }
 
-func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
+func (s *Store) Put(ctx context.Context, key string, reader io.Reader, options *storeUnstructured.Options) error {
 	s.PutInvocations++
-	s.PutInputs = append(s.PutInputs, PutInput{Context: ctx, Key: key, Reader: reader})
+	s.PutInputs = append(s.PutInputs, PutInput{Key: key, Reader: reader, Options: options})
 	if s.PutStub != nil {
-		return s.PutStub(ctx, key, reader)
+		return s.PutStub(ctx, key, reader, options)
 	}
 	if len(s.PutOutputs) > 0 {
 		output := s.PutOutputs[0]
@@ -104,7 +96,7 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader) error {
 
 func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, GetInput{Context: ctx, Key: key})
+	s.GetInputs = append(s.GetInputs, key)
 	if s.GetStub != nil {
 		return s.GetStub(ctx, key)
 	}
@@ -121,7 +113,7 @@ func (s *Store) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 
 func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{Context: ctx, Key: key})
+	s.DeleteInputs = append(s.DeleteInputs, key)
 	if s.DeleteStub != nil {
 		return s.DeleteStub(ctx, key)
 	}
@@ -136,6 +128,23 @@ func (s *Store) Delete(ctx context.Context, key string) (bool, error) {
 	panic("Delete has no output")
 }
 
+func (s *Store) DeleteDirectory(ctx context.Context, key string) error {
+	s.DeleteDirectoryInvocations++
+	s.DeleteDirectoryInputs = append(s.DeleteDirectoryInputs, key)
+	if s.DeleteDirectoryStub != nil {
+		return s.DeleteDirectoryStub(ctx, key)
+	}
+	if len(s.DeleteDirectoryOutputs) > 0 {
+		output := s.DeleteDirectoryOutputs[0]
+		s.DeleteDirectoryOutputs = s.DeleteDirectoryOutputs[1:]
+		return output
+	}
+	if s.DeleteDirectoryOutput != nil {
+		return *s.DeleteDirectoryOutput
+	}
+	panic("DeleteDirectory has no output")
+}
+
 func (s *Store) AssertOutputsEmpty() {
 	if len(s.ExistsOutputs) > 0 {
 		panic("ExistsOutputs is not empty")
@@ -148,5 +157,8 @@ func (s *Store) AssertOutputsEmpty() {
 	}
 	if len(s.DeleteOutputs) > 0 {
 		panic("DeleteOutputs is not empty")
+	}
+	if len(s.DeleteDirectoryOutputs) > 0 {
+		panic("DeleteDirectoryOutputs is not empty")
 	}
 }

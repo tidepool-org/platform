@@ -21,13 +21,12 @@ type InsulinSensitivityStart struct {
 	Start  *int     `json:"start,omitempty" bson:"start,omitempty"`
 }
 
-func ParseInsulinSensitivityStart(parser data.ObjectParser) *InsulinSensitivityStart {
-	if parser.Object() == nil {
+func ParseInsulinSensitivityStart(parser structure.ObjectParser) *InsulinSensitivityStart {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewInsulinSensitivityStart()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -35,9 +34,9 @@ func NewInsulinSensitivityStart() *InsulinSensitivityStart {
 	return &InsulinSensitivityStart{}
 }
 
-func (i *InsulinSensitivityStart) Parse(parser data.ObjectParser) {
-	i.Amount = parser.ParseFloat("amount")
-	i.Start = parser.ParseInteger("start")
+func (i *InsulinSensitivityStart) Parse(parser structure.ObjectParser) {
+	i.Amount = parser.Float64("amount")
+	i.Start = parser.Int("start")
 }
 
 func (i *InsulinSensitivityStart) Validate(validator structure.Validator, units *string, startMinimum *int) {
@@ -62,13 +61,12 @@ func (i *InsulinSensitivityStart) Normalize(normalizer data.Normalizer, units *s
 
 type InsulinSensitivityStartArray []*InsulinSensitivityStart
 
-func ParseInsulinSensitivityStartArray(parser data.ArrayParser) *InsulinSensitivityStartArray {
-	if parser.Array() == nil {
+func ParseInsulinSensitivityStartArray(parser structure.ArrayParser) *InsulinSensitivityStartArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewInsulinSensitivityStartArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -76,9 +74,9 @@ func NewInsulinSensitivityStartArray() *InsulinSensitivityStartArray {
 	return &InsulinSensitivityStartArray{}
 }
 
-func (i *InsulinSensitivityStartArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*i = append(*i, ParseInsulinSensitivityStart(parser.NewChildObjectParser(index)))
+func (i *InsulinSensitivityStartArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*i = append(*i, ParseInsulinSensitivityStart(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
@@ -122,13 +120,12 @@ func (i *InsulinSensitivityStartArray) Last() *InsulinSensitivityStart {
 
 type InsulinSensitivityStartArrayMap map[string]*InsulinSensitivityStartArray
 
-func ParseInsulinSensitivityStartArrayMap(parser data.ObjectParser) *InsulinSensitivityStartArrayMap {
-	if parser.Object() == nil {
+func ParseInsulinSensitivityStartArrayMap(parser structure.ObjectParser) *InsulinSensitivityStartArrayMap {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewInsulinSensitivityStartArrayMap()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -136,9 +133,9 @@ func NewInsulinSensitivityStartArrayMap() *InsulinSensitivityStartArrayMap {
 	return &InsulinSensitivityStartArrayMap{}
 }
 
-func (i *InsulinSensitivityStartArrayMap) Parse(parser data.ObjectParser) {
-	for name := range *parser.Object() {
-		i.Set(name, ParseInsulinSensitivityStartArray(parser.NewChildArrayParser(name)))
+func (i *InsulinSensitivityStartArrayMap) Parse(parser structure.ObjectParser) {
+	for _, reference := range parser.References() {
+		i.Set(reference, ParseInsulinSensitivityStartArray(parser.WithReferenceArrayParser(reference)))
 	}
 }
 

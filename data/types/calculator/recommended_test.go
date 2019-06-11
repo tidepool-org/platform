@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/calculator"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -28,9 +28,9 @@ func CloneRecommended(datum *calculator.Recommended) *calculator.Recommended {
 		return nil
 	}
 	clone := calculator.NewRecommended()
-	clone.Carbohydrate = test.CloneFloat64(datum.Carbohydrate)
-	clone.Correction = test.CloneFloat64(datum.Correction)
-	clone.Net = test.CloneFloat64(datum.Net)
+	clone.Carbohydrate = pointer.CloneFloat64(datum.Carbohydrate)
+	clone.Correction = pointer.CloneFloat64(datum.Correction)
+	clone.Net = pointer.CloneFloat64(datum.Net)
 	return clone
 }
 
@@ -79,7 +79,7 @@ var _ = Describe("Recommended", func() {
 				func(mutator func(datum *calculator.Recommended), expectedErrors ...error) {
 					datum := NewRecommended()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *calculator.Recommended) {},
@@ -89,7 +89,7 @@ var _ = Describe("Recommended", func() {
 				),
 				Entry("carbohydrate out of range (lower)",
 					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/carb"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/carb"),
 				),
 				Entry("carbohydrate in range (lower)",
 					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(0.0) },
@@ -99,14 +99,14 @@ var _ = Describe("Recommended", func() {
 				),
 				Entry("carbohydrate out of range (upper)",
 					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/carb"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/carb"),
 				),
 				Entry("correction missing",
 					func(datum *calculator.Recommended) { datum.Correction = nil },
 				),
 				Entry("correction out of range (lower)",
 					func(datum *calculator.Recommended) { datum.Correction = pointer.FromFloat64(-100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/correction"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/correction"),
 				),
 				Entry("correction in range (lower)",
 					func(datum *calculator.Recommended) { datum.Correction = pointer.FromFloat64(-100.0) },
@@ -116,14 +116,14 @@ var _ = Describe("Recommended", func() {
 				),
 				Entry("correction out of range (upper)",
 					func(datum *calculator.Recommended) { datum.Correction = pointer.FromFloat64(100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, -100, 100), "/correction"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, -100, 100), "/correction"),
 				),
 				Entry("net missing",
 					func(datum *calculator.Recommended) { datum.Net = nil },
 				),
 				Entry("net out of range (lower)",
 					func(datum *calculator.Recommended) { datum.Net = pointer.FromFloat64(-100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/net"),
 				),
 				Entry("net in range (lower)",
 					func(datum *calculator.Recommended) { datum.Net = pointer.FromFloat64(-100.0) },
@@ -133,7 +133,7 @@ var _ = Describe("Recommended", func() {
 				),
 				Entry("net out of range (upper)",
 					func(datum *calculator.Recommended) { datum.Net = pointer.FromFloat64(100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, -100, 100), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, -100, 100), "/net"),
 				),
 				Entry("multiple errors",
 					func(datum *calculator.Recommended) {
@@ -141,9 +141,9 @@ var _ = Describe("Recommended", func() {
 						datum.Correction = pointer.FromFloat64(-100.1)
 						datum.Net = pointer.FromFloat64(-100.1)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/carb"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/correction"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/net"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/carb"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/correction"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-100.1, -100, 100), "/net"),
 				),
 			)
 		})

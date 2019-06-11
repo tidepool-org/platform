@@ -22,13 +22,12 @@ type Fat struct {
 	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseFat(parser data.ObjectParser) *Fat {
-	if parser.Object() == nil {
+func ParseFat(parser structure.ObjectParser) *Fat {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewFat()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -36,9 +35,9 @@ func NewFat() *Fat {
 	return &Fat{}
 }
 
-func (f *Fat) Parse(parser data.ObjectParser) {
-	f.Total = parser.ParseFloat("total")
-	f.Units = parser.ParseString("units")
+func (f *Fat) Parse(parser structure.ObjectParser) {
+	f.Total = parser.Float64("total")
+	f.Units = parser.String("units")
 }
 
 func (f *Fat) Validate(validator structure.Validator) {

@@ -1,17 +1,17 @@
 package parser_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	"github.com/tidepool-org/platform/errors"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
 )
 
 var _ = Describe("Array", func() {
@@ -57,13 +57,13 @@ var _ = Describe("Array", func() {
 			})
 
 			It("returns true if source set", func() {
-				Expect(parser.WithSource(testStructure.NewSource()).HasSource()).To(BeTrue())
+				Expect(parser.WithSource(structureTest.NewSource()).HasSource()).To(BeTrue())
 			})
 		})
 
 		Context("Source", func() {
 			It("returns set source", func() {
-				src := testStructure.NewSource()
+				src := structureTest.NewSource()
 				Expect(parser.WithSource(src).Source()).To(Equal(src))
 			})
 		})
@@ -74,7 +74,7 @@ var _ = Describe("Array", func() {
 			})
 
 			It("returns true if meta set", func() {
-				Expect(parser.WithMeta(testErrors.NewMeta()).HasMeta()).To(BeTrue())
+				Expect(parser.WithMeta(errorsTest.NewMeta()).HasMeta()).To(BeTrue())
 			})
 		})
 
@@ -84,7 +84,7 @@ var _ = Describe("Array", func() {
 			})
 
 			It("returns set meta", func() {
-				meta := testErrors.NewMeta()
+				meta := errorsTest.NewMeta()
 				Expect(parser.WithMeta(meta).Meta()).To(Equal(meta))
 			})
 		})
@@ -95,14 +95,14 @@ var _ = Describe("Array", func() {
 			})
 
 			It("returns true if any errors reported", func() {
-				base.ReportError(testErrors.RandomError())
+				base.ReportError(errorsTest.RandomError())
 				Expect(parser.HasError()).To(BeTrue())
 			})
 		})
 
 		Context("Error", func() {
 			It("returns the error from the base", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				base.ReportError(err)
 				Expect(parser.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -110,7 +110,7 @@ var _ = Describe("Array", func() {
 
 		Context("ReportError", func() {
 			It("reports the error to the base", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				parser.ReportError(err)
 				Expect(base.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -123,10 +123,10 @@ var _ = Describe("Array", func() {
 		})
 
 		Context("Parse", func() {
-			var arrayParsable *testStructure.ArrayParsable
+			var arrayParsable *structureTest.ArrayParsable
 
 			BeforeEach(func() {
-				arrayParsable = testStructure.NewArrayParsable()
+				arrayParsable = structureTest.NewArrayParsable()
 			})
 
 			AfterEach(func() {
@@ -134,7 +134,7 @@ var _ = Describe("Array", func() {
 			})
 
 			It("invokes parse and returns current errors", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				base.ReportError(err)
 				Expect(parser.Parse(arrayParsable)).To(Equal(errors.Normalize(err)))
 				Expect(arrayParsable.ParseInputs).To(Equal([]structure.ArrayParser{parser}))
@@ -174,7 +174,7 @@ var _ = Describe("Array", func() {
 		})
 
 		It("Time returns nil", func() {
-			Expect(parser.Time(6, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(6, time.RFC3339Nano)).To(BeNil())
 		})
 
 		It("Object returns nil", func() {
@@ -190,14 +190,14 @@ var _ = Describe("Array", func() {
 		})
 
 		It("NotParsed only returns existing errors", func() {
-			err := testErrors.RandomError()
+			err := errorsTest.RandomError()
 			base.ReportError(err)
 			Expect(parser.NotParsed()).To(Equal(errors.Normalize(err)))
 		})
 
 		Context("WithSource", func() {
 			It("returns new parser", func() {
-				src := testStructure.NewSource()
+				src := structureTest.NewSource()
 				result := parser.WithSource(src)
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(parser))
@@ -206,7 +206,7 @@ var _ = Describe("Array", func() {
 
 		Context("WithMeta", func() {
 			It("returns new parser", func() {
-				result := parser.WithMeta(testErrors.NewMeta())
+				result := parser.WithMeta(errorsTest.NewMeta())
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(parser))
 			})
@@ -223,8 +223,8 @@ var _ = Describe("Array", func() {
 
 		Context("WithReferenceArrayParser", func() {
 			It("with source returns new parser", func() {
-				src := testStructure.NewSource()
-				src.WithReferenceOutputs = []structure.Source{testStructure.NewSource()}
+				src := structureTest.NewSource()
+				src.WithReferenceOutputs = []structure.Source{structureTest.NewSource()}
 				resultWithSource := parser.WithSource(src)
 				resultWithReference := parser.WithReferenceArrayParser(0)
 				Expect(resultWithReference).ToNot(BeNil())
@@ -244,7 +244,7 @@ var _ = Describe("Array", func() {
 
 		Context("Error", func() {
 			It("returns the error from the base", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				base.ReportError(err)
 				Expect(parser.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -257,10 +257,10 @@ var _ = Describe("Array", func() {
 		})
 
 		Context("Parse", func() {
-			var arrayParsable *testStructure.ArrayParsable
+			var arrayParsable *structureTest.ArrayParsable
 
 			BeforeEach(func() {
-				arrayParsable = testStructure.NewArrayParsable()
+				arrayParsable = structureTest.NewArrayParsable()
 			})
 
 			AfterEach(func() {
@@ -268,7 +268,7 @@ var _ = Describe("Array", func() {
 			})
 
 			It("invokes parse and returns current errors", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				base.ReportError(err)
 				Expect(parser.Parse(arrayParsable)).To(Equal(errors.Normalize(err)))
 				Expect(arrayParsable.ParseInputs).To(Equal([]structure.ArrayParser{parser}))
@@ -341,7 +341,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotBool", func() {
 			Expect(parser.Bool(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotBool("not a boolean"), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("not a boolean"), "/0"))
 		})
 
 		It("with index parameter with boolean type returns value", func() {
@@ -378,7 +378,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotFloat64", func() {
 			Expect(parser.Float64(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotFloat64(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(false), "/0"))
 		})
 
 		It("with index parameter with integer type returns value", func() {
@@ -429,7 +429,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotInt", func() {
 			Expect(parser.Int(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/0"))
 		})
 
 		It("with index parameter with integer type returns value", func() {
@@ -449,7 +449,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with float type and not whole number returns nil and reports an ErrorTypeNotInt", func() {
 			Expect(parser.Int(3)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotInt(5.67), "/3"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(5.67), "/3"))
 		})
 	})
 
@@ -477,7 +477,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotString", func() {
 			Expect(parser.String(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotString(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(false), "/0"))
 		})
 
 		It("with index parameter with string type returns value", func() {
@@ -523,7 +523,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			Expect(parser.StringArray(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotArray(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(false), "/0"))
 		})
 
 		It("with index parameter with string array type returns value", func() {
@@ -545,7 +545,7 @@ var _ = Describe("Array", func() {
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(Equal([]string{"five", ""}))
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotString(6), "/3/1"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(6), "/3/1"))
 		})
 	})
 
@@ -554,39 +554,39 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			now = time.Now().Truncate(time.Second)
+			now = time.Now()
 			parser = structureParser.NewArrayParser(base, &[]interface{}{
 				false,
 				"abc",
-				now.Format(time.RFC3339),
+				now.Format(time.RFC3339Nano),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
 
 		It("with index parameter less that the first index in the array returns nil", func() {
-			Expect(parser.Time(-1, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(-1, time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter greater than the last index in the array returns nil", func() {
-			Expect(parser.Time(len(parser.References()), time.RFC3339)).To(BeNil())
+			Expect(parser.Time(len(parser.References()), time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotTime", func() {
-			Expect(parser.Time(0, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(0, time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/0"))
 		})
 
 		It("with index parameter with different type returns nil and reports an ErrorValueTimeNotParsable", func() {
-			Expect(parser.Time(1, time.RFC3339)).To(BeNil())
+			Expect(parser.Time(1, time.RFC3339Nano)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339), "/1"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "/1"))
 		})
 
 		It("with index parameter with string type returns value", func() {
-			value := parser.Time(2, time.RFC3339)
+			value := parser.Time(2, time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).ToNot(HaveOccurred())
@@ -619,7 +619,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotObject", func() {
 			Expect(parser.Object(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotObject(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(false), "/0"))
 		})
 
 		It("with index parameter with object type returns value", func() {
@@ -657,7 +657,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with different type returns nil and reports an ErrorTypeNotArray", func() {
 			Expect(parser.Array(0)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotArray(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(false), "/0"))
 		})
 
 		It("with index parameter with object array type returns value", func() {
@@ -738,10 +738,10 @@ var _ = Describe("Array", func() {
 		It("without anything parsed reports all unparsed as errors", func() {
 			parser.NotParsed()
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), errors.Append(
-				testErrors.WithPointerSource(structureParser.ErrorNotParsed(), "/0"),
-				testErrors.WithPointerSource(structureParser.ErrorNotParsed(), "/1"),
-				testErrors.WithPointerSource(structureParser.ErrorNotParsed(), "/2"),
+			errorsTest.ExpectEqual(base.Error(), errors.Append(
+				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/0"),
+				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/1"),
+				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/2"),
 			))
 		})
 
@@ -749,9 +749,9 @@ var _ = Describe("Array", func() {
 			parser.String(1)
 			parser.NotParsed()
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), errors.Append(
-				testErrors.WithPointerSource(structureParser.ErrorNotParsed(), "/0"),
-				testErrors.WithPointerSource(structureParser.ErrorNotParsed(), "/2"),
+			errorsTest.ExpectEqual(base.Error(), errors.Append(
+				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/0"),
+				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/2"),
 			))
 		})
 
@@ -791,7 +791,7 @@ var _ = Describe("Array", func() {
 		})
 
 		It("returns new parser", func() {
-			src := testStructure.NewSource()
+			src := structureTest.NewSource()
 			result := parser.WithSource(src)
 			Expect(result).ToNot(BeNil())
 			Expect(result).ToNot(Equal(parser))
@@ -807,7 +807,7 @@ var _ = Describe("Array", func() {
 		})
 
 		It("returns new parser", func() {
-			result := parser.WithMeta(testErrors.NewMeta())
+			result := parser.WithMeta(errorsTest.NewMeta())
 			Expect(result).ToNot(BeNil())
 			Expect(result).ToNot(Equal(parser))
 		})
@@ -845,7 +845,7 @@ var _ = Describe("Array", func() {
 			Expect(objectParser).ToNot(BeNil())
 			Expect(objectParser.Exists()).To(BeFalse())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotObject(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(false), "/0"))
 		})
 
 		It("with index parameter with object type returns value", func() {
@@ -890,7 +890,7 @@ var _ = Describe("Array", func() {
 			Expect(arrayParser).ToNot(BeNil())
 			Expect(arrayParser.Exists()).To(BeFalse())
 			Expect(base.Error()).To(HaveOccurred())
-			testErrors.ExpectEqual(base.Error(), testErrors.WithPointerSource(structureParser.ErrorTypeNotArray(false), "/0"))
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(false), "/0"))
 		})
 
 		It("with index parameter with object type returns value", func() {
@@ -899,6 +899,19 @@ var _ = Describe("Array", func() {
 			Expect(arrayParser.Exists()).To(BeTrue())
 			Expect(arrayParser.References()).To(Equal([]int{0, 1}))
 			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("WithReferenceErrorReporter", func() {
+		var parser *structureParser.Array
+
+		BeforeEach(func() {
+			parser = structureParser.NewArrayParser(base, nil)
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("with reference returns not nil", func() {
+			Expect(parser.WithReferenceErrorReporter(0)).ToNot(BeNil())
 		})
 	})
 })

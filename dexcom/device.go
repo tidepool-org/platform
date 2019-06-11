@@ -1,15 +1,58 @@
 package dexcom
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"strconv"
-	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const (
+	DeviceDisplayDeviceAndroid             = "android"
+	DeviceDisplayDeviceIOS                 = "iOS"
+	DeviceDisplayDeviceReceiver            = "receiver"
+	DeviceDisplayDeviceShareReceiver       = "shareReceiver"
+	DeviceDisplayDeviceTouchscreenReceiver = "touchscreenReceiver"
+
+	DeviceTransmitterGenerationG4 = "g4"
+	DeviceTransmitterGenerationG5 = "g5"
+	DeviceTransmitterGenerationG6 = "g6"
+)
+
+func DeviceDisplayDevices() []string {
+	return []string{
+		DeviceDisplayDeviceAndroid,
+		DeviceDisplayDeviceIOS,
+		DeviceDisplayDeviceReceiver,
+		DeviceDisplayDeviceShareReceiver,
+		DeviceDisplayDeviceTouchscreenReceiver,
+	}
+}
+
+func DeviceTransmitterGenerations() []string {
+	return []string{
+		DeviceTransmitterGenerationG4,
+		DeviceTransmitterGenerationG5,
+		DeviceTransmitterGenerationG6,
+	}
+}
+
 type DevicesResponse struct {
-	Devices []*Device `json:"devices,omitempty"`
+	Devices *Devices `json:"devices,omitempty"`
+}
+
+func ParseDevicesResponse(parser structure.ObjectParser) *DevicesResponse {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewDevicesResponse()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewDevicesResponse() *DevicesResponse {
@@ -17,23 +60,46 @@ func NewDevicesResponse() *DevicesResponse {
 }
 
 func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
-	if devicesParser := parser.WithReferenceArrayParser("devices"); devicesParser.Exists() {
-		for _, reference := range devicesParser.References() {
-			if deviceParser := devicesParser.WithReferenceObjectParser(reference); deviceParser.Exists() {
-				device := NewDevice()
-				device.Parse(deviceParser)
-				deviceParser.NotParsed()
-				d.Devices = append(d.Devices, device)
-			}
-		}
-		devicesParser.NotParsed()
-	}
+	d.Devices = ParseDevices(parser.WithReferenceArrayParser("devices"))
 }
 
 func (d *DevicesResponse) Validate(validator structure.Validator) {
-	validator = validator.WithMeta(d)
-	validator = validator.WithReference("devices")
-	for index, device := range d.Devices {
+	if devicesValidator := validator.WithReference("devices"); d.Devices != nil {
+		d.Devices.Validate(devicesValidator)
+	} else {
+		devicesValidator.ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
+
+func (d *DevicesResponse) Normalize(normalizer structure.Normalizer) {
+	if d.Devices != nil {
+		d.Devices.Normalize(normalizer.WithReference("devices"))
+	}
+}
+
+type Devices []*Device
+
+func ParseDevices(parser structure.ArrayParser) *Devices {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewDevices()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewDevices() *Devices {
+	return &Devices{}
+}
+
+func (d *Devices) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*d = append(*d, ParseDevice(parser.WithReferenceObjectParser(reference)))
+	}
+}
+
+func (d *Devices) Validate(validator structure.Validator) {
+	for index, device := range *d {
 		if deviceValidator := validator.WithReference(strconv.Itoa(index)); device != nil {
 			device.Validate(deviceValidator)
 		} else {
@@ -42,21 +108,37 @@ func (d *DevicesResponse) Validate(validator structure.Validator) {
 	}
 }
 
+func (d *Devices) Normalize(normalizer structure.Normalizer) {
+	for index, device := range *d {
+		device.Normalize(normalizer.WithReference(strconv.Itoa(index)))
+	}
+}
+
 type Device struct {
-	Model             string        `json:"model,omitempty"`
-	LastUploadDate    time.Time     `json:"lastUploadDate,omitempty"`
-	AlertSettings     AlertSettings `json:"alertSettings,omitempty"`
-	UDI               *string       `json:"udi,omitempty"`
-	SerialNumber      *string       `json:"serialNumber,omitempty"`
-	TransmitterID     *string       `json:"transmitterId,omitempty"`
-	SoftwareVersion   *string       `json:"softwareVersion,omitempty"`
-	SoftwareNumber    *string       `json:"softwareNumber,omitempty"`
-	Language          *string       `json:"language,omitempty"`
-	IsMmolDisplayMode *bool         `json:"isMmolDisplayMode,omitempty"`
-	IsBlindedMode     *bool         `json:"isBlindedMode,omitempty"`
-	Is24HourMode      *bool         `json:"is24HourMode,omitempty"`
-	DisplayTimeOffset *int          `json:"displayTimeOffset,omitempty"`
-	SystemTimeOffset  *int          `json:"systemTimeOffset,omitempty"`
+	LastUploadDate        *Time           `json:"lastUploadDate,omitempty" yaml:"-"`
+	AlertScheduleList     *AlertSchedules `json:"alertScheduleList,omitempty" yaml:"alertScheduleList,omitempty"`
+	UDI                   *string         `json:"udi,omitempty" yaml:"udi,omitempty"`
+	SerialNumber          *string         `json:"serialNumber,omitempty" yaml:"serialNumber,omitempty"`
+	TransmitterID         *string         `json:"transmitterId,omitempty" yaml:"transmitterId,omitempty"`
+	TransmitterGeneration *string         `json:"transmitterGeneration,omitempty" yaml:"transmitterGeneration,omitempty"`
+	DisplayDevice         *string         `json:"displayDevice,omitempty" yaml:"displayDevice,omitempty"`
+	SoftwareVersion       *string         `json:"softwareVersion,omitempty" yaml:"softwareVersion,omitempty"`
+	SoftwareNumber        *string         `json:"softwareNumber,omitempty" yaml:"softwareNumber,omitempty"`
+	Language              *string         `json:"language,omitempty" yaml:"language,omitempty"`
+	IsMmolDisplayMode     *bool           `json:"isMmolDisplayMode,omitempty" yaml:"isMmolDisplayMode,omitempty"`
+	IsBlindedMode         *bool           `json:"isBlindedMode,omitempty" yaml:"isBlindedMode,omitempty"`
+	Is24HourMode          *bool           `json:"is24HourMode,omitempty" yaml:"is24HourMode,omitempty"`
+	DisplayTimeOffset     *int            `json:"displayTimeOffset,omitempty" yaml:"displayTimeOffset,omitempty"`
+	SystemTimeOffset      *int            `json:"systemTimeOffset,omitempty" yaml:"systemTimeOffset,omitempty"`
+}
+
+func ParseDevice(parser structure.ObjectParser) *Device {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewDevice()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewDevice() *Device {
@@ -64,27 +146,13 @@ func NewDevice() *Device {
 }
 
 func (d *Device) Parse(parser structure.ObjectParser) {
-	if ptr := parser.String("model"); ptr != nil {
-		d.Model = *ptr
-	}
-	if ptr := parser.Time("lastUploadDate", DateTimeFormat); ptr != nil {
-		d.LastUploadDate = *ptr
-	}
-	if alertSettingsParser := parser.WithReferenceArrayParser("alertSettings"); alertSettingsParser.Exists() {
-		for _, reference := range alertSettingsParser.References() {
-			if alertSettingParser := alertSettingsParser.WithReferenceObjectParser(reference); alertSettingParser.Exists() {
-				alertSetting := NewAlertSetting()
-				alertSetting.Parse(alertSettingParser)
-				alertSettingParser.NotParsed()
-				d.AlertSettings = append(d.AlertSettings, alertSetting)
-			}
-		}
-		alertSettingsParser.NotParsed()
-		d.AlertSettings = d.AlertSettings.Deduplicate() // HACK: Dexcom - duplicates not allowed; delete older
-	}
+	d.LastUploadDate = TimeFromRaw(parser.Time("lastUploadDate", TimeFormat))
+	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertScheduleList"))
 	d.UDI = parser.String("udi")
 	d.SerialNumber = parser.String("serialNumber")
 	d.TransmitterID = parser.String("transmitterId")
+	d.TransmitterGeneration = parser.String("transmitterGeneration")
+	d.DisplayDevice = parser.String("displayDevice")
 	d.SoftwareVersion = parser.String("softwareVersion")
 	d.SoftwareNumber = parser.String("softwareNumber")
 	d.Language = parser.String("language")
@@ -97,310 +165,33 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 
 func (d *Device) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(d)
-	validator.String("model", &d.Model).OneOf(ModelG5MobileApp, ModelG5Receiver, ModelG4WithShareReceiver, ModelG4Receiver, ModelUnknown)
-	validator.Time("lastUploadDate", &d.LastUploadDate).NotZero()
-	validator = validator.WithReference("alertSettings")
-	for index, alertSetting := range d.AlertSettings {
-		if alertSettingValidator := validator.WithReference(strconv.Itoa(index)); alertSetting != nil {
-			alertSetting.Validate(alertSettingValidator)
-		} else {
-			alertSettingValidator.ReportError(structureValidator.ErrorValueNotExists())
-		}
+	validator.Time("lastUploadDate", d.LastUploadDate.Raw()).Exists().NotZero()
+	if alertScheduleListValidator := validator.WithReference("alertScheduleList"); d.AlertScheduleList != nil {
+		d.AlertScheduleList.Validate(alertScheduleListValidator)
+	} else {
+		alertScheduleListValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 	validator.String("udi", d.UDI).NotEmpty()
-	validator.String("serialNumber", d.SerialNumber).NotEmpty()
-	validator.String("transmitterId", d.TransmitterID).Matches(transmitterIDExpression)
-	validator.String("softwareVersion", d.SoftwareVersion).NotEmpty()
-	validator.String("softwareNumber", d.SoftwareNumber).NotEmpty()
-	validator.String("language", d.Language).NotEmpty()
+	validator.String("serialNumber", d.SerialNumber).Exists().NotEmpty()
+	validator.String("transmitterId", d.TransmitterID).Using(TransmitterIDValidator)
+	validator.String("transmitterGeneration", d.TransmitterGeneration).OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", d.DisplayDevice).OneOf(DeviceDisplayDevices()...)
+	validator.String("softwareVersion", d.SoftwareVersion).Exists().NotEmpty()
+	validator.String("softwareNumber", d.SoftwareNumber).Exists().NotEmpty()
+	validator.String("language", d.Language).Exists().NotEmpty()
 }
 
-type AlertSetting struct {
-	SystemTime  time.Time `json:"systemTime,omitempty"`
-	DisplayTime time.Time `json:"displayTime,omitempty"`
-	AlertName   string    `json:"alertName,omitempty"`
-	Unit        string    `json:"unit,omitempty"`
-	Value       float64   `json:"value,omitempty"`
-	Delay       int       `json:"delay,omitempty"`
-	Snooze      int       `json:"snooze,omitempty"`
-	Enabled     bool      `json:"enabled,omitempty"`
-}
-
-func NewAlertSetting() *AlertSetting {
-	return &AlertSetting{}
-}
-
-func (a *AlertSetting) Parse(parser structure.ObjectParser) {
-	if ptr := parser.Time("systemTime", DateTimeFormat); ptr != nil {
-		a.SystemTime = *ptr
-	}
-	if ptr := parser.Time("displayTime", DateTimeFormat); ptr != nil {
-		a.DisplayTime = *ptr
-	}
-	if ptr := parser.String("alertName"); ptr != nil {
-		a.AlertName = *ptr
-	}
-	if ptr := parser.String("unit"); ptr != nil {
-		a.Unit = *ptr
-	}
-	if ptr := parser.Float64("value"); ptr != nil {
-		a.Value = *ptr
-	}
-	if ptr := parser.Int("delay"); ptr != nil {
-		a.Delay = *ptr
-	}
-	if ptr := parser.Int("snooze"); ptr != nil {
-		a.Snooze = *ptr
-	}
-	if ptr := parser.Bool("enabled"); ptr != nil {
-		a.Enabled = *ptr
+func (d *Device) Normalize(normalizer structure.Normalizer) {
+	if d.AlertScheduleList != nil {
+		d.AlertScheduleList.Normalize(normalizer.WithReference("alertScheduleList"))
 	}
 }
 
-func (a *AlertSetting) Validate(validator structure.Validator) {
-	validator = validator.WithMeta(a)
-	validator.Time("systemTime", &a.SystemTime).NotZero().BeforeNow(NowThreshold)
-	validator.Time("displayTime", &a.DisplayTime).NotZero()
-	validator.String("alertName", &a.AlertName).OneOf(AlertNames()...)
-
-	switch a.AlertName {
-	case AlertNameFixedLow:
-		a.validateFixedLow(validator)
-	case AlertNameLow:
-		a.validateLow(validator)
-	case AlertNameHigh:
-		a.validateHigh(validator)
-	case AlertNameRise:
-		a.validateRise(validator)
-	case AlertNameFall:
-		a.validateFall(validator)
-	case AlertNameOutOfRange:
-		a.validateOutOfRange(validator)
+func (d *Device) Hash() (string, error) {
+	bites, err := yaml.Marshal(d)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to generate hash")
 	}
-}
-
-func (a *AlertSetting) IsNewerMatchThan(alertSetting *AlertSetting) bool {
-	return a.AlertName == alertSetting.AlertName && a.SystemTime.After(alertSetting.SystemTime)
-}
-
-func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
-	// HACK: Dexcom - snooze of 28 is invalid; use snooze of 30 instead (per Dexcom)
-	if a.Snooze == 28 {
-		a.Snooze = 30
-	}
-
-	validator.String("unit", &a.Unit).OneOf(AlertSettingFixedLowUnits()...)
-	if values := AlertSettingFixedLowValuesForUnits(a.Unit); values != nil {
-		validator.Float64("value", &a.Value).OneOf(values...)
-	}
-	validator.Int("delay", &a.Delay).OneOf(0)
-	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingFixedLowSnoozes()...)
-	validator.Bool("enabled", &a.Enabled).True()
-}
-
-func (a *AlertSetting) validateLow(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(AlertSettingLowUnits()...)
-	if values := AlertSettingLowValuesForUnits(a.Unit); values != nil {
-		validator.Float64("value", &a.Value).OneOf(values...)
-	}
-	validator.Int("delay", &a.Delay).OneOf(0)
-	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingLowSnoozes()...)
-}
-
-func (a *AlertSetting) validateHigh(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(AlertSettingHighUnits()...)
-	if values := AlertSettingHighValuesForUnits(a.Unit); values != nil {
-		validator.Float64("value", &a.Value).OneOf(values...)
-	}
-	validator.Int("delay", &a.Delay).OneOf(0)
-	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingHighSnoozes()...)
-}
-
-func (a *AlertSetting) validateRise(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(AlertSettingRiseUnits()...)
-	if values := AlertSettingRiseValuesForUnits(a.Unit); values != nil {
-		validator.Float64("value", &a.Value).OneOf(values...)
-	}
-	validator.Int("delay", &a.Delay).OneOf(0)
-	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingRiseSnoozes()...)
-}
-
-func (a *AlertSetting) validateFall(validator structure.Validator) {
-	// HACK: Dexcom - negative value is invalid; use positive value instead (per Dexcom)
-	if a.Value < 0 {
-		a.Value = -a.Value
-	}
-
-	validator.String("unit", &a.Unit).OneOf(AlertSettingFallUnits()...)
-	if values := AlertSettingFallValuesForUnits(a.Unit); values != nil {
-		validator.Float64("value", &a.Value).OneOf(values...)
-	}
-	validator.Int("delay", &a.Delay).OneOf(0)
-	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingFallSnoozes()...)
-}
-
-func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
-	validator.String("unit", &a.Unit).OneOf(AlertSettingOutOfRangeUnits()...)
-	if values := AlertSettingOutOfRangeValuesForUnits(a.Unit); values != nil {
-		validator.Float64("value", &a.Value).OneOf(values...)
-	}
-	validator.Int("delay", &a.Delay).OneOf(0)
-	validator.Int("snooze", &a.Snooze).OneOf(AlertSettingOutOfRangeSnoozes()...)
-}
-
-type AlertSettings []*AlertSetting
-
-func (a AlertSettings) ContainsNewerMatch(alertSetting *AlertSetting) bool {
-	for _, testAlertSetting := range a {
-		if testAlertSetting.IsNewerMatchThan(alertSetting) {
-			return true
-		}
-	}
-	return false
-}
-
-func (a AlertSettings) Deduplicate() AlertSettings {
-	alertSettings := AlertSettings{}
-	alertNameMap := map[string]bool{}
-	for index, alertSetting := range a {
-		if !alertNameMap[alertSetting.AlertName] && !a[index+1:].ContainsNewerMatch(alertSetting) {
-			alertSettings = append(alertSettings, alertSetting)
-			alertNameMap[alertSetting.AlertName] = true
-		}
-	}
-	return alertSettings
-}
-
-func AlertSettingFixedLowUnits() []string {
-	return []string{UnitMgdL} // TODO: Add UnitMmolL
-}
-
-func AlertSettingFixedLowValuesForUnits(units string) []float64 {
-	switch units {
-	case UnitMgdL:
-		return []float64{55}
-	case UnitMmolL:
-		return nil // TODO: Add values
-	}
-	return nil
-}
-
-func AlertSettingFixedLowSnoozes() []int {
-	return []int{0, 30}
-}
-
-func AlertSettingLowUnits() []string {
-	return []string{UnitMgdL} // TODO: Add UnitMmolL
-}
-
-func AlertSettingLowValuesForUnits(units string) []float64 {
-	switch units {
-	case UnitMgdL:
-		return alertSettingLowValuesMgdL
-	case UnitMmolL:
-		return alertSettingLowValuesMmolL
-	}
-	return nil
-}
-
-var alertSettingLowValuesMgdL = generateFloatRange(60, 100, 5)
-var alertSettingLowValuesMmolL []float64 // TODO: Add values
-
-func AlertSettingLowSnoozes() []int {
-	return alertSettingLowSnoozes
-}
-
-var alertSettingLowSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
-
-func AlertSettingHighUnits() []string {
-	return []string{UnitMgdL} // TODO: Add UnitMmolL
-}
-
-func AlertSettingHighValuesForUnits(units string) []float64 {
-	switch units {
-	case UnitMgdL:
-		return alertSettingHighValuesMgdL
-	case UnitMmolL:
-		return alertSettingHighValuesMmolL
-	}
-	return nil
-}
-
-var alertSettingHighValuesMgdL = generateFloatRange(120, 400, 10)
-var alertSettingHighValuesMmolL []float64 // TODO: Add values
-
-func AlertSettingHighSnoozes() []int {
-	return alertSettingsHighSnoozes
-}
-
-var alertSettingsHighSnoozes = append(append([]int{0}, generateIntegerRange(15, 240, 5)...), generateIntegerRange(255, 300, 15)...)
-
-func AlertSettingRiseUnits() []string {
-	return []string{UnitMgdLMin} // TODO: UnitMmolLMin
-}
-
-func AlertSettingRiseValuesForUnits(units string) []float64 {
-	switch units {
-	case UnitMgdLMin:
-		return []float64{2, 3}
-	case UnitMmolLMin:
-		return nil // TODO: Add values
-	}
-	return nil
-}
-
-func AlertSettingRiseSnoozes() []int {
-	return []int{0, 30}
-}
-
-func AlertSettingFallUnits() []string {
-	return []string{UnitMgdLMin} // TODO: UnitMmolLMin
-}
-
-func AlertSettingFallValuesForUnits(units string) []float64 {
-	switch units {
-	case UnitMgdLMin:
-		return []float64{2, 3}
-	case UnitMmolLMin:
-		return nil // TODO: Add values
-	}
-	return nil
-}
-
-func AlertSettingFallSnoozes() []int {
-	return []int{0, 30}
-}
-
-func AlertSettingOutOfRangeUnits() []string {
-	return []string{UnitMinutes}
-}
-
-func AlertSettingOutOfRangeValuesForUnits(units string) []float64 {
-	switch units {
-	case UnitMinutes:
-		return alertSettingOutOfRangeValuesMinutes
-	}
-	return nil
-}
-
-var alertSettingOutOfRangeValuesMinutes = generateFloatRange(20, 240, 5)
-
-func AlertSettingOutOfRangeSnoozes() []int {
-	return []int{0, 20, 25, 30}
-}
-
-func generateFloatRange(min float64, max float64, step float64) []float64 {
-	r := []float64{}
-	for v := min; v <= max; v += step {
-		r = append(r, v)
-	}
-	return r
-}
-
-func generateIntegerRange(min int, max int, step int) []int {
-	r := []int{}
-	for v := min; v <= max; v += step {
-		r = append(r, v)
-	}
-	return r
+	md5Sum := md5.Sum(bites)
+	return hex.EncodeToString(md5Sum[:]), nil
 }

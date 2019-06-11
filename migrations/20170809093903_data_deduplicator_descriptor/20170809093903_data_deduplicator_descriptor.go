@@ -3,9 +3,9 @@ package main
 import (
 	"time"
 
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -47,8 +47,8 @@ func (m *Migration) Initialize(provider application.Provider) error {
 		},
 	}
 
-	m.CLI().Action = func(context *cli.Context) error {
-		if !m.ParseContext(context) {
+	m.CLI().Action = func(ctx *cli.Context) error {
+		if !m.ParseContext(ctx) {
 			return nil
 		}
 		return m.execute()

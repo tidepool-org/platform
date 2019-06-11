@@ -4,21 +4,16 @@ import (
 	"net/http"
 
 	"github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/test"
 )
 
 type RequestMutator struct {
-	*test.Mock
 	MutateRequestInvocations int
 	MutateRequestInputs      []*http.Request
 	MutateRequestOutputs     []error
 }
 
 func NewRequestMutator() *RequestMutator {
-	return &RequestMutator{
-		Mock: test.NewMock(),
-	}
+	return &RequestMutator{}
 }
 
 func (r *RequestMutator) MutateRequest(request *http.Request) error {
@@ -34,6 +29,5 @@ func (r *RequestMutator) MutateRequest(request *http.Request) error {
 }
 
 func (r *RequestMutator) Expectations() {
-	r.Mock.Expectations()
 	gomega.Expect(r.MutateRequestOutputs).To(gomega.BeEmpty())
 }

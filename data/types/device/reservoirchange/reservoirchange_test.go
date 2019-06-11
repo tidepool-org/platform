@@ -11,14 +11,13 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
-	testDataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status/test"
-	testDataTypesDevice "github.com/tidepool-org/platform/data/types/device/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesDeviceStatusTest "github.com/tidepool-org/platform/data/types/device/status/test"
+	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -30,14 +29,14 @@ func NewMeta() interface{} {
 
 func NewReservoirChange() *reservoirchange.ReservoirChange {
 	datum := reservoirchange.New()
-	datum.Device = *testDataTypesDevice.NewDevice()
+	datum.Device = *dataTypesDeviceTest.NewDevice()
 	datum.SubType = "reservoirChange"
 	return datum
 }
 
 func NewReservoirChangeWithStatus() *reservoirchange.ReservoirChange {
 	var status data.Datum
-	status = testDataTypesDeviceStatus.NewStatus()
+	status = dataTypesDeviceStatusTest.NewStatus()
 	datum := NewReservoirChange()
 	datum.Status = &status
 	return datum
@@ -54,14 +53,14 @@ func CloneReservoirChange(datum *reservoirchange.ReservoirChange) *reservoirchan
 		return nil
 	}
 	clone := reservoirchange.New()
-	clone.Device = *testDataTypesDevice.CloneDevice(&datum.Device)
+	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
 	if datum.Status != nil {
 		switch status := (*datum.Status).(type) {
 		case *dataTypesDeviceStatus.Status:
-			clone.Status = data.DatumAsPointer(testDataTypesDeviceStatus.CloneStatus(status))
+			clone.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.CloneStatus(status))
 		}
 	}
-	clone.StatusID = test.CloneString(datum.StatusID)
+	clone.StatusID = pointer.CloneString(datum.StatusID)
 	return clone
 }
 
@@ -91,29 +90,29 @@ var _ = Describe("Change", func() {
 				func(mutator func(datum *reservoirchange.ReservoirChange), expectedErrors ...error) {
 					datum := NewReservoirChange()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *reservoirchange.ReservoirChange) {},
 				),
 				Entry("type missing",
 					func(datum *reservoirchange.ReservoirChange) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "reservoirChange"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "reservoirChange"}),
 				),
 				Entry("type invalid",
 					func(datum *reservoirchange.ReservoirChange) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "reservoirChange"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "reservoirChange"}),
 				),
 				Entry("type device",
 					func(datum *reservoirchange.ReservoirChange) { datum.Type = "deviceEvent" },
 				),
 				Entry("sub type missing",
 					func(datum *reservoirchange.ReservoirChange) { datum.SubType = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
 				),
 				Entry("sub type invalid",
 					func(datum *reservoirchange.ReservoirChange) { datum.SubType = "invalidSubType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "reservoirChange"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "reservoirChange"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 				),
 				Entry("sub type reservoir change",
 					func(datum *reservoirchange.ReservoirChange) { datum.SubType = "reservoirChange" },
@@ -123,8 +122,8 @@ var _ = Describe("Change", func() {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "reservoirChange"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "reservoirChange"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 
@@ -132,7 +131,7 @@ var _ = Describe("Change", func() {
 				func(mutator func(datum *reservoirchange.ReservoirChange), expectedErrors ...error) {
 					datum := NewReservoirChangeWithStatus()
 					mutator(datum)
-					testDataTypes.ValidateWithOrigin(datum, structure.OriginExternal, expectedErrors...)
+					dataTypesTest.ValidateWithOrigin(datum, structure.OriginExternal, expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *reservoirchange.ReservoirChange) {},
@@ -142,7 +141,7 @@ var _ = Describe("Change", func() {
 				),
 				Entry("status valid",
 					func(datum *reservoirchange.ReservoirChange) {
-						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
+						datum.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.NewStatus())
 					},
 				),
 				Entry("status id missing",
@@ -150,13 +149,13 @@ var _ = Describe("Change", func() {
 				),
 				Entry("status id exists",
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {
 						datum.StatusID = pointer.FromString(dataTest.RandomID())
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 			)
 
@@ -164,8 +163,8 @@ var _ = Describe("Change", func() {
 				func(mutator func(datum *reservoirchange.ReservoirChange), expectedErrors ...error) {
 					datum := NewReservoirChangeWithStatusID()
 					mutator(datum)
-					testDataTypes.ValidateWithOrigin(datum, structure.OriginInternal, expectedErrors...)
-					testDataTypes.ValidateWithOrigin(datum, structure.OriginStore, expectedErrors...)
+					dataTypesTest.ValidateWithOrigin(datum, structure.OriginInternal, expectedErrors...)
+					dataTypesTest.ValidateWithOrigin(datum, structure.OriginStore, expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *reservoirchange.ReservoirChange) {},
@@ -175,27 +174,27 @@ var _ = Describe("Change", func() {
 				),
 				Entry("status exists",
 					func(datum *reservoirchange.ReservoirChange) {
-						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
+						datum.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.NewStatus())
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
 				),
 				Entry("status id missing",
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = nil },
 				),
 				Entry("status id invalid",
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString("invalid") },
-					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {
-						datum.Status = data.DatumAsPointer(testDataTypesDeviceStatus.NewStatus())
+						datum.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.NewStatus())
 						datum.StatusID = pointer.FromString("invalid")
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/status", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 			)
 		})
@@ -213,7 +212,7 @@ var _ = Describe("Change", func() {
 			})
 
 			It("normalizes the datum and replaces status with status id", func() {
-				datumStatus := testDataTypesDeviceStatus.NewStatus()
+				datumStatus := dataTypesDeviceStatusTest.NewStatus()
 				datum := NewReservoirChangeWithStatusID()
 				datum.Status = data.DatumAsPointer(datumStatus)
 				expectedDatum := CloneReservoirChange(datum)
