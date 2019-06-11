@@ -1,4 +1,13 @@
 ## Unreleased
+### Added
+
+- Integration from Tidepool latest changes
+
+## v0.3.1 [2019-06-06]
+
+### Fix
+
+- PT-423 temporarily remove the condition that forces bolus.expectedNormal > bolus.normal
 
 ## v0.3.0 [2019-05-07]
 
