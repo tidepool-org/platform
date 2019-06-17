@@ -50,15 +50,15 @@ func New() *Alarm {
 	}
 }
 
-func (a *Alarm) Parse(parser data.ObjectParser) error {
-	if err := a.Device.Parse(parser); err != nil {
-		return err
+func (a *Alarm) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(a.Meta())
 	}
 
-	a.AlarmType = parser.ParseString("alarmType")
-	a.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.NewChildObjectParser("status"))
+	a.Device.Parse(parser)
 
-	return nil
+	a.AlarmType = parser.String("alarmType")
+	a.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.WithReferenceObjectParser("status"))
 }
 
 func (a *Alarm) Validate(validator structure.Validator) {

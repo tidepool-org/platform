@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -52,7 +52,7 @@ func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *stor
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	// TODO: Add deletedTime/deletedUserId to user object???
 
@@ -69,7 +69,7 @@ func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *stor
 	}
 	changeInfo, err := m.C().UpdateAll(selector, update)
 
-	loggerFields := log.Fields{"userId": user.ID, "changeInfo": changeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": user.ID, "changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
 
 	if err != nil {
@@ -91,14 +91,14 @@ func (m *MessagesSession) DestroyMessagesForUserByID(ctx context.Context, userID
 		return errors.New("session closed")
 	}
 
-	startTime := time.Now()
+	now := time.Now()
 
 	selector := bson.M{
 		"groupid": userID,
 	}
 	removeInfo, err := m.C().RemoveAll(selector)
 
-	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(startTime) / time.Microsecond}
+	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")
 
 	if err != nil {

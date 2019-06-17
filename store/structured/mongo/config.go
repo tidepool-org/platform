@@ -6,11 +6,14 @@ import (
 	"strings"
 	"time"
 
+	mgo "github.com/globalsign/mgo"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
+//Config describe parameters need to make a connection to a Mongo database
 type Config struct {
 	Addresses        []string      `json:"addresses"`
 	TLS              bool          `json:"tls"`
@@ -19,10 +22,10 @@ type Config struct {
 	Username         *string       `json:"-"`
 	Password         *string       `json:"-"`
 	Timeout          time.Duration `json:"timeout"`
-	Source           *string       `json:"-"`
-	Mechanism        *string       `json:"-"`
+	OptParams        *string       `json:"optParams"`
 }
 
+//NewConfig creates and returns an incomplete Config object
 func NewConfig() *Config {
 	return &Config{
 		TLS:     true,
@@ -30,6 +33,34 @@ func NewConfig() *Config {
 	}
 }
 
+// AsConnectionString constructs a MongoDB connection string from a Config
+func (c *Config) AsConnectionString() string {
+	var url string
+	url += "mongodb://"
+	if c.Username != nil && *c.Username != "" {
+		url += *c.Username
+		if c.Password != nil && *c.Password != "" {
+			url += ":"
+			url += *c.Password
+		}
+		url += "@"
+	}
+	url += strings.Join(c.Addresses, ",")
+	url += "/"
+	url += c.Database
+	if c.TLS {
+		url += "?ssl=true"
+	} else {
+		url += "?ssl=false"
+	}
+	if c.OptParams != nil && *c.OptParams != "" {
+		url += *c.OptParams
+	}
+
+	return url
+}
+
+// Load a Config with the values provided via a config.Reporter
 func (c *Config) Load(configReporter config.Reporter) error {
 	if configReporter == nil {
 		return errors.New("config reporter is missing")
@@ -52,11 +83,8 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	if password, err := configReporter.Get("password"); err == nil {
 		c.Password = pointer.FromString(password)
 	}
-	if source, err := configReporter.Get("source"); err == nil {
-		c.Source = pointer.FromString(source)
-	}
-	if mechanism, err := configReporter.Get("mechanism"); err == nil {
-		c.Mechanism = pointer.FromString(mechanism)
+	if optParams, err := configReporter.Get("opt_params"); err == nil {
+		c.OptParams = pointer.FromString(optParams)
 	}
 	if timeoutString, err := configReporter.Get("timeout"); err == nil {
 		var timeout int64
@@ -70,6 +98,8 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	return nil
 }
 
+// Validate that all parameters are syntactically valid, that all required parameters are present,
+// and the the URL constructed from those parameters is parseable by the Mongo driver
 func (c *Config) Validate() error {
 	if len(c.Addresses) == 0 {
 		return errors.New("addresses is missing")
@@ -86,6 +116,10 @@ func (c *Config) Validate() error {
 	}
 	if c.Timeout <= 0 {
 		return errors.New("timeout is invalid")
+	}
+
+	if _, err := mgo.ParseURL(c.AsConnectionString()); err != nil {
+		return errors.New("URL is unparseable by driver, check validity of optional parameters")
 	}
 
 	return nil

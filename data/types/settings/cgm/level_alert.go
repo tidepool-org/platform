@@ -3,121 +3,152 @@ package cgm
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data"
-	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	HighLevelAlertLevelMgdLMaximum  float64 = 400
-	HighLevelAlertLevelMgdLMinimum  float64 = 120
-	HighLevelAlertLevelMmolLMaximum float64 = 22.20299
-	HighLevelAlertLevelMmolLMinimum float64 = 6.66090
-	LowLevelAlertLevelMgdLMaximum   float64 = 100
-	LowLevelAlertLevelMgdLMinimum   float64 = 59
-	LowLevelAlertLevelMmolLMaximum  float64 = 5.55075
-	LowLevelAlertLevelMmolLMinimum  float64 = 3.27494
+	LevelAlertUnitsMgdL  = "mg/dL"
+	LevelAlertUnitsMmolL = "mmol/L"
+
+	HighAlertLevelMgdLMaximum       = 400.0
+	HighAlertLevelMgdLMinimum       = 100.0
+	HighAlertLevelMmolLMaximum      = 22.20299
+	HighAlertLevelMmolLMinimum      = 5.55075
+	LowAlertLevelMgdLMaximum        = 150.0
+	LowAlertLevelMgdLMinimum        = 50.0
+	LowAlertLevelMmolLMaximum       = 8.32612
+	LowAlertLevelMmolLMinimum       = 2.77537
+	UrgentLowAlertLevelMgdLMaximum  = 80.0
+	UrgentLowAlertLevelMgdLMinimum  = 40.0
+	UrgentLowAlertLevelMmolLMaximum = 4.44060
+	UrgentLowAlertLevelMmolLMinimum = 2.22030
 )
 
-func LevelAlertSnoozes() []int {
-	return []int{
-		0, 900000, 1800000, 2700000, 3600000, 4500000, 5400000, 6300000,
-		7200000, 8100000, 9000000, 9900000, 10800000, 11700000, 12600000,
-		13500000, 14400000, 15300000, 16200000, 17100000, 18000000,
+func LevelAlertUnits() []string {
+	return []string{
+		LevelAlertUnitsMgdL,
+		LevelAlertUnitsMmolL,
 	}
 }
 
 type LevelAlert struct {
-	Enabled *bool    `json:"enabled,omitempty" bson:"enabled,omitempty"`
-	Level   *float64 `json:"level,omitempty" bson:"level,omitempty"`
-	Snooze  *int     `json:"snooze,omitempty" bson:"snooze,omitempty"`
+	Alert `bson:",inline"`
+	Level *float64 `json:"level,omitempty" bson:"level,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func (l *LevelAlert) Parse(parser data.ObjectParser) {
-	l.Enabled = parser.ParseBoolean("enabled")
-	l.Level = parser.ParseFloat("level")
-	l.Snooze = parser.ParseInteger("snooze")
+func (l *LevelAlert) Parse(parser structure.ObjectParser) {
+	l.Alert.Parse(parser)
+	l.Level = parser.Float64("level")
+	l.Units = parser.String("units")
 }
 
-func (l *LevelAlert) Validate(validator structure.Validator, units *string) {
-	validator.Bool("enabled", l.Enabled).Exists()
-	validator.Float64("level", l.Level).Exists()
-	validator.Int("snooze", l.Snooze).Exists().OneOf(LevelAlertSnoozes()...)
-}
-
-func (l *LevelAlert) Normalize(normalizer data.Normalizer, units *string) {
-	if normalizer.Origin() == structure.OriginExternal {
-		l.Level = dataBloodGlucose.NormalizeValueForUnits(l.Level, units)
+func (l *LevelAlert) Validate(validator structure.Validator) {
+	l.Alert.Validate(validator)
+	if unitsValidator := validator.String("units", l.Units); l.Level != nil {
+		unitsValidator.Exists().OneOf(LevelAlertUnits()...)
+	} else {
+		unitsValidator.NotExists()
 	}
 }
 
-type HighLevelAlert struct {
+type HighAlert struct {
 	LevelAlert `bson:",inline"`
 }
 
-func ParseHighLevelAlert(parser data.ObjectParser) *HighLevelAlert {
-	if parser.Object() == nil {
+func ParseHighAlert(parser structure.ObjectParser) *HighAlert {
+	if !parser.Exists() {
 		return nil
 	}
-	highLevelAlert := NewHighLevelAlert()
-	highLevelAlert.Parse(parser)
-	parser.ProcessNotParsed()
-	return highLevelAlert
+	datum := NewHighAlert()
+	parser.Parse(datum)
+	return datum
 }
 
-func NewHighLevelAlert() *HighLevelAlert {
-	return &HighLevelAlert{}
+func NewHighAlert() *HighAlert {
+	return &HighAlert{}
 }
 
-func (h *HighLevelAlert) Validate(validator structure.Validator, units *string) {
-	h.LevelAlert.Validate(validator, units)
-
-	validator.Float64("level", h.Level).InRange(h.LevelRangeForUnits(units))
+func (h *HighAlert) Validate(validator structure.Validator) {
+	h.LevelAlert.Validate(validator)
+	validator.Float64("level", h.Level).InRange(HighAlertLevelRangeForUnits(h.Units))
 }
 
-func (h *HighLevelAlert) LevelRangeForUnits(units *string) (float64, float64) {
+func HighAlertLevelRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
-		case dataBloodGlucose.MgdL, dataBloodGlucose.Mgdl:
-			return HighLevelAlertLevelMgdLMinimum, HighLevelAlertLevelMgdLMaximum
-		case dataBloodGlucose.MmolL, dataBloodGlucose.Mmoll:
-			return HighLevelAlertLevelMmolLMinimum, HighLevelAlertLevelMmolLMaximum
+		case LevelAlertUnitsMgdL:
+			return HighAlertLevelMgdLMinimum, HighAlertLevelMgdLMaximum
+		case LevelAlertUnitsMmolL:
+			return HighAlertLevelMmolLMinimum, HighAlertLevelMmolLMaximum
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64
 }
 
-type LowLevelAlert struct {
+type LowAlert struct {
 	LevelAlert `bson:",inline"`
 }
 
-func ParseLowLevelAlert(parser data.ObjectParser) *LowLevelAlert {
-	if parser.Object() == nil {
+func ParseLowAlert(parser structure.ObjectParser) *LowAlert {
+	if !parser.Exists() {
 		return nil
 	}
-	lowLevelAlert := NewLowLevelAlert()
-	lowLevelAlert.Parse(parser)
-	parser.ProcessNotParsed()
-	return lowLevelAlert
+	datum := NewLowAlert()
+	parser.Parse(datum)
+	return datum
 }
 
-func NewLowLevelAlert() *LowLevelAlert {
-	return &LowLevelAlert{}
+func NewLowAlert() *LowAlert {
+	return &LowAlert{}
 }
 
-func (l *LowLevelAlert) Validate(validator structure.Validator, units *string) {
-	l.LevelAlert.Validate(validator, units)
-
-	validator.Float64("level", l.Level).InRange(l.LevelRangeForUnits(units))
+func (l *LowAlert) Validate(validator structure.Validator) {
+	l.LevelAlert.Validate(validator)
+	validator.Float64("level", l.Level).InRange(LowAlertLevelRangeForUnits(l.Units))
 }
 
-func (l *LowLevelAlert) LevelRangeForUnits(units *string) (float64, float64) {
+func LowAlertLevelRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
-		case dataBloodGlucose.MgdL, dataBloodGlucose.Mgdl:
-			return LowLevelAlertLevelMgdLMinimum, LowLevelAlertLevelMgdLMaximum
-		case dataBloodGlucose.MmolL, dataBloodGlucose.Mmoll:
-			return LowLevelAlertLevelMmolLMinimum, LowLevelAlertLevelMmolLMaximum
+		case LevelAlertUnitsMgdL:
+			return LowAlertLevelMgdLMinimum, LowAlertLevelMgdLMaximum
+		case LevelAlertUnitsMmolL:
+			return LowAlertLevelMmolLMinimum, LowAlertLevelMmolLMaximum
+		}
+	}
+	return -math.MaxFloat64, math.MaxFloat64
+}
+
+type UrgentLowAlert struct {
+	LevelAlert `bson:",inline"`
+}
+
+func ParseUrgentLowAlert(parser structure.ObjectParser) *UrgentLowAlert {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewUrgentLowAlert()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewUrgentLowAlert() *UrgentLowAlert {
+	return &UrgentLowAlert{}
+}
+
+func (u *UrgentLowAlert) Validate(validator structure.Validator) {
+	u.LevelAlert.Validate(validator)
+	validator.Float64("level", u.Level).InRange(UrgentLowAlertLevelRangeForUnits(u.Units))
+}
+
+func UrgentLowAlertLevelRangeForUnits(units *string) (float64, float64) {
+	if units != nil {
+		switch *units {
+		case LevelAlertUnitsMgdL:
+			return UrgentLowAlertLevelMgdLMinimum, UrgentLowAlertLevelMgdLMaximum
+		case LevelAlertUnitsMmolL:
+			return UrgentLowAlertLevelMmolLMinimum, UrgentLowAlertLevelMmolLMaximum
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64

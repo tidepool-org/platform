@@ -7,9 +7,9 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/water"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -22,7 +22,7 @@ func NewMeta() interface{} {
 
 func NewWater() *water.Water {
 	datum := water.New()
-	datum.Base = *testDataTypes.NewBase()
+	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "water"
 	datum.Amount = NewAmount()
 	return datum
@@ -33,7 +33,7 @@ func CloneWater(datum *water.Water) *water.Water {
 		return nil
 	}
 	clone := water.New()
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
+	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.Amount = CloneAmount(datum.Amount)
 	return clone
 }
@@ -62,29 +62,29 @@ var _ = Describe("Water", func() {
 				func(mutator func(datum *water.Water), expectedErrors ...error) {
 					datum := NewWater()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *water.Water) {},
 				),
 				Entry("type missing",
 					func(datum *water.Water) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				),
 				Entry("type invalid",
 					func(datum *water.Water) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "water"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "water"), "/type", &types.Meta{Type: "invalidType"}),
 				),
 				Entry("type water",
 					func(datum *water.Water) { datum.Type = "water" },
 				),
 				Entry("amount missing",
 					func(datum *water.Water) { datum.Amount = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount", NewMeta()),
 				),
 				Entry("amount invalid",
 					func(datum *water.Water) { datum.Amount.Units = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount/units", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount/units", NewMeta()),
 				),
 				Entry("amount valid",
 					func(datum *water.Water) { datum.Amount = NewAmount() },
@@ -94,8 +94,8 @@ var _ = Describe("Water", func() {
 						datum.Type = "invalidType"
 						datum.Amount = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "water"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "water"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/amount", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})

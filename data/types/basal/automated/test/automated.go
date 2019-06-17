@@ -1,20 +1,20 @@
 package test
 
 import (
-	testData "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/basal/automated"
-	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
 func NewSuppressedAutomated() *automated.SuppressedAutomated {
 	datum := automated.NewSuppressedAutomated()
-	datum.Annotations = testData.NewBlobArray()
-	datum.InsulinFormulation = testDataTypesInsulin.NewFormulation(3)
+	datum.Annotations = metadataTest.RandomMetadataArray()
+	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(automated.RateMinimum, automated.RateMaximum))
-	datum.ScheduleName = pointer.FromString(testDataTypesBasal.NewScheduleName())
+	datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
 	return datum
 }
 
@@ -25,9 +25,9 @@ func CloneSuppressedAutomated(datum *automated.SuppressedAutomated) *automated.S
 	clone := automated.NewSuppressedAutomated()
 	clone.Type = datum.Type
 	clone.DeliveryType = datum.DeliveryType
-	clone.Annotations = testData.CloneBlobArray(datum.Annotations)
-	clone.InsulinFormulation = testDataTypesInsulin.CloneFormulation(datum.InsulinFormulation)
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.ScheduleName = test.CloneString(datum.ScheduleName)
+	clone.Annotations = metadataTest.CloneMetadataArray(datum.Annotations)
+	clone.InsulinFormulation = dataTypesInsulinTest.CloneFormulation(datum.InsulinFormulation)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.ScheduleName = pointer.CloneString(datum.ScheduleName)
 	return clone
 }

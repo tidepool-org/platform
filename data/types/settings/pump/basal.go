@@ -10,13 +10,12 @@ type Basal struct {
 	Temporary   *BasalTemporary   `json:"temporary,omitempty" bson:"temporary,omitempty"`
 }
 
-func ParseBasal(parser data.ObjectParser) *Basal {
-	if parser.Object() == nil {
+func ParseBasal(parser structure.ObjectParser) *Basal {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBasal()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -24,9 +23,9 @@ func NewBasal() *Basal {
 	return &Basal{}
 }
 
-func (b *Basal) Parse(parser data.ObjectParser) {
-	b.RateMaximum = ParseBasalRateMaximum(parser.NewChildObjectParser("rateMaximum"))
-	b.Temporary = ParseBasalTemporary(parser.NewChildObjectParser("temporary"))
+func (b *Basal) Parse(parser structure.ObjectParser) {
+	b.RateMaximum = ParseBasalRateMaximum(parser.WithReferenceObjectParser("rateMaximum"))
+	b.Temporary = ParseBasalTemporary(parser.WithReferenceObjectParser("temporary"))
 }
 
 func (b *Basal) Validate(validator structure.Validator) {

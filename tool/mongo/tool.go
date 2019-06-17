@@ -58,16 +58,16 @@ func (t *Tool) Terminate() {
 	t.Tool.Terminate()
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (t *Tool) ParseContext(ctx *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
-	if context.IsSet(AddressesFlag) {
-		t.mongoConfig.Addresses = storeStructuredMongo.SplitAddresses(context.String(AddressesFlag))
+	if ctx.IsSet(AddressesFlag) {
+		t.mongoConfig.Addresses = storeStructuredMongo.SplitAddresses(ctx.String(AddressesFlag))
 	}
-	if context.IsSet(TLSFlag) {
-		t.mongoConfig.TLS = context.Bool(TLSFlag)
+	if ctx.IsSet(TLSFlag) {
+		t.mongoConfig.TLS = ctx.Bool(TLSFlag)
 	}
 
 	return true

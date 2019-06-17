@@ -18,13 +18,12 @@ type Info struct {
 	TimeZoneName *string    `json:"timeZoneName,omitempty" bson:"timeZoneName,omitempty"`
 }
 
-func ParseInfo(parser data.ObjectParser) *Info {
-	if parser.Object() == nil {
+func ParseInfo(parser structure.ObjectParser) *Info {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewInfo()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -32,9 +31,9 @@ func NewInfo() *Info {
 	return &Info{}
 }
 
-func (i *Info) Parse(parser data.ObjectParser) {
-	i.Time = parser.ParseTime("time", InfoTimeFormat)
-	i.TimeZoneName = parser.ParseString("timeZoneName")
+func (i *Info) Parse(parser structure.ObjectParser) {
+	i.Time = parser.Time("time", InfoTimeFormat)
+	i.TimeZoneName = parser.String("timeZoneName")
 }
 
 func (i *Info) Validate(validator structure.Validator) {

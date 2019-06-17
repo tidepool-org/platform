@@ -1,10 +1,10 @@
 package client_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"context"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -93,7 +93,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
+					Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{TargetUserID: userID, AuthorizedPermission: permission.Owner}}))
 				})
 
 				It("return an error when the user client ensure authorized user returns an error", func() {
@@ -104,26 +104,26 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized user returns successfully", func() {
+				When("the user client ensure authorized user returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: userTest.RandomID(), Error: nil}}
 					})
 
 					AfterEach(func() {
-						Expect(dataSourceStructuredSession.ListInputs).To(Equal([]dataSourceStoreStructuredTest.ListInput{{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination}}))
+						Expect(dataSourceStructuredSession.ListInputs).To(Equal([]dataSourceStoreStructuredTest.ListInput{{UserID: userID, Filter: filter, Pagination: pagination}}))
 					})
 
 					It("returns an error when the data source structured session list returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{Sources: nil, Error: responseErr}}
+						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: nil, Error: responseErr}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
 
 					It("returns successfully when the data source structured session list returns successfully", func() {
-						responseResult := dataSourceTest.RandomSources(1, 3)
-						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{Sources: responseResult, Error: nil}}
+						responseResult := dataSourceTest.RandomSourceArray(1, 3)
+						dataSourceStructuredSession.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: responseResult, Error: nil}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(Equal(responseResult))
@@ -139,7 +139,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
@@ -150,13 +150,13 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(dataSourceStructuredSession.CreateInputs).To(Equal([]dataSourceStoreStructuredTest.CreateInput{{Context: ctx, UserID: userID, Create: create}}))
+						Expect(dataSourceStructuredSession.CreateInputs).To(Equal([]dataSourceStoreStructuredTest.CreateInput{{UserID: userID, Create: create}}))
 					})
 
 					It("returns an error when the data source structured session create returns an error", func() {
@@ -176,6 +176,44 @@ var _ = Describe("Client", func() {
 					})
 				})
 			})
+
+			Context("DeleteAll", func() {
+				AfterEach(func() {
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
+				})
+
+				It("returns an error when the user client ensure authorized service returns an error", func() {
+					responseErr := errorsTest.RandomError()
+					authClient.EnsureAuthorizedServiceOutputs = []error{responseErr}
+					errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
+				})
+
+				When("the user client ensure authorized service returns successfully", func() {
+					BeforeEach(func() {
+						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
+					})
+
+					AfterEach(func() {
+						Expect(dataSourceStructuredSession.DestroyAllInputs).To(Equal([]string{userID}))
+					})
+
+					It("returns an error when the data source structured session destroy returns an error", func() {
+						responseErr := errorsTest.RandomError()
+						dataSourceStructuredSession.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: responseErr}}
+						errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
+					})
+
+					It("returns successfully when the data source structured session destroy returns false", func() {
+						dataSourceStructuredSession.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: nil}}
+						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
+					})
+
+					It("returns successfully when the data source structured session destroy returns true", func() {
+						dataSourceStructuredSession.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: true, Error: nil}}
+						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
+					})
+				})
+			})
 		})
 
 		Context("with id", func() {
@@ -187,7 +225,7 @@ var _ = Describe("Client", func() {
 
 			Context("Get", func() {
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedInvocations).To(Equal(1))
 				})
 
 				It("returns an error when the user client ensure authorized returns an error", func() {
@@ -198,13 +236,13 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized returns successfully", func() {
+				When("the user client ensure authorized returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(dataSourceStructuredSession.GetInputs).To(Equal([]dataSourceStoreStructuredTest.GetInput{{Context: ctx, ID: id}}))
+						Expect(dataSourceStructuredSession.GetInputs).To(Equal([]string{id}))
 					})
 
 					It("returns an error when the data source structured session get returns an error", func() {
@@ -224,7 +262,7 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{Context: ctx, TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
+							Expect(authClient.EnsureAuthorizedUserInputs).To(Equal([]authTest.EnsureAuthorizedUserInput{{TargetUserID: *responseResult.UserID, AuthorizedPermission: permission.Owner}}))
 						})
 
 						It("returns an error when the user client ensure authorized user returns an error", func() {
@@ -255,7 +293,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
@@ -266,13 +304,13 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(dataSourceStructuredSession.UpdateInputs).To(Equal([]dataSourceStoreStructuredTest.UpdateInput{{Context: ctx, ID: id, Condition: condition, Update: update}}))
+						Expect(dataSourceStructuredSession.UpdateInputs).To(Equal([]dataSourceStoreStructuredTest.UpdateInput{{ID: id, Condition: condition, Update: update}}))
 					})
 
 					It("returns an error when the data source structured session update returns an error", func() {
@@ -301,7 +339,7 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(authClient.EnsureAuthorizedServiceInputs).To(Equal([]context.Context{ctx}))
+					Expect(authClient.EnsureAuthorizedServiceInvocations).To(Equal(1))
 				})
 
 				It("return an error when the user client ensure authorized service returns an error", func() {
@@ -312,32 +350,32 @@ var _ = Describe("Client", func() {
 					Expect(deleted).To(BeFalse())
 				})
 
-				When("user client ensure authorized service returns successfully", func() {
+				When("the user client ensure authorized service returns successfully", func() {
 					BeforeEach(func() {
 						authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 					})
 
 					AfterEach(func() {
-						Expect(dataSourceStructuredSession.DeleteInputs).To(Equal([]dataSourceStoreStructuredTest.DeleteInput{{Context: ctx, ID: id, Condition: condition}}))
+						Expect(dataSourceStructuredSession.DestroyInputs).To(Equal([]dataSourceStoreStructuredTest.DestroyInput{{ID: id, Condition: condition}}))
 					})
 
 					It("returns an error when the data source structured session delete returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						dataSourceStructuredSession.DeleteOutputs = []dataSourceStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+						dataSourceStructuredSession.DestroyOutputs = []dataSourceStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
 						deleted, err := client.Delete(ctx, id, condition)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(deleted).To(BeFalse())
 					})
 
-					It("returns successfully when the data source structured session delete returns successfully without deleted", func() {
-						dataSourceStructuredSession.DeleteOutputs = []dataSourceStoreStructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
+					It("returns successfully when the data source structured session delete returns successfully without destroyed", func() {
+						dataSourceStructuredSession.DestroyOutputs = []dataSourceStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: nil}}
 						deleted, err := client.Delete(ctx, id, condition)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(deleted).To(BeFalse())
 					})
 
-					It("returns successfully when the data source structured session delete returns successfully with deleted", func() {
-						dataSourceStructuredSession.DeleteOutputs = []dataSourceStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+					It("returns successfully when the data source structured session delete returns successfully with destroyed", func() {
+						dataSourceStructuredSession.DestroyOutputs = []dataSourceStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 						deleted, err := client.Delete(ctx, id, condition)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(deleted).To(BeTrue())

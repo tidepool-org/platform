@@ -71,18 +71,18 @@ func (t *Tool) Run() error {
 	return t.CLI().Run(os.Args)
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if context.Bool(HelpFlag) {
-		cli.ShowAppHelp(context)
+func (t *Tool) ParseContext(ctx *cli.Context) bool {
+	if ctx.Bool(HelpFlag) {
+		cli.ShowAppHelp(ctx)
 		return false
 	}
 
-	if context.Bool(VersionFlag) {
+	if ctx.Bool(VersionFlag) {
 		fmt.Fprintln(t.CLI().Writer, t.VersionReporter().Long())
 		return false
 	}
 
-	t.args = context.Args()
+	t.args = ctx.Args()
 
 	return true
 }

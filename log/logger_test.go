@@ -1,31 +1,27 @@
 package log_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/test"
 )
 
 type Serializer struct {
-	*test.Mock
 	SerializeInvocations int
 	SerializeInputs      []log.Fields
 	SerializeOutputs     []error
 }
 
 func NewSerializer() *Serializer {
-	return &Serializer{
-		Mock: test.NewMock(),
-	}
+	return &Serializer{}
 }
 
 func (s *Serializer) Serialize(fields log.Fields) error {
@@ -137,7 +133,7 @@ var _ = Describe("Logger", func() {
 				Expect(serializeInput).To(HaveKeyWithValue("message", "Expected Message"))
 				serializedTime, ok := serializeInput["time"].(string)
 				Expect(ok).To(BeTrue())
-				parsedTime, err := time.Parse("2006-01-02T15:04:05.999Z07:00", serializedTime)
+				parsedTime, err := time.Parse(time.RFC3339Nano, serializedTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(parsedTime).To(BeTemporally("~", time.Now(), time.Second))
 				serializedCaller, ok := serializeInput["caller"].(*errors.Caller)
@@ -322,6 +318,16 @@ var _ = Describe("Logger", func() {
 			})
 
 			Context("WithLevel", func() {
+				It("uses the current level if the specified level is unknown", func() {
+					logger = logger.WithLevel(log.Level("unknown"))
+					Expect(logger).ToNot(BeNil())
+					Expect(logger.Level()).To(Equal(log.DebugLevel))
+					logger.Debug("WithLevel Message")
+					Expect(serializer.SerializeInputs).To(HaveLen(1))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
+				})
+
 				It("adds the specified level", func() {
 					logger = logger.WithLevel(log.InfoLevel)
 					Expect(logger).ToNot(BeNil())

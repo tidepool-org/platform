@@ -11,11 +11,11 @@ func RandomID() string {
 }
 
 func NewSessionToken() string {
-	return test.NewString(256, test.CharsetAlphaNumeric)
+	return test.RandomStringFromRangeAndCharset(256, 256, test.CharsetAlphaNumeric)
 }
 
 func NewDeviceID() string {
-	return test.NewString(32, test.CharsetText)
+	return test.RandomStringFromRangeAndCharset(32, 32, test.CharsetText)
 }
 
 func RandomSelectorOrigin() *data.SelectorOrigin {

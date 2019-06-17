@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	CharsetMediaType = test.CharsetAlphaNumeric + "._-"
+	CharsetMediaType = test.CharsetLowercase + test.CharsetNumeric + "._-"
 	CharsetSubDomain = test.CharsetAlphaNumeric + "-"
 )
 
 func RandomEmail() string {
-	return fmt.Sprintf("%s+%s@%s", test.NewVariableString(1, 8, test.CharsetAlpha), test.NewVariableString(1, 4, test.CharsetNumeric), RandomFQDN())
+	return fmt.Sprintf("%s+%s@%s", test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlpha), test.RandomStringFromRangeAndCharset(1, 4, test.CharsetNumeric), RandomFQDN())
 }
 
 func RandomFQDN() string {
@@ -37,7 +37,7 @@ func RandomSemanticVersion() string {
 }
 
 func RandomSubDomain() string {
-	return test.NewVariableString(1, 1, test.CharsetAlphaNumeric) + test.NewVariableString(0, 6, CharsetSubDomain) + test.NewVariableString(1, 1, test.CharsetAlphaNumeric)
+	return test.RandomStringFromRangeAndCharset(1, 1, test.CharsetAlphaNumeric) + test.RandomStringFromRangeAndCharset(0, 6, CharsetSubDomain) + test.RandomStringFromRangeAndCharset(1, 1, test.CharsetAlphaNumeric)
 }
 
 func RandomSubDomains(minimumLength int, maximumLength int) string {

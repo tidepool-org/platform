@@ -1,10 +1,6 @@
 package v1_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,10 +12,13 @@ import (
 	"strconv"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/blob"
-	blobServiceAPIV1 "github.com/tidepool-org/platform/blob/service/api/v1"
-	blobServiceAPIV1Test "github.com/tidepool-org/platform/blob/service/api/v1/test"
+	blobServiceApiV1 "github.com/tidepool-org/platform/blob/service/api/v1"
+	blobServiceApiV1Test "github.com/tidepool-org/platform/blob/service/api/v1/test"
 	blobTest "github.com/tidepool-org/platform/blob/test"
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
@@ -39,10 +38,10 @@ import (
 )
 
 var _ = Describe("V1", func() {
-	var provider *blobServiceAPIV1Test.Provider
+	var provider *blobServiceApiV1Test.Provider
 
 	BeforeEach(func() {
-		provider = blobServiceAPIV1Test.NewProvider()
+		provider = blobServiceApiV1Test.NewProvider()
 	})
 
 	AfterEach(func() {
@@ -51,22 +50,22 @@ var _ = Describe("V1", func() {
 
 	Context("NewRouter", func() {
 		It("returns an error when the provider is missing", func() {
-			router, err := blobServiceAPIV1.NewRouter(nil)
+			router, err := blobServiceApiV1.NewRouter(nil)
 			errorsTest.ExpectEqual(err, errors.New("provider is missing"))
 			Expect(router).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(blobServiceAPIV1.NewRouter(provider)).ToNot(BeNil())
+			Expect(blobServiceApiV1.NewRouter(provider)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new router", func() {
-		var router *blobServiceAPIV1.Router
+		var router *blobServiceApiV1.Router
 
 		BeforeEach(func() {
 			var err error
-			router, err = blobServiceAPIV1.NewRouter(provider)
+			router, err = blobServiceApiV1.NewRouter(provider)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(router).ToNot(BeNil())
 		})
@@ -76,6 +75,7 @@ var _ = Describe("V1", func() {
 				Expect(router.Routes()).To(ConsistOf(
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/blobs")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id/content")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/blobs/:id")})),
@@ -130,6 +130,10 @@ var _ = Describe("V1", func() {
 					})
 
 					Context("responds with JSON", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
 						AfterEach(func() {
 							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
 						})
@@ -140,7 +144,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -154,7 +157,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -169,7 +171,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -184,7 +185,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -199,11 +199,10 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotInRange(0, 1, 100), "size"), res.WriteInputs[0])
+								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotInRange(0, 1, 1000), "size"), res.WriteInputs[0])
 							})
 						})
 
@@ -219,10 +218,9 @@ var _ = Describe("V1", func() {
 								client.AssertOutputsEmpty()
 							})
 
-							clientAssertions := func() {
+							parameterAssertions := func() {
 								It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: nil, Error: request.ErrorUnauthorized()}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: nil, Error: request.ErrorUnauthorized()}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -230,8 +228,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds with an internal server error when the client returns an unknown error", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: nil, Error: errorsTest.RandomError()}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: nil, Error: errorsTest.RandomError()}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -239,8 +236,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds successfully when the client does not return blobs", func() {
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: blob.Blobs{}, Error: nil}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: blob.BlobArray{}, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -248,9 +244,8 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds successfully when the client returns blobs", func() {
-									blobs := blobTest.RandomBlobs(1, 4)
-									client.ListOutputs = []blobTest.ListOutput{{Blobs: blobs, Error: nil}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									blobs := blobTest.RandomBlobArray(1, 4)
+									client.ListOutputs = []blobTest.ListOutput{{BlobArray: blobs, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -261,14 +256,13 @@ var _ = Describe("V1", func() {
 							When("the filter and pagination query parameters are not specified", func() {
 								AfterEach(func() {
 									Expect(client.ListInputs).To(Equal([]blobTest.ListInput{{
-										Context:    ctx,
 										UserID:     userID,
 										Filter:     blob.NewFilter(),
 										Pagination: page.NewPagination(),
 									}}))
 								})
 
-								clientAssertions()
+								parameterAssertions()
 							})
 
 							When("the filter and pagination query parameters are specified", func() {
@@ -293,8 +287,7 @@ var _ = Describe("V1", func() {
 
 								AfterEach(func() {
 									Expect(client.ListInputs).To(Equal([]blobTest.ListInput{{
-										Context: ctx,
-										UserID:  userID,
+										UserID: userID,
 										Filter: &blob.Filter{
 											MediaType: pointer.FromStringArray(mediaType),
 											Status:    pointer.FromStringArray(status),
@@ -306,7 +299,7 @@ var _ = Describe("V1", func() {
 									}}))
 								})
 
-								clientAssertions()
+								parameterAssertions()
 							})
 						})
 					})
@@ -327,6 +320,10 @@ var _ = Describe("V1", func() {
 					})
 
 					Context("responds with JSON", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
 						AfterEach(func() {
 							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
 						})
@@ -337,7 +334,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -351,7 +347,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -359,30 +354,29 @@ var _ = Describe("V1", func() {
 							})
 						})
 
-						Context("with create", func() {
-							var create *blob.Create
+						Context("with content", func() {
+							var content *blob.Content
 
 							BeforeEach(func() {
-								create = blobTest.RandomCreate()
+								content = blobTest.RandomContent()
 							})
 
 							JustBeforeEach(func() {
-								req.Body = ioutil.NopCloser(create.Body)
-								if create.DigestMD5 != nil {
-									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *create.DigestMD5))
+								req.Body = ioutil.NopCloser(content.Body)
+								if content.DigestMD5 != nil {
+									req.Header.Set("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
 								}
-								if create.MediaType != nil {
-									req.Header.Add("Content-Type", *create.MediaType)
+								if content.MediaType != nil {
+									req.Header.Set("Content-Type", *content.MediaType)
 								}
 							})
 
 							When("the digest header is invalid", func() {
 								BeforeEach(func() {
-									create.DigestMD5 = pointer.FromString("invalid")
+									content.DigestMD5 = pointer.FromString("invalid")
 								})
 
 								It("responds with bad request and expected error in body", func() {
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -391,12 +385,11 @@ var _ = Describe("V1", func() {
 							})
 
 							When("the digest header is invalid with multiple values", func() {
-								BeforeEach(func() {
-									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *create.DigestMD5))
+								JustBeforeEach(func() {
+									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
 								})
 
 								It("responds with bad request and expected error in body", func() {
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -406,11 +399,10 @@ var _ = Describe("V1", func() {
 
 							When("the content type header is missing", func() {
 								BeforeEach(func() {
-									create.MediaType = nil
+									content.MediaType = nil
 								})
 
 								It("responds with bad request and expected error in body", func() {
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -420,11 +412,10 @@ var _ = Describe("V1", func() {
 
 							When("the content type header is invalid", func() {
 								BeforeEach(func() {
-									create.MediaType = pointer.FromString("/")
+									content.MediaType = pointer.FromString("/")
 								})
 
 								It("responds with bad request and expected error in body", func() {
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -433,12 +424,11 @@ var _ = Describe("V1", func() {
 							})
 
 							When("the content type header is invalid with multiple values", func() {
-								BeforeEach(func() {
-									req.Header.Add("Content-Type", *create.MediaType)
+								JustBeforeEach(func() {
+									req.Header.Add("Content-Type", *content.MediaType)
 								})
 
 								It("responds with bad request and expected error in body", func() {
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
@@ -458,11 +448,10 @@ var _ = Describe("V1", func() {
 									client.AssertOutputsEmpty()
 								})
 
-								clientAssertions := func() {
+								digestAssertions := func() {
 									It("responds with a bad request error when the client returns a digests not equal error", func() {
-										err := blob.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
+										err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
 										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: err}}
-										res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 										Expect(res.WriteInputs).To(HaveLen(1))
@@ -471,7 +460,6 @@ var _ = Describe("V1", func() {
 
 									It("responds with an unauthorized error when the client returns an unauthorized error", func() {
 										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: request.ErrorUnauthorized()}}
-										res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 										Expect(res.WriteInputs).To(HaveLen(1))
@@ -480,7 +468,6 @@ var _ = Describe("V1", func() {
 
 									It("responds with an internal server error when the client returns an unknown error", func() {
 										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: errorsTest.RandomError()}}
-										res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
 										Expect(res.WriteInputs).To(HaveLen(1))
@@ -490,7 +477,6 @@ var _ = Describe("V1", func() {
 									It("responds successfully", func() {
 										responseResult := blobTest.RandomBlob()
 										client.CreateOutputs = []blobTest.CreateOutput{{Blob: responseResult, Error: nil}}
-										res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
 										Expect(res.WriteInputs).To(HaveLen(1))
@@ -500,39 +486,125 @@ var _ = Describe("V1", func() {
 
 								When("the digest header is not specified", func() {
 									BeforeEach(func() {
-										create.DigestMD5 = nil
+										content.DigestMD5 = nil
 									})
 
 									AfterEach(func() {
 										Expect(client.CreateInputs).To(Equal([]blobTest.CreateInput{{
-											Context: ctx,
-											UserID:  userID,
-											Create: &blob.Create{
-												Body:      ioutil.NopCloser(create.Body),
+											UserID: userID,
+											Content: &blob.Content{
+												Body:      ioutil.NopCloser(content.Body),
 												DigestMD5: nil,
-												MediaType: create.MediaType,
+												MediaType: content.MediaType,
 											},
 										}}))
 									})
 
-									clientAssertions()
+									digestAssertions()
 								})
 
 								When("the digest header is specified", func() {
 									AfterEach(func() {
 										Expect(client.CreateInputs).To(Equal([]blobTest.CreateInput{{
-											Context: ctx,
-											UserID:  userID,
-											Create: &blob.Create{
-												Body:      ioutil.NopCloser(create.Body),
-												DigestMD5: create.DigestMD5,
-												MediaType: create.MediaType,
+											UserID: userID,
+											Content: &blob.Content{
+												Body:      ioutil.NopCloser(content.Body),
+												DigestMD5: content.DigestMD5,
+												MediaType: content.MediaType,
 											},
 										}}))
 									})
 
-									clientAssertions()
+									digestAssertions()
 								})
+							})
+						})
+					})
+				})
+
+				Context("DeleteAll", func() {
+					BeforeEach(func() {
+						req.Method = http.MethodDelete
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/blobs", userID)
+					})
+
+					It("panics when the response is missing", func() {
+						Expect(func() { router.DeleteAll(nil, req) }).To(Panic())
+					})
+
+					It("panics when the request is missing", func() {
+						Expect(func() { router.DeleteAll(res, nil) }).To(Panic())
+					})
+
+					When("responds", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
+						When("the path does not contain a user id", func() {
+							BeforeEach(func() {
+								req.URL.Path = "/v1/users//blobs"
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterMissing("userId"), res.WriteInputs[0])
+							})
+						})
+
+						When("the path contains an invalid user id", func() {
+							BeforeEach(func() {
+								req.URL.Path = "/v1/users/invalid/blobs"
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("userId"), res.WriteInputs[0])
+							})
+						})
+
+						Context("with client", func() {
+							var client *blobTest.Client
+
+							BeforeEach(func() {
+								client = blobTest.NewClient()
+								provider.BlobClientOutputs = []blob.Client{client}
+							})
+
+							AfterEach(func() {
+								client.AssertOutputsEmpty()
+							})
+
+							It("responds with an unauthorized error when the client returns an unauthorized error", func() {
+								client.DeleteAllOutputs = []error{request.ErrorUnauthorized()}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+							})
+
+							It("responds with an internal server error when the client returns an unknown error", func() {
+								client.DeleteAllOutputs = []error{errorsTest.RandomError()}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+							})
+
+							It("responds successfully", func() {
+								res.WriteOutputs = nil
+								client.DeleteAllOutputs = []error{nil}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNoContent}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{}))
 							})
 						})
 					})
@@ -561,6 +633,10 @@ var _ = Describe("V1", func() {
 					})
 
 					Context("responds with JSON", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
 						AfterEach(func() {
 							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
 						})
@@ -571,7 +647,6 @@ var _ = Describe("V1", func() {
 							})
 
 							It("responds with bad request and expected error in body", func() {
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -588,13 +663,12 @@ var _ = Describe("V1", func() {
 							})
 
 							AfterEach(func() {
-								Expect(client.GetInputs).To(Equal([]blobTest.GetInput{{Context: ctx, ID: id}}))
+								Expect(client.GetInputs).To(Equal([]string{id}))
 								client.AssertOutputsEmpty()
 							})
 
 							It("responds with an unauthorized error when the client returns an unauthorized error", func() {
 								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: request.ErrorUnauthorized()}}
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -603,7 +677,6 @@ var _ = Describe("V1", func() {
 
 							It("responds with an internal server error when the client returns an unknown error", func() {
 								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: errorsTest.RandomError()}}
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -612,7 +685,6 @@ var _ = Describe("V1", func() {
 
 							It("responds with not found error when the client does not return a blob", func() {
 								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: nil}}
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -622,7 +694,6 @@ var _ = Describe("V1", func() {
 							It("responds successfully", func() {
 								responseResult := blobTest.RandomBlob()
 								client.GetOutputs = []blobTest.GetOutput{{Blob: responseResult, Error: nil}}
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 								Expect(res.WriteInputs).To(HaveLen(1))
@@ -646,108 +717,106 @@ var _ = Describe("V1", func() {
 						Expect(func() { router.GetContent(res, nil) }).To(Panic())
 					})
 
-					When("the path does not contain an id", func() {
+					When("responds", func() {
 						BeforeEach(func() {
-							req.URL.Path = "/v1/blobs//content"
-						})
-
-						It("responds with bad request and expected error in body", func() {
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorParameterMissing("id"), res.WriteInputs[0])
-						})
-					})
-
-					When("the path contains an invalid id", func() {
-						BeforeEach(func() {
-							req.URL.Path = "/v1/blobs/invalid/content"
 						})
 
-						It("responds with bad request and expected error in body", func() {
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("id"), res.WriteInputs[0])
-						})
-					})
+						When("the path does not contain an id", func() {
+							BeforeEach(func() {
+								req.URL.Path = "/v1/blobs//content"
+							})
 
-					Context("with client", func() {
-						var client *blobTest.Client
-
-						BeforeEach(func() {
-							client = blobTest.NewClient()
-							provider.BlobClientOutputs = []blob.Client{client}
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterMissing("id"), res.WriteInputs[0])
+							})
 						})
 
-						AfterEach(func() {
-							Expect(client.GetContentInputs).To(Equal([]blobTest.GetContentInput{{Context: ctx, ID: id}}))
-							client.AssertOutputsEmpty()
+						When("the path contains an invalid id", func() {
+							BeforeEach(func() {
+								req.URL.Path = "/v1/blobs/invalid/content"
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("id"), res.WriteInputs[0])
+							})
 						})
 
-						It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: request.ErrorUnauthorized()}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
-						})
+						Context("with client", func() {
+							var client *blobTest.Client
 
-						It("responds with an internal server error when the client returns an unknown error", func() {
-							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: errorsTest.RandomError()}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
-						})
+							BeforeEach(func() {
+								client = blobTest.NewClient()
+								provider.BlobClientOutputs = []blob.Client{client}
+							})
 
-						It("responds with not found error when the client does not return a blob", func() {
-							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: nil}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
-						})
+							AfterEach(func() {
+								Expect(client.GetContentInputs).To(Equal([]string{id}))
+								client.AssertOutputsEmpty()
+							})
 
-						It("responds successfully without headers", func() {
-							body := test.RandomBytes()
-							content := blob.NewContent()
-							content.Body = ioutil.NopCloser(bytes.NewReader(body))
-							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(res.WriteInputs).To(Equal([][]byte{body}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{}))
-						})
+							It("responds with an unauthorized error when the client returns an unauthorized error", func() {
+								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: request.ErrorUnauthorized()}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+							})
 
-						It("responds successfully with headers", func() {
-							body := test.RandomBytes()
-							content := blob.NewContent()
-							content.Body = ioutil.NopCloser(bytes.NewReader(body))
-							content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-							content.MediaType = pointer.FromString(netTest.RandomMediaType())
-							content.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
-							client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(res.WriteInputs).To(Equal([][]byte{body}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{
-								"Content-Length": []string{strconv.Itoa(*content.Size)},
-								"Content-Type":   []string{*content.MediaType},
-								"Digest":         []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
-							}))
+							It("responds with an internal server error when the client returns an unknown error", func() {
+								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: errorsTest.RandomError()}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+							})
+
+							It("responds with not found error when the client does not return a blob", func() {
+								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: nil}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
+							})
+
+							It("responds successfully without headers", func() {
+								body := test.RandomBytes()
+								content := blob.NewContent()
+								content.Body = ioutil.NopCloser(bytes.NewReader(body))
+								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(res.WriteInputs).To(Equal([][]byte{body}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{}))
+							})
+
+							It("responds successfully with headers", func() {
+								body := test.RandomBytes()
+								content := blob.NewContent()
+								content.Body = ioutil.NopCloser(bytes.NewReader(body))
+								content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+								content.MediaType = pointer.FromString(netTest.RandomMediaType())
+								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(res.WriteInputs).To(Equal([][]byte{body}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{
+									"Content-Type": []string{*content.MediaType},
+									"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+								}))
+							})
 						})
 					})
 				})
@@ -776,111 +845,113 @@ var _ = Describe("V1", func() {
 						Expect(func() { router.Delete(res, nil) }).To(Panic())
 					})
 
-					When("the path contains an invalid id", func() {
+					Context("responds", func() {
 						BeforeEach(func() {
-							req.URL.Path = "/v1/blobs/invalid"
-						})
-
-						It("responds with bad request and expected error in body", func() {
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("id"), res.WriteInputs[0])
-						})
-					})
-
-					When("the query contains an invalid revision", func() {
-						BeforeEach(func() {
-							revision = pointer.FromInt(-1)
 						})
 
-						It("responds with bad request and expected error in body", func() {
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "revision"), res.WriteInputs[0])
-						})
-					})
-
-					Context("with client", func() {
-						var client *blobTest.Client
-
-						BeforeEach(func() {
-							client = blobTest.NewClient()
-							provider.BlobClientOutputs = []blob.Client{client}
-						})
-
-						AfterEach(func() {
-							client.AssertOutputsEmpty()
-						})
-
-						deleteAssertions := func() {
-							Context("deletes", func() {
-								It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: request.ErrorUnauthorized()}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
-								})
-
-								It("responds with an internal server error when the client returns an unknown error", func() {
-									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.RandomError()}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
-									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
-								})
-
-								It("responds with not found error when the client does not return a blob", func() {
-									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: nil}}
-									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
-									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, revision), res.WriteInputs[0])
-								})
-
-								It("responds successfully", func() {
-									client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: true, Error: nil}}
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNoContent}))
-									Expect(res.HeaderOutput).To(Equal(&http.Header{}))
-								})
-							})
-						}
-
-						When("revision is missing", func() {
+						When("the path contains an invalid id", func() {
 							BeforeEach(func() {
-								revision = nil
+								req.URL.Path = "/v1/blobs/invalid"
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("id"), res.WriteInputs[0])
+							})
+						})
+
+						When("the query contains an invalid revision", func() {
+							BeforeEach(func() {
+								revision = pointer.FromInt(-1)
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(errorsTest.WithParameterSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "revision"), res.WriteInputs[0])
+							})
+						})
+
+						Context("with client", func() {
+							var client *blobTest.Client
+
+							BeforeEach(func() {
+								client = blobTest.NewClient()
+								provider.BlobClientOutputs = []blob.Client{client}
 							})
 
 							AfterEach(func() {
-								Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{Context: ctx, ID: id, Condition: &request.Condition{}}}))
+								client.AssertOutputsEmpty()
 							})
 
-							deleteAssertions()
-						})
+							revisionAssertions := func() {
+								Context("deletes", func() {
+									It("responds with an unauthorized error when the client returns an unauthorized error", func() {
+										client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: request.ErrorUnauthorized()}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+										Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+									})
 
-						When("revision is present", func() {
-							BeforeEach(func() {
-								revision = pointer.FromInt(requestTest.RandomRevision())
+									It("responds with an internal server error when the client returns an unknown error", func() {
+										client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.RandomError()}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+										Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+									})
+
+									It("responds with not found error when the client does not return a blob", func() {
+										client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: nil}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+										Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, revision), res.WriteInputs[0])
+									})
+
+									It("responds successfully", func() {
+										res.WriteOutputs = nil
+										client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: true, Error: nil}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNoContent}))
+										Expect(res.HeaderOutput).To(Equal(&http.Header{}))
+									})
+								})
+							}
+
+							When("revision is missing", func() {
+								BeforeEach(func() {
+									revision = nil
+								})
+
+								AfterEach(func() {
+									Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{ID: id, Condition: &request.Condition{}}}))
+								})
+
+								revisionAssertions()
 							})
 
-							AfterEach(func() {
-								Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{Context: ctx, ID: id, Condition: &request.Condition{Revision: revision}}}))
-							})
+							When("revision is present", func() {
+								BeforeEach(func() {
+									revision = pointer.FromInt(requestTest.RandomRevision())
+								})
 
-							deleteAssertions()
+								AfterEach(func() {
+									Expect(client.DeleteInputs).To(Equal([]blobTest.DeleteInput{{ID: id, Condition: &request.Condition{Revision: revision}}}))
+								})
+
+								revisionAssertions()
+							})
 						})
 					})
 				})

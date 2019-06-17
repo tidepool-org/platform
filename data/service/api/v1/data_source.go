@@ -24,6 +24,7 @@ func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", Authenticate(ListSources)),
 		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", Authenticate(CreateSource)),
+		dataService.MakeRoute("DELETE", "/v1/users/:userId/data_sources", Authenticate(DeleteAllSources)),
 		dataService.MakeRoute("GET", "/v1/data_sources/:id", Authenticate(GetSource)),
 		dataService.MakeRoute("PUT", "/v1/data_sources/:id", Authenticate(UpdateSource)),
 		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", Authenticate(DeleteSource)),
@@ -110,6 +111,40 @@ func CreateSource(dataServiceContext dataService.Context) {
 	}
 
 	responder.Data(http.StatusCreated, source)
+}
+
+// TODO: BEGIN: Update to new service paradigm
+// func (r *Router) DeleteAllSources(res rest.ResponseWriter, req *rest.Request) {
+
+func DeleteAllSources(dataServiceContext dataService.Context) {
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	details := request.DetailsFromContext(req.Context())
+	if details == nil {
+		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
+		return
+	} else if !details.IsService() {
+		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
+	}
+	// TODO: END: Update to new service paradigm
+
+	responder := request.MustNewResponder(res, req)
+
+	userID := req.PathParam("userId")
+	if userID == "" {
+		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("userId"))
+		return
+	}
+
+	err := dataServiceContext.DataSourceClient().DeleteAll(req.Context(), userID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Empty(http.StatusNoContent)
 }
 
 // TODO: BEGIN: Update to new service paradigm

@@ -1,11 +1,11 @@
 package ketone_test
 
 import (
+	"math"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"math"
 
 	"github.com/tidepool-org/platform/data/blood/ketone"
 	"github.com/tidepool-org/platform/pointer"

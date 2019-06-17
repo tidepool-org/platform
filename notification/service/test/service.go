@@ -3,22 +3,22 @@ package test
 import (
 	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/store"
-	testStore "github.com/tidepool-org/platform/notification/store/test"
-	testService "github.com/tidepool-org/platform/service/test"
+	notificationStoreTest "github.com/tidepool-org/platform/notification/store/test"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 )
 
 type Service struct {
-	*testService.Service
+	*serviceTest.Service
 	NotificationStoreInvocations int
-	NotificationStoreImpl        *testStore.Store
+	NotificationStoreImpl        *notificationStoreTest.Store
 	StatusInvocations            int
 	StatusOutputs                []*service.Status
 }
 
 func NewService() *Service {
 	return &Service{
-		Service:               testService.NewService(),
-		NotificationStoreImpl: testStore.NewStore(),
+		Service:               serviceTest.NewService(),
+		NotificationStoreImpl: notificationStoreTest.NewStore(),
 	}
 }
 

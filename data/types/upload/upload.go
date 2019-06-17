@@ -6,8 +6,8 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -77,28 +77,28 @@ type Upload struct {
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
 
-func NewUpload(parser data.ObjectParser) *Upload {
-	if parser.Object() == nil {
+func NewUpload(parser structure.ObjectParser) *Upload {
+	if !parser.Exists() {
 		return nil
 	}
 
-	if value := parser.ParseString("type"); value == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+	if value := parser.String("type"); value == nil {
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	} else if *value != Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{Type}))
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, []string{Type}))
 		return nil
 	}
 
 	return New()
 }
 
-func ParseUpload(parser data.ObjectParser) *Upload {
-	if parser.Object() == nil {
+func ParseUpload(parser structure.ObjectParser) *Upload {
+	if !parser.Exists() {
 		return nil
 	}
 
-	_ = parser.ParseString("type")
+	_ = parser.String("type")
 
 	datum := New()
 	datum.Parse(parser)
@@ -115,26 +115,24 @@ func New() *Upload {
 	}
 }
 
-func (u *Upload) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(u.Meta())
-
-	if err := u.Base.Parse(parser); err != nil {
-		return err
+func (u *Upload) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(u.Meta())
 	}
 
-	u.Deduplicator = data.ParseDeduplicatorDescriptorDEPRECATED(parser.NewChildObjectParser("deduplicator"))
+	u.Base.Parse(parser)
 
-	u.Client = ParseClient(parser.NewChildObjectParser("client"))
-	u.ComputerTime = parser.ParseString("computerTime")
-	u.DataSetType = parser.ParseString("dataSetType")
-	u.DeviceManufacturers = parser.ParseStringArray("deviceManufacturers")
-	u.DeviceModel = parser.ParseString("deviceModel")
-	u.DeviceSerialNumber = parser.ParseString("deviceSerialNumber")
-	u.DeviceTags = parser.ParseStringArray("deviceTags")
-	u.TimeProcessing = parser.ParseString("timeProcessing")
-	u.Version = parser.ParseString("version")
+	u.Deduplicator = data.ParseDeduplicatorDescriptor(parser.WithReferenceObjectParser("deduplicator"))
 
-	return nil
+	u.Client = ParseClient(parser.WithReferenceObjectParser("client"))
+	u.ComputerTime = parser.String("computerTime")
+	u.DataSetType = parser.String("dataSetType")
+	u.DeviceManufacturers = parser.StringArray("deviceManufacturers")
+	u.DeviceModel = parser.String("deviceModel")
+	u.DeviceSerialNumber = parser.String("deviceSerialNumber")
+	u.DeviceTags = parser.StringArray("deviceTags")
+	u.TimeProcessing = parser.String("timeProcessing")
+	u.Version = parser.String("version")
 }
 
 func (u *Upload) Validate(validator structure.Validator) {

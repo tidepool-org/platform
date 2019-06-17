@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
@@ -103,6 +103,30 @@ func (p *ProviderSessionSession) CreateUserProviderSession(ctx context.Context, 
 	return providerSession, nil
 }
 
+func (p *ProviderSessionSession) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	}
+
+	if p.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
+
+	changeInfo, err := p.C().RemoveAll(bson.M{"userId": userID})
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteAllProviderSessions")
+	if err != nil {
+		return errors.Wrap(err, "unable to delete all provider sessions")
+	}
+
+	return nil
+}
+
 func (p *ProviderSessionSession) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -157,7 +181,7 @@ func (p *ProviderSessionSession) UpdateProviderSession(ctx context.Context, id s
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
-		"modifiedTime": now.Truncate(time.Second),
+		"modifiedTime": now,
 	}
 	unset := bson.M{}
 	if update.OAuthToken != nil {

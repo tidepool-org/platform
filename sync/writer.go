@@ -24,9 +24,9 @@ type Writer struct {
 	writer io.Writer
 }
 
-func (w *Writer) Write(bytes []byte) (int, error) {
+func (w *Writer) Write(bites []byte) (int, error) {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
-	return w.writer.Write(bytes)
+	return w.writer.Write(bites)
 }

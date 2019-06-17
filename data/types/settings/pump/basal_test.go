@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -51,7 +51,7 @@ var _ = Describe("Basal", func() {
 				func(mutator func(datum *pump.Basal), expectedErrors ...error) {
 					datum := NewBasal()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.Basal) {},
@@ -61,7 +61,7 @@ var _ = Describe("Basal", func() {
 				),
 				Entry("rate maximum invalid",
 					func(datum *pump.Basal) { datum.RateMaximum.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rateMaximum/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rateMaximum/units"),
 				),
 				Entry("rate maximum valid",
 					func(datum *pump.Basal) { datum.RateMaximum = NewBasalRateMaximum() },
@@ -71,7 +71,7 @@ var _ = Describe("Basal", func() {
 				),
 				Entry("temporary invalid",
 					func(datum *pump.Basal) { datum.Temporary.Type = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/temporary/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/temporary/type"),
 				),
 				Entry("temporary valid",
 					func(datum *pump.Basal) { datum.Temporary = NewBasalTemporary() },
@@ -81,8 +81,8 @@ var _ = Describe("Basal", func() {
 						datum.RateMaximum.Units = nil
 						datum.Temporary.Type = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rateMaximum/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/temporary/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rateMaximum/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/temporary/type"),
 				),
 			)
 		})

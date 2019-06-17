@@ -20,7 +20,7 @@ func CloneCompound(datum *insulin.Compound) *insulin.Compound {
 		return nil
 	}
 	clone := insulin.NewCompound()
-	clone.Amount = test.CloneFloat64(datum.Amount)
+	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	clone.Formulation = CloneFormulation(datum.Formulation)
 	return clone
 }

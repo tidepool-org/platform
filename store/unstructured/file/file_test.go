@@ -1,9 +1,6 @@
 package file_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"bytes"
 	"context"
 	"fmt"
@@ -13,9 +10,14 @@ import (
 	"path"
 	"path/filepath"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
-	logNull "github.com/tidepool-org/platform/log/null"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	storeUnstructuredFile "github.com/tidepool-org/platform/store/unstructured/file"
 	storeUnstructuredTest "github.com/tidepool-org/platform/store/unstructured/test"
 	"github.com/tidepool-org/platform/test"
@@ -28,13 +30,13 @@ var _ = Describe("File", func() {
 
 	Context("with config", func() {
 		var directory string
-		var cfg *storeUnstructuredFile.Config
+		var config *storeUnstructuredFile.Config
 
 		BeforeEach(func() {
 			directory = test.RandomTemporaryDirectory()
-			cfg = storeUnstructuredFile.NewConfig()
-			Expect(cfg).ToNot(BeNil())
-			cfg.Directory = directory
+			config = storeUnstructuredFile.NewConfig()
+			Expect(config).ToNot(BeNil())
+			config.Directory = directory
 		})
 
 		AfterEach(func() {
@@ -45,25 +47,25 @@ var _ = Describe("File", func() {
 
 		Context("NewStore", func() {
 			It("return an error if the config is missing", func() {
-				str, err := storeUnstructuredFile.NewStore(nil)
+				store, err := storeUnstructuredFile.NewStore(nil)
 				Expect(err).To(MatchError("config is missing"))
-				Expect(str).To(BeNil())
+				Expect(store).To(BeNil())
 			})
 
 			It("return an error if the config is invalid", func() {
-				cfg.Directory = ""
-				str, err := storeUnstructuredFile.NewStore(cfg)
+				config.Directory = ""
+				store, err := storeUnstructuredFile.NewStore(config)
 				Expect(err).To(MatchError("config is invalid; directory is missing"))
-				Expect(str).To(BeNil())
+				Expect(store).To(BeNil())
 			})
 
 			It("returns successfully", func() {
-				Expect(storeUnstructuredFile.NewStore(cfg)).ToNot(BeNil())
+				Expect(storeUnstructuredFile.NewStore(config)).ToNot(BeNil())
 			})
 		})
 
 		Context("with new store", func() {
-			var str *storeUnstructuredFile.Store
+			var store *storeUnstructuredFile.Store
 			var ctx context.Context
 			var key string
 			var keyPath string
@@ -71,10 +73,10 @@ var _ = Describe("File", func() {
 
 			BeforeEach(func() {
 				var err error
-				str, err = storeUnstructuredFile.NewStore(cfg)
+				store, err = storeUnstructuredFile.NewStore(config)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(str).ToNot(BeNil())
-				ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
+				Expect(store).ToNot(BeNil())
+				ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 				key = storeUnstructuredTest.RandomKey()
 				keyPath = filepath.Join(directory, filepath.FromSlash(key))
 				contents = []byte(test.RandomString())
@@ -82,85 +84,106 @@ var _ = Describe("File", func() {
 
 			Context("Exists", func() {
 				It("returns an error if the context is missing", func() {
-					exists, err := str.Exists(nil, key)
+					exists, err := store.Exists(nil, key)
 					Expect(err).To(MatchError("context is missing"))
 					Expect(exists).To(BeFalse())
 				})
 
 				It("returns an error if the key is missing", func() {
-					exists, err := str.Exists(ctx, "")
+					exists, err := store.Exists(ctx, "")
 					Expect(err).To(MatchError("key is missing"))
 					Expect(exists).To(BeFalse())
 				})
 
 				It("returns an error if the key is invalid", func() {
-					exists, err := str.Exists(ctx, "#invalid#")
+					exists, err := store.Exists(ctx, "#invalid#")
 					Expect(err).To(MatchError("key is invalid"))
 					Expect(exists).To(BeFalse())
 				})
 
 				It("returns an error if the key is a directory", func() {
 					Expect(os.MkdirAll(keyPath, 0777)).To(Succeed())
-					exists, err := str.Exists(ctx, key)
+					exists, err := store.Exists(ctx, key)
 					Expect(err).To(MatchError(fmt.Sprintf("unexpected directory or irregular file at path %q", keyPath)))
 					Expect(exists).To(BeFalse())
 				})
 
 				It("returns false if the key does not exist", func() {
-					Expect(str.Exists(ctx, key)).To(BeFalse())
+					Expect(store.Exists(ctx, key)).To(BeFalse())
 				})
 
 				It("returns true if the key exists", func() {
 					Expect(os.MkdirAll(filepath.Dir(keyPath), 0777)).To(Succeed())
 					Expect(ioutil.WriteFile(keyPath, contents, 0666)).To(Succeed())
-					Expect(str.Exists(ctx, key)).To(BeTrue())
+					Expect(store.Exists(ctx, key)).To(BeTrue())
 				})
 			})
 
 			Context("Put", func() {
 				var reader io.Reader
+				var options *storeUnstructured.Options
 
 				BeforeEach(func() {
 					reader = bytes.NewReader(contents)
+					options = storeUnstructuredTest.RandomOptions()
 				})
 
 				It("returns an error if the context is missing", func() {
-					Expect(str.Put(nil, key, reader)).To(MatchError("context is missing"))
+					Expect(store.Put(nil, key, reader, options)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error if the key is missing", func() {
-					Expect(str.Put(ctx, "", reader)).To(MatchError("key is missing"))
+					Expect(store.Put(ctx, "", reader, options)).To(MatchError("key is missing"))
 				})
 
 				It("returns an error if the key is invalid", func() {
-					Expect(str.Put(ctx, "#invalid#", reader)).To(MatchError("key is invalid"))
+					Expect(store.Put(ctx, "#invalid#", reader, options)).To(MatchError("key is invalid"))
 				})
 
 				It("returns an error if the reader is missing", func() {
-					Expect(str.Put(ctx, key, nil)).To(MatchError("reader is missing"))
+					Expect(store.Put(ctx, key, nil, options)).To(MatchError("reader is missing"))
+				})
+
+				It("returns an error if the options is invalid", func() {
+					options.MediaType = pointer.FromString("")
+					Expect(store.Put(ctx, key, reader, options)).To(MatchError("options is invalid; value is empty"))
 				})
 
 				It("returns an error if it is unable to create the directories", func() {
 					Expect(os.MkdirAll(filepath.Dir(keyPath), 0777)).To(Succeed())
 					Expect(ioutil.WriteFile(keyPath, contents, 0666)).To(Succeed())
 					key = path.Join(key, storeUnstructuredTest.RandomKeySegment())
-					Expect(str.Put(ctx, key, reader)).To(MatchError(fmt.Sprintf("unable to create directories at path %q; mkdir %s: not a directory", keyPath, keyPath)))
+					Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to create directories at path %q; mkdir %s: not a directory", keyPath, keyPath)))
 				})
 
 				It("returns an error if it is unable to create the file", func() {
 					Expect(os.MkdirAll(keyPath, 0777)).To(Succeed())
-					Expect(str.Put(ctx, key, reader)).To(MatchError(fmt.Sprintf("unable to create file at path %q; open %s: is a directory", keyPath, keyPath)))
+					Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to create file at path %q; open %s: is a directory", keyPath, keyPath)))
 				})
 
 				It("returns an error if it is unable to write the file", func() {
 					err := errorsTest.RandomError()
 					rdr := test.NewReader()
 					rdr.ReadOutput = &test.ReadOutput{BytesRead: 0, Error: err}
-					Expect(str.Put(ctx, key, rdr)).To(MatchError(fmt.Sprintf("unable to write file at path %q; %s", keyPath, err)))
+					Expect(store.Put(ctx, key, rdr, options)).To(MatchError(fmt.Sprintf("unable to write file at path %q; %s", keyPath, err)))
 				})
 
 				It("creates file with contents and returns successfully", func() {
-					Expect(str.Put(ctx, key, reader)).To(Succeed())
+					Expect(store.Put(ctx, key, reader, options)).To(Succeed())
+					Expect(keyPath).To(BeARegularFile())
+					Expect(ioutil.ReadFile(keyPath)).To(Equal(contents))
+				})
+
+				It("creates file with contents and returns successfully without options", func() {
+					options = nil
+					Expect(store.Put(ctx, key, reader, options)).To(Succeed())
+					Expect(keyPath).To(BeARegularFile())
+					Expect(ioutil.ReadFile(keyPath)).To(Equal(contents))
+				})
+
+				It("creates file with contents and returns successfully with options with media type missing", func() {
+					options.MediaType = nil
+					Expect(store.Put(ctx, key, reader, options)).To(Succeed())
 					Expect(keyPath).To(BeARegularFile())
 					Expect(ioutil.ReadFile(keyPath)).To(Equal(contents))
 				})
@@ -181,21 +204,21 @@ var _ = Describe("File", func() {
 
 				It("returns an error if the context is missing", func() {
 					var err error
-					reader, err = str.Get(nil, key)
+					reader, err = store.Get(nil, key)
 					Expect(err).To(MatchError("context is missing"))
 					Expect(reader).To(BeNil())
 				})
 
 				It("returns an error if the key is missing", func() {
 					var err error
-					reader, err = str.Get(ctx, "")
+					reader, err = store.Get(ctx, "")
 					Expect(err).To(MatchError("key is missing"))
 					Expect(reader).To(BeNil())
 				})
 
 				It("returns an error if the key is invalid", func() {
 					var err error
-					reader, err = str.Get(ctx, "#invalid#")
+					reader, err = store.Get(ctx, "#invalid#")
 					Expect(err).To(MatchError("key is invalid"))
 					Expect(reader).To(BeNil())
 				})
@@ -203,14 +226,14 @@ var _ = Describe("File", func() {
 				It("returns an error if the key is a directory", func() {
 					Expect(os.MkdirAll(keyPath, 0777)).To(Succeed())
 					var err error
-					reader, err = str.Get(ctx, key)
+					reader, err = store.Get(ctx, key)
 					Expect(err).To(MatchError(fmt.Sprintf("unexpected directory or irregular file at path %q", keyPath)))
 					Expect(reader).To(BeNil())
 				})
 
 				It("returns no reader if the key does not exist", func() {
 					var err error
-					reader, err = str.Get(ctx, key)
+					reader, err = store.Get(ctx, key)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(reader).To(BeNil())
 				})
@@ -219,7 +242,7 @@ var _ = Describe("File", func() {
 					Expect(os.MkdirAll(filepath.Dir(keyPath), 0777)).To(Succeed())
 					Expect(ioutil.WriteFile(keyPath, contents, 0666)).To(Succeed())
 					var err error
-					reader, err = str.Get(ctx, key)
+					reader, err = store.Get(ctx, key)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(reader).ToNot(BeNil())
 					Expect(ioutil.ReadAll(reader)).To(Equal(contents))
@@ -228,32 +251,32 @@ var _ = Describe("File", func() {
 
 			Context("Delete", func() {
 				It("returns an error if the context is missing", func() {
-					deleted, err := str.Delete(nil, key)
+					deleted, err := store.Delete(nil, key)
 					Expect(err).To(MatchError("context is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error if the key is missing", func() {
-					deleted, err := str.Delete(ctx, "")
+					deleted, err := store.Delete(ctx, "")
 					Expect(err).To(MatchError("key is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error if the key is invalid", func() {
-					deleted, err := str.Delete(ctx, "#invalid#")
+					deleted, err := store.Delete(ctx, "#invalid#")
 					Expect(err).To(MatchError("key is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error if the key is a directory", func() {
 					Expect(os.MkdirAll(keyPath, 0777)).To(Succeed())
-					deleted, err := str.Delete(ctx, key)
+					deleted, err := store.Delete(ctx, key)
 					Expect(err).To(MatchError(fmt.Sprintf("unexpected directory or irregular file at path %q", keyPath)))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns false if the key does not exist", func() {
-					Expect(str.Delete(ctx, key)).To(BeFalse())
+					Expect(store.Delete(ctx, key)).To(BeFalse())
 				})
 
 				Context("with existing file", func() {
@@ -263,7 +286,7 @@ var _ = Describe("File", func() {
 					})
 
 					It("returns true if the key exists and it deletes the file", func() {
-						Expect(str.Delete(ctx, key)).To(BeTrue())
+						Expect(store.Delete(ctx, key)).To(BeTrue())
 						Expect(keyPath).ToNot(BeAnExistingFile())
 					})
 
@@ -274,14 +297,70 @@ var _ = Describe("File", func() {
 						})
 
 						It("returns true if the key exists and it deletes the file and any empty directories", func() {
-							Expect(str.Delete(ctx, key)).To(BeTrue())
+							Expect(store.Delete(ctx, key)).To(BeTrue())
 							Expect(keyPath).ToNot(BeAnExistingFile())
 							Expect(filepath.Dir(keyPath)).ToNot(BeADirectory())
 						})
 
 						It("returns true if the key exists and it deletes the file, but not any non-empty directories", func() {
 							Expect(ioutil.WriteFile(keyPath+".exists", contents, 0666)).To(Succeed())
-							Expect(str.Delete(ctx, key)).To(BeTrue())
+							Expect(store.Delete(ctx, key)).To(BeTrue())
+							Expect(keyPath).ToNot(BeAnExistingFile())
+							Expect(filepath.Dir(keyPath)).To(BeADirectory())
+						})
+					})
+				})
+			})
+
+			Context("DeleteDirectory", func() {
+				It("returns an error if the context is missing", func() {
+					Expect(store.DeleteDirectory(nil, key)).To(MatchError("context is missing"))
+				})
+
+				It("returns an error if the key is missing", func() {
+					Expect(store.DeleteDirectory(ctx, "")).To(MatchError("key is missing"))
+				})
+
+				It("returns an error if the key is invalid", func() {
+					Expect(store.DeleteDirectory(ctx, "#invalid#")).To(MatchError("key is invalid"))
+				})
+
+				It("returns an error if the key is not a directory", func() {
+					Expect(os.MkdirAll(filepath.Dir(keyPath), 0777)).To(Succeed())
+					Expect(ioutil.WriteFile(keyPath, contents, 0666)).To(Succeed())
+					Expect(store.DeleteDirectory(ctx, key)).To(MatchError(fmt.Sprintf("unexpected file at path %q", keyPath)))
+				})
+
+				It("returns successfully if the key does not exist", func() {
+					Expect(store.DeleteDirectory(ctx, key)).To(Succeed())
+				})
+
+				Context("with existing directory", func() {
+					JustBeforeEach(func() {
+						Expect(os.MkdirAll(keyPath, 0777)).To(Succeed())
+						Expect(ioutil.WriteFile(filepath.Join(keyPath, "exists"), contents, 0666)).To(Succeed())
+					})
+
+					It("returns successfully if the key exists and it deletes the file", func() {
+						Expect(store.DeleteDirectory(ctx, key)).To(Succeed())
+						Expect(keyPath).ToNot(BeAnExistingFile())
+					})
+
+					Context("with at least one directory", func() {
+						BeforeEach(func() {
+							key = path.Join(key, storeUnstructuredTest.RandomKeySegment())
+							keyPath = filepath.Join(directory, filepath.FromSlash(key))
+						})
+
+						It("returns successfully if the key exists and it deletes the file and any empty directories", func() {
+							Expect(store.DeleteDirectory(ctx, key)).To(Succeed())
+							Expect(keyPath).ToNot(BeAnExistingFile())
+							Expect(filepath.Dir(keyPath)).ToNot(BeADirectory())
+						})
+
+						It("returns successfully if the key exists and it deletes the file, but not any non-empty directories", func() {
+							Expect(ioutil.WriteFile(keyPath+".exists", contents, 0666)).To(Succeed())
+							Expect(store.DeleteDirectory(ctx, key)).To(Succeed())
 							Expect(keyPath).ToNot(BeAnExistingFile())
 							Expect(filepath.Dir(keyPath)).To(BeADirectory())
 						})

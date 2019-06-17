@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
-	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -127,7 +126,7 @@ func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPREC
 func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selectors {
 	selectors := data.Selectors{}
 	for _, dataSetDatum := range dataSetData {
-		if origin := dataSetDatum.(dataTypesCommonOrigin.Getter).GetOrigin(); origin != nil && origin.ID != nil {
+		if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
 			selector := &data.Selector{
 				Origin: &data.SelectorOrigin{
 					ID: pointer.CloneString(origin.ID),

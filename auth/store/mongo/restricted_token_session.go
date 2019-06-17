@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+	mgo "github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
@@ -96,6 +96,30 @@ func (r *RestrictedTokenSession) CreateUserRestrictedToken(ctx context.Context, 
 	return restrictedToken, nil
 }
 
+func (r *RestrictedTokenSession) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	}
+
+	if r.IsClosed() {
+		return errors.New("session closed")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
+
+	changeInfo, err := r.C().RemoveAll(bson.M{"userId": userID})
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteAllRestrictedTokens")
+	if err != nil {
+		return errors.Wrap(err, "unable to delete all restricted tokens")
+	}
+
+	return nil
+}
+
 func (r *RestrictedTokenSession) GetRestrictedToken(ctx context.Context, id string) (*auth.RestrictedToken, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -150,14 +174,14 @@ func (r *RestrictedTokenSession) UpdateRestrictedToken(ctx context.Context, id s
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
-		"modifiedTime": now.Truncate(time.Second),
+		"modifiedTime": now,
 	}
 	unset := bson.M{}
 	if update.Paths != nil {
 		set["path"] = *update.Paths
 	}
 	if update.ExpirationTime != nil {
-		set["expirationTime"] = (*update.ExpirationTime).Truncate(time.Second)
+		set["expirationTime"] = *update.ExpirationTime
 	}
 	changeInfo, err := r.C().UpdateAll(bson.M{"id": id}, r.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateRestrictedToken")

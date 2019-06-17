@@ -1,12 +1,12 @@
 package service_test
 
 import (
+	"errors"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"errors"
-	"time"
 
 	"github.com/tidepool-org/platform/service"
 )
@@ -54,7 +54,7 @@ var _ = Describe("Errors", func() {
 		Entry("is ErrorTypeNotArray with int parameter", service.ErrorTypeNotArray(-1), "type-not-array", "type is not array", "Type is not array, but int", 0),
 		Entry("is ErrorTypeNotArray with string parameter", service.ErrorTypeNotArray("test"), "type-not-array", "type is not array", "Type is not array, but string", 0),
 		Entry("is ErrorTypeNotArray with string array parameter", service.ErrorTypeNotArray([]string{}), "type-not-array", "type is not array", "Type is not array, but []string", 0),
-		Entry("is ErrorValueTimeNotParsable", service.ErrorValueTimeNotParsable("abc", time.RFC3339), "value-not-parsable", "value is not a parsable time", `value "abc" is not a parsable time of format "2006-01-02T15:04:05Z07:00"`, 0),
+		Entry("is ErrorValueTimeNotParsable", service.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "value-not-parsable", "value is not a parsable time", `value "abc" is not a parsable time of format "2006-01-02T15:04:05.999999999Z07:00"`, 0),
 		Entry("is ErrorValueNotExists", service.ErrorValueNotExists(), "value-not-exists", "value does not exist", "Value does not exist", 0),
 		Entry("is ErrorValueNotGreaterThanOrEqualTo with int", service.ErrorValueNotGreaterThanOrEqualTo(1, 2), "value-out-of-range", "value is out of range", "Value 1 is not greater than or equal to 2", 0),
 		Entry("is ErrorValueNotGreaterThanOrEqualTo with float", service.ErrorValueNotGreaterThanOrEqualTo(3.4, 5.6), "value-out-of-range", "value is out of range", "Value 3.4 is not greater than or equal to 5.6", 0),

@@ -12,8 +12,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func Base64EncodedMD5Hash(bytes []byte) string {
-	md5Sum := md5.Sum(bytes)
+func Base64EncodedMD5Hash(bites []byte) string {
+	md5Sum := md5.Sum(bites)
 	return base64.StdEncoding.EncodeToString(md5Sum[:])
 }
 
@@ -28,9 +28,9 @@ func Base64EncodedMD5HashValidator(value string, errorReporter structure.ErrorRe
 func ValidateBase64EncodedMD5Hash(value string) error {
 	if value == "" {
 		return structureValidator.ErrorValueEmpty()
-	} else if bytes, err := base64.StdEncoding.DecodeString(value); err != nil {
+	} else if bites, err := base64.StdEncoding.DecodeString(value); err != nil {
 		return ErrorValueStringAsBase64EncodedMD5HashNotValid(value)
-	} else if len(bytes) != 16 {
+	} else if len(bites) != 16 {
 		return ErrorValueStringAsBase64EncodedMD5HashNotValid(value)
 	}
 	return nil
@@ -45,14 +45,14 @@ func HexEncodedMD5Hash(sourceString string) string {
 	return hex.EncodeToString(md5Sum[:])
 }
 
-func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
+func EncryptWithAES256UsingPassphrase(bites []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New("unrecoverable encryption failure")
 		}
 	}()
 
-	if len(bytes) == 0 {
+	if len(bites) == 0 {
 		return nil, errors.New("bytes is missing")
 	}
 	if len(passphrase) == 0 {
@@ -60,17 +60,17 @@ func EncryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)
-	return encryptWithAES256(bytes, key, iv)
+	return encryptWithAES256(bites, key, iv)
 }
 
-func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte, err error) {
+func DecryptWithAES256UsingPassphrase(bites []byte, passphrase []byte) (_ []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = errors.New("unrecoverable decryption failure")
 		}
 	}()
 
-	if len(bytes) == 0 {
+	if len(bites) == 0 {
 		return nil, errors.New("bytes is missing")
 	}
 	if len(passphrase) == 0 {
@@ -78,29 +78,29 @@ func DecryptWithAES256UsingPassphrase(bytes []byte, passphrase []byte) (_ []byte
 	}
 
 	key, iv := passphraseToKey32AndIV16(passphrase)
-	return decryptWithAES256(bytes, key, iv)
+	return decryptWithAES256(bites, key, iv)
 }
 
-func encryptWithAES256(bytes []byte, key []byte, iv []byte) ([]byte, error) {
+func encryptWithAES256(bites []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	paddedBytes := padBytesWithPKCS7(bytes)
+	paddedBytes := padBytesWithPKCS7(bites)
 	encryptedBytes := make([]byte, len(paddedBytes))
 	cipher.NewCBCEncrypter(block, iv).CryptBlocks(encryptedBytes, paddedBytes)
 	return encryptedBytes, nil
 }
 
-func decryptWithAES256(bytes []byte, key []byte, iv []byte) ([]byte, error) {
+func decryptWithAES256(bites []byte, key []byte, iv []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	decryptedBytes := make([]byte, len(bytes))
-	cipher.NewCBCDecrypter(block, iv).CryptBlocks(decryptedBytes, bytes)
+	decryptedBytes := make([]byte, len(bites))
+	cipher.NewCBCDecrypter(block, iv).CryptBlocks(decryptedBytes, bites)
 	return unpadBytesWithPKCS7(decryptedBytes), nil
 }
 
@@ -117,28 +117,28 @@ func generateMD5Sum(data []byte) []byte {
 	return hash.Sum(nil)
 }
 
-func padBytesWithPKCS7(bytes []byte) []byte {
-	overflowLength := len(bytes) % aes.BlockSize
+func padBytesWithPKCS7(bites []byte) []byte {
+	overflowLength := len(bites) % aes.BlockSize
 	if overflowLength == 0 {
-		return bytes
+		return bites
 	}
 
 	paddingLength := aes.BlockSize - overflowLength
-	paddedBytes := make([]byte, len(bytes)+paddingLength)
-	copy(paddedBytes, bytes)
+	paddedBytes := make([]byte, len(bites)+paddingLength)
+	copy(paddedBytes, bites)
 	for i := 0; i < paddingLength; i++ {
-		paddedBytes[len(bytes)+i] = byte(paddingLength)
+		paddedBytes[len(bites)+i] = byte(paddingLength)
 	}
 	return paddedBytes
 }
 
-func unpadBytesWithPKCS7(bytes []byte) []byte {
-	overflowLength := int(bytes[len(bytes)-1])
+func unpadBytesWithPKCS7(bites []byte) []byte {
+	overflowLength := int(bites[len(bites)-1])
 	if overflowLength >= aes.BlockSize {
-		return bytes
+		return bites
 	}
 
-	return bytes[:len(bytes)-overflowLength]
+	return bites[:len(bites)-overflowLength]
 }
 
 func passphraseToKey32AndIV16(passphrase []byte) ([]byte, []byte) {

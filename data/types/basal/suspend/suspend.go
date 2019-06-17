@@ -6,7 +6,6 @@ import (
 	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	dataTypesBasalTemporary "github.com/tidepool-org/platform/data/types/basal/temporary"
-	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -19,7 +18,7 @@ const (
 )
 
 type Suppressed interface {
-	Parse(parser data.ObjectParser) error
+	Parse(parser structure.ObjectParser)
 	Validate(validator structure.Validator)
 	Normalize(normalizer data.Normalizer)
 }
@@ -38,16 +37,16 @@ func New() *Suspend {
 	}
 }
 
-func (s *Suspend) Parse(parser data.ObjectParser) error {
-	if err := s.Basal.Parse(parser); err != nil {
-		return err
+func (s *Suspend) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(s.Meta())
 	}
 
-	s.Duration = parser.ParseInteger("duration")
-	s.DurationExpected = parser.ParseInteger("expectedDuration")
-	s.Suppressed = parseSuppressed(parser.NewChildObjectParser("suppressed"))
+	s.Basal.Parse(parser)
 
-	return nil
+	s.Duration = parser.Int("duration")
+	s.DurationExpected = parser.Int("expectedDuration")
+	s.Suppressed = parseSuppressed(parser.WithReferenceObjectParser("suppressed"))
 }
 
 func (s *Suspend) Validate(validator structure.Validator) {
@@ -89,7 +88,7 @@ var suppressedDeliveryTypes = []string{
 	dataTypesBasalTemporary.DeliveryType,
 }
 
-func parseSuppressed(parser data.ObjectParser) Suppressed {
+func parseSuppressed(parser structure.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
 		case dataTypesBasalAutomated.DeliveryType:
@@ -99,7 +98,7 @@ func parseSuppressed(parser data.ObjectParser) Suppressed {
 		case dataTypesBasalTemporary.DeliveryType:
 			return dataTypesBasalTemporary.ParseSuppressedTemporary(parser)
 		default:
-			parser.AppendError("type", service.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+			parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
 		}
 	}
 	return nil

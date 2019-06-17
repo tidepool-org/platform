@@ -125,6 +125,18 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	return providerSession, nil
 }
 
+func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -207,6 +219,18 @@ func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, fi
 	}
 
 	return restrictedTokens, nil
+}
+
+func (c *Client) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "restricted_tokens")
+	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
 func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, create *auth.RestrictedTokenCreate) (*auth.RestrictedToken, error) {

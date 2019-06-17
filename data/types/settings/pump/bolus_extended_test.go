@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -26,7 +26,7 @@ func CloneBolusExtended(datum *pump.BolusExtended) *pump.BolusExtended {
 		return nil
 	}
 	clone := pump.NewBolusExtended()
-	clone.Enabled = test.CloneBool(datum.Enabled)
+	clone.Enabled = pointer.CloneBool(datum.Enabled)
 	return clone
 }
 
@@ -51,14 +51,14 @@ var _ = Describe("BolusExtended", func() {
 				func(mutator func(datum *pump.BolusExtended), expectedErrors ...error) {
 					datum := NewBolusExtended()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BolusExtended) {},
 				),
 				Entry("enabled missing",
 					func(datum *pump.BolusExtended) { datum.Enabled = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 				Entry("enabled false",
 					func(datum *pump.BolusExtended) { datum.Enabled = pointer.FromBool(false) },
@@ -70,7 +70,7 @@ var _ = Describe("BolusExtended", func() {
 					func(datum *pump.BolusExtended) {
 						datum.Enabled = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
 			)
 		})

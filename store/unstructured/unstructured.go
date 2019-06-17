@@ -6,15 +6,29 @@ import (
 	"regexp"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type Store interface {
 	Exists(ctx context.Context, key string) (bool, error)
-	Put(ctx context.Context, key string, reader io.Reader) error
+	Put(ctx context.Context, key string, reader io.Reader, options *Options) error
 	Get(ctx context.Context, key string) (io.ReadCloser, error)
 	Delete(ctx context.Context, key string) (bool, error)
+	DeleteDirectory(ctx context.Context, key string) error
+}
+
+func NewOptions() *Options {
+	return &Options{}
+}
+
+type Options struct {
+	MediaType *string `json:"mediaType,omitempty"`
+}
+
+func (o *Options) Validate(validator structure.Validator) {
+	validator.String("mediaType", o.MediaType).Using(net.MediaTypeValidator)
 }
 
 func IsValidKey(value string) bool {
@@ -42,4 +56,4 @@ func ErrorValueStringAsKeyNotValid(value string) error {
 
 const keyLengthMaximum = 2047
 
-var keyExpression = regexp.MustCompile("^[0-9A-Za-z][0-9A-Za-z._-]*(/[0-9A-Za-z][0-9A-Za-z._-]*)*$")
+var keyExpression = regexp.MustCompile("^[0-9A-Za-z][0-9A-Za-z._=-]*(/[0-9A-Za-z][0-9A-Za-z._=-]*)*$")

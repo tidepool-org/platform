@@ -5,34 +5,34 @@ import (
 
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
-	testAuthStore "github.com/tidepool-org/platform/auth/store/test"
+	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	"github.com/tidepool-org/platform/provider"
-	testProvider "github.com/tidepool-org/platform/provider/test"
-	testService "github.com/tidepool-org/platform/service/test"
+	providerTest "github.com/tidepool-org/platform/provider/test"
+	serviceTest "github.com/tidepool-org/platform/service/test"
 	"github.com/tidepool-org/platform/task"
-	testTask "github.com/tidepool-org/platform/task/test"
+	taskTest "github.com/tidepool-org/platform/task/test"
 )
 
 type Service struct {
-	*testService.Service
+	*serviceTest.Service
 	DomainInvocations          int
 	DomainOutputs              []string
 	AuthStoreInvocations       int
-	AuthStoreImpl              *testAuthStore.Store
+	AuthStoreImpl              *authStoreTest.Store
 	ProviderFactoryInvocations int
-	ProviderFactoryImpl        *testProvider.Factory
+	ProviderFactoryImpl        *providerTest.Factory
 	TaskClientInvocations      int
-	TaskClientImpl             *testTask.Client
+	TaskClientImpl             *taskTest.Client
 	StatusInvocations          int
 	StatusOutputs              []*service.Status
 }
 
 func NewService() *Service {
 	return &Service{
-		Service:             testService.NewService(),
-		AuthStoreImpl:       testAuthStore.NewStore(),
-		ProviderFactoryImpl: testProvider.NewFactory(),
-		TaskClientImpl:      testTask.NewClient(),
+		Service:             serviceTest.NewService(),
+		AuthStoreImpl:       authStoreTest.NewStore(),
+		ProviderFactoryImpl: providerTest.NewFactory(),
+		TaskClientImpl:      taskTest.NewClient(),
 	}
 }
 

@@ -4,11 +4,12 @@ import (
 	"sort"
 	"time"
 
+	"github.com/tidepool-org/platform/association"
 	"github.com/tidepool-org/platform/data"
-	dataTypesCommonAssociation "github.com/tidepool-org/platform/data/types/common/association"
-	dataTypesCommonLocation "github.com/tidepool-org/platform/data/types/common/location"
-	dataTypesCommonOrigin "github.com/tidepool-org/platform/data/types/common/origin"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/location"
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	timeZone "github.com/tidepool-org/platform/time/zone"
@@ -16,13 +17,13 @@ import (
 )
 
 const (
-	ArchivedTimeFormat      = time.RFC3339
+	ArchivedTimeFormat      = time.RFC3339Nano
 	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
 	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	CreatedTimeFormat       = time.RFC3339
-	DeletedTimeFormat       = time.RFC3339
+	CreatedTimeFormat       = time.RFC3339Nano
+	DeletedTimeFormat       = time.RFC3339Nano
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	ModifiedTimeFormat      = time.RFC3339
+	ModifiedTimeFormat      = time.RFC3339Nano
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	SchemaVersionCurrent    = SchemaVersionMaximum
@@ -30,45 +31,45 @@ const (
 	SchemaVersionMinimum    = 1
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
-	TimeFormat              = time.RFC3339
+	TimeFormat              = time.RFC3339Nano
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionMinimum          = 0
 )
 
 type Base struct {
-	Active            bool                                         `json:"-" bson:"_active"`
-	Annotations       *data.BlobArray                              `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	ArchivedDataSetID *string                                      `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime      *string                                      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
-	Associations      *dataTypesCommonAssociation.AssociationArray `json:"associations,omitempty" bson:"associations,omitempty"`
-	ClockDriftOffset  *int                                         `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
-	ConversionOffset  *int                                         `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime       *string                                      `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID     *string                                      `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	Deduplicator      *data.DeduplicatorDescriptor                 `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
-	DeletedTime       *string                                      `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID     *string                                      `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	DeviceID          *string                                      `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
-	DeviceTime        *string                                      `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-	GUID              *string                                      `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID                *string                                      `json:"id,omitempty" bson:"id,omitempty"`
-	Location          *dataTypesCommonLocation.Location            `json:"location,omitempty" bson:"location,omitempty"`
-	ModifiedTime      *string                                      `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID    *string                                      `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	Notes             *[]string                                    `json:"notes,omitempty" bson:"notes,omitempty"`
-	Origin            *dataTypesCommonOrigin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
-	Payload           *data.Blob                                   `json:"payload,omitempty" bson:"payload,omitempty"`
-	SchemaVersion     int                                          `json:"-" bson:"_schemaVersion,omitempty"`
-	Source            *string                                      `json:"source,omitempty" bson:"source,omitempty"`
-	Tags              *[]string                                    `json:"tags,omitempty" bson:"tags,omitempty"`
-	Time              *string                                      `json:"time,omitempty" bson:"time,omitempty"`
-	TimeZoneName      *string                                      `json:"timezone,omitempty" bson:"timezone,omitempty"`             // TODO: Rename to timeZoneName
-	TimeZoneOffset    *int                                         `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"` // TODO: Rename to timeZoneOffset
-	Type              string                                       `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID          *string                                      `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID            *string                                      `json:"-" bson:"_userId,omitempty"`
-	Version           int                                          `json:"-" bson:"_version,omitempty"`
+	Active            bool                          `json:"-" bson:"_active"`
+	Annotations       *metadata.MetadataArray       `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	ArchivedDataSetID *string                       `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
+	ArchivedTime      *string                       `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	Associations      *association.AssociationArray `json:"associations,omitempty" bson:"associations,omitempty"`
+	ClockDriftOffset  *int                          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
+	ConversionOffset  *int                          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
+	CreatedTime       *string                       `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID     *string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	Deduplicator      *data.DeduplicatorDescriptor  `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
+	DeletedTime       *string                       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID     *string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	DeviceID          *string                       `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+	DeviceTime        *string                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
+	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
+	ModifiedTime      *string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
+	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
+	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
+	SchemaVersion     int                           `json:"-" bson:"_schemaVersion,omitempty"`
+	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
+	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
+	Time              *string                       `json:"time,omitempty" bson:"time,omitempty"`
+	TimeZoneName      *string                       `json:"timezone,omitempty" bson:"timezone,omitempty"`             // TODO: Rename to timeZoneName
+	TimeZoneOffset    *int                          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"` // TODO: Rename to timeZoneOffset
+	Type              string                        `json:"type,omitempty" bson:"type,omitempty"`
+	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID            *string                       `json:"-" bson:"_userId,omitempty"`
+	Version           int                           `json:"-" bson:"_version,omitempty"`
 }
 
 type Meta struct {
@@ -87,25 +88,23 @@ func (b *Base) Meta() interface{} {
 	}
 }
 
-func (b *Base) Parse(parser data.ObjectParser) error {
-	b.Annotations = data.ParseBlobArray(parser.NewChildArrayParser("annotations"))
-	b.Associations = dataTypesCommonAssociation.ParseAssociationArray(parser.NewChildArrayParser("associations"))
-	b.ClockDriftOffset = parser.ParseInteger("clockDriftOffset")
-	b.ConversionOffset = parser.ParseInteger("conversionOffset")
-	b.DeviceID = parser.ParseString("deviceId")
-	b.DeviceTime = parser.ParseString("deviceTime")
-	b.ID = parser.ParseString("id")
-	b.Location = dataTypesCommonLocation.ParseLocation(parser.NewChildObjectParser("location"))
-	b.Notes = parser.ParseStringArray("notes")
-	b.Origin = dataTypesCommonOrigin.ParseOrigin(parser.NewChildObjectParser("origin"))
-	b.Payload = data.ParseBlob(parser.NewChildObjectParser("payload"))
-	b.Source = parser.ParseString("source")
-	b.Tags = parser.ParseStringArray("tags")
-	b.Time = parser.ParseString("time")
-	b.TimeZoneName = parser.ParseString("timezone")
-	b.TimeZoneOffset = parser.ParseInteger("timezoneOffset")
-
-	return nil
+func (b *Base) Parse(parser structure.ObjectParser) {
+	b.Annotations = metadata.ParseMetadataArray(parser.WithReferenceArrayParser("annotations"))
+	b.Associations = association.ParseAssociationArray(parser.WithReferenceArrayParser("associations"))
+	b.ClockDriftOffset = parser.Int("clockDriftOffset")
+	b.ConversionOffset = parser.Int("conversionOffset")
+	b.DeviceID = parser.String("deviceId")
+	b.DeviceTime = parser.String("deviceTime")
+	b.ID = parser.String("id")
+	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
+	b.Notes = parser.StringArray("notes")
+	b.Origin = origin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
+	b.Payload = metadata.ParseMetadata(parser.WithReferenceObjectParser("payload"))
+	b.Source = parser.String("source")
+	b.Tags = parser.StringArray("tags")
+	b.Time = parser.String("time")
+	b.TimeZoneName = parser.String("timezone")
+	b.TimeZoneOffset = parser.Int("timezoneOffset")
 }
 
 func (b *Base) Validate(validator structure.Validator) {
@@ -226,12 +225,6 @@ func (b *Base) Validate(validator structure.Validator) {
 }
 
 func (b *Base) Normalize(normalizer data.Normalizer) {
-	if b.Annotations != nil {
-		b.Annotations.Normalize(normalizer.WithReference("annotations"))
-	}
-	if b.Associations != nil {
-		b.Associations.Normalize(normalizer.WithReference("associations"))
-	}
 	if b.Deduplicator != nil {
 		b.Deduplicator.NormalizeDEPRECATED(normalizer.WithReference("deduplicator"))
 	}
@@ -240,16 +233,6 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())
 		}
-	}
-
-	if b.Location != nil {
-		b.Location.Normalize(normalizer.WithReference("location"))
-	}
-	if b.Origin != nil {
-		b.Origin.Normalize(normalizer.WithReference("origin"))
-	}
-	if b.Payload != nil {
-		b.Payload.Normalize(normalizer.WithReference("payload"))
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {
@@ -289,11 +272,11 @@ func (b *Base) IdentityFields() ([]string, error) {
 	return []string{*b.UserID, *b.DeviceID, *b.Time, b.Type}, nil
 }
 
-func (b *Base) GetOrigin() *dataTypesCommonOrigin.Origin {
+func (b *Base) GetOrigin() *origin.Origin {
 	return b.Origin
 }
 
-func (b *Base) GetPayload() *data.Blob {
+func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
 

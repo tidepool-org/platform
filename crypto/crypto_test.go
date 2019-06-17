@@ -1,11 +1,11 @@
 package crypto_test
 
 import (
+	"encoding/base64"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"encoding/base64"
 
 	"github.com/tidepool-org/platform/crypto"
 	errorsTest "github.com/tidepool-org/platform/errors/test"

@@ -1,92 +1,103 @@
 package api_test
 
 import (
+	"net/http"
+
+	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
+	taskService "github.com/tidepool-org/platform/task/service"
+	taskServiceApi "github.com/tidepool-org/platform/task/service/api"
+	taskServiceTest "github.com/tidepool-org/platform/task/service/test"
+	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("API", func() {
-	// 	var svc *testService.Service
+	var service *taskServiceTest.Service
 
-	// 	BeforeEach(func() {
-	// 		svc = testService.NewService()
-	// 	})
+	BeforeEach(func() {
+		service = taskServiceTest.NewService()
+	})
 
-	// 	Context("NewRouter", func() {
-	// 		It("returns an error if context is missing", func() {
-	// 			rtr, err := api.NewRouter(nil)
-	// 			Expect(err).To(MatchError("service is missing"))
-	// 			Expect(rtr).To(BeNil())
-	// 		})
+	Context("NewRouter", func() {
+		It("returns an error if context is missing", func() {
+			router, err := taskServiceApi.NewRouter(nil)
+			Expect(err).To(MatchError("service is missing"))
+			Expect(router).To(BeNil())
+		})
 
-	// 		It("returns successfully", func() {
-	// 			rtr, err := api.NewRouter(svc)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(rtr).ToNot(BeNil())
-	// 		})
-	// 	})
+		It("returns successfully", func() {
+			router, err := taskServiceApi.NewRouter(service)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(router).ToNot(BeNil())
+		})
+	})
 
-	// 	Context("with new router", func() {
-	// 		var rtr *api.Router
+	Context("with new router", func() {
+		var router *taskServiceApi.Router
 
-	// 		BeforeEach(func() {
-	// 			var err error
-	// 			rtr, err = api.NewRouter(svc)
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(rtr).ToNot(BeNil())
-	// 		})
+		BeforeEach(func() {
+			var err error
+			router, err = taskServiceApi.NewRouter(service)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(router).ToNot(BeNil())
+		})
 
-	// 		Context("Routes", func() {
-	// 			It("returns the expected routes", func() {
-	// 				Expect(rtr.Routes()).ToNot(BeEmpty())
-	// 			})
-	// 		})
+		Context("Routes", func() {
+			It("returns the expected routes", func() {
+				Expect(router.Routes()).ToNot(BeEmpty())
+			})
+		})
 
-	// 		var _ = Describe("StatusGet", func() {
-	// 			var response *testRest.ResponseWriter
-	// 			var request *rest.Request
-	// 			var svc *testService.Service
-	// 			var rtr *api.Router
+		Context("StatusGet", func() {
+			var response *testRest.ResponseWriter
+			var request *rest.Request
 
-	// 			BeforeEach(func() {
-	// 				response = testRest.NewResponseWriter()
-	// 				request = testRest.NewRequest()
-	// 				svc = testService.NewService()
-	// 				var err error
-	// 				rtr, err = api.NewRouter(svc)
-	// 				Expect(err).ToNot(HaveOccurred())
-	// 				Expect(rtr).ToNot(BeNil())
-	// 			})
+			BeforeEach(func() {
+				response = testRest.NewResponseWriter()
+				request = testRest.NewRequest()
+				request.Request = request.WithContext(log.NewContextWithLogger(request.Context(), logTest.NewLogger()))
+				service = taskServiceTest.NewService()
+				var err error
+				router, err = taskServiceApi.NewRouter(service)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(router).ToNot(BeNil())
+			})
 
-	// 			AfterEach(func() {
-	// 				Expect(svc.UnusedOutputsCount()).To(Equal(0))
-	// 				Expect(response.UnusedOutputsCount()).To(Equal(0))
-	// 			})
+			AfterEach(func() {
+				Expect(service.UnusedOutputsCount()).To(Equal(0))
+				response.AssertOutputsEmpty()
+			})
 
-	// 			Context("StatusGet", func() {
-	// 				It("panics if response is missing", func() {
-	// 					Expect(func() { rtr.StatusGet(nil, request) }).To(Panic())
-	// 				})
+			Context("StatusGet", func() {
+				It("panics if response is missing", func() {
+					Expect(func() { router.StatusGet(nil, request) }).To(Panic())
+				})
 
-	// 				It("panics if request is missing", func() {
-	// 					Expect(func() { rtr.StatusGet(response, nil) }).To(Panic())
-	// 				})
+				It("panics if request is missing", func() {
+					Expect(func() { router.StatusGet(response, nil) }).To(Panic())
+				})
 
-	// 				Context("with service status", func() {
-	// 					var sts *service.Status
+				Context("with service status", func() {
+					var status *taskService.Status
 
-	// 					BeforeEach(func() {
-	// 						sts = &service.Status{}
-	// 						svc.StatusOutputs = []*service.Status{sts}
-	// 						response.WriteJsonOutputs = []error{nil}
-	// 					})
+					BeforeEach(func() {
+						status = &taskService.Status{}
+						service.StatusOutputs = []*taskService.Status{status}
+						response.HeaderOutput = &http.Header{}
+						response.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					})
 
-	// 					It("returns successfully", func() {
-	// 						rtr.StatusGet(response, request)
-	// 						Expect(response.WriteJsonInputs).To(HaveLen(1))
-	// 						Expect(response.WriteJsonInputs[0].(*serviceContext.JSONResponse).Data).To(Equal(sts))
-	// 					})
-	// 				})
-	// 			})
-	// 		})
-	// 	})
+					It("returns successfully", func() {
+						router.StatusGet(response, request)
+						Expect(response.WriteInputs).To(HaveLen(1))
+						Expect(response.WriteInputs[0]).To(MatchJSON(`{"Version": "", "Server": null, "TaskStore": null}`))
+					})
+				})
+			})
+		})
+	})
 })

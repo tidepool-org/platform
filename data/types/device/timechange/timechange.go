@@ -36,18 +36,18 @@ func New() *TimeChange {
 	}
 }
 
-func (t *TimeChange) Parse(parser data.ObjectParser) error {
-	if err := t.Device.Parse(parser); err != nil {
-		return err
+func (t *TimeChange) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(t.Meta())
 	}
 
-	t.From = ParseInfo(parser.NewChildObjectParser("from"))
-	t.Method = parser.ParseString("method")
-	t.To = ParseInfo(parser.NewChildObjectParser("to"))
+	t.Device.Parse(parser)
 
-	t.Change = ParseChange(parser.NewChildObjectParser("change"))
+	t.From = ParseInfo(parser.WithReferenceObjectParser("from"))
+	t.Method = parser.String("method")
+	t.To = ParseInfo(parser.WithReferenceObjectParser("to"))
 
-	return nil
+	t.Change = ParseChange(parser.WithReferenceObjectParser("change"))
 }
 
 func (t *TimeChange) Validate(validator structure.Validator) {

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/structure"
 )
@@ -317,13 +317,13 @@ func (s Serializable) MarshalJSON() ([]byte, error) {
 	return nil, nil
 }
 
-func (s *Serializable) UnmarshalJSON(bytes []byte) error {
+func (s *Serializable) UnmarshalJSON(bites []byte) error {
 	errObject := &object{}
-	if err := json.Unmarshal(bytes, &errObject); err != nil {
+	if err := json.Unmarshal(bites, &errObject); err != nil {
 		errObjects := []*object{}
-		if err = json.Unmarshal(bytes, &errObjects); err != nil {
+		if err = json.Unmarshal(bites, &errObjects); err != nil {
 			var errString string
-			if err = json.Unmarshal(bytes, &errString); err != nil {
+			if err = json.Unmarshal(bites, &errString); err != nil {
 				return err
 			}
 			s.Error = errors.New(errString)

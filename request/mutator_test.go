@@ -1,10 +1,10 @@
 package request_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"net/http"
 
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"

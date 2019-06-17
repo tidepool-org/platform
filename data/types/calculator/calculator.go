@@ -44,24 +44,22 @@ func New() *Calculator {
 	}
 }
 
-func (c *Calculator) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(c.Meta())
-
-	if err := c.Base.Parse(parser); err != nil {
-		return err
+func (c *Calculator) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(c.Meta())
 	}
 
-	c.BloodGlucoseInput = parser.ParseFloat("bgInput")
-	c.BloodGlucoseTarget = dataBloodGlucose.ParseTarget(parser.NewChildObjectParser("bgTarget"))
-	c.CarbohydrateInput = parser.ParseFloat("carbInput")
-	c.InsulinCarbohydrateRatio = parser.ParseFloat("insulinCarbRatio")
-	c.InsulinOnBoard = parser.ParseFloat("insulinOnBoard")
-	c.InsulinSensitivity = parser.ParseFloat("insulinSensitivity")
-	c.Recommended = ParseRecommended(parser.NewChildObjectParser("recommended"))
-	c.Units = parser.ParseString("units")
-	c.Bolus = dataTypesBolusFactory.ParseBolusDatum(parser.NewChildObjectParser("bolus"))
+	c.Base.Parse(parser)
 
-	return nil
+	c.BloodGlucoseInput = parser.Float64("bgInput")
+	c.BloodGlucoseTarget = dataBloodGlucose.ParseTarget(parser.WithReferenceObjectParser("bgTarget"))
+	c.CarbohydrateInput = parser.Float64("carbInput")
+	c.InsulinCarbohydrateRatio = parser.Float64("insulinCarbRatio")
+	c.InsulinOnBoard = parser.Float64("insulinOnBoard")
+	c.InsulinSensitivity = parser.Float64("insulinSensitivity")
+	c.Recommended = ParseRecommended(parser.WithReferenceObjectParser("recommended"))
+	c.Units = parser.String("units")
+	c.Bolus = dataTypesBolusFactory.ParseBolusDatum(parser.WithReferenceObjectParser("bolus"))
 }
 
 func (c *Calculator) Validate(validator structure.Validator) {

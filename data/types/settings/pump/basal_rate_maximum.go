@@ -24,13 +24,12 @@ type BasalRateMaximum struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseBasalRateMaximum(parser data.ObjectParser) *BasalRateMaximum {
-	if parser.Object() == nil {
+func ParseBasalRateMaximum(parser structure.ObjectParser) *BasalRateMaximum {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBasalRateMaximum()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -38,9 +37,9 @@ func NewBasalRateMaximum() *BasalRateMaximum {
 	return &BasalRateMaximum{}
 }
 
-func (b *BasalRateMaximum) Parse(parser data.ObjectParser) {
-	b.Units = parser.ParseString("units")
-	b.Value = parser.ParseFloat("value")
+func (b *BasalRateMaximum) Parse(parser structure.ObjectParser) {
+	b.Units = parser.String("units")
+	b.Value = parser.Float64("value")
 }
 
 func (b *BasalRateMaximum) Validate(validator structure.Validator) {

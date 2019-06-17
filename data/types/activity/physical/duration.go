@@ -32,13 +32,12 @@ type Duration struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseDuration(parser data.ObjectParser) *Duration {
-	if parser.Object() == nil {
+func ParseDuration(parser structure.ObjectParser) *Duration {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewDuration()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -46,9 +45,9 @@ func NewDuration() *Duration {
 	return &Duration{}
 }
 
-func (d *Duration) Parse(parser data.ObjectParser) {
-	d.Units = parser.ParseString("units")
-	d.Value = parser.ParseFloat("value")
+func (d *Duration) Parse(parser structure.ObjectParser) {
+	d.Units = parser.String("units")
+	d.Value = parser.Float64("value")
 }
 
 func (d *Duration) Validate(validator structure.Validator) {

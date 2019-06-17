@@ -6,15 +6,15 @@ import (
 )
 
 const (
-	DoseActiveMaximum     = 250.0
-	DoseActiveMinimum     = 0.0
-	DoseCorrectionMaximum = 250.0
-	DoseCorrectionMinimum = -250.0
-	DoseFoodMaximum       = 250.0
-	DoseFoodMinimum       = 0.0
-	DoseTotalMaximum      = 250.0
-	DoseTotalMinimum      = 0.0
-	DoseUnitsUnits        = "Units"
+	DoseActiveUnitsMaximum     = 250.0
+	DoseActiveUnitsMinimum     = 0.0
+	DoseCorrectionUnitsMaximum = 250.0
+	DoseCorrectionUnitsMinimum = -250.0
+	DoseFoodUnitsMaximum       = 250.0
+	DoseFoodUnitsMinimum       = 0.0
+	DoseTotalUnitsMaximum      = 250.0
+	DoseTotalUnitsMinimum      = 0.0
+	DoseUnitsUnits             = "Units"
 )
 
 func DoseUnits() []string {
@@ -31,33 +31,32 @@ type Dose struct {
 	Units      *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseDose(parser data.ObjectParser) *Dose {
-	if parser.Object() == nil {
+func ParseDose(parser structure.ObjectParser) *Dose {
+	if !parser.Exists() {
 		return nil
 	}
-	dose := NewDose()
-	dose.Parse(parser)
-	parser.ProcessNotParsed()
-	return dose
+	datum := NewDose()
+	parser.Parse(datum)
+	return datum
 }
 
 func NewDose() *Dose {
 	return &Dose{}
 }
 
-func (d *Dose) Parse(parser data.ObjectParser) {
-	d.Active = parser.ParseFloat("active")
-	d.Correction = parser.ParseFloat("correction")
-	d.Food = parser.ParseFloat("food")
-	d.Total = parser.ParseFloat("total")
-	d.Units = parser.ParseString("units")
+func (d *Dose) Parse(parser structure.ObjectParser) {
+	d.Active = parser.Float64("active")
+	d.Correction = parser.Float64("correction")
+	d.Food = parser.Float64("food")
+	d.Total = parser.Float64("total")
+	d.Units = parser.String("units")
 }
 
 func (d *Dose) Validate(validator structure.Validator) {
-	validator.Float64("active", d.Active).InRange(DoseActiveMinimum, DoseActiveMaximum)
-	validator.Float64("correction", d.Correction).InRange(DoseCorrectionMinimum, DoseCorrectionMaximum)
-	validator.Float64("food", d.Food).InRange(DoseFoodMinimum, DoseFoodMaximum)
-	validator.Float64("total", d.Total).Exists().InRange(DoseTotalMinimum, DoseTotalMaximum)
+	validator.Float64("active", d.Active).InRange(DoseActiveUnitsMinimum, DoseActiveUnitsMaximum)
+	validator.Float64("correction", d.Correction).InRange(DoseCorrectionUnitsMinimum, DoseCorrectionUnitsMaximum)
+	validator.Float64("food", d.Food).InRange(DoseFoodUnitsMinimum, DoseFoodUnitsMaximum)
+	validator.Float64("total", d.Total).Exists().InRange(DoseTotalUnitsMinimum, DoseTotalUnitsMaximum)
 	validator.String("units", d.Units).Exists().OneOf(DoseUnits()...)
 }
 

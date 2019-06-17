@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
+	mgo "github.com/globalsign/mgo"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	mgo "gopkg.in/mgo.v2"
 
 	"github.com/tidepool-org/platform/test"
 )
@@ -19,16 +19,16 @@ var (
 )
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-	ssn, err := mgo.Dial(Address())
+	session, err := mgo.Dial(Address())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(ssn).ToNot(gomega.BeNil())
-	globalSession = ssn
+	gomega.Expect(session).ToNot(gomega.BeNil())
+	globalSession = session
 	return []byte(generateUniqueName("database"))
 }, func(data []byte) {
-	ssn, err := mgo.Dial(Address())
+	session, err := mgo.Dial(Address())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	gomega.Expect(ssn).ToNot(gomega.BeNil())
-	nodeSession = ssn
+	gomega.Expect(session).ToNot(gomega.BeNil())
+	nodeSession = session
 	database = string(data)
 })
 
@@ -62,5 +62,5 @@ func NewCollectionPrefix() string {
 }
 
 func generateUniqueName(base string) string {
-	return fmt.Sprintf("test_%s_%s_%s", time.Now().Format("20060102150405"), test.NewString(16, test.CharsetNumeric), base)
+	return fmt.Sprintf("test_%s_%s_%s", time.Now().Format("20060102150405"), test.RandomStringFromRangeAndCharset(16, 16, test.CharsetNumeric), base)
 }

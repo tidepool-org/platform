@@ -13,7 +13,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -29,6 +28,8 @@ func ProviderTypes() []string {
 type ProviderSessionAccessor interface {
 	ListUserProviderSessions(ctx context.Context, userID string, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
 	CreateUserProviderSession(ctx context.Context, userID string, create *ProviderSessionCreate) (*ProviderSession, error)
+	DeleteAllProviderSessions(ctx context.Context, userID string) error
+
 	GetProviderSession(ctx context.Context, id string) (*ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *ProviderSessionUpdate) (*ProviderSession, error)
 	DeleteProviderSession(ctx context.Context, id string) error
@@ -109,10 +110,6 @@ func NewProviderSessionUpdate() *ProviderSessionUpdate {
 	return &ProviderSessionUpdate{}
 }
 
-func (p *ProviderSessionUpdate) HasUpdates() bool {
-	return p.OAuthToken != nil
-}
-
 func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
 		p.OAuthToken = oauth.NewToken()
@@ -125,6 +122,10 @@ func (p *ProviderSessionUpdate) Validate(validator structure.Validator) {
 	if p.OAuthToken != nil {
 		p.OAuthToken.Validate(validator.WithReference("oauthToken"))
 	}
+}
+
+func (p *ProviderSessionUpdate) IsEmpty() bool {
+	return p.OAuthToken == nil
 }
 
 func NewProviderSessionID() string {
@@ -199,7 +200,7 @@ func NewProviderSession(userID string, create *ProviderSessionCreate) (*Provider
 		Type:        create.Type,
 		Name:        create.Name,
 		OAuthToken:  create.OAuthToken,
-		CreatedTime: time.Now().Truncate(time.Second),
+		CreatedTime: time.Now(),
 	}, nil
 }
 
@@ -221,15 +222,15 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
-	if ptr := parser.Time("createdTime", time.RFC3339); ptr != nil {
+	if ptr := parser.Time("createdTime", time.RFC3339Nano); ptr != nil {
 		p.CreatedTime = *ptr
 	}
-	p.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	p.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 }
 
 func (p *ProviderSession) Validate(validator structure.Validator) {
 	validator.String("id", &p.ID).Using(ProviderSessionIDValidator)
-	validator.String("userId", &p.UserID).Using(user.IDValidator)
+	validator.String("userId", &p.UserID).Using(UserIDValidator)
 	validator.String("type", &p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", &p.Name).NotEmpty()
 	switch p.Type {

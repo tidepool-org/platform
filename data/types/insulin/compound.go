@@ -18,13 +18,12 @@ type Compound struct {
 	Formulation *Formulation `json:"formulation,omitempty" bson:"formulation,omitempty"`
 }
 
-func ParseCompound(parser data.ObjectParser) *Compound {
-	if parser.Object() == nil {
+func ParseCompound(parser structure.ObjectParser) *Compound {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewCompound()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -32,9 +31,9 @@ func NewCompound() *Compound {
 	return &Compound{}
 }
 
-func (c *Compound) Parse(parser data.ObjectParser) {
-	c.Amount = parser.ParseFloat("amount")
-	c.Formulation = ParseFormulation(parser.NewChildObjectParser("formulation"))
+func (c *Compound) Parse(parser structure.ObjectParser) {
+	c.Amount = parser.Float64("amount")
+	c.Formulation = ParseFormulation(parser.WithReferenceObjectParser("formulation"))
 }
 
 func (c *Compound) Validate(validator structure.Validator) {
@@ -54,13 +53,12 @@ func (c *Compound) Normalize(normalizer data.Normalizer) {
 
 type CompoundArray []*Compound
 
-func ParseCompoundArray(parser data.ArrayParser) *CompoundArray {
-	if parser.Array() == nil {
+func ParseCompoundArray(parser structure.ArrayParser) *CompoundArray {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewCompoundArray()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -68,9 +66,9 @@ func NewCompoundArray() *CompoundArray {
 	return &CompoundArray{}
 }
 
-func (c *CompoundArray) Parse(parser data.ArrayParser) {
-	for index := range *parser.Array() {
-		*c = append(*c, ParseCompound(parser.NewChildObjectParser(index)))
+func (c *CompoundArray) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*c = append(*c, ParseCompound(parser.WithReferenceObjectParser(reference)))
 	}
 }
 

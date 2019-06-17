@@ -7,11 +7,9 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/test"
 )
 
 type API struct {
-	*test.Mock
 	InitializeMiddlewareInvocations int
 	InitializeMiddlewareOutputs     []error
 	InitializeRoutersInvocations    int
@@ -24,9 +22,7 @@ type API struct {
 }
 
 func NewAPI() *API {
-	return &API{
-		Mock: test.NewMock(),
-	}
+	return &API{}
 }
 
 func (a *API) InitializeMiddleware() error {
@@ -72,7 +68,6 @@ func (a *API) Handler() http.Handler {
 }
 
 func (a *API) Expectations() {
-	a.Mock.Expectations()
 	gomega.Expect(a.InitializeMiddlewareOutputs).To(gomega.BeEmpty())
 	gomega.Expect(a.InitializeRoutersOutputs).To(gomega.BeEmpty())
 	gomega.Expect(a.StatusOutputs).To(gomega.BeEmpty())

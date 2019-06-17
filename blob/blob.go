@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/crypto"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/page"
@@ -32,9 +31,12 @@ func Statuses() []string {
 	}
 }
 
+// FUTURE: Add DeleteAll
+
 type Client interface {
-	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (Blobs, error)
-	Create(ctx context.Context, userID string, create *Create) (*Blob, error)
+	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
+	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
+	DeleteAll(ctx context.Context, userID string) error
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
@@ -70,29 +72,10 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
 
-type Create struct {
-	Body      io.Reader
-	DigestMD5 *string
-	MediaType *string
-}
-
-func NewCreate() *Create {
-	return &Create{}
-}
-
-func (c *Create) Validate(validator structure.Validator) {
-	if c.Body == nil {
-		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
-	}
-	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
-	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
-}
-
 type Content struct {
 	Body      io.ReadCloser
 	DigestMD5 *string
 	MediaType *string
-	Size      *int
 }
 
 func NewContent() *Content {
@@ -103,9 +86,8 @@ func (c *Content) Validate(validator structure.Validator) {
 	if c.Body == nil {
 		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("digestMD5", c.DigestMD5).Exists().Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
-	validator.Int("size", c.Size).Exists().GreaterThanOrEqualTo(0)
 }
 
 type Blob struct {
@@ -117,6 +99,7 @@ type Blob struct {
 	Status       *string    `json:"status,omitempty" bson:"status,omitempty"`
 	CreatedTime  *time.Time `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	ModifiedTime *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	DeletedTime  *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	Revision     *int       `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
@@ -127,8 +110,9 @@ func (b *Blob) Parse(parser structure.ObjectParser) {
 	b.MediaType = parser.String("mediaType")
 	b.Size = parser.Int("size")
 	b.Status = parser.String("status")
-	b.CreatedTime = parser.Time("createdTime", time.RFC3339)
-	b.ModifiedTime = parser.Time("modifiedTime", time.RFC3339)
+	b.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
+	b.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
+	b.DeletedTime = parser.Time("deletedTime", time.RFC3339Nano)
 	b.Revision = parser.Int("revision")
 }
 
@@ -141,10 +125,11 @@ func (b *Blob) Validate(validator structure.Validator) {
 	validator.String("status", b.Status).Exists().OneOf(Statuses()...)
 	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", b.ModifiedTime).NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
+	validator.Time("deletedTime", b.DeletedTime).NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
-type Blobs []*Blob
+type BlobArray []*Blob
 
 func NewID() string {
 	return id.Must(id.New(16))
@@ -168,13 +153,3 @@ func ValidateID(value string) error {
 }
 
 var idExpression = regexp.MustCompile("^[0-9a-z]{32}$")
-
-const ErrorCodeDigestsNotEqual = "digests-not-equal"
-
-func ErrorDigestsNotEqual(value string, calculated string) error {
-	return errors.Preparedf(ErrorCodeDigestsNotEqual, "digests not equal", "digest %q does not equal calculated digest %q", value, calculated)
-}
-
-func ErrorValueStringAsIDNotValid(value string) error {
-	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as blob id", value)
-}

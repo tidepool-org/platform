@@ -32,7 +32,7 @@ type ExternalConfig struct {
 
 func NewExternalConfig() *ExternalConfig {
 	return &ExternalConfig{
-		Config: platform.NewConfig(),
+		Config:                    platform.NewConfig(),
 		ServerSessionTokenTimeout: 3600 * time.Second,
 	}
 }
@@ -102,9 +102,9 @@ func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name str
 	}
 
 	return &External{
-		client: clnt,
-		logger: lgr,
-		name:   name,
+		client:                    clnt,
+		logger:                    lgr,
+		name:                      name,
 		serverSessionTokenSecret:  cfg.ServerSessionTokenSecret,
 		serverSessionTokenTimeout: cfg.ServerSessionTokenTimeout,
 	}, nil

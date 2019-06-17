@@ -7,20 +7,20 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/task/service"
+	taskService "github.com/tidepool-org/platform/task/service"
 )
 
 type Router struct {
-	service.Service
+	taskService.Service
 }
 
-func NewRouter(svc service.Service) (*Router, error) {
-	if svc == nil {
+func NewRouter(service taskService.Service) (*Router, error) {
+	if service == nil {
 		return nil, errors.New("service is missing")
 	}
 
 	return &Router{
-		Service: svc,
+		Service: service,
 	}, nil
 }
 

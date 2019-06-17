@@ -1,16 +1,17 @@
 package client_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/blob"
@@ -98,7 +99,7 @@ var _ = Describe("Client", func() {
 			}
 		})
 
-		clientAssertions := func() {
+		authorizeAssertions := func() {
 			Context("with user id", func() {
 				var userID string
 
@@ -110,7 +111,7 @@ var _ = Describe("Client", func() {
 					var filter *blob.Filter
 					var pagination *page.Pagination
 
-					listAssertions := func() {
+					parameterAssertions := func() {
 						Context("without server response", func() {
 							AfterEach(func() {
 								Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -204,48 +205,42 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with no result", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, blob.Blobs{}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, blob.BlobArray{}, responseHeaders))
 								})
 
 								It("returns successfully", func() {
 									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
-									Expect(result).To(Equal(blob.Blobs{}))
+									Expect(result).To(Equal(blob.BlobArray{}))
 								})
 							})
 
 							When("the server responds with result", func() {
-								var responseResult blob.Blobs
+								var responseResult blob.BlobArray
 
 								BeforeEach(func() {
-									responseResult = blobTest.RandomBlobs(1, 4)
+									responseResult = blobTest.RandomBlobArray(1, 4)
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									result, err := client.List(ctx, userID, filter, pagination)
-									Expect(err).ToNot(HaveOccurred())
-									blobTest.ExpectEqualBlobs(result, responseResult)
+									Expect(client.List(ctx, userID, filter, pagination)).To(blobTest.MatchBlobArray(responseResult))
 								})
 							})
 						})
 					}
 
-					When("the request has no filter or pagination", func() {
+					When("the request has no filter or pagination parameters", func() {
 						BeforeEach(func() {
 							filter = nil
 							pagination = nil
-							query := url.Values{
-								"page": []string{"0"},
-								"size": []string{"100"},
-							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/blobs", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/blobs", userID), ""))
 						})
 
-						listAssertions()
+						parameterAssertions()
 					})
 
-					When("the request has a random filter and pagination", func() {
+					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
 							filter = blobTest.RandomFilter()
 							pagination = pageTest.RandomPagination()
@@ -255,21 +250,21 @@ var _ = Describe("Client", func() {
 								"page":      []string{strconv.Itoa(pagination.Page)},
 								"size":      []string{strconv.Itoa(pagination.Size)},
 							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/blobs", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/blobs", userID), query.Encode()))
 						})
 
-						listAssertions()
+						parameterAssertions()
 					})
 				})
 
 				Context("Create", func() {
 					var body []byte
-					var create *blob.Create
+					var content *blob.Content
 
 					BeforeEach(func() {
 						body = test.RandomBytes()
-						create = blobTest.RandomCreate()
-						create.Body = bytes.NewReader(body)
+						content = blobTest.RandomContent()
+						content.Body = ioutil.NopCloser(bytes.NewReader(body))
 					})
 
 					Context("without server response", func() {
@@ -279,46 +274,46 @@ var _ = Describe("Client", func() {
 
 						It("returns an error when the context is missing", func() {
 							ctx = nil
-							result, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, content)
 							errorsTest.ExpectEqual(err, errors.New("context is missing"))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the user id is missing", func() {
 							userID = ""
-							result, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, content)
 							errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the user id is invalid", func() {
 							userID = "invalid"
-							result, err := client.Create(ctx, userID, create)
+							result, err := client.Create(ctx, userID, content)
 							errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 							Expect(result).To(BeNil())
 						})
 
-						It("returns an error when the create is missing", func() {
-							create = nil
-							result, err := client.Create(ctx, userID, create)
-							errorsTest.ExpectEqual(err, errors.New("create is missing"))
+						It("returns an error when the content is missing", func() {
+							content = nil
+							result, err := client.Create(ctx, userID, content)
+							errorsTest.ExpectEqual(err, errors.New("content is missing"))
 							Expect(result).To(BeNil())
 						})
 
-						It("returns an error when the create is invalid", func() {
-							create.Body = nil
-							result, err := client.Create(ctx, userID, create)
-							errorsTest.ExpectEqual(err, errors.New("create is invalid"))
+						It("returns an error when the content is invalid", func() {
+							content.Body = nil
+							result, err := client.Create(ctx, userID, content)
+							errorsTest.ExpectEqual(err, errors.New("content is invalid"))
 							Expect(result).To(BeNil())
 						})
 					})
 
-					createAssertions := func() {
+					digestAssertions := func() {
 						Context("with server response", func() {
 							BeforeEach(func() {
 								requestHandlers = append(requestHandlers,
-									VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/blobs", userID)),
-									VerifyContentType(*create.MediaType),
+									VerifyRequest(http.MethodPost, fmt.Sprintf("/v1/users/%s/blobs", userID)),
+									VerifyContentType(*content.MediaType),
 									VerifyBody(body),
 								)
 							})
@@ -333,7 +328,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
 									Expect(result).To(BeNil())
 								})
@@ -345,7 +340,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
 									Expect(result).To(BeNil())
 								})
@@ -357,7 +352,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.Create(ctx, userID, create)
+									result, err := client.Create(ctx, userID, content)
 									errorsTest.ExpectEqual(err, request.ErrorResourceNotFoundWithID(userID))
 									Expect(result).To(BeNil())
 								})
@@ -372,9 +367,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.Create(ctx, userID, create)
-									Expect(err).ToNot(HaveOccurred())
-									blobTest.ExpectEqualBlob(result, responseResult)
+									Expect(client.Create(ctx, userID, content)).To(blobTest.MatchBlob(responseResult))
 								})
 							})
 						})
@@ -382,18 +375,85 @@ var _ = Describe("Client", func() {
 
 					When("the request has no digest header", func() {
 						BeforeEach(func() {
-							create.DigestMD5 = nil
+							content.DigestMD5 = nil
 						})
 
-						createAssertions()
+						digestAssertions()
 					})
 
 					When("the request has a digest header", func() {
 						BeforeEach(func() {
-							requestHandlers = append(requestHandlers, VerifyHeaderKV("Digest", fmt.Sprintf("MD5=%s", *create.DigestMD5)))
+							requestHandlers = append(requestHandlers, VerifyHeaderKV("Digest", fmt.Sprintf("MD5=%s", *content.DigestMD5)))
 						})
 
-						createAssertions()
+						digestAssertions()
+					})
+				})
+
+				Context("DeleteAll", func() {
+					Context("without server response", func() {
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(BeEmpty())
+						})
+
+						It("returns an error when the context is missing", func() {
+							ctx = nil
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("context is missing"))
+						})
+
+						It("returns an error when the user id is missing", func() {
+							userID = ""
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("user id is missing"))
+						})
+
+						It("returns an error when the user id is invalid", func() {
+							userID = "invalid"
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("user id is invalid"))
+						})
+					})
+
+					Context("with server response", func() {
+						BeforeEach(func() {
+							requestHandlers = append(requestHandlers,
+								VerifyRequest(http.MethodDelete, fmt.Sprintf("/v1/users/%s/blobs", userID)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
+						})
+
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+
+						When("the server responds with an unauthenticated error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), request.ErrorUnauthenticated())
+							})
+						})
+
+						When("the server responds with an unauthorized error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), request.ErrorUnauthorized())
+							})
+						})
+
+						When("the server responds successfully", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNoContent, nil, responseHeaders))
+							})
+
+							It("returns successfully", func() {
+								Expect(client.DeleteAll(ctx, userID)).To(Succeed())
+							})
+						})
 					})
 				})
 			})
@@ -436,7 +496,7 @@ var _ = Describe("Client", func() {
 					Context("with server response", func() {
 						BeforeEach(func() {
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("GET", fmt.Sprintf("/v1/blobs/%s", id)),
+								VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/blobs/%s", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
@@ -491,9 +551,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully with result", func() {
-								result, err := client.Get(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								blobTest.ExpectEqualBlob(result, responseResult)
+								Expect(client.Get(ctx, id)).To(blobTest.MatchBlob(responseResult))
 							})
 						})
 					})
@@ -507,30 +565,30 @@ var _ = Describe("Client", func() {
 
 						It("returns an error when the context is missing", func() {
 							ctx = nil
-							content, err := client.GetContent(ctx, id)
+							result, err := client.GetContent(ctx, id)
 							errorsTest.ExpectEqual(err, errors.New("context is missing"))
-							Expect(content).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the id is missing", func() {
 							id = ""
-							content, err := client.GetContent(ctx, id)
+							result, err := client.GetContent(ctx, id)
 							errorsTest.ExpectEqual(err, errors.New("id is missing"))
-							Expect(content).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 
 						It("returns an error when the id is invalid", func() {
 							id = "invalid"
-							content, err := client.GetContent(ctx, id)
+							result, err := client.GetContent(ctx, id)
 							errorsTest.ExpectEqual(err, errors.New("id is invalid"))
-							Expect(content).To(BeNil())
+							Expect(result).To(BeNil())
 						})
 					})
 
 					Context("with server response", func() {
 						BeforeEach(func() {
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("GET", fmt.Sprintf("/v1/blobs/%s/content", id)),
+								VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/blobs/%s/content", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
@@ -546,9 +604,9 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								content, err := client.GetContent(ctx, id)
+								result, err := client.GetContent(ctx, id)
 								errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-								Expect(content).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -558,9 +616,9 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								content, err := client.GetContent(ctx, id)
+								result, err := client.GetContent(ctx, id)
 								errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
-								Expect(content).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -569,10 +627,10 @@ var _ = Describe("Client", func() {
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 							})
 
-							It("returns an error", func() {
-								content, err := client.GetContent(ctx, id)
+							It("returns successfully without result", func() {
+								result, err := client.GetContent(ctx, id)
 								Expect(err).ToNot(HaveOccurred())
-								Expect(content).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -585,9 +643,9 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully", func() {
-								content, err := client.GetContent(ctx, id)
+								result, err := client.GetContent(ctx, id)
 								errorsTest.ExpectEqual(err, request.ErrorHeaderInvalid("Digest"))
-								Expect(content).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -604,9 +662,9 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully", func() {
-								content, err := client.GetContent(ctx, id)
+								result, err := client.GetContent(ctx, id)
 								errorsTest.ExpectEqual(err, request.ErrorHeaderInvalid("Content-Type"))
-								Expect(content).To(BeNil())
+								Expect(result).To(BeNil())
 							})
 						})
 
@@ -614,29 +672,26 @@ var _ = Describe("Client", func() {
 							var body []byte
 							var digestMD5 string
 							var mediaType string
-							var size int
 
 							BeforeEach(func() {
 								body = test.RandomBytes()
 								digestMD5 = cryptoTest.RandomBase64EncodedMD5Hash()
 								mediaType = netTest.RandomMediaType()
-								size = len(body)
 								responseHeaders = http.Header{
-									"Digest":         []string{fmt.Sprintf("MD5=%s", digestMD5)},
-									"Content-Type":   []string{mediaType},
-									"Content-Length": []string{strconv.Itoa(size)},
+									"Digest":       []string{fmt.Sprintf("MD5=%s", digestMD5)},
+									"Content-Type": []string{mediaType},
 								}
 								requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, body, responseHeaders))
 							})
 
 							It("returns successfully", func() {
-								content, err := client.GetContent(ctx, id)
+								result, err := client.GetContent(ctx, id)
 								Expect(err).ToNot(HaveOccurred())
-								Expect(content).ToNot(BeNil())
-								Expect(content.Body).ToNot(BeNil())
-								Expect(content.DigestMD5).To(Equal(&digestMD5))
-								Expect(content.MediaType).To(Equal(&mediaType))
-								Expect(content.Size).To(Equal(&size))
+								Expect(result).ToNot(BeNil())
+								Expect(result.Body).ToNot(BeNil())
+								defer result.Body.Close()
+								Expect(*result.DigestMD5).To(Equal(digestMD5))
+								Expect(*result.MediaType).To(Equal(mediaType))
 							})
 						})
 					})
@@ -683,7 +738,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					deleteAssertions := func() {
+					conditionAssertions := func() {
 						Context("with server response", func() {
 							AfterEach(func() {
 								Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -718,7 +773,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns successfully with delete false", func() {
+								It("returns successfully with deleted false", func() {
 									deleted, err := client.Delete(ctx, id, condition)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(deleted).To(BeFalse())
@@ -743,26 +798,26 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id)),
+								VerifyRequest(http.MethodDelete, fmt.Sprintf("/v1/blobs/%s", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
 						})
 
-						deleteAssertions()
+						conditionAssertions()
 					})
 
 					When("condition revision is missing", func() {
 						BeforeEach(func() {
 							condition.Revision = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id)),
+								VerifyRequest(http.MethodDelete, fmt.Sprintf("/v1/blobs/%s", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
 						})
 
-						deleteAssertions()
+						conditionAssertions()
 					})
 
 					When("condition revision is present", func() {
@@ -771,13 +826,13 @@ var _ = Describe("Client", func() {
 								"revision": []string{strconv.Itoa(*condition.Revision)},
 							}
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("DELETE", fmt.Sprintf("/v1/blobs/%s", id), query.Encode()),
+								VerifyRequest(http.MethodDelete, fmt.Sprintf("/v1/blobs/%s", id), query.Encode()),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
 						})
 
-						deleteAssertions()
+						conditionAssertions()
 					})
 				})
 			})
@@ -790,7 +845,7 @@ var _ = Describe("Client", func() {
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Service-Secret", config.ServiceSecret))
 			})
 
-			clientAssertions()
+			authorizeAssertions()
 		})
 
 		When("client must authorize as user", func() {
@@ -801,7 +856,7 @@ var _ = Describe("Client", func() {
 				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
 			})
 
-			clientAssertions()
+			authorizeAssertions()
 		})
 	})
 })

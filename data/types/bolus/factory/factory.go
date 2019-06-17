@@ -6,7 +6,8 @@ import (
 	dataTypesBolusCombination "github.com/tidepool-org/platform/data/types/bolus/combination"
 	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
 	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var subTypes = []string{
@@ -15,22 +16,22 @@ var subTypes = []string{
 	dataTypesBolusNormal.SubType,
 }
 
-func NewBolusDatum(parser data.ObjectParser) data.Datum {
-	if parser.Object() == nil {
+func NewBolusDatum(parser structure.ObjectParser) data.Datum {
+	if !parser.Exists() {
 		return nil
 	}
 
-	if value := parser.ParseString("type"); value == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+	if value := parser.String("type"); value == nil {
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	} else if *value != bolus.Type {
-		parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, []string{bolus.Type}))
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, []string{bolus.Type}))
 		return nil
 	}
 
-	value := parser.ParseString("subType")
+	value := parser.String("subType")
 	if value == nil {
-		parser.AppendError("subType", service.ErrorValueNotExists())
+		parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	}
 
@@ -43,11 +44,11 @@ func NewBolusDatum(parser data.ObjectParser) data.Datum {
 		return dataTypesBolusNormal.New()
 	}
 
-	parser.AppendError("subType", service.ErrorValueStringNotOneOf(*value, subTypes))
+	parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, subTypes))
 	return nil
 }
 
-func ParseBolusDatum(parser data.ObjectParser) *data.Datum {
+func ParseBolusDatum(parser structure.ObjectParser) *data.Datum {
 	datum := NewBolusDatum(parser)
 	if datum == nil {
 		return nil

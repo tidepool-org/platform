@@ -1,15 +1,15 @@
 package blob_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-
 	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/blob"
 	blobTest "github.com/tidepool-org/platform/blob/test"
@@ -30,10 +30,6 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var futureTime = time.Unix(4102444800, 0)
-var nearPastTime = time.Unix(1500000000, 0)
-var farPastTime = time.Unix(1200000000, 0)
-
 var _ = Describe("Blob", func() {
 	It("SizeMaximum is expected", func() {
 		Expect(blob.SizeMaximum).To(Equal(104857600))
@@ -51,16 +47,13 @@ var _ = Describe("Blob", func() {
 		Expect(blob.Statuses()).To(Equal([]string{"available", "created"}))
 	})
 
-	Context("NewFilter", func() {
-		It("returns successfully with default values", func() {
-			filter := blob.NewFilter()
-			Expect(filter).ToNot(BeNil())
-			Expect(filter.MediaType).To(BeNil())
-			Expect(filter.Status).To(BeNil())
-		})
-	})
-
 	Context("Filter", func() {
+		Context("NewFilter", func() {
+			It("returns successfully with default values", func() {
+				Expect(blob.NewFilter()).To(Equal(&blob.Filter{}))
+			})
+		})
+
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]interface{}, expectedDatum *blob.Filter), expectedErrors ...error) {
@@ -74,24 +67,12 @@ var _ = Describe("Blob", func() {
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {},
 				),
-				Entry("media type missing",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						delete(object, "mediaType")
-						expectedDatum.MediaType = nil
-					},
-				),
 				Entry("media type invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
 						object["mediaType"] = true
 						expectedDatum.MediaType = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/mediaType"),
-				),
-				Entry("media type empty",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						object["mediaType"] = []string{}
-						expectedDatum.MediaType = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("media type valid",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
@@ -100,24 +81,12 @@ var _ = Describe("Blob", func() {
 						expectedDatum.MediaType = pointer.FromStringArray(valid)
 					},
 				),
-				Entry("status missing",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						delete(object, "status")
-						expectedDatum.Status = nil
-					},
-				),
 				Entry("status invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
 						object["status"] = true
 						expectedDatum.Status = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/status"),
-				),
-				Entry("status empty",
-					func(object map[string]interface{}, expectedDatum *blob.Filter) {
-						object["status"] = []string{}
-						expectedDatum.Status = pointer.FromStringArray([]string{})
-					},
 				),
 				Entry("status valid",
 					func(object map[string]interface{}, expectedDatum *blob.Filter) {
@@ -255,90 +224,13 @@ var _ = Describe("Blob", func() {
 		})
 	})
 
-	Context("NewCreate", func() {
-		It("returns successfully with default values", func() {
-			create := blob.NewCreate()
-			Expect(create).ToNot(BeNil())
-			Expect(create.Body).To(BeNil())
-			Expect(create.DigestMD5).To(BeNil())
-			Expect(create.MediaType).To(BeNil())
-		})
-	})
-
-	Context("Create", func() {
-		Context("Validate", func() {
-			DescribeTable("validates the datum",
-				func(mutator func(datum *blob.Create), expectedErrors ...error) {
-					datum := blobTest.RandomCreate()
-					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
-				},
-				Entry("succeeds",
-					func(datum *blob.Create) {},
-				),
-				Entry("body missing",
-					func(datum *blob.Create) { datum.Body = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
-				),
-				Entry("body valid",
-					func(datum *blob.Create) { datum.Body = bytes.NewReader(test.RandomBytes()) },
-				),
-				Entry("digest MD5 missing",
-					func(datum *blob.Create) { datum.DigestMD5 = nil },
-				),
-				Entry("digest MD5 empty",
-					func(datum *blob.Create) { datum.DigestMD5 = pointer.FromString("") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
-				),
-				Entry("digest MD5 invalid",
-					func(datum *blob.Create) { datum.DigestMD5 = pointer.FromString("#") },
-					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
-				),
-				Entry("digest MD5 valid",
-					func(datum *blob.Create) {
-						datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-					},
-				),
-				Entry("media type missing",
-					func(datum *blob.Create) { datum.MediaType = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/mediaType"),
-				),
-				Entry("media type empty",
-					func(datum *blob.Create) { datum.MediaType = pointer.FromString("") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/mediaType"),
-				),
-				Entry("media type invalid",
-					func(datum *blob.Create) { datum.MediaType = pointer.FromString("/") },
-					errorsTest.WithPointerSource(net.ErrorValueStringAsMediaTypeNotValid("/"), "/mediaType"),
-				),
-				Entry("media type valid",
-					func(datum *blob.Create) { datum.MediaType = pointer.FromString(netTest.RandomMediaType()) },
-				),
-				Entry("multiple errors",
-					func(datum *blob.Create) {
-						datum.Body = nil
-						datum.DigestMD5 = pointer.FromString("")
-						datum.MediaType = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/mediaType"),
-				),
-			)
-		})
-	})
-
-	Context("NewContent", func() {
-		It("returns successfully with default values", func() {
-			content := blob.NewContent()
-			Expect(content).ToNot(BeNil())
-			Expect(content.Body).To(BeNil())
-			Expect(content.DigestMD5).To(BeNil())
-			Expect(content.MediaType).To(BeNil())
-		})
-	})
-
 	Context("Content", func() {
+		Context("NewContent", func() {
+			It("returns successfully with default values", func() {
+				Expect(blob.NewContent()).To(Equal(&blob.Content{}))
+			})
+		})
+
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *blob.Content), expectedErrors ...error) {
@@ -358,7 +250,6 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.Content) { datum.DigestMD5 = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/digestMD5"),
 				),
 				Entry("digest MD5 empty",
 					func(datum *blob.Content) { datum.DigestMD5 = pointer.FromString("") },
@@ -388,28 +279,15 @@ var _ = Describe("Blob", func() {
 				Entry("media type valid",
 					func(datum *blob.Content) { datum.MediaType = pointer.FromString(netTest.RandomMediaType()) },
 				),
-				Entry("size missing",
-					func(datum *blob.Content) { datum.Size = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/size"),
-				),
-				Entry("size out of range (lower)",
-					func(datum *blob.Content) { datum.Size = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/size"),
-				),
-				Entry("size in range (lower)",
-					func(datum *blob.Content) { datum.Size = pointer.FromInt(0) },
-				),
 				Entry("multiple errors",
 					func(datum *blob.Content) {
 						datum.Body = nil
 						datum.DigestMD5 = pointer.FromString("")
 						datum.MediaType = nil
-						datum.Size = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/digestMD5"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/mediaType"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/size"),
 				),
 			)
 		})
@@ -420,13 +298,25 @@ var _ = Describe("Blob", func() {
 			func(mutator func(datum *blob.Blob)) {
 				datum := blobTest.RandomBlob()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, blobTest.NewObjectFromBlob(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *blob.Blob) {},
 			),
 			Entry("empty",
 				func(datum *blob.Blob) { *datum = blob.Blob{} },
+			),
+			Entry("with modified time",
+				func(datum *blob.Blob) {
+					datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+				},
+			),
+			Entry("with deleted time",
+				func(datum *blob.Blob) {
+					datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+					datum.DeletedTime = pointer.CloneTime(datum.ModifiedTime)
+				},
 			),
 		)
 
@@ -438,16 +328,10 @@ var _ = Describe("Blob", func() {
 					mutator(object, expectedDatum)
 					datum := &blob.Blob{}
 					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
-					blobTest.ExpectEqualBlob(datum, expectedDatum)
+					Expect(datum).To(blobTest.MatchBlob(expectedDatum))
 				},
 				Entry("succeeds",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {},
-				),
-				Entry("id missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "id")
-						expectedDatum.ID = nil
-					},
 				),
 				Entry("id invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
@@ -456,23 +340,11 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/id"),
 				),
-				Entry("id empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["id"] = ""
-						expectedDatum.ID = pointer.FromString("")
-					},
-				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := blobTest.RandomID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
-					},
-				),
-				Entry("user id missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "userId")
-						expectedDatum.UserID = nil
 					},
 				),
 				Entry("user id invalid type",
@@ -482,23 +354,11 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userId"),
 				),
-				Entry("user id empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["userId"] = ""
-						expectedDatum.UserID = pointer.FromString("")
-					},
-				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := userTest.RandomID()
 						object["userId"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
-					},
-				),
-				Entry("digest MD5 missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "digestMD5")
-						expectedDatum.DigestMD5 = nil
 					},
 				),
 				Entry("digest MD5 invalid type",
@@ -508,23 +368,11 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/digestMD5"),
 				),
-				Entry("digest MD5 empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["digestMD5"] = ""
-						expectedDatum.DigestMD5 = pointer.FromString("")
-					},
-				),
 				Entry("digest MD5 valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := cryptoTest.RandomBase64EncodedMD5Hash()
 						object["digestMD5"] = valid
 						expectedDatum.DigestMD5 = pointer.FromString(valid)
-					},
-				),
-				Entry("media type missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "mediaType")
-						expectedDatum.MediaType = nil
 					},
 				),
 				Entry("media type invalid type",
@@ -534,23 +382,11 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/mediaType"),
 				),
-				Entry("media type empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["mediaType"] = ""
-						expectedDatum.MediaType = pointer.FromString("")
-					},
-				),
 				Entry("media type valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := netTest.RandomMediaType()
 						object["mediaType"] = valid
 						expectedDatum.MediaType = pointer.FromString(valid)
-					},
-				),
-				Entry("size missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "size")
-						expectedDatum.Size = nil
 					},
 				),
 				Entry("size invalid type",
@@ -567,12 +403,6 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Size = pointer.FromInt(valid)
 					},
 				),
-				Entry("status missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "status")
-						expectedDatum.Status = nil
-					},
-				),
 				Entry("status invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						object["status"] = true
@@ -580,23 +410,11 @@ var _ = Describe("Blob", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/status"),
 				),
-				Entry("status empty",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						object["status"] = ""
-						expectedDatum.Status = pointer.FromString("")
-					},
-				),
 				Entry("status valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
 						valid := test.RandomStringFromArray(blob.Statuses())
 						object["status"] = valid
 						expectedDatum.Status = pointer.FromString(valid)
-					},
-				),
-				Entry("created time missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "createdTime")
-						expectedDatum.CreatedTime = nil
 					},
 				),
 				Entry("created time invalid type",
@@ -611,19 +429,13 @@ var _ = Describe("Blob", func() {
 						object["createdTime"] = "invalid"
 						expectedDatum.CreatedTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/createdTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/createdTime"),
 				),
 				Entry("created time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["createdTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["createdTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("modified time missing",
-					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "modifiedTime")
-						expectedDatum.ModifiedTime = nil
 					},
 				),
 				Entry("modified time invalid type",
@@ -638,19 +450,34 @@ var _ = Describe("Blob", func() {
 						object["modifiedTime"] = "invalid"
 						expectedDatum.ModifiedTime = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/modifiedTime"),
 				),
 				Entry("modified time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["modifiedTime"] = valid.Format(time.RFC3339)
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
 				),
-				Entry("revision missing",
+				Entry("deleted time invalid type",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						delete(object, "revision")
-						expectedDatum.Revision = nil
+						object["deletedTime"] = true
+						expectedDatum.DeletedTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
+				),
+				Entry("deleted time invalid",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						object["deletedTime"] = "invalid"
+						expectedDatum.DeletedTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/deletedTime"),
+				),
+				Entry("deleted time valid",
+					func(object map[string]interface{}, expectedDatum *blob.Blob) {
+						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
+						object["deletedTime"] = valid.Format(time.RFC3339Nano)
+						expectedDatum.DeletedTime = pointer.FromTime(valid)
 					},
 				),
 				Entry("revision invalid type",
@@ -677,6 +504,7 @@ var _ = Describe("Blob", func() {
 						object["status"] = true
 						object["createdTime"] = true
 						object["modifiedTime"] = true
+						object["deletedTime"] = true
 						object["revision"] = true
 						expectedDatum.ID = nil
 						expectedDatum.UserID = nil
@@ -686,6 +514,7 @@ var _ = Describe("Blob", func() {
 						expectedDatum.Status = nil
 						expectedDatum.CreatedTime = nil
 						expectedDatum.ModifiedTime = nil
+						expectedDatum.DeletedTime = nil
 						expectedDatum.Revision = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/id"),
@@ -696,6 +525,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/status"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
 				),
 			)
@@ -810,14 +640,14 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("created time after now",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(futureTime)
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
 						datum.ModifiedTime = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/createdTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/createdTime"),
 				),
 				Entry("created time valid",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 						datum.ModifiedTime = nil
 					},
 				),
@@ -826,18 +656,38 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("modified time before created time",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(nearPastTime)
-						datum.ModifiedTime = pointer.FromTime(farPastTime)
+						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
+						datum.ModifiedTime = pointer.FromTime(test.PastFarTime())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(farPastTime, nearPastTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/modifiedTime"),
 				),
 				Entry("modified time after now",
-					func(datum *blob.Blob) { datum.ModifiedTime = pointer.FromTime(futureTime) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					func(datum *blob.Blob) { datum.ModifiedTime = pointer.FromTime(test.FutureFarTime()) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
 				),
 				Entry("modified time valid",
 					func(datum *blob.Blob) {
+						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
+					},
+				),
+				Entry("deleted time missing",
+					func(datum *blob.Blob) { datum.DeletedTime = nil },
+				),
+				Entry("deleted time before created time",
+					func(datum *blob.Blob) {
+						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
 						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+						datum.DeletedTime = pointer.FromTime(test.PastFarTime())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/deletedTime"),
+				),
+				Entry("deleted time after now",
+					func(datum *blob.Blob) { datum.DeletedTime = pointer.FromTime(test.FutureFarTime()) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
+				),
+				Entry("deleted time valid",
+					func(datum *blob.Blob) {
+						datum.DeletedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 					},
 				),
 				Entry("revision missing",
@@ -866,7 +716,8 @@ var _ = Describe("Blob", func() {
 						datum.Size = nil
 						datum.Status = nil
 						datum.CreatedTime = nil
-						datum.ModifiedTime = pointer.FromTime(futureTime)
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
 						datum.Revision = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
@@ -876,7 +727,8 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/size"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/status"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(futureTime), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
 				),
 			)
@@ -909,20 +761,6 @@ var _ = Describe("Blob", func() {
 			Entry("has uppercase characters", "0123456789ABCDEFGHIJKLMNOPQRSTUV", blob.ErrorValueStringAsIDNotValid("0123456789ABCDEFGHIJKLMNOPQRSTUV")),
 			Entry("has symbols", "0123456789!@#$%^abcdefghijklmnop", blob.ErrorValueStringAsIDNotValid("0123456789!@#$%^abcdefghijklmnop")),
 			Entry("has whitespace", "0123456789      abcdefghijklmnop", blob.ErrorValueStringAsIDNotValid("0123456789      abcdefghijklmnop")),
-		)
-	})
-
-	It("ErrorCodeDigestsNotEqual is expected", func() {
-		Expect(blob.ErrorCodeDigestsNotEqual).To(Equal("digests-not-equal"))
-	})
-
-	Context("Errors", func() {
-		DescribeTable("have expected details when error",
-			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorDigestsNotEqual with empty string", blob.ErrorDigestsNotEqual("", ""), "digests-not-equal", "digests not equal", `digest "" does not equal calculated digest ""`),
-			Entry("is ErrorDigestsNotEqual with non-empty string", blob.ErrorDigestsNotEqual("QUJDREVGSElKS0xNTk9QUQ==", "lah2klptWl+IBNSepXlJ9Q=="), "digests-not-equal", "digests not equal", `digest "QUJDREVGSElKS0xNTk9QUQ==" does not equal calculated digest "lah2klptWl+IBNSepXlJ9Q=="`),
-			Entry("is ErrorValueStringAsIDNotValid with empty string", blob.ErrorValueStringAsIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as blob id`),
-			Entry("is ErrorValueStringAsIDNotValid with non-empty string", blob.ErrorValueStringAsIDNotValid("0123456789abcdefghijklmnopqrstuv"), "value-not-valid", "value is not valid", `value "0123456789abcdefghijklmnopqrstuv" is not valid as blob id`),
 		)
 	})
 })

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
+	gomegaGstruct "github.com/onsi/gomega/gstruct"
+	gomegaTypes "github.com/onsi/gomega/types"
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/crypto"
@@ -46,22 +48,12 @@ func NewObjectFromFilter(datum *blob.Filter, objectFormat test.ObjectFormat) map
 	return object
 }
 
-func RandomCreate() *blob.Create {
-	content := test.RandomBytes()
-	datum := &blob.Create{}
-	datum.Body = bytes.NewReader(content)
-	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
-	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
-	return datum
-}
-
 func RandomContent() *blob.Content {
 	content := test.RandomBytes()
 	datum := &blob.Content{}
 	datum.Body = ioutil.NopCloser(bytes.NewReader(content))
 	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
-	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	return datum
 }
 
@@ -73,9 +65,9 @@ func RandomBlob() *blob.Blob {
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
-	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
+	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 	if *datum.Status == blob.StatusAvailable {
-		datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
+		datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 	}
 	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
@@ -94,7 +86,8 @@ func CloneBlob(datum *blob.Blob) *blob.Blob {
 	clone.Status = pointer.CloneString(datum.Status)
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
-	clone.Revision = test.CloneInt(datum.Revision)
+	clone.DeletedTime = pointer.CloneTime(datum.DeletedTime)
+	clone.Revision = pointer.CloneInt(datum.Revision)
 	return clone
 }
 
@@ -127,45 +120,45 @@ func NewObjectFromBlob(datum *blob.Blob, objectFormat test.ObjectFormat) map[str
 	if datum.ModifiedTime != nil {
 		object["modifiedTime"] = test.NewObjectFromTime(*datum.ModifiedTime, objectFormat)
 	}
+	if datum.DeletedTime != nil {
+		object["deletedTime"] = test.NewObjectFromTime(*datum.DeletedTime, objectFormat)
+	}
 	if datum.Revision != nil {
 		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
 	}
 	return object
 }
 
-func ExpectEqualBlob(actual *blob.Blob, expected *blob.Blob) {
-	gomega.Expect(actual).ToNot(gomega.BeNil())
-	gomega.Expect(expected).ToNot(gomega.BeNil())
-	gomega.Expect(actual.ID).To(gomega.Equal(expected.ID))
-	gomega.Expect(actual.UserID).To(gomega.Equal(expected.UserID))
-	gomega.Expect(actual.DigestMD5).To(gomega.Equal(expected.DigestMD5))
-	gomega.Expect(actual.MediaType).To(gomega.Equal(expected.MediaType))
-	gomega.Expect(actual.Size).To(gomega.Equal(expected.Size))
-	gomega.Expect(actual.Status).To(gomega.Equal(expected.Status))
-	if actual.CreatedTime != nil && expected.CreatedTime != nil {
-		gomega.Expect(actual.CreatedTime.Local()).To(gomega.Equal(expected.CreatedTime.Local()))
-	} else {
-		gomega.Expect(actual.CreatedTime).To(gomega.Equal(expected.CreatedTime))
+func MatchBlob(datum *blob.Blob) gomegaTypes.GomegaMatcher {
+	if datum == nil {
+		return gomega.BeNil()
 	}
-	if actual.ModifiedTime != nil && expected.ModifiedTime != nil {
-		gomega.Expect(actual.ModifiedTime.Local()).To(gomega.Equal(expected.ModifiedTime.Local()))
-	} else {
-		gomega.Expect(actual.ModifiedTime).To(gomega.Equal(expected.ModifiedTime))
-	}
-	gomega.Expect(actual.Revision).To(gomega.Equal(expected.Revision))
+	return gomegaGstruct.PointTo(gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
+		"ID":           gomega.Equal(datum.ID),
+		"UserID":       gomega.Equal(datum.UserID),
+		"DigestMD5":    gomega.Equal(datum.DigestMD5),
+		"MediaType":    gomega.Equal(datum.MediaType),
+		"Size":         gomega.Equal(datum.Size),
+		"Status":       gomega.Equal(datum.Status),
+		"CreatedTime":  test.MatchTime(datum.CreatedTime),
+		"ModifiedTime": test.MatchTime(datum.ModifiedTime),
+		"DeletedTime":  test.MatchTime(datum.DeletedTime),
+		"Revision":     gomega.Equal(datum.Revision),
+	}))
 }
 
-func RandomBlobs(minimumLength int, maximumLength int) blob.Blobs {
-	datum := make(blob.Blobs, test.RandomIntFromRange(minimumLength, maximumLength))
+func RandomBlobArray(minimumLength int, maximumLength int) blob.BlobArray {
+	datum := make(blob.BlobArray, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
 		datum[index] = RandomBlob()
 	}
 	return datum
 }
 
-func ExpectEqualBlobs(actual blob.Blobs, expected blob.Blobs) {
-	gomega.Expect(actual).To(gomega.HaveLen(len(expected)))
-	for index := range expected {
-		ExpectEqualBlob(actual[index], expected[index])
+func MatchBlobArray(datum blob.BlobArray) gomegaTypes.GomegaMatcher {
+	matchers := []gomegaTypes.GomegaMatcher{}
+	for _, d := range datum {
+		matchers = append(matchers, MatchBlob(d))
 	}
+	return test.MatchArray(matchers)
 }
