@@ -75,9 +75,7 @@ ifeq ($(shell which golint),)
 endif
 
 vendor-install: check-environment
-ifeq ($(shell which dep),)
 	@cd $(ROOT_DIRECTORY) && $(GOPATH)/bin/dep ensure && $(GOPATH)/bin/dep check
-endif
 
 buildable: vendor-install CompileDaemon esc ginkgo goimports golint
 
