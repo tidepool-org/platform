@@ -49,7 +49,7 @@ endif
 
 check-environment: check-gopath
 
-CompileDaemon: check-environment
+CompileDaemon: check-environment 
 ifeq ($(shell which CompileDaemon),)
 	cd vendor/github.com/githubnemo/CompileDaemon && go install .
 endif
@@ -74,7 +74,12 @@ ifeq ($(shell which golint),)
 	cd vendor/golang.org/x/lint/golint && go install .
 endif
 
-buildable: CompileDaemon esc ginkgo goimports golint
+vendor-install: check-environment
+ifeq ($(shell which dep),)
+	@cd $(ROOT_DIRECTORY) && $(GOPATH)/bin/dep ensure && $(GOPATH)/bin/dep check
+endif
+
+buildable: vendor-install CompileDaemon esc ginkgo goimports golint
 
 generate: check-environment esc
 	@echo "go generate ./..."
@@ -139,7 +144,7 @@ build: check-environment
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
 
-ci-build: pre-build build
+ci-build: vendor-install pre-build build
 
 ci-build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
