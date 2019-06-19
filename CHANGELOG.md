@@ -1,5 +1,8 @@
 ## HEAD
 
+## v1.32.1
+* [Fix combination boluses with a normal component of zero](https://trello.com/c/s67Yc2qP)
+
 ## v1.31.0
 
 * Add image service
