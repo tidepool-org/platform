@@ -1,7 +1,13 @@
 ## HEAD
 
 ## v1.32.1
+
 * [Fix combination boluses with a normal component of zero](https://trello.com/c/s67Yc2qP)
+
+## v1.32.0
+
+* [Add scanned subType for smbg records to platform validation](https://trello.com/c/ACTIeEq9)
+* [Suppress noisy platform log messages](https://trello.com/c/YbawaBoZ)
 
 ## v1.31.0
 
