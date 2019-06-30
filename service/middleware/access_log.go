@@ -43,6 +43,16 @@ func (a *AccessLog) ignore(req *rest.Request) bool {
 	if req.URL.RequestURI() == "/status" {
 		return true
 	}
+	if req.URL.RequestURI() == "/swagger" {
+		return true
+	}
+	if req.URL.RequestURI() == "/v1/swagger" {
+		return true
+	}
+
+	if req.Method == "PRI" {
+		return true
+	}
 	return false
 }
 
