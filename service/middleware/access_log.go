@@ -43,6 +43,10 @@ func (a *AccessLog) ignore(req *rest.Request) bool {
 	if req.URL.RequestURI() == "/status" {
 		return true
 	}
+
+	// Gloo has a discovery mechanism that polls certain endpoints
+	// Unfortunately, one cannot selectively turn it off.
+	// So we explicitly avoid logging these polls.
 	if req.URL.RequestURI() == "/swagger" {
 		return true
 	}
@@ -50,6 +54,7 @@ func (a *AccessLog) ignore(req *rest.Request) bool {
 		return true
 	}
 
+	// These are HTTP2 requests that look like "PRI" method calls.
 	if req.Method == "PRI" {
 		return true
 	}
