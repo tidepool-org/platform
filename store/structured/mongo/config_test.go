@@ -17,7 +17,7 @@ var _ = Describe("Config", func() {
 		It("returns a new config with default values", func() {
 			datum := storeStructuredMongo.NewConfig()
 			Expect(datum).ToNot(BeNil())
-			Expect(datum.Scheme).To(BeNil())
+			Expect(datum.Scheme).To(BeEmpty())
 			Expect(datum.Addresses).To(BeNil())
 			Expect(datum.TLS).To(BeTrue())
 			Expect(datum.Database).To(BeEmpty())
