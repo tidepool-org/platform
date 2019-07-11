@@ -15,7 +15,7 @@ import (
 
 //Config describe parameters need to make a connection to a Mongo database
 type Config struct {
-	Scheme           string       `json:"scheme"`
+	Scheme           string        `json:"scheme"`
 	Addresses        []string      `json:"addresses"`
 	TLS              bool          `json:"tls"`
 	Database         string        `json:"database"`
