@@ -81,6 +81,7 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		}
 		c.TLS = tls
 	}
+	c.Scheme = configReporter.GetWithDefault("scheme", c.Scheme)
 	c.Database = configReporter.GetWithDefault("database", c.Database)
 	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", c.CollectionPrefix)
 	if username, err := configReporter.Get("username"); err == nil {
