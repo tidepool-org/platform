@@ -17,6 +17,7 @@ var _ = Describe("Config", func() {
 		It("returns a new config with default values", func() {
 			datum := storeStructuredMongo.NewConfig()
 			Expect(datum).ToNot(BeNil())
+			Expect(datum.Scheme).To(BeNil())
 			Expect(datum.Addresses).To(BeNil())
 			Expect(datum.TLS).To(BeTrue())
 			Expect(datum.Database).To(BeEmpty())
@@ -42,6 +43,7 @@ var _ = Describe("Config", func() {
 				configReporter = configTest.NewReporter()
 				configReporter.Config["addresses"] = "https://1.2.3.4:5678, http://a.b.c.d:9999"
 				configReporter.Config["tls"] = "false"
+				configReporter.Config["scheme"] = "mongodb+srv"
 				configReporter.Config["database"] = "database"
 				configReporter.Config["collection_prefix"] = "collection_prefix"
 				configReporter.Config["username"] = "username"
@@ -109,6 +111,7 @@ var _ = Describe("Config", func() {
 
 			It("returns successfully and uses values from config reporter", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
+				Expect(config.Scheme).To(Equal("mongodb+srv"))
 				Expect(config.Addresses).To(Equal([]string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}))
 				Expect(config.TLS).To(BeFalse())
 				Expect(config.Database).To(Equal("database"))

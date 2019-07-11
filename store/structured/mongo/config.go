@@ -15,6 +15,7 @@ import (
 
 //Config describe parameters need to make a connection to a Mongo database
 type Config struct {
+	Scheme           *string       `json:"scheme"`
 	Addresses        []string      `json:"addresses"`
 	TLS              bool          `json:"tls"`
 	Database         string        `json:"database"`
@@ -36,7 +37,12 @@ func NewConfig() *Config {
 // AsConnectionString constructs a MongoDB connection string from a Config
 func (c *Config) AsConnectionString() string {
 	var url string
-	url += "mongodb://"
+	if c.Scheme != nil && *c.Scheme != "" {
+		url += *c.Scheme + "://"
+	} else {
+		url += "mongodb://"
+	}
+
 	if c.Username != nil && *c.Username != "" {
 		url += *c.Username
 		if c.Password != nil && *c.Password != "" {
