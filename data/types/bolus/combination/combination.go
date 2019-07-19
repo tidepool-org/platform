@@ -93,7 +93,16 @@ func (c *Combination) Validate(validator structure.Validator) {
 	expectedNormalValidator := validator.Float64("expectedNormal", c.NormalExpected)
 	if c.Normal != nil && *c.Normal >= NormalMinimum && *c.Normal <= NormalMaximum {
 		if *c.Normal == NormalMinimum {
-			expectedNormalValidator.Exists()
+			// If Normal is zero, then _either_:
+			if c.Extended != nil {
+				if c.NormalExpected == nil {
+					validator.Float64("extended", c.Extended).GreaterThan(ExtendedMinimum)
+				} else {
+					validator.Float64("extended", c.Extended).Exists()
+				}
+			} else {
+				expectedNormalValidator.GreaterThan(NormalMinimum)
+			}
 		}
 		expectedNormalValidator.InRange(*c.Normal, NormalMaximum)
 	} else {
