@@ -1,13 +1,13 @@
 package platform_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"context"
 	"io"
 	"net/http"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -16,7 +16,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
-	testHTTP "github.com/tidepool-org/platform/test/http"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Client", func() {
@@ -37,22 +37,22 @@ var _ = Describe("Client", func() {
 		var userAgent string
 		var serviceSecret string
 		var ctx context.Context
-		var cfg *platform.Config
+		var config *platform.Config
 
 		BeforeEach(func() {
-			address = testHTTP.NewAddress()
-			userAgent = testHTTP.NewUserAgent()
+			address = testHttp.NewAddress()
+			userAgent = testHttp.NewUserAgent()
 			serviceSecret = authTest.NewServiceSecret()
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		})
 
 		JustBeforeEach(func() {
-			cfg = platform.NewConfig()
-			Expect(cfg).ToNot(BeNil())
-			Expect(cfg.Config).ToNot(BeNil())
-			cfg.Address = address
-			cfg.UserAgent = userAgent
-			cfg.ServiceSecret = serviceSecret
+			config = platform.NewConfig()
+			Expect(config).ToNot(BeNil())
+			Expect(config.Config).ToNot(BeNil())
+			config.Address = address
+			config.UserAgent = userAgent
+			config.ServiceSecret = serviceSecret
 		})
 
 		Context("NewClient", func() {
@@ -63,20 +63,20 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns an error if config is invalid", func() {
-				cfg.Address = ""
-				clnt, err := platform.NewClient(cfg, platform.AuthorizeAsUser)
+				config.Address = ""
+				clnt, err := platform.NewClient(config, platform.AuthorizeAsUser)
 				Expect(err).To(MatchError("config is invalid; address is missing"))
 				Expect(clnt).To(BeNil())
 			})
 
 			It("returns an error if authorize as is invalid", func() {
-				clnt, err := platform.NewClient(cfg, platform.AuthorizeAs(-1))
+				clnt, err := platform.NewClient(config, platform.AuthorizeAs(-1))
 				Expect(err).To(MatchError("authorize as is invalid"))
 				Expect(clnt).To(BeNil())
 			})
 
 			It("returns success", func() {
-				clnt, err := platform.NewClient(cfg, platform.AuthorizeAsUser)
+				clnt, err := platform.NewClient(config, platform.AuthorizeAsUser)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})
@@ -87,7 +87,7 @@ var _ = Describe("Client", func() {
 
 			JustBeforeEach(func() {
 				var err error
-				clnt, err = platform.NewClient(cfg, platform.AuthorizeAsService)
+				clnt, err = platform.NewClient(config, platform.AuthorizeAsService)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})
@@ -160,8 +160,8 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server = NewServer()
 					address = server.URL()
-					method = testHTTP.NewMethod()
-					path = testHTTP.NewPath()
+					method = testHttp.NewMethod()
+					path = testHttp.NewPath()
 					url = server.URL() + path
 				})
 
@@ -227,8 +227,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
@@ -290,8 +290,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
@@ -321,12 +321,12 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				serviceSecret = ""
 				sessionToken = authTest.NewSessionToken()
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.NewString(10, test.CharsetAlphaNumeric), sessionToken))
+				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
 			})
 
 			JustBeforeEach(func() {
 				var err error
-				clnt, err = platform.NewClient(cfg, platform.AuthorizeAsUser)
+				clnt, err = platform.NewClient(config, platform.AuthorizeAsUser)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})
@@ -375,8 +375,8 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server = NewServer()
 					address = server.URL()
-					method = testHTTP.NewMethod()
-					path = testHTTP.NewPath()
+					method = testHttp.NewMethod()
+					path = testHttp.NewPath()
 					url = server.URL() + path
 				})
 
@@ -442,8 +442,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
@@ -505,8 +505,8 @@ var _ = Describe("Client", func() {
 						var headerValue string
 
 						BeforeEach(func() {
-							headerKey = testHTTP.NewHeaderKey()
-							headerValue = testHTTP.NewHeaderValue()
+							headerKey = testHttp.NewHeaderKey()
+							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),

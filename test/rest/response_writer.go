@@ -42,7 +42,7 @@ type ResponseWriter struct {
 	WriteHeaderStub        func(statusCode int)
 	WriteInvocations       int
 	WriteInputs            [][]byte
-	WriteStub              func(bytes []byte) (int, error)
+	WriteStub              func(bites []byte) (int, error)
 	WriteOutputs           []WriteOutput
 	WriteOutput            *WriteOutput
 	FlushInvocations       int
@@ -119,11 +119,11 @@ func (r *ResponseWriter) WriteHeader(statusCode int) {
 	}
 }
 
-func (r *ResponseWriter) Write(bytes []byte) (int, error) {
+func (r *ResponseWriter) Write(bites []byte) (int, error) {
 	r.WriteInvocations++
-	r.WriteInputs = append(r.WriteInputs, bytes)
+	r.WriteInputs = append(r.WriteInputs, bites)
 	if r.WriteStub != nil {
-		return r.WriteStub(bytes)
+		return r.WriteStub(bites)
 	}
 	if len(r.WriteOutputs) > 0 {
 		output := r.WriteOutputs[0]

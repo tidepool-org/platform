@@ -1,15 +1,16 @@
 package validator_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"time"
-
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Time", func() {
@@ -21,7 +22,7 @@ var _ = Describe("Time", func() {
 
 	Context("NewTime", func() {
 		It("returns successfully", func() {
-			value := time.Now()
+			value := test.RandomTime()
 			Expect(structureValidator.NewTime(base, &value)).ToNot(BeNil())
 		})
 	})
@@ -42,7 +43,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
 			})
 
 			It("returns self", func() {
@@ -94,7 +95,7 @@ var _ = Describe("Time", func() {
 
 		Context("After", func() {
 			BeforeEach(func() {
-				result = validator.After(time.Unix(1451567655, 0).UTC())
+				result = validator.After(test.PastNearTime())
 			})
 
 			It("does not report an error", func() {
@@ -122,7 +123,7 @@ var _ = Describe("Time", func() {
 
 		Context("Before", func() {
 			BeforeEach(func() {
-				result = validator.Before(time.Unix(1451567655, 0).UTC())
+				result = validator.Before(test.PastNearTime())
 			})
 
 			It("does not report an error", func() {
@@ -171,10 +172,7 @@ var _ = Describe("Time", func() {
 		var value time.Time
 
 		BeforeEach(func() {
-			var err error
-			value, err = time.Parse(time.RFC3339, "1990-01-01T14:15:16Z")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(value.IsZero()).ToNot(BeTrue())
+			value = test.PastFarTime()
 			validator = structureValidator.NewTime(base, &value)
 			Expect(validator).ToNot(BeNil())
 		})
@@ -200,7 +198,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -215,7 +213,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {
@@ -239,12 +237,12 @@ var _ = Describe("Time", func() {
 
 		Context("After", func() {
 			BeforeEach(func() {
-				result = validator.After(time.Unix(1451567655, 0).UTC())
+				result = validator.After(test.PastNearTime())
 			})
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotAfter(value, time.Unix(1451567655, 0).UTC()))
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotAfter(value, test.PastNearTime()))
 			})
 
 			It("returns self", func() {
@@ -259,7 +257,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotAfterNow(value))
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotAfterNow(value))
 			})
 
 			It("returns self", func() {
@@ -269,7 +267,7 @@ var _ = Describe("Time", func() {
 
 		Context("Before", func() {
 			BeforeEach(func() {
-				result = validator.Before(time.Unix(1451567655, 0).UTC())
+				result = validator.Before(test.PastNearTime())
 			})
 
 			It("does not report an error", func() {
@@ -305,7 +303,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -334,10 +332,7 @@ var _ = Describe("Time", func() {
 		var value time.Time
 
 		BeforeEach(func() {
-			var err error
-			value, err = time.Parse(time.RFC3339, "2090-01-01T14:15:16Z")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(value.IsZero()).ToNot(BeTrue())
+			value = test.FutureFarTime()
 			validator = structureValidator.NewTime(base, &value)
 			Expect(validator).ToNot(BeNil())
 		})
@@ -363,7 +358,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -378,7 +373,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueNotEmpty())
 			})
 
 			It("returns self", func() {
@@ -402,7 +397,7 @@ var _ = Describe("Time", func() {
 
 		Context("After", func() {
 			BeforeEach(func() {
-				result = validator.After(time.Unix(1451567655, 0).UTC())
+				result = validator.After(test.PastNearTime())
 			})
 
 			It("does not report an error", func() {
@@ -430,12 +425,12 @@ var _ = Describe("Time", func() {
 
 		Context("Before", func() {
 			BeforeEach(func() {
-				result = validator.Before(time.Unix(1451567655, 0).UTC())
+				result = validator.Before(test.PastNearTime())
 			})
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotBefore(value, time.Unix(1451567655, 0).UTC()))
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotBefore(value, test.PastNearTime()))
 			})
 
 			It("returns self", func() {
@@ -450,7 +445,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotBeforeNow(value))
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotBeforeNow(value))
 			})
 
 			It("returns self", func() {
@@ -468,7 +463,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -522,7 +517,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueEmpty())
 			})
 
 			It("returns self", func() {
@@ -540,7 +535,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -595,7 +590,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotAfterNow(value))
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotAfterNow(value))
 			})
 
 			It("returns self", func() {
@@ -624,7 +619,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotBeforeNow(value))
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueTimeNotBeforeNow(value))
 			})
 
 			It("returns self", func() {
@@ -642,7 +637,7 @@ var _ = Describe("Time", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {

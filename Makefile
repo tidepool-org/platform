@@ -49,7 +49,7 @@ endif
 
 check-environment: check-gopath
 
-CompileDaemon: check-environment
+CompileDaemon: check-environment 
 ifeq ($(shell which CompileDaemon),)
 	cd vendor/github.com/githubnemo/CompileDaemon && go install .
 endif
@@ -74,7 +74,10 @@ ifeq ($(shell which golint),)
 	cd vendor/golang.org/x/lint/golint && go install .
 endif
 
-buildable: CompileDaemon esc ginkgo goimports golint
+vendor-install: check-environment
+	@cd $(ROOT_DIRECTORY) && $(GOPATH)/bin/dep ensure && $(GOPATH)/bin/dep check
+
+buildable: vendor-install CompileDaemon esc ginkgo goimports golint
 
 generate: check-environment esc
 	@echo "go generate ./..."
@@ -97,21 +100,21 @@ format-write: check-environment
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports: goimports
-	@echo "goimports -d -e"
+	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e {} \; 2>&1` && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
-	@echo "goimports -e -w"
+	@echo "goimports -e -w -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w {} \; 2>&1` && \
+		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 vet: check-environment tmp
-	@echo "go tool vet -all -shadow -shadowstrict"
-	@cd $(ROOT_DIRECTORY) && \
-		find . -mindepth 1 -maxdepth 1 -not -path "./.*" -not -path "./_*" -not -path "./vendor" -type d -exec go tool vet -all -shadow -shadowstrict {} \; 2> _tmp/govet.out > _tmp/govet.out && \
+	@echo "go vet"
+	cd $(ROOT_DIRECTORY) && \
+		go vet ./... 2> _tmp/govet.out > _tmp/govet.out && \
 		O=`diff .govetignore _tmp/govet.out` || (echo "$${O}" && exit 1)
 
 vet-ignore:
@@ -139,7 +142,7 @@ build: check-environment
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
 
-ci-build: pre-build build
+ci-build: vendor-install pre-build build
 
 ci-build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
@@ -167,6 +170,10 @@ test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
+test-until-failure: ginkgo
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)
+
 test-watch: ginkgo
 	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
@@ -174,6 +181,10 @@ test-watch: ginkgo
 ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
+
+ci-test-until-failure: ginkgo
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)
 
 ci-test-watch: ginkgo
 	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)"
@@ -222,8 +233,13 @@ endif
 docker-build:
 ifdef DOCKER
 ifdef DOCKER_FILE
-	@docker build --tag "$(DOCKER_REPOSITORY):development" --target=development --file "$(DOCKER_FILE)" .
-	@docker build --tag "$(DOCKER_REPOSITORY)" --file "$(DOCKER_FILE)" .
+	docker build --tag $(DOCKER_REPOSITORY):development --target=development --file "$(DOCKER_FILE)" .
+	docker build --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
+ifdef TRAVIS_BRANCH
+ifdef TRAVIS_COMMIT
+	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(TRAVIS_BRANCH)-$(TRAVIS_COMMIT)
+endif
+endif
 ifdef TRAVIS_TAG
 	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
@@ -232,10 +248,20 @@ endif
 
 docker-push:
 ifdef DOCKER
+	@echo "DOCKER_REPOSITORY = $(DOCKER_REPOSITORY)"
+	@echo "TRAVIS_BRANCH = $(TRAVIS_BRANCH)"
+	@echo "TRAVIS_PULL_REQUEST_BRANCH = $(TRAVIS_PULL_REQUEST_BRANCH)"
+	@echo "TRAVIS_COMMIT = $(TRAVIS_COMMIT)"
+	@echo "TRAVIS_TAG= $(TRAVIS_TAG)"
 ifdef DOCKER_REPOSITORY
 ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
-	@docker push "$(DOCKER_REPOSITORY)"
+	docker push $(DOCKER_REPOSITORY)
+endif
+endif
+ifdef TRAVIS_BRANCH
+ifdef TRAVIS_COMMIT
+	docker push $(DOCKER_REPOSITORY):$(TRAVIS_BRANCH)-$(TRAVIS_COMMIT)
 endif
 endif
 ifdef TRAVIS_TAG

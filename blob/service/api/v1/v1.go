@@ -3,7 +3,6 @@ package v1
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -36,6 +35,7 @@ func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/blobs", r.List),
 		rest.Post("/v1/users/:userId/blobs", r.Create),
+		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
 		rest.Delete("/v1/blobs/:id", r.Delete),
@@ -44,8 +44,6 @@ func (r *Router) Routes() []*rest.Route {
 
 func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 
 	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
 	if err != nil {
@@ -71,8 +69,6 @@ func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
-	// FUTURE: Validate supplemental request headers
-
 	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
@@ -93,14 +89,14 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	create := blob.NewCreate()
-	create.Body = req.Body
-	create.DigestMD5 = digestMD5
-	create.MediaType = mediaType
+	content := blob.NewContent()
+	content.Body = req.Body
+	content.DigestMD5 = digestMD5
+	content.MediaType = mediaType
 
-	result, err := r.provider.BlobClient().Create(req.Context(), userID, create)
+	result, err := r.provider.BlobClient().Create(req.Context(), userID, content)
 	if err != nil {
-		if errors.Code(err) == blob.ErrorCodeDigestsNotEqual {
+		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)
 			return
 		} else if responder.RespondIfError(err) {
@@ -111,10 +107,24 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusCreated, result)
 }
 
-func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
+func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
-	// FUTURE: Validate supplemental request headers
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	if responder.RespondIfError(r.provider.BlobClient().DeleteAll(req.Context(), userID)) {
+		return
+	}
+
+	responder.Empty(http.StatusNoContent)
+}
+
+func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
 
 	id, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
 	if err != nil {
@@ -135,8 +145,6 @@ func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 	// FUTURE: Support range request headers, add range response headers
 
 	id, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
@@ -162,17 +170,12 @@ func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 	if content.MediaType != nil {
 		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *content.MediaType))
 	}
-	if content.Size != nil {
-		mutators = append(mutators, request.NewHeaderMutator("Content-Length", strconv.Itoa(*content.Size)))
-	}
 
 	responder.Reader(http.StatusOK, content.Body, mutators...)
 }
 
 func (r *Router) Delete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-
-	// FUTURE: Validate supplemental request headers
 
 	id, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
 	if err != nil {

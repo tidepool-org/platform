@@ -4,8 +4,8 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -55,8 +55,8 @@ func (m *Migration) Initialize(provider application.Provider) error {
 		},
 	)
 
-	m.CLI().Action = func(context *cli.Context) error {
-		if !m.ParseContext(context) {
+	m.CLI().Action = func(ctx *cli.Context) error {
+		if !m.ParseContext(ctx) {
 			return nil
 		}
 		return m.execute()
@@ -65,14 +65,14 @@ func (m *Migration) Initialize(provider application.Provider) error {
 	return nil
 }
 
-func (m *Migration) ParseContext(context *cli.Context) bool {
-	if parsed := m.Migration.ParseContext(context); !parsed {
+func (m *Migration) ParseContext(ctx *cli.Context) bool {
+	if parsed := m.Migration.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
 	m.secret = m.ConfigReporter().WithScopes("session", "store").GetWithDefault("secret", "")
 
-	m.secret = context.String(SecretFlag)
+	m.secret = ctx.String(SecretFlag)
 
 	return true
 }
@@ -110,7 +110,7 @@ func (m *Migration) execute() error {
 
 	iter := iterateSessionsSession.C().Find(bson.M{}).Iter()
 
-	expiredTime := time.Now().Unix()
+	now := time.Now().Unix()
 	expiredSessionCount := 0
 	migratedSessionCount := 0
 	session := &session.Session{}
@@ -133,7 +133,7 @@ func (m *Migration) execute() error {
 			continue
 		}
 
-		if session.ExpiresAt < expiredTime {
+		if session.ExpiresAt < now {
 			if !m.DryRun() {
 				if err = updateSessionsSession.C().RemoveId(sessionID); err != nil {
 					sessionLogger.WithError(err).Error("Unable to remove session")
@@ -143,7 +143,7 @@ func (m *Migration) execute() error {
 
 			expiredSessionCount++
 
-			sessionLogger.Debugf("Expired session (expired %d seconds ago)", expiredTime-session.ExpiresAt)
+			sessionLogger.Debugf("Expired session (expired %d seconds ago)", now-session.ExpiresAt)
 		} else {
 			if !m.DryRun() {
 				if err = updateSessionsSession.C().UpdateId(sessionID, session); err != nil {
@@ -154,7 +154,7 @@ func (m *Migration) execute() error {
 
 			migratedSessionCount++
 
-			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt-expiredTime)
+			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt-now)
 		}
 	}
 	if err = iter.Close(); err != nil {

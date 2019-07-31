@@ -1,15 +1,15 @@
 package client_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/ghttp"
-
 	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -201,48 +201,42 @@ var _ = Describe("Client", func() {
 
 							When("the server responds with no result", func() {
 								BeforeEach(func() {
-									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, dataSource.Sources{}, responseHeaders))
+									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, dataSource.SourceArray{}, responseHeaders))
 								})
 
 								It("returns successfully", func() {
 									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
-									Expect(result).To(Equal(dataSource.Sources{}))
+									Expect(result).To(Equal(dataSource.SourceArray{}))
 								})
 							})
 
 							When("the server responds with result", func() {
-								var responseResult dataSource.Sources
+								var responseResult dataSource.SourceArray
 
 								BeforeEach(func() {
-									responseResult = dataSourceTest.RandomSources(1, 4)
+									responseResult = dataSourceTest.RandomSourceArray(1, 4)
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
 								It("returns successfully", func() {
-									result, err := client.List(ctx, userID, filter, pagination)
-									Expect(err).ToNot(HaveOccurred())
-									dataSourceTest.ExpectEqualSources(result, responseResult)
+									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSourceArray(responseResult))
 								})
 							})
 						})
 					}
 
-					When("the request has no filter or pagination", func() {
+					When("the request has no filter or pagination parameters", func() {
 						BeforeEach(func() {
 							filter = nil
 							pagination = nil
-							query := url.Values{
-								"page": []string{"0"},
-								"size": []string{"100"},
-							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), ""))
 						})
 
 						listAssertions()
 					})
 
-					When("the request has a random filter and pagination", func() {
+					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
 							filter = dataSourceTest.RandomFilter()
 							pagination = pageTest.RandomPagination()
@@ -254,7 +248,7 @@ var _ = Describe("Client", func() {
 								"page":              []string{strconv.Itoa(pagination.Page)},
 								"size":              []string{strconv.Itoa(pagination.Size)},
 							}
-							requestHandlers = append(requestHandlers, VerifyRequest("GET", fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
+							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
 						})
 
 						listAssertions()
@@ -314,7 +308,7 @@ var _ = Describe("Client", func() {
 							requestHandlers = append(requestHandlers,
 								VerifyRequest("POST", fmt.Sprintf("/v1/users/%s/data_sources", userID)),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(create))),
+								VerifyBody(test.MarshalRequestBody(create)),
 							)
 						})
 
@@ -367,9 +361,74 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully", func() {
-								result, err := client.Create(ctx, userID, create)
-								Expect(err).ToNot(HaveOccurred())
-								dataSourceTest.ExpectEqualSource(result, responseResult)
+								Expect(client.Create(ctx, userID, create)).To(dataSourceTest.MatchSource(responseResult))
+							})
+						})
+					})
+				})
+
+				Context("DeleteAll", func() {
+					Context("without server response", func() {
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(BeEmpty())
+						})
+
+						It("returns an error when the context is missing", func() {
+							ctx = nil
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("context is missing"))
+						})
+
+						It("returns an error when the user id is missing", func() {
+							userID = ""
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("user id is missing"))
+						})
+
+						It("returns an error when the user id is invalid", func() {
+							userID = "invalid"
+							errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), errors.New("user id is invalid"))
+						})
+					})
+
+					Context("with server response", func() {
+						BeforeEach(func() {
+							requestHandlers = append(requestHandlers,
+								VerifyRequest(http.MethodDelete, fmt.Sprintf("/v1/users/%s/data_sources", userID)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
+						})
+
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+
+						When("the server responds with an unauthenticated error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), request.ErrorUnauthenticated())
+							})
+						})
+
+						When("the server responds with an unauthorized error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), request.ErrorUnauthorized())
+							})
+						})
+
+						When("the server responds successfully", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNoContent, nil, responseHeaders))
+							})
+
+							It("returns successfully", func() {
+								Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 							})
 						})
 					})
@@ -414,7 +473,7 @@ var _ = Describe("Client", func() {
 					Context("with server response", func() {
 						BeforeEach(func() {
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("GET", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType(""),
 								VerifyBody(nil),
 							)
@@ -469,9 +528,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns successfully with result", func() {
-								result, err := client.Get(ctx, id)
-								Expect(err).ToNot(HaveOccurred())
-								dataSourceTest.ExpectEqualSource(result, responseResult)
+								Expect(client.Get(ctx, id)).To(dataSourceTest.MatchSource(responseResult))
 							})
 						})
 					})
@@ -569,7 +626,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns an error", func() {
+								It("returns successfully without result", func() {
 									result, err := client.Update(ctx, id, condition, update)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(result).To(BeNil())
@@ -585,9 +642,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.Update(ctx, id, condition, update)
-									Expect(err).ToNot(HaveOccurred())
-									dataSourceTest.ExpectEqualSource(result, responseResult)
+									Expect(client.Update(ctx, id, condition, update)).To(dataSourceTest.MatchSource(responseResult))
 								})
 							})
 						})
@@ -597,9 +652,9 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
+								VerifyBody(test.MarshalRequestBody(update)),
 							)
 						})
 
@@ -610,9 +665,9 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							condition.Revision = nil
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id)),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id)),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
+								VerifyBody(test.MarshalRequestBody(update)),
 							)
 						})
 
@@ -625,9 +680,9 @@ var _ = Describe("Client", func() {
 								"revision": []string{strconv.Itoa(*condition.Revision)},
 							}
 							requestHandlers = append(requestHandlers,
-								VerifyRequest("PUT", fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
+								VerifyRequest(http.MethodPut, fmt.Sprintf("/v1/data_sources/%s", id), query.Encode()),
 								VerifyContentType("application/json; charset=utf-8"),
-								VerifyBody(test.MustBytes(test.MarshalRequestBody(update))),
+								VerifyBody(test.MarshalRequestBody(update)),
 							)
 						})
 
@@ -711,7 +766,7 @@ var _ = Describe("Client", func() {
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(id)), responseHeaders))
 								})
 
-								It("returns successfully with delete false", func() {
+								It("returns successfully with deleted false", func() {
 									deleted, err := client.Delete(ctx, id, condition)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(deleted).To(BeFalse())

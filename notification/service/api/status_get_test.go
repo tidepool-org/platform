@@ -1,16 +1,15 @@
 package api_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/service/api"
-	testService "github.com/tidepool-org/platform/notification/service/test"
+	serviceTest "github.com/tidepool-org/platform/notification/service/test"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
@@ -18,13 +17,13 @@ import (
 var _ = Describe("StatusGet", func() {
 	var response *testRest.ResponseWriter
 	var request *rest.Request
-	var svc *testService.Service
+	var svc *serviceTest.Service
 	var rtr *api.Router
 
 	BeforeEach(func() {
 		response = testRest.NewResponseWriter()
 		request = testRest.NewRequest()
-		svc = testService.NewService()
+		svc = serviceTest.NewService()
 		var err error
 		rtr, err = api.NewRouter(svc)
 		Expect(err).ToNot(HaveOccurred())

@@ -16,13 +16,12 @@ type Formulation struct {
 	Simple    *Simple        `json:"simple,omitempty" bson:"simple,omitempty"`
 }
 
-func ParseFormulation(parser data.ObjectParser) *Formulation {
-	if parser.Object() == nil {
+func ParseFormulation(parser structure.ObjectParser) *Formulation {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewFormulation()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -30,10 +29,10 @@ func NewFormulation() *Formulation {
 	return &Formulation{}
 }
 
-func (f *Formulation) Parse(parser data.ObjectParser) {
-	f.Compounds = ParseCompoundArray(parser.NewChildArrayParser("compounds"))
-	f.Name = parser.ParseString("name")
-	f.Simple = ParseSimple(parser.NewChildObjectParser("simple"))
+func (f *Formulation) Parse(parser structure.ObjectParser) {
+	f.Compounds = ParseCompoundArray(parser.WithReferenceArrayParser("compounds"))
+	f.Name = parser.String("name")
+	f.Simple = ParseSimple(parser.WithReferenceObjectParser("simple"))
 }
 
 func (f *Formulation) Validate(validator structure.Validator) {

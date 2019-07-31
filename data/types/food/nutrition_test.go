@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/food"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -55,7 +55,7 @@ var _ = Describe("Nutrition", func() {
 				func(mutator func(datum *food.Nutrition), expectedErrors ...error) {
 					datum := NewNutrition()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *food.Nutrition) {},
@@ -65,7 +65,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("carbohydrate invalid",
 					func(datum *food.Nutrition) { datum.Carbohydrate.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 				),
 				Entry("carbohydrate valid",
 					func(datum *food.Nutrition) { datum.Carbohydrate = NewCarbohydrate() },
@@ -75,7 +75,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("energy invalid",
 					func(datum *food.Nutrition) { datum.Energy.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
 				),
 				Entry("energy valid",
 					func(datum *food.Nutrition) { datum.Energy = NewEnergy() },
@@ -85,7 +85,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("fat invalid",
 					func(datum *food.Nutrition) { datum.Fat.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
 				),
 				Entry("fat valid",
 					func(datum *food.Nutrition) { datum.Fat = NewFat() },
@@ -95,7 +95,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("protein invalid",
 					func(datum *food.Nutrition) { datum.Protein.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),
 				),
 				Entry("protein valid",
 					func(datum *food.Nutrition) { datum.Protein = NewProtein() },
@@ -107,10 +107,10 @@ var _ = Describe("Nutrition", func() {
 						datum.Fat.Units = nil
 						datum.Protein.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),
 				),
 			)
 		})

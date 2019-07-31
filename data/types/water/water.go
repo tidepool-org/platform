@@ -23,16 +23,14 @@ func New() *Water {
 	}
 }
 
-func (w *Water) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(w.Meta())
-
-	if err := w.Base.Parse(parser); err != nil {
-		return err
+func (w *Water) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(w.Meta())
 	}
 
-	w.Amount = ParseAmount(parser.NewChildObjectParser("amount"))
+	w.Base.Parse(parser)
 
-	return nil
+	w.Amount = ParseAmount(parser.WithReferenceObjectParser("amount"))
 }
 
 func (w *Water) Validate(validator structure.Validator) {

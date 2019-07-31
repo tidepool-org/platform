@@ -30,17 +30,17 @@ func New() *Extended {
 	}
 }
 
-func (e *Extended) Parse(parser data.ObjectParser) error {
-	if err := e.Bolus.Parse(parser); err != nil {
-		return err
+func (e *Extended) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(e.Meta())
 	}
 
-	e.Duration = parser.ParseInteger("duration")
-	e.DurationExpected = parser.ParseInteger("expectedDuration")
-	e.Extended = parser.ParseFloat("extended")
-	e.ExtendedExpected = parser.ParseFloat("expectedExtended")
+	e.Bolus.Parse(parser)
 
-	return nil
+	e.Duration = parser.Int("duration")
+	e.DurationExpected = parser.Int("expectedDuration")
+	e.Extended = parser.Float64("extended")
+	e.ExtendedExpected = parser.Float64("expectedExtended")
 }
 
 func (e *Extended) Validate(validator structure.Validator) {

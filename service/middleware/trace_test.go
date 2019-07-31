@@ -1,17 +1,16 @@
 package middleware_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
-	testRequest "github.com/tidepool-org/platform/request/test"
+	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/service/middleware"
 	"github.com/tidepool-org/platform/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
@@ -40,9 +39,9 @@ var _ = Describe("Trace", func() {
 			req = testRest.NewRequest()
 			res = testRest.NewResponseWriter()
 			res.HeaderOutput = &http.Header{}
-			traceRequest = testRequest.NewTraceRequest()
+			traceRequest = requestTest.NewTraceRequest()
 			req.Request.Header.Set("X-Tidepool-Trace-Request", traceRequest)
-			traceSession = testRequest.NewTraceSession()
+			traceSession = requestTest.NewTraceSession()
 			req.Request.Header.Set("X-Tidepool-Trace-Session", traceSession)
 		})
 
@@ -173,7 +172,7 @@ var _ = Describe("Trace", func() {
 		})
 
 		It("trims trace request to maximum length", func() {
-			traceRequest = test.NewVariableString(65, 256, test.CharsetAlphaNumeric)
+			traceRequest = test.RandomStringFromRangeAndCharset(65, 256, test.CharsetAlphaNumeric)
 			req.Request.Header.Set("X-Tidepool-Trace-Request", traceRequest)
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) {
 				Expect(req.Env["TRACE-REQUEST"]).To(Equal(traceRequest[0:64]))
@@ -196,7 +195,7 @@ var _ = Describe("Trace", func() {
 		})
 
 		It("trims trace session to maximum length", func() {
-			traceSession = test.NewVariableString(65, 256, test.CharsetAlphaNumeric)
+			traceSession = test.RandomStringFromRangeAndCharset(65, 256, test.CharsetAlphaNumeric)
 			req.Request.Header.Set("X-Tidepool-Trace-Session", traceSession)
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) {
 				Expect(req.Env["TRACE-SESSION"]).To(Equal(traceSession[0:64]))

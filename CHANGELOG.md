@@ -1,4 +1,7 @@
 ## Unreleased
+### Added
+
+- Integration from Tidepool latest changes
 
 ## v0.3.1 [2019-06-06]
 

@@ -1,11 +1,11 @@
 package timechange_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	"time"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"

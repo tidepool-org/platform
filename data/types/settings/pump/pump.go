@@ -47,31 +47,29 @@ func New() *Pump {
 	}
 }
 
-func (p *Pump) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(p.Meta())
-
-	if err := p.Base.Parse(parser); err != nil {
-		return err
+func (p *Pump) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(p.Meta())
 	}
 
-	p.ActiveScheduleName = parser.ParseString("activeSchedule")
-	p.Basal = ParseBasal(parser.NewChildObjectParser("basal"))
-	p.BasalRateSchedule = ParseBasalRateStartArray(parser.NewChildArrayParser("basalSchedule"))
-	p.BasalRateSchedules = ParseBasalRateStartArrayMap(parser.NewChildObjectParser("basalSchedules"))
-	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.NewChildArrayParser("bgTarget"))
-	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.NewChildObjectParser("bgTargets"))
-	p.Bolus = ParseBolus(parser.NewChildObjectParser("bolus"))
-	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.NewChildArrayParser("carbRatio"))
-	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.NewChildObjectParser("carbRatios"))
-	p.Display = ParseDisplay(parser.NewChildObjectParser("display"))
-	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.NewChildArrayParser("insulinSensitivity"))
-	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.NewChildObjectParser("insulinSensitivities"))
-	p.Manufacturers = parser.ParseStringArray("manufacturers")
-	p.Model = parser.ParseString("model")
-	p.SerialNumber = parser.ParseString("serialNumber")
-	p.Units = ParseUnits(parser.NewChildObjectParser("units"))
+	p.Base.Parse(parser)
 
-	return nil
+	p.ActiveScheduleName = parser.String("activeSchedule")
+	p.Basal = ParseBasal(parser.WithReferenceObjectParser("basal"))
+	p.BasalRateSchedule = ParseBasalRateStartArray(parser.WithReferenceArrayParser("basalSchedule"))
+	p.BasalRateSchedules = ParseBasalRateStartArrayMap(parser.WithReferenceObjectParser("basalSchedules"))
+	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
+	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
+	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
+	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
+	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
+	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
+	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.WithReferenceArrayParser("insulinSensitivity"))
+	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.WithReferenceObjectParser("insulinSensitivities"))
+	p.Manufacturers = parser.StringArray("manufacturers")
+	p.Model = parser.String("model")
+	p.SerialNumber = parser.String("serialNumber")
+	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 }
 
 func (p *Pump) Validate(validator structure.Validator) {

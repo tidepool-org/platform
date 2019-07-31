@@ -1,12 +1,12 @@
 package application_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"fmt"
 	"os"
 	"strings"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/application"
 	netTest "github.com/tidepool-org/platform/net/test"

@@ -19,7 +19,8 @@ import (
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var types = []string{
@@ -39,14 +40,14 @@ var types = []string{
 	dataTypesUpload.Type,
 }
 
-func NewDatum(parser data.ObjectParser) data.Datum {
-	if parser.Object() == nil {
+func NewDatum(parser structure.ObjectParser) data.Datum {
+	if !parser.Exists() {
 		return nil
 	}
 
-	value := parser.ParseString("type")
+	value := parser.String("type")
 	if value == nil {
-		parser.AppendError("type", service.ErrorValueNotExists())
+		parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueNotExists())
 		return nil
 	}
 
@@ -81,11 +82,11 @@ func NewDatum(parser data.ObjectParser) data.Datum {
 		return dataTypesUpload.New()
 	}
 
-	parser.AppendError("type", service.ErrorValueStringNotOneOf(*value, types))
+	parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, types))
 	return nil
 }
 
-func ParseDatum(parser data.ObjectParser) *data.Datum {
+func ParseDatum(parser structure.ObjectParser) *data.Datum {
 	datum := NewDatum(parser)
 	if datum == nil {
 		return nil

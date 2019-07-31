@@ -5,14 +5,14 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/notification/service/api"
-	testService "github.com/tidepool-org/platform/notification/service/test"
+	serviceTest "github.com/tidepool-org/platform/notification/service/test"
 )
 
 var _ = Describe("Router", func() {
-	var svc *testService.Service
+	var svc *serviceTest.Service
 
 	BeforeEach(func() {
-		svc = testService.NewService()
+		svc = serviceTest.NewService()
 	})
 
 	Context("NewRouter", func() {

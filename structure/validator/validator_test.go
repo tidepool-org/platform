@@ -4,14 +4,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	"github.com/tidepool-org/platform/errors"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Validator", func() {
@@ -57,7 +56,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns true if source set", func() {
-				Expect(validator.WithSource(testStructure.NewSource()).HasSource()).To(BeTrue())
+				Expect(validator.WithSource(structureTest.NewSource()).HasSource()).To(BeTrue())
 			})
 		})
 
@@ -67,7 +66,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns set source", func() {
-				src := testStructure.NewSource()
+				src := structureTest.NewSource()
 				Expect(validator.WithSource(src).Source()).To(Equal(src))
 			})
 		})
@@ -78,7 +77,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns true if meta set", func() {
-				Expect(validator.WithMeta(testErrors.NewMeta()).HasMeta()).To(BeTrue())
+				Expect(validator.WithMeta(errorsTest.NewMeta()).HasMeta()).To(BeTrue())
 			})
 		})
 
@@ -88,7 +87,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns set meta", func() {
-				meta := testErrors.NewMeta()
+				meta := errorsTest.NewMeta()
 				Expect(validator.WithMeta(meta).Meta()).To(Equal(meta))
 			})
 		})
@@ -99,14 +98,14 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns true if any errors reported", func() {
-				base.ReportError(testErrors.RandomError())
+				base.ReportError(errorsTest.RandomError())
 				Expect(validator.HasError()).To(BeTrue())
 			})
 		})
 
 		Context("Error", func() {
 			It("returns the error from the base", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				base.ReportError(err)
 				Expect(validator.Error()).To(Equal(errors.Normalize(err)))
 			})
@@ -114,17 +113,17 @@ var _ = Describe("Validator", func() {
 
 		Context("ReportError", func() {
 			It("reports the error to the base", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				validator.ReportError(err)
 				Expect(base.Error()).To(Equal(errors.Normalize(err)))
 			})
 		})
 
 		Context("Validate", func() {
-			var validatable *testStructure.Validatable
+			var validatable *structureTest.Validatable
 
 			BeforeEach(func() {
-				validatable = testStructure.NewValidatable()
+				validatable = structureTest.NewValidatable()
 			})
 
 			AfterEach(func() {
@@ -132,7 +131,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("invokes normalize and returns current errors", func() {
-				err := testErrors.RandomError()
+				err := errorsTest.RandomError()
 				base.ReportError(err)
 				Expect(validator.Validate(validatable)).To(Equal(errors.Normalize(err)))
 				Expect(validatable.ValidateInputs).To(Equal([]structure.Validator{validator}))
@@ -200,7 +199,7 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("returns a validator when called with non-nil value", func() {
-				value := time.Now()
+				value := test.RandomTime()
 				Expect(validator.Time("reference", &value)).ToNot(BeNil())
 			})
 		})
@@ -240,7 +239,7 @@ var _ = Describe("Validator", func() {
 
 		Context("WithSource", func() {
 			It("returns new validator", func() {
-				src := testStructure.NewSource()
+				src := structureTest.NewSource()
 				result := validator.WithSource(src)
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(validator))
@@ -249,7 +248,7 @@ var _ = Describe("Validator", func() {
 
 		Context("WithMeta", func() {
 			It("returns new validator", func() {
-				result := validator.WithMeta(testErrors.NewMeta())
+				result := validator.WithMeta(errorsTest.NewMeta())
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(Equal(validator))
 			})
@@ -257,7 +256,7 @@ var _ = Describe("Validator", func() {
 
 		Context("WithReference", func() {
 			It("without source returns new validator", func() {
-				reference := testStructure.NewReference()
+				reference := structureTest.NewReference()
 				result := validator.WithReference(reference)
 				Expect(result).ToNot(BeNil())
 				Expect(result).ToNot(BeIdenticalTo(validator))
@@ -265,9 +264,9 @@ var _ = Describe("Validator", func() {
 			})
 
 			It("with source returns new validator", func() {
-				src := testStructure.NewSource()
-				src.WithReferenceOutputs = []structure.Source{testStructure.NewSource()}
-				reference := testStructure.NewReference()
+				src := structureTest.NewSource()
+				src.WithReferenceOutputs = []structure.Source{structureTest.NewSource()}
+				reference := structureTest.NewReference()
 				resultWithSource := validator.WithSource(src)
 				resultWithReference := validator.WithReference(reference)
 				Expect(resultWithReference).ToNot(BeNil())

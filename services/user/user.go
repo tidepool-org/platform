@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/tidepool-org/platform/application"
-	userServiceService "github.com/tidepool-org/platform/user/service/service"
+	userService "github.com/tidepool-org/platform/user/service"
 )
 
 func main() {
-	application.RunAndExit(userServiceService.NewStandard(), "service")
+	application.RunAndExit(userService.New(), "service")
 }

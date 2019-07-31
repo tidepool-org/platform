@@ -6,10 +6,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	testDataTypesBasal "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -32,8 +32,8 @@ func CloneBasalRateStart(datum *pump.BasalRateStart) *pump.BasalRateStart {
 		return nil
 	}
 	clone := pump.NewBasalRateStart()
-	clone.Rate = test.CloneFloat64(datum.Rate)
-	clone.Start = test.CloneInt(datum.Start)
+	clone.Rate = pointer.CloneFloat64(datum.Rate)
+	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 
@@ -58,7 +58,7 @@ func CloneBasalRateStartArray(datumArray *pump.BasalRateStartArray) *pump.BasalR
 
 func NewBasalRateStartArrayMap() *pump.BasalRateStartArrayMap {
 	datum := pump.NewBasalRateStartArrayMap()
-	datum.Set(testDataTypesBasal.NewScheduleName(), NewBasalRateStartArray())
+	datum.Set(dataTypesBasalTest.NewScheduleName(), NewBasalRateStartArray())
 	return datum
 }
 
@@ -110,18 +110,18 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
 					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BasalRateStart) {},
 				),
 				Entry("rate missing",
 					func(datum *pump.BasalRateStart) { datum.Rate = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
 				Entry("rate out of range (lower)",
 					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(-0.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/rate"),
 				),
 				Entry("rate in range (lower)",
 					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(0.0) },
@@ -131,19 +131,19 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("rate out of range (upper)",
 					func(datum *pump.BasalRateStart) { datum.Rate = pointer.FromFloat64(100.1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/rate"),
 				),
 				Entry("start missing",
 					func(datum *pump.BasalRateStart) { datum.Start = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 				Entry("multiple errors",
 					func(datum *pump.BasalRateStart) {
 						datum.Rate = nil
 						datum.Start = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 			)
 
@@ -151,18 +151,18 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
 					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(-1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo(-1, 0), "/start"),
 				),
 				Entry("start in range",
 					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(0) },
 				),
 				Entry("start out of range (upper)",
 					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(1) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo(1, 0), "/start"),
 				),
 			)
 
@@ -170,11 +170,11 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
 					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum + 1)
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(0) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 86400000), "/start"),
 				),
 				Entry("start in range (lower)",
 					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(1) },
@@ -184,7 +184,7 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("start out of range (upper)",
 					func(datum *pump.BasalRateStart) { datum.Start = pointer.FromInt(86400001) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 1, 86400000), "/start"),
 				),
 			)
 		})
@@ -237,7 +237,7 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStartArray), expectedErrors ...error) {
 					datum := pump.NewBasalRateStartArray()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BasalRateStartArray) {},
@@ -247,7 +247,7 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("nil",
 					func(datum *pump.BasalRateStartArray) { *datum = append(*datum, nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 				),
 				Entry("single invalid",
 					func(datum *pump.BasalRateStartArray) {
@@ -255,7 +255,7 @@ var _ = Describe("BasalRateStart", func() {
 						invalid.Rate = nil
 						*datum = append(*datum, invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0/rate"),
 				),
 				Entry("single valid",
 					func(datum *pump.BasalRateStartArray) {
@@ -270,7 +270,7 @@ var _ = Describe("BasalRateStart", func() {
 						*datum = append(*datum, invalid)
 						*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/rate"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.BasalRateStartArray) {
@@ -286,9 +286,9 @@ var _ = Describe("BasalRateStart", func() {
 						*datum = append(*datum, nil, invalid)
 						*datum = append(*datum, nil, NewBasalRateStart(*datum.Last().Start+1))
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/rate"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/2"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/2"),
 				),
 			)
 		})
@@ -389,7 +389,7 @@ var _ = Describe("BasalRateStart", func() {
 				func(mutator func(datum *pump.BasalRateStartArrayMap), expectedErrors ...error) {
 					datum := pump.NewBasalRateStartArrayMap()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.BasalRateStartArrayMap) {},
@@ -402,7 +402,7 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("nil value",
 					func(datum *pump.BasalRateStartArrayMap) { datum.Set("", nil) },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/"),
 				),
 				Entry("single invalid",
 					func(datum *pump.BasalRateStartArrayMap) {
@@ -410,7 +410,7 @@ var _ = Describe("BasalRateStart", func() {
 						(*invalid)[0].Start = nil
 						datum.Set("one", invalid)
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one/0/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one/0/start"),
 				),
 				Entry("single valid",
 					func(datum *pump.BasalRateStartArrayMap) {
@@ -425,7 +425,7 @@ var _ = Describe("BasalRateStart", func() {
 						datum.Set("two", invalid)
 						datum.Set("three", NewBasalRateStartArray())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.BasalRateStartArrayMap) {
@@ -442,8 +442,8 @@ var _ = Describe("BasalRateStart", func() {
 						datum.Set("two", invalid)
 						datum.Set("three", NewBasalRateStartArray())
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 			)
 		})

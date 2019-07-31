@@ -31,7 +31,9 @@ func New(provider Provider) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.Sources, error) {
+// FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
+
+func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
 		return nil, err
 	}
@@ -51,6 +53,18 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 	defer session.Close()
 
 	return session.Create(ctx, userID, create)
+}
+
+func (c *Client) DeleteAll(ctx context.Context, userID string) error {
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
+		return err
+	}
+
+	session := c.DataSourceStructuredStore().NewSession()
+	defer session.Close()
+
+	_, err := session.DestroyAll(ctx, userID)
+	return err
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
@@ -92,5 +106,5 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 	session := c.DataSourceStructuredStore().NewSession()
 	defer session.Close()
 
-	return session.Delete(ctx, id, condition)
+	return session.Destroy(ctx, id, condition)
 }

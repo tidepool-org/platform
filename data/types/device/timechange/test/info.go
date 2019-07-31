@@ -19,7 +19,7 @@ func CloneInfo(datum *dataTypesDeviceTimechange.Info) *dataTypesDeviceTimechange
 		return nil
 	}
 	clone := dataTypesDeviceTimechange.NewInfo()
-	clone.Time = test.CloneTime(datum.Time)
-	clone.TimeZoneName = test.CloneString(datum.TimeZoneName)
+	clone.Time = pointer.CloneTime(datum.Time)
+	clone.TimeZoneName = pointer.CloneString(datum.TimeZoneName)
 	return clone
 }

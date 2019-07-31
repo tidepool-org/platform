@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -40,7 +40,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueNotExists())
 			})
 
 			It("returns self", func() {
@@ -139,7 +139,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -168,7 +168,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueBoolNotFalse())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueBoolNotFalse())
 			})
 
 			It("returns self", func() {
@@ -186,7 +186,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -241,7 +241,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {
@@ -256,7 +256,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueBoolNotTrue())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueBoolNotTrue())
 			})
 
 			It("returns self", func() {
@@ -288,7 +288,7 @@ var _ = Describe("Bool", func() {
 
 			It("reports the expected error", func() {
 				Expect(base.Error()).To(HaveOccurred())
-				testErrors.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
+				errorsTest.ExpectEqual(base.Error(), structureValidator.ErrorValueExists())
 			})
 
 			It("returns self", func() {

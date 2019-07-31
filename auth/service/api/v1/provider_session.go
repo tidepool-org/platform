@@ -15,6 +15,7 @@ func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/provider_sessions", api.RequireServer(r.ListUserProviderSessions)),
 		rest.Post("/v1/users/:userId/provider_sessions", api.RequireServer(r.CreateUserProviderSession)),
+		rest.Delete("/v1/users/:userId/provider_sessions", api.RequireServer(r.DeleteAllProviderSessions)),
 		rest.Get("/v1/provider_sessions/:id", api.RequireServer(r.GetProviderSession)),
 		rest.Put("/v1/provider_sessions/:id", api.RequireServer(r.UpdateProviderSession)),
 		rest.Delete("/v1/provider_sessions/:id", api.RequireServer(r.DeleteProviderSession)),
@@ -68,6 +69,23 @@ func (r *Router) CreateUserProviderSession(res rest.ResponseWriter, req *rest.Re
 	}
 
 	responder.Data(http.StatusCreated, providerSession)
+}
+
+func (r *Router) DeleteAllProviderSessions(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	userID := req.PathParam("userId")
+	if userID == "" {
+		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("userId"))
+		return
+	}
+
+	if err := r.AuthClient().DeleteAllProviderSessions(req.Context(), userID); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Empty(http.StatusNoContent)
 }
 
 func (r *Router) GetProviderSession(res rest.ResponseWriter, req *rest.Request) {

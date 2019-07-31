@@ -5,99 +5,67 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"math/rand"
-	"sort"
-
-	testDataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose/test"
+	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/settings/cgm"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypes "github.com/tidepool-org/platform/data/types"
+	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
+	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
-	testStructure "github.com/tidepool-org/platform/structure/test"
+	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
-const transmitterIDCharSet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 func NewMeta() interface{} {
-	return &types.Meta{
+	return &dataTypes.Meta{
 		Type: "cgmSettings",
 	}
 }
 
-func NewManufacturer(minimumLength int, maximumLength int) string {
-	return test.NewText(minimumLength, maximumLength)
-}
-
-func NewManufacturers(minimumLength int, maximumLength int) []string {
-	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
-	for index := range result {
-		result[index] = NewManufacturer(1, 100)
-	}
-	return result
-}
-
-func NewCGM(units *string) *cgm.CGM {
-	datum := cgm.New()
-	datum.Base = *testDataTypes.NewBase()
-	datum.Type = "cgmSettings"
-	datum.HighLevelAlert = NewHighLevelAlert(units)
-	datum.LowLevelAlert = NewLowLevelAlert(units)
-	datum.Manufacturers = pointer.FromStringArray(NewManufacturers(1, 10))
-	datum.Model = pointer.FromString(test.NewText(1, 100))
-	datum.OutOfRangeAlert = NewOutOfRangeAlert()
-	datum.RateAlerts = NewRateAlerts(units)
-	datum.SerialNumber = pointer.FromString(test.NewText(1, 100))
-	datum.TransmitterID = pointer.FromString(test.NewVariableString(5, 6, transmitterIDCharSet))
-	datum.Units = units
-	return datum
-}
-
-func CloneCGM(datum *cgm.CGM) *cgm.CGM {
-	if datum == nil {
-		return nil
-	}
-	clone := cgm.New()
-	clone.Base = *testDataTypes.CloneBase(&datum.Base)
-	clone.HighLevelAlert = CloneHighLevelAlert(datum.HighLevelAlert)
-	clone.LowLevelAlert = CloneLowLevelAlert(datum.LowLevelAlert)
-	clone.Manufacturers = test.CloneStringArray(datum.Manufacturers)
-	clone.Model = test.CloneString(datum.Model)
-	clone.OutOfRangeAlert = CloneOutOfRangeAlert(datum.OutOfRangeAlert)
-	clone.RateAlerts = CloneRateAlerts(datum.RateAlerts)
-	clone.SerialNumber = test.CloneString(datum.SerialNumber)
-	clone.TransmitterID = test.CloneString(datum.TransmitterID)
-	clone.Units = test.CloneString(datum.Units)
-	return clone
-}
-
 var _ = Describe("CGM", func() {
 	It("Type is expected", func() {
-		Expect(cgm.Type).To(Equal("cgmSettings"))
+		Expect(dataTypesSettingsCgm.Type).To(Equal("cgmSettings"))
+	})
+
+	It("ManufacturerLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.ManufacturerLengthMaximum).To(Equal(100))
+	})
+
+	It("ManufacturersLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.ManufacturersLengthMaximum).To(Equal(10))
+	})
+
+	It("ModelLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.ModelLengthMaximum).To(Equal(100))
+	})
+
+	It("SerialNumberLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.SerialNumberLengthMaximum).To(Equal(100))
 	})
 
 	It("TransmitterIDExpressionString is expected", func() {
-		Expect(cgm.TransmitterIDExpressionString).To(Equal("^[0-9A-Z]{5,6}$"))
+		Expect(dataTypesSettingsCgm.TransmitterIDExpressionString).To(Equal("^[0-9A-Z]{5,6}$"))
 	})
 
 	Context("New", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := cgm.New()
+			datum := dataTypesSettingsCgm.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("cgmSettings"))
-			Expect(datum.HighLevelAlert).To(BeNil())
-			Expect(datum.LowLevelAlert).To(BeNil())
 			Expect(datum.Manufacturers).To(BeNil())
 			Expect(datum.Model).To(BeNil())
-			Expect(datum.OutOfRangeAlert).To(BeNil())
-			Expect(datum.RateAlerts).To(BeNil())
 			Expect(datum.SerialNumber).To(BeNil())
 			Expect(datum.TransmitterID).To(BeNil())
 			Expect(datum.Units).To(BeNil())
+			Expect(datum.DefaultAlerts).To(BeNil())
+			Expect(datum.ScheduledAlerts).To(BeNil())
+			Expect(datum.HighLevelAlert).To(BeNil())
+			Expect(datum.LowLevelAlert).To(BeNil())
+			Expect(datum.OutOfRangeAlert).To(BeNil())
+			Expect(datum.RateAlerts).To(BeNil())
 		})
 	})
 
@@ -108,254 +76,298 @@ var _ = Describe("CGM", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(units *string, mutator func(datum *cgm.CGM, units *string), expectedErrors ...error) {
-					datum := NewCGM(units)
+				func(units *string, mutator func(datum *dataTypesSettingsCgm.CGM, units *string), expectedErrors ...error) {
+					datum := dataTypesSettingsCgmTest.RandomCGM(units)
 					mutator(datum, units)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 				),
 				Entry("type missing",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Type = "" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Type = "" },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &dataTypes.Meta{}),
 				),
 				Entry("type invalid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Type = "invalidType" },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &types.Meta{Type: "invalidType"}),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Type = "invalidType" },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &dataTypes.Meta{Type: "invalidType"}),
 				),
 				Entry("type cgmSettings",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Type = "cgmSettings" },
-				),
-				Entry("high level alert missing",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts", NewMeta()),
-				),
-				Entry("high level alert invalid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert.Enabled = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts/enabled", NewMeta()),
-				),
-				Entry("high level alert valid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.HighLevelAlert = NewHighLevelAlert(units) },
-				),
-				Entry("low level alert missing",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts", NewMeta()),
-				),
-				Entry("low level alert invalid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert.Enabled = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts/enabled", NewMeta()),
-				),
-				Entry("low level alert valid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.LowLevelAlert = NewLowLevelAlert(units) },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Type = "cgmSettings" },
 				),
 				Entry("manufacturers missing",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Manufacturers = nil },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Manufacturers = nil },
 				),
 				Entry("manufacturers empty",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
 						datum.Manufacturers = pointer.FromStringArray([]string{})
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", NewMeta()),
 				),
 				Entry("manufacturers length; in range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.Manufacturers = pointer.FromStringArray(NewManufacturers(10, 10))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Manufacturers = pointer.FromStringArray(dataTypesSettingsCgmTest.RandomManufacturersFromRange(10, 10))
 					},
 				),
 				Entry("manufacturers length; out of range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.Manufacturers = pointer.FromStringArray(NewManufacturers(11, 11))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Manufacturers = pointer.FromStringArray(dataTypesSettingsCgmTest.RandomManufacturersFromRange(11, 11))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(11, 10), "/manufacturers", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(11, 10), "/manufacturers", NewMeta()),
 				),
 				Entry("manufacturers manufacturer empty",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.Manufacturers = pointer.FromStringArray(append([]string{NewManufacturer(1, 100), "", NewManufacturer(1, 100), ""}, NewManufacturers(0, 6)...))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Manufacturers = pointer.FromStringArray(append([]string{test.RandomStringFromRange(1, 100), "", test.RandomStringFromRange(1, 100), ""}, dataTypesSettingsCgmTest.RandomManufacturersFromRange(0, 6)...))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers/1", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers/3", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/manufacturers/3", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers/1", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers/3", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueDuplicate(), "/manufacturers/3", NewMeta()),
 				),
 				Entry("manufacturers manufacturer length; in range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.Manufacturers = pointer.FromStringArray(append([]string{NewManufacturer(100, 100), NewManufacturer(1, 100), NewManufacturer(100, 100)}, NewManufacturers(0, 7)...))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Manufacturers = pointer.FromStringArray(append([]string{test.RandomStringFromRange(100, 100), test.RandomStringFromRange(1, 100), test.RandomStringFromRange(100, 100)}, dataTypesSettingsCgmTest.RandomManufacturersFromRange(0, 7)...))
 					},
 				),
 				Entry("manufacturers manufacturer length; out of range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.Manufacturers = pointer.FromStringArray(append([]string{NewManufacturer(101, 101), NewManufacturer(1, 100), NewManufacturer(101, 101)}, NewManufacturers(0, 7)...))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Manufacturers = pointer.FromStringArray(append([]string{test.RandomStringFromRange(101, 101), test.RandomStringFromRange(1, 100), test.RandomStringFromRange(101, 101)}, dataTypesSettingsCgmTest.RandomManufacturersFromRange(0, 7)...))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/manufacturers/0", NewMeta()),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/manufacturers/2", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/manufacturers/0", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/manufacturers/2", NewMeta()),
 				),
 				Entry("model missing",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Model = nil },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Model = nil },
 				),
 				Entry("model empty",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Model = pointer.FromString("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Model = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", NewMeta()),
 				),
 				Entry("model length in range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Model = pointer.FromString(test.NewText(1, 100)) },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Model = pointer.FromString(test.RandomStringFromRange(1, 100))
+					},
 				),
 				Entry("model length out of range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.Model = pointer.FromString(test.NewText(101, 101))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Model = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/model", NewMeta()),
-				),
-				Entry("out of range alert missing",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts", NewMeta()),
-				),
-				Entry("out of range alert invalid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert.Enabled = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts/enabled", NewMeta()),
-				),
-				Entry("out of range alert valid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.OutOfRangeAlert = NewOutOfRangeAlert() },
-				),
-				Entry("rate alerts missing",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.RateAlerts = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts", NewMeta()),
-				),
-				Entry("rate alerts invalid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.RateAlerts.FallRateAlert = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts/fallRate", NewMeta()),
-				),
-				Entry("rate alerts valid",
-					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.RateAlerts = NewRateAlerts(units) },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/model", NewMeta()),
 				),
 				Entry("serial number missing",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.SerialNumber = nil },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.SerialNumber = nil },
 				),
 				Entry("serial number empty",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.SerialNumber = pointer.FromString("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.SerialNumber = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", NewMeta()),
 				),
 				Entry("serial number length in range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.SerialNumber = pointer.FromString(test.NewText(1, 100))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(1, 100))
 					},
 				),
 				Entry("serial number length out of range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.SerialNumber = pointer.FromString(test.NewText(101, 101))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/serialNumber", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/serialNumber", NewMeta()),
 				),
 				Entry("transmitted id missing",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.TransmitterID = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/transmitterId", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.TransmitterID = nil },
 				),
 				Entry("transmitted id empty",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", NewMeta()),
 				),
 				Entry("transmitted id invalid length",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("ABC") },
-					testErrors.WithPointerSourceAndMeta(cgm.ErrorValueStringAsTransmitterIDNotValid("ABC"), "/transmitterId", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("ABC") },
+					errorsTest.WithPointerSourceAndMeta(dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABC"), "/transmitterId", NewMeta()),
 				),
 				Entry("transmitted id invalid characters",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("abc") },
-					testErrors.WithPointerSourceAndMeta(cgm.ErrorValueStringAsTransmitterIDNotValid("abc"), "/transmitterId", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("abc") },
+					errorsTest.WithPointerSourceAndMeta(dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("abc"), "/transmitterId", NewMeta()),
 				),
 				Entry("transmitted id valid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
-						datum.TransmitterID = pointer.FromString(test.NewVariableString(5, 6, transmitterIDCharSet))
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.TransmitterID = pointer.FromString(test.RandomStringFromRangeAndCharset(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID))
 					},
 				),
 				Entry("units missing",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Units = nil },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Units = nil },
 				),
 				Entry("units invalid",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Units = pointer.FromString("invalid") },
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Units = pointer.FromString("invalid") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
 				Entry("units valid; mmol/L",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) { datum.Units = pointer.FromString("mmol/L") },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Units = pointer.FromString("mmol/L") },
 				),
 				Entry("units valid; mmol/l",
 					pointer.FromString("mmol/l"),
-					func(datum *cgm.CGM, units *string) { datum.Units = pointer.FromString("mmol/l") },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Units = pointer.FromString("mmol/l") },
 				),
 				Entry("units valid; mg/dL",
 					pointer.FromString("mg/dL"),
-					func(datum *cgm.CGM, units *string) { datum.Units = pointer.FromString("mg/dL") },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Units = pointer.FromString("mg/dL") },
 				),
 				Entry("units valid; mg/dl",
 					pointer.FromString("mg/dl"),
-					func(datum *cgm.CGM, units *string) { datum.Units = pointer.FromString("mg/dl") },
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Units = pointer.FromString("mg/dl") },
+				),
+				Entry("default alerts missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.DefaultAlerts = nil },
+				),
+				Entry("default alerts invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.DefaultAlerts.Enabled = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/defaultAlerts/enabled", NewMeta()),
+				),
+				Entry("default alerts valid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.DefaultAlerts = dataTypesSettingsCgmTest.RandomAlerts()
+					},
+				),
+				Entry("scheduled alerts missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.ScheduledAlerts = nil },
+				),
+				Entry("scheduled alerts invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { (*datum.ScheduledAlerts)[0].Days = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/scheduledAlerts/0/days", NewMeta()),
+				),
+				Entry("scheduled alerts valid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.ScheduledAlerts = dataTypesSettingsCgmTest.RandomScheduledAlerts(1, 3)
+					},
+				),
+				Entry("high level alert missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.HighLevelAlert = nil },
+				),
+				Entry("high level alert invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.HighLevelAlert.Enabled = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts/enabled", NewMeta()),
+				),
+				Entry("high level alert valid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.HighLevelAlert = dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
+					},
+				),
+				Entry("low level alert missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.LowLevelAlert = nil },
+				),
+				Entry("low level alert invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.LowLevelAlert.Enabled = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts/enabled", NewMeta()),
+				),
+				Entry("low level alert valid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.LowLevelAlert = dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
+					},
+				),
+				Entry("out of range alert missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.OutOfRangeAlert = nil },
+				),
+				Entry("out of range alert invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.OutOfRangeAlert.Enabled = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts/enabled", NewMeta()),
+				),
+				Entry("out of range alert valid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.OutOfRangeAlert = dataTypesSettingsCgmTest.RandomOutOfRangeAlertDEPRECATED()
+					},
+				),
+				Entry("rate alerts missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.RateAlerts = nil },
+				),
+				Entry("rate alerts invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.RateAlerts.FallRateAlert = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts/fallRate", NewMeta()),
+				),
+				Entry("rate alerts valid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.RateAlerts = dataTypesSettingsCgmTest.RandomRateAlertsDEPRECATED(units)
+					},
 				),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
 						datum.Type = "invalidType"
-						datum.HighLevelAlert = nil
-						datum.LowLevelAlert = nil
-						datum.OutOfRangeAlert = nil
-						datum.RateAlerts = nil
-						datum.TransmitterID = nil
-						datum.Units = nil
+						datum.Manufacturers = pointer.FromStringArray([]string{})
+						datum.Model = pointer.FromString("")
+						datum.SerialNumber = pointer.FromString("")
+						datum.TransmitterID = pointer.FromString("")
+						datum.Units = pointer.FromString("invalid")
+						datum.DefaultAlerts.Enabled = nil
+						(*datum.ScheduledAlerts)[0].Days = nil
+						datum.HighLevelAlert.Enabled = nil
+						datum.LowLevelAlert.Enabled = nil
+						datum.OutOfRangeAlert.Enabled = nil
+						datum.RateAlerts.FallRateAlert = nil
 					},
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/transmitterId", &types.Meta{Type: "invalidType"}),
-					testErrors.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/defaultAlerts/enabled", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/scheduledAlerts/0/days", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/highAlerts/enabled", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/lowAlerts/enabled", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/outOfRangeAlerts/enabled", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/rateOfChangeAlerts/fallRate", &dataTypes.Meta{Type: "invalidType"}),
 				),
 			)
 		})
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum with origin external",
-				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
-					datum := NewCGM(units)
+				func(units *string, mutator func(datum *dataTypesSettingsCgm.CGM, units *string), expectator func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string)) {
+					datum := dataTypesSettingsCgmTest.RandomCGM(units)
 					mutator(datum, units)
-					expectedDatum := CloneCGM(datum)
+					expectedDatum := dataTypesSettingsCgmTest.CloneCGM(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -368,72 +380,65 @@ var _ = Describe("CGM", func() {
 				},
 				Entry("modifies the datum",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						sort.Strings(*expectedDatum.Manufacturers)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
 					},
 				),
 				Entry("modifies the datum; units missing",
 					nil,
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						sort.Strings(*expectedDatum.Manufacturers)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
 					},
 				),
 				Entry("modifies the datum; units invalid",
 					pointer.FromString("invalid"),
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						sort.Strings(*expectedDatum.Manufacturers)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
 					},
 				),
 				Entry("modifies the datum; units mmol/L",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						sort.Strings(*expectedDatum.Manufacturers)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
 					},
 				),
 				Entry("modifies the datum; units mmol/l",
 					pointer.FromString("mmol/l"),
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						sort.Strings(*expectedDatum.Manufacturers)
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					},
 				),
 				Entry("modifies the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						testDataBloodGlucose.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
-						sort.Strings(*expectedDatum.Manufacturers)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
+						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
 					pointer.FromString("mg/dl"),
-					func(datum *cgm.CGM, units *string) {},
-					func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string) {
-						testDataBloodGlucose.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
-						sort.Strings(*expectedDatum.Manufacturers)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
-						testDataBloodGlucose.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
-						testDataBloodGlucose.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.RateAlerts.RiseRateAlert.Rate, expectedDatum.RateAlerts.RiseRateAlert.Rate, units)
+						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					},
 				),
 			)
 
 			DescribeTable("normalizes the datum with origin internal/store",
-				func(units *string, mutator func(datum *cgm.CGM, units *string), expectator func(datum *cgm.CGM, expectedDatum *cgm.CGM, units *string)) {
+				func(units *string, mutator func(datum *dataTypesSettingsCgm.CGM, units *string), expectator func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewCGM(units)
+						datum := dataTypesSettingsCgmTest.RandomCGM(units)
 						mutator(datum, units)
-						expectedDatum := CloneCGM(datum)
+						expectedDatum := dataTypesSettingsCgmTest.CloneCGM(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -447,22 +452,22 @@ var _ = Describe("CGM", func() {
 				},
 				Entry("does not modify the datum; units mmol/L",
 					pointer.FromString("mmol/L"),
-					func(datum *cgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
 					pointer.FromString("mmol/l"),
-					func(datum *cgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
-					func(datum *cgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mg/dl",
 					pointer.FromString("mg/dl"),
-					func(datum *cgm.CGM, units *string) {},
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					nil,
 				),
 			)
@@ -472,28 +477,28 @@ var _ = Describe("CGM", func() {
 	Context("IsValidTransmitterID, TransmitterIDValidator, ValidateTransmitterID", func() {
 		DescribeTable("validates the transmitter id",
 			func(value string, expectedErrors ...error) {
-				Expect(cgm.IsValidTransmitterID(value)).To(Equal(len(expectedErrors) == 0))
-				errorReporter := testStructure.NewErrorReporter()
-				cgm.TransmitterIDValidator(value, errorReporter)
-				testErrors.ExpectEqual(errorReporter.Error(), expectedErrors...)
-				testErrors.ExpectEqual(cgm.ValidateTransmitterID(value), expectedErrors...)
+				Expect(dataTypesSettingsCgm.IsValidTransmitterID(value)).To(Equal(len(expectedErrors) == 0))
+				errorReporter := structureTest.NewErrorReporter()
+				dataTypesSettingsCgm.TransmitterIDValidator(value, errorReporter)
+				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				errorsTest.ExpectEqual(dataTypesSettingsCgm.ValidateTransmitterID(value), expectedErrors...)
 			},
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
-			Entry("is valid", test.NewVariableString(5, 6, transmitterIDCharSet)),
-			Entry("has invalid length; out of range (lower)", "ABCD", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCD")),
-			Entry("has invalid length; in range (lower)", test.NewString(5, transmitterIDCharSet)),
-			Entry("has invalid length; in range (upper)", test.NewString(6, transmitterIDCharSet)),
-			Entry("has invalid length; out of range (upper)", "ABCDEFG", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEFG")),
-			Entry("has invalid characters; lowercase", "abcdef", cgm.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
-			Entry("has invalid characters; symbols", "@#$%^&", cgm.ErrorValueStringAsTransmitterIDNotValid("@#$%^&")),
+			Entry("is valid", test.RandomStringFromRangeAndCharset(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("has invalid length; out of range (lower)", "ABCD", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCD")),
+			Entry("has invalid length; in range (lower)", test.RandomStringFromRangeAndCharset(5, 5, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("has invalid length; in range (upper)", test.RandomStringFromRangeAndCharset(6, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("has invalid length; out of range (upper)", "ABCDEFG", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEFG")),
+			Entry("has invalid characters; lowercase", "abcdef", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
+			Entry("has invalid characters; symbols", "@#$%^&", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("@#$%^&")),
 		)
 	})
 
 	Context("Errors", func() {
 		DescribeTable("have expected details when error",
-			testErrors.ExpectErrorDetails,
-			Entry("is ErrorValueStringAsTransmitterIDNotValid with empty string", cgm.ErrorValueStringAsTransmitterIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as transmitter id`),
-			Entry("is ErrorValueStringAsTransmitterIDNotValid with non-empty string", cgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEF"), "value-not-valid", "value is not valid", `value "ABCDEF" is not valid as transmitter id`),
+			errorsTest.ExpectErrorDetails,
+			Entry("is ErrorValueStringAsTransmitterIDNotValid with empty string", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as transmitter id`),
+			Entry("is ErrorValueStringAsTransmitterIDNotValid with non-empty string", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEF"), "value-not-valid", "value is not valid", `value "ABCDEF" is not valid as transmitter id`),
 		)
 	})
 })

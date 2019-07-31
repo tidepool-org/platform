@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
-	"gopkg.in/mgo.v2/bson"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -85,16 +84,37 @@ func (d DevicesByLatestUploadTimeDescending) Swap(left int, right int) {
 	d[left], d[right] = d[right], d[left]
 }
 
+type TypeTuple struct {
+	Type         string `bson:"type"`
+	SubType      string `bson:"subType"`
+	DeliveryType string `bson:"deliveryType"`
+}
+
+func (t TypeTuple) ResolvedType() string {
+	if t.SubType != "" {
+		return fmt.Sprintf("%s/%s", t.Type, t.SubType)
+	} else if t.DeliveryType != "" {
+		return fmt.Sprintf("%s/%s", t.Type, t.DeliveryType)
+	}
+	return t.Type
+}
+
+type TypeStats struct {
+	Count      int    `bson:"count"`
+	LatestTime string `bson:"latestTime"`
+}
+
 type User struct {
-	UserID        string   `json:"userId"`
-	Email         string   `json:"email"`
-	EmailVerified bool     `json:"emailVerified"`
-	TermsAccepted string   `json:"termsAccepted,omitempty"`
-	Roles         []string `json:"roles,omitempty"`
-	Name          string   `json:"name"`
-	BirthDate     string   `json:"birthDate,omitempty"`
-	DiagnosisDate string   `json:"diagnosisDate,omitempty"`
-	Devices       Devices  `json:"devices,omitempty"`
+	UserID           string               `json:"userId"`
+	Email            string               `json:"email"`
+	EmailVerified    bool                 `json:"emailVerified"`
+	TermsAccepted    string               `json:"termsAccepted,omitempty"`
+	Roles            []string             `json:"roles,omitempty"`
+	Name             string               `json:"name,omitempty"`
+	BirthDate        string               `json:"birthDate,omitempty"`
+	DiagnosisDate    string               `json:"diagnosisDate,omitempty"`
+	Devices          Devices              `json:"devices,omitempty"`
+	ActiveTypesStats map[string]TypeStats `json:"activeTypesStats,omitempty"`
 }
 
 type Tool struct {
@@ -134,8 +154,8 @@ func (t *Tool) Initialize(provider application.Provider) error {
 			Usage: "output file",
 		},
 	)
-	t.CLI().Action = func(context *cli.Context) error {
-		if !t.ParseContext(context) {
+	t.CLI().Action = func(ctx *cli.Context) error {
+		if !t.ParseContext(ctx) {
 			return nil
 		}
 		return t.execute()
@@ -162,14 +182,16 @@ func (t *Tool) Terminate() {
 	t.terminateDataSession()
 	t.terminateMetadataSession()
 	t.terminateUsersSession()
+
+	t.Tool.Terminate()
 }
 
-func (t *Tool) ParseContext(context *cli.Context) bool {
-	if parsed := t.Tool.ParseContext(context); !parsed {
+func (t *Tool) ParseContext(ctx *cli.Context) bool {
+	if parsed := t.Tool.ParseContext(ctx); !parsed {
 		return parsed
 	}
 
-	t.output = context.String(OutputFlag)
+	t.output = ctx.String(OutputFlag)
 
 	return true
 }
@@ -295,17 +317,20 @@ func (t *Tool) terminateDataSourcesSession() {
 }
 
 func (t *Tool) execute() error {
-	if t.output == "" {
-		return errors.New("output is missing")
+	var outputWriter io.Writer
+
+	if t.output != "" {
+		outputFile, err := os.Create(t.output)
+		if err != nil {
+			return errors.Wrap(err, "unable to create output file")
+		}
+		defer outputFile.Close()
+		outputWriter = outputFile
+	} else {
+		outputWriter = os.Stdout
 	}
 
-	outputFile, err := os.Create(t.output)
-	if err != nil {
-		return errors.Wrap(err, "unable to create output file")
-	}
-	defer outputFile.Close()
-
-	return t.iterateUsers(outputFile)
+	return t.iterateUsers(outputWriter)
 }
 
 func (t *Tool) iterateUsers(writer io.Writer) error {
@@ -342,45 +367,23 @@ func (t *Tool) iterateUsers(writer io.Writer) error {
 			Roles:         result.Roles,
 		}
 
+		logger = logger.WithField("user", user)
+
 		if err := t.getUserMetadata(userID, user, logger); err != nil {
 			logger.WithError(err).Warn("Unable to get user metadata")
 			continue
 		}
 
-		if err := t.getUserData(userID, user, logger); err != nil {
-			logger.WithError(err).Warn("Unable to get user data")
+		if email := strings.ToLower(user.Email); strings.HasSuffix(email, "@tidepool.org") || strings.HasSuffix(email, "@replacebg.org") {
+			logger.Info("Filtered due to email domain")
 			continue
 		}
 
-		sort.Sort(DevicesByLatestUploadTimeDescending(user.Devices))
-
-		var latestHealthKitDevice Device
-		healthKitDevices := user.Devices.Select(func(device *Device) bool { return device.Model == "HealthKit" })
-		if len(healthKitDevices) > 0 {
-			latestHealthKitDevice = *healthKitDevices[0]
-		}
-
-		var latestInsulinPumpDevice Device
-		insulinPumpDevices := user.Devices.Select(func(device *Device) bool { return device.Tags.Contains("insulin-pump") })
-		if len(insulinPumpDevices) > 0 {
-			latestInsulinPumpDevice = *insulinPumpDevices[0]
-		}
-
-		var insulinPumpUploadCount int
-		for _, insulinPumpDevice := range insulinPumpDevices {
-			insulinPumpUploadCount += insulinPumpDevice.UploadCount
-		}
-
-		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\n",
+		fmt.Fprintf(writer, "%s\t%s\t%s\t%s\n",
 			user.UserID,
 			user.Name,
 			user.Email,
 			user.BirthDate,
-			latestHealthKitDevice.LatestUploadTime,
-			latestInsulinPumpDevice.LatestUploadTime,
-			strings.Join(latestInsulinPumpDevice.Manufacturers, ","),
-			latestInsulinPumpDevice.Model,
-			insulinPumpUploadCount,
 		)
 	}
 
@@ -397,7 +400,7 @@ func (t *Tool) getUserMetadata(userID string, user *User, logger log.Logger) err
 	logger.Debug("Getting user metadata")
 
 	var result []struct {
-		Value string `json:"value"`
+		Value string `bson:"value"`
 	}
 	if err := t.metadataSession.C().Find(bson.M{"userId": userID}).Limit(2).All(&result); err != nil {
 		return errors.Wrap(err, "unable to get user metadata")
@@ -421,6 +424,7 @@ func (t *Tool) getUserMetadata(userID string, user *User, logger log.Logger) err
 		} `json:"profile"`
 	}
 	if err := json.Unmarshal([]byte(result[0].Value), &metadata); err != nil {
+		logger.WithField("value", result[0].Value).Error("Unable to deserialize user metadata")
 		return errors.Wrap(err, "unable to deserialize user metadata")
 	}
 
@@ -442,22 +446,6 @@ func (t *Tool) getUserMetadata(userID string, user *User, logger log.Logger) err
 	return nil
 }
 
-func (t *Tool) getUserData(userID string, user *User, logger log.Logger) error {
-	logger.Debug("Getting user data")
-
-	if err := t.getUserDataDevicesDexcomAPI(userID, user, logger); err != nil {
-		return err
-	}
-	if err := t.getUserDataDevicesHealthKit(userID, user, logger); err != nil {
-		return err
-	}
-	if err := t.getUserDataDevicesOther(userID, user, logger); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (t *Tool) getUserDataDevicesDexcomAPI(userID string, user *User, logger log.Logger) error {
 	logger.Debug("Getting user data devices Dexcom API")
 
@@ -474,7 +462,7 @@ func (t *Tool) getUserDataDevicesDexcomAPI(userID string, user *User, logger log
 
 	device := &Device{
 		Model:            "DexcomAPI",
-		LatestUploadTime: result[0].LatestDataTime.UTC().Format(time.RFC3339),
+		LatestUploadTime: timeAsUTC(result[0].LatestDataTime),
 		UploadCount:      1,
 	}
 	user.Devices = append(user.Devices, device)
@@ -588,15 +576,74 @@ func (t *Tool) getUserDataDevice(query interface{}, logger log.Logger) (*Device,
 	}, nil
 }
 
+func (t *Tool) getUserDataActiveTypesStats(userID string, user *User, logger log.Logger) error {
+	logger.Debug("Getting user data active types stats")
+
+	pipeline := []bson.M{
+		{
+			"$match": bson.M{
+				"_active": true,
+				"_userId": userID,
+			},
+		},
+		{
+			"$group": bson.M{
+				"_id": bson.M{
+					"type":         "$type",
+					"subType":      "$subType",
+					"deliveryType": "$deliveryType",
+				},
+				"count": bson.M{
+					"$sum": 1,
+				},
+				"latestTime": bson.M{
+					"$max": "$time",
+				},
+			},
+		},
+	}
+	iter := t.dataSession.C().Pipe(pipeline).Iter()
+
+	var result struct {
+		TypeTuple TypeTuple `bson:"_id"`
+		TypeStats `bson:",inline"`
+	}
+	for iter.Next(&result) {
+		if user.ActiveTypesStats == nil {
+			user.ActiveTypesStats = map[string]TypeStats{}
+		}
+		user.ActiveTypesStats[result.TypeTuple.ResolvedType()] = result.TypeStats
+	}
+
+	if err := iter.Close(); err != nil {
+		return errors.Wrap(err, "unable to iterate data active types stats")
+	}
+
+	return nil
+}
+
 func timestampAsUTC(timestamp string) string {
 	if timestamp == "" {
 		return ""
 	}
-	timestampTime, err := time.Parse(time.RFC3339, timestamp)
+	tm, err := time.Parse(time.RFC3339Nano, timestamp)
 	if err != nil {
 		return ""
 	}
-	return timestampTime.UTC().Format(time.RFC3339)
+	return timeAsUTC(tm)
+}
+
+func timeAsUTC(tm time.Time) string {
+	return tm.Truncate(time.Second).UTC().Format(time.RFC3339Nano)
+}
+
+func stringInStringArray(str string, strArray []string) bool {
+	for _, s := range strArray {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
 
 func mergeStringArrays(strArrays [][]string) []string {
@@ -621,5 +668,3 @@ func mergeStringArrays(strArrays [][]string) []string {
 
 	return strArray
 }
-
-var twentyFiveYearsAgoDate = time.Now().UTC().AddDate(-25, 0, 0).Format("2006-01-02")

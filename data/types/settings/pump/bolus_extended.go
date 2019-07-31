@@ -9,13 +9,12 @@ type BolusExtended struct {
 	Enabled *bool `json:"enabled,omitempty" bson:"enabled,omitempty"`
 }
 
-func ParseBolusExtended(parser data.ObjectParser) *BolusExtended {
-	if parser.Object() == nil {
+func ParseBolusExtended(parser structure.ObjectParser) *BolusExtended {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBolusExtended()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -23,8 +22,8 @@ func NewBolusExtended() *BolusExtended {
 	return &BolusExtended{}
 }
 
-func (b *BolusExtended) Parse(parser data.ObjectParser) {
-	b.Enabled = parser.ParseBoolean("enabled")
+func (b *BolusExtended) Parse(parser structure.ObjectParser) {
+	b.Enabled = parser.Bool("enabled")
 }
 
 func (b *BolusExtended) Validate(validator structure.Validator) {

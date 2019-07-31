@@ -7,8 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -49,7 +49,7 @@ var _ = Describe("Display", func() {
 				func(mutator func(datum *pump.Display), expectedErrors ...error) {
 					datum := NewDisplay()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *pump.Display) {},
@@ -59,7 +59,7 @@ var _ = Describe("Display", func() {
 				),
 				Entry("blood glucose invalid",
 					func(datum *pump.Display) { datum.BloodGlucose.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
 				),
 				Entry("blood glucose valid",
 					func(datum *pump.Display) { datum.BloodGlucose = NewDisplayBloodGlucose() },
@@ -68,7 +68,7 @@ var _ = Describe("Display", func() {
 					func(datum *pump.Display) {
 						datum.BloodGlucose.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
 				),
 			)
 		})

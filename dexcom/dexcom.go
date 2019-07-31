@@ -3,87 +3,36 @@ package dexcom
 import (
 	"regexp"
 	"time"
+
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	AlertNameFixedLow   = "fixedLow"
-	AlertNameLow        = "low"
-	AlertNameHigh       = "high"
-	AlertNameRise       = "rise"
-	AlertNameFall       = "fall"
-	AlertNameOutOfRange = "outOfRange"
-
-	EventCarbs    = "carbs"
-	EventExercise = "exercise"
-	EventHealth   = "health"
-	EventInsulin  = "insulin"
-
-	ExerciseLight  = "light"
-	ExerciseMedium = "medium"
-	ExerciseHeavy  = "heavy"
-
-	HealthIllness      = "illness"
-	HealthStress       = "stress"
-	HealthHighSymptoms = "highSymptoms"
-	HealthLowSymptoms  = "lowSymptoms"
-	HealthCycle        = "cycle"
-	HealthAlcohol      = "alcohol"
-
-	ModelG5MobileApp         = "G5 Mobile App"
-	ModelG5Receiver          = "G5 Receiver"
-	ModelG4WithShareReceiver = "G4 with Share Receiver"
-	ModelG4Receiver          = "G4 Receiver"
-	ModelUnknown             = "Unknown"
-
-	StatusHigh             = "high"
-	StatusLow              = "low"
-	StatusOK               = "ok"
-	StatusOutOfCalibration = "outOfCalibration"
-	StatusSensorNoise      = "sensorNoise"
-
-	TrendDoubleUp       = "doubleUp"
-	TrendSingleUp       = "singleUp"
-	TrendFortyFiveUp    = "fortyFiveUp"
-	TrendFlat           = "flat"
-	TrendFortyFiveDown  = "fortyFiveDown"
-	TrendSingleDown     = "singleDown"
-	TrendDoubleDown     = "doubleDown"
-	TrendNone           = "none"
-	TrendNotComputable  = "notComputable"
-	TrendRateOutOfRange = "rateOutOfRange"
-
-	UnitMinutes = "minutes"
-	UnitGrams   = "grams"
-	UnitUnits   = "units"
-
-	UnitMgdL     = "mg/dL"
-	UnitMmolL    = "mmol/L"
-	UnitMgdLMin  = "mg/dL/min"
-	UnitMmolLMin = "mmol/L/min"
-
-	EGVValueMinMgdL = 40
-	EGVValueMaxMgdL = 400
-
-	DeviceIDMultiple           = "multiple"
-	DeviceIDUnknown            = "unknown"
-	DeviceModelMultiple        = "multiple"
-	DeviceSerialNumberMultiple = "multiple"
-
-	DateTimeFormat = "2006-01-02T15:04:05"
-	NowThreshold   = 24 * time.Hour
-
-	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
+	TimeFormat             = "2006-01-02T15:04:05"
+	SystemTimeNowThreshold = 24 * time.Hour
 )
 
-func AlertNames() []string {
-	return []string{
-		AlertNameFixedLow,
-		AlertNameLow,
-		AlertNameHigh,
-		AlertNameRise,
-		AlertNameFall,
-		AlertNameOutOfRange,
-	}
+func IsValidTransmitterID(value string) bool {
+	return ValidateTransmitterID(value) == nil
 }
 
-var transmitterIDExpression = regexp.MustCompile(TransmitterIDExpressionString)
+func TransmitterIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateTransmitterID(value))
+}
+
+func ValidateTransmitterID(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if !transmitterIDExpression.MatchString(value) {
+		return ErrorValueStringAsTransmitterIDNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsTransmitterIDNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as transmitter id", value)
+}
+
+var transmitterIDExpression = regexp.MustCompile("^[0-9A-Z]{5,6}$")

@@ -7,9 +7,9 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/insulin"
-	testDataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -59,20 +59,20 @@ var _ = Describe("Simple", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Simple), expectedErrors ...error) {
-					datum := testDataTypesInsulin.NewSimple()
+					datum := dataTypesInsulinTest.NewSimple()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *insulin.Simple) {},
 				),
 				Entry("acting type missing",
 					func(datum *insulin.Simple) { datum.ActingType = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/actingType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/actingType"),
 				),
 				Entry("acting type invalid",
 					func(datum *insulin.Simple) { datum.ActingType = pointer.FromString("invalid") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"intermediate", "long", "rapid", "short"}), "/actingType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"intermediate", "long", "rapid", "short"}), "/actingType"),
 				),
 				Entry("acting type intermediate",
 					func(datum *insulin.Simple) { datum.ActingType = pointer.FromString("intermediate") },
@@ -91,35 +91,34 @@ var _ = Describe("Simple", func() {
 				),
 				Entry("brand empty",
 					func(datum *insulin.Simple) { datum.Brand = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
 				),
 				Entry("brand invalid",
-					func(datum *insulin.Simple) { datum.Brand = pointer.FromString(test.NewText(101, 101)) },
-					testErrors.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand"),
+					func(datum *insulin.Simple) { datum.Brand = pointer.FromString(test.RandomStringFromRange(101, 101)) },
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/brand"),
 				),
 				Entry("brand valid",
-					func(datum *insulin.Simple) { datum.Brand = pointer.FromString(test.NewText(1, 100)) },
+					func(datum *insulin.Simple) { datum.Brand = pointer.FromString(test.RandomStringFromRange(1, 100)) },
 				),
 				Entry("concentration missing",
 					func(datum *insulin.Simple) { datum.Concentration = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration"),
 				),
 				Entry("concentration invalid",
 					func(datum *insulin.Simple) { datum.Concentration.Units = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration/units"),
 				),
 				Entry("concentration valid",
-					func(datum *insulin.Simple) { datum.Concentration = testDataTypesInsulin.NewConcentration() },
+					func(datum *insulin.Simple) { datum.Concentration = dataTypesInsulinTest.NewConcentration() },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Simple) {
 						datum.ActingType = nil
 						datum.Brand = pointer.FromString("")
-						datum.Concentration = nil
+						datum.Concentration.Units = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/actingType"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/actingType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/brand"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration/units"),
 				),
 			)
 		})
@@ -128,9 +127,9 @@ var _ = Describe("Simple", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Simple)) {
 					for _, origin := range structure.Origins() {
-						datum := testDataTypesInsulin.NewSimple()
+						datum := dataTypesInsulinTest.NewSimple()
 						mutator(datum)
-						expectedDatum := testDataTypesInsulin.CloneSimple(datum)
+						expectedDatum := dataTypesInsulinTest.CloneSimple(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

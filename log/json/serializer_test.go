@@ -1,14 +1,13 @@
 package json_test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"errors"
-
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/json"
-	"github.com/tidepool-org/platform/test"
+	logJson "github.com/tidepool-org/platform/log/json"
 )
 
 type WriteOutput struct {
@@ -17,22 +16,19 @@ type WriteOutput struct {
 }
 
 type Writer struct {
-	*test.Mock
 	WriteInvocations int
 	WriteInputs      [][]byte
 	WriteOutputs     []WriteOutput
 }
 
 func NewWriter() *Writer {
-	return &Writer{
-		Mock: test.NewMock(),
-	}
+	return &Writer{}
 }
 
-func (w *Writer) Write(bytes []byte) (int, error) {
+func (w *Writer) Write(bites []byte) (int, error) {
 	w.WriteInvocations++
 
-	w.WriteInputs = append(w.WriteInputs, bytes)
+	w.WriteInputs = append(w.WriteInputs, bites)
 
 	if len(w.WriteOutputs) == 0 {
 		panic("Unexpected invocation of Write on Writer")
@@ -60,13 +56,13 @@ var _ = Describe("JSON", func() {
 
 	Context("NewSerializer", func() {
 		It("returns an error if writer is missing", func() {
-			serializer, err := json.NewSerializer(nil)
+			serializer, err := logJson.NewSerializer(nil)
 			Expect(err).To(MatchError("writer is missing"))
 			Expect(serializer).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(json.NewSerializer(writer)).ToNot(BeNil())
+			Expect(logJson.NewSerializer(writer)).ToNot(BeNil())
 		})
 	})
 
@@ -75,7 +71,7 @@ var _ = Describe("JSON", func() {
 
 		BeforeEach(func() {
 			var err error
-			serializer, err = json.NewSerializer(writer)
+			serializer, err = logJson.NewSerializer(writer)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(serializer).ToNot(BeNil())
 		})

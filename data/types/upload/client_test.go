@@ -6,11 +6,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	testData "github.com/tidepool-org/platform/data/test"
-	testDataTypes "github.com/tidepool-org/platform/data/types/test"
+	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
-	testErrors "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/metadata"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -39,37 +40,37 @@ var _ = Describe("Client", func() {
 				func(mutator func(datum *upload.Client), expectedErrors ...error) {
 					datum := dataTypesUploadTest.NewClient()
 					mutator(datum)
-					testDataTypes.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *upload.Client) {},
 				),
 				Entry("name missing",
 					func(datum *upload.Client) { datum.Name = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
 				),
 				Entry("name empty",
 					func(datum *upload.Client) { datum.Name = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 				),
 				Entry("name invalid",
 					func(datum *upload.Client) { datum.Name = pointer.FromString("org") },
-					testErrors.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("org"), "/name"),
 				),
 				Entry("name valid",
 					func(datum *upload.Client) { datum.Name = pointer.FromString(netTest.RandomReverseDomain()) },
 				),
 				Entry("version missing",
 					func(datum *upload.Client) { datum.Version = nil },
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/version"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/version"),
 				),
 				Entry("version empty",
 					func(datum *upload.Client) { datum.Version = pointer.FromString("") },
-					testErrors.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),
 				Entry("version invalid",
 					func(datum *upload.Client) { datum.Version = pointer.FromString("1.2") },
-					testErrors.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsSemanticVersionNotValid("1.2"), "/version"),
 				),
 				Entry("version valid",
 					func(datum *upload.Client) { datum.Version = pointer.FromString(netTest.RandomSemanticVersion()) },
@@ -77,16 +78,20 @@ var _ = Describe("Client", func() {
 				Entry("private missing",
 					func(datum *upload.Client) { datum.Private = nil },
 				),
-				Entry("private exists",
-					func(datum *upload.Client) { datum.Private = testData.NewBlob() },
+				Entry("private invalid",
+					func(datum *upload.Client) { datum.Private = metadata.NewMetadata() },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/private"),
+				),
+				Entry("private valid",
+					func(datum *upload.Client) { datum.Private = metadataTest.RandomMetadata() },
 				),
 				Entry("multiple errors",
 					func(datum *upload.Client) {
 						datum.Name = nil
 						datum.Version = nil
 					},
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
-					testErrors.WithPointerSource(structureValidator.ErrorValueNotExists(), "/version"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/name"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/version"),
 				),
 			)
 		})

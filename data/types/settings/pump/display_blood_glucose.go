@@ -21,13 +21,12 @@ type DisplayBloodGlucose struct {
 	Units *string `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseDisplayBloodGlucose(parser data.ObjectParser) *DisplayBloodGlucose {
-	if parser.Object() == nil {
+func ParseDisplayBloodGlucose(parser structure.ObjectParser) *DisplayBloodGlucose {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewDisplayBloodGlucose()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -35,8 +34,8 @@ func NewDisplayBloodGlucose() *DisplayBloodGlucose {
 	return &DisplayBloodGlucose{}
 }
 
-func (d *DisplayBloodGlucose) Parse(parser data.ObjectParser) {
-	d.Units = parser.ParseString("units")
+func (d *DisplayBloodGlucose) Parse(parser structure.ObjectParser) {
+	d.Units = parser.String("units")
 }
 
 func (d *DisplayBloodGlucose) Validate(validator structure.Validator) {

@@ -5,15 +5,14 @@ import (
 	"strconv"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/context"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/parser"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -65,38 +64,24 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	datumArrayContext, err := context.NewStandard(lgr)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum array context", err)
-		return
-	}
-
-	datumArrayParser, err := parser.NewStandardArray(datumArrayContext, &rawDatumArray, parser.AppendErrorNotParsed)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to create datum array parser", err)
-		return
-	}
-
+	parser := structureParser.NewArray(&rawDatumArray)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
 	datumArray := []data.Datum{}
-	for index := range *datumArrayParser.Array() {
-		reference := strconv.Itoa(index)
-		if datum := dataTypesFactory.ParseDatum(datumArrayParser.NewChildObjectParser(index)); datum != nil && *datum != nil {
-			(*datum).Validate(validator.WithReference(reference))
-			(*datum).Normalize(normalizer.WithReference(reference))
+	for _, reference := range parser.References() {
+		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
+			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
+			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
 			datumArray = append(datumArray, *datum)
 		}
 	}
+	parser.NotParsed()
 
-	datumArrayParser.ProcessNotParsed()
-
-	if errs := datumArrayContext.Errors(); len(errs) > 0 {
-		dataServiceContext.RespondWithStatusAndErrors(http.StatusBadRequest, errs)
+	if err = parser.Error(); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
-
 	if err = validator.Error(); err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return

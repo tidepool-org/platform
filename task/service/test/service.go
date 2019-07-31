@@ -1,34 +1,45 @@
 package test
 
 import (
-	testService "github.com/tidepool-org/platform/service/test"
-	"github.com/tidepool-org/platform/task/service"
-	"github.com/tidepool-org/platform/task/store"
-	testStore "github.com/tidepool-org/platform/task/store/test"
+	serviceTest "github.com/tidepool-org/platform/service/test"
+	"github.com/tidepool-org/platform/task"
+	taskService "github.com/tidepool-org/platform/task/service"
+	taskStore "github.com/tidepool-org/platform/task/store"
+	taskStoreTest "github.com/tidepool-org/platform/task/store/test"
+	taskTest "github.com/tidepool-org/platform/task/test"
 )
 
 type Service struct {
-	*testService.Service
-	TaskStoreInvocations int
-	TaskStoreImpl        *testStore.Store
-	StatusInvocations    int
-	StatusOutputs        []*service.Status
+	*serviceTest.Service
+	TaskStoreInvocations  int
+	TaskStoreImpl         *taskStoreTest.Store
+	TaskClientInvocations int
+	TaskClientImpl        *taskTest.Client
+	StatusInvocations     int
+	StatusOutputs         []*taskService.Status
 }
 
 func NewService() *Service {
 	return &Service{
-		Service:       testService.NewService(),
-		TaskStoreImpl: testStore.NewStore(),
+		Service:        serviceTest.NewService(),
+		TaskStoreImpl:  taskStoreTest.NewStore(),
+		TaskClientImpl: taskTest.NewClient(),
 	}
 }
 
-func (s *Service) TaskStore() store.Store {
+func (s *Service) TaskStore() taskStore.Store {
 	s.TaskStoreInvocations++
 
 	return s.TaskStoreImpl
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) TaskClient() task.Client {
+	s.TaskClientInvocations++
+
+	return s.TaskClientImpl
+}
+
+func (s *Service) Status() *taskService.Status {
 	s.StatusInvocations++
 
 	if len(s.StatusOutputs) == 0 {

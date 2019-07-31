@@ -23,8 +23,8 @@ var _ = Describe("Deduplicator", func() {
 			func(mutator func(datum *data.DeduplicatorDescriptor)) {
 				datum := dataTest.RandomDeduplicatorDescriptor()
 				mutator(datum)
-				test.ExpectSerializedJSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedBSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTest.NewObjectFromDeduplicatorDescriptor(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *data.DeduplicatorDescriptor) {},
@@ -44,11 +44,7 @@ var _ = Describe("Deduplicator", func() {
 
 		Context("NewDeduplicatorDescriptor", func() {
 			It("returns successfully with default values", func() {
-				deduplicatorDescriptor := data.NewDeduplicatorDescriptor()
-				Expect(deduplicatorDescriptor).ToNot(BeNil())
-				Expect(deduplicatorDescriptor.Name).To(BeNil())
-				Expect(deduplicatorDescriptor.Version).To(BeNil())
-				Expect(deduplicatorDescriptor.Hash).To(BeNil())
+				Expect(data.NewDeduplicatorDescriptor()).To(Equal(&data.DeduplicatorDescriptor{}))
 			})
 		})
 

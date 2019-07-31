@@ -26,15 +26,15 @@ func New() *Normal {
 	}
 }
 
-func (n *Normal) Parse(parser data.ObjectParser) error {
-	if err := n.Bolus.Parse(parser); err != nil {
-		return err
+func (n *Normal) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(n.Meta())
 	}
 
-	n.Normal = parser.ParseFloat("normal")
-	n.NormalExpected = parser.ParseFloat("expectedNormal")
+	n.Bolus.Parse(parser)
 
-	return nil
+	n.Normal = parser.Float64("normal")
+	n.NormalExpected = parser.Float64("expectedNormal")
 }
 
 func (n *Normal) Validate(validator structure.Validator) {

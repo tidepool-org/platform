@@ -32,13 +32,12 @@ type BolusCalculatorInsulin struct {
 	Units    *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
-func ParseBolusCalculatorInsulin(parser data.ObjectParser) *BolusCalculatorInsulin {
-	if parser.Object() == nil {
+func ParseBolusCalculatorInsulin(parser structure.ObjectParser) *BolusCalculatorInsulin {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewBolusCalculatorInsulin()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -46,9 +45,9 @@ func NewBolusCalculatorInsulin() *BolusCalculatorInsulin {
 	return &BolusCalculatorInsulin{}
 }
 
-func (b *BolusCalculatorInsulin) Parse(parser data.ObjectParser) {
-	b.Duration = parser.ParseFloat("duration")
-	b.Units = parser.ParseString("units")
+func (b *BolusCalculatorInsulin) Parse(parser structure.ObjectParser) {
+	b.Duration = parser.Float64("duration")
+	b.Units = parser.String("units")
 }
 
 func (b *BolusCalculatorInsulin) Validate(validator structure.Validator) {

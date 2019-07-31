@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
-	"github.com/tidepool-org/platform/auth/service/api/v1"
+	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	"github.com/tidepool-org/platform/auth/store"
 	authMongo "github.com/tidepool-org/platform/auth/store/mongo"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -132,7 +132,7 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating v1 router")
 
-	v1Router, err := v1.NewRouter(s)
+	v1Router, err := authServiceApiV1.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}

@@ -2,11 +2,10 @@ package cgm
 
 import (
 	"regexp"
-	"sort"
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/types"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -23,43 +22,50 @@ const (
 )
 
 type CGM struct {
-	types.Base `bson:",inline"`
+	dataTypes.Base `bson:",inline"`
 
-	HighLevelAlert  *HighLevelAlert  `json:"highAlerts,omitempty" bson:"highAlerts,omitempty"` // TODO: Rename highLevelAlert
-	LowLevelAlert   *LowLevelAlert   `json:"lowAlerts,omitempty" bson:"lowAlerts,omitempty"`   // TODO: Rename lowLevelAlert
-	Manufacturers   *[]string        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model           *string          `json:"model,omitempty" bson:"model,omitempty"`
-	OutOfRangeAlert *OutOfRangeAlert `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`   // TODO: Rename outOfRangeAlert
-	RateAlerts      *RateAlerts      `json:"rateOfChangeAlert,omitempty" bson:"rateOfChangeAlert,omitempty"` // TODO: Split into separate fallRateAlert, riseRateAlert
-	SerialNumber    *string          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	TransmitterID   *string          `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
-	Units           *string          `json:"units,omitempty" bson:"units,omitempty"`
+	Manufacturers *[]string `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
+	Model         *string   `json:"model,omitempty" bson:"model,omitempty"`
+	SerialNumber  *string   `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	TransmitterID *string   `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
+	Units         *string   `json:"units,omitempty" bson:"units,omitempty"`
+
+	DefaultAlerts   *Alerts          `json:"defaultAlerts,omitempty" bson:"defaultAlerts,omitempty"`
+	ScheduledAlerts *ScheduledAlerts `json:"scheduledAlerts,omitempty" bson:"scheduledAlerts,omitempty"`
+
+	// FUTURE: DEPRECATED
+	HighLevelAlert  *HighLevelAlertDEPRECATED  `json:"highAlerts,omitempty" bson:"highAlerts,omitempty"`               // FUTURE: Migrate to DefaultAlerts
+	LowLevelAlert   *LowLevelAlertDEPRECATED   `json:"lowAlerts,omitempty" bson:"lowAlerts,omitempty"`                 // FUTURE: Migrate to DefaultAlerts
+	OutOfRangeAlert *OutOfRangeAlertDEPRECATED `json:"outOfRangeAlerts,omitempty" bson:"outOfRangeAlerts,omitempty"`   // FUTURE: Migrate to DefaultAlerts
+	RateAlerts      *RateAlertsDEPRECATED      `json:"rateOfChangeAlert,omitempty" bson:"rateOfChangeAlert,omitempty"` // FUTURE: Migrate to DefaultAlerts
 }
 
 func New() *CGM {
 	return &CGM{
-		Base: types.New(Type),
+		Base: dataTypes.New(Type),
 	}
 }
 
-func (c *CGM) Parse(parser data.ObjectParser) error {
-	parser.SetMeta(c.Meta())
-
-	if err := c.Base.Parse(parser); err != nil {
-		return err
+func (c *CGM) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(c.Meta())
 	}
 
-	c.HighLevelAlert = ParseHighLevelAlert(parser.NewChildObjectParser("highAlerts"))
-	c.LowLevelAlert = ParseLowLevelAlert(parser.NewChildObjectParser("lowAlerts"))
-	c.Manufacturers = parser.ParseStringArray("manufacturers")
-	c.Model = parser.ParseString("model")
-	c.OutOfRangeAlert = ParseOutOfRangeAlert(parser.NewChildObjectParser("outOfRangeAlerts"))
-	c.RateAlerts = ParseRateAlerts(parser.NewChildObjectParser("rateOfChangeAlerts"))
-	c.SerialNumber = parser.ParseString("serialNumber")
-	c.TransmitterID = parser.ParseString("transmitterId")
-	c.Units = parser.ParseString("units")
+	c.Base.Parse(parser)
 
-	return nil
+	c.Manufacturers = parser.StringArray("manufacturers")
+	c.Model = parser.String("model")
+	c.SerialNumber = parser.String("serialNumber")
+	c.TransmitterID = parser.String("transmitterId")
+	c.Units = parser.String("units")
+
+	c.DefaultAlerts = ParseAlerts(parser.WithReferenceObjectParser("defaultAlerts"))
+	c.ScheduledAlerts = ParseScheduledAlerts(parser.WithReferenceArrayParser("scheduledAlerts"))
+
+	c.HighLevelAlert = ParseHighLevelAlertDEPRECATED(parser.WithReferenceObjectParser("highAlerts"))
+	c.LowLevelAlert = ParseLowLevelAlertDEPRECATED(parser.WithReferenceObjectParser("lowAlerts"))
+	c.OutOfRangeAlert = ParseOutOfRangeAlertDEPRECATED(parser.WithReferenceObjectParser("outOfRangeAlerts"))
+	c.RateAlerts = ParseRateAlertsDEPRECATED(parser.WithReferenceObjectParser("rateOfChangeAlerts"))
 }
 
 func (c *CGM) Validate(validator structure.Validator) {
@@ -73,33 +79,33 @@ func (c *CGM) Validate(validator structure.Validator) {
 		validator.String("type", &c.Type).EqualTo(Type)
 	}
 
-	if c.HighLevelAlert != nil {
-		c.HighLevelAlert.Validate(validator.WithReference("highAlerts"), c.Units)
-	} else {
-		validator.WithReference("highAlerts").ReportError(structureValidator.ErrorValueNotExists())
-	}
-	if c.LowLevelAlert != nil {
-		c.LowLevelAlert.Validate(validator.WithReference("lowAlerts"), c.Units)
-	} else {
-		validator.WithReference("lowAlerts").ReportError(structureValidator.ErrorValueNotExists())
-	}
 	validator.StringArray("manufacturers", c.Manufacturers).NotEmpty().LengthLessThanOrEqualTo(ManufacturersLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(ManufacturerLengthMaximum)
 	}).EachUnique()
 	validator.String("model", c.Model).NotEmpty().LengthLessThanOrEqualTo(ModelLengthMaximum)
+	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
+	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
+	validator.String("units", c.Units).OneOf(dataBloodGlucose.Units()...) // FUTURE: Use locally defined Units
+
+	if c.DefaultAlerts != nil {
+		c.DefaultAlerts.Validate(validator.WithReference("defaultAlerts"))
+	}
+	if c.ScheduledAlerts != nil {
+		c.ScheduledAlerts.Validate(validator.WithReference("scheduledAlerts"))
+	}
+
+	if c.HighLevelAlert != nil {
+		c.HighLevelAlert.Validate(validator.WithReference("highAlerts"), c.Units)
+	}
+	if c.LowLevelAlert != nil {
+		c.LowLevelAlert.Validate(validator.WithReference("lowAlerts"), c.Units)
+	}
 	if c.OutOfRangeAlert != nil {
 		c.OutOfRangeAlert.Validate(validator.WithReference("outOfRangeAlerts"))
-	} else {
-		validator.WithReference("outOfRangeAlerts").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if c.RateAlerts != nil {
 		c.RateAlerts.Validate(validator.WithReference("rateOfChangeAlerts"), c.Units)
-	} else {
-		validator.WithReference("rateOfChangeAlerts").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
-	validator.String("transmitterId", c.TransmitterID).Exists().Using(TransmitterIDValidator)
-	validator.String("units", c.Units).Exists().OneOf(dataBloodGlucose.Units()...)
 }
 
 func (c *CGM) Normalize(normalizer data.Normalizer) {
@@ -109,25 +115,23 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 
 	c.Base.Normalize(normalizer)
 
+	units := c.Units
+
+	if normalizer.Origin() == structure.OriginExternal {
+		c.Units = dataBloodGlucose.NormalizeUnits(c.Units) // FUTURE: Do not normalize units after deprecated fields deleted
+	}
+
 	if c.HighLevelAlert != nil {
-		c.HighLevelAlert.Normalize(normalizer.WithReference("highAlerts"), c.Units)
+		c.HighLevelAlert.Normalize(normalizer.WithReference("highAlerts"), units)
 	}
 	if c.LowLevelAlert != nil {
-		c.LowLevelAlert.Normalize(normalizer.WithReference("lowAlerts"), c.Units)
-	}
-	if normalizer.Origin() == structure.OriginExternal {
-		if c.Manufacturers != nil {
-			sort.Strings(*c.Manufacturers)
-		}
+		c.LowLevelAlert.Normalize(normalizer.WithReference("lowAlerts"), units)
 	}
 	if c.OutOfRangeAlert != nil {
 		c.OutOfRangeAlert.Normalize(normalizer.WithReference("outOfRangeAlerts"))
 	}
 	if c.RateAlerts != nil {
-		c.RateAlerts.Normalize(normalizer.WithReference("rateOfChangeAlerts"), c.Units)
-	}
-	if normalizer.Origin() == structure.OriginExternal {
-		c.Units = dataBloodGlucose.NormalizeUnits(c.Units)
+		c.RateAlerts.Normalize(normalizer.WithReference("rateOfChangeAlerts"), units)
 	}
 }
 

@@ -20,6 +20,14 @@ func New() *Continuous {
 	}
 }
 
+func (c *Continuous) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(c.Meta())
+	}
+
+	c.Glucose.Parse(parser)
+}
+
 func (c *Continuous) Validate(validator structure.Validator) {
 	if !validator.HasMeta() {
 		validator = validator.WithMeta(c.Meta())

@@ -268,6 +268,10 @@ func (v *Values) WithReferenceArrayParser(reference string) structure.ArrayParse
 	return structureParser.NewArrayParser(v.base.WithReference(reference), v.Array(reference))
 }
 
+func (v *Values) WithReferenceErrorReporter(reference string) structure.ErrorReporter {
+	return v.base.WithReference(reference)
+}
+
 func (v *Values) raw(reference string) (string, bool) {
 	if v.values == nil {
 		return "", false

@@ -300,6 +300,10 @@ func (a *Array) WithReferenceArrayParser(reference int) structure.ArrayParser {
 	return NewArrayParser(a.base.WithReference(strconv.Itoa(reference)), a.Array(reference))
 }
 
+func (a *Array) WithReferenceErrorReporter(reference int) structure.ErrorReporter {
+	return a.base.WithReference(strconv.Itoa(reference))
+}
+
 func (a *Array) raw(reference int) (interface{}, bool) {
 	if a.array == nil {
 		return nil, false

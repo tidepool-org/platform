@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"unicode/utf8"
 
@@ -103,14 +104,6 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	// FUTURE: Enable once all services respond appropriately, namely legacy services
-	// mediaType, err := request.ParseMediaTypeHeader(headerInspector.Headers, "Content-Type")
-	// if err != nil {
-	// 	return err
-	// } else if mediaType == nil || *mediaType != "application/json; charset=utf-8" { // FUTURE: Consider MediaType struct that pulls apart and manages media type
-	// 	return request.ErrorHeaderInvalid("Content-Type")
-	// }
-
 	return request.DecodeObject(structure.NewPointerSource(), body, responseBody)
 }
 
@@ -129,15 +122,17 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 
 	var body io.Reader
 	if requestBody != nil {
-		if reader, ok := requestBody.(io.Reader); ok {
-			body = reader
-		} else {
-			buffer := &bytes.Buffer{}
-			if err := json.NewEncoder(buffer).Encode(requestBody); err != nil {
-				return nil, errors.Wrapf(err, "unable to serialize request to %s %s", method, url)
+		if valueOf := reflect.ValueOf(requestBody); valueOf.Kind() != reflect.Ptr || !valueOf.IsNil() {
+			if reader, ok := requestBody.(io.Reader); ok {
+				body = reader
+			} else {
+				buffer := &bytes.Buffer{}
+				if err := json.NewEncoder(buffer).Encode(requestBody); err != nil {
+					return nil, errors.Wrapf(err, "unable to serialize request to %s %s", method, url)
+				}
+				body = buffer
+				mutators = append(mutators, request.NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))
 			}
-			body = buffer
-			mutators = append(mutators, request.NewHeaderMutator("Content-Type", "application/json; charset=utf-8"))
 		}
 	}
 
@@ -178,14 +173,14 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 
 	serializable := &errors.Serializable{}
 
-	if bytes, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+	if bites, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
 		return nil, errors.Wrap(err, "unable to read response body")
-	} else if len(bytes) == 0 {
+	} else if len(bites) == 0 {
 		logger.Error("Response body is empty, using defacto error for status code")
-	} else if unmarshalErr := json.Unmarshal(bytes, serializable); unmarshalErr != nil {
-		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bytes)).Error("Unable to deserialize response body, using defacto error for status code")
+	} else if unmarshalErr := json.Unmarshal(bites, serializable); unmarshalErr != nil {
+		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bites)).Error("Unable to deserialize response body, using defacto error for status code")
 	} else if serializable.Error == nil {
-		logger.WithField("responseBody", responseBodyFromBytes(bytes)).Error("Response body does not contain an error, using defacto error for status code")
+		logger.WithField("responseBody", responseBodyFromBytes(bites)).Error("Response body does not contain an error, using defacto error for status code")
 	}
 
 	if serializable.Error == nil {
@@ -216,6 +211,8 @@ func errorFromStatusCode(res *http.Response, req *http.Request) error {
 		return request.ErrorUnauthorized()
 	case http.StatusNotFound:
 		return request.ErrorResourceNotFound()
+	case http.StatusRequestEntityTooLarge:
+		return request.ErrorResourceTooLarge()
 	case http.StatusTooManyRequests:
 		return request.ErrorTooManyRequests()
 	default:
@@ -223,11 +220,11 @@ func errorFromStatusCode(res *http.Response, req *http.Request) error {
 	}
 }
 
-func responseBodyFromBytes(byts []byte) interface{} {
-	if utf8.Valid(byts) {
-		return string(byts)
+func responseBodyFromBytes(bites []byte) interface{} {
+	if utf8.Valid(bites) {
+		return string(bites)
 	}
-	return byts
+	return bites
 }
 
 func drainAndClose(reader io.ReadCloser) {

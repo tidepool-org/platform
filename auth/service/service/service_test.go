@@ -1,116 +1,154 @@
 package service_test
 
 import (
+	"net/http"
+	"os"
+
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
+
+	applicationTest "github.com/tidepool-org/platform/application/test"
+	authServiceService "github.com/tidepool-org/platform/auth/service/service"
+	authTest "github.com/tidepool-org/platform/auth/test"
+	configTest "github.com/tidepool-org/platform/config/test"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/test"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Service", func() {
-	// 	Context("New", func() {
-	// 		It("returns an error if unsuccessful", func() {
-	// 			svc, err := service.New("")
-	// 			Expect(err).To(HaveOccurred())
-	// 			Expect(svc).To(BeNil())
-	// 		})
+	Context("New", func() {
+		It("returns successfully", func() {
+			Expect(authServiceService.New()).ToNot(BeNil())
+		})
+	})
 
-	// 		It("returns successfully", func() {
-	// 			Expect(service.New("TIDEPOOL")).ToNot(BeNil())
-	// 		})
-	// 	})
+	Context("with started server, config reporter, and new service", func() {
+		var provider *applicationTest.Provider
+		var serverSecret string
+		var sessionToken string
+		var server *Server
+		var authClientConfig map[string]interface{}
+		var authStoreConfig map[string]interface{}
+		var dataSourceClientConfig map[string]interface{}
+		var taskClientConfig map[string]interface{}
+		var authServiceConfig map[string]interface{}
+		var service *authServiceService.Service
 
-	// 	Context("with started server, config reporter, and new service", func() {
-	// 		var serverTokenSecret string
-	// 		var serverToken string
-	// 		var server *Server
-	// 		var clientConfigReporter config.Reporter
-	// 		var storeConfigReporter config.Reporter
-	// 		var svc *service.Service
+		BeforeEach(func() {
+			provider = applicationTest.NewProviderWithDefaults()
 
-	// 		BeforeEach(func() {
-	// 			serverTokenSecret = id.New()
-	// 			serverToken = id.New()
-	// 			server = NewServer()
-	// 			Expect(server).ToNot(BeNil())
-	// 			server.AppendHandlers(
-	// 				CombineHandlers(
-	// 					VerifyRequest("POST", "/auth/serverlogin"),
-	// 					VerifyHeaderKV("X-Tidepool-Server-Name", "service.test"),
-	// 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
-	// 					VerifyBody(nil),
-	// 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
-	// 			)
+			serverSecret = authTest.NewServiceSecret()
+			sessionToken = authTest.NewSessionToken()
+			server = NewServer()
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest("POST", "/auth/serverlogin"),
+					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
+					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
+					VerifyBody(nil),
+					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{sessionToken}})),
+			)
 
-	// 			configReporter, err := env.NewReporter("TIDEPOOL")
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(configReporter).ToNot(BeNil())
-	// 			configReporter = configReporter.WithScopes("service.test", "service")
+			authClientConfig = map[string]interface{}{
+				"external": map[string]interface{}{
+					"address":                     server.URL(),
+					"server_session_token_secret": serverSecret,
+				},
+			}
+			authStoreConfig = map[string]interface{}{
+				"addresses": os.Getenv("TIDEPOOL_STORE_ADDRESSES"),
+				"database":  test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+				"tls":       "false",
+			}
+			dataSourceClientConfig = map[string]interface{}{
+				"address":             server.URL(),
+				"server_token_secret": authTest.NewServiceSecret(),
+			}
+			taskClientConfig = map[string]interface{}{
+				"address":             server.URL(),
+				"server_token_secret": authTest.NewServiceSecret(),
+			}
 
-	// 			configReporter.Set("secret", "This is a secret")
-	// 			configReporter.Set("domain", "test.com")
+			authServiceConfig = map[string]interface{}{
+				"auth": map[string]interface{}{
+					"client": authClientConfig,
+					"store":  authStoreConfig,
+				},
+				"data_source": map[string]interface{}{
+					"client": dataSourceClientConfig,
+				},
+				"domain": "test.com",
+				"secret": authTest.NewServiceSecret(),
+				"server": map[string]interface{}{
+					"address": testHttp.NewAddress(),
+					"tls":     "false",
+				},
+				"task": map[string]interface{}{
+					"client": taskClientConfig,
+				},
+			}
 
-	// 			clientConfigReporter = configReporter.WithScopes("auth", "client", "external")
-	// 			clientConfigReporter.Set("address", server.URL())
-	// 			clientConfigReporter.Set("timeout", "60")
-	// 			clientConfigReporter.Set("server_session_token_secret", serverTokenSecret)
+			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = authServiceConfig
 
-	// 			storeConfigReporter = configReporter.WithScopes("auth", "store")
-	// 			storeConfigReporter.Set("address", "http://localhost:1234")
-	// 			storeConfigReporter.Set("timeout", "60")
+			service = authServiceService.New()
+			Expect(service).ToNot(BeNil())
+		})
 
-	// 			configReporter.WithScopes("server").Set("address", "http://localhost:5678")
+		AfterEach(func() {
+			if server != nil {
+				server.Close()
+			}
+		})
 
-	// 			svc, err = service.New("TIDEPOOL")
-	// 			Expect(err).ToNot(HaveOccurred())
-	// 			Expect(svc).ToNot(BeNil())
-	// 		})
+		Context("Initialize", func() {
+			It("returns an error when the provider is missing", func() {
+				errorsTest.ExpectEqual(service.Initialize(nil), errors.New("provider is missing"))
+			})
 
-	// 		AfterEach(func() {
-	// 			if server != nil {
-	// 				server.Close()
-	// 			}
-	// 		})
+			It("returns an error when the underlying service returns an error", func() {
+				dataSourceClientConfig["address"] = ""
+				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create data source client"))
+			})
 
-	// 		Context("Initialize", func() {
-	// 			It("returns an error if the timeout is invalid during Load", func() {
-	// 				clientConfigReporter.Set("timeout", "abc")
-	// 				Expect(svc.Initialize()).To(MatchError("unable to load auth client config; timeout is invalid"))
-	// 			})
+			It("returns an error when the auth store config load returns an error", func() {
+				authStoreConfig["timeout"] = "invalid"
+				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load auth store config"))
+			})
 
-	// 			It("returns an error if the timeout is invalid during Load", func() {
-	// 				storeConfigReporter.Set("timeout", "abc")
-	// 				Expect(svc.Initialize()).To(MatchError("unable to load auth store config; timeout is invalid"))
-	// 			})
+			It("returns an error when the auth store returns an error", func() {
+				authStoreConfig["addresses"] = ""
+				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create auth store"))
+			})
 
-	// 			It("returns an error if the timeout is invalid during Validate", func() {
-	// 				storeConfigReporter.Set("timeout", "0")
-	// 				Expect(svc.Initialize()).To(MatchError("unable to create auth store; config is invalid; timeout is invalid"))
-	// 			})
+			It("returns successfully", func() {
+				Expect(service.Initialize(provider)).To(Succeed())
+				service.Terminate()
+			})
+		})
 
-	// 			It("returns successfully", func() {
-	// 				Expect(svc.Initialize()).To(Succeed())
-	// 				svc.Terminate()
-	// 			})
-	// 		})
+		Context("with being initialized", func() {
+			BeforeEach(func() {
+				Expect(service.Initialize(provider)).To(Succeed())
+			})
 
-	// 		Context("with being initialized", func() {
-	// 			BeforeEach(func() {
-	// 				Expect(svc.Initialize()).To(Succeed())
-	// 			})
+			AfterEach(func() {
+				service.Terminate()
+			})
 
-	// 			AfterEach(func() {
-	// 				svc.Terminate()
-	// 			})
+			Context("Terminate", func() {
+				It("returns successfully", func() {
+					service.Terminate()
+				})
+			})
 
-	// 			Context("Terminate", func() {
-	// 				It("returns successfully", func() {
-	// 					svc.Terminate()
-	// 				})
-	// 			})
-
-	// 			Context("AuthStore", func() {
-	// 				It("returns successfully", func() {
-	// 					Expect(svc.AuthStore()).ToNot(BeNil())
-	// 				})
-	// 			})
-	// 		})
-	// 	})
+			Context("AuthStore", func() {
+				It("returns successfully", func() {
+					Expect(service.AuthStore()).ToNot(BeNil())
+				})
+			})
+		})
+	})
 })

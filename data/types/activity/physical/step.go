@@ -14,13 +14,12 @@ type Step struct {
 	Count *int `json:"count,omitempty" bson:"count,omitempty"`
 }
 
-func ParseStep(parser data.ObjectParser) *Step {
-	if parser.Object() == nil {
+func ParseStep(parser structure.ObjectParser) *Step {
+	if !parser.Exists() {
 		return nil
 	}
 	datum := NewStep()
-	datum.Parse(parser)
-	parser.ProcessNotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -28,8 +27,8 @@ func NewStep() *Step {
 	return &Step{}
 }
 
-func (s *Step) Parse(parser data.ObjectParser) {
-	s.Count = parser.ParseInteger("count")
+func (s *Step) Parse(parser structure.ObjectParser) {
+	s.Count = parser.Int("count")
 }
 
 func (s *Step) Validate(validator structure.Validator) {

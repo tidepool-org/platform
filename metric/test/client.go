@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/test"
 )
 
 type RecordMetricInput struct {
@@ -15,16 +13,13 @@ type RecordMetricInput struct {
 }
 
 type Client struct {
-	*test.Mock
 	RecordMetricInvocations int
 	RecordMetricInputs      []RecordMetricInput
 	RecordMetricOutputs     []error
 }
 
 func NewClient() *Client {
-	return &Client{
-		Mock: test.NewMock(),
-	}
+	return &Client{}
 }
 
 func (c *Client) RecordMetric(ctx context.Context, name string, data ...map[string]string) error {
@@ -40,6 +35,5 @@ func (c *Client) RecordMetric(ctx context.Context, name string, data ...map[stri
 }
 
 func (c *Client) Expectations() {
-	c.Mock.Expectations()
 	gomega.Expect(c.RecordMetricOutputs).To(gomega.BeEmpty())
 }

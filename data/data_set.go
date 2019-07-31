@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
@@ -32,7 +33,7 @@ const (
 	SchemaVersionCurrent = 3 // DEPRECATED
 
 	ComputerTimeFormat = "2006-01-02T15:04:05"
-	TimeFormat         = time.RFC3339
+	TimeFormat         = time.RFC3339Nano
 
 	DataSetTypeContinuous = "continuous"
 	DataSetTypeNormal     = "normal" // TODO: Normal?
@@ -232,11 +233,6 @@ func NewDataSetUpdate() *DataSetUpdate {
 	return &DataSetUpdate{}
 }
 
-func (d *DataSetUpdate) HasUpdates() bool {
-	return d.Active != nil || d.DeviceID != nil || d.DeviceModel != nil || d.DeviceSerialNumber != nil ||
-		d.Deduplicator != nil || d.State != nil || d.Time != nil || d.TimeZoneName != nil || d.TimeZoneOffset != nil
-}
-
 func (d *DataSetUpdate) Parse(parser structure.ObjectParser) {
 	d.DeviceID = parser.String("deviceId")
 	d.DeviceModel = parser.String("deviceModel")
@@ -255,6 +251,11 @@ func (d *DataSetUpdate) Validate(validator structure.Validator) {
 	validator.Time("time", d.Time).NotZero()
 	validator.String("timezone", d.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(-12*60, 14*60)
+}
+
+func (d *DataSetUpdate) IsEmpty() bool {
+	return d.Active == nil && d.DeviceID == nil && d.DeviceModel == nil && d.DeviceSerialNumber == nil &&
+		d.Deduplicator == nil && d.State == nil && d.Time == nil && d.TimeZoneName == nil && d.TimeZoneOffset == nil
 }
 
 func NewSetID() string {
@@ -286,7 +287,7 @@ var setIDExpression = regexp.MustCompile("^(upid_[0-9a-f]{12}|upid_[0-9a-f]{32}|
 
 type DataSet struct {
 	Active              bool                    `json:"-" bson:"_active"`
-	Annotations         *BlobArray              `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	Annotations         *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ArchivedDataSetID   *string                 `json:"-" bson:"archivedDatasetId,omitempty"`
 	ArchivedTime        *string                 `json:"-" bson:"archivedTime,omitempty"`
 	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
@@ -311,7 +312,7 @@ type DataSet struct {
 	ID                  *string                 `json:"id,omitempty" bson:"id,omitempty"`
 	ModifiedTime        *string                 `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID      *string                 `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	Payload             *Blob                   `json:"payload,omitempty" bson:"payload,omitempty"`
+	Payload             *metadata.Metadata      `json:"payload,omitempty" bson:"payload,omitempty"`
 	SchemaVersion       int                     `json:"-" bson:"_schemaVersion,omitempty"`
 	Source              *string                 `json:"source,omitempty" bson:"source,omitempty"`
 	State               *string                 `json:"-" bson:"_state,omitempty"`

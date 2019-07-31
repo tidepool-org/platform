@@ -11,18 +11,12 @@ type ServerSessionTokenOutput struct {
 	Error error
 }
 
-type ValidateSessionTokenInput struct {
-	Context context.Context
-	Token   string
-}
-
 type ValidateSessionTokenOutput struct {
 	Details request.Details
 	Error   error
 }
 
 type EnsureAuthorizedUserInput struct {
-	Context              context.Context
 	TargetUserID         string
 	AuthorizedPermission string
 }
@@ -38,17 +32,15 @@ type ExternalAccessor struct {
 	ServerSessionTokenOutputs          []ServerSessionTokenOutput
 	ServerSessionTokenOutput           *ServerSessionTokenOutput
 	ValidateSessionTokenInvocations    int
-	ValidateSessionTokenInputs         []ValidateSessionTokenInput
+	ValidateSessionTokenInputs         []string
 	ValidateSessionTokenStub           func(ctx context.Context, token string) (request.Details, error)
 	ValidateSessionTokenOutputs        []ValidateSessionTokenOutput
 	ValidateSessionTokenOutput         *ValidateSessionTokenOutput
 	EnsureAuthorizedInvocations        int
-	EnsureAuthorizedInputs             []context.Context
 	EnsureAuthorizedStub               func(ctx context.Context) error
 	EnsureAuthorizedOutputs            []error
 	EnsureAuthorizedOutput             *error
 	EnsureAuthorizedServiceInvocations int
-	EnsureAuthorizedServiceInputs      []context.Context
 	EnsureAuthorizedServiceStub        func(ctx context.Context) error
 	EnsureAuthorizedServiceOutputs     []error
 	EnsureAuthorizedServiceOutput      *error
@@ -81,7 +73,7 @@ func (e *ExternalAccessor) ServerSessionToken() (string, error) {
 
 func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
 	e.ValidateSessionTokenInvocations++
-	e.ValidateSessionTokenInputs = append(e.ValidateSessionTokenInputs, ValidateSessionTokenInput{Context: ctx, Token: token})
+	e.ValidateSessionTokenInputs = append(e.ValidateSessionTokenInputs, token)
 	if e.ValidateSessionTokenStub != nil {
 		return e.ValidateSessionTokenStub(ctx, token)
 	}
@@ -98,7 +90,6 @@ func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token strin
 
 func (e *ExternalAccessor) EnsureAuthorized(ctx context.Context) error {
 	e.EnsureAuthorizedInvocations++
-	e.EnsureAuthorizedInputs = append(e.EnsureAuthorizedInputs, ctx)
 	if e.EnsureAuthorizedStub != nil {
 		return e.EnsureAuthorizedStub(ctx)
 	}
@@ -115,7 +106,6 @@ func (e *ExternalAccessor) EnsureAuthorized(ctx context.Context) error {
 
 func (e *ExternalAccessor) EnsureAuthorizedService(ctx context.Context) error {
 	e.EnsureAuthorizedServiceInvocations++
-	e.EnsureAuthorizedServiceInputs = append(e.EnsureAuthorizedServiceInputs, ctx)
 	if e.EnsureAuthorizedServiceStub != nil {
 		return e.EnsureAuthorizedServiceStub(ctx)
 	}
@@ -132,7 +122,7 @@ func (e *ExternalAccessor) EnsureAuthorizedService(ctx context.Context) error {
 
 func (e *ExternalAccessor) EnsureAuthorizedUser(ctx context.Context, targetUserID string, authorizedPermission string) (string, error) {
 	e.EnsureAuthorizedUserInvocations++
-	e.EnsureAuthorizedUserInputs = append(e.EnsureAuthorizedUserInputs, EnsureAuthorizedUserInput{Context: ctx, TargetUserID: targetUserID, AuthorizedPermission: authorizedPermission})
+	e.EnsureAuthorizedUserInputs = append(e.EnsureAuthorizedUserInputs, EnsureAuthorizedUserInput{TargetUserID: targetUserID, AuthorizedPermission: authorizedPermission})
 	if e.EnsureAuthorizedUserStub != nil {
 		return e.EnsureAuthorizedUserStub(ctx, targetUserID, authorizedPermission)
 	}

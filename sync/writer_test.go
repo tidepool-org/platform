@@ -1,10 +1,10 @@
 package sync_test
 
 import (
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"io/ioutil"
 
 	"github.com/tidepool-org/platform/sync"
 )
