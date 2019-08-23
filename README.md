@@ -80,13 +80,13 @@ TEST=user make test
 * To run all of the tests automatically after any changes are made, in a separate terminal window:
 
 ```
-make watch
+make test-watch
 ```
 
 The environment variable `WATCH` indicates which package hierarchy to test. If not specified, then all packages are tested. For example,
 
 ```
-WATCH=user make watch
+WATCH=user make test-watch
 ```
 
 * To run `gofmt`, `goimports`, `go vet`, and `golint`:
