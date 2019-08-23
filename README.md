@@ -8,39 +8,24 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.11.4 or later.
-1. Install `dep` dependency management tool. See https://golang.github.io/dep/docs/installation.html.
-1. Install mongodb (if it is not already installed).
-1. Start mongodb (if it is not already running).
-1. Create a brand new Go directory.
-1. Set the `GOPATH` environment variable to the newly created Go directory.
-1. Add `$GOPATH/bin` to the `PATH` environment variable.
-1. Execute `go get github.com/tidepool-org/platform` to pull down the project. You may ignore a "no buildable Go source files" warning.
-1. Change directory to `$GOPATH/src/github.com/tidepool-org/platform`.
-1. Source the `env.sh` file.
-1. Execute `make buildtable` to install the various Go tools needed for building and editing the project.
+1. Install Go version 1.11.4 or later
+1. Install mongodb (if it is not already installed, or run it from Docker)
+1. Start mongodb (if it is not already running)
+1. Clone this repo
+1. Change directory to the path you cloned the repo into
+1. Source the `env.sh` file
+1. Execute `make buildable` to install the various Go tools needed for building and editing the project
 
 For example:
 
 ```
 brew install go
-brew install dep
 brew install mongo
 brew services start mongodb
-mkdir ~/go
-export GOPATH=~/go
-export PATH=$GOPATH/bin:$PATH
-go get github.com/tidepool-org/platform
-cd $GOPATH/src/github.com/tidepool-org/platform
+git clone https://github.com/tidepool-org/platform.git
+cd platform
 . ./env.sh
 make buildable
-```
-
-For reuse, you may want to include the following lines in your shell config (e.g. `.bashrc`) or use a tool like [direnv](http://direnv.net/ 'direnv'):
-
-```
-export GOPATH=~/go
-export PATH=$GOPATH/bin:$PATH
 ```
 
 # Execute
@@ -104,7 +89,7 @@ The environment variable `WATCH` indicates which package hierarchy to test. If n
 WATCH=user make watch
 ```
 
-* To run `gofmt`, `goimports`, `go tool vet`, and `golint`:
+* To run `gofmt`, `goimports`, `go vet`, and `golint`:
 
 ```
 make pre-commit
