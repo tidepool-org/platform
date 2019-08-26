@@ -3,9 +3,9 @@
 package tools
 
 import (
-	_ "github.com/githubnemo/CompileDaemon" // Build tools
-	_ "github.com/mjibson/esc"              // Build tools
-	_ "github.com/onsi/ginkgo/ginkgo"       // Build tools
-	_ "golang.org/x/lint/golint"            // Build tools
-	_ "golang.org/x/tools/cmd/goimports"    // Build tools
+	_ "github.com/githubnemo/CompileDaemon" // CompileDaemon - for hot reloading
+	_ "github.com/mjibson/esc"              // Esc - for embedding static assets TODO: is this used?
+	_ "github.com/onsi/ginkgo/ginkgo"       // Gingko - for running tests
+	_ "golang.org/x/lint/golint"            // Golint - for Lint checks
+	_ "golang.org/x/tools/cmd/goimports"    // Goimports - to check and fix missing or unused imports
 )

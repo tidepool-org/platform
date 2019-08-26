@@ -1,7 +1,7 @@
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
-REPOSITORY_PACKAGE:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
+REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
 REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
@@ -152,6 +152,13 @@ endif
 service-start: CompileDaemon tmp
 ifdef SERVICE
 	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+endif
+
+service-debug: CompileDaemon tmp
+ifdef SERVICE
+ifdef DEBUG_PORT
+	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='dlv exec --headless --log --listen=:$(DEBUG_PORT) --api-version=2 _bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+endif
 endif
 
 service-restart: tmp
