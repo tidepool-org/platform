@@ -6,6 +6,8 @@ import (
 )
 
 const (
+	AbsorptionDurationTimeMaximum        = 1000.0
+	AbsorptionDurationTimeMinimum        = 0.0
 	CarbohydrateDietaryFiberGramsMaximum = 1000.0
 	CarbohydrateDietaryFiberGramsMinimum = 0.0
 	CarbohydrateNetGramsMaximum          = 1000.0
@@ -24,11 +26,12 @@ func CarbohydrateUnits() []string {
 }
 
 type Carbohydrate struct {
-	DietaryFiber *float64 `json:"dietaryFiber,omitempty" bson:"dietaryFiber,omitempty"`
-	Net          *float64 `json:"net,omitempty" bson:"net,omitempty"`
-	Sugars       *float64 `json:"sugars,omitempty" bson:"sugars,omitempty"`
-	Total        *float64 `json:"total,omitempty" bson:"total,omitempty"`
-	Units        *string  `json:"units,omitempty" bson:"units,omitempty"`
+	AbsorptionDuration *float64 `json:"absorptionDuration,omitempty" bson:"absorptionDuration,omitempty"`
+	DietaryFiber       *float64 `json:"dietaryFiber,omitempty" bson:"dietaryFiber,omitempty"`
+	Net                *float64 `json:"net,omitempty" bson:"net,omitempty"`
+	Sugars             *float64 `json:"sugars,omitempty" bson:"sugars,omitempty"`
+	Total              *float64 `json:"total,omitempty" bson:"total,omitempty"`
+	Units              *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseCarbohydrate(parser structure.ObjectParser) *Carbohydrate {
@@ -45,6 +48,7 @@ func NewCarbohydrate() *Carbohydrate {
 }
 
 func (c *Carbohydrate) Parse(parser structure.ObjectParser) {
+	c.AbsorptionDuration = parser.Float64("absorptionDuration")
 	c.DietaryFiber = parser.Float64("dietaryFiber")
 	c.Net = parser.Float64("net")
 	c.Sugars = parser.Float64("sugars")
@@ -53,6 +57,7 @@ func (c *Carbohydrate) Parse(parser structure.ObjectParser) {
 }
 
 func (c *Carbohydrate) Validate(validator structure.Validator) {
+	validator.Float64("dietaryFiber", c.DietaryFiber).InRange(AbsorptionDurationTimeMinimum, AbsorptionDurationTimeMaximum)
 	validator.Float64("dietaryFiber", c.DietaryFiber).InRange(CarbohydrateDietaryFiberGramsMinimum, CarbohydrateDietaryFiberGramsMaximum)
 	validator.Float64("net", c.Net).Exists().InRange(CarbohydrateNetGramsMinimum, CarbohydrateNetGramsMaximum)
 	validator.Float64("sugars", c.Sugars).InRange(CarbohydrateSugarsGramsMinimum, CarbohydrateSugarsGramsMaximum)
