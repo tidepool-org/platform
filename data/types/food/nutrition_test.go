@@ -72,20 +72,20 @@ var _ = Describe("Nutrition", func() {
 					func(datum *food.Nutrition) {},
 				),
 				Entry("absorption duration missing",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = nil },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = nil },
 				),
 				Entry("absorption duration out of range (lower)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromInt(-1) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(-1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/absorptionDuration"),
 				),
 				Entry("absorption duration in range (lower)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromInt(0) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(0) },
 				),
 				Entry("absorption duration in range (upper)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromInt(1000) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(1000) },
 				),
 				Entry("absorption duration out of range (upper)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromInt(1000) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(1000) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000, 0, 1000), "/absorptionDuration"),
 				),
 				Entry("carbohydrate missing",
@@ -130,7 +130,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("multiple errors",
 					func(datum *food.Nutrition) {
-						datum.AbsorptionDuration = pointer.FromInt32(-1)
+						datum.AbsorptionDuration = pointer.FromInt(-1)
 						datum.Carbohydrate.Units = nil
 						datum.Energy.Units = nil
 						datum.Fat.Units = nil
@@ -164,7 +164,7 @@ var _ = Describe("Nutrition", func() {
 					func(datum *food.Nutrition) {},
 				),
 				Entry("does not modify the datum; absorption duration missing",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = nil },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = nil },
 				),
 				Entry("does not modify the datum; carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
