@@ -86,7 +86,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("absorption duration out of range (upper)",
 					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(1000) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000, 0, 1000), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, 0, 1000), "/absorptionDuration"),
 				),
 				Entry("carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
