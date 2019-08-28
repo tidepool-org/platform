@@ -57,7 +57,7 @@ func (c *Carbohydrate) Parse(parser structure.ObjectParser) {
 }
 
 func (c *Carbohydrate) Validate(validator structure.Validator) {
-	validator.Float64("dietaryFiber", c.DietaryFiber).InRange(AbsorptionDurationMinimum, AbsorptionDurationMaximum)
+	validator.Float64("absorptionDuration", c.AbsorptionDuration).InRange(AbsorptionDurationMinimum, AbsorptionDurationMaximum)
 	validator.Float64("dietaryFiber", c.DietaryFiber).InRange(CarbohydrateDietaryFiberGramsMinimum, CarbohydrateDietaryFiberGramsMaximum)
 	validator.Float64("net", c.Net).Exists().InRange(CarbohydrateNetGramsMinimum, CarbohydrateNetGramsMaximum)
 	validator.Float64("sugars", c.Sugars).InRange(CarbohydrateSugarsGramsMinimum, CarbohydrateSugarsGramsMaximum)
