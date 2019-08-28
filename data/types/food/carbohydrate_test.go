@@ -17,7 +17,6 @@ import (
 
 func NewCarbohydrate() *food.Carbohydrate {
 	datum := food.NewCarbohydrate()
-	datum.AbsorptionDuration = pointer.FromFloat64(test.RandomFloat64FromRange(food.AbsorptionDurationMinimum, food.AbsorptionDurationMaximum))
 	datum.DietaryFiber = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateDietaryFiberGramsMinimum, food.CarbohydrateDietaryFiberGramsMaximum))
 	datum.Net = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateNetGramsMinimum, food.CarbohydrateNetGramsMaximum))
 	datum.Sugars = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateSugarsGramsMinimum, food.CarbohydrateSugarsGramsMaximum))
@@ -31,7 +30,6 @@ func CloneCarbohydrate(datum *food.Carbohydrate) *food.Carbohydrate {
 		return nil
 	}
 	clone := food.NewCarbohydrate()
-	clone.AbsorptionDuration = pointer.CloneFloat64(datum.AbsorptionDuration)
 	clone.DietaryFiber = pointer.CloneFloat64(datum.DietaryFiber)
 	clone.Net = pointer.CloneFloat64(datum.Net)
 	clone.Sugars = pointer.CloneFloat64(datum.Sugars)
@@ -41,13 +39,6 @@ func CloneCarbohydrate(datum *food.Carbohydrate) *food.Carbohydrate {
 }
 
 var _ = Describe("Carbohydrate", func() {
-	It("AbsorptionDurationMaximum is expected", func() {
-		Expect(food.AbsorptionDurationMaximum).To(Equal(1000.0))
-	})
-
-	It("AbsorptionDurationMinimum is expected", func() {
-		Expect(food.AbsorptionDurationMinimum).To(Equal(0.0))
-	})
 
 	It("CarbohydrateDietaryFiberGramsMaximum is expected", func() {
 		Expect(food.CarbohydrateDietaryFiberGramsMaximum).To(Equal(1000.0))
@@ -114,23 +105,7 @@ var _ = Describe("Carbohydrate", func() {
 				Entry("succeeds",
 					func(datum *food.Carbohydrate) {},
 				),
-				Entry("absorption duration missing",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = nil },
-				),
-				Entry("absorption duration out of range (lower)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromFloat64(-0.1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/absorptionDuration"),
-				),
-				Entry("absorption duration in range (lower)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromFloat64(0.0) },
-				),
-				Entry("absorption duration in range (upper)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromFloat64(1000.0) },
-				),
-				Entry("absorption duration out of range (upper)",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = pointer.FromFloat64(1000.1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/absorptionDuration"),
-				),
+
 				Entry("dietary fiber missing",
 					func(datum *food.Carbohydrate) { datum.DietaryFiber = nil },
 				),
@@ -213,14 +188,12 @@ var _ = Describe("Carbohydrate", func() {
 				),
 				Entry("multiple errors",
 					func(datum *food.Carbohydrate) {
-						datum.AbsorptionDuration = pointer.FromFloat64(-0.1)
 						datum.DietaryFiber = pointer.FromFloat64(-0.1)
 						datum.Net = pointer.FromFloat64(-0.1)
 						datum.Sugars = pointer.FromFloat64(-0.1)
 						datum.Total = pointer.FromFloat64(-0.1)
 						datum.Units = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/absorptionDuration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/dietaryFiber"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/net"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
@@ -247,9 +220,6 @@ var _ = Describe("Carbohydrate", func() {
 				},
 				Entry("does not modify the datum",
 					func(datum *food.Carbohydrate) {},
-				),
-				Entry("does not modify the datum; absorption duration missing",
-					func(datum *food.Carbohydrate) { datum.AbsorptionDuration = nil },
 				),
 				Entry("does not modify the datum; dietary fiber missing",
 					func(datum *food.Carbohydrate) { datum.DietaryFiber = nil },
