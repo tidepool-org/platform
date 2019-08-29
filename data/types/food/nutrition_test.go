@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewNutrition() *food.Nutrition {
@@ -136,8 +137,8 @@ var _ = Describe("Nutrition", func() {
 						datum.Fat.Units = nil
 						datum.Protein.Units = nil
 					},
-			        errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/absorptionDuration"),
-				    errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/protein/units"),

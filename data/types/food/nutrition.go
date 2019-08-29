@@ -6,16 +6,16 @@ import (
 )
 
 const (
-	AbsorptionDurationMaximum            = 86400
-	AbsorptionDurationMinimum            = 0
+	AbsorptionDurationMaximum = 86400
+	AbsorptionDurationMinimum = 0
 )
 
 type Nutrition struct {
-	AbsorptionDuration *int    `json:"absorptionDuration,omitempty" bson:"absorptionDuration,omitempty"`
-	Carbohydrate *Carbohydrate `json:"carbohydrate,omitempty" bson:"carbohydrate,omitempty"`
-	Energy       *Energy       `json:"energy,omitempty" bson:"energy,omitempty"`
-	Fat          *Fat          `json:"fat,omitempty" bson:"fat,omitempty"`
-	Protein      *Protein      `json:"protein,omitempty" bson:"protein,omitempty"`
+	AbsorptionDuration *int          `json:"absorptionDuration,omitempty" bson:"absorptionDuration,omitempty"`
+	Carbohydrate       *Carbohydrate `json:"carbohydrate,omitempty" bson:"carbohydrate,omitempty"`
+	Energy             *Energy       `json:"energy,omitempty" bson:"energy,omitempty"`
+	Fat                *Fat          `json:"fat,omitempty" bson:"fat,omitempty"`
+	Protein            *Protein      `json:"protein,omitempty" bson:"protein,omitempty"`
 }
 
 func ParseNutrition(parser structure.ObjectParser) *Nutrition {

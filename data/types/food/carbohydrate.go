@@ -24,11 +24,11 @@ func CarbohydrateUnits() []string {
 }
 
 type Carbohydrate struct {
-	DietaryFiber       *float64 `json:"dietaryFiber,omitempty" bson:"dietaryFiber,omitempty"`
-	Net                *float64 `json:"net,omitempty" bson:"net,omitempty"`
-	Sugars             *float64 `json:"sugars,omitempty" bson:"sugars,omitempty"`
-	Total              *float64 `json:"total,omitempty" bson:"total,omitempty"`
-	Units              *string  `json:"units,omitempty" bson:"units,omitempty"`
+	DietaryFiber *float64 `json:"dietaryFiber,omitempty" bson:"dietaryFiber,omitempty"`
+	Net          *float64 `json:"net,omitempty" bson:"net,omitempty"`
+	Sugars       *float64 `json:"sugars,omitempty" bson:"sugars,omitempty"`
+	Total        *float64 `json:"total,omitempty" bson:"total,omitempty"`
+	Units        *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseCarbohydrate(parser structure.ObjectParser) *Carbohydrate {
