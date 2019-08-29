@@ -6,16 +6,16 @@ import (
 )
 
 const (
-	AbsorptionDurationMaximum = 86400
-	AbsorptionDurationMinimum = 0
+	AbsorptionDurationSecondsMaximum = 86400
+	AbsorptionDurationSecondsMinimum = 0
 )
 
 type Nutrition struct {
-	AbsorptionDuration *int          `json:"absorptionDuration,omitempty" bson:"absorptionDuration,omitempty"`
-	Carbohydrate       *Carbohydrate `json:"carbohydrate,omitempty" bson:"carbohydrate,omitempty"`
-	Energy             *Energy       `json:"energy,omitempty" bson:"energy,omitempty"`
-	Fat                *Fat          `json:"fat,omitempty" bson:"fat,omitempty"`
-	Protein            *Protein      `json:"protein,omitempty" bson:"protein,omitempty"`
+	AbsorptionDurationSeconds *int          `json:"absorptionDurationSeconds,omitempty" bson:"absorptionDurationSeconds,omitempty"`
+	Carbohydrate              *Carbohydrate `json:"carbohydrate,omitempty" bson:"carbohydrate,omitempty"`
+	Energy                    *Energy       `json:"energy,omitempty" bson:"energy,omitempty"`
+	Fat                       *Fat          `json:"fat,omitempty" bson:"fat,omitempty"`
+	Protein                   *Protein      `json:"protein,omitempty" bson:"protein,omitempty"`
 }
 
 func ParseNutrition(parser structure.ObjectParser) *Nutrition {
@@ -32,7 +32,7 @@ func NewNutrition() *Nutrition {
 }
 
 func (n *Nutrition) Parse(parser structure.ObjectParser) {
-	n.AbsorptionDuration = parser.Int("absorptionDuration")
+	n.AbsorptionDurationSeconds = parser.Int("absorptionDurationSeconds")
 	n.Carbohydrate = ParseCarbohydrate(parser.WithReferenceObjectParser("carbohydrate"))
 	n.Energy = ParseEnergy(parser.WithReferenceObjectParser("energy"))
 	n.Fat = ParseFat(parser.WithReferenceObjectParser("fat"))
@@ -40,7 +40,7 @@ func (n *Nutrition) Parse(parser structure.ObjectParser) {
 }
 
 func (n *Nutrition) Validate(validator structure.Validator) {
-	validator.Int("absorptionDuration", n.AbsorptionDuration).InRange(AbsorptionDurationMinimum, AbsorptionDurationMaximum)
+	validator.Int("absorptionDurationSeconds", n.AbsorptionDurationSeconds).InRange(AbsorptionDurationSecondsMinimum, AbsorptionDurationSecondsMaximum)
 	if n.Carbohydrate != nil {
 		n.Carbohydrate.Validate(validator.WithReference("carbohydrate"))
 	}
