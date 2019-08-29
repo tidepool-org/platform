@@ -17,7 +17,7 @@ import (
 
 func NewNutrition() *food.Nutrition {
 	datum := food.NewNutrition()
-	datum.AbsorptionDurationSeconds = pointer.FromInt(test.RandomIntFromRange(food.AbsorptionDurationSecondsMinimum, food.AbsorptionDurationSecondsMaximum))
+	datum.AbsorptionDuration = pointer.FromInt(test.RandomIntFromRange(food.AbsorptionDurationSecondsMinimum, food.AbsorptionDurationSecondsMaximum))
 	datum.Carbohydrate = NewCarbohydrate()
 	datum.Energy = NewEnergy()
 	datum.Fat = NewFat()
@@ -30,7 +30,7 @@ func CloneNutrition(datum *food.Nutrition) *food.Nutrition {
 		return nil
 	}
 	clone := food.NewNutrition()
-	clone.AbsorptionDurationSeconds = pointer.CloneInt(datum.AbsorptionDurationSeconds)
+	clone.AbsorptionDuration = pointer.CloneInt(datum.AbsorptionDuration)
 	clone.Carbohydrate = CloneCarbohydrate(datum.Carbohydrate)
 	clone.Energy = CloneEnergy(datum.Energy)
 	clone.Fat = CloneFat(datum.Fat)
@@ -73,21 +73,21 @@ var _ = Describe("Nutrition", func() {
 					func(datum *food.Nutrition) {},
 				),
 				Entry("absorption duration missing",
-					func(datum *food.Nutrition) { datum.AbsorptionDurationSeconds = nil },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = nil },
 				),
 				Entry("absorption duration out of range (lower)",
-					func(datum *food.Nutrition) { datum.AbsorptionDurationSeconds = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDurationSeconds"),
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(-1) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDuration"),
 				),
 				Entry("absorption duration in range (lower)",
-					func(datum *food.Nutrition) { datum.AbsorptionDurationSeconds = pointer.FromInt(0) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(0) },
 				),
 				Entry("absorption duration in range (upper)",
-					func(datum *food.Nutrition) { datum.AbsorptionDurationSeconds = pointer.FromInt(86400) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(86400) },
 				),
 				Entry("absorption duration out of range (upper)",
-					func(datum *food.Nutrition) { datum.AbsorptionDurationSeconds = pointer.FromInt(86401) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/absorptionDurationSeconds"),
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(86401) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/absorptionDuration"),
 				),
 				Entry("carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
@@ -131,13 +131,13 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("multiple errors",
 					func(datum *food.Nutrition) {
-						datum.AbsorptionDurationSeconds = pointer.FromInt(-1)
+						datum.AbsorptionDuration = pointer.FromInt(-1)
 						datum.Carbohydrate.Units = nil
 						datum.Energy.Units = nil
 						datum.Fat.Units = nil
 						datum.Protein.Units = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDurationSeconds"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDuration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
@@ -165,7 +165,7 @@ var _ = Describe("Nutrition", func() {
 					func(datum *food.Nutrition) {},
 				),
 				Entry("does not modify the datum; absorption duration missing",
-					func(datum *food.Nutrition) { datum.AbsorptionDurationSeconds = nil },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = nil },
 				),
 				Entry("does not modify the datum; carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
