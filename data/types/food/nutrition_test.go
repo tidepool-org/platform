@@ -40,7 +40,7 @@ func CloneNutrition(datum *food.Nutrition) *food.Nutrition {
 
 var _ = Describe("Nutrition", func() {
 	It("AbsorptionDurationMaximum is expected", func() {
-		Expect(food.AbsorptionDurationMaximum).To(Equal(1000))
+		Expect(food.AbsorptionDurationMaximum).To(Equal(86400))
 	})
 
 	It("AbsorptionDurationMinimum is expected", func() {
@@ -77,17 +77,17 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("absorption duration out of range (lower)",
 					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDuration"),
 				),
 				Entry("absorption duration in range (lower)",
 					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(0) },
 				),
 				Entry("absorption duration in range (upper)",
-					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(1000) },
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(86400) },
 				),
 				Entry("absorption duration out of range (upper)",
-					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(1000) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1001, 0, 1000), "/absorptionDuration"),
+					func(datum *food.Nutrition) { datum.AbsorptionDuration = pointer.FromInt(86401) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/absorptionDuration"),
 				),
 				Entry("carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
@@ -137,7 +137,7 @@ var _ = Describe("Nutrition", func() {
 						datum.Fat.Units = nil
 						datum.Protein.Units = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 1000), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDuration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
