@@ -16,6 +16,9 @@ const (
 	ModerateRise = "moderateRise"
 	RapidFall    = "rapidFall"
 	RapidRise    = "rapidRise"
+
+	TrendRateMaximum = 100
+	TrendRateMinimum = -100
 )
 
 func Trends() []string {
@@ -56,6 +59,7 @@ func (c *Continuous) Validate(validator structure.Validator) {
 		validator.String("type", &c.Type).EqualTo(Type)
 	}
 
+	validator.Float64("trendRate", c.TrendRate).InRange(TrendRateMinimum, TrendRateMaximum)
 	if c.Trend != nil {
 		validator.String("units", c.Trend).Exists().OneOf(Trends()...)
 	}
