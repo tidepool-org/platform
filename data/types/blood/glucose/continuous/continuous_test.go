@@ -36,6 +36,8 @@ func CloneContinuous(datum *continuous.Continuous) *continuous.Continuous {
 	}
 	clone := continuous.New()
 	clone.Glucose = *dataTypesBloodGlucoseTest.CloneGlucose(&datum.Glucose)
+	clone.Trend = pointer.CloneString(datum.Trend)
+	clone.TrendRate = pointer.CloneFloat64(datum.TrendRate)
 	return clone
 }
 
