@@ -12,8 +12,8 @@ COPY . .
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
-# Release
-FROM alpine:latest AS release
+# Production
+FROM alpine:latest AS production
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
     apk add --no-cache ca-certificates tzdata && \
