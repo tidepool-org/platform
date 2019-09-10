@@ -1,84 +1,74 @@
 package status
 
 import (
-	"strconv"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
-type TypeStatusArray []*Status
+type Array []Interface
 
-type Status struct {
-	Battery            *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
-	SignalStrength     *SignalStrength     `json:"signalStrength,omitempty" bson:"signalStrength,omitempty"`
+type Interface interface {
+	statusObject()
+}
+
+type Battery struct {
+	Unit  *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+}
+
+type BatteryStruct struct {
+	Battery *Battery `json:"battery,omitempty" bson:"battery,omitempty"`
+}
+
+func (b *BatteryStruct) statusObject() {
+}
+
+type ReservoirRemaining struct {
+	Unit   *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
+}
+
+type ReservoirRemainingStruct struct {
 	ReservoirRemaining *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
-	Forecast           *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
-	Alerts             *[]string           `json:"alerts,omitempty" bson:"alerts,omitempty"`
 }
 
-func ParseStatus(parser structure.ObjectParser) *Status {
-	if !parser.Exists() {
-		return nil
-	}
-	datum := NewStatus()
-	parser.Parse(datum)
-	return datum
+func (r *ReservoirRemainingStruct) statusObject() {
 }
 
-func NewStatus() *Status {
-	return &Status{}
+type SignalStrength struct {
+	Unit  *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func (c *Status) Parse(parser structure.ObjectParser) {
-	c.Battery = ParseBattery(parser.WithReferenceObjectParser("battery"))
-	c.Alerts = parser.StringArray("alerts")
-	c.ReservoirRemaining = ParseReservoirRemaining(parser.WithReferenceObjectParser("reservoirRemaining"))
-	c.SignalStrength = ParseSignalStrength(parser.WithReferenceObjectParser("signalStrength"))
-	c.Forecast = data.ParseForecast(parser.WithReferenceObjectParser("forecast"))
+type SignalStrengthStruct struct {
+	SignalStrength *SignalStrength `json:"signalStrength,omitempty" bson:"signalStrength,omitempty"`
 }
 
-func (c *Status) Validate(validator structure.Validator) {
+func (s *SignalStrengthStruct) statusObject() {
 }
 
-func (c *Status) Normalize(normalizer data.Normalizer) {
-	if c.Battery != nil {
-		c.Battery.Normalize(normalizer.WithReference("battery"))
-	}
-	if c.SignalStrength != nil {
-		c.SignalStrength.Normalize(normalizer.WithReference("signalStrength"))
-	}
-	if c.ReservoirRemaining != nil {
-		c.ReservoirRemaining.Normalize(normalizer.WithReference("reservoirRemaining"))
-	}
+type AlertsStruct struct {
+	Alerts []string `json:"alerts,omitempty" bson:"alerts,omitempty"`
 }
 
-func ParseStatusArray(parser structure.ArrayParser) *TypeStatusArray {
-	if !parser.Exists() {
-		return nil
-	}
-	datum := NewParseStatusArray()
-	parser.Parse(datum)
-	return datum
+func (a *AlertsStruct) statusObject() {
 }
 
-func NewParseStatusArray() *TypeStatusArray {
-	return &TypeStatusArray{}
+type ForecastStruct struct {
+	Forecast *data.Forecast `json:"forecast,omitempty" bson:"forecast,omitempty"`
 }
 
-func (t *TypeStatusArray) Parse(parser structure.ArrayParser) {
-	for _, reference := range parser.References() {
-		*t = append(*t, ParseStatus(parser.WithReferenceObjectParser(reference)))
-	}
+func (f *ForecastStruct) statusObject() {
 }
 
-func (t *TypeStatusArray) Validate(validator structure.Validator) {
+func NewStatusArray() *Array {
+	return &Array{}
 }
 
-func (t *TypeStatusArray) Normalize(normalizer data.Normalizer) {
-	for index, datum := range *t {
-		if datum != nil {
-			datum.Normalize(normalizer.WithReference(strconv.Itoa(index)))
-		}
-	}
+func (a *Array) Parse(parser structure.ObjectParser) {
 }
+
+func (a *Array) Validate(validator structure.Validator) {
+}
+
+func (a *Array) Normalize(normalizer data.Normalizer) {}
