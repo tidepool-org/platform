@@ -59,16 +59,26 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 		}
 	}
 
+	// Read delete options (remove dataset entry ?):
+	var jsonParams map[string]interface{}
+	doPurge := false
+	if err := dataServiceContext.Request().DecodeJsonPayload(&jsonParams); err != nil {
+		jsonParams = nil
+	} else {
+		purge, havePurgeOption := jsonParams["purge"]
+		doPurge = havePurgeOption && purge == true
+	}
+
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
 	} else if deduplicator == nil {
-		if err = dataServiceContext.DataSession().DeleteDataSet(ctx, dataSet); err != nil {
+		if err = dataServiceContext.DataSession().DeleteDataSet(ctx, dataSet, doPurge); err != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to delete data set", err)
 			return
 		}
 	} else {
-		if err = deduplicator.Delete(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+		if err = deduplicator.Delete(ctx, dataServiceContext.DataSession(), dataSet, doPurge); err != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to delete", err)
 			return
 		}

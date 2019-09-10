@@ -119,7 +119,7 @@ func (b *Base) Close(ctx context.Context, session dataStoreDEPRECATED.DataSessio
 	return session.ActivateDataSetData(ctx, dataSet, nil)
 }
 
-func (b *Base) Delete(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (b *Base) Delete(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, doPurge bool) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -130,5 +130,5 @@ func (b *Base) Delete(ctx context.Context, session dataStoreDEPRECATED.DataSessi
 		return errors.New("data set is missing")
 	}
 
-	return session.DeleteDataSet(ctx, dataSet)
+	return session.DeleteDataSet(ctx, dataSet, doPurge)
 }

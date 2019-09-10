@@ -1,7 +1,9 @@
 ## Unreleased
 ### Added
-
 - Integration from Tidepool latest changes
+
+### Fixed
+- [PT-624] Platform Data: dataset is not deleted when calling "DELETE" on "/v1/data_sets/:dataSetId"
 
 ## v0.3.1 [2019-06-06]
 

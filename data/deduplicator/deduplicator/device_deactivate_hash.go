@@ -114,7 +114,7 @@ func (d *DeviceDeactivateHash) Close(ctx context.Context, session storeDEPRECATE
 	return d.Base.Close(ctx, session, dataSet)
 }
 
-func (d *DeviceDeactivateHash) Delete(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Delete(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, doPurge bool) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -129,5 +129,5 @@ func (d *DeviceDeactivateHash) Delete(ctx context.Context, session storeDEPRECAT
 		return err
 	}
 
-	return d.Base.Delete(ctx, session, dataSet)
+	return d.Base.Delete(ctx, session, dataSet, doPurge)
 }

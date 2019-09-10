@@ -235,7 +235,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -251,16 +251,25 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var err error
+	var selector bson.M
 	var removeInfo *mgo.ChangeInfo
 	var updateInfo *mgo.ChangeInfo
 
-	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
+	if doPurge {
+		selector = bson.M{
+			"_userId":  dataSet.UserID,
+			"uploadId": dataSet.UploadID,
+		}
+	} else {
+		selector = bson.M{
+			"_userId":  dataSet.UserID,
+			"uploadId": dataSet.UploadID,
+			"type":     bson.M{"$ne": "upload"},
+		}
 	}
+
 	removeInfo, err = d.C().RemoveAll(selector)
-	if err == nil {
+	if err == nil && doPurge == false {
 		selector = bson.M{
 			"_userId":       dataSet.UserID,
 			"uploadId":      dataSet.UploadID,
@@ -275,7 +284,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 	}
 
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "doPurge": doPurge, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteDataSet")
 
 	if err != nil {

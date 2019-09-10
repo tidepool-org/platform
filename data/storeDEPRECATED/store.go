@@ -23,7 +23,7 @@ type DataSession interface {
 	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
-	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
+	DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error
 
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error

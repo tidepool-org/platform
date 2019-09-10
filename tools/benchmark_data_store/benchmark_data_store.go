@@ -502,7 +502,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, session d
 		return err
 	}
 
-	if err = session.DeleteDataSet(ctx, dataSet); err != nil {
+	if err = session.DeleteDataSet(ctx, dataSet, false); err != nil {
 		return err
 	}
 
@@ -525,7 +525,7 @@ func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, ses
 		return err
 	}
 
-	if err = session.DeleteDataSet(ctx, dataSet); err != nil {
+	if err = session.DeleteDataSet(ctx, dataSet, false); err != nil {
 		return err
 	}
 
@@ -607,7 +607,7 @@ func (t *Tool) benchmarkPlatformDBDeleteDataSet(ctx context.Context, session dat
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.DeleteDataSet(ctx, dataSet)
+	return session.DeleteDataSet(ctx, dataSet, false)
 }
 
 func (t *Tool) benchmarkPlatformDBDeleteDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataSession, input *BenchmarkInput) error {
