@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	Eid      = "eid"
+	Aid      = "aid"
 	Cgm      = "cgm"
 	Pump     = "pump"
 	SmartPen = "smartpen"
 )
 
 func DeviceTypes() []string {
-	return []string{Eid, Cgm, Pump, SmartPen}
+	return []string{Aid, Cgm, Pump, SmartPen}
 }
 
 type DeviceStatus struct {
