@@ -1,26 +1,23 @@
-## Unreleased
-### Added
-- Integration from Tidepool latest changes
 
+
+## [v0.4.1] 2019-09-10
 ### Fixed
 - [PT-624] Platform Data: dataset is not deleted when calling "DELETE" on "/v1/data_sets/:dataSetId"
 
-## v0.3.1 [2019-06-06]
+## [v0.4.0] 2019-07-30
+### Added
+- Integration from Tidepool latest changes
 
+## [v0.3.1] 2019-06-06
 ### Fix
-
 - PT-423 temporarily remove the condition that forces bolus.expectedNormal > bolus.normal
 
-## v0.3.0 [2019-05-07]
-
+## [v0.3.0] 2019-05-07
 ### Added
-
 - Add Diabeloop device DBL4K
 
-## v0.2.1 [2018-12-06]
-
+## [v0.2.1] 2018-12-06
 - Bring back DBLG1 device
-
 
 ## tidepool/platform v1.29.0
 
