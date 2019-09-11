@@ -13,6 +13,7 @@ import (
 	dataTypesCalculator "github.com/tidepool-org/platform/data/types/calculator"
 	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceFactory "github.com/tidepool-org/platform/data/types/device/factory"
+	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/devicestatus"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	dataTypesSettingsCGM "github.com/tidepool-org/platform/data/types/settings/cgm"
@@ -38,6 +39,7 @@ var types = []string{
 	dataTypesSettingsPump.Type,
 	dataTypesStateReported.Type,
 	dataTypesUpload.Type,
+	dataTypesDeviceStatus.Type,
 }
 
 func NewDatum(parser structure.ObjectParser) data.Datum {
@@ -80,6 +82,8 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesStateReported.New()
 	case dataTypesUpload.Type:
 		return dataTypesUpload.New()
+	case dataTypesDeviceStatus.Type:
+		return dataTypesDeviceStatus.New()
 	}
 
 	parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, types))
