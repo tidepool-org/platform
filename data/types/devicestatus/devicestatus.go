@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	Type     = "deviceStatus"
 	Aid      = "aid"
 	Cgm      = "cgm"
 	Pump     = "pump"
@@ -24,6 +25,12 @@ type DeviceStatus struct {
 	DeviceType *string      `json:"deviceType,omitempty" bson:"deviceType,omitempty"`
 	Version    *string      `json:"version,omitempty" bson:"version,omitempty"`
 	Status     status.Array `json:"status,omitempty" bson:"status,omitempty"`
+}
+
+func New() *DeviceStatus {
+	return &DeviceStatus{
+		Base: types.New(Type),
+	}
 }
 
 func ParseDeviceStatus(parser structure.ObjectParser) *DeviceStatus {
