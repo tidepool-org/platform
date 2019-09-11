@@ -47,11 +47,27 @@ func NewDeviceStatus() *DeviceStatus {
 }
 
 func (a *DeviceStatus) Parse(parser structure.ObjectParser) {
+	if !parser.HasMeta() {
+		parser = parser.WithMeta(a.Meta())
+	}
+
+	a.Base.Parse(parser)
+
 	a.DeviceType = parser.String("deviceType")
 	a.Version = parser.String("version")
 }
 
 func (a *DeviceStatus) Validate(validator structure.Validator) {
+	if !validator.HasMeta() {
+		validator = validator.WithMeta(a.Meta())
+	}
+
+	a.Base.Validate(validator)
+
+	if a.Type != "" {
+		validator.String("type", &a.Type).EqualTo(Type)
+	}
+
 	validator.String("deviceType", a.DeviceType).Exists().OneOf(DeviceTypes()...)
 }
 
