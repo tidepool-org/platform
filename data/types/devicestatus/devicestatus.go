@@ -71,4 +71,10 @@ func (a *DeviceStatus) Validate(validator structure.Validator) {
 	validator.String("deviceType", a.DeviceType).Exists().OneOf(DeviceTypes()...)
 }
 
-func (a *DeviceStatus) Normalize(normalizer data.Normalizer) {}
+func (a *DeviceStatus) Normalize(normalizer data.Normalizer) {
+	if !normalizer.HasMeta() {
+		normalizer = normalizer.WithMeta(a.Meta())
+	}
+
+	a.Base.Normalize(normalizer)
+}
