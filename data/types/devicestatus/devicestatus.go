@@ -22,9 +22,9 @@ func DeviceTypes() []string {
 type DeviceStatus struct {
 	types.Base `bson:",inline"`
 
-	DeviceType *string      `json:"deviceType,omitempty" bson:"deviceType,omitempty"`
-	Version    *string      `json:"version,omitempty" bson:"version,omitempty"`
-	Status     status.Array `json:"status,omitempty" bson:"status,omitempty"`
+	DeviceType *string                 `json:"deviceType,omitempty" bson:"deviceType,omitempty"`
+	Version    *string                 `json:"version,omitempty" bson:"version,omitempty"`
+	Status     *status.TypeStatusArray `json:"status,omitempty" bson:"status,omitempty"`
 }
 
 func New() *DeviceStatus {
@@ -55,6 +55,7 @@ func (a *DeviceStatus) Parse(parser structure.ObjectParser) {
 
 	a.DeviceType = parser.String("deviceType")
 	a.Version = parser.String("version")
+	a.Status = status.ParseStatusArray(parser.WithReferenceObjectParser("status"))
 }
 
 func (a *DeviceStatus) Validate(validator structure.Validator) {
