@@ -25,10 +25,10 @@ func NewForecast() *Forecast {
 	return &Forecast{}
 }
 
-func (a *Forecast) Parse(parser structure.ObjectParser) {
+func (f *Forecast) Parse(parser structure.ObjectParser) {
 }
 
-func (a *Forecast) Validate(validator structure.Validator) {
+func (f *Forecast) Validate(validator structure.Validator) {
 }
 
-func (a *Forecast) Normalize(normalizer Normalizer) {}
+func (f *Forecast) Normalize(normalizer Normalizer) {}
