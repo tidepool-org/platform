@@ -1,21 +1,56 @@
 package status
 
 import (
+	"strconv"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
-type TypeStatusArray []TypeStatusInterface
+type TypeStatusArray []*Status
 
-type TypeStatusInterface interface {
-	statusObject()
+type Status struct {
+	Battery            *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
+	SignalStrength     *SignalStrength     `json:"signalStrength,omitempty" bson:"signalStrength,omitempty"`
+	ReservoirRemaining *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
+	Forecast           *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
+	Alerts             *[]string           `json:"alerts,omitempty" bson:"alerts,omitempty"`
 }
 
-func (t *TypeStatusArray) ParseArray(parser structure.ArrayParser) {
+func ParseStatus(parser structure.ObjectParser) *Status {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewStatus()
+	parser.Parse(datum)
+	return datum
 }
 
-func NewStatusArray() *TypeStatusArray {
-	return &TypeStatusArray{}
+func NewStatus() *Status {
+	return &Status{}
+}
+
+func (c *Status) Parse(parser structure.ObjectParser) {
+	c.Battery = ParseBattery(parser.WithReferenceObjectParser("battery"))
+	c.Alerts = parser.StringArray("alerts")
+	c.ReservoirRemaining = ParseReservoirRemaining(parser.WithReferenceObjectParser("reservoirRemaining"))
+	c.SignalStrength = ParseSignalStrength(parser.WithReferenceObjectParser("signalStrength"))
+	c.Forecast = data.ParseForecast(parser.WithReferenceObjectParser("forecast"))
+}
+
+func (c *Status) Validate(validator structure.Validator) {
+}
+
+func (c *Status) Normalize(normalizer data.Normalizer) {
+	if c.Battery != nil {
+		c.Battery.Normalize(normalizer.WithReference("battery"))
+	}
+	if c.SignalStrength != nil {
+		c.SignalStrength.Normalize(normalizer.WithReference("signalStrength"))
+	}
+	if c.ReservoirRemaining != nil {
+		c.ReservoirRemaining.Normalize(normalizer.WithReference("reservoirRemaining"))
+	}
 }
 
 func ParseStatusArray(parser structure.ObjectParser) *TypeStatusArray {
@@ -40,23 +75,10 @@ func (t *TypeStatusArray) Parse(parser structure.ObjectParser) {
 func (t *TypeStatusArray) Validate(validator structure.Validator) {
 }
 
-func (t *TypeStatusArray) Normalize(normalizer data.Normalizer) {}
-
-func ParseStatus(parser structure.ObjectParser) TypeStatusInterface {
-	if !parser.Exists() {
-		return nil
-	}
-	datum := ParseBatteryStruct(parser.WithReferenceObjectParser("battery"))
-	if datum == nil {
-		if datum = ParseAlertsStruct(parser.WithReferenceObjectParser("alerts")); datum == nil {
-			if datum = ParseReservoirRemainingStruct(parser.WithReferenceObjectParser("reservoirRemaining")); datum == nil {
-				if datum = ParseSignalStrengthStruct(parser.WithReferenceObjectParser("signalStrength")); datum == nil {
-					if datum = ParseForecastStruct(parser.WithReferenceObjectParser("forecast")); datum == nil {
-						return nil
-					}
-				}
-			}
+func (t *TypeStatusArray) Normalize(normalizer data.Normalizer) {
+	for index, datum := range *t {
+		if datum != nil {
+			datum.Normalize(normalizer.WithReference(strconv.Itoa(index)))
 		}
 	}
-	return datum
 }
