@@ -7,7 +7,7 @@ import (
 )
 
 func NewStatus() *status.TypeStatusArray {
-	datum := *status.NewStatusArray()
+	datum := *status.NewParseStatusArray()
 	return &datum
 }
 
@@ -15,7 +15,7 @@ func CloneStatusArray(datum *status.TypeStatusArray) *status.TypeStatusArray {
 	if datum == nil {
 		return nil
 	}
-	clone := status.NewStatusArray()
+	clone := status.NewParseStatusArray()
 	return clone
 }
 
