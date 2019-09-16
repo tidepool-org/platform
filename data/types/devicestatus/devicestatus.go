@@ -55,7 +55,7 @@ func (a *DeviceStatus) Parse(parser structure.ObjectParser) {
 
 	a.DeviceType = parser.String("deviceType")
 	a.Version = parser.String("version")
-	a.Status = status.ParseStatusArray(parser.WithReferenceObjectParser("status"))
+	a.Status = status.ParseStatusArray(parser.WithReferenceArrayParser("status"))
 }
 
 func (a *DeviceStatus) Validate(validator structure.Validator) {

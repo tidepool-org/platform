@@ -53,7 +53,7 @@ func (c *Status) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func ParseStatusArray(parser structure.ObjectParser) *TypeStatusArray {
+func ParseStatusArray(parser structure.ArrayParser) *TypeStatusArray {
 	if !parser.Exists() {
 		return nil
 	}
@@ -66,7 +66,7 @@ func NewParseStatusArray() *TypeStatusArray {
 	return &TypeStatusArray{}
 }
 
-func (t *TypeStatusArray) Parse(parser structure.ObjectParser) {
+func (t *TypeStatusArray) Parse(parser structure.ArrayParser) {
 	for _, reference := range parser.References() {
 		*t = append(*t, ParseStatus(parser.WithReferenceObjectParser(reference)))
 	}
