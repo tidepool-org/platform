@@ -166,6 +166,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 					Entry("is Trividia Health TRUE METRIX GO", "Trividia Health", "TRUE METRIX GO"),
 					Entry("is Diabeloop DBLG1", "Diabeloop", "DBLG1"),
 					Entry("is Diabeloop DBL4K", "Diabeloop", "DBL4K"),
+					Entry("is Diabeloop DBLHU", "Diabeloop", "DBLHU"),
 				)
 			}
 
