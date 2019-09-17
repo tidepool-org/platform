@@ -8,9 +8,26 @@ import (
 
 const (
 	Type = "cbg"
+
+	ConstantRate = "constant"
+	SlowFall     = "slowFall"
+	SlowRise     = "slowRise"
+	ModerateFall = "moderateFall"
+	ModerateRise = "moderateRise"
+	RapidFall    = "rapidFall"
+	RapidRise    = "rapidRise"
+
+	TrendRateMaximum = 100
+	TrendRateMinimum = -100
 )
 
+func Trends() []string {
+	return []string{ConstantRate, SlowFall, SlowRise, ModerateFall, ModerateRise, RapidFall, RapidRise}
+}
+
 type Continuous struct {
+	Trend           *string  `json:"trend,omitempty" bson:"trend,omitempty"`
+	TrendRate       *float64 `json:"trendRate,omitempty" bson:"trendRate,omitempty"`
 	glucose.Glucose `bson:",inline"`
 }
 
@@ -26,6 +43,9 @@ func (c *Continuous) Parse(parser structure.ObjectParser) {
 	}
 
 	c.Glucose.Parse(parser)
+
+	c.Trend = parser.String("trend")
+	c.TrendRate = parser.Float64("trendRate")
 }
 
 func (c *Continuous) Validate(validator structure.Validator) {
@@ -37,6 +57,11 @@ func (c *Continuous) Validate(validator structure.Validator) {
 
 	if c.Type != "" {
 		validator.String("type", &c.Type).EqualTo(Type)
+	}
+
+	validator.Float64("trendRate", c.TrendRate).InRange(TrendRateMinimum, TrendRateMaximum)
+	if c.Trend != nil {
+		validator.String("units", c.Trend).Exists().OneOf(Trends()...)
 	}
 }
 
