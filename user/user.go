@@ -132,4 +132,4 @@ func ValidateID(value string) error {
 	return nil
 }
 
-var idExpression = regexp.MustCompile("^[0-9a-f]{10}$")
+var idExpression = regexp.MustCompile(`^([0-9a-f]{10}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
