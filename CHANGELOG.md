@@ -1,3 +1,9 @@
+# Platform 
+The Tidepool platform API
+
+## [v0.5.1] 2019-09-23
+### Fixed
+- [PT-670] Platform data cannot ingest messages larger than 4096 Bytes
 
 ## [v0.5.0] 2019-09-13
 ### Added
