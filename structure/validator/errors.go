@@ -31,6 +31,7 @@ const (
 	ErrorCodeValuesNotExistForOne = "values-not-exist-for-one"
 	ErrorCodeLengthOutOfRange     = "length-out-of-range"
 	ErrorCodeSizeOutOfRange       = "size-out-of-range"
+	ErrorCodePatchValidation      = "json-patch-validation"
 )
 
 func ErrorValueNotExists() error {
@@ -207,6 +208,10 @@ func ErrorSizeNotGreaterThanOrEqualTo(size int, limit int) error {
 
 func ErrorSizeNotInRange(size int, lowerLimit int, upperLimit int) error {
 	return errors.Preparedf(ErrorCodeSizeOutOfRange, "size is out of range", "size %d is not between %d and %d", size, lowerLimit, upperLimit)
+}
+
+func ErrorPatchValidation(value string) error {
+	return errors.Preparedf(ErrorCodePatchValidation, "json patch validation error", "json patch validation error: %s", value)
 }
 
 func stringify(interfaceValue interface{}) string {

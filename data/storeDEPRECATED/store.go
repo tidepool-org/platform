@@ -21,6 +21,7 @@ type DataSession interface {
 
 	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
 	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
+	GetDataByID(ctx context.Context, dataID string) (interface{}, error)
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error

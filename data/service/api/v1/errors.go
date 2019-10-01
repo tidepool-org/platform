@@ -34,6 +34,15 @@ func ErrorDataSetIDMissing() *service.Error {
 	}
 }
 
+func ErrorDataIDMissing() *service.Error {
+	return &service.Error{
+		Code:   "data-id-missing",
+		Status: http.StatusBadRequest,
+		Title:  "data id is missing",
+		Detail: "Data id is missing",
+	}
+}
+
 func ErrorDataSetIDNotFound(dataSetID string) *service.Error {
 	return &service.Error{
 		Code:   "data-set-id-not-found",

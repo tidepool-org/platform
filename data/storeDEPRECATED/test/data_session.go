@@ -29,8 +29,18 @@ type GetDataSetByIDInput struct {
 	DataSetID string
 }
 
+type GetDataByIDInput struct {
+	Context context.Context
+	DataID  string
+}
+
 type GetDataSetByIDOutput struct {
 	DataSet *upload.Upload
+	Error   error
+}
+
+type GetDataByIDOutput struct {
+	DataSet interface{}
 	Error   error
 }
 
@@ -141,6 +151,9 @@ type DataSession struct {
 	GetDataSetByIDInvocations                            int
 	GetDataSetByIDInputs                                 []GetDataSetByIDInput
 	GetDataSetByIDOutputs                                []GetDataSetByIDOutput
+	GetDataByIDInvocations                               int
+	GetDataByIDInputs                                    []GetDataByIDInput
+	GetDataByIDOutputs                                   []GetDataByIDOutput
 	CreateDataSetInvocations                             int
 	CreateDataSetInputs                                  []CreateDataSetInput
 	CreateDataSetOutputs                                 []error
@@ -215,6 +228,18 @@ func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*up
 
 	output := d.GetDataSetByIDOutputs[0]
 	d.GetDataSetByIDOutputs = d.GetDataSetByIDOutputs[1:]
+	return output.DataSet, output.Error
+}
+
+func (d *DataSession) GetDataByID(ctx context.Context, dataID string) (interface{}, error) {
+	d.GetDataByIDInvocations++
+
+	d.GetDataByIDInputs = append(d.GetDataByIDInputs, GetDataByIDInput{Context: ctx, DataID: dataID})
+
+	gomega.Expect(d.GetDataByIDOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDataByIDOutputs[0]
+	d.GetDataByIDOutputs = d.GetDataByIDOutputs[1:]
 	return output.DataSet, output.Error
 }
 

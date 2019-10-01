@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/association"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/history"
 	"github.com/tidepool-org/platform/location"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
@@ -53,6 +54,7 @@ type Base struct {
 	DeviceID          *string                       `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
 	DeviceTime        *string                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
+	History           *history.History              `json:"history,omitempty" bson:"history,omitempty"`
 	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
 	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
 	ModifiedTime      *string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
@@ -95,6 +97,7 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	b.ConversionOffset = parser.Int("conversionOffset")
 	b.DeviceID = parser.String("deviceId")
 	b.DeviceTime = parser.String("deviceTime")
+	b.History = history.ParseHistory(parser.WithReferenceObjectParser("history"))
 	b.ID = parser.String("id")
 	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
 	b.Notes = parser.StringArray("notes")
@@ -326,6 +329,10 @@ func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 
 func (b *Base) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.DeduplicatorDescriptor) {
 	b.Deduplicator = deduplicatorDescriptor
+}
+
+func (b *Base) SetHistory(history *history.History) {
+	b.History = history
 }
 
 func latestTime(tms ...time.Time) time.Time {

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"github.com/tidepool-org/platform/history"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
@@ -28,6 +29,7 @@ type Datum interface {
 	SetModifiedUserID(modifiedUserID *string)
 	SetDeletedTime(deletedTime *string)
 	SetDeletedUserID(deletedUserID *string)
+	SetHistory(history *history.History)
 
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)

@@ -91,6 +91,42 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	return dataSets, nil
 }
 
+func (d *DataSession) GetDataByID(ctx context.Context, dataID string) (interface{}, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if dataID == "" {
+		return nil, errors.New("data id is missing")
+	}
+	if d.IsClosed() {
+		return nil, errors.New("session closed")
+	}
+
+	now := time.Now()
+
+	var results []interface{}
+	selector := bson.M{
+		"_active": true,
+		"id":      dataID,
+	}
+	err := d.C().Find(selector).All(&results)
+
+	loggerFields := log.Fields{"dataId": dataID, "resultsCount": len(results), "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Info("GetDataBID")
+	log.LoggerFromContext(ctx).Infof("Results", results)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get data sets for user by id")
+	}
+
+	if results == nil || len(results) < 1 {
+		return nil, nil
+	} else if len(results) > 1 {
+		log.LoggerFromContext(ctx).WithField("dataId", dataID).Warn("Multiple data objects found for data id")
+	}
+	return results[0], nil
+}
+
 func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

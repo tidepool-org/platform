@@ -4,6 +4,7 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/history"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
@@ -52,6 +53,8 @@ type Datum struct {
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
+	HistoryValue                         *history.History
+	SetHistoryInvocations                int
 }
 
 func NewDatum() *Datum {
@@ -186,6 +189,12 @@ func (d *Datum) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplica
 	d.SetDeduplicatorDescriptorInvocations++
 
 	d.DeduplicatorDescriptorValue = deduplicatorDescriptor
+}
+
+func (d *Datum) SetHistory(history *history.History) {
+	d.SetHistoryInvocations++
+
+	d.HistoryValue = history
 }
 
 func (d *Datum) Expectations() {
