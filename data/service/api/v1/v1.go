@@ -10,7 +10,7 @@ func Routes() []service.Route {
 		service.MakeRoute("DELETE", "/v1/users/:userId/data", Authenticate(UsersDataDelete)),
 		service.MakeRoute("POST", "/v1/users/:userId/datasets", Authenticate(UsersDataSetsCreate)),
 		service.MakeRoute("GET", "/v1/users/:userId/datasets", Authenticate(UsersDataSetsGet)),
-		service.MakeRoute("POST", "/v1/datasets/:dataSetId/history/:dataId", Authenticate(DataSetsHistoryCreate)),
+		service.MakeRoute("POST", "/v1/datasets/history/:dataId", Authenticate(DataSetsHistoryCreate)),
 
 		service.MakeRoute("POST", "/v1/data_sets/:dataSetId/data", Authenticate(DataSetsDataCreate)),
 		service.MakeRoute("DELETE", "/v1/data_sets/:dataSetId/data", Authenticate(DataSetsDataDelete)),
@@ -18,7 +18,7 @@ func Routes() []service.Route {
 		service.MakeRoute("PUT", "/v1/data_sets/:dataSetId", Authenticate(DataSetsUpdate)),
 		service.MakeRoute("GET", "/v1/time", TimeGet),
 		service.MakeRoute("POST", "/v1/users/:userId/data_sets", Authenticate(UsersDataSetsCreate)),
-		service.MakeRoute("POST", "/v1/data_sets/:dataSetId/history/:dataId", Authenticate(DataSetsHistoryCreate)),
+		service.MakeRoute("POST", "/v1/data_sets/history/:dataId", Authenticate(DataSetsHistoryCreate)),
 	}
 	return append(append(routes, DataSetsRoutes()...), SourcesRoutes()...)
 }

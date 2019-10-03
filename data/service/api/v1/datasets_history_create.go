@@ -26,50 +26,10 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)
 
-	// Get Parameters - dataSetID and DataID
-	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
-	if dataSetID == "" {
-		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
-		return
-	}
+	// Get Parameters - DataID
 	dataID := dataServiceContext.Request().PathParam("dataId")
-	if dataSetID == "" {
+	if dataID == "" {
 		dataServiceContext.RespondWithError(ErrorDataIDMissing())
-		return
-	}
-
-	// Get the DataSet
-	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
-		return
-	}
-	if dataSet == nil {
-		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
-		return
-	}
-
-	// Authenticate
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
-		var permissions permission.Permissions
-		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
-		if err != nil {
-			if request.IsErrorUnauthorized(err) {
-				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			} else {
-				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
-			}
-			return
-		}
-		if _, ok := permissions[permission.Write]; !ok {
-			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			return
-		}
-	}
-
-	// Verify dataSet is in good state
-	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
-		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
 		return
 	}
 
@@ -90,11 +50,50 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
 	}
-	var rawResults interface{}
+	var rawResults map[string]interface{}
 	err = json.Unmarshal(resultsJSON, &rawResults)
 	if err != nil {
 		fmt.Println("error unmarshalling json:", err)
 		return
+	}
+
+	// We need to get the dataSetID - it is the uploadID for the data item
+	dataSetID := rawResults["uploadId"].(string)
+	system_log.Println("Upload ID: ", dataSetID)
+
+	// Get the DataSet
+	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
+	if err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
+		return
+	}
+	if dataSet == nil {
+		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
+		return
+	}
+
+	// Verify dataSet is in good state
+	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
+		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
+		return
+	}
+
+	// Authenticate
+	if details := request.DetailsFromContext(ctx); !details.IsService() {
+		var permissions permission.Permissions
+		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
+		if err != nil {
+			if request.IsErrorUnauthorized(err) {
+				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+			} else {
+				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
+			}
+			return
+		}
+		if _, ok := permissions[permission.Write]; !ok {
+			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+			return
+		}
 	}
 
 	// Parse data into Datum structure.  We need to do this - because we are going to
