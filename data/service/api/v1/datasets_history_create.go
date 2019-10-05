@@ -97,7 +97,7 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 	}
 
 	// Parse data into Datum structure.  We need to do this - because we are going to
-	// create an object from this and history information and write it to database
+	// create an object from this with history information and write it to database
 	resultsArray := make([]interface{}, 1)
 	resultsArray[0] = rawResults
 	parser := structureParser.NewArray(&resultsArray)

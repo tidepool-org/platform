@@ -12,7 +12,25 @@ import (
 
 const (
 	JSONPatchArrayLengthMaximum = 100
+
+	AddOp     = "add"
+	RemoveOp  = "remove"
+	ReplaceOp = "replace"
+	CopyOp    = "copy"
+	MoveOp    = "move"
+	TestOp    = "test"
 )
+
+func Operations() []string {
+	return []string{
+		AddOp,
+		RemoveOp,
+		ReplaceOp,
+		CopyOp,
+		MoveOp,
+		TestOp,
+	}
+}
 
 type JSONPatch struct {
 	Op    *string `json:"op,omitempty" bson:"op,omitempty"`
@@ -72,28 +90,17 @@ func (j *JSONPatchArray) Validate(validator structure.Validator, originalJSON []
 		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(length, JSONPatchArrayLengthMaximum))
 	}
 
-	log.Println("In validation", *j)
-	log.Println("patch json", string(originalJSON))
-
-	log.Println("json patch object:", *j)
 	patchJSON, err := json.Marshal(*j)
 	if err != nil {
-		log.Println("error 1.5")
+		log.Println("error marshal")
 		validator.ReportError(structureValidator.ErrorPatchValidation(err.Error()))
 	}
-	log.Println("patch json:", string(patchJSON))
 
 	patch, err := jsonpatch.DecodePatch(patchJSON)
 	if err != nil {
-		log.Println("error 2: ", err.Error())
 		validator.ReportError(structureValidator.ErrorPatchValidation(err.Error()))
-	} else if modified, err := patch.Apply(originalJSON); err != nil {
-		log.Println("error 3: ", err.Error())
+	} else if _, err := patch.Apply(originalJSON); err != nil {
 		validator.ReportError(structureValidator.ErrorPatchValidation(err.Error()))
-	} else {
-		o := string(originalJSON)
-		log.Println("Original", o)
-		m := string(modified)
-		log.Println("Modified", m)
 	}
+	log.Println("no error", string(patchJSON))
 }
