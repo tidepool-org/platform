@@ -2,7 +2,6 @@ package history
 
 import (
 	"encoding/json"
-	"log"
 
 	jsonpatch "github.com/evanphx/json-patch"
 
@@ -92,7 +91,6 @@ func (j *JSONPatchArray) Validate(validator structure.Validator, originalJSON []
 
 	patchJSON, err := json.Marshal(*j)
 	if err != nil {
-		log.Println("error marshal")
 		validator.ReportError(structureValidator.ErrorPatchValidation(err.Error()))
 	}
 
@@ -102,5 +100,4 @@ func (j *JSONPatchArray) Validate(validator structure.Validator, originalJSON []
 	} else if _, err := patch.Apply(originalJSON); err != nil {
 		validator.ReportError(structureValidator.ErrorPatchValidation(err.Error()))
 	}
-	log.Println("no error", string(patchJSON))
 }

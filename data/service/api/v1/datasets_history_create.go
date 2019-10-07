@@ -3,7 +3,6 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
-	system_log "log"
 	"net/http"
 	"strconv"
 
@@ -21,7 +20,6 @@ import (
 )
 
 func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
-	system_log.Println("Inside creating history")
 	// Get Ctx
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)
@@ -43,9 +41,7 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 
 	// We have to take the data to json and then back to a object structure.  Otherwise - we will have problems in
 	// the parsing step
-	system_log.Println("Results: ", results)
 	resultsJSON, err := json.Marshal(results)
-	system_log.Println("Results Json: ", string(resultsJSON))
 	if err != nil {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
@@ -59,7 +55,6 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 
 	// We need to get the dataSetID - it is the uploadID for the data item
 	dataSetID := rawResults["uploadId"].(string)
-	system_log.Println("Upload ID: ", dataSetID)
 
 	// Get the DataSet
 	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
@@ -116,7 +111,6 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 
 	// Validate, normalize and check errors
 	if err = parser.Error(); err != nil {
-		system_log.Println("parser error: ", err)
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
@@ -141,11 +135,6 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 		}
 	}
 	historyParser.NotParsed()
-	system_log.Println("raw datum")
-	system_log.Println(rawDatumArray)
-	system_log.Println("finished parsing")
-	system_log.Println("history array: ", historyArray)
-	system_log.Println("error: ", historyParser.Error())
 
 	// Validate, normalize and check errors
 	if err = historyParser.Error(); err != nil {
@@ -161,14 +150,8 @@ func DataSetsHistoryCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	system_log.Println("datum")
-	system_log.Println("dataID: ", dataID)
-
 	// Set up the new object that we make out of the data we received from the database and the history object
 	datumArray[0].SetHistory(&historyArray[0])
-
-	system_log.Println("data for id")
-	system_log.Println("datumArray", datumArray)
 
 	// Write our newly created object to database
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {

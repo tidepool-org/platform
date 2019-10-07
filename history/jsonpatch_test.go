@@ -19,13 +19,18 @@ const (
 	TestPath  = "/nutrition/carbohydrate/net"
 	TestValue = "60"
 
-	InvalidPath  = "/invalid/path"
-	InvalidOp    = "InvalidOp"
-	InvalidValue = "InvalidValue"
+	InvalidPath      = "/invalid/path"
+	InvalidArrayPath = "/status/4"
+	InvalidOp        = "InvalidOp"
+	InvalidValue     = "InvalidValue"
 
 	NutritionPath = "/nutrition"
 	UnitsPath     = "/nutrition/carbohydrate/units"
 	UnitsValue    = "grams"
+
+	AbsorptionDurationPath = "/nutrition/absorptionDuration"
+	StatusPath             = "/status"
+	StatusPath0            = "/status/0"
 )
 
 type JSONPatchArrayTest struct {
@@ -49,6 +54,20 @@ func PatchObjects() [][]byte {
 		                 "units": "grams"
                      }
 	             }}`),
+		[]byte(`{"status": [
+                     {
+		                 "battery": {
+		                     "unit": "battery",
+		                     "value": 10
+                          }
+                     },
+                     {
+                          "reservoirRemaining": {
+		                     "unit": "reservoir",
+		                     "amount": 10
+                          }
+                     }
+	             ]}`),
 	}
 
 }
@@ -100,14 +119,23 @@ var _ = Describe("JsonPatchArray", func() {
 					func(datum *JSONPatchArrayTest) { datum.JSONPatchArray[0].Path = pointer.FromString(InvalidPath) },
 					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("replace operation does not apply: doc is missing path: %s: missing value", InvalidPath)), ""),
 				),
+				Entry("Invalid ArrayPath",
+					func(datum *JSONPatchArrayTest) {
+						datum.ref = PatchObjects()[2]
+
+						datum.JSONPatchArray[0].Path = pointer.FromString(InvalidArrayPath)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("replace operation does not apply: doc is missing key: %s: missing value", InvalidArrayPath)), ""),
+				),
 				Entry("Invalid Op",
 					func(datum *JSONPatchArrayTest) { datum.JSONPatchArray[0].Op = pointer.FromString(InvalidOp) },
 					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("Unexpected kind: %s", InvalidOp)), ""),
 				),
 				Entry("Add Op",
 					func(datum *JSONPatchArrayTest) {
-						datum.JSONPatchArray[0].Path = pointer.FromString(NutritionPath)
 						datum.ref = PatchObjects()[1]
+
+						datum.JSONPatchArray[0].Path = pointer.FromString(NutritionPath)
 						datum.JSONPatchArray[0].Op = pointer.FromString(history.AddOp)
 					},
 				),
@@ -134,6 +162,27 @@ var _ = Describe("JsonPatchArray", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("remove operation does not apply: doc is missing path: \"%s\": missing value", InvalidPath)), ""),
 				),
+				Entry("Copy Op",
+					func(datum *JSONPatchArrayTest) {
+						datum.ref = PatchObjects()[2]
+
+						datum.JSONPatchArray[0].From = pointer.FromString(StatusPath0)
+						datum.JSONPatchArray[0].Path = pointer.FromString(StatusPath)
+						datum.JSONPatchArray[0].Value = nil
+						datum.JSONPatchArray[0].Op = pointer.FromString(history.CopyOp)
+					},
+				),
+				Entry("Invalid Copy Op",
+					func(datum *JSONPatchArrayTest) {
+						datum.ref = PatchObjects()[2]
+
+						datum.JSONPatchArray[0].From = pointer.FromString(InvalidPath)
+						datum.JSONPatchArray[0].Path = pointer.FromString(StatusPath)
+						datum.JSONPatchArray[0].Value = nil
+						datum.JSONPatchArray[0].Op = pointer.FromString(history.CopyOp)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("copy operation does not apply: doc is missing from path: %s: missing value", InvalidPath)), ""),
+				),
 				Entry("Test Op",
 					func(datum *JSONPatchArrayTest) {
 						datum.JSONPatchArray[0].Path = pointer.FromString(UnitsPath)
@@ -146,6 +195,42 @@ var _ = Describe("JsonPatchArray", func() {
 						datum.JSONPatchArray[0].Path = pointer.FromString(UnitsPath)
 						datum.JSONPatchArray[0].Value = pointer.FromString(InvalidValue)
 						datum.JSONPatchArray[0].Op = pointer.FromString(history.TestOp)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("testing value %s failed: test failed", UnitsPath)), ""),
+				),
+				Entry("Multiple valid (replace/test)",
+					func(datum *JSONPatchArrayTest) {
+						secondDatum := RandomJSONPatch()
+						secondDatum.Path = pointer.FromString(UnitsPath)
+						secondDatum.Value = pointer.FromString(UnitsValue)
+						secondDatum.Op = pointer.FromString(history.TestOp)
+
+						datum.JSONPatchArray = append(datum.JSONPatchArray, secondDatum)
+					},
+				),
+				Entry("Multiple valid (replace/remove/test)",
+					func(datum *JSONPatchArrayTest) {
+						secondDatum := RandomJSONPatch()
+						secondDatum.Path = pointer.FromString(AbsorptionDurationPath)
+						secondDatum.Value = nil
+						secondDatum.Op = pointer.FromString(history.RemoveOp)
+
+						thirdDatum := RandomJSONPatch()
+						thirdDatum.Path = pointer.FromString(UnitsPath)
+						thirdDatum.Value = pointer.FromString(UnitsValue)
+						thirdDatum.Op = pointer.FromString(history.TestOp)
+
+						datum.JSONPatchArray = append(datum.JSONPatchArray, secondDatum, thirdDatum)
+					},
+				),
+				Entry("Multiple one invalid (replace/test)",
+					func(datum *JSONPatchArrayTest) {
+						secondDatum := RandomJSONPatch()
+						secondDatum.Path = pointer.FromString(UnitsPath)
+						secondDatum.Value = pointer.FromString(InvalidValue)
+						secondDatum.Op = pointer.FromString(history.TestOp)
+
+						datum.JSONPatchArray = append(datum.JSONPatchArray, secondDatum)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorPatchValidation(fmt.Sprintf("testing value %s failed: test failed", UnitsPath)), ""),
 				),
