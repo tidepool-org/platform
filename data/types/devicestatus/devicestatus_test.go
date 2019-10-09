@@ -35,8 +35,5 @@ var _ = Describe("DeviceStatus", func() {
 
 		Context("Validate", func() {
 		})
-
-		Context("Normalize", func() {
-		})
 	})
 })
