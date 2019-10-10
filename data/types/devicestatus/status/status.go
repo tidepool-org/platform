@@ -5,6 +5,11 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	StatusArrayMaxLength = 1000
 )
 
 type TypeStatusArray []*Status
@@ -39,6 +44,18 @@ func (c *Status) Parse(parser structure.ObjectParser) {
 }
 
 func (c *Status) Validate(validator structure.Validator) {
+	if c.Battery != nil {
+		c.Battery.Validate(validator.WithReference("battery"))
+	}
+	if c.ReservoirRemaining != nil {
+		c.ReservoirRemaining.Validate(validator.WithReference("reservoirRemaining"))
+	}
+	if c.SignalStrength != nil {
+		c.SignalStrength.Validate(validator.WithReference("signalStrength"))
+	}
+	if c.Forecast != nil {
+		c.Forecast.Validate(validator.WithReference("forecast"))
+	}
 }
 
 func (c *Status) Normalize(normalizer data.Normalizer) {
@@ -50,6 +67,9 @@ func (c *Status) Normalize(normalizer data.Normalizer) {
 	}
 	if c.ReservoirRemaining != nil {
 		c.ReservoirRemaining.Normalize(normalizer.WithReference("reservoirRemaining"))
+	}
+	if c.Forecast != nil {
+		c.Forecast.Normalize(normalizer.WithReference("forecast"))
 	}
 }
 
@@ -73,6 +93,18 @@ func (t *TypeStatusArray) Parse(parser structure.ArrayParser) {
 }
 
 func (t *TypeStatusArray) Validate(validator structure.Validator) {
+	if length := len(*t); length == 0 {
+		validator.ReportError(structureValidator.ErrorValueEmpty())
+	} else if length > StatusArrayMaxLength {
+		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(length, StatusArrayMaxLength))
+	}
+	for index, datum := range *t {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
+			datum.Validate(datumValidator)
+		} else {
+			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
 }
 
 func (t *TypeStatusArray) Normalize(normalizer data.Normalizer) {

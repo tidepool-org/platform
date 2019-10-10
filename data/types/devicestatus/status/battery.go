@@ -27,6 +27,7 @@ func (b *Battery) Parse(parser structure.ObjectParser) {
 }
 
 func (b *Battery) Validate(validator structure.Validator) {
+	validator.String("unit", b.Unit).Exists()
 }
 
 func (b *Battery) Normalize(normalizer data.Normalizer) {
