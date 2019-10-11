@@ -13,6 +13,7 @@ before_install:
   sudo apt-get update;
   sudo apt-get install --allow-unauthenticated -y mongodb-org=3.6.12 mongodb-org-server=3.6.12 mongodb-org-shell=3.6.12 mongodb-org-mongos=3.6.12 mongodb-org-tools=3.6.12;
   sudo service mongod start;
+  npm install -g snyk
 
 addons:
   artifacts:
@@ -28,4 +29,4 @@ services:
   - docker
 
 script:
-  - make ci-generate ci-build ci-test ci-deploy ci-docker
+  - make ci-generate ci-build ci-test ci-snyk ci-deploy ci-docker
