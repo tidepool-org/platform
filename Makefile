@@ -1,3 +1,8 @@
+# variables that have to be setup for Docker
+# DOCKER_REGISTRY
+# DOCKER_USERNAME
+# DOCKER_PASSWORD
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
@@ -7,9 +12,9 @@ REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 ifdef TRAVIS_TAG
 	VERSION_BASE:=$(TRAVIS_TAG)
 else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
+	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'dblp.0.0.0')
 endif
-VERSION_BASE:=$(VERSION_BASE:v%=%)
+VERSION_BASE:=$(VERSION_BASE:dblp.%=%)
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
@@ -20,13 +25,7 @@ FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-ifdef TRAVIS_BRANCH
-ifdef TRAVIS_COMMIT
-    DOCKER:=true
-endif
-endif
-
-ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	DOCKER:=true
 endif
@@ -34,7 +33,7 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
+	DOCKER_REPOSITORY:="${DOCKER_REGISTRY}/mdblp/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
 endif
 
 default: test
@@ -50,7 +49,7 @@ endif
 
 check-environment: check-gopath
 
-CompileDaemon: check-environment
+CompileDaemon: check-environment 
 ifeq ($(shell which CompileDaemon),)
 	cd vendor/github.com/githubnemo/CompileDaemon && go install .
 endif
@@ -75,7 +74,10 @@ ifeq ($(shell which golint),)
 	cd vendor/golang.org/x/lint/golint && go install .
 endif
 
-buildable: CompileDaemon esc ginkgo goimports golint
+vendor-install: check-environment
+	@cd $(ROOT_DIRECTORY) && $(GOPATH)/bin/dep ensure && $(GOPATH)/bin/dep check
+
+buildable: vendor-install CompileDaemon esc ginkgo goimports golint
 
 generate: check-environment esc
 	@echo "go generate ./..."
@@ -140,7 +142,7 @@ build: check-environment
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
 
-ci-build: pre-build build
+ci-build: vendor-install pre-build build
 
 ci-build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
@@ -223,7 +225,7 @@ endif
 
 docker:
 ifdef DOCKER
-	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
+	@echo $(DOCKER_PASSWORD) | docker login --username "$(DOCKER_USERNAME)" --password-stdin $(DOCKER_REGISTRY)
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
 endif
@@ -243,7 +245,7 @@ endif
 endif
 endif
 ifdef TRAVIS_TAG
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
+	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
@@ -256,7 +258,7 @@ ifdef DOCKER
 	@echo "TRAVIS_COMMIT = $(TRAVIS_COMMIT)"
 	@echo "TRAVIS_TAG= $(TRAVIS_TAG)"
 ifdef DOCKER_REPOSITORY
-ifeq ($(TRAVIS_BRANCH),master)
+ifeq ($(TRAVIS_BRANCH),dblp)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	docker push $(DOCKER_REPOSITORY)
 endif
@@ -271,7 +273,7 @@ endif
 endif
 endif
 ifdef TRAVIS_TAG
-	docker push $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
+	@docker push "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif

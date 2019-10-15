@@ -50,14 +50,16 @@ func (n *Normal) Validate(validator structure.Validator) {
 
 	validator.Float64("normal", n.Normal).Exists().InRange(NormalMinimum, NormalMaximum)
 	normalExpectedValidator := validator.Float64("expectedNormal", n.NormalExpected)
-	if n.Normal != nil && *n.Normal >= NormalMinimum && *n.Normal <= NormalMaximum {
-		if *n.Normal == NormalMinimum {
-			normalExpectedValidator.Exists()
-		}
-		normalExpectedValidator.InRange(*n.Normal, NormalMaximum)
-	} else {
-		normalExpectedValidator.InRange(NormalMinimum, NormalMaximum)
-	}
+	// Temporary workaround for PT-423
+	normalExpectedValidator.InRange(NormalMinimum, NormalMaximum)
+	// if n.Normal != nil && *n.Normal >= NormalMinimum && *n.Normal <= NormalMaximum {
+	// 	if *n.Normal == NormalMinimum {
+	// 		normalExpectedValidator.Exists()
+	// 	}
+	// 	normalExpectedValidator.InRange(*n.Normal, NormalMaximum)
+	// } else {
+	//  normalExpectedValidator.InRange(NormalMinimum, NormalMaximum)
+	// }
 }
 
 func (n *Normal) Normalize(normalizer data.Normalizer) {

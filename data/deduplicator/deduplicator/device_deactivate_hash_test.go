@@ -164,6 +164,9 @@ var _ = Describe("DeviceDeactivateHash", func() {
 					Entry("is Trividia Health TRUE METRIX", "Trividia Health", "TRUE METRIX"),
 					Entry("is Trividia Health TRUE METRIX AIR", "Trividia Health", "TRUE METRIX AIR"),
 					Entry("is Trividia Health TRUE METRIX GO", "Trividia Health", "TRUE METRIX GO"),
+					Entry("is Diabeloop DBLG1", "Diabeloop", "DBLG1"),
+					Entry("is Diabeloop DBL4K", "Diabeloop", "DBL4K"),
+					Entry("is Diabeloop DBLHU", "Diabeloop", "DBLHU"),
 				)
 			}
 
@@ -484,15 +487,15 @@ var _ = Describe("DeviceDeactivateHash", func() {
 
 			Context("Delete", func() {
 				It("returns an error when the context is missing", func() {
-					Expect(deduplicator.Delete(nil, session, dataSet)).To(MatchError("context is missing"))
+					Expect(deduplicator.Delete(nil, session, dataSet, false)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error when the session is missing", func() {
-					Expect(deduplicator.Delete(ctx, nil, dataSet)).To(MatchError("session is missing"))
+					Expect(deduplicator.Delete(ctx, nil, dataSet, false)).To(MatchError("session is missing"))
 				})
 
 				It("returns an error when the data set is missing", func() {
-					Expect(deduplicator.Delete(ctx, session, nil)).To(MatchError("data set is missing"))
+					Expect(deduplicator.Delete(ctx, session, nil, false)).To(MatchError("data set is missing"))
 				})
 
 				When("unarchive device data using hashes from data sets is invoked", func() {
@@ -503,7 +506,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 					It("returns an error when unarchive device data using hashes from data sets returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						session.UnarchiveDeviceDataUsingHashesFromDataSetOutputs = []error{responseErr}
-						Expect(deduplicator.Delete(ctx, session, dataSet)).To(Equal(responseErr))
+						Expect(deduplicator.Delete(ctx, session, dataSet, false)).To(Equal(responseErr))
 					})
 
 					When("delete data set is invoked", func() {
@@ -518,12 +521,12 @@ var _ = Describe("DeviceDeactivateHash", func() {
 						It("returns an error when delete data set returns an error", func() {
 							responseErr := errorsTest.RandomError()
 							session.DeleteDataSetOutputs = []error{responseErr}
-							Expect(deduplicator.Delete(ctx, session, dataSet)).To(Equal(responseErr))
+							Expect(deduplicator.Delete(ctx, session, dataSet, false)).To(Equal(responseErr))
 						})
 
 						It("returns successfully when delete data set returns successfully", func() {
 							session.DeleteDataSetOutputs = []error{nil}
-							Expect(deduplicator.Delete(ctx, session, dataSet)).To(Succeed())
+							Expect(deduplicator.Delete(ctx, session, dataSet, false)).To(Succeed())
 						})
 					})
 				})

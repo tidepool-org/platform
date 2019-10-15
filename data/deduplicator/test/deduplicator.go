@@ -43,6 +43,7 @@ type DeleteInput struct {
 	Context context.Context
 	Session dataStoreDEPRECATED.DataSession
 	DataSet *dataTypesUpload.Upload
+	doPurge bool
 }
 
 type Deduplicator struct {
@@ -68,7 +69,7 @@ type Deduplicator struct {
 	CloseOutput           *error
 	DeleteInvocations     int
 	DeleteInputs          []DeleteInput
-	DeleteStub            func(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error
+	DeleteStub            func(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, doPurge bool) error
 	DeleteOutputs         []error
 	DeleteOutput          *error
 }
@@ -145,11 +146,11 @@ func (d *Deduplicator) Close(ctx context.Context, session dataStoreDEPRECATED.Da
 	panic("Close has no output")
 }
 
-func (d *Deduplicator) Delete(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *Deduplicator) Delete(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, doPurge bool) error {
 	d.DeleteInvocations++
 	d.DeleteInputs = append(d.DeleteInputs, DeleteInput{Context: ctx, Session: session, DataSet: dataSet})
 	if d.DeleteStub != nil {
-		return d.DeleteStub(ctx, session, dataSet)
+		return d.DeleteStub(ctx, session, dataSet, doPurge)
 	}
 	if len(d.DeleteOutputs) > 0 {
 		output := d.DeleteOutputs[0]

@@ -1,4 +1,38 @@
-## HEAD
+# Platform 
+The Tidepool platform API
+
+## [v0.6.0] 2019-10-15
+### Added
+- [PT-580] Integration from Tidepool [v1.32.1](#v1.32.1)
+
+## [v0.5.1] 2019-09-23
+### Fixed
+- [PT-670] Platform data cannot ingest messages larger than 4096 Bytes
+
+## [v0.5.0] 2019-09-13
+### Added
+- [PT-650] Add DBLHU device
+
+## [v0.4.1] 2019-09-10
+### Fixed
+- [PT-624] Platform Data: dataset is not deleted when calling "DELETE" on "/v1/data_sets/:dataSetId"
+
+## [v0.4.0] 2019-07-30
+### Added
+- Integration from Tidepool latest changes
+
+## [v0.3.1] 2019-06-06
+### Fix
+- PT-423 temporarily remove the condition that forces bolus.expectedNormal > bolus.normal
+
+## [v0.3.0] 2019-05-07
+### Added
+- Add Diabeloop device DBL4K
+
+## [v0.2.1] 2018-12-06
+- Bring back DBLG1 device
+
+# Tidepool
 
 ## v1.32.1
 
