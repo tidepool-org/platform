@@ -29,6 +29,8 @@ func (s *SignalStrength) Parse(parser structure.ObjectParser) {
 }
 
 func (s *SignalStrength) Validate(validator structure.Validator) {
+	validator.String("unit", s.Unit).Exists()
+	validator.Float64("value", s.Value).Exists()
 }
 
 func (s *SignalStrength) Normalize(normalizer data.Normalizer) {

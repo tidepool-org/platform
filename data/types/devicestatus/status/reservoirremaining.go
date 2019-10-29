@@ -29,6 +29,8 @@ func (r *ReservoirRemaining) Parse(parser structure.ObjectParser) {
 }
 
 func (r *ReservoirRemaining) Validate(validator structure.Validator) {
+	validator.String("unit", r.Unit).Exists()
+	validator.Float64("amount", r.Amount).Exists()
 }
 
 func (r *ReservoirRemaining) Normalize(normalizer data.Normalizer) {
