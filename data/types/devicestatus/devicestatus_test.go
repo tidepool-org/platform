@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	InvalidType = "invalidType"
+	InvalidType  = "invalidType"
+	ValidVersion = "1.0"
 )
 
 func NewMeta() interface{} {
@@ -31,6 +32,7 @@ func NewDeviceStatus() *devicestatus.DeviceStatus {
 	datum.Base = *dataTypesTest.NewBase()
 	datum.DeviceType = pointer.FromString(test.RandomStringFromArray(devicestatus.DeviceTypes()))
 	datum.Type = devicestatus.Type
+	datum.Version = pointer.FromString(ValidVersion)
 	return datum
 }
 
@@ -68,6 +70,7 @@ var _ = Describe("DeviceStatus", func() {
 				),
 				Entry("version missing",
 					func(datum *devicestatus.DeviceStatus) { datum.Version = nil },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/version", NewMeta()),
 				),
 			)
 		})
