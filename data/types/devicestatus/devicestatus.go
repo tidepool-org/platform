@@ -70,6 +70,7 @@ func (a *DeviceStatus) Validate(validator structure.Validator) {
 	}
 
 	validator.String("deviceType", a.DeviceType).Exists().OneOf(DeviceTypes()...)
+	validator.String("version", a.Version).Exists()
 }
 
 func (a *DeviceStatus) Normalize(normalizer data.Normalizer) {
