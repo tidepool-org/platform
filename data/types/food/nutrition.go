@@ -32,7 +32,7 @@ func NewNutrition() *Nutrition {
 }
 
 func (n *Nutrition) Parse(parser structure.ObjectParser) {
-	n.EstimatedAbsorptionDuration = parser.Int("absorptionDuration")
+	n.EstimatedAbsorptionDuration = parser.Int("estimatedAbsorptionDuration")
 	n.Carbohydrate = ParseCarbohydrate(parser.WithReferenceObjectParser("carbohydrate"))
 	n.Energy = ParseEnergy(parser.WithReferenceObjectParser("energy"))
 	n.Fat = ParseFat(parser.WithReferenceObjectParser("fat"))
@@ -40,7 +40,7 @@ func (n *Nutrition) Parse(parser structure.ObjectParser) {
 }
 
 func (n *Nutrition) Validate(validator structure.Validator) {
-	validator.Int("absorptionDuration", n.EstimatedAbsorptionDuration).InRange(EstimatedAbsorptionDurationSecondsMinimum, EstimatedAbsorptionDurationSecondsMaximum)
+	validator.Int("estimatedAbsorptionDuration", n.EstimatedAbsorptionDuration).InRange(EstimatedAbsorptionDurationSecondsMinimum, EstimatedAbsorptionDurationSecondsMaximum)
 	if n.Carbohydrate != nil {
 		n.Carbohydrate.Validate(validator.WithReference("carbohydrate"))
 	}
