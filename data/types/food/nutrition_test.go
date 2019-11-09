@@ -77,7 +77,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("absorption duration out of range (lower)",
 					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/estimatedAbsorptionDuration"),
 				),
 				Entry("absorption duration in range (lower)",
 					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(0) },
@@ -87,7 +87,7 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("absorption duration out of range (upper)",
 					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(86401) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/estimatedAbsorptionDuration"),
 				),
 				Entry("carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
@@ -137,7 +137,7 @@ var _ = Describe("Nutrition", func() {
 						datum.Fat.Units = nil
 						datum.Protein.Units = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/absorptionDuration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/estimatedAbsorptionDuration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
