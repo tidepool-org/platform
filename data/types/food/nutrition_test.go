@@ -164,7 +164,7 @@ var _ = Describe("Nutrition", func() {
 				Entry("does not modify the datum",
 					func(datum *food.Nutrition) {},
 				),
-				Entry("does not modify the datum; estimgated absorption duration missing",
+				Entry("does not modify the datum; estimated absorption duration missing",
 					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = nil },
 				),
 				Entry("does not modify the datum; carbohydrate missing",
