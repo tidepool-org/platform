@@ -39,6 +39,7 @@ func CloneCarbohydrate(datum *food.Carbohydrate) *food.Carbohydrate {
 }
 
 var _ = Describe("Carbohydrate", func() {
+
 	It("CarbohydrateDietaryFiberGramsMaximum is expected", func() {
 		Expect(food.CarbohydrateDietaryFiberGramsMaximum).To(Equal(1000.0))
 	})
@@ -104,6 +105,7 @@ var _ = Describe("Carbohydrate", func() {
 				Entry("succeeds",
 					func(datum *food.Carbohydrate) {},
 				),
+
 				Entry("dietary fiber missing",
 					func(datum *food.Carbohydrate) { datum.DietaryFiber = nil },
 				),

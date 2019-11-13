@@ -1,8 +1,11 @@
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
-REPOSITORY_PACKAGE:=$(ROOT_DIRECTORY:$(realpath $(ROOT_DIRECTORY)/../../../)/%=%)
+REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
 REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
+
+BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
+PATH := ${PATH}:${BIN_DIRECTORY}
 
 ifdef TRAVIS_TAG
 	VERSION_BASE:=$(TRAVIS_TAG)
@@ -42,42 +45,38 @@ default: test
 tmp:
 	@mkdir -p $(ROOT_DIRECTORY)/_tmp
 
-check-gopath:
-ifndef GOPATH
-	@echo "FATAL: GOPATH environment variable not defined. Please see http://golang.org/doc/code.html#GOPATH."
-	@exit 1
-endif
+bindir:
+	@mkdir -p $(ROOT_DIRECTORY)/_bin
 
-check-environment: check-gopath
-
-CompileDaemon: check-environment
+CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
 	cd vendor/github.com/githubnemo/CompileDaemon && go install .
 endif
 
-esc: check-environment
+esc:
 ifeq ($(shell which esc),)
 	cd vendor/github.com/mjibson/esc && go install .
 endif
 
-ginkgo: check-environment
+ginkgo:
 ifeq ($(shell which ginkgo),)
 	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
 endif
 
-goimports: check-environment
+goimports:
 ifeq ($(shell which goimports),)
 	cd vendor/golang.org/x/tools/cmd/goimports && go install .
 endif
 
-golint: check-environment
+golint:
 ifeq ($(shell which golint),)
 	cd vendor/golang.org/x/lint/golint && go install .
 endif
 
-buildable: CompileDaemon esc ginkgo goimports golint
+buildable: export GOBIN = ${BIN_DIRECTORY}
+buildable: bindir CompileDaemon esc ginkgo goimports golint
 
-generate: check-environment esc
+generate: esc
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 
@@ -85,13 +84,13 @@ ci-generate: generate
 	@cd $(ROOT_DIRECTORY) && \
 		O=`git diff` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
 
-format: check-environment
+format:
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
-format-write: check-environment
+format-write:
 	@echo "gofmt -e -s -w"
 	@cd $(ROOT_DIRECTORY) && \
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
@@ -109,7 +108,7 @@ imports-write: goimports
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
-vet: check-environment tmp
+vet: tmp
 	@echo "go vet"
 	cd $(ROOT_DIRECTORY) && \
 		go vet ./... 2> _tmp/govet.out > _tmp/govet.out && \
@@ -133,7 +132,7 @@ pre-build: format imports vet lint
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
 
-build: check-environment
+build:
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
 
@@ -153,6 +152,13 @@ endif
 service-start: CompileDaemon tmp
 ifdef SERVICE
 	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+endif
+
+service-debug: CompileDaemon tmp
+ifdef SERVICE
+ifdef DEBUG_PORT
+	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='dlv exec --headless --log --listen=:$(DEBUG_PORT) --api-version=2 _bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+endif
 endif
 
 service-restart: tmp
@@ -179,6 +185,16 @@ test-watch: ginkgo
 ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
+
+snyk-test:
+	@echo "snyk test --dev --org=tidepool"
+	@cd $(ROOT_DIRECTORY) && snyk test --dev --org=tidepool
+
+snyk-monitor:
+	@echo "snyk monitor --org=tidepool"
+	@cd $(ROOT_DIRECTORY) && snyk monitor --org=tidepool
+
+ci-snyk: snyk-test snyk-monitor
 
 ci-test-until-failure: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
@@ -207,7 +223,7 @@ endif
 
 ci-deploy: deploy
 
-bundle-deploy: check-environment
+bundle-deploy:
 ifdef DEPLOY
 ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && \
@@ -297,11 +313,10 @@ clean-all: clean
 
 pre-commit: format imports vet lint
 
-gopath-implode: check-environment
+gopath-implode:
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
-.PHONY: default tmp check-gopath check-environment \
-	CompileDaemon esc ginkgo goimports golint buildable \
+.PHONY: default tmp bindir CompileDaemon esc ginkgo goimports golint buildable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
