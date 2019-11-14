@@ -200,9 +200,9 @@ func (s *Service) initializeDexcomClient() error {
 
 	dxcmPrvdr, err := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataSourceClient, s.TaskClient())
 	if err != nil {
-		s.Logger().Warn("Unable to create dexcom provider")
+		s.Logger().WithError(err).Warn("Unable to create dexcom provider")
 	} else {
-		s.Logger().Debug("Loading dexcom client config")
+		s.Logger().WithError(err).Debug("Loading dexcom client config")
 
 		cfg := client.NewConfig()
 		cfg.UserAgent = s.UserAgent()
