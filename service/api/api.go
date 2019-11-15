@@ -57,7 +57,7 @@ func (a *API) InitializeMiddleware() error {
 	}
 	//accessLogMiddleware, err := middleware.NewAccessLog()
 	//if err != nil {
-		//return err
+	//return err
 	//}
 	recoverMiddleware, err := middleware.NewRecover()
 	if err != nil {
