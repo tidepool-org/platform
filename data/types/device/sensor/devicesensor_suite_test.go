@@ -1,4 +1,4 @@
-package devicesensor_test
+package sensor_test
 
 import (
 	"testing"

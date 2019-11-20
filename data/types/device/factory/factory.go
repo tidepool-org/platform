@@ -7,8 +7,10 @@ import (
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesDevicePrime "github.com/tidepool-org/platform/data/types/device/prime"
 	dataTypesDeviceReservoirchange "github.com/tidepool-org/platform/data/types/device/reservoirchange"
+	dataTypesDeviceSensor "github.com/tidepool-org/platform/data/types/device/sensor"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	dataTypesDeviceTimechange "github.com/tidepool-org/platform/data/types/device/timechange"
+	dataTypesDeviceTransmitter "github.com/tidepool-org/platform/data/types/device/transmitter"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -18,8 +20,10 @@ var subTypes = []string{
 	dataTypesDeviceCalibration.SubType,
 	dataTypesDevicePrime.SubType,
 	dataTypesDeviceReservoirchange.SubType,
+	dataTypesDeviceSensor.SubType,
 	dataTypesDeviceStatus.SubType,
 	dataTypesDeviceTimechange.SubType,
+	dataTypesDeviceTransmitter.SubType,
 }
 
 func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
@@ -50,10 +54,14 @@ func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesDevicePrime.New()
 	case dataTypesDeviceReservoirchange.SubType:
 		return dataTypesDeviceReservoirchange.New()
+	case dataTypesDeviceSensor.SubType:
+		return dataTypesDeviceSensor.New()
 	case dataTypesDeviceStatus.SubType:
 		return dataTypesDeviceStatus.New()
 	case dataTypesDeviceTimechange.SubType:
 		return dataTypesDeviceTimechange.New()
+	case dataTypesDeviceTransmitter.SubType:
+		return dataTypesDeviceTransmitter.New()
 	}
 
 	parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, subTypes))
