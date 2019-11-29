@@ -36,8 +36,7 @@ func CloneContinuous(datum *continuous.Continuous) *continuous.Continuous {
 	}
 	clone := continuous.New()
 	clone.Glucose = *dataTypesBloodGlucoseTest.CloneGlucose(&datum.Glucose)
-	clone.Trend = pointer.CloneString(datum.Trend)
-	clone.TrendRate = pointer.CloneFloat64(datum.TrendRate)
+	clone.Trend = CloneTrend(datum.Trend)
 	return clone
 }
 
@@ -225,40 +224,16 @@ var _ = Describe("Continuous", func() {
 				func(datum *continuous.Continuous, units *string) { datum.Value = pointer.FromFloat64(1000.1) },
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
 			),
-			Entry("trend rate missing",
-				pointer.FromString("mg/dl"),
-				func(datum *continuous.Continuous, units *string) { datum.TrendRate = nil },
-			),
-			Entry("trend rate out of range (lower)",
-				pointer.FromString("mg/dl"),
-				func(datum *continuous.Continuous, units *string) { datum.TrendRate = pointer.FromFloat64(-100.1) },
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-100.1, -100.0, 100.0), "/trendRate", NewMeta()),
-			),
-			Entry("trend rate in range (lower)",
-				pointer.FromString("mg/dl"),
-				func(datum *continuous.Continuous, units *string) { datum.TrendRate = pointer.FromFloat64(-100.0) },
-			),
-			Entry("trend rate in range (upper)",
-				pointer.FromString("mg/dl"),
-				func(datum *continuous.Continuous, units *string) { datum.TrendRate = pointer.FromFloat64(100.0) },
-			),
-			Entry("trend rate out of range (upper)",
-				pointer.FromString("mg/dl"),
-				func(datum *continuous.Continuous, units *string) { datum.TrendRate = pointer.FromFloat64(100.1) },
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, -100.0, 100.0), "/trendRate", NewMeta()),
-			),
 			Entry("multiple errors",
 				nil,
 				func(datum *continuous.Continuous, units *string) {
 					datum.Type = ""
 					datum.Value = nil
 					datum.Trend = nil
-					datum.TrendRate = pointer.FromFloat64(-100.1)
 				},
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", &types.Meta{}),
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-100.1, -100.0, 100.0), "/trendRate", &types.Meta{}),
 			),
 		)
 	})
@@ -304,11 +279,6 @@ var _ = Describe("Continuous", func() {
 			Entry("does not modify the datum; trend missing",
 				nil,
 				func(datum *continuous.Continuous, units *string) { datum.Trend = nil },
-				nil,
-			),
-			Entry("does not modify the datum; trend rate missing",
-				nil,
-				func(datum *continuous.Continuous, units *string) { datum.TrendRate = nil },
 				nil,
 			),
 		)
