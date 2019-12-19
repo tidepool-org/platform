@@ -1,6 +1,7 @@
 package server
 
 import (
+	"go.opencensus.io/plugin/ochttp"
 	"net/http"
 
 	graceful "gopkg.in/tylerb/graceful.v1"
@@ -42,7 +43,10 @@ func (s *Standard) Serve() error {
 	server := &graceful.Server{
 		Server: &http.Server{
 			Addr:    s.config.Address,
-			Handler: s.api.Handler(),
+			//Handler: s.api.Handler(),
+			Handler: &ochttp.Handler {
+				Handler: s.api.Handler(),
+			},
 		},
 		Timeout: s.config.Timeout,
 	}
