@@ -1,7 +1,6 @@
 package server
 
 import (
-	"go.opencensus.io/plugin/ochttp"
 	"net/http"
 
 	graceful "gopkg.in/tylerb/graceful.v1"
@@ -9,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
+	"go.opencensus.io/plugin/ochttp"
 )
 
 type Standard struct {
@@ -43,7 +43,6 @@ func (s *Standard) Serve() error {
 	server := &graceful.Server{
 		Server: &http.Server{
 			Addr:    s.config.Address,
-			//Handler: s.api.Handler(),
 			Handler: &ochttp.Handler {
 				Handler: s.api.Handler(),
 			},
