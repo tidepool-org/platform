@@ -5,10 +5,11 @@ import (
 
 	graceful "gopkg.in/tylerb/graceful.v1"
 
+	"go.opencensus.io/plugin/ochttp"
+
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
-	"go.opencensus.io/plugin/ochttp"
 )
 
 type Standard struct {
