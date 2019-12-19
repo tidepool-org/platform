@@ -42,8 +42,8 @@ func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error
 func (s *Standard) Serve() error {
 	server := &graceful.Server{
 		Server: &http.Server{
-			Addr:    s.config.Address,
-			Handler: &ochttp.Handler {
+			Addr: s.config.Address,
+			Handler: &ochttp.Handler{
 				Handler: s.api.Handler(),
 			},
 		},
