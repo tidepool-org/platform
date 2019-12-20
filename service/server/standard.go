@@ -49,6 +49,12 @@ func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error
 	}, nil
 }
 
+func handle(path string, h func (w http.ResponseWriter, r *http.Request)) {
+	http.Handle(path, &ochttp.Handler {
+		Handler: http.HandlerFunc(h),
+	})
+}
+
 func (s *Standard) Serve() error {
 	oce, ocerr := ocagent.NewExporter(
 		ocagent.WithInsecure(),
@@ -58,6 +64,9 @@ func (s *Standard) Serve() error {
 	if ocerr != nil {
 		s.logger.Errorf("Failed to create ocagent-exporter: %v", ocerr)
 	}
+	trace.ApplyConfig(trace.Config{
+		DefaultSampler: trace.AlwaysSample(),
+	})
 	trace.RegisterExporter(oce)
 
 	server := &graceful.Server{
