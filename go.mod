@@ -3,6 +3,7 @@ module github.com/tidepool-org/platform
 go 1.11
 
 require (
+	contrib.go.opencensus.io/exporter/ocagent v0.6.0
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.16.20
 	github.com/blang/semver v3.5.1+incompatible
@@ -22,9 +23,9 @@ require (
 	go.opencensus.io v0.22.2
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b // indirect
-	golang.org/x/lint v0.0.0-20190313153728-d0100b6bd8b3
-	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
-	golang.org/x/tools v0.0.0-20190311212946-11955173bddd
+	golang.org/x/lint v0.0.0-20190409202823-959b441ac422
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+	golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135
 	gopkg.in/tylerb/graceful.v1 v1.2.15
 	gopkg.in/yaml.v2 v2.2.2
 )
