@@ -49,12 +49,6 @@ func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error
 	}, nil
 }
 
-func handle(path string, h func (w http.ResponseWriter, r *http.Request)) {
-	http.Handle(path, &ochttp.Handler {
-		Handler: http.HandlerFunc(h),
-	})
-}
-
 func (s *Standard) Serve() error {
 	oce, ocerr := ocagent.NewExporter(
 		ocagent.WithInsecure(),
