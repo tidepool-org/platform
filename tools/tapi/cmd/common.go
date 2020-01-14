@@ -29,7 +29,7 @@ func CommandFlags(flags ...cli.Flag) []cli.Flag {
 		},
 		cli.StringFlag{
 			Name:   EnvFlag,
-			Usage:  "Tidepool `ENVIRONMENT` (ie. 'prd', 'int', 'stg', 'dev', 'local')",
+			Usage:  "Tidepool `ENVIRONMENT` (ie. 'prd', 'int', 'stg', 'dev', 'local', 'tilt')",
 			EnvVar: "TIDEPOOL_ENV",
 		},
 		cli.StringFlag{
