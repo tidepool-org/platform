@@ -98,6 +98,22 @@ func UserCommands() cli.Commands {
 					Before: ensureNoArgs,
 					Action: userDelete,
 				},
+				{
+					Name:  "update-password",
+					Usage: "update a user's password",
+					Flags: CommandFlags(
+						cli.StringFlag{
+							Name:  UserIDFlag,
+							Usage: "`USERID` of the user to update",
+						},
+						cli.StringFlag{
+							Name:  PasswordFlag,
+							Usage: "`PASSWORD` of the user to update (required if authenticated as the user being deleted)",
+						},
+					),
+					Before: ensureNoArgs,
+					Action: userUpdatePassword,
+				},
 			},
 		},
 	}
@@ -194,4 +210,28 @@ func userDelete(c *cli.Context) error {
 	}
 
 	return reportMessage(c, "User deleted.")
+}
+
+func userUpdatePassword(c *cli.Context) error {
+	userID := c.String(UserIDFlag)
+	password := c.String(PasswordFlag)
+	if password == "" && API(c).IsSessionUserID(userID) {
+		var err error
+		if password, err = readFromConsoleNoEcho("Current Password: "); err != nil {
+			return err
+		}
+	}
+	newPassword, err := readFromConsoleNoEcho("New Password: ")
+	if err != nil {
+		return err
+	}
+
+	newUserDetails := api.UserUpdates{Password: &newPassword}
+
+	updateUser, err := API(c).UpdateUserByID(c.String(UserIDFlag), &newUserDetails)
+	if err != nil {
+		return err
+	}
+
+	return reportMessageWithJSON(c, updateUser)
 }
