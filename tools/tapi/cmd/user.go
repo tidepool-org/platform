@@ -106,10 +106,6 @@ func UserCommands() cli.Commands {
 							Name:  UserIDFlag,
 							Usage: "`USERID` of the user to update",
 						},
-						cli.StringFlag{
-							Name:  PasswordFlag,
-							Usage: "`PASSWORD` of the user to update (required if authenticated as the user being deleted)",
-						},
 					),
 					Before: ensureNoArgs,
 					Action: userUpdatePassword,
@@ -213,14 +209,6 @@ func userDelete(c *cli.Context) error {
 }
 
 func userUpdatePassword(c *cli.Context) error {
-	userID := c.String(UserIDFlag)
-	password := c.String(PasswordFlag)
-	if password == "" && API(c).IsSessionUserID(userID) {
-		var err error
-		if password, err = readFromConsoleNoEcho("Current Password: "); err != nil {
-			return err
-		}
-	}
 	newPassword, err := readFromConsoleNoEcho("New Password: ")
 	if err != nil {
 		return err
