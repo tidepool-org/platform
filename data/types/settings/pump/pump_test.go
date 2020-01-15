@@ -60,6 +60,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.Model = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Units = NewUnits(unitsBloodGlucose)
+	datum.DosingEnabled = pointer.FromBool(test.RandomBool())
 	return datum
 }
 
@@ -85,6 +86,7 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Model = pointer.CloneString(datum.Model)
 	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
 	clone.Units = CloneUnits(datum.Units)
+	clone.DosingEnabled = pointer.CloneBool(datum.DosingEnabled)
 	return clone
 }
 
@@ -467,6 +469,14 @@ var _ = Describe("Pump", func() {
 				Entry("units valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Units = NewUnits(unitsBloodGlucose) },
+				),
+				Entry("dosing enabled false",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.DosingEnabled = pointer.FromBool(false) },
+				),
+				Entry("dosing enabled true",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.DosingEnabled = pointer.FromBool(true) },
 				),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),

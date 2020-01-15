@@ -33,6 +33,7 @@ type Pump struct {
 	CarbohydrateRatioSchedule   *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules  *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
 	Display                     *Display                         `json:"display,omitempty" bson:"display,omitempty"`
+	DosingEnabled               *bool                            `json:"dosingEnabled,omitempty" bson:"dosingEnabled,omitempty"`
 	InsulinSensitivitySchedule  *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into BolusCalculator struct
 	InsulinSensitivitySchedules *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into BolusCalculator struct
 	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
@@ -146,6 +147,8 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.Units != nil {
 		p.Units.Validate(validator.WithReference("units"))
 	}
+
+	validator.Bool("dosingEnabled", p.DosingEnabled).Exists()
 }
 
 func (p *Pump) Normalize(normalizer data.Normalizer) {
