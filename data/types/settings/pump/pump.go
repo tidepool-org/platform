@@ -16,6 +16,9 @@ const (
 	ManufacturersLengthMaximum = 10
 	ModelLengthMaximum         = 100
 	SerialNumberLengthMaximum  = 100
+
+	TimeZoneOffsetMaximum = 7 * 24 * 60 // TODO: Make sure same as all time zone offsets
+	TimeZoneOffsetMinimum = -7 * 24 * 60
 )
 
 // TODO: Consider collapsing *Array objects into ArrayMap objects with "default" name
@@ -39,6 +42,7 @@ type Pump struct {
 	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
 	Model                       *string                          `json:"model,omitempty" bson:"model,omitempty"`
 	SerialNumber                *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	BloodGlucoseTimeZoneOffset  *int                             `json:"bgTagetTimezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
 	Units                       *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
 
@@ -65,11 +69,13 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
 	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
+	p.DosingEnabled = parser.Bool("dosingEnabled")
 	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.WithReferenceArrayParser("insulinSensitivity"))
 	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.WithReferenceObjectParser("insulinSensitivities"))
 	p.Manufacturers = parser.StringArray("manufacturers")
 	p.Model = parser.String("model")
 	p.SerialNumber = parser.String("serialNumber")
+	p.BloodGlucoseTimeZoneOffset = parser.Int("bgTargetTimezoneOffset")
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 }
 
@@ -149,6 +155,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 	}
 
 	validator.Bool("dosingEnabled", p.DosingEnabled).Exists()
+
+	validator.Int("bgTargetTimezoneOffset", p.BloodGlucoseTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
+
 }
 
 func (p *Pump) Normalize(normalizer data.Normalizer) {

@@ -61,6 +61,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Units = NewUnits(unitsBloodGlucose)
 	datum.DosingEnabled = pointer.FromBool(test.RandomBool())
+	datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum))
 	return datum
 }
 
@@ -87,6 +88,7 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
 	clone.Units = CloneUnits(datum.Units)
 	clone.DosingEnabled = pointer.CloneBool(datum.DosingEnabled)
+	clone.BloodGlucoseTimeZoneOffset = pointer.CloneInt(datum.BloodGlucoseTimeZoneOffset)
 	return clone
 }
 
@@ -478,6 +480,33 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.DosingEnabled = pointer.FromBool(true) },
 				),
+				Entry("time zone offset; out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum - 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMinimum-1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/bgTargetTimezoneOffset", NewMeta()),
+				),
+				Entry("time zone offset; in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum)
+					},
+				),
+				Entry("time zone offset; in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum)
+					},
+				),
+				Entry("time zone offset; out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum + 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMaximum+1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/bgTargetTimezoneOffset", NewMeta()),
+				),
+
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
