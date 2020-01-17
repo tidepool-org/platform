@@ -44,6 +44,7 @@ type Pump struct {
 	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
 	Model                       *string                          `json:"model,omitempty" bson:"model,omitempty"`
 	SerialNumber                *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	SuspendThreshold            *SuspendThreshold                `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
 	Units                       *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
 
@@ -78,6 +79,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Manufacturers = parser.StringArray("manufacturers")
 	p.Model = parser.String("model")
 	p.SerialNumber = parser.String("serialNumber")
+	p.SuspendThreshold = ParseSuspendThreshold(parser.WithReferenceObjectParser("suspendThreshold"))
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 }
 
@@ -164,6 +166,10 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.BloodGlucosePreMealTarget != nil && p.Units != nil {
 		p.BloodGlucosePreMealTarget.Validate(validator.WithReference("bgPreMealTarget"), p.Units.BloodGlucose)
 	}
+
+	if p.SuspendThreshold != nil {
+		p.SuspendThreshold.Validate(validator.WithReference("suspendThreshold"))
+	}
 }
 
 func (p *Pump) Normalize(normalizer data.Normalizer) {
@@ -222,5 +228,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 
 	if p.BloodGlucosePreMealTarget != nil && p.Units != nil {
 		p.BloodGlucosePreMealTarget.Normalize(normalizer.WithReference("bgPreMealTarget"), p.Units.BloodGlucose)
+	}
+
+	if p.SuspendThreshold != nil {
+		p.SuspendThreshold.Normalize((normalizer.WithReference("suspendThreshold")))
 	}
 }

@@ -35,6 +35,7 @@ func CloneBloodGlucosePreMealTarget(datum *pump.BloodGlucosePreMealTarget, units
 	return clone
 }
 
+// TODO:  Needs to go in a more generic place
 type ValidatableWithUnits interface {
 	Validate(validator structure.Validator, units *string)
 }
