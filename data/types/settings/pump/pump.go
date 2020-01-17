@@ -32,6 +32,8 @@ type Pump struct {
 	BasalRateSchedules          *BasalRateStartArrayMap          `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"` // TODO: Move into Basal struct; rename schedules
 	BloodGlucoseTargetSchedule  *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`             // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
 	BloodGlucoseTargetSchedules *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"`           // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
+	BloodGlucoseTimeZoneOffset  *int                             `json:"bgTagetTimezoneOffset,omitempty" bson:"bgTargetTimezoneOffset,omitempty"`
+	BloodGlucosePreMealTarget   *BloodGlucosePreMealTarget       `json:"bgPreMealTarget,omitempty" bson:"PreMealTarget,omitempty"`
 	Bolus                       *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
 	CarbohydrateRatioSchedule   *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules  *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
@@ -42,7 +44,6 @@ type Pump struct {
 	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
 	Model                       *string                          `json:"model,omitempty" bson:"model,omitempty"`
 	SerialNumber                *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	BloodGlucoseTimeZoneOffset  *int                             `json:"bgTagetTimezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
 	Units                       *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
 
@@ -65,6 +66,8 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BasalRateSchedules = ParseBasalRateStartArrayMap(parser.WithReferenceObjectParser("basalSchedules"))
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
+	p.BloodGlucoseTimeZoneOffset = parser.Int("bgTargetTimezoneOffset")
+	p.BloodGlucosePreMealTarget = ParseBloodGlucosePreMealTarget(parser.WithReferenceObjectParser("bgPreMealTarget"))
 	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
@@ -75,7 +78,6 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Manufacturers = parser.StringArray("manufacturers")
 	p.Model = parser.String("model")
 	p.SerialNumber = parser.String("serialNumber")
-	p.BloodGlucoseTimeZoneOffset = parser.Int("bgTargetTimezoneOffset")
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 }
 
@@ -158,6 +160,10 @@ func (p *Pump) Validate(validator structure.Validator) {
 
 	validator.Int("bgTargetTimezoneOffset", p.BloodGlucoseTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 
+	// What to do when p.Units = nil?  Assume a unit?
+	if p.BloodGlucosePreMealTarget != nil && p.Units != nil {
+		p.BloodGlucosePreMealTarget.Validate(validator.WithReference("bgPreMealTarget"), p.Units.BloodGlucose)
+	}
 }
 
 func (p *Pump) Normalize(normalizer data.Normalizer) {
@@ -212,5 +218,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.Units != nil {
 		p.Units.Normalize(normalizer.WithReference("units"))
+	}
+
+	if p.BloodGlucosePreMealTarget != nil && p.Units != nil {
+		p.BloodGlucosePreMealTarget.Normalize(normalizer.WithReference("bgPreMealTarget"), p.Units.BloodGlucose)
 	}
 }
