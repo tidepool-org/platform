@@ -62,6 +62,9 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.Units = NewUnits(unitsBloodGlucose)
 	datum.DosingEnabled = pointer.FromBool(test.RandomBool())
 	datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum))
+	datum.CarbohydrateRatioTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum))
+	datum.InsulinSensitivityTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum))
+	datum.BasalRateTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum))
 	datum.InsulinModel = pointer.FromString(test.RandomStringFromArray(pump.InsulinModels()))
 	return datum
 }
@@ -90,6 +93,9 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Units = CloneUnits(datum.Units)
 	clone.DosingEnabled = pointer.CloneBool(datum.DosingEnabled)
 	clone.BloodGlucoseTimeZoneOffset = pointer.CloneInt(datum.BloodGlucoseTimeZoneOffset)
+	clone.BasalRateTimeZoneOffset = pointer.CloneInt(datum.BasalRateTimeZoneOffset)
+	clone.CarbohydrateRatioTimeZoneOffset = pointer.CloneInt(datum.CarbohydrateRatioTimeZoneOffset)
+	clone.InsulinSensitivityTimeZoneOffset = pointer.CloneInt(datum.InsulinSensitivityTimeZoneOffset)
 	clone.InsulinModel = pointer.CloneString(datum.InsulinModel)
 	return clone
 }
@@ -483,32 +489,115 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.DosingEnabled = pointer.FromBool(true) },
 				),
-				Entry("time zone offset; out of range (lower)",
+
+				Entry("Blood glucose time zone offset; out of range (lower)",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum - 1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMinimum-1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/bgTargetTimezoneOffset", NewMeta()),
 				),
-				Entry("time zone offset; in range (lower)",
+				Entry("Blood glucose time zone offset; in range (lower)",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum)
 					},
 				),
-				Entry("time zone offset; in range (upper)",
+				Entry("Blood glucose time zone offset; in range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum)
 					},
 				),
-				Entry("time zone offset; out of range (upper)",
+				Entry("Blood glucose time zone offset; out of range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BloodGlucoseTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum + 1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMaximum+1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/bgTargetTimezoneOffset", NewMeta()),
 				),
+
+				Entry("Basal Rate time zone offset; out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BasalRateTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum - 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMinimum-1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/basalRateTimezoneOffset", NewMeta()),
+				),
+				Entry("Basal Rate time zone offset; in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BasalRateTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum)
+					},
+				),
+				Entry("Basal Rate time zone offset; in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BasalRateTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum)
+					},
+				),
+				Entry("Basal Rate time zone offset; out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BasalRateTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum + 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMaximum+1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/basalRateTimezoneOffset", NewMeta()),
+				),
+
+				Entry("Carb Ratio time zone offset; out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.CarbohydrateRatioTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum - 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMinimum-1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/carbRationTimezoneOffset", NewMeta()),
+				),
+				Entry("Carb Ratio time zone offset; in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.CarbohydrateRatioTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum)
+					},
+				),
+				Entry("Carb Ratio time zone offset; in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.CarbohydrateRatioTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum)
+					},
+				),
+				Entry("Carb Ratio time zone offset; out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.CarbohydrateRatioTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum + 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMaximum+1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/carbRationTimezoneOffset", NewMeta()),
+				),
+
+				Entry("Insulin Sensitivity time zone offset; out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinSensitivityTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum - 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMinimum-1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/insulinSensitivityTimezoneOffset", NewMeta()),
+				),
+				Entry("Insulin Sensitivity time zone offset; in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinSensitivityTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMinimum)
+					},
+				),
+				Entry("Insulin Sensitivity time zone offset; in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinSensitivityTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum)
+					},
+				),
+				Entry("Insulin Sensitivity time zone offset; out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinSensitivityTimeZoneOffset = pointer.FromInt(pump.TimeZoneOffsetMaximum + 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.TimeZoneOffsetMaximum+1, pump.TimeZoneOffsetMinimum, pump.TimeZoneOffsetMaximum), "/insulinSensitivityTimezoneOffset", NewMeta()),
+				),
+
 				Entry("insulin model - invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {

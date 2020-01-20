@@ -36,27 +36,30 @@ func InsulinModels() []string {
 type Pump struct {
 	types.Base `bson:",inline"`
 
-	ActiveScheduleName          *string                          `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"` // TODO: Rename to activeScheduleName; move into Basal struct
-	Basal                       *Basal                           `json:"basal,omitempty" bson:"basal,omitempty"`
-	BasalRateSchedule           *BasalRateStartArray             `json:"basalSchedule,omitempty" bson:"basalSchedule,omitempty"`   // TODO: Move into Basal struct; rename schedule
-	BasalRateSchedules          *BasalRateStartArrayMap          `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"` // TODO: Move into Basal struct; rename schedules
-	BloodGlucoseTargetSchedule  *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`             // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
-	BloodGlucoseTargetSchedules *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"`           // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
-	BloodGlucoseTimeZoneOffset  *int                             `json:"bgTagetTimezoneOffset,omitempty" bson:"bgTargetTimezoneOffset,omitempty"`
-	BloodGlucosePreMealTarget   *BloodGlucosePreMealTarget       `json:"bgPreMealTarget,omitempty" bson:"PreMealTarget,omitempty"`
-	Bolus                       *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
-	CarbohydrateRatioSchedule   *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
-	CarbohydrateRatioSchedules  *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
-	Display                     *Display                         `json:"display,omitempty" bson:"display,omitempty"`
-	DosingEnabled               *bool                            `json:"dosingEnabled,omitempty" bson:"dosingEnabled,omitempty"`
-	InsulinModel                *string                          `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
-	InsulinSensitivitySchedule  *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into BolusCalculator struct
-	InsulinSensitivitySchedules *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into BolusCalculator struct
-	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model                       *string                          `json:"model,omitempty" bson:"model,omitempty"`
-	SerialNumber                *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	SuspendThreshold            *SuspendThreshold                `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
-	Units                       *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
+	ActiveScheduleName               *string                          `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"` // TODO: Rename to activeScheduleName; move into Basal struct
+	Basal                            *Basal                           `json:"basal,omitempty" bson:"basal,omitempty"`
+	BasalRateSchedule                *BasalRateStartArray             `json:"basalSchedule,omitempty" bson:"basalSchedule,omitempty"`   // TODO: Move into Basal struct; rename schedule
+	BasalRateSchedules               *BasalRateStartArrayMap          `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"` // TODO: Move into Basal struct; rename schedules
+	BasalRateTimeZoneOffset          *int                             `json:"basalScheduleTimezoneOffset,omitempty" bson:"basalScheduleTimezoneOffset,omitempty"`
+	BloodGlucoseTargetSchedule       *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`   // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
+	BloodGlucoseTargetSchedules      *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"` // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
+	BloodGlucoseTimeZoneOffset       *int                             `json:"bgTagetTimezoneOffset,omitempty" bson:"bgTargetTimezoneOffset,omitempty"`
+	BloodGlucosePreMealTarget        *BloodGlucosePreMealTarget       `json:"bgPreMealTarget,omitempty" bson:"PreMealTarget,omitempty"`
+	Bolus                            *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
+	CarbohydrateRatioSchedule        *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
+	CarbohydrateRatioSchedules       *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
+	CarbohydrateRatioTimeZoneOffset  *int                             `json:"carbRatioTimezoneOffset,omitempty" bson:"carbRatioTimezoneOffset,omitempty"`
+	Display                          *Display                         `json:"display,omitempty" bson:"display,omitempty"`
+	DosingEnabled                    *bool                            `json:"dosingEnabled,omitempty" bson:"dosingEnabled,omitempty"`
+	InsulinModel                     *string                          `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
+	InsulinSensitivitySchedule       *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into BolusCalculator struct
+	InsulinSensitivitySchedules      *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into BolusCalculator struct
+	InsulinSensitivityTimeZoneOffset *int                             `json:"insulinSensitivityTimezoneOffset,omitempty" bson:"insulinSensitivityTimezoneOffset,omitempty"`
+	Manufacturers                    *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
+	Model                            *string                          `json:"model,omitempty" bson:"model,omitempty"`
+	SerialNumber                     *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	SuspendThreshold                 *SuspendThreshold                `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
+	Units                            *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
 
 func New() *Pump {
@@ -76,6 +79,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Basal = ParseBasal(parser.WithReferenceObjectParser("basal"))
 	p.BasalRateSchedule = ParseBasalRateStartArray(parser.WithReferenceArrayParser("basalSchedule"))
 	p.BasalRateSchedules = ParseBasalRateStartArrayMap(parser.WithReferenceObjectParser("basalSchedules"))
+	p.BasalRateTimeZoneOffset = parser.Int("basalScheduleTimezoneOffset")
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
 	p.BloodGlucoseTimeZoneOffset = parser.Int("bgTargetTimezoneOffset")
@@ -83,11 +87,13 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
+	p.CarbohydrateRatioTimeZoneOffset = parser.Int("carbRationTimezoneOffset")
 	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
 	p.DosingEnabled = parser.Bool("dosingEnabled")
 	p.InsulinModel = parser.String("insulinModel")
 	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.WithReferenceArrayParser("insulinSensitivity"))
 	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.WithReferenceObjectParser("insulinSensitivities"))
+	p.InsulinSensitivityTimeZoneOffset = parser.Int("insulinSensitivityTimezoneOffset")
 	p.Manufacturers = parser.StringArray("manufacturers")
 	p.Model = parser.String("model")
 	p.SerialNumber = parser.String("serialNumber")
@@ -173,6 +179,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 	validator.Bool("dosingEnabled", p.DosingEnabled).Exists()
 
 	validator.Int("bgTargetTimezoneOffset", p.BloodGlucoseTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
+	validator.Int("carbRationTimezoneOffset", p.CarbohydrateRatioTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
+	validator.Int("insulinSensitivityTimezoneOffset", p.InsulinSensitivityTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
+	validator.Int("basalRateTimezoneOffset", p.BasalRateTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 
 	// What to do when p.Units = nil?  Assume a unit?
 	if p.BloodGlucosePreMealTarget != nil && p.Units != nil {
