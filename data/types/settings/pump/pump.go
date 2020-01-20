@@ -19,7 +19,17 @@ const (
 
 	TimeZoneOffsetMaximum = 7 * 24 * 60 // TODO: Make sure same as all time zone offsets
 	TimeZoneOffsetMinimum = -7 * 24 * 60
+
+	RapidAdult = "rapid_adult"
+	RapidChild = "rapid_child"
+	Fiasp      = "fiasp"
 )
+
+func InsulinModels() []string {
+	return []string{
+		RapidAdult, RapidChild, Fiasp,
+	}
+}
 
 // TODO: Consider collapsing *Array objects into ArrayMap objects with "default" name
 
@@ -39,6 +49,7 @@ type Pump struct {
 	CarbohydrateRatioSchedules  *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
 	Display                     *Display                         `json:"display,omitempty" bson:"display,omitempty"`
 	DosingEnabled               *bool                            `json:"dosingEnabled,omitempty" bson:"dosingEnabled,omitempty"`
+	InsulinModel                *string                          `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
 	InsulinSensitivitySchedule  *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into BolusCalculator struct
 	InsulinSensitivitySchedules *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into BolusCalculator struct
 	Manufacturers               *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
@@ -74,6 +85,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
 	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
 	p.DosingEnabled = parser.Bool("dosingEnabled")
+	p.InsulinModel = parser.String("insulinModel")
 	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.WithReferenceArrayParser("insulinSensitivity"))
 	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.WithReferenceObjectParser("insulinSensitivities"))
 	p.Manufacturers = parser.StringArray("manufacturers")
@@ -170,6 +182,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.SuspendThreshold != nil {
 		p.SuspendThreshold.Validate(validator.WithReference("suspendThreshold"))
 	}
+
+	validator.String("insulinModel", p.InsulinModel).Exists().OneOf(InsulinModels()...)
+
 }
 
 func (p *Pump) Normalize(normalizer data.Normalizer) {
