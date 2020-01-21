@@ -81,6 +81,7 @@ type Int interface {
 	GreaterThan(limit int) Int
 	GreaterThanOrEqualTo(limit int) Int
 	InRange(lowerLimit int, upperLimit int) Int
+	InRangeWarning(lowerLimit int, upperLimit int) Int
 
 	OneOf(allowedValues ...int) Int
 	NotOneOf(disallowedValues ...int) Int

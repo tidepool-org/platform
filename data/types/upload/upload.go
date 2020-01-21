@@ -170,6 +170,11 @@ func (u *Upload) Validate(validator structure.Validator) {
 	validator.String("version", u.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
 }
 
+// IsValid returns true if there is no error in the validator
+func (u *Upload) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (u *Upload) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(u.Meta())

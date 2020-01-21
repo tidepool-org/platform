@@ -62,6 +62,11 @@ func (n *Normal) Validate(validator structure.Validator) {
 	// }
 }
 
+// IsValid returns true if there is no error in the validator
+func (n *Normal) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (n *Normal) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(n.Meta())

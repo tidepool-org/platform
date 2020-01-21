@@ -60,6 +60,14 @@ func (a *Array) Error() error {
 	return a.base.Error()
 }
 
+func (a *Array) HasWarning() bool {
+	return a.base.HasWarning()
+}
+
+func (a *Array) Warning() error {
+	return a.base.Warning()
+}
+
 func (a *Array) ReportError(err error) {
 	a.base.ReportError(err)
 }

@@ -59,18 +59,23 @@ func (s *Scheduled) Validate(validator structure.Validator) {
 		validator.String("deliveryType", &s.DeliveryType).EqualTo(DeliveryType)
 	}
 
-	validator.Int("duration", s.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
+	validator.Int("duration", s.Duration).Exists().InRangeWarning(DurationMinimum, DurationMaximum)
 	expectedDurationValidator := validator.Int("expectedDuration", s.DurationExpected)
 	if s.Duration != nil && *s.Duration >= DurationMinimum && *s.Duration <= DurationMaximum {
-		expectedDurationValidator.InRange(*s.Duration, DurationMaximum)
+		expectedDurationValidator.InRangeWarning(*s.Duration, DurationMaximum)
 	} else {
-		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
+		expectedDurationValidator.InRangeWarning(DurationMinimum, DurationMaximum)
 	}
 	if s.InsulinFormulation != nil {
 		s.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
 	validator.String("scheduleName", s.ScheduleName).NotEmpty()
+}
+
+// IsValid returns true if there is no error and no warning in the validator
+func (s *Scheduled) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError() || validator.HasWarning())
 }
 
 func (s *Scheduled) Normalize(normalizer data.Normalizer) {

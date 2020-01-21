@@ -49,6 +49,14 @@ func (v *Validator) Error() error {
 	return v.base.Error()
 }
 
+func (v *Validator) HasWarning() bool {
+	return v.base.HasWarning()
+}
+
+func (v *Validator) Warning() error {
+	return v.base.Warning()
+}
+
 func (v *Validator) ReportError(err error) {
 	v.base.ReportError(err)
 }

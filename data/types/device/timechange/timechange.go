@@ -94,6 +94,11 @@ func (t *TimeChange) Validate(validator structure.Validator) {
 	}
 }
 
+// IsValid returns true if there is no error in the validator
+func (t *TimeChange) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (t *TimeChange) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(t.Meta())

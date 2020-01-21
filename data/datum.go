@@ -11,6 +11,7 @@ type Datum interface {
 
 	Parse(parser structure.ObjectParser)
 	Validate(validator structure.Validator)
+	IsValid(validator structure.Validator) bool
 	Normalize(normalizer Normalizer)
 
 	IdentityFields() ([]string, error)

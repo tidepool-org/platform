@@ -35,6 +35,8 @@ type MetaReporter interface {
 type ErrorReporter interface {
 	HasError() bool
 	Error() error
+	HasWarning() bool
+	Warning() error
 	ReportError(err error)
 }
 

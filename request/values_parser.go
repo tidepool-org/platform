@@ -61,6 +61,14 @@ func (v *Values) Error() error {
 	return v.base.Error()
 }
 
+func (v *Values) HasWarning() bool {
+	return v.base.HasWarning()
+}
+
+func (v *Values) Warning() error {
+	return v.base.Warning()
+}
+
 func (v *Values) ReportError(err error) {
 	v.base.ReportError(err)
 }

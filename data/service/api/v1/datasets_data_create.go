@@ -72,8 +72,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	for _, reference := range parser.References() {
 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
 			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
-			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
-			datumArray = append(datumArray, *datum)
+			if (*datum).IsValid(validator.WithReference(strconv.Itoa(reference))) {
+				(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
+				datumArray = append(datumArray, *datum)
+			}
 		}
 	}
 	parser.NotParsed()
