@@ -7,18 +7,36 @@ RUN apk --no-cache add git make tzdata mongodb && \
     go get github.com/githubnemo/CompileDaemon && \
     adduser -D tidepool && \
     chown -R tidepool /go/src/github.com/tidepool-org/platform
-USER tidepool
+RUN apk --no-cache update && apk add --no-cache openssl ca-certificates wget && \
+    rm -f install && \
+    wget https://download.vividcortex.com/install && \
+    sh install --token=NO --batch --init=None --static --proxy=dyn && \
+    rm -f install && \
+    sed -i '1 a \ \ \ \ "log-max-size":"5",' /etc/vividcortex/global.conf && \
+    sed -i '1 a \ \ \ \ "log-max-backups":"1",' /etc/vividcortex/global.conf && \
+    chmod 600 /etc/vividcortex/global.conf
+# USER tidepool
 COPY . .
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
 FROM alpine:latest AS production
-RUN apk --no-cache update && \
+RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/community' >> /etc/apk/repositories && \
+    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/main' >> /etc/apk/repositories && \
+    apk --no-cache update && \
     apk --no-cache upgrade && \
     apk add --no-cache ca-certificates tzdata mongodb && \
     adduser -D tidepool
+RUN apk --no-cache update && apk add --no-cache openssl ca-certificates wget && \
+    rm -f install && \
+    wget https://download.vividcortex.com/install && \
+    sh install --token=NO --batch --init=None --static --proxy=dyn && \
+    rm -f install && \
+    sed -i '1 a \ \ \ \ "log-max-size":"5",' /etc/vividcortex/global.conf && \
+    sed -i '1 a \ \ \ \ "log-max-backups":"1",' /etc/vividcortex/global.conf && \
+    chmod 600 /etc/vividcortex/global.conf
 WORKDIR /home/tidepool
-USER tidepool
+# USER tidepool
 COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
-CMD ["./tools"]
+CMD "./tools"
