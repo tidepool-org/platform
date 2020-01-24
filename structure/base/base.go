@@ -73,6 +73,10 @@ func (b *Base) ReportWarning(err error) {
 	}
 }
 
+func (b *Base) ResetWarning() {
+	b.warning = &errors.Serializable{}
+}
+
 func (b *Base) WithOrigin(origin structure.Origin) *Base {
 	return &Base{
 		origin:       origin,

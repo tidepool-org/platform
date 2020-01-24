@@ -121,3 +121,7 @@ func (v *Validator) WithReference(reference string) structure.Validator {
 		base: v.base.WithReference(reference),
 	}
 }
+
+func (v *Validator) ResetWarning() {
+	v.base.ResetWarning()
+}

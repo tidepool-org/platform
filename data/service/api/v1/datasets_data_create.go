@@ -75,6 +75,9 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 			if (*datum).IsValid(validator.WithReference(strconv.Itoa(reference))) {
 				(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
 				datumArray = append(datumArray, *datum)
+			} else {
+				// reset Warning
+				validator.ResetWarning()
 			}
 		}
 	}

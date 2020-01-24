@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.6.2 2020-01-21
+### Fixed
+- PT-1035 Fix on the PT-903 patch. Warning were not managed correctly when a warning was in the middle of the process. All the objects after the warnings were ignored. 
+
 ## 0.6.1 2020-01-21
 ### Fixed
 - PT-903 Patch platform-data to prevent an Android bug to happen
