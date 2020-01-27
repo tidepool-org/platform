@@ -1,10 +1,11 @@
-package status_test
+package pumpstatus_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
-	"github.com/tidepool-org/platform/data/types/devicestatus/status"
+	"github.com/tidepool-org/platform/data/types/pumpstatus"
+
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -12,16 +13,16 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewBattery() *status.Battery {
-	datum := *status.NewBattery()
-	datum.Unit = pointer.FromString("grams")
-	datum.Value = pointer.FromFloat64(5.0)
+func NewSignalStrength() *pumpstatus.SignalStrength {
+	datum := *pumpstatus.NewSignalStrength()
+	datum.Unit = pointer.FromString("ounces")
+	datum.Value = pointer.FromFloat64(10.0)
 	return &datum
 }
 
-var _ = Describe("Battery", func() {
+var _ = Describe("SignalStrength", func() {
 
-	Context("Battery", func() {
+	Context("SignalStrength", func() {
 		Context("Parse", func() {
 			// TODO
 		})
@@ -29,20 +30,20 @@ var _ = Describe("Battery", func() {
 		Context("Validate", func() {
 			DescribeTable("return the expected results when the input",
 
-				func(mutator func(datum *status.Battery), expectedErrors ...error) {
-					datum := NewBattery()
+				func(mutator func(datum *pumpstatus.SignalStrength), expectedErrors ...error) {
+					datum := NewSignalStrength()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *status.Battery) {},
+					func(datum *pumpstatus.SignalStrength) {},
 				),
 				Entry("Unit missing",
-					func(datum *status.Battery) { datum.Unit = nil },
+					func(datum *pumpstatus.SignalStrength) { datum.Unit = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/unit"),
 				),
 				Entry("Value missing",
-					func(datum *status.Battery) { datum.Value = nil },
+					func(datum *pumpstatus.SignalStrength) { datum.Value = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 			)

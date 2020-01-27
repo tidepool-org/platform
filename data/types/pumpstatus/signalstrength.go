@@ -1,4 +1,4 @@
-package status
+package pumpstatus
 
 import (
 	"github.com/tidepool-org/platform/data"

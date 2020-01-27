@@ -1,4 +1,4 @@
-package devicestatus_test
+package dosingdecision_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/structure"
 
-	"github.com/tidepool-org/platform/data/types/devicestatus"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -23,30 +23,30 @@ const (
 
 func NewMeta() interface{} {
 	return &types.Meta{
-		Type: devicestatus.Type,
+		Type: dosingdecision.Type,
 	}
 }
 
-func NewDeviceStatus() *devicestatus.DeviceStatus {
-	datum := devicestatus.NewDeviceStatus()
+func NewDosingDecision() *dosingdecision.DosingDecision {
+	datum := dosingdecision.NewDosingDecision()
 	datum.Base = *dataTypesTest.NewBase()
-	datum.DeviceType = pointer.FromString(test.RandomStringFromArray(devicestatus.DeviceTypes()))
-	datum.Type = devicestatus.Type
+	datum.DeviceType = pointer.FromString(test.RandomStringFromArray(dosingdecision.DeviceTypes()))
+	datum.Type = dosingdecision.Type
 	datum.Version = pointer.FromString(ValidVersion)
 	return datum
 }
 
-func CloneDeviceStatus(datum *devicestatus.DeviceStatus) *devicestatus.DeviceStatus {
+func CloneDeviceStatus(datum *dosingdecision.DosingDecision) *dosingdecision.DosingDecision {
 	if datum == nil {
 		return nil
 	}
-	clone := devicestatus.NewDeviceStatus()
+	clone := dosingdecision.NewDosingDecision()
 	return clone
 }
 
-var _ = Describe("DeviceStatus", func() {
+var _ = Describe("DosingDecision", func() {
 
-	Context("DeviceStatus", func() {
+	Context("DosingDecision", func() {
 		Context("Parse", func() {
 			// TODO
 		})
@@ -54,22 +54,22 @@ var _ = Describe("DeviceStatus", func() {
 		Context("Validate", func() {
 			DescribeTable("return the expected results when the input",
 
-				func(mutator func(datum *devicestatus.DeviceStatus), expectedErrors ...error) {
-					datum := NewDeviceStatus()
+				func(mutator func(datum *dosingdecision.DosingDecision), expectedErrors ...error) {
+					datum := NewDosingDecision()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *devicestatus.DeviceStatus) {},
+					func(datum *dosingdecision.DosingDecision) {},
 				),
 				Entry("invalid Device Type",
-					func(datum *devicestatus.DeviceStatus) {
+					func(datum *dosingdecision.DosingDecision) {
 						datum.DeviceType = pointer.FromString(InvalidType)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf(InvalidType, devicestatus.DeviceTypes()), "/deviceType", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf(InvalidType, dosingdecision.DeviceTypes()), "/deviceType", NewMeta()),
 				),
 				Entry("version missing",
-					func(datum *devicestatus.DeviceStatus) { datum.Version = nil },
+					func(datum *dosingdecision.DosingDecision) { datum.Version = nil },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/version", NewMeta()),
 				),
 			)

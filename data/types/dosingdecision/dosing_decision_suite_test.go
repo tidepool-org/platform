@@ -1,4 +1,4 @@
-package devicestatus_test
+package dosingdecision_test
 
 import (
 	"testing"
