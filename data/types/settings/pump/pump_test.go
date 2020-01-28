@@ -49,7 +49,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.BasalRateSchedules = pump.NewBasalRateStartArrayMap()
 	datum.BasalRateSchedules.Set(scheduleName, NewBasalRateStartArray())
 	datum.BloodGlucoseTargetSchedules = pump.NewBloodGlucoseTargetStartArrayMap()
-	datum.BloodGlucoseTargetSchedules.Set(scheduleName, NewBloodGlucoseTargetStartArray(unitsBloodGlucose))
+	datum.BloodGlucoseTargetSchedules.Set(scheduleName, pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose))
 	datum.Bolus = NewBolus()
 	datum.CarbohydrateRatioSchedules = pump.NewCarbohydrateRatioStartArrayMap()
 	datum.CarbohydrateRatioSchedules.Set(scheduleName, NewCarbohydrateRatioStartArray())
@@ -84,7 +84,7 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Manufacturers = pointer.CloneStringArray(datum.Manufacturers)
 	clone.Model = pointer.CloneString(datum.Model)
 	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
-	clone.Units = CloneUnits(datum.Units)
+	clone.Units = pump.CloneUnits(datum.Units)
 	return clone
 }
 
@@ -227,7 +227,7 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target schedule invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						invalidBloodGlucoseTargetSchedule := NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						invalidBloodGlucoseTargetSchedule := pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose)
 						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
 						datum.BloodGlucoseTargetSchedule = invalidBloodGlucoseTargetSchedule
 						datum.BloodGlucoseTargetSchedules = nil
@@ -237,14 +237,14 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target schedule valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTargetSchedule = NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						datum.BloodGlucoseTargetSchedule = pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose)
 						datum.BloodGlucoseTargetSchedules = nil
 					},
 				),
 				Entry("blood glucose target schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						invalidBloodGlucoseTargetSchedule := NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						invalidBloodGlucoseTargetSchedule := pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose)
 						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
 						datum.BloodGlucoseTargetSchedules.Set("one", invalidBloodGlucoseTargetSchedule)
 					},
@@ -253,7 +253,7 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target schedules valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTargetSchedules.Set("one", NewBloodGlucoseTargetStartArray(unitsBloodGlucose))
+						datum.BloodGlucoseTargetSchedules.Set("one", pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose))
 					},
 				),
 				Entry("bolus missing",
@@ -558,7 +558,7 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mg/dL"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BasalRateSchedule = NewBasalRateStartArray()
-						datum.BloodGlucoseTargetSchedule = NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						datum.BloodGlucoseTargetSchedule = pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = NewInsulinSensitivityStartArray(unitsBloodGlucose)
 					},
@@ -587,7 +587,7 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mg/dl"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BasalRateSchedule = NewBasalRateStartArray()
-						datum.BloodGlucoseTargetSchedule = NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						datum.BloodGlucoseTargetSchedule = pump.NewBloodGlucoseTargetStartArrayTest(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = NewInsulinSensitivityStartArray(unitsBloodGlucose)
 					},

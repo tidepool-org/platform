@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
+	"github.com/tidepool-org/platform/data/types/settings/pump"
+
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -32,15 +34,19 @@ func NewDosingDecision() *dosingdecision.DosingDecision {
 	datum.Base = *dataTypesTest.NewBase()
 	datum.DeviceType = pointer.FromString(test.RandomStringFromArray(dosingdecision.DeviceTypes()))
 	datum.Type = dosingdecision.Type
-	datum.Version = pointer.FromString(ValidVersion)
+	datum.Units = pump.NewUnits()
+	datum.Units.BloodGlucose = pointer.FromString("mmol/L")
+	datum.Units.Carbohydrate = pointer.FromString(test.RandomStringFromArray(pump.Carbohydrates()))
 	return datum
 }
 
-func CloneDeviceStatus(datum *dosingdecision.DosingDecision) *dosingdecision.DosingDecision {
+func CloneDosingDecision(datum *dosingdecision.DosingDecision) *dosingdecision.DosingDecision {
 	if datum == nil {
 		return nil
 	}
 	clone := dosingdecision.NewDosingDecision()
+
+	clone.Units = pump.CloneUnits(datum.Units)
 	return clone
 }
 
@@ -68,9 +74,34 @@ var _ = Describe("DosingDecision", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf(InvalidType, dosingdecision.DeviceTypes()), "/deviceType", NewMeta()),
 				),
-				Entry("version missing",
-					func(datum *dosingdecision.DosingDecision) { datum.Version = nil },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/version", NewMeta()),
+
+				Entry("blood glucose target schedule invalid",
+					func(datum *dosingdecision.DosingDecision) {
+						invalidBloodGlucoseTargetSchedule := pump.NewBloodGlucoseTargetStartArrayTest(pointer.FromString("mmol/L"))
+						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
+						datum.GlucoseTargetRangeSchedule = invalidBloodGlucoseTargetSchedule
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/pumpManagerStatus/0/start", NewMeta()),
+				),
+				Entry("blood glucose target schedule valid",
+					func(datum *dosingdecision.DosingDecision) {
+						datum.GlucoseTargetRangeSchedule = pump.NewBloodGlucoseTargetStartArrayTest(pointer.FromString("mmol/L"))
+					},
+				),
+
+				Entry("units missing",
+					func(datum *dosingdecision.DosingDecision) { datum.Units = nil },
+				),
+				Entry("units invalid",
+					func(datum *dosingdecision.DosingDecision) { datum.Units.BloodGlucose = pointer.FromString("invalid") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units/bg", NewMeta()),
+				),
+				Entry("units valid",
+					func(datum *dosingdecision.DosingDecision) {
+						datum.Units = pump.NewUnits()
+						datum.Units.BloodGlucose = pointer.FromString("mmol/L")
+						datum.Units.Carbohydrate = pointer.FromString(test.RandomStringFromArray(pump.Carbohydrates()))
+					},
 				),
 			)
 		})

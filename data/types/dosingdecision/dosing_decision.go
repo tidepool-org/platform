@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	Type     = "deviceStatus"
+	Type     = "dosingDecision"
 	Aid      = "aid"
 	Cgm      = "cgm"
 	Pump     = "pump"
@@ -27,7 +27,6 @@ type DosingDecision struct {
 	GlucoseTargetRangeSchedule *pump.BloodGlucoseTargetStartArray `json:"glucoseTargetRangeSchedule,omitempty" bson:"glucoseTargetRangeSchedule,omitempty"`
 	RecommendedBasal           *RecommendedBasal                  `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
 	Units                      *pump.Units                        `json:"units,omitempty" bson:"units,omitempty"`
-	Version                    *string                            `json:"version,omitempty" bson:"version,omitempty"`
 }
 
 func New() *DosingDecision {
@@ -57,7 +56,6 @@ func (a *DosingDecision) Parse(parser structure.ObjectParser) {
 	a.Base.Parse(parser)
 
 	a.DeviceType = parser.String("deviceType")
-	a.Version = parser.String("version")
 	a.CarbsOnBoard = ParseCarbsOnBoard(parser.WithReferenceObjectParser("carbsOnBoard"))
 	a.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
 	a.GlucoseTargetRangeSchedule = pump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("glucoseTargetRangeSchedule"))
@@ -82,7 +80,6 @@ func (a *DosingDecision) Validate(validator structure.Validator) {
 	}
 
 	validator.String("deviceType", a.DeviceType).Exists().OneOf(DeviceTypes()...)
-	validator.String("version", a.Version).Exists()
 
 	if a.CarbsOnBoard != nil {
 		a.CarbsOnBoard.Validate(validator.WithReference(("carbsOnBoard")))
