@@ -5,6 +5,13 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	MinUnitsPerHour = 0
+	MaxUnitsPerHour = 1000
+	MinDuration     = 0
+	MaxDuration     = 1000
+)
+
 type RecommendedBasal struct {
 	UnitsPerHour *float64 `json:"unitsPerHour,omitempty" bson:"unitsPerHour,omitempty"`
 	Duration     *float64 `json:"duration,omitempty" bson:"duration,omitempty"`
@@ -29,12 +36,9 @@ func (i *RecommendedBasal) Parse(parser structure.ObjectParser) {
 }
 
 func (i *RecommendedBasal) Validate(validator structure.Validator) {
-	validator.Float64("value", i.UnitsPerHour).Exists()
-	validator.Float64("startDate", i.Duration).Exists()
+	validator.Float64("unitsPerHour", i.UnitsPerHour).Exists().InRange(MinUnitsPerHour, MaxUnitsPerHour)
+	validator.Float64("duration", i.Duration).Exists().InRange(MinDuration, MaxDuration)
 }
 
 func (i *RecommendedBasal) Normalize(normalizer data.Normalizer) {
-	//if normalizer.Origin() == structure.OriginExternal {
-	//	i.Amount = dataBloodGlucose.NormalizeValueForUnits(i.Amount, units)
-	//}
 }
