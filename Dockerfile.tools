@@ -14,7 +14,9 @@ CMD ["make", "service-start"]
 
 # Production
 FROM alpine:latest AS production
-RUN apk --no-cache update && \
+RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/community' >> /etc/apk/repositories && \
+    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/main' >> /etc/apk/repositories && \
+    apk --no-cache update && \
     apk --no-cache upgrade && \
     apk add --no-cache ca-certificates tzdata mongodb && \
     adduser -D tidepool
