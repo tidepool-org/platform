@@ -1,13 +1,15 @@
 package dosingdecision
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	CarbsOnBoardStartMaximum = 86400000
-	CarbsOnBoardStartMinimum = 0
+	MinCarbsOnBoard = 0
+	MaxCarbsOnBoard = 1000
 )
 
 type CarbsOnBoard struct {
@@ -36,13 +38,18 @@ func (i *CarbsOnBoard) Parse(parser structure.ObjectParser) {
 }
 
 func (i *CarbsOnBoard) Validate(validator structure.Validator) {
-	validator.Float64("quantity", i.Quantity).Exists()
+	var startDate time.Time
+
+	validator.Float64("quantity", i.Quantity).Exists().InRange(MinCarbsOnBoard, MaxCarbsOnBoard)
 	validator.String("startDate", i.StartDate).Exists().AsTime(TimeFormat)
-	validator.String("endDate", i.EndDate).Exists().AsTime(TimeFormat)
+	val := validator.String("endDate", i.EndDate).Exists().AsTime(TimeFormat)
+
+	if i.StartDate != nil {
+		startDate, _ = time.Parse(time.RFC3339Nano, *i.StartDate)
+		val.After(startDate)
+	}
+
 }
 
 func (i *CarbsOnBoard) Normalize(normalizer data.Normalizer) {
-	//if normalizer.Origin() == structure.OriginExternal {
-	//	i.Amount = dataBloodGlucose.NormalizeValueForUnits(i.Amount, units)
-	//}
 }
