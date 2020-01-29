@@ -3,6 +3,7 @@ package v1
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -59,8 +60,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	}
 
 	var rawDatumArray []interface{}
+	start := time.Now()
 	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
-		lgr.Errorf("Could not decode JSON: '%#+v'", err)
+		elapsed := time.Since(start)
+		lgr.Errorf("Could not decode JSON (took %s): '%#+v'", elapsed, err)
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
 	}
