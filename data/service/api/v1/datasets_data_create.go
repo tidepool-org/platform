@@ -60,6 +60,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 
 	var rawDatumArray []interface{}
 	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+		lgr.Errorf("Could not decode JSON: '%#+v'", err)
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
 	}
