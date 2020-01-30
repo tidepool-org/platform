@@ -2,12 +2,23 @@ package server
 
 import (
 	"net/http"
+	"os"
+	"time"
 
 	graceful "gopkg.in/tylerb/graceful.v1"
+
+	"go.opencensus.io/plugin/ochttp"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/service"
+
+	"contrib.go.opencensus.io/exporter/ocagent"
+	"go.opencensus.io/trace"
+)
+
+var (
+	ocagentHost = os.Getenv("OC_AGENT_HOST")
 )
 
 type Standard struct {
@@ -39,10 +50,25 @@ func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error
 }
 
 func (s *Standard) Serve() error {
+	oce, ocerr := ocagent.NewExporter(
+		ocagent.WithInsecure(),
+		ocagent.WithReconnectionPeriod(5*time.Second),
+		ocagent.WithAddress(ocagentHost),
+		ocagent.WithServiceName("web"))
+	if ocerr != nil {
+		s.logger.Errorf("Failed to create ocagent-exporter: %v", ocerr)
+	}
+	trace.ApplyConfig(trace.Config{
+		DefaultSampler: trace.AlwaysSample(),
+	})
+	trace.RegisterExporter(oce)
+
 	server := &graceful.Server{
 		Server: &http.Server{
-			Addr:    s.config.Address,
-			Handler: s.api.Handler(),
+			Addr: s.config.Address,
+			Handler: &ochttp.Handler{
+				Handler: s.api.Handler(),
+			},
 		},
 		Timeout: s.config.Timeout,
 	}
