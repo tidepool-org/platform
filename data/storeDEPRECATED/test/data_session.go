@@ -195,7 +195,7 @@ func NewDataSession() *DataSession {
 }
 
 // EnsureIndexes required in order to implement the DataSession interface
-func (s *DataSession) EnsureIndexes() error {
+func (d *DataSession) EnsureIndexes() error {
 	return nil
 }
 
