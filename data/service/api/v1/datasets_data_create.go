@@ -15,11 +15,14 @@ import (
 	"github.com/tidepool-org/platform/service"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"go.opencensus.io/trace"
 )
 
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)
+	spanCtx, groupSpan := trace.StartSpan(ctx, "DataSetsDataCreate")
+	defer groupSpan.End()
 
 	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
 	if dataSetID == "" {
@@ -27,6 +30,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	_, span := trace.StartSpan(spanCtx, "GetDataSetByID")
 	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
@@ -36,7 +40,9 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}
+	span.End()
 
+	_, span = trace.StartSpan(spanCtx, "GetPermissions")
 	if details := request.DetailsFromContext(ctx); !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
@@ -53,12 +59,14 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 			return
 		}
 	}
+	span.End()
 
 	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
 		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
 		return
 	}
 
+	_, span = trace.StartSpan(spanCtx, "DecodeJsonPayload")
 	var rawDatumArray []interface{}
 	start := time.Now()
 	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
@@ -67,7 +75,9 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
 	}
+	span.End()
 
+	_, span = trace.StartSpan(spanCtx, "ParseData")
 	parser := structureParser.NewArray(&rawDatumArray)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
@@ -94,9 +104,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
+	span.End()
 
 	datumArray = append(datumArray, normalizer.Data()...)
 
+	_, span = trace.StartSpan(spanCtx, "Deduplicate")
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
@@ -112,10 +124,15 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
 	}
+	span.End()
 
+	_, span = trace.StartSpan(spanCtx, "RecordMetric")
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
+	span.End()
 
+	_, span = trace.StartSpan(spanCtx, "RespondWithStatusAndData")
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
+	span.End()
 }

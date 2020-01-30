@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -54,10 +55,12 @@ func (s *Standard) Serve() error {
 		ocagent.WithInsecure(),
 		ocagent.WithReconnectionPeriod(5*time.Second),
 		ocagent.WithAddress(ocagentHost),
-		ocagent.WithServiceName("web"))
+		ocagent.WithServiceName(fmt.Sprintf("platform/%s", os.Args[1:])))
 	if ocerr != nil {
 		s.logger.Errorf("Failed to create ocagent-exporter: %v", ocerr)
 	}
+	defer oce.Stop()
+
 	trace.ApplyConfig(trace.Config{
 		DefaultSampler: trace.AlwaysSample(),
 	})
