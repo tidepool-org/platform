@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.opencensus.io/trace"
+
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -15,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/service"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"go.opencensus.io/trace"
 )
 
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
