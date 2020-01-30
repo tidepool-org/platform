@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	graceful "gopkg.in/tylerb/graceful.v1"
@@ -55,7 +56,7 @@ func (s *Standard) Serve() error {
 		ocagent.WithInsecure(),
 		ocagent.WithReconnectionPeriod(5*time.Second),
 		ocagent.WithAddress(ocagentHost),
-		ocagent.WithServiceName(fmt.Sprintf("platform/%s", os.Args[1:])))
+		ocagent.WithServiceName(fmt.Sprintf("platform/%s", filepath.Base(os.Args[0]))))
 	if ocerr != nil {
 		s.logger.Errorf("Failed to create ocagent-exporter: %v", ocerr)
 	}
