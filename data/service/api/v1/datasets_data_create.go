@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -70,7 +71,13 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	_, span = trace.StartSpan(spanCtx, "DecodeJsonPayload")
 	var rawDatumArray []interface{}
 	start := time.Now()
-	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+	lgr.Infof("Decoding %d bytes of JSON data", dataServiceContext.Request().ContentLength)
+	dec := json.NewDecoder(dataServiceContext.Request().Body)
+	dec.DisallowUnknownFields()
+
+	err = dec.Decode(&rawDatumArray)
+	// if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+	if err != nil {
 		elapsed := time.Since(start)
 		lgr.Errorf("Could not decode JSON (took %s): '%#+v'", elapsed, err)
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
