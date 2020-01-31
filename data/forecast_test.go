@@ -27,8 +27,7 @@ func RandomForecast() *data.Forecast {
 	values := []float64{0.0}
 
 	forecast := data.NewForecast()
-	forecast.StartTime = pointer.FromString(startTime.Format(time.RFC3339Nano))
-	forecast.TimeScale = pointer.FromInt(test.RandomIntFromRange(data.MinimumTimeScale, data.MaximumTimeScale))
+	forecast.StartDate = pointer.FromString(startTime.Format(time.RFC3339Nano))
 	forecast.Type = pointer.FromString(test.RandomStringFromArray(data.Types()))
 	forecast.Unit = pointer.FromString("")
 	forecast.Values = &values
@@ -48,14 +47,8 @@ var _ = Describe("Forecast", func() {
 				func(datum *data.Forecast) {},
 			),
 			Entry("start time invalid",
-				func(datum *data.Forecast) { datum.StartTime = pointer.FromString("invalid") },
+				func(datum *data.Forecast) { datum.StartDate = pointer.FromString("invalid") },
 				errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid(InvalidStartTime, time.RFC3339Nano), "/startTime"),
-			),
-			Entry("start time invalid",
-				func(datum *data.Forecast) {
-					datum.TimeScale = pointer.FromInt(InvalidTimeScale)
-				},
-				errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(InvalidTimeScale, data.MinimumTimeScale, data.MaximumTimeScale), "/timeScale"),
 			),
 			Entry("invalid Type",
 				func(datum *data.Forecast) {

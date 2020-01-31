@@ -15,8 +15,7 @@ const (
 )
 
 type Forecast struct {
-	StartTime *string    `json:"startTime,omitempty" bson:"startTime,omitempty"`
-	TimeScale *int       `json:"timeScale,omitempty" bson:"timeScale,omitempty"`
+	StartDate *string    `json:"startTime,omitempty" bson:"startTime,omitempty"`
 	Type      *string    `json:"type,omitempty" bson:"type,omitempty"`
 	Unit      *string    `json:"unit,omitempty" bson:"unit,omitempty"`
 	Values    *[]float64 `json:"values,omitempty" bson:"values,omitempty"`
@@ -44,18 +43,16 @@ func NewForecast() *Forecast {
 }
 
 func (f *Forecast) Parse(parser structure.ObjectParser) {
-	f.StartTime = parser.String("startTime")
-	f.TimeScale = parser.Int("timeScale")
+	f.StartDate = parser.String("startTime")
 	f.Type = parser.String("type")
 	f.Unit = parser.String("unit")
 	f.Values = parser.Float64Array("values")
 }
 
 func (f *Forecast) Validate(validator structure.Validator) {
-	if f.StartTime != nil {
-		validator.String("startTime", f.StartTime).AsTime(time.RFC3339Nano)
+	if f.StartDate != nil {
+		validator.String("startTime", f.StartDate).AsTime(time.RFC3339Nano)
 	}
-	validator.Int("timeScale", f.TimeScale).Exists().InRange(MinimumTimeScale, MaximumTimeScale)
 	validator.String("type", f.Type).Exists().OneOf(Types()...)
 	validator.String("unit", f.Unit).Exists()
 }
