@@ -33,6 +33,12 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+func (s *Store) EnsureIndexes() error {
+	session := s.NewDataSession()
+	defer session.Close()
+	return session.EnsureIndexes()
+}
+
 func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 	return &DataSession{
 		Session: s.Store.NewSession("deviceData"),
@@ -41,6 +47,14 @@ func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 
 type DataSession struct {
 	*storeStructuredMongo.Session
+}
+
+func (d *DataSession) EnsureIndexes() error {
+	return d.EnsureAllIndexes([]mgo.Index{
+		{Key: []string{"_userId", "_active", "type", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
+		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
+		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
+	})
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
