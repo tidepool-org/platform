@@ -21,7 +21,17 @@ const (
 	InsulinCarbohydrateRatioMinimum = 0.0
 	InsulinOnBoardMaximum           = 250.0
 	InsulinOnBoardMinimum           = 0.0
+
+	Grams     = "grams"
+	Exchanges = "exchanges"
 )
+
+func CarbUnits() []string {
+	return []string{
+		Grams,
+		Exchanges,
+	}
+}
 
 type Calculator struct {
 	types.Base `bson:",inline"`
@@ -36,6 +46,7 @@ type Calculator struct {
 	InsulinSensitivity       *float64                 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
 	Recommended              *Recommended             `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
+	CarbUnits                *string                  `json:"carbUnits,omitempty" bson:"carbUnits,omitempty"`
 }
 
 func New() *Calculator {
@@ -100,6 +111,10 @@ func (c *Calculator) Validate(validator structure.Validator) {
 		c.Recommended.Validate(validator.WithReference("recommended"))
 	}
 	validator.String("units", c.Units).Exists().OneOf(dataBloodGlucose.Units()...)
+
+	if c.CarbUnits != nil {
+		validator.String("carbUnits", c.CarbUnits).OneOf(CarbUnits()...)
+	}
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
