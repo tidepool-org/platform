@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	InvalidType  = "invalidType"
 	ValidVersion = "1.0"
 )
 
@@ -32,7 +31,7 @@ func NewMeta() interface{} {
 func NewDosingDecision() *dosingdecision.DosingDecision {
 	datum := dosingdecision.NewDosingDecision()
 	datum.Base = *dataTypesTest.NewBase()
-	datum.DeviceType = pointer.FromString(test.RandomStringFromArray(dosingdecision.DeviceTypes()))
+	datum.Device = RandomDevice()
 	datum.Type = dosingdecision.Type
 	datum.Units = pump.NewUnits()
 	datum.Units.BloodGlucose = pointer.FromString("mmol/L")
@@ -67,12 +66,6 @@ var _ = Describe("DosingDecision", func() {
 				},
 				Entry("succeeds",
 					func(datum *dosingdecision.DosingDecision) {},
-				),
-				Entry("invalid Device Type",
-					func(datum *dosingdecision.DosingDecision) {
-						datum.DeviceType = pointer.FromString(InvalidType)
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf(InvalidType, dosingdecision.DeviceTypes()), "/deviceType", NewMeta()),
 				),
 
 				Entry("blood glucose target schedule invalid",

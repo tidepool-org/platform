@@ -23,7 +23,7 @@ type DosingDecision struct {
 	types.Base `bson:",inline"`
 
 	CarbsOnBoard               *CarbsOnBoard                      `json:"carbsOnBoard,omitempty" bson:"carbsOnBoard,omitempty"`
-	DeviceType                 *string                            `json:"deviceType,omitempty" bson:"deviceType,omitempty"`
+	Device                     *Device                            `json:"device,omitempty" bson:"device,omitempty"`
 	GlucoseTargetRangeSchedule *pump.BloodGlucoseTargetStartArray `json:"glucoseTargetRangeSchedule,omitempty" bson:"glucoseTargetRangeSchedule,omitempty"`
 	RecommendedBasal           *RecommendedBasal                  `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
 	Units                      *pump.Units                        `json:"units,omitempty" bson:"units,omitempty"`
@@ -55,7 +55,7 @@ func (a *DosingDecision) Parse(parser structure.ObjectParser) {
 
 	a.Base.Parse(parser)
 
-	a.DeviceType = parser.String("deviceType")
+	a.Device = ParseDevice(parser.WithReferenceObjectParser("device"))
 	a.CarbsOnBoard = ParseCarbsOnBoard(parser.WithReferenceObjectParser("carbsOnBoard"))
 	a.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
 	a.GlucoseTargetRangeSchedule = pump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("glucoseTargetRangeSchedule"))
@@ -79,8 +79,6 @@ func (a *DosingDecision) Validate(validator structure.Validator) {
 		unitsBloodGlucose = a.Units.BloodGlucose
 	}
 
-	validator.String("deviceType", a.DeviceType).Exists().OneOf(DeviceTypes()...)
-
 	if a.CarbsOnBoard != nil {
 		a.CarbsOnBoard.Validate(validator.WithReference(("carbsOnBoard")))
 	}
@@ -92,6 +90,9 @@ func (a *DosingDecision) Validate(validator structure.Validator) {
 	}
 	if a.Units != nil {
 		a.Units.Validate(validator.WithReference("units"))
+	}
+	if a.Device != nil {
+		a.Device.Validate(validator.WithReference("device"))
 	}
 }
 

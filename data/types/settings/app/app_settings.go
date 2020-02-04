@@ -1,4 +1,4 @@
-package app_settings
+package appsettings
 
 import (
 	"github.com/tidepool-org/platform/data"
