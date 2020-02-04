@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.6.3 2020-02-04
+### Added
+- PT-879 Create Parameter object in DeviceData. Handle new deviceParameter objects to store parameters change as any other types of objects in YourLoops (type: deviceEvent / subtype: deviceParameter).
+
 ## 0.6.2 2020-01-21
 ### Fixed
 - PT-1035 Fix on the PT-903 patch. Warning were not managed correctly when a warning was in the middle of the process. All the objects after the warnings were ignored. 
