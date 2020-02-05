@@ -44,6 +44,7 @@ func NewCalculator(units *string) *calculator.Calculator {
 	datum.InsulinSensitivity = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
 	datum.Recommended = NewRecommended()
 	datum.Units = units
+	datum.CarbUnits = pointer.FromString(test.RandomStringFromArray(calculator.CarbUnits()))
 	return datum
 }
 
@@ -102,6 +103,7 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 	clone.InsulinSensitivity = pointer.CloneFloat64(datum.InsulinSensitivity)
 	clone.Recommended = CloneRecommended(datum.Recommended)
 	clone.Units = pointer.CloneString(datum.Units)
+	clone.CarbUnits = pointer.CloneString(datum.CarbUnits)
 	return clone
 }
 
@@ -149,6 +151,7 @@ var _ = Describe("Calculator", func() {
 			Expect(datum.InsulinSensitivity).To(BeNil())
 			Expect(datum.Recommended).To(BeNil())
 			Expect(datum.Units).To(BeNil())
+			Expect(datum.CarbUnits).To(BeNil())
 		})
 	})
 
@@ -1621,6 +1624,13 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dl; bolus id missing",
 					pointer.FromString("mg/dl"),
 					func(datum *calculator.Calculator, units *string) { datum.BolusID = nil },
+				),
+				Entry("Invalid Carb Units",
+					pointer.FromString("mg/dl"),
+					func(datum *calculator.Calculator, units *string) {
+						datum.CarbUnits = pointer.FromString("Invalid")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("Invalid", calculator.CarbUnits()), "/carbUnits", NewMeta()),
 				),
 			)
 

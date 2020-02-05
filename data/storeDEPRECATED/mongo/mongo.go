@@ -49,8 +49,8 @@ type DataSession struct {
 	*storeStructuredMongo.Session
 }
 
-func (s *DataSession) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
+func (d *DataSession) EnsureIndexes() error {
+	return d.EnsureAllIndexes([]mgo.Index{
 		{Key: []string{"_userId", "_active", "type", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
 		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
 		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
