@@ -88,10 +88,8 @@ type ArrayParser interface {
 func ForgivingTimeString(stringValue string) (forgivingTime string) {
 	if len(stringValue) < 19 {
 		forgivingBytes := []byte("0000-01-01T00:00:00")
-		for i := range forgivingBytes {
-			if i < len(stringValue) {
-				forgivingBytes[i] = stringValue[i]
-			}
+		for i := range stringValue {
+			forgivingBytes[i] = stringValue[i]
 		}
 		forgivingTime = string(forgivingBytes)
 	} else {
