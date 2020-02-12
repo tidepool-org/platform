@@ -15,7 +15,7 @@ Note: The endpoint takes precedence over the environment name.
 
 ### Environment
 
-If you choose to specify the Tidepool environment name when invoking the tool it will automatically convert from all known environments (ie. `prd`, `int`, `stg`, `dev`, `local`, `tilt`) to the appropriate endpoint. For example:
+If you choose to specify the Tidepool environment name when invoking the tool it will automatically convert from all known environments (ie. `prd`, `int`, `stg`, `dev`, `local`) to the appropriate endpoint. For example:
 
 ```
 $ tapi login --env=prd
@@ -204,7 +204,7 @@ OPTIONS:
    --page PAGE          pagination PAGE (default: 0)
    --size SIZE          pagination SIZE (default: 0)
    --endpoint ENDPOINT  Tidepool API ENDPOINT (eg. 'https://api.tidepool.org') [$TIDEPOOL_ENDPOINT]
-   --env ENVIRONMENT    Tidepool ENVIRONMENT (ie. 'prd', 'int', 'stg', 'dev', 'local', 'tilt') [$TIDEPOOL_ENV]
+   --env ENVIRONMENT    Tidepool ENVIRONMENT (ie. 'prd', 'int', 'stg', 'dev', 'local') [$TIDEPOOL_ENV]
    --proxy URL          proxy URL [$HTTP_PROXY]
    --pretty, -p         pretty print JSON
    --verbose, -v        include info output

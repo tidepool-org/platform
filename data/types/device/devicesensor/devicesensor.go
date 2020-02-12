@@ -1,4 +1,4 @@
-package transmitter
+package devicesensor
 
 import (
 	"github.com/tidepool-org/platform/data"
@@ -7,14 +7,14 @@ import (
 )
 
 const (
-	SubType = "deviceTransmitter" // TODO: Rename Type to "device/deviceTransmitter"; remove SubType
+	SubType = "deviceSensor" // TODO: Rename Type to "device/deviceSensor"; remove SubType
 
 	Start   = "start"
 	Stop    = "stop"
 	Expired = "expired"
 )
 
-type Transmitter struct {
+type DeviceSensor struct {
 	device.Device `bson:",inline"`
 
 	EventType *string `json:"status,omitempty" bson:"status,omitempty"`
@@ -24,13 +24,13 @@ func EventTypes() []string {
 	return []string{Start, Stop, Expired}
 }
 
-func New() *Transmitter {
-	return &Transmitter{
+func New() *DeviceSensor {
+	return &DeviceSensor{
 		Device: device.New(SubType),
 	}
 }
 
-func (r *Transmitter) Parse(parser structure.ObjectParser) {
+func (r *DeviceSensor) Parse(parser structure.ObjectParser) {
 	if !parser.HasMeta() {
 		parser = parser.WithMeta(r.Meta())
 	}
@@ -38,7 +38,7 @@ func (r *Transmitter) Parse(parser structure.ObjectParser) {
 	r.Device.Parse(parser)
 }
 
-func (r *Transmitter) Validate(validator structure.Validator) {
+func (r *DeviceSensor) Validate(validator structure.Validator) {
 	if !validator.HasMeta() {
 		validator = validator.WithMeta(r.Meta())
 	}
@@ -52,7 +52,7 @@ func (r *Transmitter) Validate(validator structure.Validator) {
 	validator.String("eventType", r.EventType).Exists().OneOf(EventTypes()...)
 }
 
-func (r *Transmitter) Normalize(normalizer data.Normalizer) {
+func (r *DeviceSensor) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(r.Meta())
 	}

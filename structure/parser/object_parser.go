@@ -195,34 +195,6 @@ func (o *Object) StringArray(reference string) *[]string {
 	return &stringArrayValue
 }
 
-func (o *Object) Float64Array(reference string) *[]float64 {
-	rawValue, ok := o.raw(reference)
-	if !ok {
-		return nil
-	}
-
-	float64ArrayValue, float64ArrayValueOk := rawValue.([]float64)
-	if !float64ArrayValueOk {
-		arrayValue, arrayValueOk := rawValue.([]interface{})
-		if !arrayValueOk {
-			o.base.WithReference(reference).ReportError(ErrorTypeNotArray(rawValue))
-			return nil
-		}
-
-		float64ArrayValue = []float64{}
-		parser := NewArrayParser(o.base.WithReference(reference), &arrayValue)
-		for arrayIndex := range arrayValue {
-			var stringElement float64
-			if stringParsed := parser.Float64(arrayIndex); stringParsed != nil {
-				stringElement = *stringParsed
-			}
-			float64ArrayValue = append(float64ArrayValue, stringElement)
-		}
-	}
-
-	return &float64ArrayValue
-}
-
 func (o *Object) Time(reference string, layout string) *time.Time {
 	rawValue, ok := o.raw(reference)
 	if !ok {

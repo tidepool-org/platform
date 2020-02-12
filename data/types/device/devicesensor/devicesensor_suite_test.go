@@ -1,4 +1,4 @@
-package devicestatus_test
+package devicesensor_test
 
 import (
 	"testing"

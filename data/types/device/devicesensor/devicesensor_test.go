@@ -1,4 +1,4 @@
-package sensor_test
+package devicesensor_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/types/device/sensor"
+	"github.com/tidepool-org/platform/data/types/device/devicesensor"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -24,19 +24,19 @@ func NewMeta() interface{} {
 	}
 }
 
-func NewSensor() *sensor.Sensor {
-	datum := sensor.New()
+func NewDeviceSensor() *devicesensor.DeviceSensor {
+	datum := devicesensor.New()
 	datum.Device = *dataTypesDeviceTest.NewDevice()
 	datum.SubType = "deviceSensor"
-	datum.EventType = pointer.FromString(test.RandomStringFromArray(sensor.EventTypes()))
+	datum.EventType = pointer.FromString(test.RandomStringFromArray(devicesensor.EventTypes()))
 	return datum
 }
 
-func CloneSensor(datum *sensor.Sensor) *sensor.Sensor {
+func CloneDeviceSensor(datum *devicesensor.DeviceSensor) *devicesensor.DeviceSensor {
 	if datum == nil {
 		return nil
 	}
-	clone := sensor.New()
+	clone := devicesensor.New()
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
 	clone.EventType = pointer.CloneString(datum.EventType)
 	return clone
@@ -44,12 +44,12 @@ func CloneSensor(datum *sensor.Sensor) *sensor.Sensor {
 
 var _ = Describe("Change", func() {
 	It("SubType is expected", func() {
-		Expect(sensor.SubType).To(Equal("deviceSensor"))
+		Expect(devicesensor.SubType).To(Equal("deviceSensor"))
 	})
 
 	Context("New", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := sensor.New()
+			datum := devicesensor.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("deviceSensor"))
@@ -57,45 +57,45 @@ var _ = Describe("Change", func() {
 		})
 	})
 
-	Context("Sensor", func() {
+	Context("DeviceSensor", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *sensor.Sensor), expectedErrors ...error) {
-					datum := NewSensor()
+				func(mutator func(datum *devicesensor.DeviceSensor), expectedErrors ...error) {
+					datum := NewDeviceSensor()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *sensor.Sensor) {},
+					func(datum *devicesensor.DeviceSensor) {},
 				),
 				Entry("type missing",
-					func(datum *sensor.Sensor) { datum.Type = "" },
+					func(datum *devicesensor.DeviceSensor) { datum.Type = "" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "deviceSensor"}),
 				),
 				Entry("type invalid",
-					func(datum *sensor.Sensor) { datum.Type = "invalidType" },
+					func(datum *devicesensor.DeviceSensor) { datum.Type = "invalidType" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "deviceSensor"}),
 				),
 				Entry("type device",
-					func(datum *sensor.Sensor) { datum.Type = "deviceEvent" },
+					func(datum *devicesensor.DeviceSensor) { datum.Type = "deviceEvent" },
 				),
 				Entry("sub type missing",
-					func(datum *sensor.Sensor) { datum.SubType = "" },
+					func(datum *devicesensor.DeviceSensor) { datum.SubType = "" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
 				),
 				Entry("sub type invalid",
-					func(datum *sensor.Sensor) { datum.SubType = "invalidSubType" },
+					func(datum *devicesensor.DeviceSensor) { datum.SubType = "invalidSubType" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "deviceSensor"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 				),
 				Entry("sub type change",
-					func(datum *sensor.Sensor) { datum.SubType = "deviceSensor" },
+					func(datum *devicesensor.DeviceSensor) { datum.SubType = "deviceSensor" },
 				),
 				Entry("multiple errors",
-					func(datum *sensor.Sensor) {
+					func(datum *devicesensor.DeviceSensor) {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
 					},
@@ -105,21 +105,21 @@ var _ = Describe("Change", func() {
 			)
 
 			DescribeTable("validates the datum with origin external",
-				func(mutator func(datum *sensor.Sensor), expectedErrors ...error) {
-					datum := NewSensor()
+				func(mutator func(datum *devicesensor.DeviceSensor), expectedErrors ...error) {
+					datum := NewDeviceSensor()
 					mutator(datum)
 					dataTypesTest.ValidateWithOrigin(datum, structure.OriginExternal, expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *sensor.Sensor) {},
+					func(datum *devicesensor.DeviceSensor) {},
 				),
 				Entry("event type valid",
-					func(datum *sensor.Sensor) {
-						datum.EventType = pointer.FromString(test.RandomStringFromArray(sensor.EventTypes()))
+					func(datum *devicesensor.DeviceSensor) {
+						datum.EventType = pointer.FromString(test.RandomStringFromArray(devicesensor.EventTypes()))
 					},
 				),
 				Entry("multiple errors",
-					func(datum *sensor.Sensor) {
+					func(datum *devicesensor.DeviceSensor) {
 						datum.EventType = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"start", "stop", "expired"}), "/eventType", NewMeta()),
@@ -127,26 +127,26 @@ var _ = Describe("Change", func() {
 			)
 
 			DescribeTable("validates the datum with origin internal/store",
-				func(mutator func(datum *sensor.Sensor), expectedErrors ...error) {
-					datum := NewSensor()
+				func(mutator func(datum *devicesensor.DeviceSensor), expectedErrors ...error) {
+					datum := NewDeviceSensor()
 					mutator(datum)
 					dataTypesTest.ValidateWithOrigin(datum, structure.OriginInternal, expectedErrors...)
 					dataTypesTest.ValidateWithOrigin(datum, structure.OriginStore, expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *sensor.Sensor) {},
+					func(datum *devicesensor.DeviceSensor) {},
 				),
 				Entry("event type invalid",
-					func(datum *sensor.Sensor) { datum.EventType = pointer.FromString("invalid") },
+					func(datum *devicesensor.DeviceSensor) { datum.EventType = pointer.FromString("invalid") },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"start", "stop", "expired"}), "/eventType", NewMeta()),
 				),
 				Entry("event type valid",
-					func(datum *sensor.Sensor) {
-						datum.EventType = pointer.FromString(test.RandomStringFromArray(sensor.EventTypes()))
+					func(datum *devicesensor.DeviceSensor) {
+						datum.EventType = pointer.FromString(test.RandomStringFromArray(devicesensor.EventTypes()))
 					},
 				),
 				Entry("multiple errors",
-					func(datum *sensor.Sensor) {
+					func(datum *devicesensor.DeviceSensor) {
 						datum.EventType = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"start", "stop", "expired"}), "/eventType", NewMeta()),
@@ -156,8 +156,8 @@ var _ = Describe("Change", func() {
 
 		Context("Normalize", func() {
 			It("does not modify datum if status is missing", func() {
-				datum := NewSensor()
-				expectedDatum := CloneSensor(datum)
+				datum := NewDeviceSensor()
+				expectedDatum := CloneDeviceSensor(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
@@ -167,8 +167,8 @@ var _ = Describe("Change", func() {
 			})
 
 			It("normalizes the datum and replaces status with status id", func() {
-				datum := NewSensor()
-				expectedDatum := CloneSensor(datum)
+				datum := NewDeviceSensor()
+				expectedDatum := CloneDeviceSensor(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)

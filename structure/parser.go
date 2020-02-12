@@ -25,7 +25,6 @@ type ObjectParser interface {
 	Int(reference string) *int
 	String(reference string) *string
 	StringArray(reference string) *[]string
-	Float64Array(reference string) *[]float64
 	Time(reference string, layout string) *time.Time
 
 	Object(reference string) *map[string]interface{}

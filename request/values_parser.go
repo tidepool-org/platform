@@ -177,34 +177,6 @@ func (v *Values) StringArray(reference string) *[]string {
 	return &stringArrayValue
 }
 
-func (v *Values) Float64Array(reference string) *[]float64 {
-	if v.values == nil {
-		return nil
-	}
-
-	values, ok := (*v.values)[reference]
-	if !ok {
-		return nil
-	}
-
-	index, _ := v.parsed[reference]
-	if index >= len(values) {
-		return nil
-	}
-
-	v.parsed[reference] = len(values)
-
-	float64ArrayValue := []float64{}
-	for _, value := range values[index:] {
-		f, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return nil
-		}
-		float64ArrayValue = append(float64ArrayValue, f)
-	}
-
-	return &float64ArrayValue
-}
 func (v *Values) Time(reference string, layout string) *time.Time {
 	rawValue, ok := v.raw(reference)
 	if !ok {
