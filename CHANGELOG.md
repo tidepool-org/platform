@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.6.4 2020-02-13
+### Fixed
+- PT-1117 Delete DataSet should return a 200 when the data set ID does not exist (temporary fix)
+
 ## 0.6.3 2020-02-04
 ### Added
 - PT-879 Create Parameter object in DeviceData. Handle new deviceParameter objects to store parameters change as any other types of objects in YourLoops (type: deviceEvent / subtype: deviceParameter).
