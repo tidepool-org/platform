@@ -77,10 +77,11 @@ func (f *DoseEntry) Validate(validator structure.Validator) {
 	validator.String("doseType", f.DoseType).Exists().OneOf(DoseTypes()...)
 	validator.String("unit", f.Unit).Exists().OneOf(DoseUnits()...)
 	if f.StartDate != nil {
+		validator.String("startDate", f.StartDate).AsTime(time.RFC3339Nano)
 		startDate, _ = time.Parse(time.RFC3339Nano, *f.StartDate)
 	}
 	if f.EndDate != nil {
-		validator.String("startEnd", f.EndDate).AsTime(time.RFC3339Nano).After(startDate)
+		validator.String("endDate", f.EndDate).AsTime(time.RFC3339Nano).After(startDate)
 	}
 	if f.Value != nil {
 		validator.Float64("value", f.Value).InRange(MinValue, MaxValue)
