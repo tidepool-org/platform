@@ -8,20 +8,22 @@ import (
 
 const (
 	Type = "pumpStatus"
+
+	MinPumpChargeRemaining = 0.0
+	MaxPumpChargeRemaining = 1.0
 )
 
 type PumpStatus struct {
 	types.Base `bson:",inline"`
 
 	Alerts                     *[]string           `json:"alerts,omitempty" bson:"alerts,omitempty"`
-	BasalDeliveryState         *string             `json:"basalDeliveryState,omitempty" bson:"basalDeliveryState,omitempty"`
+	BasalDeliveryState         *BasalDeliveryState `json:"basalDeliveryState,omitempty" bson:"basalDeliveryState,omitempty"`
 	Battery                    *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
-	BolusState                 *string             `json:"bolusState,omitempty" bson:"bolusState,omitempty"`
+	BolusState                 *BolusState         `json:"bolusState,omitempty" bson:"bolusState,omitempty"`
 	Device                     *string             `json:"device,omitempty" bson:"device,omitempty"`
 	Forecast                   *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
 	PumpBatteryChargeRemaining *float64            `json:"pumpBatteryChargeRemaing,omitempty" bson:"pumpBatteryChargeRemaing,omitempty"`
 	ReservoirRemaining         *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
-	SignalStrength             *SignalStrength     `json:"signalStrength,omitempty" bson:"signalStrength,omitempty"`
 }
 
 func New() *PumpStatus {
@@ -51,14 +53,13 @@ func (c *PumpStatus) Parse(parser structure.ObjectParser) {
 	c.Base.Parse(parser)
 
 	c.Alerts = parser.StringArray("alerts")
-	c.BasalDeliveryState = parser.String("basalDeliveryState")
+	c.BasalDeliveryState = ParseBasalDeliveryState(parser.WithReferenceObjectParser("basalDeliveryState"))
 	c.Battery = ParseBattery(parser.WithReferenceObjectParser("battery"))
-	c.BolusState = parser.String("bolusState")
+	c.BolusState = ParseBolusState(parser.WithReferenceObjectParser("bolusState"))
 	c.Device = parser.String("device")
 	c.Forecast = data.ParseForecast(parser.WithReferenceObjectParser("forecast"))
 	c.PumpBatteryChargeRemaining = parser.Float64("pumpBatteryChargeRemaining")
 	c.ReservoirRemaining = ParseReservoirRemaining(parser.WithReferenceObjectParser("reservoirRemaining"))
-	c.SignalStrength = ParseSignalStrength(parser.WithReferenceObjectParser("signalStrength"))
 }
 
 func (c *PumpStatus) Validate(validator structure.Validator) {
@@ -68,11 +69,17 @@ func (c *PumpStatus) Validate(validator structure.Validator) {
 	if c.ReservoirRemaining != nil {
 		c.ReservoirRemaining.Validate(validator.WithReference("reservoirRemaining"))
 	}
-	if c.SignalStrength != nil {
-		c.SignalStrength.Validate(validator.WithReference("signalStrength"))
-	}
 	if c.Forecast != nil {
 		c.Forecast.Validate(validator.WithReference("forecast"))
+	}
+	if c.BasalDeliveryState != nil {
+		c.BasalDeliveryState.Validate(validator.WithReference("basalDeliveryState"))
+	}
+	if c.BolusState != nil {
+		c.BolusState.Validate(validator.WithReference("bolusState"))
+	}
+	if c.PumpBatteryChargeRemaining != nil {
+		validator.Float64("pumpBatteryChargeRemaining", c.PumpBatteryChargeRemaining).InRange(MinPumpChargeRemaining, MaxPumpChargeRemaining)
 	}
 }
 
@@ -80,13 +87,16 @@ func (c *PumpStatus) Normalize(normalizer data.Normalizer) {
 	if c.Battery != nil {
 		c.Battery.Normalize(normalizer.WithReference("battery"))
 	}
-	if c.SignalStrength != nil {
-		c.SignalStrength.Normalize(normalizer.WithReference("signalStrength"))
-	}
 	if c.ReservoirRemaining != nil {
 		c.ReservoirRemaining.Normalize(normalizer.WithReference("reservoirRemaining"))
 	}
 	if c.Forecast != nil {
 		c.Forecast.Normalize(normalizer.WithReference("forecast"))
+	}
+	if c.BasalDeliveryState != nil {
+		c.BasalDeliveryState.Normalize(normalizer.WithReference("basalDeliveryState"))
+	}
+	if c.BolusState != nil {
+		c.BolusState.Normalize(normalizer.WithReference("bolusState"))
 	}
 }

@@ -18,29 +18,13 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func RandomDoseEntry() *data.DoseEntry {
-	d := data.NewDoseEntry()
-	d.StartDate = pointer.FromString(test.FutureNearTime().Format(time.RFC3339Nano))
-	d.EndDate = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-
-	d.DoseType = pointer.FromString(test.RandomStringFromArray(data.DoseTypes()))
-	d.Unit = pointer.FromString(test.RandomStringFromArray(data.DoseUnits()))
-	d.Value = pointer.FromFloat64(test.RandomFloat64FromRange(data.MinValue, data.MaxValue))
-	d.DeliveredUnits = pointer.FromFloat64(test.RandomFloat64FromRange(data.MinDeliveredUnits, data.MaxDeliveredUnits))
-	d.Description = pointer.FromString("Description")
-	d.SyncIdentifier = pointer.FromString("SyncIdentifier")
-	d.ScheduledBasalRate = pointer.FromFloat64(test.RandomFloat64FromRange(data.MinBasalRate, data.MaxBasalRate))
-
-	return d
-}
-
 var _ = Describe("DoseEntry", func() {
 	Context("DoseEntry", func() {
 		Context("Validate", func() {
 			DescribeTable("return the expected results when the input",
 
 				func(mutator func(datum *data.DoseEntry), expectedErrors ...error) {
-					datum := RandomDoseEntry()
+					datum := data.RandomDoseEntry()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
