@@ -16,14 +16,13 @@ const (
 type PumpStatus struct {
 	types.Base `bson:",inline"`
 
-	Alerts                     *[]string           `json:"alerts,omitempty" bson:"alerts,omitempty"`
-	BasalDeliveryState         *BasalDeliveryState `json:"basalDeliveryState,omitempty" bson:"basalDeliveryState,omitempty"`
-	Battery                    *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
-	BolusState                 *BolusState         `json:"bolusState,omitempty" bson:"bolusState,omitempty"`
-	Device                     *string             `json:"device,omitempty" bson:"device,omitempty"`
-	Forecast                   *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
-	PumpBatteryChargeRemaining *float64            `json:"pumpBatteryChargeRemaing,omitempty" bson:"pumpBatteryChargeRemaing,omitempty"`
-	ReservoirRemaining         *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
+	Alerts             *[]string           `json:"alerts,omitempty" bson:"alerts,omitempty"`
+	BasalDeliveryState *BasalDeliveryState `json:"basalDeliveryState,omitempty" bson:"basalDeliveryState,omitempty"`
+	Battery            *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
+	BolusState         *BolusState         `json:"bolusState,omitempty" bson:"bolusState,omitempty"`
+	Device             *string             `json:"device,omitempty" bson:"device,omitempty"`
+	Forecast           *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
+	ReservoirRemaining *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
 }
 
 func New() *PumpStatus {
@@ -58,7 +57,6 @@ func (c *PumpStatus) Parse(parser structure.ObjectParser) {
 	c.BolusState = ParseBolusState(parser.WithReferenceObjectParser("bolusState"))
 	c.Device = parser.String("device")
 	c.Forecast = data.ParseForecast(parser.WithReferenceObjectParser("forecast"))
-	c.PumpBatteryChargeRemaining = parser.Float64("pumpBatteryChargeRemaining")
 	c.ReservoirRemaining = ParseReservoirRemaining(parser.WithReferenceObjectParser("reservoirRemaining"))
 }
 
@@ -77,9 +75,6 @@ func (c *PumpStatus) Validate(validator structure.Validator) {
 	}
 	if c.BolusState != nil {
 		c.BolusState.Validate(validator.WithReference("bolusState"))
-	}
-	if c.PumpBatteryChargeRemaining != nil {
-		validator.Float64("pumpBatteryChargeRemaining", c.PumpBatteryChargeRemaining).InRange(MinPumpChargeRemaining, MaxPumpChargeRemaining)
 	}
 }
 

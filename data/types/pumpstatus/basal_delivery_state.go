@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 func BasalDeliveryStates() []string {
@@ -44,11 +45,11 @@ func (b *BasalDeliveryState) Parse(parser structure.ObjectParser) {
 
 func (b *BasalDeliveryState) Validate(validator structure.Validator) {
 	validator.String("state", b.State).Exists().OneOf(BasalDeliveryStates()...)
-	if b.Date != nil {
-		validator.String("date", b.Date).AsTime(time.RFC3339Nano)
-	}
+	validator.String("date", b.Date).Exists().AsTime(time.RFC3339Nano)
 	if b.DoseEntry != nil {
 		b.DoseEntry.Validate(validator.WithReference("doseEntry"))
+	} else {
+		validator.WithReference("doseEntry").ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 

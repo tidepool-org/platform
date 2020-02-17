@@ -41,17 +41,35 @@ var _ = Describe("BolusState", func() {
 				Entry("succeeds",
 					func(datum *pumpstatus.BolusState) {},
 				),
+				Entry("State does not exists",
+					func(datum *pumpstatus.BolusState) {
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
 				Entry("State invalid",
 					func(datum *pumpstatus.BolusState) {
 						datum.State = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", pumpstatus.BolusStates()), "/state"),
 				),
+				Entry("Date does not exists",
+					func(datum *pumpstatus.BolusState) {
+						datum.Date = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/date"),
+				),
 				Entry("Date invalid",
 					func(datum *pumpstatus.BolusState) {
 						datum.Date = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/date"),
+				),
+				Entry("No Dose Entry Structure",
+					func(datum *pumpstatus.BolusState) {
+						datum.DoseEntry = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/doseEntry"),
 				),
 				Entry("Multiple Errors",
 					func(datum *pumpstatus.BolusState) {

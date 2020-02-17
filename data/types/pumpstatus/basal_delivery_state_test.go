@@ -41,17 +41,35 @@ var _ = Describe("BasalDeliveryState", func() {
 				Entry("succeeds",
 					func(datum *pumpstatus.BasalDeliveryState) {},
 				),
+				Entry("State does not exists",
+					func(datum *pumpstatus.BasalDeliveryState) {
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
 				Entry("State invalid",
 					func(datum *pumpstatus.BasalDeliveryState) {
 						datum.State = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", pumpstatus.BasalDeliveryStates()), "/state"),
 				),
+				Entry("Date does not exists",
+					func(datum *pumpstatus.BasalDeliveryState) {
+						datum.Date = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/date"),
+				),
 				Entry("Date invalid",
 					func(datum *pumpstatus.BasalDeliveryState) {
 						datum.Date = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/date"),
+				),
+				Entry("No Dose Entry Structure",
+					func(datum *pumpstatus.BasalDeliveryState) {
+						datum.DoseEntry = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/doseEntry"),
 				),
 				Entry("Multiple Errors",
 					func(datum *pumpstatus.BasalDeliveryState) {

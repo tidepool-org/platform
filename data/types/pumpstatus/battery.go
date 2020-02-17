@@ -5,6 +5,11 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	MinBatteryPercentage = 0.0
+	MaxBatteryPercentage = 1.0
+)
+
 type Battery struct {
 	Unit  *string  `json:"unit,omitempty" bson:"unit,omitempty"`
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
@@ -28,7 +33,7 @@ func (b *Battery) Parse(parser structure.ObjectParser) {
 
 func (b *Battery) Validate(validator structure.Validator) {
 	validator.String("unit", b.Unit).Exists()
-	validator.Float64("value", b.Value).Exists()
+	validator.Float64("value", b.Value).Exists().InRange(MinBatteryPercentage, MaxBatteryPercentage)
 }
 
 func (b *Battery) Normalize(normalizer data.Normalizer) {

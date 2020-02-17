@@ -5,6 +5,11 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	MinReservoirAmount = 0
+	MaxReservoirAmount = 1000
+)
+
 type ReservoirRemaining struct {
 	Unit   *string  `json:"units,omitempty" bson:"units,omitempty"`
 	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
@@ -30,7 +35,7 @@ func (r *ReservoirRemaining) Parse(parser structure.ObjectParser) {
 
 func (r *ReservoirRemaining) Validate(validator structure.Validator) {
 	validator.String("unit", r.Unit).Exists()
-	validator.Float64("amount", r.Amount).Exists()
+	validator.Float64("amount", r.Amount).Exists().InRange(MinReservoirAmount, MaxReservoirAmount)
 }
 
 func (r *ReservoirRemaining) Normalize(normalizer data.Normalizer) {
