@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	InsulinOnBoardStartMaximum = 86400000
-	InsulinOnBoardStartMinimum = 0
-	TimeFormat                 = time.RFC3339Nano
+	MinInsulinOnBoard = 0
+	MaxInsulinOnBoard = 1000
+	TimeFormat        = time.RFC3339Nano
 )
 
 type InsulinOnBoard struct {
@@ -37,12 +37,9 @@ func (i *InsulinOnBoard) Parse(parser structure.ObjectParser) {
 }
 
 func (i *InsulinOnBoard) Validate(validator structure.Validator) {
-	validator.Float64("value", i.Value).Exists()
+	validator.Float64("value", i.Value).Exists().InRange(MinInsulinOnBoard, MaxInsulinOnBoard)
 	validator.String("startDate", i.StartDate).Exists().AsTime(TimeFormat)
 }
 
 func (i *InsulinOnBoard) Normalize(normalizer data.Normalizer, units *string) {
-	//if normalizer.Origin() == structure.OriginExternal {
-	//	i.Amount = dataBloodGlucose.NormalizeValueForUnits(i.Amount, units)
-	//}
 }
