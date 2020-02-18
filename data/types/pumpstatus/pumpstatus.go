@@ -20,9 +20,9 @@ type PumpStatus struct {
 	BasalDeliveryState *BasalDeliveryState `json:"basalDeliveryState,omitempty" bson:"basalDeliveryState,omitempty"`
 	Battery            *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
 	BolusState         *BolusState         `json:"bolusState,omitempty" bson:"bolusState,omitempty"`
-	Device             *string             `json:"device,omitempty" bson:"device,omitempty"`
 	Forecast           *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
 	ReservoirRemaining *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
+	Device             *Device             `json:"device,omitempty" bson:"device,omitempty"`
 }
 
 func New() *PumpStatus {
@@ -55,7 +55,7 @@ func (c *PumpStatus) Parse(parser structure.ObjectParser) {
 	c.BasalDeliveryState = ParseBasalDeliveryState(parser.WithReferenceObjectParser("basalDeliveryState"))
 	c.Battery = ParseBattery(parser.WithReferenceObjectParser("battery"))
 	c.BolusState = ParseBolusState(parser.WithReferenceObjectParser("bolusState"))
-	c.Device = parser.String("device")
+	c.Device = ParseDevice(parser.WithReferenceObjectParser("device"))
 	c.Forecast = data.ParseForecast(parser.WithReferenceObjectParser("forecast"))
 	c.ReservoirRemaining = ParseReservoirRemaining(parser.WithReferenceObjectParser("reservoirRemaining"))
 }
@@ -76,6 +76,9 @@ func (c *PumpStatus) Validate(validator structure.Validator) {
 	if c.BolusState != nil {
 		c.BolusState.Validate(validator.WithReference("bolusState"))
 	}
+	if c.Device != nil {
+		c.Device.Validate(validator.WithReference("device"))
+	}
 }
 
 func (c *PumpStatus) Normalize(normalizer data.Normalizer) {
@@ -93,5 +96,8 @@ func (c *PumpStatus) Normalize(normalizer data.Normalizer) {
 	}
 	if c.BolusState != nil {
 		c.BolusState.Normalize(normalizer.WithReference("bolusState"))
+	}
+	if c.Device != nil {
+		c.Device.Normalize(normalizer.WithReference("device"))
 	}
 }
