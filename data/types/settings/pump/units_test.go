@@ -23,16 +23,6 @@ func NewUnits(unitsBloodGlucose *string) *pump.Units {
 	return datum
 }
 
-func CloneUnits(datum *pump.Units) *pump.Units {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewUnits()
-	clone.BloodGlucose = pointer.CloneString(datum.BloodGlucose)
-	clone.Carbohydrate = pointer.CloneString(datum.Carbohydrate)
-	return clone
-}
-
 var _ = Describe("Units", func() {
 	It("CarbohydrateExchanges is expected", func() {
 		Expect(pump.CarbohydrateExchanges).To(Equal("exchanges"))
@@ -122,7 +112,7 @@ var _ = Describe("Units", func() {
 					for _, origin := range structure.Origins() {
 						datum := NewUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
-						expectedDatum := CloneUnits(datum)
+						expectedDatum := pump.CloneUnits(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -168,7 +158,7 @@ var _ = Describe("Units", func() {
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
 					datum := NewUnits(pointer.FromString("mmol/L"))
 					mutator(datum)
-					expectedDatum := CloneUnits(datum)
+					expectedDatum := pump.CloneUnits(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -208,7 +198,7 @@ var _ = Describe("Units", func() {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
 						datum := NewUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
-						expectedDatum := CloneUnits(datum)
+						expectedDatum := pump.CloneUnits(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
