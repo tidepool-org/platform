@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
@@ -19,6 +20,8 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
+	"net/http"
+	"time"
 )
 
 type Service struct {
@@ -274,9 +277,18 @@ func (s *Service) initializeAuthClient() error {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 
+	appleDeviceCheckerConfig := apple.NewDeviceCheckerConfig()
+	if err := appleDeviceCheckerConfig.Load(s.ConfigReporter().WithScopes("apple_device_checker")); err != nil {
+		return errors.Wrap(err, "unable to load apple device checker config")
+	}
+	httpClient := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+	deviceChecker := apple.NewDeviceChecker(appleDeviceCheckerConfig, httpClient)
+
 	s.Logger().Debug("Creating auth client")
 
-	clnt, err := NewClient(cfg, platform.AuthorizeAsService, s.Name(), s.Logger(), s.AuthStore(), s.ProviderFactory())
+	clnt, err := NewClient(cfg, platform.AuthorizeAsService, s.Name(), s.Logger(), s.AuthStore(), s.ProviderFactory(), deviceChecker)
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth client")
 	}

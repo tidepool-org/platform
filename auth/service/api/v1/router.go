@@ -22,5 +22,5 @@ func NewRouter(svc service.Service) (*Router, error) {
 }
 
 func (r *Router) Routes() []*rest.Route {
-	return append(append(r.OAuthRoutes(), r.ProviderSessionsRoutes()...), r.RestrictedTokensRoutes()...)
+	return append(append(append(r.OAuthRoutes(), r.ProviderSessionsRoutes()...), r.RestrictedTokensRoutes()...), r.DeviceAuthorizationRoutes()...)
 }

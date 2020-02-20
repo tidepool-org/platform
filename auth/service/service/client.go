@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/apple"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/auth/client"
@@ -15,11 +16,12 @@ import (
 
 type Client struct {
 	*client.External
-	authStore       authStore.Store
-	providerFactory provider.Factory
+	appleDeviceChecker apple.DeviceChecker
+	authStore          authStore.Store
+	providerFactory    provider.Factory
 }
 
-func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory) (*Client, error) {
+func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory, appleDeviceChecker apple.DeviceChecker) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -35,6 +37,9 @@ func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, nam
 	if providerFactory == nil {
 		return nil, errors.New("provider factory is missing")
 	}
+	if appleDeviceChecker == nil {
+		return nil, errors.New("apple device checker is missing")
+	}
 
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
@@ -46,9 +51,10 @@ func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, nam
 	}
 
 	return &Client{
-		External:        external,
-		authStore:       authStore,
-		providerFactory: providerFactory,
+		External:           external,
+		appleDeviceChecker: appleDeviceChecker,
+		authStore:          authStore,
+		providerFactory:    providerFactory,
 	}, nil
 }
 
@@ -197,4 +203,57 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 	defer ssn.Close()
 
 	return ssn.DeleteRestrictedToken(ctx, id)
+}
+
+func (c *Client) CreateUserDeviceAuthorization(ctx context.Context, userID string, create *auth.DeviceAuthorizationCreate) (*auth.DeviceAuthorization, error) {
+	ssn := c.authStore.NewDeviceAuthorizationSession()
+	defer ssn.Close()
+
+	return ssn.CreateUserDeviceAuthorization(ctx, userID, create)
+}
+
+func (c *Client) GetUserDeviceAuthorization(ctx context.Context, userID string, id string) (*auth.DeviceAuthorization, error) {
+	ssn := c.authStore.NewDeviceAuthorizationSession()
+	defer ssn.Close()
+
+	return ssn.GetUserDeviceAuthorization(ctx, userID, id)
+}
+
+func (c *Client) ListUserDeviceAuthorizations(ctx context.Context, userID string, pagination *page.Pagination) (auth.DeviceAuthorizations, error) {
+	ssn := c.authStore.NewDeviceAuthorizationSession()
+	defer ssn.Close()
+
+	return ssn.ListUserDeviceAuthorizations(ctx, userID, pagination)
+}
+
+func (c *Client) UpdateDeviceAuthorization(ctx context.Context, id string, update *auth.DeviceAuthorizationUpdate) (*auth.DeviceAuthorization, error) {
+	logger := log.LoggerFromContext(ctx)
+	ssn := c.authStore.NewDeviceAuthorizationSession()
+	defer ssn.Close()
+
+	if err := auth.ValidateBundleId(update.BundleId); err != nil {
+		logger.WithField("deviceAuthorizationId", id).WithError(err).Debug("invalid bundle id")
+		update.Status = auth.DeviceAuthorizationFailed
+	} else {
+		valid, err := c.appleDeviceChecker.IsValidDeviceToken(update.DeviceCheckToken)
+		if err != nil {
+			return nil, err
+		}
+
+		if !valid {
+			logger.WithField("deviceAuthorizationId", id).Debug("invalid device check token")
+			update.Status = auth.DeviceAuthorizationFailed
+		} else {
+			update.Status = auth.DeviceAuthorizationSuccessful
+		}
+	}
+
+	return ssn.UpdateDeviceAuthorization(ctx, id, update)
+}
+
+func (c *Client) GetDeviceAuthorizationByToken(ctx context.Context, token string) (*auth.DeviceAuthorization, error) {
+	ssn := c.authStore.NewDeviceAuthorizationSession()
+	defer ssn.Close()
+
+	return ssn.GetDeviceAuthorizationByToken(ctx, token)
 }
