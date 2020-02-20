@@ -71,6 +71,7 @@ func (c *Calculator) Parse(parser structure.ObjectParser) {
 	c.Recommended = ParseRecommended(parser.WithReferenceObjectParser("recommended"))
 	c.Units = parser.String("units")
 	c.Bolus = dataTypesBolusFactory.ParseBolusDatum(parser.WithReferenceObjectParser("bolus"))
+	c.CarbUnits = parser.String("carbUnits")
 }
 
 func (c *Calculator) Validate(validator structure.Validator) {
