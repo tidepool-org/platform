@@ -197,3 +197,10 @@ func (s *String) AsTime(layout string) structure.Time {
 
 	return NewTime(s.base, valueAsTime)
 }
+
+func (s *String) Alphanumeric() structure.String {
+	if s.value != nil {
+		s.Matches(regexp.MustCompile("[0-9a-z]*"))
+	}
+	return s
+}

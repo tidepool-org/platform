@@ -30,7 +30,13 @@ func (s *Store) EnsureIndexes() error {
 
 	restrictedTokenSession := s.restrictedTokenSession()
 	defer restrictedTokenSession.Close()
-	return restrictedTokenSession.EnsureIndexes()
+	if err := restrictedTokenSession.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	deviceAuthorizationSession := s.deviceAuthorizationSession()
+	defer deviceAuthorizationSession.Close()
+	return deviceAuthorizationSession.EnsureIndexes()
 }
 
 func (s *Store) NewProviderSessionSession() store.ProviderSessionSession {
@@ -39,6 +45,10 @@ func (s *Store) NewProviderSessionSession() store.ProviderSessionSession {
 
 func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
 	return s.restrictedTokenSession()
+}
+
+func (s *Store) NewDeviceAuthorizationSession() store.DeviceAuthorizationSession {
+	return s.deviceAuthorizationSession()
 }
 
 func (s *Store) providerSessionSession() *ProviderSessionSession {
@@ -50,5 +60,11 @@ func (s *Store) providerSessionSession() *ProviderSessionSession {
 func (s *Store) restrictedTokenSession() *RestrictedTokenSession {
 	return &RestrictedTokenSession{
 		Session: s.Store.NewSession("restricted_tokens"),
+	}
+}
+
+func (s *Store) deviceAuthorizationSession() *DeviceAuthorizationSession {
+	return &DeviceAuthorizationSession{
+		Session: s.Store.NewSession("dthorizations"),
 	}
 }

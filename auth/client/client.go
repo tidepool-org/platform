@@ -311,3 +311,101 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
+
+
+func (c *Client) GetUserDeviceAuthorization(ctx context.Context, userID string, id string) (*auth.DeviceAuthorization, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "device_authorizations", id)
+	deviceAuthorization := &auth.DeviceAuthorization{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, deviceAuthorization); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deviceAuthorization, nil
+}
+
+func (c *Client) ListUserDeviceAuthorizations(ctx context.Context, userID string, pagination *page.Pagination) (auth.DeviceAuthorizations, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "device_authorizations")
+	deviceAuthorizations := auth.DeviceAuthorizations{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &deviceAuthorizations); err != nil {
+		return nil, err
+	}
+
+	return deviceAuthorizations, nil
+}
+
+func (c *Client) CreateUserDeviceAuthorization(ctx context.Context, userID string, create *auth.DeviceAuthorizationCreate) (*auth.DeviceAuthorization, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("userID is missing")
+	}
+	if create == nil {
+		return nil, errors.New("update is missing")
+	} else if err := structureValidator.New().Validate(create); err != nil {
+		return nil, errors.Wrap(err, "create is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "device_authorizations")
+	deviceAuthorization := &auth.DeviceAuthorization{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, deviceAuthorization); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deviceAuthorization, nil
+}
+
+func (c *Client) UpdateDeviceAuthorization(ctx context.Context, id string, update *auth.DeviceAuthorizationUpdate) (*auth.DeviceAuthorization, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+	if update == nil {
+		return nil, errors.New("update is missing")
+	} else if err := structureValidator.New().Validate(update); err != nil {
+		return nil, errors.Wrap(err, "update is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "device_authorization", id)
+	deviceAuthorization := &auth.DeviceAuthorization{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, update, deviceAuthorization); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return deviceAuthorization, nil
+}
+
+func (c *Client) GetDeviceAuthorizationByToken(ctx context.Context, token string) (*auth.DeviceAuthorization, error) {
+	// private api
+	return nil, errors.New("not implemented")
+}

@@ -11,6 +11,7 @@ import (
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	authServiceService "github.com/tidepool-org/platform/auth/service/service"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	appleTest "github.com/tidepool-org/platform/apple/test"
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -35,6 +36,7 @@ var _ = Describe("Service", func() {
 		var dataSourceClientConfig map[string]interface{}
 		var taskClientConfig map[string]interface{}
 		var authServiceConfig map[string]interface{}
+		var appleDeviceCheckerConfig map[string]interface{}
 		var service *authServiceService.Service
 
 		BeforeEach(func() {
@@ -71,8 +73,14 @@ var _ = Describe("Service", func() {
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 			}
-
+			appleDeviceCheckerConfig = map[string]interface{}{
+				"key_id":                      appleTest.Kid,
+				"issuer":                      appleTest.Issuer,
+				"private_key":                 appleTest.PrivateKey,
+				"use_development_environment": "true",
+			}
 			authServiceConfig = map[string]interface{}{
+				"apple_device_checker": appleDeviceCheckerConfig,
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
 					"store":  authStoreConfig,
