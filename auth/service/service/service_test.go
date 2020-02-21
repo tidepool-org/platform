@@ -8,10 +8,10 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	appleTest "github.com/tidepool-org/platform/apple/test"
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	authServiceService "github.com/tidepool-org/platform/auth/service/service"
 	authTest "github.com/tidepool-org/platform/auth/test"
-	appleTest "github.com/tidepool-org/platform/apple/test"
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"

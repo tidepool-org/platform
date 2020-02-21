@@ -62,5 +62,3 @@ func (d *deviceCheckerImpl) IsValidDeviceToken(token string) (bool, error) {
 		return false, err
 	}
 }
-
-

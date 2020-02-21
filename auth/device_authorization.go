@@ -17,7 +17,7 @@ const (
 	DeviceAuthorizationSuccessful = "successful"
 	DeviceAuthorizationFailed     = "failed"
 
-	LoopBundleId = "org.tidepool.Loop"
+	LoopBundleId               = "org.tidepool.Loop"
 	LoopBundleIdWithTeamPrefix = "75U4X84TEG.org.tidepool.Loop"
 )
 
@@ -51,7 +51,7 @@ type DeviceAuthorizationUpdate struct {
 	BundleId         string `json:"bundleId" bson:"bundleId"`
 	VerificationCode string `json:"verificationCode" bson:"verificationCode"`
 	DeviceCheckToken string `json:"deviceCheckToken" bson:"deviceCheckToken"`
-	Status string `json:"-" bson:"status"`
+	Status           string `json:"-" bson:"status"`
 }
 
 func (d *DeviceAuthorizationUpdate) Validate(validator structure.Validator) {
@@ -84,7 +84,7 @@ func StatusTypes() []string {
 	return []string{DeviceAuthorizationPending, DeviceAuthorizationExpired, DeviceAuthorizationSuccessful, DeviceAuthorizationFailed}
 }
 
-func NewDeviceAuthorizationId() string {
+func NewDeviceAuthorizationID() string {
 	// 8 bytes or 16 hex chars
 	return id.Must(id.New(8))
 }
@@ -105,7 +105,7 @@ func NewDeviceAuthorization(userID string, create *DeviceAuthorizationCreate) (*
 	}
 
 	return &DeviceAuthorization{
-		ID:              NewDeviceAuthorizationId(),
+		ID:              NewDeviceAuthorizationID(),
 		UserID:          userID,
 		Token:           NewDeviceAuthorizationToken(),
 		DevicePushToken: create.DevicePushToken,
@@ -141,7 +141,6 @@ func ValidBundleIds() []string {
 	return []string{LoopBundleId, LoopBundleIdWithTeamPrefix}
 }
 
-
 func arrayContains(arr []string, element string) bool {
 	for _, a := range arr {
 		if a == element {
@@ -153,11 +152,11 @@ func arrayContains(arr []string, element string) bool {
 }
 
 func ValidateBundleId(bundleId string) error {
-  if arrayContains(ValidBundleIds(), bundleId) {
-  	return nil
-  }
+	if arrayContains(ValidBundleIds(), bundleId) {
+		return nil
+	}
 
-  return errors.New("bundle id is not valid")
+	return errors.New("bundle id is not valid")
 }
 
 func ValidateStatus(status string) error {
@@ -168,12 +167,9 @@ func ValidateStatus(status string) error {
 	return errors.New("status is not valid")
 }
 
-func (d *DeviceAuthorization) SetStatus(status string) error {
-	if d.Status != DeviceAuthorizationPending {
+func (d *DeviceAuthorization) UpdateStatus(status string) error {
+	if d.IsCompleted() {
 		return errors.New("cannot update status of a completed device authorization")
-	}
-	if status == DeviceAuthorizationPending {
-		return errors.New("cannot update status of device authorization to pending")
 	}
 	if err := ValidateStatus(status); err != nil {
 		return err
@@ -181,4 +177,8 @@ func (d *DeviceAuthorization) SetStatus(status string) error {
 
 	d.Status = status
 	return nil
+}
+
+func (d *DeviceAuthorization) IsCompleted() bool {
+	return d.Status != "" && d.Status != DeviceAuthorizationPending
 }
