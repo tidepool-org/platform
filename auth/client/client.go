@@ -312,7 +312,6 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
-
 func (c *Client) GetUserDeviceAuthorization(ctx context.Context, userID string, id string) (*auth.DeviceAuthorization, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

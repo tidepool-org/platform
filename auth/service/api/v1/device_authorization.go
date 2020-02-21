@@ -12,7 +12,6 @@ import (
 
 const TidepoolBearerTokenHeaderKey = "x-tidepool-bearer-token"
 
-
 func (r *Router) DeviceAuthorizationRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/device_authorizations", api.Require(r.ListDeviceAuthorizations)),
