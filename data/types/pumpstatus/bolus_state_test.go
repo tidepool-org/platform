@@ -4,8 +4,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
-	"time"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -21,9 +19,11 @@ import (
 func RandomBolusState() *pumpstatus.BolusState {
 	datum := *pumpstatus.NewBolusState()
 	datum.State = pointer.FromString(test.RandomStringFromArray(pumpstatus.BolusStates()))
-	datum.DoseEntry = data.RandomDoseEntry()
-	datum.Date = pointer.FromString(test.FutureNearTime().Format(time.RFC3339Nano))
-
+	if *datum.State == pumpstatus.InProgress {
+		datum.DoseEntry = data.RandomDoseEntry()
+	} else {
+		datum.DoseEntry = nil
+	}
 	return &datum
 }
 
@@ -50,34 +50,23 @@ var _ = Describe("BolusState", func() {
 				Entry("State invalid",
 					func(datum *pumpstatus.BolusState) {
 						datum.State = pointer.FromString("invalid")
+						datum.DoseEntry = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", pumpstatus.BolusStates()), "/state"),
 				),
-				Entry("Date does not exists",
+				Entry("No Dose Entry Structure for in progress",
 					func(datum *pumpstatus.BolusState) {
-						datum.Date = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/date"),
-				),
-				Entry("Date invalid",
-					func(datum *pumpstatus.BolusState) {
-						datum.Date = pointer.FromString("invalid")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/date"),
-				),
-				Entry("No Dose Entry Structure",
-					func(datum *pumpstatus.BolusState) {
+						datum.State = pointer.FromString(pumpstatus.InProgress)
 						datum.DoseEntry = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/doseEntry"),
 				),
-				Entry("Multiple Errors",
+				Entry("Dose Entry Structure for Initiating",
 					func(datum *pumpstatus.BolusState) {
-						datum.State = pointer.FromString("invalid")
-						datum.Date = pointer.FromString("invalid")
+						datum.State = pointer.FromString(pumpstatus.Initiating)
+						datum.DoseEntry = data.RandomDoseEntry()
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", pumpstatus.BolusStates()), "/state"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/date"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/doseEntry"),
 				),
 			)
 		})

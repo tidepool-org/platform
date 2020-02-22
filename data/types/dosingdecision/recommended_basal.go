@@ -7,9 +7,9 @@ import (
 
 const (
 	MinUnitsPerHour = 0
-	MaxUnitsPerHour = 1000
+	MaxUnitsPerHour = 100
 	MinDuration     = 0
-	MaxDuration     = 1000
+	MaxDuration     = 604800000
 )
 
 type RecommendedBasal struct {

@@ -3,8 +3,11 @@ package pump
 import (
 	"sort"
 
+	"github.com/tidepool-org/platform/data/blood/glucose"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	glucoseStruct "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -44,7 +47,7 @@ type Pump struct {
 	BloodGlucoseTargetSchedule       *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`   // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
 	BloodGlucoseTargetSchedules      *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"` // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
 	BloodGlucoseTimeZoneOffset       *int                             `json:"bgTagetTimezoneOffset,omitempty" bson:"bgTargetTimezoneOffset,omitempty"`
-	BloodGlucosePreMealTarget        *BloodGlucosePreMealTarget       `json:"bgPreMealTarget,omitempty" bson:"PreMealTarget,omitempty"`
+	BloodGlucosePreMealTarget        *glucose.Target                  `json:"bgPreMealTarget,omitempty" bson:"PreMealTarget,omitempty"`
 	Bolus                            *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
 	CarbohydrateRatioSchedule        *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules       *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
@@ -58,7 +61,7 @@ type Pump struct {
 	Manufacturers                    *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
 	Model                            *string                          `json:"model,omitempty" bson:"model,omitempty"`
 	SerialNumber                     *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	SuspendThreshold                 *SuspendThreshold                `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
+	SuspendThreshold                 *glucoseStruct.Glucose           `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
 	Units                            *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
 
@@ -83,7 +86,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
 	p.BloodGlucoseTimeZoneOffset = parser.Int("bgTargetTimezoneOffset")
-	p.BloodGlucosePreMealTarget = ParseBloodGlucosePreMealTarget(parser.WithReferenceObjectParser("bgPreMealTarget"))
+	p.BloodGlucosePreMealTarget = glucose.ParseTarget(parser.WithReferenceObjectParser("bgPreMealTarget"))
 	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
@@ -97,7 +100,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Manufacturers = parser.StringArray("manufacturers")
 	p.Model = parser.String("model")
 	p.SerialNumber = parser.String("serialNumber")
-	p.SuspendThreshold = ParseSuspendThreshold(parser.WithReferenceObjectParser("suspendThreshold"))
+	p.SuspendThreshold = glucoseStruct.ParseGlucose(parser.WithReferenceObjectParser("suspendThreshold"))
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 }
 

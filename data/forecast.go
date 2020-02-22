@@ -7,18 +7,15 @@ import (
 )
 
 const (
-	MinimumTimeScale = 0
-	MaximumTimeScale = 3600000
-	BloodGlucose     = "bloodGlucose"
-	CarbsOnBoard     = "carbsOnBoard"
-	InsulinOnBoard   = "insulinOnBoard"
+	BloodGlucose   = "bloodGlucose"
+	CarbsOnBoard   = "carbsOnBoard"
+	InsulinOnBoard = "insulinOnBoard"
 )
 
 type Forecast struct {
-	StartDate *string    `json:"startTime,omitempty" bson:"startTime,omitempty"`
-	Type      *string    `json:"type,omitempty" bson:"type,omitempty"`
-	Unit      *string    `json:"unit,omitempty" bson:"unit,omitempty"`
-	Values    *[]float64 `json:"values,omitempty" bson:"values,omitempty"`
+	Date  *string  `json:"date,omitempty" bson:"date,omitempty"`
+	Type  *string  `json:"type,omitempty" bson:"type,omitempty"`
+	Value *float64 `json:"values,omitempty" bson:"values,omitempty"`
 }
 
 func Types() []string {
@@ -43,18 +40,14 @@ func NewForecast() *Forecast {
 }
 
 func (f *Forecast) Parse(parser structure.ObjectParser) {
-	f.StartDate = parser.String("startTime")
+	f.Date = parser.String("date")
 	f.Type = parser.String("type")
-	f.Unit = parser.String("unit")
-	//f.Values = parser.Float64Array("values")
+	f.Value = parser.Float64("value")
 }
 
 func (f *Forecast) Validate(validator structure.Validator) {
-	if f.StartDate != nil {
-		validator.String("startTime", f.StartDate).AsTime(time.RFC3339Nano)
-	}
+	validator.String("date", f.Date).AsTime(time.RFC3339Nano)
 	validator.String("type", f.Type).Exists().OneOf(Types()...)
-	validator.String("unit", f.Unit).Exists()
 }
 
 func (f *Forecast) Normalize(normalizer Normalizer) {}

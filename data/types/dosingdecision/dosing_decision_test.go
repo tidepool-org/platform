@@ -31,7 +31,6 @@ func NewMeta() interface{} {
 func NewDosingDecision() *dosingdecision.DosingDecision {
 	datum := dosingdecision.NewDosingDecision()
 	datum.Base = *dataTypesTest.NewBase()
-	datum.Device = RandomDevice()
 	datum.Type = dosingdecision.Type
 	datum.Units = pump.NewUnits()
 	datum.Units.BloodGlucose = pointer.FromString("mmol/L")

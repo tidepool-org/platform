@@ -17,7 +17,6 @@ import (
 
 func RandomBattery() *pumpstatus.Battery {
 	datum := *pumpstatus.NewBattery()
-	datum.Unit = pointer.FromString("grams")
 	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(pumpstatus.MinBatteryPercentage, pumpstatus.MaxBatteryPercentage))
 	return &datum
 }
@@ -40,10 +39,6 @@ var _ = Describe("Battery", func() {
 				Entry("succeeds",
 					func(datum *pumpstatus.Battery) {},
 				),
-				Entry("Unit missing",
-					func(datum *pumpstatus.Battery) { datum.Unit = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/unit"),
-				),
 				Entry("Value missing",
 					func(datum *pumpstatus.Battery) { datum.Value = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
@@ -58,14 +53,6 @@ var _ = Describe("Battery", func() {
 					func(datum *pumpstatus.Battery) {
 						datum.Value = pointer.FromFloat64(pumpstatus.MaxBatteryPercentage + 1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(pumpstatus.MaxBatteryPercentage+1, pumpstatus.MinBatteryPercentage, pumpstatus.MaxBatteryPercentage), "/value"),
-				),
-				Entry("Multiple Errors",
-					func(datum *pumpstatus.Battery) {
-						datum.Unit = nil
-						datum.Value = pointer.FromFloat64(pumpstatus.MaxBatteryPercentage + 1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/unit"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(pumpstatus.MaxBatteryPercentage+1, pumpstatus.MinBatteryPercentage, pumpstatus.MaxBatteryPercentage), "/value"),
 				),
 			)

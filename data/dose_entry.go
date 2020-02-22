@@ -8,13 +8,13 @@ import (
 
 const (
 	MinValue = 0
-	MaxValue = 1000
+	MaxValue = 100
 
 	MinDeliveredUnits = 0
-	MaxDeliveredUnits = 1000
+	MaxDeliveredUnits = 100
 
 	MinBasalRate = 0
-	MaxBasalRate = 1000
+	MaxBasalRate = 100
 )
 
 func DoseTypes() []string {

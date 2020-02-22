@@ -9,8 +9,8 @@ import (
 const (
 	Type = "pumpStatus"
 
-	MinPumpChargeRemaining = 0.0
-	MaxPumpChargeRemaining = 1.0
+	MinReservoirRemaining = 0
+	MaxReservoirRemaining = 1000
 )
 
 type PumpStatus struct {
@@ -21,7 +21,7 @@ type PumpStatus struct {
 	Battery            *Battery            `json:"battery,omitempty" bson:"battery,omitempty"`
 	BolusState         *BolusState         `json:"bolusState,omitempty" bson:"bolusState,omitempty"`
 	Forecast           *data.Forecast      `json:"forecast,omitempty" bson:"forecast,omitempty"`
-	ReservoirRemaining *ReservoirRemaining `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
+	ReservoirRemaining *float64            `json:"reservoirRemaining,omitempty" bson:"reservoirRemaining,omitempty"`
 	Device             *Device             `json:"device,omitempty" bson:"device,omitempty"`
 }
 
@@ -57,7 +57,7 @@ func (c *PumpStatus) Parse(parser structure.ObjectParser) {
 	c.BolusState = ParseBolusState(parser.WithReferenceObjectParser("bolusState"))
 	c.Device = ParseDevice(parser.WithReferenceObjectParser("device"))
 	c.Forecast = data.ParseForecast(parser.WithReferenceObjectParser("forecast"))
-	c.ReservoirRemaining = ParseReservoirRemaining(parser.WithReferenceObjectParser("reservoirRemaining"))
+	c.ReservoirRemaining = parser.Float64("reservoirRemaining")
 }
 
 func (c *PumpStatus) Validate(validator structure.Validator) {
@@ -65,7 +65,7 @@ func (c *PumpStatus) Validate(validator structure.Validator) {
 		c.Battery.Validate(validator.WithReference("battery"))
 	}
 	if c.ReservoirRemaining != nil {
-		c.ReservoirRemaining.Validate(validator.WithReference("reservoirRemaining"))
+		validator.Float64("reservoirRemaining", c.ReservoirRemaining).InRange(MinReservoirRemaining, MaxReservoirRemaining)
 	}
 	if c.Forecast != nil {
 		c.Forecast.Validate(validator.WithReference("forecast"))
@@ -84,9 +84,6 @@ func (c *PumpStatus) Validate(validator structure.Validator) {
 func (c *PumpStatus) Normalize(normalizer data.Normalizer) {
 	if c.Battery != nil {
 		c.Battery.Normalize(normalizer.WithReference("battery"))
-	}
-	if c.ReservoirRemaining != nil {
-		c.ReservoirRemaining.Normalize(normalizer.WithReference("reservoirRemaining"))
 	}
 	if c.Forecast != nil {
 		c.Forecast.Normalize(normalizer.WithReference("forecast"))

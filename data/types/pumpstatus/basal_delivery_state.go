@@ -8,15 +8,25 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const (
+	Active              = "active"
+	InitiatingTempBasal = "initiatingTempBasal"
+	TempBasal           = "tempBasal"
+	CancelingTempBasal  = "cancelingTempBasal"
+	Suspended           = "suspended"
+	Suspending          = "suspending"
+	Resuming            = "resuming"
+)
+
 func BasalDeliveryStates() []string {
 	return []string{
-		"active",
-		"initiatingTempBasal",
-		"tempBasal",
-		"cancelingTempBasal",
-		"suspended",
-		"suspending",
-		"resuming",
+		Active,
+		InitiatingTempBasal,
+		TempBasal,
+		CancelingTempBasal,
+		Suspended,
+		Suspending,
+		Resuming,
 	}
 }
 
@@ -45,11 +55,28 @@ func (b *BasalDeliveryState) Parse(parser structure.ObjectParser) {
 
 func (b *BasalDeliveryState) Validate(validator structure.Validator) {
 	validator.String("state", b.State).Exists().OneOf(BasalDeliveryStates()...)
-	validator.String("date", b.Date).Exists().AsTime(time.RFC3339Nano)
-	if b.DoseEntry != nil {
-		b.DoseEntry.Validate(validator.WithReference("doseEntry"))
-	} else {
-		validator.WithReference("doseEntry").ReportError(structureValidator.ErrorValueNotExists())
+	if b.State != nil {
+		// With Active and suspended states - we have a date parameter
+		if *b.State == Active || *b.State == Suspended {
+			validator.String("date", b.Date).Exists().AsTime(time.RFC3339Nano)
+		} else {
+			if b.Date != nil {
+				validator.WithReference("date").ReportError(structureValidator.ErrorValueExists())
+			}
+		}
+
+		// With tempBasal states - we have a date parameter
+		if *b.State == TempBasal {
+			if b.DoseEntry != nil {
+				b.DoseEntry.Validate(validator.WithReference("doseEntry"))
+			} else {
+				validator.WithReference("doseEntry").ReportError(structureValidator.ErrorValueNotExists())
+			}
+		} else {
+			if b.DoseEntry != nil {
+				validator.WithReference("doseEntry").ReportError(structureValidator.ErrorValueExists())
+			}
+		}
 	}
 }
 

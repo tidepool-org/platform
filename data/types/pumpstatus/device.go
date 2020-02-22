@@ -7,8 +7,11 @@ import (
 
 const (
 	MinDeviceIDLength     = 1
+	MaxDeviceIDLength     = 1000
 	MinModelLength        = 1
+	MaxModelLength        = 1000
 	MinManufacturerLength = 1
+	MaxManufacturerLength = 1000
 )
 
 type Device struct {
@@ -35,9 +38,9 @@ func (b *Device) Parse(parser structure.ObjectParser) {
 }
 
 func (b *Device) Validate(validator structure.Validator) {
-	validator.String("deviceID", b.DeviceID).Exists().LengthGreaterThanOrEqualTo(MinDeviceIDLength)
-	validator.String("model", b.Model).Exists().LengthGreaterThanOrEqualTo(MinDeviceIDLength)
-	validator.String("manufacturer", b.Manufacturer).Exists().LengthGreaterThanOrEqualTo(MinDeviceIDLength)
+	validator.String("deviceID", b.DeviceID).Exists().LengthInRange(MinDeviceIDLength, MaxDeviceIDLength)
+	validator.String("model", b.Model).Exists().LengthInRange(MinModelLength, MaxModelLength)
+	validator.String("manufacturer", b.Manufacturer).Exists().LengthInRange(MinManufacturerLength, MaxManufacturerLength)
 }
 
 func (b *Device) Normalize(normalizer data.Normalizer) {
