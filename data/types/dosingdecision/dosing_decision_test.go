@@ -18,10 +18,6 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-const (
-	ValidVersion = "1.0"
-)
-
 func NewMeta() interface{} {
 	return &types.Meta{
 		Type: dosingdecision.Type,

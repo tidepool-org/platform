@@ -23,8 +23,8 @@ const (
 	TimeZoneOffsetMaximum = 7 * 24 * 60 // TODO: Make sure same as all time zone offsets
 	TimeZoneOffsetMinimum = -7 * 24 * 60
 
-	RapidAdult = "rapid_adult"
-	RapidChild = "rapid_child"
+	RapidAdult = "rapidAdult"
+	RapidChild = "rapidChild"
 	Fiasp      = "fiasp"
 )
 
