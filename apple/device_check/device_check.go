@@ -1,31 +1,28 @@
-package apple
+package device_check
 
 import (
 	devicecheck "github.com/snowman-mh/device-check-go"
+	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/config"
 	"net/http"
 )
 
-type DeviceChecker interface {
-	IsValidDeviceToken(string) (bool, error)
-}
-
-type deviceCheckerImpl struct {
+type deviceChecker struct {
 	client *devicecheck.Client
 }
 
-type DeviceCheckerConfig struct {
+type DeviceCheckConfig struct {
 	PrivateKey                string
 	Issuer                    string
 	KeyID                     string
 	UseDevelopmentEnvironment bool
 }
 
-func NewDeviceCheckerConfig() *DeviceCheckerConfig {
-	return &DeviceCheckerConfig{}
+func NewConfig() *DeviceCheckConfig {
+	return &DeviceCheckConfig{}
 }
 
-func (c *DeviceCheckerConfig) Load(configReporter config.Reporter) error {
+func (c *DeviceCheckConfig) Load(configReporter config.Reporter) error {
 	if err := c.Load(configReporter); err != nil {
 		return err
 	}
@@ -38,7 +35,7 @@ func (c *DeviceCheckerConfig) Load(configReporter config.Reporter) error {
 	return nil
 }
 
-func NewDeviceChecker(cfg *DeviceCheckerConfig, httpClient *http.Client) DeviceChecker {
+func New(cfg *DeviceCheckConfig, httpClient *http.Client) apple.DeviceCheck {
 	cred := devicecheck.NewCredentialString(cfg.PrivateKey)
 	env := devicecheck.Production
 	if cfg.UseDevelopmentEnvironment {
@@ -47,12 +44,12 @@ func NewDeviceChecker(cfg *DeviceCheckerConfig, httpClient *http.Client) DeviceC
 	devicecheckCfg := devicecheck.NewConfig(cfg.Issuer, cfg.KeyID, env)
 	client := devicecheck.NewWithHTTPClient(httpClient, cred, devicecheckCfg)
 
-	return &deviceCheckerImpl{
+	return &deviceChecker{
 		client: client,
 	}
 }
 
-func (d *deviceCheckerImpl) IsValidDeviceToken(token string) (bool, error) {
+func (d *deviceChecker) IsValidDeviceToken(token string) (bool, error) {
 	err := d.client.ValidateDeviceToken(token)
 	if err == nil {
 		return true, nil
