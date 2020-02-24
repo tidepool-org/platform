@@ -2,15 +2,17 @@ package mongo
 
 import (
 	"context"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"time"
 )
 
 type DeviceAuthorizationSession struct {
@@ -163,6 +165,10 @@ func (d *DeviceAuthorizationSession) GetDeviceAuthorizationByToken(ctx context.C
 		return nil, errors.Wrap(err, "unable to get device authorization by token")
 	}
 
+	if deviceAuthorization.ID == "" {
+		deviceAuthorization = nil
+	}
+
 	return deviceAuthorization, nil
 }
 
@@ -182,7 +188,7 @@ func (d *DeviceAuthorizationSession) UpdateDeviceAuthorization(ctx context.Conte
 		"status": auth.DeviceAuthorizationPending,
 	}
 	set := bson.M{
-		"bundleId":         update.BundleId,
+		"bundleId":         update.BundleID,
 		"deviceCheckToken": update.DeviceCheckToken,
 		"modifiedTime":     now,
 		"status":           update.Status,

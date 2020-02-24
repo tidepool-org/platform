@@ -1,30 +1,33 @@
-package device_check
+package devicecheck
 
 import (
+	"errors"
+	"net/http"
+
 	devicecheck "github.com/snowman-mh/device-check-go"
+
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/config"
-	"net/http"
 )
 
 type deviceChecker struct {
 	client *devicecheck.Client
 }
 
-type DeviceCheckConfig struct {
+type Config struct {
 	PrivateKey                string
 	Issuer                    string
 	KeyID                     string
 	UseDevelopmentEnvironment bool
 }
 
-func NewConfig() *DeviceCheckConfig {
-	return &DeviceCheckConfig{}
+func NewConfig() *Config {
+	return &Config{}
 }
 
-func (c *DeviceCheckConfig) Load(configReporter config.Reporter) error {
-	if err := c.Load(configReporter); err != nil {
-		return err
+func (c *Config) Load(configReporter config.Reporter) error {
+	if configReporter == nil {
+		return errors.New("config reporter is missing")
 	}
 
 	c.PrivateKey = configReporter.GetWithDefault("private_key", "")
@@ -35,7 +38,7 @@ func (c *DeviceCheckConfig) Load(configReporter config.Reporter) error {
 	return nil
 }
 
-func New(cfg *DeviceCheckConfig, httpClient *http.Client) apple.DeviceCheck {
+func New(cfg *Config, httpClient *http.Client) apple.DeviceCheck {
 	cred := devicecheck.NewCredentialString(cfg.PrivateKey)
 	env := devicecheck.Production
 	if cfg.UseDevelopmentEnvironment {

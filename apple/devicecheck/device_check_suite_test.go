@@ -1,4 +1,4 @@
-package device_check_test
+package devicecheck_test
 
 import (
 	"testing"

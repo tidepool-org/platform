@@ -1,13 +1,15 @@
 package v1
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
-	"net/http"
-	"strings"
 )
 
 const TidepoolBearerTokenHeaderKey = "x-tidepool-bearer-token"
@@ -17,7 +19,7 @@ func (r *Router) DeviceAuthorizationRoutes() []*rest.Route {
 		rest.Get("/v1/users/:userId/device_authorizations", api.Require(r.ListDeviceAuthorizations)),
 		rest.Post("/v1/users/:userId/device_authorizations", api.Require(r.CreateDeviceAuthorization)),
 		rest.Get("/v1/users/:userId/device_authorizations/:deviceAuthorizationId", api.Require(r.GetDeviceAuthorization)),
-		rest.Post("/v1/device_authorizations", api.Require(r.CompleteDeviceAuthorization)),
+		rest.Post("/v1/device_authorizations", api.Require(r.UpdateDeviceAuthorization)),
 	}
 }
 
@@ -67,15 +69,20 @@ func (r *Router) GetDeviceAuthorization(res rest.ResponseWriter, req *rest.Reque
 		return
 	}
 
-	deviceAuthorizationId := req.PathParam("deviceAuthorizationId")
-	if deviceAuthorizationId == "" {
+	deviceAuthorizationID := req.PathParam("deviceAuthorizationId")
+	if deviceAuthorizationID == "" {
 		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("deviceAuthorizationId"))
 		return
 	}
 
-	deviceAuthorization, err := r.AuthClient().GetUserDeviceAuthorization(req.Context(), userID, deviceAuthorizationId)
+	deviceAuthorization, err := r.AuthClient().GetUserDeviceAuthorization(req.Context(), userID, deviceAuthorizationID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	if deviceAuthorization == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
 
@@ -113,7 +120,7 @@ func (r *Router) ListDeviceAuthorizations(res rest.ResponseWriter, req *rest.Req
 	responder.Data(http.StatusOK, deviceAuthorizations)
 }
 
-func (r *Router) CompleteDeviceAuthorization(res rest.ResponseWriter, req *rest.Request) {
+func (r *Router) UpdateDeviceAuthorization(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	responder := request.MustNewResponder(res, req)
 

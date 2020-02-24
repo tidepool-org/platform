@@ -3,6 +3,7 @@ package auth_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
 )
@@ -62,7 +63,7 @@ var _ = Describe("DeviceAuthorization", func() {
 		})
 	})
 
-	Context("UpdateBundleId", func() {
+	Context("UpdateBundleID", func() {
 		var authz *auth.DeviceAuthorization
 
 		BeforeEach(func() {
@@ -70,20 +71,20 @@ var _ = Describe("DeviceAuthorization", func() {
 		})
 
 		It("doesn't return an error with loop bundle id", func() {
-			Expect(authz.UpdateBundleId("org.tidepool.Loop")).To(Succeed())
+			Expect(authz.UpdateBundleID("org.tidepool.Loop")).To(Succeed())
 		})
 
 		It("doesn't return an error with loop bundle id", func() {
-			Expect(authz.UpdateBundleId("75U4X84TEG.org.tidepool.Loop")).To(Succeed())
+			Expect(authz.UpdateBundleID("75U4X84TEG.org.tidepool.Loop")).To(Succeed())
 		})
 
 		It("returns an error with invalid bundle", func() {
-			Expect(authz.UpdateBundleId("com.todd.Loop")).To(MatchError("bundle id is not valid"))
+			Expect(authz.UpdateBundleID("com.todd.Loop")).To(MatchError("bundle id is not valid"))
 		})
 
 		It("return an error if bundle id is already set", func() {
-			Expect(authz.UpdateBundleId("org.tidepool.Loop")).To(Succeed())
-			Expect(authz.UpdateBundleId("75U4X84TEG.org.tidepool.Loop")).To(MatchError("bundle id is already set"))
+			Expect(authz.UpdateBundleID("org.tidepool.Loop")).To(Succeed())
+			Expect(authz.UpdateBundleID("75U4X84TEG.org.tidepool.Loop")).To(MatchError("bundle id is already set"))
 		})
 	})
 
