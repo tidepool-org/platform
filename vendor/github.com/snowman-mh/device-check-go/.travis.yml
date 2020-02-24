@@ -1,0 +1,18 @@
+language: go
+go:
+  - 1.11.x
+  - 1.12.x
+env:
+  global:
+    - GO111MODULE=on
+install:
+  - go get -u golang.org/x/tools/cmd/goimports
+  - go get -u golang.org/x/lint/golint
+script:
+  - diff <(goimports -d *.go) <(printf "")
+  - diff <(golint *.go) <(printf "")
+  - diff <(gofmt -l *.go) <(printf "")
+  - diff <(go vet *.go) <(printf "")
+  - go test -coverprofile=coverage.txt -covermode=atomic
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
