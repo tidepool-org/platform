@@ -2,63 +2,65 @@ package test
 
 import (
 	"context"
+
 	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/page"
 )
 
 type GetUserDeviceAuthorizationInput struct {
-	ctx    context.Context
-	userID string
-	id     string
+	Ctx    context.Context
+	UserID string
+	ID     string
 }
 
 type GetUserDeviceAuthorizationOutput struct {
-	authorization *auth.DeviceAuthorization
-	err           error
+	Authorization *auth.DeviceAuthorization
+	Err           error
 }
 
 type ListUserDeviceAuthorizationsInput struct {
-	ctx        context.Context
-	userID     string
-	pagination *page.Pagination
+	Ctx        context.Context
+	UserID     string
+	Pagination *page.Pagination
 }
 
 type ListUserDeviceAuthorizationsOutput struct {
-	authorizations auth.DeviceAuthorizations
-	err            error
+	Authorizations auth.DeviceAuthorizations
+	Err            error
 }
 
 type GetDeviceAuthorizationByTokenInput struct {
-	ctx   context.Context
-	token string
+	Ctx   context.Context
+	Token string
 }
 
 type GetDeviceAuthorizationByTokenOutput struct {
-	authorization *auth.DeviceAuthorization
-	err           error
+	Authorization *auth.DeviceAuthorization
+	Err           error
 }
 
 type CreateUserDeviceAuthorizationInput struct {
-	ctx    context.Context
-	userID string
-	create *auth.DeviceAuthorizationCreate
+	Ctx    context.Context
+	UserID string
+	Create *auth.DeviceAuthorizationCreate
 }
 
 type CreateUserDeviceAuthorizationOutput struct {
-	authorization *auth.DeviceAuthorization
-	err           error
+	Authorization *auth.DeviceAuthorization
+	Err           error
 }
 
 type UpdateDeviceAuthorizationInput struct {
-	ctx    context.Context
-	id     string
-	update *auth.DeviceAuthorizationUpdate
+	Ctx    context.Context
+	ID     string
+	Update *auth.DeviceAuthorizationUpdate
 }
 
 type UpdateDeviceAuthorizationOutput struct {
-	authorization *auth.DeviceAuthorization
-	err           error
+	Authorization *auth.DeviceAuthorization
+	Err           error
 }
 
 type DeviceAuthorizationAccessor struct {
@@ -92,7 +94,7 @@ func (d *DeviceAuthorizationAccessor) GetUserDeviceAuthorization(ctx context.Con
 
 	output := d.GetUserDeviceAuthorizationOutputs[0]
 	d.GetUserDeviceAuthorizationOutputs = d.GetUserDeviceAuthorizationOutputs[1:]
-	return output.authorization, output.err
+	return output.Authorization, output.Err
 }
 
 func (d *DeviceAuthorizationAccessor) ListUserDeviceAuthorizations(ctx context.Context, userID string, pagination *page.Pagination) (auth.DeviceAuthorizations, error) {
@@ -104,7 +106,7 @@ func (d *DeviceAuthorizationAccessor) ListUserDeviceAuthorizations(ctx context.C
 
 	output := d.ListUserDeviceAuthorizationsOutputs[0]
 	d.ListUserDeviceAuthorizationsOutputs = d.ListUserDeviceAuthorizationsOutputs[1:]
-	return output.authorizations, output.err
+	return output.Authorizations, output.Err
 }
 
 func (d *DeviceAuthorizationAccessor) GetDeviceAuthorizationByToken(ctx context.Context, token string) (*auth.DeviceAuthorization, error) {
@@ -116,7 +118,7 @@ func (d *DeviceAuthorizationAccessor) GetDeviceAuthorizationByToken(ctx context.
 
 	output := d.GetDeviceAuthorizationByTokenOutputs[0]
 	d.GetDeviceAuthorizationByTokenOutputs = d.GetDeviceAuthorizationByTokenOutputs[1:]
-	return output.authorization, output.err
+	return output.Authorization, output.Err
 }
 
 func (d *DeviceAuthorizationAccessor) CreateUserDeviceAuthorization(ctx context.Context, userID string, create *auth.DeviceAuthorizationCreate) (*auth.DeviceAuthorization, error) {
@@ -128,7 +130,7 @@ func (d *DeviceAuthorizationAccessor) CreateUserDeviceAuthorization(ctx context.
 
 	output := d.CreateUserDeviceAuthorizationOutputs[0]
 	d.CreateUserDeviceAuthorizationOutputs = d.CreateUserDeviceAuthorizationOutputs[1:]
-	return output.authorization, output.err
+	return output.Authorization, output.Err
 }
 
 func (d *DeviceAuthorizationAccessor) UpdateDeviceAuthorization(ctx context.Context, id string, update *auth.DeviceAuthorizationUpdate) (*auth.DeviceAuthorization, error) {
@@ -140,7 +142,7 @@ func (d *DeviceAuthorizationAccessor) UpdateDeviceAuthorization(ctx context.Cont
 
 	output := d.UpdateDeviceAuthorizationOutputs[0]
 	d.UpdateDeviceAuthorizationOutputs = d.UpdateDeviceAuthorizationOutputs[1:]
-	return output.authorization, output.err
+	return output.Authorization, output.Err
 }
 
 func (d *DeviceAuthorizationAccessor) Expectations() {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/tidepool-org/platform/apple"
 
 	"github.com/tidepool-org/platform/auth"
@@ -231,7 +232,7 @@ func (c *Client) UpdateDeviceAuthorization(ctx context.Context, id string, updat
 	ssn := c.authStore.NewDeviceAuthorizationSession()
 	defer ssn.Close()
 
-	if err := auth.ValidateBundleId(update.BundleId); err != nil {
+	if err := auth.ValidateBundleID(update.BundleID); err != nil {
 		logger.WithField("deviceAuthorizationId", id).WithError(err).Debug("invalid bundle id")
 		update.Status = auth.DeviceAuthorizationFailed
 	} else {

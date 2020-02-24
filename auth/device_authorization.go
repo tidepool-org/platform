@@ -2,9 +2,10 @@ package auth
 
 import (
 	"context"
+	"time"
+
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/page"
-	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -17,8 +18,8 @@ const (
 	DeviceAuthorizationSuccessful = "successful"
 	DeviceAuthorizationFailed     = "failed"
 
-	LoopBundleId               = "org.tidepool.Loop"
-	LoopBundleIdWithTeamPrefix = "75U4X84TEG.org.tidepool.Loop"
+	LoopBundleID               = "org.tidepool.Loop"
+	LoopBundleIDWithTeamPrefix = "75U4X84TEG.org.tidepool.Loop"
 )
 
 type DeviceAuthorizationAccessor interface {
@@ -48,7 +49,7 @@ func (d *DeviceAuthorizationCreate) Validate(validator structure.Validator) {
 }
 
 type DeviceAuthorizationUpdate struct {
-	BundleId         string `json:"bundleId" bson:"bundleId"`
+	BundleID         string `json:"bundleId" bson:"bundleId"`
 	VerificationCode string `json:"verificationCode" bson:"verificationCode"`
 	DeviceCheckToken string `json:"deviceCheckToken" bson:"deviceCheckToken"`
 	Status           string `json:"-" bson:"status"`
@@ -71,7 +72,7 @@ type DeviceAuthorization struct {
 	Token            string     `json:"-" bson:"token"`
 	DevicePushToken  string     `json:"devicePushToken,omitempty" bson:"devicePushToken"`
 	Status           string     `json:"status" bson:"status"`
-	BundleId         string     `json:"bundleId,omitempty" bson:"bundleId,omitempty"`
+	BundleID         string     `json:"bundleId,omitempty" bson:"bundleId,omitempty"`
 	VerificationCode string     `json:"verificationCode,omitempty" bson:"verificationCode,omitempty"`
 	DeviceCheckToken string     `json:"deviceCheckToken,omitempty" bson:"deviceCheckToken,omitempty"`
 	CreatedTime      time.Time  `json:"createdTime" bson:"createdTime"`
@@ -125,20 +126,20 @@ func (d *DeviceAuthorization) Validate(validator structure.Validator) {
 	validator.Time("modifiedTime", d.ModifiedTime).After(d.CreatedTime).BeforeNow(time.Second)
 }
 
-func (d *DeviceAuthorization) UpdateBundleId(bundleId string) error {
-	if d.BundleId != "" {
+func (d *DeviceAuthorization) UpdateBundleID(bundleID string) error {
+	if d.BundleID != "" {
 		return errors.New("bundle id is already set")
 	}
-	if err := ValidateBundleId(bundleId); err != nil {
+	if err := ValidateBundleID(bundleID); err != nil {
 		return err
 	}
 
-	d.BundleId = bundleId
+	d.BundleID = bundleID
 	return nil
 }
 
 func ValidBundleIds() []string {
-	return []string{LoopBundleId, LoopBundleIdWithTeamPrefix}
+	return []string{LoopBundleID, LoopBundleIDWithTeamPrefix}
 }
 
 func arrayContains(arr []string, element string) bool {
@@ -151,8 +152,8 @@ func arrayContains(arr []string, element string) bool {
 	return false
 }
 
-func ValidateBundleId(bundleId string) error {
-	if arrayContains(ValidBundleIds(), bundleId) {
+func ValidateBundleID(bundleID string) error {
+	if arrayContains(ValidBundleIds(), bundleID) {
 		return nil
 	}
 
