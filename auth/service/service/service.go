@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/apple/device_check"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
@@ -277,14 +277,14 @@ func (s *Service) initializeAuthClient() error {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 
-	appleDeviceCheckerConfig := apple.NewDeviceCheckerConfig()
+	appleDeviceCheckerConfig := device_check.NewConfig()
 	if err := appleDeviceCheckerConfig.Load(s.ConfigReporter().WithScopes("apple_device_checker")); err != nil {
 		return errors.Wrap(err, "unable to load apple device checker config")
 	}
 	httpClient := &http.Client{
 		Timeout: 2 * time.Second,
 	}
-	deviceChecker := apple.NewDeviceChecker(appleDeviceCheckerConfig, httpClient)
+	deviceChecker := device_check.New(appleDeviceCheckerConfig, httpClient)
 
 	s.Logger().Debug("Creating auth client")
 

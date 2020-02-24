@@ -16,12 +16,12 @@ import (
 
 type Client struct {
 	*client.External
-	appleDeviceChecker apple.DeviceChecker
+	appleDeviceChecker apple.DeviceCheck
 	authStore          authStore.Store
 	providerFactory    provider.Factory
 }
 
-func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory, appleDeviceChecker apple.DeviceChecker) (*Client, error) {
+func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory, appleDeviceChecker apple.DeviceCheck) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
