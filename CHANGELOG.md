@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## Unreleased
+### Added
+- PT-1004: Document the api using openApi and swaggo
+
 ## 0.6.4 2020-02-13
 ### Fixed
 - PT-1117 Delete DataSet should return a 200 when the data set ID does not exist (temporary fix)

@@ -10,7 +10,9 @@ go_import_path: github.com/tidepool-org/platform
 dist: trusty
 
 env:
-  - DEP_VERSION="0.5.3"
+  global:
+    - BUILD_OPENAPI_DOC=true
+    - DEP_VERSION="0.5.3"
 
 before_install:
   - sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5;

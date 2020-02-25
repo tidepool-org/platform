@@ -84,11 +84,13 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
 
+// Create godoc
+// @Summary The structure used to create a new DataSource
 type Create struct {
 	ProviderType      *string `json:"providerType,omitempty"`
 	ProviderName      *string `json:"providerName,omitempty"`
 	ProviderSessionID *string `json:"providerSessionId,omitempty"`
-	State             *string `json:"state,omitempty"`
+	State             *string `json:"state,omitempty" enums:"connected,disconnected,error"`
 }
 
 func NewCreate() *Create {

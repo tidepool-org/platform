@@ -147,7 +147,7 @@ func (d *DataSetFilter) MutateRequest(req *http.Request) error {
 
 type DataSetCreate struct {
 	Client              *DataSetClient          `json:"client,omitempty"`
-	DataSetType         *string                 `json:"dataSetType,omitempty"`
+	DataSetType         *string                 `json:"dataSetType,omitempty" enums:"continuous,normal"`
 	Deduplicator        *DeduplicatorDescriptor `json:"deduplicator,omitempty"`
 	DeviceID            *string                 `json:"deviceId,omitempty"`
 	DeviceManufacturers *[]string               `json:"deviceManufacturers,omitempty"`
@@ -155,7 +155,7 @@ type DataSetCreate struct {
 	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty"`
 	DeviceTags          *[]string               `json:"deviceTags,omitempty"`
 	Time                *time.Time              `json:"time,omitempty"`
-	Type                string                  `json:"type,omitempty"`
+	Type                string                  `json:"type,omitempty" enums:"upload"`
 	TimeProcessing      *string                 `json:"timeProcessing,omitempty"`
 	TimeZoneName        *string                 `json:"timezone,omitempty"`
 	TimeZoneOffset      *int                    `json:"timezoneOffset,omitempty"`
@@ -223,7 +223,7 @@ type DataSetUpdate struct {
 	DeviceModel        *string                 `json:"deviceModel,omitempty"`
 	DeviceSerialNumber *string                 `json:"deviceSerialNumber,omitempty"`
 	Deduplicator       *DeduplicatorDescriptor `json:"-"`
-	State              *string                 `json:"state,omitempty"`
+	State              *string                 `json:"state,omitempty" enums:"open,closed"`
 	Time               *time.Time              `json:"time,omitempty"`
 	TimeZoneName       *string                 `json:"timezone,omitempty"`
 	TimeZoneOffset     *int                    `json:"timezoneOffset,omitempty"`
@@ -297,7 +297,7 @@ type DataSet struct {
 	ConversionOffset    *int                    `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
 	CreatedTime         *string                 `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	CreatedUserID       *string                 `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
+	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty" enums:"continuous,normal"`
 	DataState           *string                 `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
 	Deduplicator        *DeduplicatorDescriptor `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
 	DeletedTime         *string                 `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`

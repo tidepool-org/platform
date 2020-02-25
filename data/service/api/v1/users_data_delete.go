@@ -9,6 +9,20 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
+// UsersDataDelete godoc
+// @Summary Delete user data
+// @Description Only services (eg. not users) can delete user data
+// @ID platform-data-api-UsersDataDelete
+// @Accept json
+// @Produce json
+// @Param userId path string true "user ID"
+// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
+// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
+// @Success 200 {object} upload.Upload "Operation is a success"
+// @Failure 400 {object} service.Error "User id is missing"
+// @Failure 403 {object} service.Error "Forbiden: caller is not a service"
+// @Failure 500 {object} service.Error "Unable to perform the operation"
+// @Router /v1/users/:userId/data [delete]
 func UsersDataDelete(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	lgr := log.LoggerFromContext(ctx)

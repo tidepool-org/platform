@@ -27,6 +27,22 @@ func DataSetsRoutes() []dataService.Route {
 
 // func (r *Router) ListUserDataSets(res rest.ResponseWriter, req *rest.Request) {
 
+// ListUserDataSets godoc
+// @Summary List the user's datasets
+// @Produce json
+// @Param userId path string true "user ID"
+// @Param page query int false "When using pagination, page number" default(0)
+// @Param size query int false "When using pagination, number of elements by page, 1<size<1000" minimum(1) maximum(1000) default(100)
+// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
+// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
+// @Param restricted_token header string false "A tidepool restricted token"
+// @Param Authorization header string false "A tidepool authorization token"
+// @Success 200 {array} data.DataSet "Array of data sets"
+// @Failure 400 {object} service.Error "Bad request (userId is missing)"
+// @Failure 401 {object} service.Error "Not authenticated"
+// @Failure 403 {object} service.Error "Forbidden"
+// @Failure 500 {object} service.Error "Unable to perform the operation"
+// @Router /v1/users/:userId/data_sets [get]
 func ListUserDataSets(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -85,6 +101,21 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 
 // func (r *Router) GetDataSet(res rest.ResponseWriter, req *rest.Request) {
 
+// GetDataSet godoc
+// @Summary Get one dataset
+// @Produce json
+// @Param dataSetId path string true "dataSet ID"
+// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
+// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
+// @Param restricted_token header string false "A tidepool restricted token"
+// @Param Authorization header string false "A tidepool authorization token"
+// @Success 200 {object} data.DataSet "The requested data set"
+// @Failure 400 {object} service.Error "Bad request (userId is missing)"
+// @Failure 401 {object} service.Error "Not authenticated"
+// @Failure 403 {object} service.Error "Forbidden"
+// @Failure 404 {object} service.Error "Dataset not found"
+// @Failure 500 {object} service.Error "Unable to perform the operation"
+// @Router /v1/data_sets/:dataSetId [get]
 func GetDataSet(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()

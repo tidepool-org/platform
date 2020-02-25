@@ -13,6 +13,24 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
+// DataSetsUpdate godoc
+// @Summary Update a data sets
+// @ID platform-data-api-DataSetsUpdate
+// @Accept json
+// @Produce json
+// @Param dataSetID path string true "dataSet ID"
+// @Param dataSetUpdate body data.DataSetUpdate true "The dataSet to update"
+// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
+// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
+// @Param restricted_token header string false "A tidepool restricted token"
+// @Param Authorization header string false "A tidepool authorization token"
+// @Success 200 {object} upload.Upload "Operation is a success"
+// @Failure 400 {object} service.Error "Data set id is missing"
+// @Failure 403 {object} service.Error "Auth token is not authorized for requested action"
+// @Failure 404 {object} service.Error "Data set with specified id not found"
+// @Failure 409 {object} service.Error "Data set with specified id is closed for new data"
+// @Failure 500 {object} service.Error "Unable to perform the operation"
+// @Router /v1/datasets/:dataSetId [put]
 func DataSetsUpdate(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	res := dataServiceContext.Response()

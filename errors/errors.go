@@ -258,7 +258,7 @@ func Sanitize(err error) error {
 }
 
 type Serializable struct {
-	Error error
+	Error error `swaggertype:"string"`
 }
 
 func NewSerializable(err error) *Serializable {
