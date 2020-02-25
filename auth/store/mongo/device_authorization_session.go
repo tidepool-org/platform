@@ -31,7 +31,7 @@ func (d *DeviceAuthorizationSession) CreateUserDeviceAuthorization(ctx context.C
 		return nil, errors.New("context is missing")
 	}
 	if d.IsClosed() {
-		return nil, errors.New("session closed")
+		return nil, errors.New("session is closed")
 	}
 
 	deviceAuthorization, err := auth.NewDeviceAuthorization(userID, create)
@@ -101,12 +101,10 @@ func (d *DeviceAuthorizationSession) GetUserDeviceAuthorization(ctx context.Cont
 	deviceAuthorization := &auth.DeviceAuthorization{}
 	err := d.C().Find(selector).One(deviceAuthorization)
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("GetUserDeviceAuthorizations")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get user device authorization")
-	}
-
-	if deviceAuthorization.ID == "" {
+	if err == mgo.ErrNotFound {
 		deviceAuthorization = nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get user device authorization")
 	}
 
 	return deviceAuthorization, nil
@@ -131,12 +129,10 @@ func (d *DeviceAuthorizationSession) GetDeviceAuthorization(ctx context.Context,
 	deviceAuthorization := &auth.DeviceAuthorization{}
 	err := d.C().Find(selector).One(deviceAuthorization)
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("GetDeviceAuthorization")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get device authorization")
-	}
-
-	if deviceAuthorization.ID == "" {
+	if err == mgo.ErrNotFound {
 		deviceAuthorization = nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get device authorization")
 	}
 
 	return deviceAuthorization, nil
@@ -161,12 +157,10 @@ func (d *DeviceAuthorizationSession) GetDeviceAuthorizationByToken(ctx context.C
 	}
 	err := d.C().Find(selector).One(deviceAuthorization)
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("GetDeviceAuthorizationByToken")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get device authorization by token")
-	}
-
-	if deviceAuthorization.ID == "" {
+	if err == mgo.ErrNotFound {
 		deviceAuthorization = nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get device authorization by token")
 	}
 
 	return deviceAuthorization, nil

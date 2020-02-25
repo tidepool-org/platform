@@ -65,6 +65,6 @@ func (s *Store) restrictedTokenSession() *RestrictedTokenSession {
 
 func (s *Store) deviceAuthorizationSession() *DeviceAuthorizationSession {
 	return &DeviceAuthorizationSession{
-		Session: s.Store.NewSession("dthorizations"),
+		Session: s.Store.NewSession("device_authorizations"),
 	}
 }
