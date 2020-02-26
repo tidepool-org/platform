@@ -173,6 +173,9 @@ func (d *DeviceAuthorizationSession) UpdateDeviceAuthorization(ctx context.Conte
 	if d.IsClosed() {
 		return nil, errors.New("session is closed")
 	}
+	if update.Status == "" {
+		return nil, errors.New("status is empty")
+	}
 
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id})
@@ -181,6 +184,7 @@ func (d *DeviceAuthorizationSession) UpdateDeviceAuthorization(ctx context.Conte
 		"id":     id,
 		"status": auth.DeviceAuthorizationPending,
 	}
+
 	set := bson.M{
 		"bundleId":         update.BundleID,
 		"deviceCheckToken": update.DeviceCheckToken,

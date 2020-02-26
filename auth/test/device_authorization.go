@@ -1,6 +1,8 @@
 package test
 
 import (
+	time2 "time"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/test"
 )
@@ -26,16 +28,17 @@ func RandomDeviceAuthorizationVerificationCode() string {
 }
 
 func RandomDeviceAuthorization() *auth.DeviceAuthorization {
-	time := test.RandomTime()
+	time := time2.Now()
 	return &auth.DeviceAuthorization{
 		ID:               RandomDeviceAuthorizationID(),
 		UserID:           RandomUserID(),
 		Token:            RandomDeviceAuthorizationToken(),
 		DevicePushToken:  RandomDevicePushToken(),
-		Status:           test.RandomStringFromArray([]string{auth.DeviceAuthorizationPending, auth.DeviceAuthorizationSuccessful, auth.DeviceAuthorizationFailed, auth.DeviceAuthorizationExpired}),
+		Status:           test.RandomStringFromArray([]string{auth.DeviceAuthorizationPending, auth.DeviceAuthorizationSuccessful, auth.DeviceAuthorizationFailed}),
 		BundleID:         test.RandomStringFromArray([]string{auth.LoopBundleID, auth.LoopBundleIDWithTeamPrefix}),
 		VerificationCode: RandomDeviceAuthorizationVerificationCode(),
 		CreatedTime:      time,
+		ExpirationTime:   time.Add(auth.DeviceAuthorizationExpirationDuration),
 		ModifiedTime:     &time,
 	}
 }

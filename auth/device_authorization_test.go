@@ -1,6 +1,8 @@
 package auth_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -152,6 +154,92 @@ var _ = Describe("DeviceAuthorization", func() {
 		It("returns false if it's pending", func() {
 			_ = authz.UpdateStatus(auth.DeviceAuthorizationPending)
 			Expect(authz.IsCompleted()).To(BeFalse())
+		})
+	})
+
+	Context("ShouldExpire", func() {
+		var authz *auth.DeviceAuthorization
+
+		BeforeEach(func() {
+			authz = &auth.DeviceAuthorization{}
+		})
+
+		When("expiration time is before now", func() {
+			BeforeEach(func() {
+				authz.ExpirationTime = time.Now().Add(time.Duration(-1) * time.Hour)
+				Expect(authz.ExpirationTime.Before(time.Now())).To(BeTrue())
+			})
+
+			It("returns false", func() {
+				Expect(authz.ShouldExpire()).To(BeTrue())
+			})
+		})
+
+		When("expiration time is after now", func() {
+			BeforeEach(func() {
+				authz.ExpirationTime = time.Now().Add(time.Hour)
+				Expect(authz.ExpirationTime.After(time.Now())).To(BeTrue())
+			})
+
+			It("returns true", func() {
+				Expect(authz.ShouldExpire()).To(BeFalse())
+			})
+		})
+	})
+
+	Context("DeviceAuthorizationUpdate", func() {
+		var update *auth.DeviceAuthorizationUpdate
+
+		BeforeEach(func() {
+			update = authTest.RandomDeviceAuthorizationUpdate()
+		})
+
+		Context("Expire", func() {
+			BeforeEach(func() {
+				update.Expire()
+			})
+
+			It("should set verification code to empty", func() {
+				Expect(update.VerificationCode).To(BeEmpty())
+			})
+
+			It("should set status to expired", func() {
+				Expect(update.Status).To(Equal(auth.DeviceAuthorizationExpired))
+			})
+		})
+
+		Context("IsExpired", func() {
+			It("returns true when status is expired", func() {
+				update.Status = auth.DeviceAuthorizationExpired
+				Expect(update.IsExpired()).To(BeTrue())
+			})
+
+			It("returns true after Expire() is called", func() {
+				update.Status = auth.DeviceAuthorizationPending
+				update.Expire()
+				Expect(update.IsExpired()).To(BeTrue())
+			})
+
+			It("returns false when status is empty", func() {
+				update.Status = ""
+				Expect(update.IsExpired()).To(BeFalse())
+			})
+
+			It("returns false when status is successful", func() {
+				update.Status = auth.DeviceAuthorizationSuccessful
+				Expect(update.IsExpired()).To(BeFalse())
+			})
+
+			It("returns false when status is failed", func() {
+				update.Status = auth.DeviceAuthorizationFailed
+				Expect(update.IsExpired()).To(BeFalse())
+			})
+
+			It("returns false when status is pending", func() {
+				update.Status = auth.DeviceAuthorizationPending
+				Expect(update.IsExpired()).To(BeFalse())
+			})
+
 		})
 	})
 })

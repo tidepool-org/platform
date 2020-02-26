@@ -147,6 +147,10 @@ func (r *Router) UpdateDeviceAuthorization(res rest.ResponseWriter, req *rest.Re
 		return
 	}
 
+	if deviceAuthorization.ShouldExpire() {
+		update.Expire()
+	}
+
 	updated, err := r.AuthClient().UpdateDeviceAuthorization(ctx, deviceAuthorization.ID, update)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)

@@ -20,6 +20,8 @@ const (
 
 	LoopBundleID               = "org.tidepool.Loop"
 	LoopBundleIDWithTeamPrefix = "75U4X84TEG.org.tidepool.Loop"
+
+	DeviceAuthorizationExpirationDuration = time.Hour
 )
 
 type DeviceAuthorizationAccessor interface {
@@ -50,7 +52,7 @@ func (d *DeviceAuthorizationCreate) Validate(validator structure.Validator) {
 
 type DeviceAuthorizationUpdate struct {
 	BundleID         string `json:"bundleId" bson:"bundleId"`
-	VerificationCode string `json:"verificationCode" bson:"verificationCode"`
+	VerificationCode string `json:"verificationCode" bson:"verificationCode,omitempty"`
 	DeviceCheckToken string `json:"deviceCheckToken" bson:"deviceCheckToken"`
 	Status           string `json:"-" bson:"status"`
 }
@@ -60,6 +62,15 @@ func (d *DeviceAuthorizationUpdate) Validate(validator structure.Validator) {
 	// but it will not persist the failure in the database.
 	validator.String("verificationCode", &d.VerificationCode).NotEmpty()
 	validator.String("deviceCheckToken", &d.DeviceCheckToken).NotEmpty()
+}
+
+func (d *DeviceAuthorizationUpdate) Expire() {
+	d.VerificationCode = ""
+	d.Status = DeviceAuthorizationExpired
+}
+
+func (d *DeviceAuthorizationUpdate) IsExpired() bool {
+	return d.Status == DeviceAuthorizationExpired
 }
 
 func NewDeviceAuthorizationUpdate() *DeviceAuthorizationUpdate {
@@ -76,6 +87,7 @@ type DeviceAuthorization struct {
 	VerificationCode string     `json:"verificationCode,omitempty" bson:"verificationCode,omitempty"`
 	DeviceCheckToken string     `json:"deviceCheckToken,omitempty" bson:"deviceCheckToken,omitempty"`
 	CreatedTime      time.Time  `json:"createdTime" bson:"createdTime"`
+	ExpirationTime   time.Time  `json:"expirationTime" bson:"expirationTime"`
 	ModifiedTime     *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
 
@@ -105,13 +117,15 @@ func NewDeviceAuthorization(userID string, create *DeviceAuthorizationCreate) (*
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
+	now := time.Now()
 	return &DeviceAuthorization{
 		ID:              NewDeviceAuthorizationID(),
 		UserID:          userID,
 		Token:           NewDeviceAuthorizationToken(),
 		DevicePushToken: create.DevicePushToken,
 		Status:          DeviceAuthorizationPending,
-		CreatedTime:     time.Now(),
+		CreatedTime:     now,
+		ExpirationTime:  now.Add(DeviceAuthorizationExpirationDuration),
 	}, nil
 }
 
@@ -136,6 +150,26 @@ func (d *DeviceAuthorization) UpdateBundleID(bundleID string) error {
 
 	d.BundleID = bundleID
 	return nil
+}
+
+func (d *DeviceAuthorization) UpdateStatus(status string) error {
+	if d.IsCompleted() {
+		return errors.New("cannot update status of a completed device authorization")
+	}
+	if err := ValidateStatus(status); err != nil {
+		return err
+	}
+
+	d.Status = status
+	return nil
+}
+
+func (d *DeviceAuthorization) IsCompleted() bool {
+	return d.Status != "" && d.Status != DeviceAuthorizationPending
+}
+
+func (d *DeviceAuthorization) ShouldExpire() bool {
+	return time.Now().After(d.ExpirationTime)
 }
 
 func ValidBundleIds() []string {
@@ -166,20 +200,4 @@ func ValidateStatus(status string) error {
 	}
 
 	return errors.New("status is not valid")
-}
-
-func (d *DeviceAuthorization) UpdateStatus(status string) error {
-	if d.IsCompleted() {
-		return errors.New("cannot update status of a completed device authorization")
-	}
-	if err := ValidateStatus(status); err != nil {
-		return err
-	}
-
-	d.Status = status
-	return nil
-}
-
-func (d *DeviceAuthorization) IsCompleted() bool {
-	return d.Status != "" && d.Status != DeviceAuthorizationPending
 }
