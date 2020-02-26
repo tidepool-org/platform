@@ -218,6 +218,13 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	}
 	s.dataStoreDEPRECATED = str
 
+	s.Logger().Debug("Ensuring data store DEPRECATED indexes")
+
+	err = s.dataStoreDEPRECATED.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure data store DEPRECATED indexes")
+	}
+
 	return nil
 }
 
@@ -236,6 +243,13 @@ func (s *Standard) initializeDataSourceStructuredStore() error {
 		return errors.Wrap(err, "unable to create data source structured store")
 	}
 	s.dataSourceStructuredStore = str
+
+	s.Logger().Debug("Ensuring data source structured store indexes")
+
+	err = s.dataSourceStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure data source structured store indexes")
+	}
 
 	return nil
 }
