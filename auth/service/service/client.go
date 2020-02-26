@@ -232,6 +232,11 @@ func (c *Client) UpdateDeviceAuthorization(ctx context.Context, id string, updat
 	ssn := c.authStore.NewDeviceAuthorizationSession()
 	defer ssn.Close()
 
+	// No further validation is required if the authorization is expired, just persist it.
+	if update.IsExpired() {
+		return ssn.UpdateDeviceAuthorization(ctx, id, update)
+	}
+
 	if err := auth.ValidateBundleID(update.BundleID); err != nil {
 		logger.WithField("deviceAuthorizationId", id).WithError(err).Debug("invalid bundle id")
 		update.Status = auth.DeviceAuthorizationFailed

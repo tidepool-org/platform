@@ -258,6 +258,12 @@ var _ = Describe("DeviceAuthorizationSession", func() {
 					Expect(err).To(MatchError("session is closed"))
 				})
 
+				It("returns an error if the status is empty", func() {
+					update.Status = ""
+					_, err := mongoSession.UpdateDeviceAuthorization(ctx, authorization.ID, update)
+					Expect(err).To(MatchError("status is empty"))
+				})
+
 				It("succeeds if it updates the authorization", func() {
 					updated, err := mongoSession.UpdateDeviceAuthorization(ctx, authorization.ID, update)
 					Expect(updated).To(Not(BeNil()))
