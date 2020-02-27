@@ -3,10 +3,10 @@ package pumpstatus_test
 import (
 	"time"
 
+	dataTest "github.com/tidepool-org/platform/data/test"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-
-	"github.com/tidepool-org/platform/data"
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -28,7 +28,7 @@ func RandomBasalDeliveryState() *pumpstatus.BasalDeliveryState {
 		datum.Date = nil
 	}
 	if *datum.State == pumpstatus.TempBasal {
-		datum.DoseEntry = data.RandomDoseEntry()
+		datum.DoseEntry = dataTest.RandomDoseEntry()
 	} else {
 		datum.DoseEntry = nil
 	}
@@ -91,7 +91,7 @@ var _ = Describe("BasalDeliveryState", func() {
 				Entry("Dose Entry Structure on wrong state",
 					func(datum *pumpstatus.BasalDeliveryState) {
 						datum.State = pointer.FromString(pumpstatus.Active)
-						datum.DoseEntry = data.RandomDoseEntry()
+						datum.DoseEntry = dataTest.RandomDoseEntry()
 						datum.Date = pointer.FromString(test.FutureNearTime().Format(time.RFC3339Nano))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/doseEntry"),
@@ -99,7 +99,7 @@ var _ = Describe("BasalDeliveryState", func() {
 				Entry("Date on wrong state",
 					func(datum *pumpstatus.BasalDeliveryState) {
 						datum.State = pointer.FromString(pumpstatus.TempBasal)
-						datum.DoseEntry = data.RandomDoseEntry()
+						datum.DoseEntry = dataTest.RandomDoseEntry()
 						datum.Date = pointer.FromString(test.FutureNearTime().Format(time.RFC3339Nano))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/date"),
@@ -108,7 +108,7 @@ var _ = Describe("BasalDeliveryState", func() {
 					func(datum *pumpstatus.BasalDeliveryState) {
 						datum.State = pointer.FromString(pumpstatus.Active)
 						datum.Date = pointer.FromString("invalid")
-						datum.DoseEntry = data.RandomDoseEntry()
+						datum.DoseEntry = dataTest.RandomDoseEntry()
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/date"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/doseEntry"),

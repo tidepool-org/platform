@@ -4,7 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
-	"github.com/tidepool-org/platform/data"
+	dataTest "github.com/tidepool-org/platform/data/test"
+
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 
@@ -20,7 +21,7 @@ func RandomBolusState() *pumpstatus.BolusState {
 	datum := *pumpstatus.NewBolusState()
 	datum.State = pointer.FromString(test.RandomStringFromArray(pumpstatus.BolusStates()))
 	if *datum.State == pumpstatus.InProgress {
-		datum.DoseEntry = data.RandomDoseEntry()
+		datum.DoseEntry = dataTest.RandomDoseEntry()
 	} else {
 		datum.DoseEntry = nil
 	}
@@ -64,7 +65,7 @@ var _ = Describe("BolusState", func() {
 				Entry("Dose Entry Structure for Initiating",
 					func(datum *pumpstatus.BolusState) {
 						datum.State = pointer.FromString(pumpstatus.Initiating)
-						datum.DoseEntry = data.RandomDoseEntry()
+						datum.DoseEntry = dataTest.RandomDoseEntry()
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/doseEntry"),
 				),

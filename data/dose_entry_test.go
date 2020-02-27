@@ -3,6 +3,8 @@ package data_test
 import (
 	"time"
 
+	dataTest "github.com/tidepool-org/platform/data/test"
+
 	"github.com/tidepool-org/platform/structure"
 
 	. "github.com/onsi/ginkgo"
@@ -24,7 +26,7 @@ var _ = Describe("DoseEntry", func() {
 			DescribeTable("return the expected results when the input",
 
 				func(mutator func(datum *data.DoseEntry), expectedErrors ...error) {
-					datum := data.RandomDoseEntry()
+					datum := dataTest.RandomDoseEntry()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
