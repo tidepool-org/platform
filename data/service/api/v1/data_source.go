@@ -40,10 +40,10 @@ func SourcesRoutes() []dataService.Route {
 // @Param userId path string true "user ID"
 // @Param page query int false "When using pagination, page number" default(0)
 // @Param size query int false "When using pagination, number of elements by page, 1<size<1000" minimum(1) maximum(1000) default(100)
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 200 {array} source.Source "Array of data sources"
 // @Failure 400 {object} service.Error "Bad request (userId is missing)"
 // @Failure 401 {object} service.Error "Not authenticated"
@@ -100,10 +100,10 @@ func ListSources(dataServiceContext dataService.Context) {
 // @Produce json
 // @Param userId path string true "user ID"
 // @Param source.Create body source.Create true "The source to create"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 201 {object} source.Source "The created source"
 // @Failure 400 {object} service.Error "Bad request (userId is missing)"
 // @Failure 401 {object} service.Error "Not authenticated"
@@ -155,10 +155,10 @@ func CreateSource(dataServiceContext dataService.Context) {
 // @ID platform-data-api-DeleteAllSources
 // @Produce json
 // @Param userId path string true "user ID"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 204 "Empty content"
 // @Failure 400 {object} service.Error "Bad request (userId is missing)"
 // @Failure 401 {object} service.Error "Not authenticated"
@@ -204,10 +204,10 @@ func DeleteAllSources(dataServiceContext dataService.Context) {
 // @ID platform-data-api-GetSource
 // @Produce json
 // @Param id path string true "The data source ID"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 200 {object} source.Source "A data source"
 // @Failure 400 {object} service.Error "Bad request (id is missing)"
 // @Failure 401 {object} service.Error "Not authenticated"
@@ -261,10 +261,10 @@ func GetSource(dataServiceContext dataService.Context) {
 // @Accept json
 // @Param id path string true "The data source ID"
 // @Param revision query integer false "Only perform the update if the current data source revision is the one specified"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Param DataSourceUpdate body source.Update true "The update fields of the data source"
 // @Success 200 {object} source.Source "The data source updated"
 // @Failure 400 {object} service.Error "Bad request (id is missing, bad revision value)"
@@ -327,10 +327,10 @@ func UpdateSource(dataServiceContext dataService.Context) {
 // @ID platform-data-api-DeleteSource
 // @Param id path string true "The data source ID"
 // @Param revision query integer false "Only perform the update if the current data source revision is the one specified"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 200 "Empty content"
 // @Failure 400 {object} service.Error "Bad request (id is missing, bad revision value)"
 // @Failure 401 {object} service.Error "Not authenticated"

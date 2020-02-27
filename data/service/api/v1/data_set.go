@@ -33,10 +33,10 @@ func DataSetsRoutes() []dataService.Route {
 // @Param userId path string true "user ID"
 // @Param page query int false "When using pagination, page number" default(0)
 // @Param size query int false "When using pagination, number of elements by page, 1<size<1000" minimum(1) maximum(1000) default(100)
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 200 {array} data.DataSet "Array of data sets"
 // @Failure 400 {object} service.Error "Bad request (userId is missing)"
 // @Failure 401 {object} service.Error "Not authenticated"
@@ -105,10 +105,10 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 // @Summary Get one dataset
 // @Produce json
 // @Param dataSetId path string true "dataSet ID"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
-// @Param restricted_token header string false "A tidepool restricted token"
-// @Param Authorization header string false "A tidepool authorization token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
 // @Success 200 {object} data.DataSet "The requested data set"
 // @Failure 400 {object} service.Error "Bad request (userId is missing)"
 // @Failure 401 {object} service.Error "Not authenticated"

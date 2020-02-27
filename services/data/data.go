@@ -9,9 +9,22 @@
 // @produce json
 // @schemes https
 
-// @securityDefinitions.apikey TidepoolAuth
+// @securityDefinitions.apikey TidepoolSessionToken
 // @in header
 // @name x-tidepool-session-token
+
+// @securityDefinitions.apikey TidepoolServiceSecret
+// @in header
+// @name X-Tidepool-Service-Secret
+
+// @securityDefinitions.apikey TidepoolAuthorization
+// @in header
+// @name Authorization
+
+// @securityDefinitions.apikey TidepoolRestrictedToken
+// @in header
+// @name restricted_token
+
 package main
 
 import (

@@ -16,8 +16,8 @@ import (
 // @ID platform-data-api-DataSetsDataDelete
 // @Accept json
 // @Param dataSetId path string true "dataSet ID"
-// @Param X-Tidepool-Service-Secret header string false "The platform-data service secret"
-// @Param X-Tidepool-Session-Token header string false "A tidepool session token"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
 // @Success 200 "Operation is a success"
 // @Failure 400 {object} service.Error "dataSet ID is missing"
 // @Failure 403 {object} service.Error "Forbiden: caller is not a service"
