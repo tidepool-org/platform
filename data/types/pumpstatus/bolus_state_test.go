@@ -32,7 +32,7 @@ var _ = Describe("BolusState", func() {
 
 	Context("BolusState", func() {
 		Context("Validate", func() {
-			DescribeTable("return the expected results when the input",
+			DescribeTable("return the expected results when the input ",
 
 				func(mutator func(datum *pumpstatus.BolusState), expectedErrors ...error) {
 					datum := RandomBolusState()
