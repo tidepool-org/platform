@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -112,7 +114,7 @@ var _ = Describe("Units", func() {
 					for _, origin := range structure.Origins() {
 						datum := NewUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
-						expectedDatum := pump.CloneUnits(datum)
+						expectedDatum := pumpTest.CloneUnits(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -158,7 +160,7 @@ var _ = Describe("Units", func() {
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
 					datum := NewUnits(pointer.FromString("mmol/L"))
 					mutator(datum)
-					expectedDatum := pump.CloneUnits(datum)
+					expectedDatum := pumpTest.CloneUnits(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -198,7 +200,7 @@ var _ = Describe("Units", func() {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
 						datum := NewUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
-						expectedDatum := pump.CloneUnits(datum)
+						expectedDatum := pumpTest.CloneUnits(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

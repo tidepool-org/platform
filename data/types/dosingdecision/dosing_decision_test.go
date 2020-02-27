@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 
 	"github.com/tidepool-org/platform/data/types"
@@ -40,7 +42,7 @@ func CloneDosingDecision(datum *dosingdecision.DosingDecision) *dosingdecision.D
 	}
 	clone := dosingdecision.NewDosingDecision()
 
-	clone.Units = pump.CloneUnits(datum.Units)
+	clone.Units = pumpTest.CloneUnits(datum.Units)
 	return clone
 }
 

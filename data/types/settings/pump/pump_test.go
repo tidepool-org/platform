@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"sort"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -90,7 +92,7 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Manufacturers = pointer.CloneStringArray(datum.Manufacturers)
 	clone.Model = pointer.CloneString(datum.Model)
 	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
-	clone.Units = pump.CloneUnits(datum.Units)
+	clone.Units = pumpTest.CloneUnits(datum.Units)
 	clone.DosingEnabled = pointer.CloneBool(datum.DosingEnabled)
 	clone.BloodGlucoseTimeZoneOffset = pointer.CloneInt(datum.BloodGlucoseTimeZoneOffset)
 	clone.BasalRateTimeZoneOffset = pointer.CloneInt(datum.BasalRateTimeZoneOffset)
