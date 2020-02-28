@@ -67,7 +67,7 @@ var _ = Describe("DosingDecision", func() {
 
 				Entry("blood glucose target schedule invalid",
 					func(datum *dosingdecision.DosingDecision) {
-						invalidBloodGlucoseTargetSchedule := pump.NewBloodGlucoseTargetStartArrayTest(pointer.FromString("mmol/L"))
+						invalidBloodGlucoseTargetSchedule := pumpTest.NewBloodGlucoseTargetStartArrayTest(pointer.FromString("mmol/L"))
 						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
 						datum.GlucoseTargetRangeSchedule = invalidBloodGlucoseTargetSchedule
 					},
@@ -75,7 +75,7 @@ var _ = Describe("DosingDecision", func() {
 				),
 				Entry("blood glucose target schedule valid",
 					func(datum *dosingdecision.DosingDecision) {
-						datum.GlucoseTargetRangeSchedule = pump.NewBloodGlucoseTargetStartArrayTest(pointer.FromString("mmol/L"))
+						datum.GlucoseTargetRangeSchedule = pumpTest.NewBloodGlucoseTargetStartArrayTest(pointer.FromString("mmol/L"))
 					},
 				),
 
