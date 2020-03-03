@@ -15,7 +15,7 @@ const (
 type Forecast struct {
 	Date  *string  `json:"date,omitempty" bson:"date,omitempty"`
 	Type  *string  `json:"type,omitempty" bson:"type,omitempty"`
-	Value *float64 `json:"values,omitempty" bson:"values,omitempty"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
 }
 
 func Types() []string {
