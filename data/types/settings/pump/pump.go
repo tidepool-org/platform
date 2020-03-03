@@ -7,7 +7,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
-	glucoseStruct "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -61,7 +60,7 @@ type Pump struct {
 	Manufacturers                    *[]string                        `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
 	Model                            *string                          `json:"model,omitempty" bson:"model,omitempty"`
 	SerialNumber                     *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	SuspendThreshold                 *glucoseStruct.Glucose           `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
+	SuspendThreshold                 *SuspendThreshold                `json:"suspendThreshold,omitempty" bson:"suspendThreshold,omitempty"`
 	Units                            *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
 
@@ -100,7 +99,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Manufacturers = parser.StringArray("manufacturers")
 	p.Model = parser.String("model")
 	p.SerialNumber = parser.String("serialNumber")
-	p.SuspendThreshold = glucoseStruct.ParseGlucose(parser.WithReferenceObjectParser("suspendThreshold"))
+	p.SuspendThreshold = ParseSuspendThreshold(parser.WithReferenceObjectParser("suspendThreshold"))
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 }
 
