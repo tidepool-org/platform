@@ -48,9 +48,9 @@ func NewBasalDeliveryState() *BasalDeliveryState {
 	return &BasalDeliveryState{}
 }
 func (b *BasalDeliveryState) Parse(parser structure.ObjectParser) {
-	b.State = parser.String("unit")
+	b.State = parser.String("state")
 	b.DoseEntry = data.ParseDoseEntry(parser.WithReferenceObjectParser("doseEntry"))
-	b.Date = parser.String("Date")
+	b.Date = parser.String("date")
 }
 
 func (b *BasalDeliveryState) Validate(validator structure.Validator) {
