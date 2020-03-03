@@ -17,24 +17,6 @@ func New(typ string) Glucose {
 	}
 }
 
-func ParseGlucose(parser structure.ObjectParser) *Glucose {
-	if !parser.Exists() {
-		return nil
-	}
-	datum := NewGlucose()
-	parser.Parse(datum)
-	return datum
-}
-
-func NewGlucose() *Glucose {
-	return &Glucose{}
-}
-
-func (g *Glucose) Parse(parser structure.ObjectParser) {
-	g.Units = parser.String("units")
-	g.Value = parser.Float64("value")
-}
-
 func (g *Glucose) Validate(validator structure.Validator) {
 	g.Blood.Validate(validator)
 

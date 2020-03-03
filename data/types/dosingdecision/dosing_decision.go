@@ -102,8 +102,16 @@ func (a *DosingDecision) Normalize(normalizer data.Normalizer) {
 	if a.Units != nil {
 		unitsBloodGlucose = a.Units.BloodGlucose
 	}
-	a.CarbsOnBoard.Normalize(normalizer)
-	a.RecommendedBasal.Normalize(normalizer)
-	a.GlucoseTargetRangeSchedule.Normalize(normalizer, unitsBloodGlucose)
-	a.Units.Normalize(normalizer)
+	if a.CarbsOnBoard != nil {
+		a.CarbsOnBoard.Normalize(normalizer)
+	}
+	if a.RecommendedBasal != nil {
+		a.RecommendedBasal.Normalize(normalizer)
+	}
+	if a.GlucoseTargetRangeSchedule != nil {
+		a.GlucoseTargetRangeSchedule.Normalize(normalizer, unitsBloodGlucose)
+	}
+	if a.Units != nil {
+		a.Units.Normalize(normalizer)
+	}
 }
