@@ -84,7 +84,7 @@ func (a *DosingDecision) Validate(validator structure.Validator) {
 		a.RecommendedBasal.Validate(validator.WithReference(("recommendedBasal")))
 	}
 	if a.GlucoseTargetRangeSchedule != nil {
-		a.GlucoseTargetRangeSchedule.Validate(validator.WithReference(("pumpManagerStatus")), unitsBloodGlucose)
+		a.GlucoseTargetRangeSchedule.Validate(validator.WithReference(("glucoseTargetRangeSchedule")), unitsBloodGlucose)
 	}
 	if a.Units != nil {
 		a.Units.Validate(validator.WithReference("units"))
