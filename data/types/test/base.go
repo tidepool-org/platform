@@ -16,6 +16,12 @@ import (
 )
 
 func NewBase() *types.Base {
+
+	timeReference := test.RandomTime()
+	zoneName := timeZoneTest.RandomName()
+	zoneLoc, _ := time.LoadLocation(zoneName)
+	_, offset := timeReference.UTC().In(zoneLoc).Zone()
+
 	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now().Add(-30*24*time.Hour))
 	archivedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-7*24*time.Hour))
 	modifiedTime := test.RandomTimeFromRange(archivedTime, time.Now().Add(-24*time.Hour))
@@ -35,7 +41,7 @@ func NewBase() *types.Base {
 	datum.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339Nano))
 	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
 	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+	datum.DeviceTime = pointer.FromString(timeReference.In(zoneLoc).Format("2006-01-02T15:04:05"))
 	datum.GUID = pointer.FromString(dataTest.RandomID())
 	datum.ID = pointer.FromString(dataTest.RandomID())
 	datum.Location = locationTest.RandomLocation()
@@ -47,9 +53,9 @@ func NewBase() *types.Base {
 	datum.SchemaVersion = 2
 	datum.Source = pointer.FromString("carelink")
 	datum.Tags = pointer.FromStringArray([]string{NewTag(1, 10)})
-	datum.Time = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
-	datum.TimeZoneName = pointer.FromString(timeZoneTest.RandomName())
-	datum.TimeZoneOffset = pointer.FromInt(NewTimeZoneOffset())
+	datum.Time = pointer.FromString(timeReference.Format(time.RFC3339Nano))
+	datum.TimeZoneName = pointer.FromString(zoneName)
+	datum.TimeZoneOffset = pointer.FromInt(offset / 60)
 	datum.Type = NewType()
 	datum.UploadID = pointer.FromString(dataTest.RandomSetID())
 	datum.UserID = pointer.FromString(userTest.RandomID())
