@@ -962,6 +962,73 @@ var _ = Describe("Base", func() {
 					},
 					nil,
 				),
+				Entry("Time field set with offset, wrong TimeZoneName, wrong TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00+0100")
+						datum.TimeZoneName = pointer.FromString("America/Chicago")
+						datum.TimeZoneOffset = pointer.FromInt(0)
+						datum.DeviceTime = pointer.FromString("2020-01-01T15:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T14:00:00Z")
+						expectedDatum.TimeZoneName = nil
+						expectedDatum.TimeZoneOffset = pointer.FromInt(60)
+					},
+				),
+				Entry("Time field set with offset , correct TimeZoneName and wrong TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00-0600")
+						datum.TimeZoneName = pointer.FromString("America/Chicago")
+						datum.TimeZoneOffset = pointer.FromInt(0)
+						datum.DeviceTime = pointer.FromString("2020-01-01T15:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T21:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("America/Chicago")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(-360)
+					},
+				),
+				Entry("Time field set with malformed UTC, correct TimeZoneName, correct TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00+0000")
+						datum.TimeZoneName = pointer.FromString("America/Chicago")
+						datum.TimeZoneOffset = pointer.FromInt(-360)
+						datum.DeviceTime = pointer.FromString("2020-01-01T09:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("America/Chicago")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(-360)
+					},
+				),
+				Entry("DeviceTime unset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						datum.TimeZoneName = pointer.FromString("America/Chicago")
+						datum.TimeZoneOffset = pointer.FromInt(-360)
+						datum.DeviceTime = nil
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("America/Chicago")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(-360)
+						expectedDatum.DeviceTime = pointer.FromString("2020-01-01T09:00:00")
+					},
+				),
+				Entry("DeviceTime set with incorrect value",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						datum.TimeZoneName = pointer.FromString("America/Chicago")
+						datum.TimeZoneOffset = pointer.FromInt(-360)
+						datum.DeviceTime = pointer.FromString("2014-10-15T22:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("America/Chicago")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(-360)
+						expectedDatum.DeviceTime = pointer.FromString("2020-01-01T09:00:00")
+					},
+				),
 			)
 		})
 	})
