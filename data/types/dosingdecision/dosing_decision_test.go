@@ -71,7 +71,7 @@ var _ = Describe("DosingDecision", func() {
 						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
 						datum.GlucoseTargetRangeSchedule = invalidBloodGlucoseTargetSchedule
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/pumpManagerStatus/0/start", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/glucoseTargetRangeSchedule/0/start", NewMeta()),
 				),
 				Entry("blood glucose target schedule valid",
 					func(datum *dosingdecision.DosingDecision) {
