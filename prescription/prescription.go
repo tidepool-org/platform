@@ -2,6 +2,7 @@ package prescription
 
 import (
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	"github.com/tidepool-org/platform/device"
 )
 
 const (
@@ -24,12 +25,35 @@ const (
 	PrescriptionLoopModeSuspendOnly = "suspendOnly"
 )
 
-
 type Prescription struct {
-	ID                string           `json:"id" bson:"id"`
-	AccessCode        string           `json:"accessCode,omitempty" bson:"accessCode,omitempty"`
+	ID              string    `json:"id" bson:"id"`
+	PatientID       *string   `json:"patientId,omitempty" bson:"patientId,omitempty"`
+	AccessCode      *string   `json:"accessCode,omitempty" bson:"-"`
+	AccessCodeHash  string    `json:"accessCodeHash" bson:"accessCodeHash"`
+	State           *string   `json:"state" bson:"state"`
+	LatestRevision  *Revision `json:"latestRevision,omitempty" bson:"latestRevision,omitempty"`
+	RevisionHistory Revisions `json:"-,omitempty" bson:"revisionHistory,omitempty"`
+	CreatedTime     *string   `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID   *string   `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	DeletedTime     *string   `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID   *string   `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+}
+
+type Prescriptions []*Prescription
+
+type Revision struct {
+	RevisionID      int    `json:"-" bson:"revisionId"`
+	SignatureUserID string `json:"signatureUserId" bson:"signatureUserId"`
+	SignatureKeyID  string `json:"signatureKeyId" bson:"signatureKeyId"`
+	Signature       string `json:"signature" bson:"signature"`
+	Attributes      Attributes
+}
+
+type Revisions []*Revision
+
+type Attributes struct {
 	FirstName         *string          `json:"firstName,omitempty" bson:"firstName,omitempty"`
-	LastName          *string          `json:"lastName,omitempty" bson:"firstName,omitempty"`
+	LastName          *string          `json:"lastName,omitempty" bson:"lastName,omitempty"`
 	Birthday          *string          `json:"birthday,omitempty" bson:"birthday,omitempty"`
 	MRN               *string          `json:"mrn,omitempty" bson:"mrn,omitempty"`
 	Email             *string          `json:"email,omitempty" bson:"email,omitempty"`
@@ -44,13 +68,8 @@ type Prescription struct {
 	LoopMode          *string          `json:"loopMode,omitempty" bson:"loopMode,omitempty"`
 	AcknowledgedTerms *bool            `json:"acknowledgedTerms,omitempty" bson:"acknowledgedTerms,omitempty"`
 	State             *string          `json:"state,omitempty" bson:"state,omitempty"`
-	CreatedTime       *string          `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID     *string          `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
 	ModifiedTime      *string          `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID    *string          `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	DeletedTime       *string          `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID     *string          `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	Revision          *int             `json:"revision,omitempty" bson:"revision"`
 }
 
 type Weight struct {
@@ -73,23 +92,11 @@ type InitialSettings struct {
 	InsulinSensitivitySchedule *pump.InsulinSensitivityStartArray `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
 	BasalRateMaximum           *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
 	BolusAmountMaximum         *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
-	PumpType                   *PumpType                          `json:"pumpType" bson:"pumpType"`
-	CGMType                    *CGMType                           `json:"cgmType" bson:"cgmType"`
+	PumpType                   *device.Device                     `json:"pumpType" bson:"pumpType"`
+	CGMType                    *device.Device                     `json:"cgmType" bson:"cgmType"`
 	// TODO: Add Suspend threshold - Dependent on latest data model changes
 	// TODO: Add Insulin model - Dependent on latest data model changes
 	// TODO: Add Bolus schedule? Does not exist in current pump settings model.
-}
-
-type PumpType struct {
-	Manufacturers *[]string `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model         *string   `json:"model,omitempty" bson:"model,omitempty"`
-	SerialNumber  *string   `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-}
-
-type CGMType struct {
-	Manufacturers *[]string `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model         *string   `json:"model,omitempty" bson:"model,omitempty"`
-	SerialNumber  *string   `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
 }
 
 func PrescriptionStates() []string {
