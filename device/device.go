@@ -2,16 +2,16 @@ package device
 
 const (
 	DeviceTypePump = "pump"
-	DeviceTypeCGM = "cgm"
+	DeviceTypeCGM  = "cgm"
 )
 
 type Device struct {
-	Type		 string `json:"type"`
+	Type         string `json:"type"`
 	Manufacturer string `json:"manufacturer"`
 	Model        string `json:"model"`
 }
 
-func DeviceTypes() []string {
+func Types() []string {
 	return []string{
 		DeviceTypePump,
 		DeviceTypeCGM,
@@ -27,4 +27,3 @@ func GetSupportedCGMs() []Device {
 	// TODO: Create a list with all supported CGMs
 	return []Device{}
 }
-
