@@ -127,7 +127,7 @@ func (d *DataSetFilter) Parse(parser structure.ObjectParser) {
 	d.Deleted = parser.Bool("deleted")
 	d.DeviceID = parser.String("deviceId")
 	d.State = parser.String("state")
-	d.DataSetType = parser.String("type")
+	d.DataSetType = parser.String("dataSetType")
 }
 
 func (d *DataSetFilter) Validate(validator structure.Validator) {
@@ -137,7 +137,7 @@ func (d *DataSetFilter) Validate(validator structure.Validator) {
 		validator.String("state", d.State).OneOf(DataSetStates()...)
 	}
 	if d.DataSetType != nil {
-		validator.String("type", d.DataSetType).OneOf(DataSetTypes()...)
+		validator.String("dataSetType", d.DataSetType).OneOf(DataSetTypes()...)
 	}
 }
 

@@ -63,7 +63,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	if state := parser.String("state"); state != nil {
 		f.State = state
 	}
-	if dataSetType := parser.String("type"); dataSetType != nil {
+	if dataSetType := parser.String("dataSetType"); dataSetType != nil {
 		f.DataSetType = dataSetType
 	}
 }
@@ -74,6 +74,6 @@ func (f *Filter) Validate(validator structure.Validator) {
 		validator.String("state", f.State).OneOf(upload.States()...)
 	}
 	if f.DataSetType != nil {
-		validator.String("type", f.DataSetType).OneOf(upload.DataSetTypes()...)
+		validator.String("dataSetType", f.DataSetType).OneOf(upload.DataSetTypes()...)
 	}
 }
