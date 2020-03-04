@@ -5,6 +5,7 @@ The Tidepool platform API
 ### Added
 - PT-1004: Document the api using openApi and swaggo
 - PT-1142 Missing index on data/deviceData Mongo collection
+- PT-1147 Add Filters on Get DataSet
 
 ## 0.6.4 2020-02-13
 ### Fixed

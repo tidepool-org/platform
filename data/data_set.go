@@ -111,9 +111,11 @@ func (d *DataSetClient) Validate(validator structure.Validator) {
 }
 
 type DataSetFilter struct {
-	ClientName *string
-	Deleted    *bool
-	DeviceID   *string
+	ClientName  *string
+	Deleted     *bool
+	DeviceID    *string
+	State       *string // State: open, closed
+	DataSetType *string // DataSetType: continuous, normal
 }
 
 func NewDataSetFilter() *DataSetFilter {
@@ -124,11 +126,19 @@ func (d *DataSetFilter) Parse(parser structure.ObjectParser) {
 	d.ClientName = parser.String("client.name")
 	d.Deleted = parser.Bool("deleted")
 	d.DeviceID = parser.String("deviceId")
+	d.State = parser.String("state")
+	d.DataSetType = parser.String("type")
 }
 
 func (d *DataSetFilter) Validate(validator structure.Validator) {
 	validator.String("client.name", d.ClientName).NotEmpty()
 	validator.String("deviceId", d.DeviceID).NotEmpty()
+	if d.State != nil {
+		validator.String("state", d.State).OneOf(DataSetStates()...)
+	}
+	if d.DataSetType != nil {
+		validator.String("type", d.DataSetType).OneOf(DataSetTypes()...)
+	}
 }
 
 func (d *DataSetFilter) MutateRequest(req *http.Request) error {
@@ -141,6 +151,12 @@ func (d *DataSetFilter) MutateRequest(req *http.Request) error {
 	}
 	if d.DeviceID != nil {
 		parameters["deviceId"] = *d.DeviceID
+	}
+	if d.State != nil {
+		parameters["_state"] = *d.State
+	}
+	if d.DataSetType != nil {
+		parameters["dataSetType"] = *d.DataSetType
 	}
 	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
