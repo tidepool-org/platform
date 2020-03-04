@@ -1,6 +1,8 @@
 package prescription
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/device"
 )
@@ -19,24 +21,25 @@ const (
 
 	PrescriptionTherapySettingInitial              = "initial"
 	PrescriptionTherapySettingTransferPumpSettings = "transferPumpSettings"
-	PrescriptionTherapySettingCPT                  = "cpt" // TODO: Certified Personal Trainer?
+	PrescriptionTherapySettingCertifiedPumpTrainer = "certifiedPumpTrainer"
 
 	PrescriptionLoopModeClosedLoop  = "closedLoop"
 	PrescriptionLoopModeSuspendOnly = "suspendOnly"
 )
 
 type Prescription struct {
-	ID              string    `json:"id" bson:"id"`
-	PatientID       *string   `json:"patientId,omitempty" bson:"patientId,omitempty"`
-	AccessCode      *string   `json:"accessCode,omitempty" bson:"-"`
-	AccessCodeHash  string    `json:"accessCodeHash" bson:"accessCodeHash"`
-	State           *string   `json:"state" bson:"state"`
-	LatestRevision  *Revision `json:"latestRevision,omitempty" bson:"latestRevision,omitempty"`
-	RevisionHistory Revisions `json:"-,omitempty" bson:"revisionHistory,omitempty"`
-	CreatedTime     *string   `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID   *string   `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	DeletedTime     *string   `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID   *string   `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	ID              string     `json:"id" bson:"id"`
+	PatientID       *string    `json:"patientId,omitempty" bson:"patientId,omitempty"`
+	AccessCode      *string    `json:"accessCode,omitempty" bson:"-"`
+	AccessCodeHash  string     `json:"accessCodeHash" bson:"accessCodeHash"`
+	State           string     `json:"state" bson:"state"`
+	LatestRevision  *Revision  `json:"latestRevision,omitempty" bson:"latestRevision,omitempty"`
+	RevisionHistory Revisions  `json:"-,omitempty" bson:"revisionHistory,omitempty"`
+	ExpirationTime  time.Time  `json:"expirationTime" bson:"expirationTime"`
+	CreatedTime     time.Time  `json:"createdTime" bson:"createdTime"`
+	CreatedUserID   string     `json:"createdUserId" bson:"createdUserId"`
+	DeletedTime     *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID   *string    `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 }
 
 type Prescriptions []*Prescription
@@ -52,29 +55,29 @@ type Revision struct {
 type Revisions []*Revision
 
 type Attributes struct {
-	FirstName         *string          `json:"firstName,omitempty" bson:"firstName,omitempty"`
-	LastName          *string          `json:"lastName,omitempty" bson:"lastName,omitempty"`
-	Birthday          *string          `json:"birthday,omitempty" bson:"birthday,omitempty"`
-	MRN               *string          `json:"mrn,omitempty" bson:"mrn,omitempty"`
-	Email             *string          `json:"email,omitempty" bson:"email,omitempty"`
-	Sex               *string          `json:"sex,omitempty" bson:"sex,omitempty"`
-	Weight            *Weight          `json:"weight,omitempty" bson:"weight,omitempty"`
-	YearOfDiagnosis   *string          `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis,omitempty"`
-	PhoneNumber       *string          `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
-	Address           *Address         `json:"address,omitempty" bson:"address,omitempty"`
-	InitialSettings   *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
-	Training          *string          `json:"training,omitempty" bson:"training,omitempty"`
-	TherapySettings   *string          `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
-	LoopMode          *string          `json:"loopMode,omitempty" bson:"loopMode,omitempty"`
-	AcknowledgedTerms *bool            `json:"acknowledgedTerms,omitempty" bson:"acknowledgedTerms,omitempty"`
-	State             *string          `json:"state,omitempty" bson:"state,omitempty"`
-	ModifiedTime      *string          `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID    *string          `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	FirstName               *string          `json:"firstName,omitempty" bson:"firstName,omitempty"`
+	LastName                *string          `json:"lastName,omitempty" bson:"lastName,omitempty"`
+	Birthday                *string          `json:"birthday,omitempty" bson:"birthday,omitempty"`
+	MRN                     *string          `json:"mrn,omitempty" bson:"mrn,omitempty"`
+	Email                   *string          `json:"email,omitempty" bson:"email,omitempty"`
+	Sex                     *string          `json:"sex,omitempty" bson:"sex,omitempty"`
+	Weight                  *Weight          `json:"weight,omitempty" bson:"weight,omitempty"`
+	YearOfDiagnosis         *string          `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis,omitempty"`
+	PhoneNumber             *string          `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
+	Address                 *Address         `json:"address,omitempty" bson:"address,omitempty"`
+	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
+	Training                *string          `json:"training,omitempty" bson:"training,omitempty"`
+	TherapySettings         *string          `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
+	LoopMode                *string          `json:"loopMode,omitempty" bson:"loopMode,omitempty"`
+	PrescriberTermsAccepted *bool            `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted,omitempty"`
+	State                   *string          `json:"state,omitempty" bson:"state,omitempty"`
+	ModifiedTime            *time.Time       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID          *string          `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 }
 
 type Weight struct {
 	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Units string   `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 type Address struct {
@@ -83,6 +86,7 @@ type Address struct {
 	City       *string `json:"city,omitempty" bson:"city,omitempty"`
 	State      *string `json:"state,omitempty" bson:"state,omitempty"`
 	PostalCode *string `json:"postalCode,omitempty" bson:"postalCode,omitempty"`
+	Country    *string `json:"country,omitempty" bson:"country,omitempty"`
 }
 
 type InitialSettings struct {
@@ -99,7 +103,7 @@ type InitialSettings struct {
 	// TODO: Add Bolus schedule? Does not exist in current pump settings model.
 }
 
-func PrescriptionStates() []string {
+func States() []string {
 	return []string{
 		PrescriptionStateDraft,
 		PrescriptionStatePending,
@@ -111,18 +115,18 @@ func PrescriptionStates() []string {
 	}
 }
 
-func PrescriptionTrainings() []string {
+func Trainings() []string {
 	return []string{
 		PrescriptionTrainingInModule,
 		PrescriptionTrainingInPerson,
 	}
 }
 
-func PrescriptionTherapySettings() []string {
+func TherapySettings() []string {
 	return []string{
 		PrescriptionTherapySettingInitial,
 		PrescriptionTherapySettingTransferPumpSettings,
-		PrescriptionTherapySettingCPT,
+		PrescriptionTherapySettingCertifiedPumpTrainer,
 	}
 }
 
