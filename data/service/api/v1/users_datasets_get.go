@@ -21,6 +21,9 @@ import (
 // @Param page query int false "When using pagination, page number" default(0)
 // @Param size query int false "When using pagination, number of elements by page, 1<size<1000" minimum(1) maximum(1000) default(100)
 // @Param deleted query bool false "True to return the deleted datasets"
+// @Param deviceId  query string false "Filter on the deviceId"
+// @Param state query string false "Filter of the state: open or closed"
+// @Param dataSetType query string false "Filter of the type: continuous or normal"
 // @Security TidepoolSessionToken
 // @Security TidepoolServiceSecret
 // @Security TidepoolAuthorization

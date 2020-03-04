@@ -201,9 +201,13 @@ var _ = Describe("Mongo", func() {
 					Expect(mgoCollection.Insert(dataSetExistingOther)).To(Succeed())
 					dataSetExistingOne = NewDataSet(userID, deviceID)
 					dataSetExistingOne.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
+					dataSetExistingOne.DataSetType = pointer.FromString("continuous")
+					dataSetExistingOne.State = pointer.FromString("open")
 					Expect(mgoCollection.Insert(dataSetExistingOne)).To(Succeed())
 					dataSetExistingTwo = NewDataSet(userID, deviceID)
 					dataSetExistingTwo.CreatedTime = pointer.FromString("2016-09-01T10:00:00Z")
+					dataSetExistingTwo.DataSetType = pointer.FromString("normal")
+					dataSetExistingTwo.State = pointer.FromString("closed")
 					Expect(mgoCollection.Insert(dataSetExistingTwo)).To(Succeed())
 				}
 
@@ -212,6 +216,8 @@ var _ = Describe("Mongo", func() {
 					userID = userTest.RandomID()
 					deviceID = dataTest.NewDeviceID()
 					dataSet = NewDataSet(userID, deviceID)
+					dataSet.DataSetType = pointer.FromString("normal")
+					dataSet.State = pointer.FromString("open")
 				})
 
 				Context("GetDataSetsForUserByID", func() {
@@ -248,6 +254,22 @@ var _ = Describe("Mongo", func() {
 						pagination.Size = 1001
 						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 						Expect(err).To(MatchError("pagination is invalid; value 1001 is not between 1 and 1000"))
+						Expect(resultDataSets).To(BeNil())
+					})
+
+					It("return an error if the data set type is invalid", func() {
+						filter.DataSetType = pointer.FromString("unknown")
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						Expect(err).NotTo(BeNil())
+						Expect(err.Error()).To(Equal("filter is invalid; value \"unknown\" is not one of [\"continuous\", \"normal\"]"))
+						Expect(resultDataSets).To(BeNil())
+					})
+
+					It("return an error if the data set state is invalid", func() {
+						filter.State = pointer.FromString("opens")
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						Expect(err).NotTo(BeNil())
+						Expect(err.Error()).To(Equal("filter is invalid; value \"opens\" is not one of [\"closed\", \"open\"]"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
@@ -307,6 +329,30 @@ var _ = Describe("Mongo", func() {
 							It("succeeds if it successfully finds all the user data sets", func() {
 								filter.Deleted = true
 								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+							})
+						})
+
+						Context("with type filter", func() {
+							It("succeeds if it successfully finds all the continuous data sets", func() {
+								filter.DataSetType = pointer.FromString("continuous")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne}))
+							})
+
+							It("succeeds if it successfully finds all the normal data sets", func() {
+								filter.DataSetType = pointer.FromString("normal")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo, dataSet}))
+							})
+						})
+
+						Context("with state filter", func() {
+							It("succeeds if it successfully finds all the open data sets", func() {
+								filter.State = pointer.FromString("open")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet}))
+							})
+
+							It("succeeds if it successfully finds all the closed data sets", func() {
+								filter.State = pointer.FromString("closed")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo}))
 							})
 						})
 					})

@@ -90,6 +90,12 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	if !filter.Deleted {
 		selector["deletedTime"] = bson.M{"$exists": false}
 	}
+	if filter.State != nil {
+		selector["_state"] = *filter.State
+	}
+	if filter.DataSetType != nil {
+		selector["dataSetType"] = *filter.DataSetType
+	}
 	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 
 	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
@@ -829,6 +835,12 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 	}
 	if filter.DeviceID != nil {
 		selector["deviceId"] = *filter.DeviceID
+	}
+	if filter.State != nil {
+		selector["_state"] = *filter.State
+	}
+	if filter.DataSetType != nil {
+		selector["dataSetType"] = *filter.DataSetType
 	}
 	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 	logger.WithFields(log.Fields{"count": len(dataSets), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserDataSets")
