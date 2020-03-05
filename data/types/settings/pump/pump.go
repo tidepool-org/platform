@@ -178,7 +178,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 		p.Units.Validate(validator.WithReference("units"))
 	}
 
-	validator.Bool("dosingEnabled", p.DosingEnabled).Exists()
+	if p.DosingEnabled != nil {
+		validator.Bool("dosingEnabled", p.DosingEnabled)
+	}
 
 	validator.Int("bgTargetTimezoneOffset", p.BloodGlucoseTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 	validator.Int("carbRationTimezoneOffset", p.CarbohydrateRatioTimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
@@ -194,7 +196,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 		p.SuspendThreshold.Validate(validator.WithReference("suspendThreshold"))
 	}
 
-	validator.String("insulinModel", p.InsulinModel).Exists().OneOf(InsulinModels()...)
+	if p.InsulinModel != nil {
+		validator.String("insulinModel", p.InsulinModel).Exists().OneOf(InsulinModels()...)
+	}
 
 }
 
