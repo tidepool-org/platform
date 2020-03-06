@@ -3,6 +3,9 @@ package prescription
 import (
 	"time"
 
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/validate"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/device"
 )
@@ -28,21 +31,25 @@ const (
 )
 
 type Prescription struct {
-	ID              string     `json:"id" bson:"id"`
+	ID              string     `json:"id" bson:"id" validate:"required"`
 	PatientID       *string    `json:"patientId,omitempty" bson:"patientId,omitempty"`
-	AccessCode      *string    `json:"accessCode,omitempty" bson:"-"`
-	AccessCodeHash  string     `json:"accessCodeHash" bson:"accessCodeHash"`
-	State           string     `json:"state" bson:"state"`
-	LatestRevision  *Revision  `json:"latestRevision,omitempty" bson:"latestRevision,omitempty"`
-	RevisionHistory Revisions  `json:"-,omitempty" bson:"revisionHistory,omitempty"`
-	ExpirationTime  time.Time  `json:"expirationTime" bson:"expirationTime"`
-	CreatedTime     time.Time  `json:"createdTime" bson:"createdTime"`
-	CreatedUserID   string     `json:"createdUserId" bson:"createdUserId"`
+	AccessCode      *string    `json:"accessCode,omitempty" bson:"-" validate:"alphanum,len=6,omitempty"`
+	AccessCodeHash  string     `json:"-" bson:"accessCodeHash" validate:"hexadecimal,len=40"`
+	State           string     `json:"state" bson:"state" validate:"oneof=draft pending submitted reviewed expired active inactive"`
+	LatestRevision  *Revision  `json:"latestRevision,omitempty" bson:"latestRevision,omitempty" validate:"-"`
+	RevisionHistory Revisions  `json:"-,omitempty" bson:"revisionHistory,omitempty" validate:"-"`
+	ExpirationTime  time.Time  `json:"expirationTime" bson:"expirationTime" validate:"required"`
+	CreatedTime     time.Time  `json:"createdTime" bson:"createdTime" validate:"required"`
+	CreatedUserID   string     `json:"createdUserId" bson:"createdUserId" validate:"required"`
 	DeletedTime     *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID   *string    `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 }
 
 type Prescriptions []*Prescription
+
+func (p *Prescription) Validate(validator structure.Validator) {
+	validate.StructWithLegacyErrorReporting(p, validator)
+}
 
 type Revision struct {
 	RevisionID      int    `json:"-" bson:"revisionId"`
