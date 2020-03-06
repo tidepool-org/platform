@@ -11,6 +11,9 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/githubnemo/CompileDaemon v1.0.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-playground/locales v0.13.0
+	github.com/go-playground/universal-translator v0.17.0
+	github.com/go-playground/validator/v10 v10.2.0
 	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
@@ -18,7 +21,6 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
-	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc
 	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b // indirect
