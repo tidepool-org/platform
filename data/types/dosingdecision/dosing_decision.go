@@ -1,117 +1,103 @@
 package dosingdecision
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypes "github.com/tidepool-org/platform/data/types"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	Type     = "dosingDecision"
-	Aid      = "aid"
-	Cgm      = "cgm"
-	Pump     = "pump"
-	SmartPen = "smartpen"
+	Type = "dosingDecision"
+
+	TimeFormat = time.RFC3339Nano
 )
 
-func DeviceTypes() []string {
-	return []string{Aid, Cgm, Pump, SmartPen}
-}
-
 type DosingDecision struct {
-	types.Base `bson:",inline"`
+	dataTypes.Base `bson:",inline"`
 
-	CarbsOnBoard               *CarbsOnBoard                      `json:"carbsOnBoard,omitempty" bson:"carbsOnBoard,omitempty"`
-	GlucoseTargetRangeSchedule *pump.BloodGlucoseTargetStartArray `json:"glucoseTargetRangeSchedule,omitempty" bson:"glucoseTargetRangeSchedule,omitempty"`
-	RecommendedBasal           *RecommendedBasal                  `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
-	Units                      *pump.Units                        `json:"units,omitempty" bson:"units,omitempty"`
+	Alerts                          *[]string                                           `json:"alerts,omitempty" bson:"alerts,omitempty"`
+	InsulinOnBoard                  *InsulinOnBoard                                     `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
+	CarbohydratesOnBoard            *CarbohydratesOnBoard                               `json:"carbohydratesOnBoard,omitempty" bson:"carbohydratesOnBoard,omitempty"`
+	BloodGlucoseTargetRangeSchedule *dataTypesSettingsPump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetRangeSchedule,omitempty" bson:"bloodGlucoseTargetRangeSchedule,omitempty"`
+	BloodGlucoseForecast            *ForecastArray                                      `json:"bloodGlucoseForecast,omitempty" bson:"bloodGlucoseForecast,omitempty"`
+	RecommendedBasal                *RecommendedBasal                                   `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
+	RecommendedBolus                *RecommendedBolus                                   `json:"recommendedBolus,omitempty" bson:"recommendedBolus,omitempty"`
+	Units                           *Units                                              `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func New() *DosingDecision {
 	return &DosingDecision{
-		Base: types.New(Type),
+		Base: dataTypes.New(Type),
 	}
 }
 
-func ParseDosingDecision(parser structure.ObjectParser) *DosingDecision {
-	if !parser.Exists() {
-		return nil
-	}
-	datum := NewDosingDecision()
-	parser.Parse(datum)
-	return datum
-}
-
-func NewDosingDecision() *DosingDecision {
-	return &DosingDecision{}
-}
-
-func (a *DosingDecision) Parse(parser structure.ObjectParser) {
+func (d *DosingDecision) Parse(parser structure.ObjectParser) {
 	if !parser.HasMeta() {
-		parser = parser.WithMeta(a.Meta())
+		parser = parser.WithMeta(d.Meta())
 	}
 
-	a.Base.Parse(parser)
+	d.Base.Parse(parser)
 
-	a.CarbsOnBoard = ParseCarbsOnBoard(parser.WithReferenceObjectParser("carbsOnBoard"))
-	a.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
-	a.GlucoseTargetRangeSchedule = pump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("glucoseTargetRangeSchedule"))
-	a.Units = pump.ParseUnits(parser.WithReferenceObjectParser("units"))
+	d.Alerts = parser.StringArray("alerts")
+	d.InsulinOnBoard = ParseInsulinOnBoard(parser.WithReferenceObjectParser("insulinOnBoard"))
+	d.CarbohydratesOnBoard = ParseCarbohydratesOnBoard(parser.WithReferenceObjectParser("carbohydratesOnBoard"))
+	d.BloodGlucoseTargetRangeSchedule = dataTypesSettingsPump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bloodGlucoseTargetRangeSchedule"))
+	d.BloodGlucoseForecast = ParseForecastArray(parser.WithReferenceArrayParser("bloodGlucoseForecast"))
+	d.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
+	d.RecommendedBolus = ParseRecommendedBolus(parser.WithReferenceObjectParser("recommendedBolus"))
+	d.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
 
 }
 
-func (a *DosingDecision) Validate(validator structure.Validator) {
+func (d *DosingDecision) Validate(validator structure.Validator) {
 	if !validator.HasMeta() {
-		validator = validator.WithMeta(a.Meta())
+		validator = validator.WithMeta(d.Meta())
 	}
 
-	a.Base.Validate(validator)
+	d.Base.Validate(validator)
 
-	if a.Type != "" {
-		validator.String("type", &a.Type).EqualTo(Type)
+	if d.Type != "" {
+		validator.String("type", &d.Type).EqualTo(Type)
 	}
 
 	var unitsBloodGlucose *string
-	if a.Units != nil {
-		unitsBloodGlucose = a.Units.BloodGlucose
+	if d.Units != nil {
+		unitsBloodGlucose = d.Units.BloodGlucose
 	}
 
-	if a.CarbsOnBoard != nil {
-		a.CarbsOnBoard.Validate(validator.WithReference(("carbsOnBoard")))
+	if d.InsulinOnBoard != nil {
+		d.InsulinOnBoard.Validate(validator.WithReference("insulinOnBoard"))
 	}
-	if a.RecommendedBasal != nil {
-		a.RecommendedBasal.Validate(validator.WithReference(("recommendedBasal")))
+	if d.CarbohydratesOnBoard != nil {
+		d.CarbohydratesOnBoard.Validate(validator.WithReference("carbohydratesOnBoard"))
 	}
-	if a.GlucoseTargetRangeSchedule != nil {
-		a.GlucoseTargetRangeSchedule.Validate(validator.WithReference(("glucoseTargetRangeSchedule")), unitsBloodGlucose)
+	if d.BloodGlucoseTargetRangeSchedule != nil {
+		d.BloodGlucoseTargetRangeSchedule.Validate(validator.WithReference("bloodGlucoseTargetRangeSchedule"), unitsBloodGlucose)
 	}
-	if a.Units != nil {
-		a.Units.Validate(validator.WithReference("units"))
+	if d.BloodGlucoseForecast != nil {
+		d.BloodGlucoseForecast.Validate(validator.WithReference("bloodGlucoseForecast"))
+	}
+	if d.RecommendedBasal != nil {
+		d.RecommendedBasal.Validate(validator.WithReference("recommendedBasal"))
+	}
+	if d.RecommendedBolus != nil {
+		d.RecommendedBolus.Validate(validator.WithReference("recommendedBolus"))
+	}
+	if unitsValidator := validator.WithReference("units"); d.Units != nil {
+		d.Units.Validate(unitsValidator)
+	} else {
+		unitsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
-func (a *DosingDecision) Normalize(normalizer data.Normalizer) {
+func (d *DosingDecision) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
-		normalizer = normalizer.WithMeta(a.Meta())
+		normalizer = normalizer.WithMeta(d.Meta())
 	}
 
-	a.Base.Normalize(normalizer)
-
-	var unitsBloodGlucose *string
-	if a.Units != nil {
-		unitsBloodGlucose = a.Units.BloodGlucose
-	}
-	if a.CarbsOnBoard != nil {
-		a.CarbsOnBoard.Normalize(normalizer)
-	}
-	if a.RecommendedBasal != nil {
-		a.RecommendedBasal.Normalize(normalizer)
-	}
-	if a.GlucoseTargetRangeSchedule != nil {
-		a.GlucoseTargetRangeSchedule.Normalize(normalizer, unitsBloodGlucose)
-	}
-	if a.Units != nil {
-		a.Units.Normalize(normalizer)
-	}
+	d.Base.Normalize(normalizer)
 }

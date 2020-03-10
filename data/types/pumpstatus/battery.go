@@ -1,17 +1,25 @@
 package pumpstatus
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	MinBatteryPercentage = 0.0
-	MaxBatteryPercentage = 100.0
+	BatteryRemainingPercentMaximum = 100
+	BatteryRemainingPercentMinimum = 0
+	BatteryUnitsPercent            = "percent"
 )
 
+func BatteryUnits() []string {
+	return []string{
+		BatteryUnitsPercent,
+	}
+}
+
 type Battery struct {
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Time      *string  `json:"time,omitempty" bson:"time,omitempty"`
+	Remaining *float64 `json:"remaining,omitempty" bson:"remaining,omitempty"`
+	Units     *string  `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseBattery(parser structure.ObjectParser) *Battery {
@@ -22,16 +30,19 @@ func ParseBattery(parser structure.ObjectParser) *Battery {
 	parser.Parse(datum)
 	return datum
 }
+
 func NewBattery() *Battery {
 	return &Battery{}
 }
+
 func (b *Battery) Parse(parser structure.ObjectParser) {
-	b.Value = parser.Float64("value")
+	b.Time = parser.String("time")
+	b.Remaining = parser.Float64("remaining")
+	b.Units = parser.String("units")
 }
 
 func (b *Battery) Validate(validator structure.Validator) {
-	validator.Float64("value", b.Value).Exists().InRange(MinBatteryPercentage, MaxBatteryPercentage)
-}
-
-func (b *Battery) Normalize(normalizer data.Normalizer) {
+	validator.String("time", b.Time).AsTime(TimeFormat)
+	validator.Float64("remaining", b.Remaining).Exists().InRange(BatteryRemainingPercentMinimum, BatteryRemainingPercentMaximum)
+	validator.String("units", b.Units).Exists().OneOf(BatteryUnits()...)
 }

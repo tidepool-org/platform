@@ -1,21 +1,17 @@
 package dosingdecision
 
 import (
-	"time"
-
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	MinInsulinOnBoard = 0
-	MaxInsulinOnBoard = 1000
-	TimeFormat        = time.RFC3339Nano
+	InsulinOnBoardAmountMaximum = 1000
+	InsulinOnBoardAmountMinimum = 0
 )
 
 type InsulinOnBoard struct {
-	StartDate *string  `json:"startDate,omitempty" bson:"startDate,omitempty"`
-	Value     *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	StartTime *string  `json:"startTime,omitempty" bson:"startTime,omitempty"`
+	Amount    *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
 }
 
 func ParseInsulinOnBoard(parser structure.ObjectParser) *InsulinOnBoard {
@@ -32,14 +28,11 @@ func NewInsulinOnBoard() *InsulinOnBoard {
 }
 
 func (i *InsulinOnBoard) Parse(parser structure.ObjectParser) {
-	i.StartDate = parser.String("startDate")
-	i.Value = parser.Float64("value")
+	i.StartTime = parser.String("startTime")
+	i.Amount = parser.Float64("amount")
 }
 
 func (i *InsulinOnBoard) Validate(validator structure.Validator) {
-	validator.Float64("value", i.Value).Exists().InRange(MinInsulinOnBoard, MaxInsulinOnBoard)
-	validator.String("startDate", i.StartDate).Exists().AsTime(TimeFormat)
-}
-
-func (i *InsulinOnBoard) Normalize(normalizer data.Normalizer, units *string) {
+	validator.String("startTime", i.StartTime).AsTime(TimeFormat)
+	validator.Float64("amount", i.Amount).Exists().InRange(InsulinOnBoardAmountMinimum, InsulinOnBoardAmountMaximum)
 }

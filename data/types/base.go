@@ -34,7 +34,7 @@ const (
 	TimeFormat              = time.RFC3339Nano
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionMinimum          = 0
+	VersionInternalMinimum  = 0
 )
 
 type Base struct {
@@ -69,7 +69,7 @@ type Base struct {
 	Type              string                        `json:"type,omitempty" bson:"type,omitempty"`
 	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID            *string                       `json:"-" bson:"_userId,omitempty"`
-	Version           int                           `json:"-" bson:"_version,omitempty"`
+	VersionInternal   int                           `json:"-" bson:"_version,omitempty"`
 }
 
 type Meta struct {
@@ -220,7 +220,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 	if validator.Origin() <= structure.OriginStore {
 		validator.String("_userId", b.UserID).Exists().Using(user.IDValidator)
-		validator.Int("_version", &b.Version).Exists().GreaterThanOrEqualTo(VersionMinimum)
+		validator.Int("_version", &b.VersionInternal).Exists().GreaterThanOrEqualTo(VersionInternalMinimum)
 	}
 }
 

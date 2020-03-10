@@ -16,81 +16,79 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-var _ = Describe("Battery", func() {
-	It("BatteryRemainingPercentMaximum is expected", func() {
-		Expect(dataTypesPumpStatus.BatteryRemainingPercentMaximum).To(Equal(100))
+var _ = Describe("Reservoir", func() {
+	It("ReservoirRemainingUnitsMaximum is expected", func() {
+		Expect(dataTypesPumpStatus.ReservoirRemainingUnitsMaximum).To(Equal(10000))
 	})
 
-	It("BatteryRemainingPercentMinimum is expected", func() {
-		Expect(dataTypesPumpStatus.BatteryRemainingPercentMinimum).To(Equal(0))
+	It("ReservoirRemainingUnitsMinimum is expected", func() {
+		Expect(dataTypesPumpStatus.ReservoirRemainingUnitsMinimum).To(Equal(0))
 	})
 
-	It("BatteryUnitsPercent is expected", func() {
-		Expect(dataTypesPumpStatus.BatteryUnitsPercent).To(Equal("percent"))
+	It("ReservoirUnitsUnits is expected", func() {
+		Expect(dataTypesPumpStatus.ReservoirUnitsUnits).To(Equal("Units"))
 	})
 
-	It("BatteryUnits returns expected", func() {
-		Expect(dataTypesPumpStatus.BatteryUnits()).To(Equal([]string{"percent"}))
+	It("ReservoirUnits returns expected", func() {
+		Expect(dataTypesPumpStatus.ReservoirUnits()).To(Equal([]string{"Units"}))
 	})
 
-	Context("ParseBattery", func() {
+	Context("ParseReservoir", func() {
 		// TODO
 	})
 
-	Context("NewBattery", func() {
+	Context("NewReservoir", func() {
 		It("is successful", func() {
-			Expect(dataTypesPumpStatus.NewBattery()).To(Equal(&dataTypesPumpStatus.Battery{}))
+			Expect(dataTypesPumpStatus.NewReservoir()).To(Equal(&dataTypesPumpStatus.Reservoir{}))
 		})
 	})
 
-	Context("Battery", func() {
+	Context("Reservoir", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("return the expected results when the input",
-				func(mutator func(datum *dataTypesPumpStatus.Battery), expectedErrors ...error) {
-					datum := dataTypesPumpStatusTest.RandomBattery()
+				func(mutator func(datum *dataTypesPumpStatus.Reservoir), expectedErrors ...error) {
+					datum := dataTypesPumpStatusTest.RandomReservoir()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *dataTypesPumpStatus.Battery) {},
+					func(datum *dataTypesPumpStatus.Reservoir) {},
 				),
 				Entry("time invalid",
-					func(datum *dataTypesPumpStatus.Battery) { datum.Time = pointer.FromString("invalid") },
+					func(datum *dataTypesPumpStatus.Reservoir) { datum.Time = pointer.FromString("invalid") },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
 				),
 				Entry("remaining missing",
-					func(datum *dataTypesPumpStatus.Battery) { datum.Remaining = nil },
+					func(datum *dataTypesPumpStatus.Reservoir) { datum.Remaining = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/remaining"),
 				),
 				Entry("remaining below minimum",
-					func(datum *dataTypesPumpStatus.Battery) {
+					func(datum *dataTypesPumpStatus.Reservoir) {
 						datum.Remaining = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/remaining"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 10000), "/remaining"),
 				),
 				Entry("remaining above maximum",
-					func(datum *dataTypesPumpStatus.Battery) {
-						datum.Remaining = pointer.FromFloat64(100.1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/remaining"),
+					func(datum *dataTypesPumpStatus.Reservoir) { datum.Remaining = pointer.FromFloat64(10000.1) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0, 10000), "/remaining"),
 				),
 				Entry("units missing",
-					func(datum *dataTypesPumpStatus.Battery) { datum.Units = nil },
+					func(datum *dataTypesPumpStatus.Reservoir) { datum.Units = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *dataTypesPumpStatus.Battery) { datum.Units = pointer.FromString("invalid") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"percent"}), "/units"),
+					func(datum *dataTypesPumpStatus.Reservoir) { datum.Units = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/units"),
 				),
-				Entry("units percent",
-					func(datum *dataTypesPumpStatus.Battery) { datum.Units = pointer.FromString("percent") },
+				Entry("units Units",
+					func(datum *dataTypesPumpStatus.Reservoir) { datum.Units = pointer.FromString("Units") },
 				),
 				Entry("multiple errors",
-					func(datum *dataTypesPumpStatus.Battery) {
+					func(datum *dataTypesPumpStatus.Reservoir) {
 						datum.Time = pointer.FromString("invalid")
 						datum.Remaining = nil
 						datum.Units = nil
