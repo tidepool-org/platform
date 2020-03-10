@@ -3,65 +3,81 @@ package dosingdecision_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/types/dosingdecision"
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/test"
-
+	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
+	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewRecommendedBasal() *dosingdecision.RecommendedBasal {
-	datum := dosingdecision.NewRecommendedBasal()
-
-	datum.UnitsPerHour = pointer.FromFloat64(test.RandomFloat64FromRange(dosingdecision.MinUnitsPerHour, dosingdecision.MaxUnitsPerHour))
-	datum.Duration = pointer.FromFloat64(test.RandomFloat64FromRange(dosingdecision.MinDuration, dosingdecision.MaxDuration))
-	return datum
-}
-
 var _ = Describe("RecommendedBasal", func() {
-	Context("Target", func() {
+	Context("ParseRecommendedBasal", func() {
+		// TODO
+	})
+
+	Context("NewRecommendedBasal", func() {
+		It("is successful", func() {
+			Expect(dataTypesDosingDecision.NewRecommendedBasal()).To(Equal(&dataTypesDosingDecision.RecommendedBasal{}))
+		})
+	})
+
+	Context("RecommendedBasal", func() {
 		Context("Parse", func() {
 			// TODO
 		})
 
 		Context("Validate", func() {
 			DescribeTable("return the expected results when the input",
-
-				func(mutator func(datum *dosingdecision.RecommendedBasal), expectedErrors ...error) {
-					datum := NewRecommendedBasal()
+				func(mutator func(datum *dataTypesDosingDecision.RecommendedBasal), expectedErrors ...error) {
+					datum := dataTypesDosingDecisionTest.RandomRecommendedBasal()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *dosingdecision.RecommendedBasal) {},
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {},
 				),
-				Entry("Duration below Minimum",
-					func(datum *dosingdecision.RecommendedBasal) {
-						datum.Duration = pointer.FromFloat64(dosingdecision.MinDuration - 1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(dosingdecision.MinDuration-1, dosingdecision.MinDuration, dosingdecision.MaxDuration), "/duration"),
+				Entry("rate missing",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) { datum.Rate = nil },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
-				Entry("Duration above Maximum",
-					func(datum *dosingdecision.RecommendedBasal) {
-						datum.Duration = pointer.FromFloat64(dosingdecision.MaxDuration + 1)
+				Entry("rate below minimum",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Rate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(dosingdecision.MaxDuration+1, dosingdecision.MinDuration, dosingdecision.MaxDuration), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/rate"),
 				),
-				Entry("Units per hour below Minimum",
-					func(datum *dosingdecision.RecommendedBasal) {
-						datum.UnitsPerHour = pointer.FromFloat64(dosingdecision.MinUnitsPerHour - 1)
+				Entry("rate above maximum",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Rate = pointer.FromFloat64(100.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(dosingdecision.MinUnitsPerHour-1, dosingdecision.MinUnitsPerHour, dosingdecision.MaxUnitsPerHour), "/unitsPerHour"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/rate"),
 				),
-				Entry("Units per hour above Maximum",
-					func(datum *dosingdecision.RecommendedBasal) {
-						datum.UnitsPerHour = pointer.FromFloat64(dosingdecision.MaxUnitsPerHour + 1)
+				Entry("duration missing",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) { datum.Duration = nil },
+				),
+				Entry("duration below minimum",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Duration = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(dosingdecision.MaxUnitsPerHour+1, dosingdecision.MinUnitsPerHour, dosingdecision.MaxUnitsPerHour), "/unitsPerHour"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
+				),
+				Entry("duration above maximum",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Duration = pointer.FromInt(604800001)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration"),
+				),
+				Entry("multiple errors",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Rate = nil
+						datum.Duration = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
 				),
 			)
 		})

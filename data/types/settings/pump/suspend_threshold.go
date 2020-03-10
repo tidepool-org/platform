@@ -1,7 +1,6 @@
 package pump
 
 import (
-	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -24,14 +23,12 @@ func NewSuspendThreshold() *SuspendThreshold {
 	return &SuspendThreshold{}
 }
 
-func (b *SuspendThreshold) Parse(parser structure.ObjectParser) {
-	b.Units = parser.String("units")
-	b.Value = parser.Float64("value")
+func (s *SuspendThreshold) Parse(parser structure.ObjectParser) {
+	s.Units = parser.String("units")
+	s.Value = parser.Float64("value")
 }
 
-func (b *SuspendThreshold) Validate(validator structure.Validator) {
-	validator.String("units", b.Units).Exists().OneOf(dataBloodGlucose.Units()...)
-	validator.Float64("value", b.Value).Exists().InRange(dataBloodGlucose.ValueRangeForUnits(b.Units))
+func (s *SuspendThreshold) Validate(validator structure.Validator) {
+	validator.String("units", s.Units).Exists().OneOf(dataBloodGlucose.Units()...)
+	validator.Float64("value", s.Value).Exists().InRange(dataBloodGlucose.ValueRangeForUnits(s.Units))
 }
-
-func (b *SuspendThreshold) Normalize(normalizer data.Normalizer) {}

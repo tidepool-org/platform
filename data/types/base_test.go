@@ -66,7 +66,7 @@ var _ = Describe("Base", func() {
 			Expect(datum.Type).To(Equal(typ))
 			Expect(datum.UploadID).To(BeNil())
 			Expect(datum.UserID).To(BeNil())
-			Expect(datum.Version).To(Equal(0))
+			Expect(datum.VersionInternal).To(Equal(0))
 		})
 	})
 
@@ -774,19 +774,19 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 				),
 				Entry("version; out of range (lower)",
-					func(datum *types.Base) { datum.Version = -1 },
+					func(datum *types.Base) { datum.VersionInternal = -1 },
 					[]structure.Origin{structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/_version"),
 				),
 				Entry("version; in range (lower)",
-					func(datum *types.Base) { datum.Version = 0 },
+					func(datum *types.Base) { datum.VersionInternal = 0 },
 					structure.Origins(),
 				),
 				Entry("multiple errors with store origin",
 					func(datum *types.Base) {
 						datum.SchemaVersion = 0
 						datum.UserID = nil
-						datum.Version = -1
+						datum.VersionInternal = -1
 					},
 					[]structure.Origin{structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 3), "/_schemaVersion"),

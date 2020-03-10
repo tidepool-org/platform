@@ -1,20 +1,19 @@
 package dosingdecision
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	MinUnitsPerHour = 0
-	MaxUnitsPerHour = 100
-	MinDuration     = 0
-	MaxDuration     = 604800000
+	RecommendedBasalDurationMaximum = 604800000
+	RecommendedBasalDurationMinimum = 0
+	RecommendedBasalRateMaximum     = 100
+	RecommendedBasalRateMinimum     = 0
 )
 
 type RecommendedBasal struct {
-	UnitsPerHour *float64 `json:"unitsPerHour,omitempty" bson:"unitsPerHour,omitempty"`
-	Duration     *float64 `json:"duration,omitempty" bson:"duration,omitempty"`
+	Rate     *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
 }
 
 func ParseRecommendedBasal(parser structure.ObjectParser) *RecommendedBasal {
@@ -30,15 +29,12 @@ func NewRecommendedBasal() *RecommendedBasal {
 	return &RecommendedBasal{}
 }
 
-func (i *RecommendedBasal) Parse(parser structure.ObjectParser) {
-	i.UnitsPerHour = parser.Float64("unitsPerHour")
-	i.Duration = parser.Float64("duration")
+func (r *RecommendedBasal) Parse(parser structure.ObjectParser) {
+	r.Rate = parser.Float64("rate")
+	r.Duration = parser.Int("duration")
 }
 
-func (i *RecommendedBasal) Validate(validator structure.Validator) {
-	validator.Float64("unitsPerHour", i.UnitsPerHour).Exists().InRange(MinUnitsPerHour, MaxUnitsPerHour)
-	validator.Float64("duration", i.Duration).Exists().InRange(MinDuration, MaxDuration)
-}
-
-func (i *RecommendedBasal) Normalize(normalizer data.Normalizer) {
+func (r *RecommendedBasal) Validate(validator structure.Validator) {
+	validator.Float64("rate", r.Rate).Exists().InRange(RecommendedBasalRateMinimum, RecommendedBasalRateMaximum)
+	validator.Int("duration", r.Duration).InRange(RecommendedBasalDurationMinimum, RecommendedBasalDurationMaximum)
 }

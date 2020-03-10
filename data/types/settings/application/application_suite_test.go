@@ -1,4 +1,4 @@
-package appsettings_test
+package application_test
 
 import (
 	"testing"
