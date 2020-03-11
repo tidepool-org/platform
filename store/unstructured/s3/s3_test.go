@@ -223,7 +223,7 @@ var _ = Describe("S3", func() {
 						It("returns an error if aws returns an error", func() {
 							awsErr := errorsTest.RandomError()
 							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: awsErr}}
-							Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to upload object with key %q; %s", keyPath, awsErr)))
+							Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to upload object with key %q, bucket %q; %s,", keyPath, config.Bucket, awsErr)))
 						})
 
 						It("returns successfully", func() {
@@ -246,7 +246,7 @@ var _ = Describe("S3", func() {
 						It("returns an error if aws returns an error", func() {
 							awsErr := errorsTest.RandomError()
 							awsUploader.UploadWithContextOutputs = []awsTest.UploadWithContextOutput{{Output: nil, Error: awsErr}}
-							Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to upload object with key %q; %s", keyPath, awsErr)))
+							Expect(store.Put(ctx, key, reader, options)).To(MatchError(fmt.Sprintf("unable to upload object with key %q, bucket %q;; %s", keyPath, config.Bucket, awsErr)))
 						})
 
 						It("returns successfully", func() {
