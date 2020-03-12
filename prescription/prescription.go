@@ -1,7 +1,12 @@
 package prescription
 
 import (
+	"context"
+	"crypto/sha1"
+	"fmt"
 	"time"
+
+	"github.com/tidepool-org/platform/id"
 
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/validate"
@@ -28,21 +33,83 @@ const (
 
 	PrescriptionLoopModeClosedLoop  = "closedLoop"
 	PrescriptionLoopModeSuspendOnly = "suspendOnly"
+
+	MaximumExpirationTime = time.Hour * 24 * 30 // 30 days
 )
+
+type Accessor interface {
+	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
+}
 
 type Prescription struct {
 	ID              string     `json:"id" bson:"id" validate:"required"`
 	PatientID       *string    `json:"patientId,omitempty" bson:"patientId,omitempty"`
-	AccessCode      *string    `json:"accessCode,omitempty" bson:"-" validate:"alphanum,len=6,omitempty"`
+	AccessCode      string     `json:"accessCode,omitempty" bson:"-" validate:"alphanum,len=6,omitempty"`
 	AccessCodeHash  string     `json:"-" bson:"accessCodeHash" validate:"hexadecimal,len=40"`
 	State           string     `json:"state" bson:"state" validate:"oneof=draft pending submitted reviewed expired active inactive"`
 	LatestRevision  *Revision  `json:"latestRevision,omitempty" bson:"latestRevision,omitempty" validate:"-"`
 	RevisionHistory Revisions  `json:"-,omitempty" bson:"revisionHistory,omitempty" validate:"-"`
-	ExpirationTime  time.Time  `json:"expirationTime" bson:"expirationTime" validate:"required"`
+	ExpirationTime  *time.Time `json:"expirationTime" bson:"expirationTime" validate:"required"`
 	CreatedTime     time.Time  `json:"createdTime" bson:"createdTime" validate:"required"`
 	CreatedUserID   string     `json:"createdUserId" bson:"createdUserId" validate:"required"`
 	DeletedTime     *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID   *string    `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+}
+
+type RevisionCreate struct {
+	FirstName               *string          `json:"firstName,omitempty"`
+	LastName                *string          `json:"lastName,omitempty"`
+	Birthday                *string          `json:"birthday,omitempty"`
+	MRN                     *string          `json:"mrn,omitempty"`
+	Email                   *string          `json:"email,omitempty" validate:"email,omitempty"`
+	Sex                     *string          `json:"sex,omitempty" validate:"oneof=male female undisclosed,omitempty"`
+	Weight                  *Weight          `json:"weight,omitempty"`
+	YearOfDiagnosis         *string          `json:"yearOfDiagnosis,omitempty" validate:""`
+	PhoneNumber             *string          `json:"phoneNumber,omitempty"`
+	Address                 *Address         `json:"address,omitempty"`
+	InitialSettings         *InitialSettings `json:"initialSettings,omitempty"`
+	Training                *string          `json:"training,omitempty"`
+	TherapySettings         *string          `json:"therapySettings,omitempty"`
+	LoopMode                *string          `json:"loopMode,omitempty"`
+	PrescriberTermsAccepted *bool            `json:"prescriberTermsAccepted,omitempty"`
+	State                   string           `json:"state"`
+}
+
+func NewPrescriptionID() string {
+	return id.Must(id.New(8))
+}
+
+func NewPrescriptionAccessCode() string {
+	return id.Must(id.New(8))
+}
+
+func HashAccessCode(code string) string {
+	hash := sha1.New()
+	hash.Write([]byte(code))
+	return fmt.Sprintf("%x", hash.Sum(nil))
+}
+
+func NewPrescription(ctx context.Context, userID string, revisionCreate *RevisionCreate) *Prescription {
+	now := time.Now()
+	accessCode := NewPrescriptionAccessCode()
+	revision := NewRevision(ctx, userID, 0, revisionCreate)
+	revisionHistory := []*Revision{revision}
+	prescription := &Prescription{
+		ID:              NewPrescriptionID(),
+		PatientID:       nil,
+		AccessCode:      accessCode,
+		AccessCodeHash:  HashAccessCode(accessCode),
+		State:           revisionCreate.State,
+		LatestRevision:  revision,
+		RevisionHistory: revisionHistory,
+		ExpirationTime:  revision.CalculateExpirationTime(),
+		CreatedTime:     now,
+		CreatedUserID:   userID,
+		DeletedTime:     nil,
+		DeletedUserID:   nil,
+	}
+
+	return prescription
 }
 
 type Prescriptions []*Prescription
@@ -61,6 +128,42 @@ type Revision struct {
 
 type Revisions []*Revision
 
+func NewRevision(ctx context.Context, userID string, revisionID int, create *RevisionCreate) *Revision {
+	now := time.Now()
+	return &Revision{
+		RevisionID: revisionID,
+		Attributes: Attributes{
+			FirstName:               create.FirstName,
+			LastName:                create.LastName,
+			Birthday:                create.Birthday,
+			MRN:                     create.MRN,
+			Email:                   create.Email,
+			Sex:                     create.Sex,
+			Weight:                  create.Weight,
+			YearOfDiagnosis:         create.YearOfDiagnosis,
+			PhoneNumber:             create.PhoneNumber,
+			Address:                 create.Address,
+			InitialSettings:         create.InitialSettings,
+			Training:                create.Training,
+			TherapySettings:         create.TherapySettings,
+			LoopMode:                create.LoopMode,
+			PrescriberTermsAccepted: create.PrescriberTermsAccepted,
+			State:                   create.State,
+			ModifiedTime:            now,
+			ModifiedUserID:          userID,
+		},
+	}
+}
+
+func (r *Revision) CalculateExpirationTime() *time.Time {
+	if r.Attributes.State != PrescriptionStateSubmitted {
+		return nil
+	}
+
+	expiration := time.Now().Add(MaximumExpirationTime)
+	return &expiration
+}
+
 type Attributes struct {
 	FirstName               *string          `json:"firstName,omitempty" bson:"firstName,omitempty"`
 	LastName                *string          `json:"lastName,omitempty" bson:"lastName,omitempty"`
@@ -77,14 +180,14 @@ type Attributes struct {
 	TherapySettings         *string          `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
 	LoopMode                *string          `json:"loopMode,omitempty" bson:"loopMode,omitempty"`
 	PrescriberTermsAccepted *bool            `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted,omitempty"`
-	State                   *string          `json:"state,omitempty" bson:"state,omitempty"`
-	ModifiedTime            *time.Time       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID          *string          `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	State                   string           `json:"state,omitempty" bson:"state,omitempty"`
+	ModifiedTime            time.Time        `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID          string           `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 }
 
 type Weight struct {
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
-	Units string   `json:"units,omitempty" bson:"units,omitempty"`
+	Value float64 `json:"value,omitempty" bson:"value,omitempty" validate:"required,gt=1"`
+	Units string  `json:"units,omitempty" bson:"units,omitempty" validate:"required,oneof=kg"`
 }
 
 type Address struct {
@@ -93,7 +196,7 @@ type Address struct {
 	City       *string `json:"city,omitempty" bson:"city,omitempty"`
 	State      *string `json:"state,omitempty" bson:"state,omitempty"`
 	PostalCode *string `json:"postalCode,omitempty" bson:"postalCode,omitempty"`
-	Country    *string `json:"country,omitempty" bson:"country,omitempty"`
+	Country    *string `json:"country,omitempty" bson:"country,omitempty" validate:"required,oneof=USA"`
 }
 
 type InitialSettings struct {
@@ -107,7 +210,6 @@ type InitialSettings struct {
 	CGMType                    *device.Device                     `json:"cgmType" bson:"cgmType"`
 	// TODO: Add Suspend threshold - Dependent on latest data model changes
 	// TODO: Add Insulin model - Dependent on latest data model changes
-	// TODO: Add Bolus schedule? Does not exist in current pump settings model.
 }
 
 func States() []string {
