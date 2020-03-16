@@ -59,6 +59,9 @@ func (a *AccessLog) ignore(req *rest.Request) bool {
 	if req.URL.RequestURI() == "/swagger.json" {
 		return true
 	}
+	if req.URL.RequestURI() == "/swagger/docs/v1" {
+		return true
+	}
 	if req.URL.RequestURI() == "/swagger/docs/v2" {
 		return true
 	}
