@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.7.1 - 2020-03-16
+### Fixed
+- PT-1169 Align mongoDb index between platform-data "ensureIndex" and manually created index
+
 ## 0.7.0 2020-03-04
 ### Added
 - PT-1004 Document the api using openApi and swaggo

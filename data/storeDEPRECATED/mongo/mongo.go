@@ -51,8 +51,9 @@ type DataSession struct {
 
 func (d *DataSession) EnsureIndexes() error {
 	return d.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"_userId", "_active", "type", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
+		{Key: []string{"_userId", "_active", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
 		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
+		{Key: []string{"type", "uploadId"}, Background: true, Name: "typeUploadId"},
 		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
 	})
 }
