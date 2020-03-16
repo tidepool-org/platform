@@ -5,76 +5,17 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewInsulinSensitivityStart(units *string, startMinimum int) *pump.InsulinSensitivityStart {
-	datum := pump.NewInsulinSensitivityStart()
-	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
-	datum.Start = pointer.FromInt(test.RandomIntFromRange(pump.InsulinSensitivityStartStartMinimum, pump.InsulinSensitivityStartStartMaximum))
-	if startMinimum == pump.InsulinSensitivityStartStartMinimum {
-		datum.Start = pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)
-	} else {
-		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.InsulinSensitivityStartStartMaximum))
-	}
-	return datum
-}
-
-func CloneInsulinSensitivityStart(datum *pump.InsulinSensitivityStart) *pump.InsulinSensitivityStart {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewInsulinSensitivityStart()
-	clone.Amount = pointer.CloneFloat64(datum.Amount)
-	clone.Start = pointer.CloneInt(datum.Start)
-	return clone
-}
-
-func NewInsulinSensitivityStartArray(units *string) *pump.InsulinSensitivityStartArray {
-	datum := pump.NewInsulinSensitivityStartArray()
-	*datum = append(*datum, NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum))
-	*datum = append(*datum, NewInsulinSensitivityStart(units, *datum.Last().Start+1))
-	*datum = append(*datum, NewInsulinSensitivityStart(units, *datum.Last().Start+1))
-	return datum
-}
-
-func CloneInsulinSensitivityStartArray(datumArray *pump.InsulinSensitivityStartArray) *pump.InsulinSensitivityStartArray {
-	if datumArray == nil {
-		return nil
-	}
-	clone := pump.NewInsulinSensitivityStartArray()
-	for _, datum := range *datumArray {
-		*clone = append(*clone, CloneInsulinSensitivityStart(datum))
-	}
-	return clone
-}
-
-func NewInsulinSensitivityStartArrayMap(units *string) *pump.InsulinSensitivityStartArrayMap {
-	datum := pump.NewInsulinSensitivityStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewInsulinSensitivityStartArray(units))
-	return datum
-}
-
-func CloneInsulinSensitivityStartArrayMap(datumArrayMap *pump.InsulinSensitivityStartArrayMap) *pump.InsulinSensitivityStartArrayMap {
-	if datumArrayMap == nil {
-		return nil
-	}
-	clone := pump.NewInsulinSensitivityStartArrayMap()
-	for datumName, datumArray := range *datumArrayMap {
-		clone.Set(datumName, CloneInsulinSensitivityStartArray(datumArray))
-	}
-	return clone
-}
 
 var _ = Describe("InsulinSensitivityStart", func() {
 	It("InsulinSensitivityStartStartMaximum is expected", func() {
@@ -103,9 +44,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectedErrors ...error) {
-					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum)
+					datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum)
 					mutator(datum, units)
-					dataTypesTest.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(pumpTest.NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					pointer.FromString("mmol/L"),
@@ -263,9 +204,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 
 			DescribeTable("validates the datum with minimum start",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectedErrors ...error) {
-					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum)
+					datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum)
 					mutator(datum, units)
-					dataTypesTest.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(pumpTest.NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					pointer.FromString("mmol/L"),
@@ -285,9 +226,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 
 			DescribeTable("validates the datum with non-minimum start",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectedErrors ...error) {
-					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
+					datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 					mutator(datum, units)
-					dataTypesTest.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(pumpTest.NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.InsulinSensitivityStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					pointer.FromString("mmol/L"),
@@ -314,9 +255,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 			DescribeTable("normalizes the datum",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectator func(datum *pump.InsulinSensitivityStart, expectedDatum *pump.InsulinSensitivityStart, units *string)) {
 					for _, origin := range structure.Origins() {
-						datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
+						datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 						mutator(datum, units)
-						expectedDatum := CloneInsulinSensitivityStart(datum)
+						expectedDatum := pumpTest.CloneInsulinSensitivityStart(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -352,9 +293,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 
 			DescribeTable("normalizes the datum with origin external",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectator func(datum *pump.InsulinSensitivityStart, expectedDatum *pump.InsulinSensitivityStart, units *string)) {
-					datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
+					datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 					mutator(datum, units)
-					expectedDatum := CloneInsulinSensitivityStart(datum)
+					expectedDatum := pumpTest.CloneInsulinSensitivityStart(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -394,9 +335,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStart, units *string), expectator func(datum *pump.InsulinSensitivityStart, expectedDatum *pump.InsulinSensitivityStart, units *string)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
+						datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 						mutator(datum, units)
-						expectedDatum := CloneInsulinSensitivityStart(datum)
+						expectedDatum := pumpTest.CloneInsulinSensitivityStart(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -472,7 +413,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				Entry("single invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						invalid := NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
+						invalid := pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
@@ -481,35 +422,35 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				Entry("single valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
+						*datum = append(*datum, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
 					},
 				),
 				Entry("multiple invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
-						invalid := NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1)
+						*datum = append(*datum, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
+						invalid := pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
-						*datum = append(*datum, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum))
+						*datum = append(*datum, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 					},
 				),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArray, units *string) {
-						invalid := NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
+						invalid := pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), pump.InsulinSensitivityStartStartMinimum)
 						invalid.Amount = nil
 						*datum = append(*datum, nil, invalid)
-						*datum = append(*datum, nil, NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
+						*datum = append(*datum, nil, pumpTest.NewInsulinSensitivityStart(pointer.FromString("mmol/L"), *datum.Last().Start+1))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
@@ -522,9 +463,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 			DescribeTable("normalizes the datum",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStartArray, units *string), expectator func(datum *pump.InsulinSensitivityStartArray, expectedDatum *pump.InsulinSensitivityStartArray, units *string)) {
 					for _, origin := range structure.Origins() {
-						datum := NewInsulinSensitivityStartArray(units)
+						datum := pumpTest.NewInsulinSensitivityStartArray(units)
 						mutator(datum, units)
-						expectedDatum := CloneInsulinSensitivityStartArray(datum)
+						expectedDatum := pumpTest.CloneInsulinSensitivityStartArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -560,9 +501,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 
 			DescribeTable("normalizes the datum with origin external",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStartArray, units *string), expectator func(datum *pump.InsulinSensitivityStartArray, expectedDatum *pump.InsulinSensitivityStartArray, units *string)) {
-					datum := NewInsulinSensitivityStartArray(units)
+					datum := pumpTest.NewInsulinSensitivityStartArray(units)
 					mutator(datum, units)
-					expectedDatum := CloneInsulinSensitivityStartArray(datum)
+					expectedDatum := pumpTest.CloneInsulinSensitivityStartArray(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -606,9 +547,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStartArray, units *string), expectator func(datum *pump.InsulinSensitivityStartArray, expectedDatum *pump.InsulinSensitivityStartArray, units *string)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewInsulinSensitivityStartArray(units)
+						datum := pumpTest.NewInsulinSensitivityStartArray(units)
 						mutator(datum, units)
-						expectedDatum := CloneInsulinSensitivityStartArray(datum)
+						expectedDatum := pumpTest.CloneInsulinSensitivityStartArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -679,7 +620,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				Entry("empty name",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
-						datum.Set("", NewInsulinSensitivityStartArray(units))
+						datum.Set("", pumpTest.NewInsulinSensitivityStartArray(units))
 					},
 				),
 				Entry("nil value",
@@ -690,7 +631,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				Entry("single invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
-						invalid := NewInsulinSensitivityStartArray(units)
+						invalid := pumpTest.NewInsulinSensitivityStartArray(units)
 						(*invalid)[0].Start = nil
 						datum.Set("one", invalid)
 					},
@@ -699,36 +640,36 @@ var _ = Describe("InsulinSensitivityStart", func() {
 				Entry("single valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
-						datum.Set("one", NewInsulinSensitivityStartArray(units))
+						datum.Set("one", pumpTest.NewInsulinSensitivityStartArray(units))
 					},
 				),
 				Entry("multiple invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
-						invalid := NewInsulinSensitivityStartArray(units)
+						invalid := pumpTest.NewInsulinSensitivityStartArray(units)
 						(*invalid)[0].Start = nil
-						datum.Set("one", NewInsulinSensitivityStartArray(units))
+						datum.Set("one", pumpTest.NewInsulinSensitivityStartArray(units))
 						datum.Set("two", invalid)
-						datum.Set("three", NewInsulinSensitivityStartArray(units))
+						datum.Set("three", pumpTest.NewInsulinSensitivityStartArray(units))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
-						datum.Set("one", NewInsulinSensitivityStartArray(units))
-						datum.Set("two", NewInsulinSensitivityStartArray(units))
-						datum.Set("three", NewInsulinSensitivityStartArray(units))
+						datum.Set("one", pumpTest.NewInsulinSensitivityStartArray(units))
+						datum.Set("two", pumpTest.NewInsulinSensitivityStartArray(units))
+						datum.Set("three", pumpTest.NewInsulinSensitivityStartArray(units))
 					},
 				),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.InsulinSensitivityStartArrayMap, units *string) {
-						invalid := NewInsulinSensitivityStartArray(units)
+						invalid := pumpTest.NewInsulinSensitivityStartArray(units)
 						(*invalid)[0].Start = nil
 						datum.Set("one", nil)
 						datum.Set("two", invalid)
-						datum.Set("three", NewInsulinSensitivityStartArray(units))
+						datum.Set("three", pumpTest.NewInsulinSensitivityStartArray(units))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
@@ -740,9 +681,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 			DescribeTable("normalizes the datum",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStartArrayMap, units *string), expectator func(datum *pump.InsulinSensitivityStartArrayMap, expectedDatum *pump.InsulinSensitivityStartArrayMap, units *string)) {
 					for _, origin := range structure.Origins() {
-						datum := NewInsulinSensitivityStartArrayMap(units)
+						datum := pumpTest.NewInsulinSensitivityStartArrayMap(units)
 						mutator(datum, units)
-						expectedDatum := CloneInsulinSensitivityStartArrayMap(datum)
+						expectedDatum := pumpTest.CloneInsulinSensitivityStartArrayMap(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -782,9 +723,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 
 			DescribeTable("normalizes the datum with structure external",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStartArrayMap, units *string), expectator func(datum *pump.InsulinSensitivityStartArrayMap, expectedDatum *pump.InsulinSensitivityStartArrayMap, units *string)) {
-					datum := NewInsulinSensitivityStartArrayMap(units)
+					datum := pumpTest.NewInsulinSensitivityStartArrayMap(units)
 					mutator(datum, units)
-					expectedDatum := CloneInsulinSensitivityStartArrayMap(datum)
+					expectedDatum := pumpTest.CloneInsulinSensitivityStartArrayMap(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -832,9 +773,9 @@ var _ = Describe("InsulinSensitivityStart", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(units *string, mutator func(datum *pump.InsulinSensitivityStartArrayMap, units *string), expectator func(datum *pump.InsulinSensitivityStartArrayMap, expectedDatum *pump.InsulinSensitivityStartArrayMap, units *string)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewInsulinSensitivityStartArrayMap(units)
+						datum := pumpTest.NewInsulinSensitivityStartArrayMap(units)
 						mutator(datum, units)
-						expectedDatum := CloneInsulinSensitivityStartArrayMap(datum)
+						expectedDatum := pumpTest.CloneInsulinSensitivityStartArrayMap(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)

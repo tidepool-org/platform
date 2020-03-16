@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -12,23 +14,6 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
-
-func NewBolus() *pump.Bolus {
-	datum := pump.NewBolus()
-	datum.AmountMaximum = NewBolusAmountMaximum()
-	datum.Extended = NewBolusExtended()
-	return datum
-}
-
-func CloneBolus(datum *pump.Bolus) *pump.Bolus {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBolus()
-	clone.AmountMaximum = CloneBolusAmountMaximum(datum.AmountMaximum)
-	clone.Extended = CloneBolusExtended(datum.Extended)
-	return clone
-}
 
 var _ = Describe("Bolus", func() {
 	Context("ParseBolus", func() {
@@ -49,7 +34,7 @@ var _ = Describe("Bolus", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.Bolus), expectedErrors ...error) {
-					datum := NewBolus()
+					datum := pumpTest.NewBolus()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -64,7 +49,7 @@ var _ = Describe("Bolus", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amountMaximum/units"),
 				),
 				Entry("amount maximum valid",
-					func(datum *pump.Bolus) { datum.AmountMaximum = NewBolusAmountMaximum() },
+					func(datum *pump.Bolus) { datum.AmountMaximum = pumpTest.NewBolusAmountMaximum() },
 				),
 				Entry("extended missing",
 					func(datum *pump.Bolus) { datum.Extended = nil },
@@ -74,7 +59,7 @@ var _ = Describe("Bolus", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/extended/enabled"),
 				),
 				Entry("extended valid",
-					func(datum *pump.Bolus) { datum.Extended = NewBolusExtended() },
+					func(datum *pump.Bolus) { datum.Extended = pumpTest.NewBolusExtended() },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Bolus) {
@@ -91,9 +76,9 @@ var _ = Describe("Bolus", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.Bolus)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBolus()
+						datum := pumpTest.NewBolus()
 						mutator(datum)
-						expectedDatum := CloneBolus(datum)
+						expectedDatum := pumpTest.CloneBolus(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

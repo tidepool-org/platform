@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -12,23 +14,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewBolusExtended() *pump.BolusExtended {
-	datum := pump.NewBolusExtended()
-	datum.Enabled = pointer.FromBool(test.RandomBool())
-	return datum
-}
-
-func CloneBolusExtended(datum *pump.BolusExtended) *pump.BolusExtended {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBolusExtended()
-	clone.Enabled = pointer.CloneBool(datum.Enabled)
-	return clone
-}
 
 var _ = Describe("BolusExtended", func() {
 	Context("ParseBolusExtended", func() {
@@ -49,7 +35,7 @@ var _ = Describe("BolusExtended", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.BolusExtended), expectedErrors ...error) {
-					datum := NewBolusExtended()
+					datum := pumpTest.NewBolusExtended()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -79,9 +65,9 @@ var _ = Describe("BolusExtended", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BolusExtended)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBolusExtended()
+						datum := pumpTest.NewBolusExtended()
 						mutator(datum)
-						expectedDatum := CloneBolusExtended(datum)
+						expectedDatum := pumpTest.CloneBolusExtended(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
