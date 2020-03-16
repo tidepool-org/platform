@@ -8,11 +8,9 @@ import (
 
 	"github.com/tidepool-org/platform/id"
 
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/validate"
-
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/device"
+	"github.com/tidepool-org/platform/structure"
 )
 
 const (
@@ -36,6 +34,10 @@ const (
 
 	MaximumExpirationTime = time.Hour * 24 * 30 // 30 days
 )
+
+type Client interface {
+	Accessor
+}
 
 type Accessor interface {
 	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
@@ -75,6 +77,10 @@ type RevisionCreate struct {
 	State                   string           `json:"state"`
 }
 
+func NewRevisionCreate() *RevisionCreate {
+	return &RevisionCreate{}
+}
+
 func NewPrescriptionID() string {
 	return id.Must(id.New(8))
 }
@@ -89,7 +95,7 @@ func HashAccessCode(code string) string {
 	return fmt.Sprintf("%x", hash.Sum(nil))
 }
 
-func NewPrescription(ctx context.Context, userID string, revisionCreate *RevisionCreate) *Prescription {
+func NewPrescription(ctx context.Context, userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
 	now := time.Now()
 	accessCode := NewPrescriptionAccessCode()
 	revision := NewRevision(ctx, userID, 0, revisionCreate)
@@ -109,13 +115,12 @@ func NewPrescription(ctx context.Context, userID string, revisionCreate *Revisio
 		DeletedUserID:   nil,
 	}
 
-	return prescription
+	return prescription, nil
 }
 
 type Prescriptions []*Prescription
 
 func (p *Prescription) Validate(validator structure.Validator) {
-	validate.StructWithLegacyErrorReporting(p, validator)
 }
 
 type Revision struct {

@@ -3,6 +3,8 @@ package test
 import (
 	"github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/prescription"
+
 	"github.com/tidepool-org/platform/prescription/store"
 	"github.com/tidepool-org/platform/prescription/store/mongo"
 
@@ -12,12 +14,14 @@ import (
 
 type Service struct {
 	*serviceTest.Service
-	DomainInvocations            int
-	DomainOutputs                []string
-	StatusInvocations            int
-	StatusOutputs                []*service.Status
-	PrescriptionStoreInvocations int
-	PrescriptionOutputs          []*mongo.Store
+	DomainInvocations             int
+	DomainOutputs                 []string
+	StatusInvocations             int
+	StatusOutputs                 []*service.Status
+	PrescriptionStoreInvocations  int
+	PrescriptionStoreOutputs      []*mongo.Store
+	PrescriptionClientInvocations int
+	PrescriptionClientOutputs     []prescription.Client
 }
 
 func NewService() *Service {
@@ -49,10 +53,20 @@ func (s *Service) Status() *service.Status {
 func (s *Service) PrescriptionStore() store.Store {
 	s.PrescriptionStoreInvocations++
 
-	gomega.Expect(s.PrescriptionOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(s.PrescriptionStoreOutputs).ToNot(gomega.BeEmpty())
 
-	output := s.PrescriptionOutputs[0]
-	s.PrescriptionOutputs = s.PrescriptionOutputs[1:]
+	output := s.PrescriptionStoreOutputs[0]
+	s.PrescriptionStoreOutputs = s.PrescriptionStoreOutputs[1:]
+	return output
+}
+
+func (s *Service) PrescriptionClient() prescription.Client {
+	s.PrescriptionClientInvocations++
+
+	gomega.Expect(s.PrescriptionClientOutputs).ToNot(gomega.BeEmpty())
+
+	output := s.PrescriptionClientOutputs[0]
+	s.PrescriptionClientOutputs = s.PrescriptionClientOutputs[1:]
 	return output
 }
 

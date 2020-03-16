@@ -29,6 +29,7 @@ require (
 	golang.org/x/tools v0.0.0-20190116202437-c3e156772774
 	gopkg.in/tylerb/graceful.v1 v1.2.15
 	gopkg.in/yaml.v2 v2.2.2
+	syreclabs.com/go/faker v1.2.2 // indirect
 )
 
 replace gopkg.in/fsnotify.v1 v1.4.7 => gopkg.in/fsnotify/fsnotify.v1 v1.4.7

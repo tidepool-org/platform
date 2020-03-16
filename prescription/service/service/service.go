@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/service"
 	"github.com/tidepool-org/platform/prescription/store/mongo"
 	serviceService "github.com/tidepool-org/platform/service/service"
@@ -11,7 +12,8 @@ import (
 
 type Service struct {
 	*serviceService.Service
-	prescriptionStore *mongo.Store
+	prescriptionStore  *mongo.Store
+	prescriptionClient prescription.Client
 }
 
 func New() *Service {
@@ -24,11 +26,16 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
-	return s.initializePrescriptionStore()
+	if err := s.initializePrescriptionStore(); err != nil {
+		return err
+	}
+
+	return s.initializePrescriptionClient()
 }
 
 func (s *Service) Terminate() {
 	s.terminatePrescriptionStore()
+	s.terminatePrescriptionClient()
 	s.Service.Terminate()
 }
 
@@ -68,6 +75,18 @@ func (s *Service) initializePrescriptionStore() error {
 	return nil
 }
 
+func (s *Service) initializePrescriptionClient() error {
+	s.Logger().Debug("Prescription client")
+
+	clnt, err := NewClient(s.Logger(), s.PrescriptionStore())
+	if err != nil {
+		return errors.Wrap(err, "unable to create prescription client")
+	}
+	s.prescriptionClient = clnt
+
+	return nil
+}
+
 func (s *Service) terminatePrescriptionStore() {
 	if s.prescriptionStore != nil {
 		s.Logger().Debug("Terminating prescription store")
@@ -76,5 +95,12 @@ func (s *Service) terminatePrescriptionStore() {
 		}
 
 		s.prescriptionStore = nil
+	}
+}
+
+func (s *Service) terminatePrescriptionClient() {
+	if s.prescriptionClient != nil {
+		s.Logger().Debug("Destroying prescription client")
+		s.prescriptionClient = nil
 	}
 }
