@@ -117,6 +117,11 @@ type String interface {
 	Using(usingFunc StringUsingFunc) String
 
 	AsTime(layout string) Time
+
+	Email() String
+
+	Hexadecimal() String
+	Alphanumeric() String
 }
 
 type StringArrayEachFunc func(stringValidator String)

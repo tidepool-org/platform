@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"strconv"
 
 	"syreclabs.com/go/faker"
 
@@ -16,16 +15,15 @@ import (
 )
 
 func RandomRevisionCreate() *prescription.RevisionCreate {
-
 	return &prescription.RevisionCreate{
-		FirstName:               pointer.FromString(faker.Name().FirstName()),
-		LastName:                pointer.FromString(faker.Name().LastName()),
-		Birthday:                pointer.FromString(faker.Date().Birthday(7, 80).Format("")),
-		MRN:                     pointer.FromString(faker.Code().Rut()),
-		Email:                   pointer.FromString(faker.Internet().Email()),
+		FirstName:               faker.Name().FirstName(),
+		LastName:                faker.Name().LastName(),
+		Birthday:                faker.Date().Birthday(7, 80).Format("2020-03-19"),
+		MRN:                     faker.Code().Rut(),
+		Email:                   faker.Internet().Email(),
 		Sex:                     RandomSex(),
 		Weight:                  RandomWeight(),
-		YearOfDiagnosis:         pointer.FromString(strconv.Itoa(faker.RandomInt(1940, 2020))),
+		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 		PhoneNumber:             RandomPhoneNumber(),
 		Address:                 RandomAddress(),
 		InitialSettings:         RandomInitialSettings(),
@@ -33,12 +31,12 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		TherapySettings:         RandomTherapySettings(),
 		LoopMode:                RandomLoopMode(),
 		PrescriberTermsAccepted: pointer.FromBool(true),
-		State:                   RandomState(),
+		State:                   RandomRevisionState(),
 	}
 }
 
-func RandomSex() *string {
-	return pointer.FromString(faker.RandomChoice([]string{"male", "female", "undisclosed"}))
+func RandomSex() string {
+	return faker.RandomChoice([]string{"male", "female", "undisclosed"})
 }
 
 func RandomWeight() *prescription.Weight {
@@ -47,23 +45,23 @@ func RandomWeight() *prescription.Weight {
 	weight := kgs + grams/1000.0
 
 	return &prescription.Weight{
-		Value: weight,
+		Value: pointer.FromFloat64(weight),
 		Units: "kg",
 	}
 }
 
-func RandomPhoneNumber() *string {
-	return pointer.FromString(fmt.Sprintf("%s-%s-%s", faker.PhoneNumber().AreaCode(), faker.PhoneNumber().ExchangeCode(), faker.PhoneNumber().SubscriberNumber(4)))
+func RandomPhoneNumber() string {
+	return fmt.Sprintf("(%s) %s-%s", faker.PhoneNumber().AreaCode(), faker.PhoneNumber().ExchangeCode(), faker.PhoneNumber().SubscriberNumber(4))
 }
 
 func RandomAddress() *prescription.Address {
 	return &prescription.Address{
-		Line1:      pointer.FromString(faker.Address().StreetAddress()),
-		Line2:      pointer.FromString(faker.Address().SecondaryAddress()),
-		City:       pointer.FromString(faker.Address().City()),
-		State:      pointer.FromString(faker.Address().State()),
-		PostalCode: pointer.FromString(faker.Address().Postcode()),
-		Country:    pointer.FromString("USA"),
+		Line1:      faker.Address().StreetAddress(),
+		Line2:      faker.Address().SecondaryAddress(),
+		City:       faker.Address().City(),
+		State:      faker.Address().State(),
+		PostalCode: faker.Address().Postcode(),
+		Country:    "us",
 	}
 }
 
@@ -106,35 +104,32 @@ func getCGMType(cgm *cgm.CGM) *device.Device {
 	}
 }
 
-func RandomTraining() *string {
-	return pointer.FromString(faker.RandomChoice([]string{
-		prescription.PrescriptionTrainingInPerson,
-		prescription.PrescriptionTrainingInModule,
-	}))
-}
-
-func RandomTherapySettings() *string {
-	return pointer.FromString(faker.RandomChoice([]string{
-		prescription.PrescriptionTherapySettingInitial,
-		prescription.PrescriptionTherapySettingTransferPumpSettings,
-		prescription.PrescriptionTherapySettingCertifiedPumpTrainer,
-	}))
-}
-
-func RandomLoopMode() *string {
-	return pointer.FromString(faker.RandomChoice([]string{
-		prescription.PrescriptionLoopModeSuspendOnly,
-		prescription.PrescriptionLoopModeClosedLoop,
-	}))
-}
-
-func RandomState() string {
+func RandomTraining() string {
 	return faker.RandomChoice([]string{
-		prescription.PrescriptionStateDraft,
-		prescription.PrescriptionStatePending,
-		prescription.PrescriptionStateSubmitted,
-		prescription.PrescriptionStateActive,
-		prescription.PrescriptionStateInactive,
-		prescription.PrescriptionStateExpired,
+		prescription.TrainingInPerson,
+		prescription.TrainingInModule,
+	})
+}
+
+func RandomTherapySettings() string {
+	return faker.RandomChoice([]string{
+		prescription.TherapySettingInitial,
+		prescription.TherapySettingTransferPumpSettings,
+		prescription.TherapySettingCertifiedPumpTrainer,
+	})
+}
+
+func RandomLoopMode() string {
+	return faker.RandomChoice([]string{
+		prescription.LoopModeSuspendOnly,
+		prescription.LoopModeClosedLoop,
+	})
+}
+
+func RandomRevisionState() string {
+	return faker.RandomChoice([]string{
+		prescription.StateDraft,
+		prescription.StatePending,
+		prescription.StateSubmitted,
 	})
 }

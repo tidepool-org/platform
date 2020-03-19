@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/tidepool-org/platform/validate"
-
 	"github.com/tidepool-org/platform/config"
 	configEnv "github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/errors"
@@ -79,10 +77,6 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 	logger.Infof("Logger level is %s", level)
 
 	userAgent := fmt.Sprintf("%s-%s/%s", userAgentTitle(prefix), userAgentTitle(name), versionReporter.Base())
-
-	if err := validate.Initialize(); err != nil {
-		return nil, errors.Wrap(err, "unable to initialize validator")
-	}
 
 	return &ProviderImpl{
 		versionReporter: versionReporter,
