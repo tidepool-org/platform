@@ -84,7 +84,7 @@ func (p *Prescription) Validate(validator structure.Validator) {
 	validator.String("state", &p.State).OneOf(States()...)
 
 	if p.LatestRevision != nil {
-		p.Validate(validator.WithReference("latestRevision"))
+		p.LatestRevision.Validate(validator.WithReference("latestRevision"))
 	} else {
 		validator.WithReference("latestRevision").ReportError(structureValidator.ErrorValueEmpty())
 	}
