@@ -51,20 +51,21 @@ func NewPrescriptionID() string {
 	return id.Must(id.New(8))
 }
 
-func NewPrescription(ctx context.Context, userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
+func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
 	now := time.Now()
 	accessCode := GenerateAccessCode()
-	revision := NewRevision(ctx, userID, 0, revisionCreate)
+	revision := NewRevision(userID, 0, revisionCreate)
 	revisionHistory := []*Revision{revision}
 	prescription := &Prescription{
-		ID:              NewPrescriptionID(),
-		AccessCode:      accessCode,
-		State:           revisionCreate.State,
-		LatestRevision:  revision,
-		RevisionHistory: revisionHistory,
-		ExpirationTime:  revision.CalculateExpirationTime(),
-		CreatedTime:     now,
-		CreatedUserID:   userID,
+		ID:               NewPrescriptionID(),
+		AccessCode:       accessCode,
+		State:            revisionCreate.State,
+		LatestRevision:   revision,
+		RevisionHistory:  revisionHistory,
+		ExpirationTime:   revision.CalculateExpirationTime(),
+		CreatedTime:      now,
+		CreatedUserID:    userID,
+		PrescriberUserID: revision.GetPrescriberUserID(),
 	}
 
 	return prescription, nil

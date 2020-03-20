@@ -2,6 +2,12 @@ package test
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
+	userTest "github.com/tidepool-org/platform/user/test"
+
+	"syreclabs.com/go/faker/locales"
 
 	"syreclabs.com/go/faker"
 
@@ -18,7 +24,7 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 	return &prescription.RevisionCreate{
 		FirstName:               faker.Name().FirstName(),
 		LastName:                faker.Name().LastName(),
-		Birthday:                faker.Date().Birthday(7, 80).Format("2020-03-19"),
+		Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
 		MRN:                     faker.Code().Rut(),
 		Email:                   faker.Internet().Email(),
 		Sex:                     RandomSex(),
@@ -30,8 +36,39 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
 		LoopMode:                RandomLoopMode(),
-		PrescriberTermsAccepted: pointer.FromBool(true),
-		State:                   RandomRevisionState(),
+		PrescriberTermsAccepted: true,
+		State:                   prescription.StateSubmitted,
+	}
+}
+
+func RandomRevision() *prescription.Revision {
+	return &prescription.Revision{
+		RevisionID: faker.RandomInt(0, 10),
+		Signature:  nil,
+		Attributes: RandomAttribtues(),
+	}
+}
+
+func RandomAttribtues() *prescription.Attributes {
+	return &prescription.Attributes{
+		FirstName:               faker.Name().FirstName(),
+		LastName:                faker.Name().LastName(),
+		Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
+		MRN:                     faker.Code().Rut(),
+		Email:                   faker.Internet().Email(),
+		Sex:                     RandomSex(),
+		Weight:                  RandomWeight(),
+		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
+		PhoneNumber:             RandomPhoneNumber(),
+		Address:                 RandomAddress(),
+		InitialSettings:         RandomInitialSettings(),
+		Training:                RandomTraining(),
+		TherapySettings:         RandomTherapySettings(),
+		LoopMode:                RandomLoopMode(),
+		PrescriberTermsAccepted: true,
+		State:                   prescription.StateSubmitted,
+		ModifiedTime:            time.Now(),
+		ModifiedUserID:          userTest.RandomID(),
 	}
 }
 
@@ -51,6 +88,7 @@ func RandomWeight() *prescription.Weight {
 }
 
 func RandomPhoneNumber() string {
+	faker.Locale = locales.En_US
 	return fmt.Sprintf("(%s) %s-%s", faker.PhoneNumber().AreaCode(), faker.PhoneNumber().ExchangeCode(), faker.PhoneNumber().SubscriberNumber(4))
 }
 
@@ -59,22 +97,23 @@ func RandomAddress() *prescription.Address {
 		Line1:      faker.Address().StreetAddress(),
 		Line2:      faker.Address().SecondaryAddress(),
 		City:       faker.Address().City(),
-		State:      faker.Address().State(),
+		State:      strings.ToUpper(faker.Address().StateAbbr()),
 		PostalCode: faker.Address().Postcode(),
-		Country:    "us",
+		Country:    "US",
 	}
 }
 
 func RandomInitialSettings() *prescription.InitialSettings {
 	units := pointer.FromString("mg/dL")
 	randomPump := test.NewPump(units)
+	scheduleName := *randomPump.ActiveScheduleName
 	randomCGM := cgmTest.RandomCGM(units)
 
 	return &prescription.InitialSettings{
-		BasalRateSchedule:          randomPump.BasalRateSchedule,
-		BloodGlucoseTargetSchedule: randomPump.BloodGlucoseTargetSchedule,
-		CarbohydrateRatioSchedule:  randomPump.CarbohydrateRatioSchedule,
-		InsulinSensitivitySchedule: randomPump.InsulinSensitivitySchedule,
+		BasalRateSchedule:          randomPump.BasalRateSchedules.Get(scheduleName),
+		BloodGlucoseTargetSchedule: randomPump.BloodGlucoseTargetSchedules.Get(scheduleName),
+		CarbohydrateRatioSchedule:  randomPump.CarbohydrateRatioSchedules.Get(scheduleName),
+		InsulinSensitivitySchedule: randomPump.InsulinSensitivitySchedules.Get(scheduleName),
 		BasalRateMaximum:           randomPump.Basal.RateMaximum,
 		BolusAmountMaximum:         randomPump.Bolus.AmountMaximum,
 		PumpType:                   getPumpType(randomPump),
@@ -123,13 +162,5 @@ func RandomLoopMode() string {
 	return faker.RandomChoice([]string{
 		prescription.LoopModeSuspendOnly,
 		prescription.LoopModeClosedLoop,
-	})
-}
-
-func RandomRevisionState() string {
-	return faker.RandomChoice([]string{
-		prescription.StateDraft,
-		prescription.StatePending,
-		prescription.StateSubmitted,
 	})
 }

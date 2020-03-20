@@ -31,16 +31,15 @@ func (r *PrescriptionSession) CreatePrescription(ctx context.Context, userID str
 	if userID == "" {
 		return nil, errors.New("userID is missing")
 	}
+	if r.IsClosed() {
+		return nil, errors.New("session closed")
+	}
 
-	model, err := prescription.NewPrescription(ctx, userID, create)
+	model, err := prescription.NewPrescription(userID, create)
 	if err != nil {
 		return nil, err
 	} else if err = structureValidator.New().Validate(model); err != nil {
 		return nil, errors.Wrap(err, "prescription is invalid")
-	}
-
-	if r.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()

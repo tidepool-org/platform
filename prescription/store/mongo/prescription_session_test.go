@@ -135,8 +135,8 @@ var _ = Describe("PrescriptionSession", func() {
 
 				It("returns the created prescription on success", func() {
 					result, err := session.CreatePrescription(ctx, userID, revisionCreate)
-					Expect(result).ToNot(BeNil())
 					Expect(err).ToNot(HaveOccurred())
+					Expect(result).ToNot(BeNil())
 				})
 			})
 		})
