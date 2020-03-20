@@ -63,15 +63,6 @@ github.com/globalsign/mgo/bson
 github.com/globalsign/mgo/internal/sasl
 github.com/globalsign/mgo/internal/scram
 github.com/globalsign/mgo/internal/json
-# github.com/go-playground/locales v0.13.0
-github.com/go-playground/locales/en
-github.com/go-playground/locales
-github.com/go-playground/locales/currency
-# github.com/go-playground/universal-translator v0.17.0
-github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.2.0
-github.com/go-playground/validator/v10
-github.com/go-playground/validator/v10/translations/en
 # github.com/golang/protobuf v1.2.0
 github.com/golang/protobuf/proto
 # github.com/howeyc/fsnotify v0.9.0
@@ -84,8 +75,6 @@ github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
-# github.com/leodido/go-urn v1.2.0
-github.com/leodido/go-urn
 # github.com/mattn/go-colorable v0.0.9
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.4
@@ -208,3 +197,6 @@ gopkg.in/tomb.v1
 gopkg.in/tylerb/graceful.v1
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
+# syreclabs.com/go/faker v1.2.2
+syreclabs.com/go/faker
+syreclabs.com/go/faker/locales
