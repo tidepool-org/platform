@@ -53,6 +53,11 @@ var _ = Describe("Service", func() {
 					"address": testHttp.NewAddress(),
 					"tls":     "false",
 				},
+				"user": map[string]interface{}{
+					"client": map[string]interface{}{
+						"address": server.URL(),
+					},
+				},
 			}
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig

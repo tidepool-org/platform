@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/store"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Service interface {
@@ -11,6 +12,7 @@ type Service interface {
 
 	PrescriptionStore() store.Store
 	PrescriptionClient() prescription.Client
+	UserClient() user.Client
 
 	Status() *Status
 }

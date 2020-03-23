@@ -3,6 +3,8 @@ package test
 import (
 	"github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/user"
+
 	"github.com/tidepool-org/platform/prescription"
 
 	"github.com/tidepool-org/platform/prescription/store"
@@ -22,6 +24,8 @@ type Service struct {
 	PrescriptionStoreOutputs      []*mongo.Store
 	PrescriptionClientInvocations int
 	PrescriptionClientOutputs     []prescription.Client
+	UserClientInvocations         int
+	UserClientOutputs             []user.Client
 }
 
 func NewService() *Service {
@@ -67,6 +71,16 @@ func (s *Service) PrescriptionClient() prescription.Client {
 
 	output := s.PrescriptionClientOutputs[0]
 	s.PrescriptionClientOutputs = s.PrescriptionClientOutputs[1:]
+	return output
+}
+
+func (s *Service) UserClient() user.Client {
+	s.UserClientInvocations++
+
+	gomega.Expect(s.UserClientOutputs).ToNot(gomega.BeEmpty())
+
+	output := s.UserClientOutputs[0]
+	s.UserClientOutputs = s.UserClientOutputs[1:]
 	return output
 }
 

@@ -3,17 +3,21 @@ package service
 import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/service"
 	"github.com/tidepool-org/platform/prescription/store/mongo"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	"github.com/tidepool-org/platform/user"
+	userClient "github.com/tidepool-org/platform/user/client"
 )
 
 type Service struct {
 	*serviceService.Service
 	prescriptionStore  *mongo.Store
 	prescriptionClient prescription.Client
+	userClient         user.Client
 }
 
 func New() *Service {
@@ -29,6 +33,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializePrescriptionStore(); err != nil {
 		return err
 	}
+	if err := s.initializeUserClient(); err != nil {
+		return err
+	}
 
 	return s.initializePrescriptionClient()
 }
@@ -36,6 +43,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 func (s *Service) Terminate() {
 	s.terminatePrescriptionStore()
 	s.terminatePrescriptionClient()
+	s.terminateUserClient()
 	s.Service.Terminate()
 }
 
@@ -49,6 +57,10 @@ func (s *Service) Status() *service.Status {
 
 func (s *Service) PrescriptionStore() *mongo.Store {
 	return s.prescriptionStore
+}
+
+func (s *Service) UserClient() user.Client {
+	return s.userClient
 }
 
 func (s *Service) initializePrescriptionStore() error {
@@ -87,6 +99,26 @@ func (s *Service) initializePrescriptionClient() error {
 	return nil
 }
 
+func (s *Service) initializeUserClient() error {
+	s.Logger().Debug("Loading user client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
+		return errors.Wrap(err, "unable to user client config")
+	}
+
+	s.Logger().Debug("Creating user client")
+
+	clnt, err := userClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
+	s.userClient = clnt
+
+	return nil
+}
+
 func (s *Service) terminatePrescriptionStore() {
 	if s.prescriptionStore != nil {
 		s.Logger().Debug("Terminating prescription store")
@@ -102,5 +134,12 @@ func (s *Service) terminatePrescriptionClient() {
 	if s.prescriptionClient != nil {
 		s.Logger().Debug("Destroying prescription client")
 		s.prescriptionClient = nil
+	}
+}
+
+func (s *Service) terminateUserClient() {
+	if s.userClient != nil {
+		s.Logger().Debug("Destroying user client")
+		s.userClient = nil
 	}
 }

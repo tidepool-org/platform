@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/user"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/prescription"
@@ -11,13 +13,18 @@ import (
 
 func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	ctx := req.Context()
+	details := request.DetailsFromContext(ctx)
 	userID := details.UserID()
 
-	// TODO: check prescription role
 	if userID == "" {
 		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
 		return
+	}
+
+	usr, err := r.UserClient().Get(ctx, userID)
+	if err != nil || !usr.HasRole(user.RoleClinic) {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
 	}
 
 	create := prescription.NewRevisionCreate()
@@ -26,6 +33,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
+	// TODO: check prescription permission
 	prescr, err := r.PrescriptionClient().CreatePrescription(req.Context(), userID, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
