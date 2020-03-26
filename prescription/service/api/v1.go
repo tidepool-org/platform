@@ -23,8 +23,14 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 	}
 
 	usr, err := r.UserClient().Get(ctx, userID)
-	if err != nil || !usr.HasRole(user.RoleClinic) {
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
+		return
+	}
+
+	if usr == nil || !usr.HasRole(user.RoleClinic) {
 		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return
 	}
 
 	create := prescription.NewRevisionCreate()

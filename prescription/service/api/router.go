@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/prescription/service"
+	"github.com/tidepool-org/platform/service/api"
 )
 
 type Router struct {
@@ -24,6 +25,6 @@ func NewRouter(svc service.Service) (*Router, error) {
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/status", r.StatusGet),
-		rest.Post("/v1/prescriptions", r.CreatePrescription),
+		rest.Post("/v1/prescriptions", api.Require(r.CreatePrescription)),
 	}
 }

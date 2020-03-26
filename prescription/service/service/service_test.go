@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"net/http"
 	"os"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -30,12 +31,34 @@ var _ = Describe("Service", func() {
 		var provider *applicationTest.Provider
 		var prescriptionStoreConfig map[string]interface{}
 		var prescriptionServiceConfig map[string]interface{}
+		var authClientConfig map[string]interface{}
+		var serverSecret string
+		var sessionToken string
 		var server *Server
 		var service *prescriptionServiceService.Service
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
+			serverSecret = authTest.NewServiceSecret()
+			sessionToken = authTest.NewSessionToken()
 			server = NewServer()
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/auth/serverlogin"),
+					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
+					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
+					VerifyBody(nil),
+					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{sessionToken}})),
+			)
+
+			authClientConfig = map[string]interface{}{
+				"address":             server.URL(),
+				"server_token_secret": authTest.NewServiceSecret(),
+				"external": map[string]interface{}{
+					"address":                     server.URL(),
+					"server_session_token_secret": serverSecret,
+				},
+			}
 
 			prescriptionStoreConfig = map[string]interface{}{
 				"addresses": os.Getenv("TIDEPOOL_STORE_ADDRESSES"),
@@ -44,6 +67,9 @@ var _ = Describe("Service", func() {
 			}
 
 			prescriptionServiceConfig = map[string]interface{}{
+				"auth": map[string]interface{}{
+					"client": authClientConfig,
+				},
 				"domain": "test.com",
 				"secret": authTest.NewServiceSecret(),
 				"prescription": map[string]interface{}{
@@ -58,6 +84,7 @@ var _ = Describe("Service", func() {
 						"address": server.URL(),
 					},
 				},
+
 			}
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig

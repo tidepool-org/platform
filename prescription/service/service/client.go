@@ -3,26 +3,27 @@ package service
 import (
 	"context"
 
+	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
+
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/prescription"
-	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
 )
 
 type Client struct {
-	prescriptionStore *prescriptionStoreMongo.Store
+	prescriptionStore prescriptionStore.Store
 }
 
-func NewClient(logger log.Logger, prescriptionStore *prescriptionStoreMongo.Store) (*Client, error) {
+func NewClient(logger log.Logger, store prescriptionStore.Store) (*Client, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
-	if prescriptionStore == nil {
+	if store == nil {
 		return nil, errors.New("prescription store is missing")
 	}
 
 	return &Client{
-		prescriptionStore: prescriptionStore,
+		prescriptionStore: store,
 	}, nil
 }
 

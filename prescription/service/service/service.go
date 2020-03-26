@@ -6,6 +6,8 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/service"
+	"github.com/tidepool-org/platform/prescription/service/api"
+	"github.com/tidepool-org/platform/prescription/store"
 	"github.com/tidepool-org/platform/prescription/store/mongo"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -14,7 +16,7 @@ import (
 )
 
 type Service struct {
-	*serviceService.Service
+	*serviceService.Authenticated
 	prescriptionStore  *mongo.Store
 	prescriptionClient prescription.Client
 	userClient         user.Client
@@ -22,15 +24,18 @@ type Service struct {
 
 func New() *Service {
 	return &Service{
-		Service: serviceService.New(),
+		Authenticated: serviceService.NewAuthenticated(),
 	}
 }
 
 func (s *Service) Initialize(provider application.Provider) error {
-	if err := s.Service.Initialize(provider); err != nil {
+	if err := s.Authenticated.Initialize(provider); err != nil {
 		return err
 	}
 	if err := s.initializePrescriptionStore(); err != nil {
+		return err
+	}
+	if err := s.initializeRouter(); err != nil {
 		return err
 	}
 	if err := s.initializeUserClient(); err != nil {
@@ -55,12 +60,16 @@ func (s *Service) Status() *service.Status {
 	}
 }
 
-func (s *Service) PrescriptionStore() *mongo.Store {
+func (s *Service) PrescriptionStore() store.Store {
 	return s.prescriptionStore
 }
 
 func (s *Service) UserClient() user.Client {
 	return s.userClient
+}
+
+func (s *Service) PrescriptionClient() prescription.Client {
+	return s.prescriptionClient
 }
 
 func (s *Service) initializePrescriptionStore() error {
@@ -72,11 +81,11 @@ func (s *Service) initializePrescriptionStore() error {
 	}
 
 	s.Logger().Debug("Creating prescription store")
-	store, err := mongo.NewStore(cfg, s.Logger())
+	st, err := mongo.NewStore(cfg, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create prescription store")
 	}
-	s.prescriptionStore = store
+	s.prescriptionStore = st
 
 	s.Logger().Debug("Ensuring prescription store indexes")
 	err = s.prescriptionStore.EnsureIndexes()
@@ -105,7 +114,7 @@ func (s *Service) initializeUserClient() error {
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("user", "client")); err != nil {
-		return errors.Wrap(err, "unable to user client config")
+		return errors.Wrap(err, "unable to get user client config")
 	}
 
 	s.Logger().Debug("Creating user client")
@@ -115,6 +124,23 @@ func (s *Service) initializeUserClient() error {
 		return errors.Wrap(err, "unable to create user client")
 	}
 	s.userClient = clnt
+
+	return nil
+}
+
+func (s *Service) initializeRouter() error {
+	s.Logger().Debug("Creating prescription router")
+
+	router, err := api.NewRouter(s)
+	if err != nil {
+		return errors.Wrap(err, "unable to create prescription api router")
+	}
+
+	s.Logger().Debug("Initializing router")
+
+	if err = s.API().InitializeRouters(router); err != nil {
+		return errors.Wrap(err, "unable to initialize routers")
+	}
 
 	return nil
 }
@@ -142,4 +168,7 @@ func (s *Service) terminateUserClient() {
 		s.Logger().Debug("Destroying user client")
 		s.userClient = nil
 	}
+}
+
+func (s *Service) terminateRouter() {
 }
