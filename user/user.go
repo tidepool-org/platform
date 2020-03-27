@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -73,9 +72,15 @@ func (u *User) Validate(validator structure.Validator) {
 	validator.String("username", u.Username).Exists().NotEmpty()
 	validator.String("termsAccepted", u.TermsAccepted).AsTime(time.RFC3339Nano).NotZero()
 	validator.StringArray("roles", u.Roles).EachOneOf(Roles()...).EachUnique()
-	validator.Time("createdTime", u.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
-	validator.Time("modifiedTime", u.ModifiedTime).NotZero().After(pointer.ToTime(u.CreatedTime)).BeforeNow(time.Second)
-	validator.Time("deletedTime", u.DeletedTime).NotZero().After(pointer.ToTime(u.CreatedTime)).BeforeNow(time.Second)
+	if u.CreatedTime != nil {
+		validator.Time("createdTime", u.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
+	}
+	if u.ModifiedTime != nil {
+		validator.Time("modifiedTime", u.ModifiedTime).NotZero().BeforeNow(time.Second)
+	}
+	if u.DeletedTime != nil {
+		validator.Time("deletedTime", u.DeletedTime).NotZero().BeforeNow(time.Second)
+	}
 	validator.Int("revision", u.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 

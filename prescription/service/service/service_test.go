@@ -84,7 +84,6 @@ var _ = Describe("Service", func() {
 						"address": server.URL(),
 					},
 				},
-
 			}
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig
