@@ -27,9 +27,8 @@ var _ = Describe("Prescription", func() {
 			var prescr *prescription.Prescription
 
 			BeforeEach(func() {
-				var err error
-				prescr, err = prescription.NewPrescription(userID, revisionCreate)
-				Expect(err).ToNot(HaveOccurred())
+				prescr = prescription.NewPrescription(userID, revisionCreate)
+				Expect(prescr).ToNot(BeNil())
 			})
 
 			It("creates a non-empty id", func() {

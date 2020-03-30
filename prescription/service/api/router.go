@@ -26,5 +26,7 @@ func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/status", r.StatusGet),
 		rest.Post("/v1/prescriptions", api.Require(r.CreatePrescription)),
+		rest.Get("/v1/prescriptions", api.Require(r.ListPrescriptions)),
+		rest.Get("/v1/prescriptions/unclaimed/:accessCode", api.Require(r.GetUnclaimedPrescription)),
 	}
 }

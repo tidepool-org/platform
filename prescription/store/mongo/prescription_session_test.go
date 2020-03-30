@@ -3,6 +3,11 @@ package mongo_test
 import (
 	"context"
 
+	"github.com/globalsign/mgo/bson"
+	"syreclabs.com/go/faker"
+
+	userTest "github.com/tidepool-org/platform/user/test"
+
 	"github.com/globalsign/mgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -137,6 +142,230 @@ var _ = Describe("PrescriptionSession", func() {
 					result, err := session.CreatePrescription(ctx, userID, revisionCreate)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).ToNot(BeNil())
+				})
+			})
+
+			Context("GetUnclaimedPrescription", func() {
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.GetUnclaimedPrescription(ctx, prescription.GenerateAccessCode())
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the accessCode is missing", func() {
+					accessCode := ""
+					result, err := session.GetUnclaimedPrescription(ctx, accessCode)
+					errorsTest.ExpectEqual(err, errors.New("access code is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.GetUnclaimedPrescription(ctx, prescription.GenerateAccessCode())
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeNil())
+				})
+
+				Context("With pre-existing data", func() {
+					count := 5
+					var prescr *prescription.Prescription = nil
+					var prescriptions prescription.Prescriptions
+					var ids []string
+
+					BeforeEach(func() {
+						prescriptions = test.RandomPrescriptions(count)
+						ids = make([]string, count)
+						prescr = prescriptions[faker.RandomInt(0, count-1)]
+						for i := 0; i < count; i++ {
+							p := prescriptions[i]
+							p.PatientID = ""
+							p.State = prescription.StateSubmitted
+
+							err := mgoCollection.Insert(p)
+							Expect(err).ToNot(HaveOccurred())
+							ids[i] = p.ID
+						}
+					})
+
+					AfterEach(func() {
+						_, err := mgoCollection.RemoveAll(bson.M{"id": bson.M{"$in": ids}})
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns the correct prescription", func() {
+						result, err := session.GetUnclaimedPrescription(ctx, prescr.AccessCode)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.ID).To(Equal(prescr.ID))
+					})
+
+					It("doesn't return claimed prescriptions", func() {
+						claimed := test.RandomPrescription()
+						claimed.PatientID = userTest.RandomID()
+						err := mgoCollection.Insert(claimed)
+						Expect(err).ToNot(HaveOccurred())
+
+						result, err := session.GetUnclaimedPrescription(ctx, claimed.AccessCode)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("doesn't return draft prescriptions", func() {
+						p := test.RandomPrescription()
+						p.PatientID = ""
+						p.State = prescription.StateDraft
+
+						err := mgoCollection.Insert(p)
+						Expect(err).ToNot(HaveOccurred())
+
+						result, err := session.GetUnclaimedPrescription(ctx, p.AccessCode)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("doesn't return pending prescriptions", func() {
+						p := test.RandomPrescription()
+						p.PatientID = ""
+						p.State = prescription.StatePending
+
+						err := mgoCollection.Insert(p)
+						Expect(err).ToNot(HaveOccurred())
+
+						result, err := session.GetUnclaimedPrescription(ctx, p.AccessCode)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+				})
+			})
+
+			Context("ListPrescriptions", func() {
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.ListPrescriptions(ctx, nil, nil)
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.ListPrescriptions(ctx, nil, nil)
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeNil())
+				})
+
+				Context("With pre-existing data", func() {
+					count := 5
+					var prescriptions prescription.Prescriptions
+					var ids []string
+
+					BeforeEach(func() {
+						prescriptions = test.RandomPrescriptions(count)
+						ids = make([]string, count)
+						for i := 0; i < count; i++ {
+							p := prescriptions[i]
+							p.PatientID = ""
+							p.State = prescription.StateSubmitted
+
+							err := mgoCollection.Insert(p)
+							Expect(err).ToNot(HaveOccurred())
+							ids[i] = p.ID
+						}
+					})
+
+					AfterEach(func() {
+						_, err := mgoCollection.RemoveAll(bson.M{"id": bson.M{"$in": ids}})
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns the correct prescriptions given a prescriber id", func() {
+						expectedIds := ids[1:3]
+						prescriberID := userTest.RandomID()
+						_, err := mgoCollection.UpdateAll(bson.M{"id": bson.M{"$in": expectedIds}}, bson.M{"$set": bson.M{"prescriberId": prescriberID}})
+						Expect(err).ToNot(HaveOccurred())
+
+						filter := prescription.NewFilter()
+						filter.ClinicianID = prescriberID
+						result, err := session.ListPrescriptions(ctx, filter, nil)
+						Expect(result).ToNot(BeNil())
+						Expect(err).ToNot(HaveOccurred())
+
+						resultIds := make([]string, len(result))
+						for i := 0; i < len(result); i++ {
+							resultIds[i] = result[i].ID
+						}
+
+						Expect(resultIds).To(ConsistOf(expectedIds))
+					})
+
+					It("returns the correct prescriptions given a created id", func() {
+						expectedIds := ids[1:3]
+						createdUserID := userTest.RandomID()
+						_, err := mgoCollection.UpdateAll(bson.M{"id": bson.M{"$in": expectedIds}}, bson.M{"$set": bson.M{"createdUserId": createdUserID}})
+						Expect(err).ToNot(HaveOccurred())
+
+						filter := prescription.NewFilter()
+						filter.ClinicianID = createdUserID
+						result, err := session.ListPrescriptions(ctx, filter, nil)
+						Expect(result).ToNot(BeNil())
+						Expect(err).ToNot(HaveOccurred())
+
+						resultIds := make([]string, len(result))
+						for i := 0; i < len(result); i++ {
+							resultIds[i] = result[i].ID
+						}
+
+						Expect(resultIds).To(ConsistOf(expectedIds))
+					})
+
+					It("returns the correct prescriptions given a patient id", func() {
+						expectedIds := ids[1:3]
+						patientID := userTest.RandomID()
+						_, err := mgoCollection.UpdateAll(bson.M{"id": bson.M{"$in": expectedIds}}, bson.M{"$set": bson.M{"patientId": patientID}})
+						Expect(err).ToNot(HaveOccurred())
+
+						filter := prescription.NewFilter()
+						filter.PatientID = patientID
+						result, err := session.ListPrescriptions(ctx, filter, nil)
+						Expect(result).ToNot(BeNil())
+						Expect(err).ToNot(HaveOccurred())
+
+						resultIds := make([]string, len(result))
+						for i := 0; i < len(result); i++ {
+							resultIds[i] = result[i].ID
+						}
+
+						Expect(resultIds).To(ConsistOf(expectedIds))
+					})
+
+					It("returns the correct prescriptions given a prescription state]", func() {
+						expectedID := ids[faker.RandomInt(0, count-1)]
+						state := prescription.StateDraft
+						patientID := userTest.RandomID()
+						_, err := mgoCollection.UpdateAll(bson.M{"id": expectedID}, bson.M{"$set": bson.M{"state": state, "patientId": patientID}})
+						Expect(err).ToNot(HaveOccurred())
+						_, err = mgoCollection.UpdateAll(bson.M{}, bson.M{"$set": bson.M{"patientId": patientID}})
+						Expect(err).ToNot(HaveOccurred())
+
+						filter := prescription.NewFilter()
+						filter.State = state
+						filter.PatientID = patientID
+						result, err := session.ListPrescriptions(ctx, filter, nil)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						resultIds := make([]string, len(result))
+						for i := 0; i < len(result); i++ {
+							resultIds[i] = result[i].ID
+						}
+
+						Expect(resultIds).To(HaveLen(1))
+						Expect(resultIds[0]).To(Equal(expectedID))
+					})
 				})
 			})
 		})

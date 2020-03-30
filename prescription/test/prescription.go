@@ -22,6 +22,20 @@ import (
 	"github.com/tidepool-org/platform/prescription"
 )
 
+func RandomPrescriptions(count int) prescription.Prescriptions {
+	prescriptions := make(prescription.Prescriptions, count)
+	for i := 0; i < count; i++ {
+		prescriptions[i] = RandomPrescription()
+	}
+
+	return prescriptions
+}
+
+func RandomPrescription() *prescription.Prescription {
+	create := RandomRevisionCreate()
+	return prescription.NewPrescription(userTest.RandomID(), create)
+}
+
 func RandomRevisionCreate() *prescription.RevisionCreate {
 	return &prescription.RevisionCreate{
 		FirstName:               faker.Name().FirstName(),

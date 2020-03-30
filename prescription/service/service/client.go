@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/page"
+
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 
 	"github.com/tidepool-org/platform/errors"
@@ -32,4 +34,18 @@ func (c *Client) CreatePrescription(ctx context.Context, userID string, create *
 	defer ssn.Close()
 
 	return ssn.CreatePrescription(ctx, userID, create)
+}
+
+func (c *Client) ListPrescriptions(ctx context.Context, filter *prescription.Filter, pagination *page.Pagination) (prescription.Prescriptions, error) {
+	ssn := c.prescriptionStore.NewPrescriptionSession()
+	defer ssn.Close()
+
+	return ssn.ListPrescriptions(ctx, filter, pagination)
+}
+
+func (c *Client) GetUnclaimedPrescription(ctx context.Context, accessCode string) (*prescription.Prescription, error) {
+	ssn := c.prescriptionStore.NewPrescriptionSession()
+	defer ssn.Close()
+
+	return ssn.GetUnclaimedPrescription(ctx, accessCode)
 }

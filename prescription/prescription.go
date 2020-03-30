@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/page"
+
 	"github.com/google/uuid"
 
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -30,6 +32,8 @@ type Client interface {
 
 type Accessor interface {
 	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
+	ListPrescriptions(ctx context.Context, filter *Filter, pagination *page.Pagination) (Prescriptions, error)
+	GetUnclaimedPrescription(ctx context.Context, accessCode string) (*Prescription, error)
 }
 
 type Prescription struct {
@@ -51,7 +55,7 @@ func NewPrescriptionID() string {
 	return uuid.New().String()
 }
 
-func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
+func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescription {
 	now := time.Now()
 	accessCode := GenerateAccessCode()
 	revision := NewRevision(userID, 0, revisionCreate)
@@ -68,7 +72,7 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescripti
 		PrescriberUserID: revision.GetPrescriberUserID(),
 	}
 
-	return prescription, nil
+	return prescription
 }
 
 type Prescriptions []*Prescription
@@ -122,5 +126,32 @@ func States() []string {
 		StateExpired,
 		StateActive,
 		StateInactive,
+	}
+}
+
+type Filter struct {
+	ClinicianID string `json:"-"`
+	PatientID   string `json:"-"`
+	State       string `json:"state"`
+}
+
+func NewFilter() *Filter {
+	return &Filter{}
+}
+
+func (f *Filter) Validate(validator structure.Validator) {
+	if f.ClinicianID == "" && f.PatientID == "" {
+		validator.WithReference("clinicianId").ReportError(structureValidator.ErrorValueNotExists())
+		validator.WithReference("patientId").ReportError(structureValidator.ErrorValueNotExists())
+	}
+
+	if f.PatientID != "" {
+		validator.String("clinicianId", &f.PatientID).Using(user.IDValidator)
+	}
+	if f.ClinicianID != "" {
+		validator.String("patientId", &f.ClinicianID).Using(user.IDValidator)
+	}
+	if f.State != "" {
+		validator.String("state", &f.State).OneOf(States()...)
 	}
 }
