@@ -4,7 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
+
 	"github.com/globalsign/mgo/bson"
+
+	"github.com/tidepool-org/platform/page"
 
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -30,6 +34,9 @@ type Client interface {
 
 type Accessor interface {
 	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
+	ListPrescriptions(ctx context.Context, filter *Filter, pagination *page.Pagination) (Prescriptions, error)
+	DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error)
+	GetUnclaimedPrescription(ctx context.Context, accessCode string) (*Prescription, error)
 }
 
 type Prescription struct {
@@ -47,7 +54,7 @@ type Prescription struct {
 	DeletedUserID    string        `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 }
 
-func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
+func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescription {
 	now := time.Now()
 	accessCode := GenerateAccessCode()
 	revision := NewRevision(userID, 0, revisionCreate)
@@ -64,7 +71,7 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescripti
 		PrescriberUserID: revision.GetPrescriberUserID(),
 	}
 
-	return prescription, nil
+	return prescription
 }
 
 type Prescriptions []*Prescription
@@ -119,5 +126,102 @@ func States() []string {
 		StateExpired,
 		StateActive,
 		StateInactive,
+	}
+}
+
+func StatesVisibleToPatients() []string {
+	return []string{
+		StateSubmitted,
+		StateReviewed,
+		StateActive,
+		StateInactive,
+	}
+}
+
+type Filter struct {
+	currentUser       *user.User
+	clinicianID       string
+	PatientID         string
+	PatientEmail      string
+	State             string
+	ID                string
+	CreatedTimeStart  *time.Time
+	CreatedTimeEnd    *time.Time
+	ModifiedTimeStart *time.Time
+	ModifiedTimeEnd   *time.Time
+}
+
+func NewFilter(currentUser *user.User) (*Filter, error) {
+	if currentUser == nil {
+		return nil, errors.New("current user is missing")
+	}
+
+	f := &Filter{
+		currentUser: currentUser,
+	}
+
+	if currentUser.HasRole(user.RoleClinic) {
+		f.clinicianID = *currentUser.UserID
+	} else {
+		f.PatientID = *currentUser.UserID
+	}
+
+	return f, nil
+}
+
+func (f *Filter) GetClinicianID() string {
+	return f.clinicianID
+}
+
+func (f *Filter) Validate(validator structure.Validator) {
+	if f.ID != "" {
+		validator.String("id", &f.ID).Hexadecimal().LengthEqualTo(24)
+	}
+	if f.currentUser.HasRole(user.RoleClinic) {
+		validator.String("clinicianId", &f.clinicianID).NotEmpty().EqualTo(*f.currentUser.UserID)
+		if f.State != "" {
+			validator.String("state", &f.State).OneOf(States()...)
+		}
+		if f.PatientID != "" {
+			validator.String("patientId", &f.PatientID).Using(user.IDValidator)
+		}
+		if f.PatientEmail != "" {
+			validator.String("patientEmail", &f.PatientEmail).Email()
+		}
+	} else {
+		validator.String("patientId", &f.PatientID).NotEmpty().EqualTo(*f.currentUser.UserID)
+		if f.State != "" {
+			validator.String("state", &f.State).OneOf(StatesVisibleToPatients()...)
+		}
+		validator.String("patientEmail", &f.PatientEmail).Empty()
+	}
+}
+
+func (f *Filter) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("id"); ptr != nil {
+		f.ID = *ptr
+	}
+	if f.currentUser.HasRole(user.RoleClinic) {
+		if ptr := parser.String("patientId"); ptr != nil {
+			f.PatientID = *ptr
+		}
+		if ptr := parser.String("patientEmail"); ptr != nil {
+			f.PatientEmail = *ptr
+		}
+	}
+	if ptr := parser.String("state"); ptr != nil {
+		f.State = *ptr
+	}
+	if ptr := parser.Time("createdTimeStart", time.RFC3339Nano); ptr != nil {
+		f.CreatedTimeStart = ptr
+	}
+	if ptr := parser.Time("createdTimeEnd", time.RFC3339Nano); ptr != nil {
+		f.CreatedTimeEnd = ptr
+	}
+	if ptr := parser.Time("modifiedTimeStart", time.RFC3339Nano); ptr != nil {
+		f.ModifiedTimeStart = ptr
+	}
+	if ptr := parser.Time("modifiedTimeEnd", time.RFC3339Nano); ptr != nil {
+		f.ModifiedTimeEnd = ptr
 	}
 }
