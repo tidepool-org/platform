@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
+
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
-
-	"github.com/tidepool-org/platform/id"
 
 	"github.com/tidepool-org/platform/structure"
 )
@@ -48,7 +48,7 @@ type Prescription struct {
 }
 
 func NewPrescriptionID() string {
-	return id.Must(id.New(8))
+	return uuid.New().String()
 }
 
 func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
@@ -74,7 +74,7 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescripti
 type Prescriptions []*Prescription
 
 func (p *Prescription) Validate(validator structure.Validator) {
-	validator.String("id", &p.ID).LengthEqualTo(16).Hexadecimal()
+	validator.String("id", &p.ID).UUID()
 
 	if p.PatientID != "" {
 		validator.String("patientId", &p.PatientID).Using(user.IDValidator)

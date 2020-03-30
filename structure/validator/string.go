@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -215,10 +217,21 @@ func (s *String) Email() structure.String {
 	return s.Matches(emailRegex)
 }
 
+func (s *String) Alphanumeric() structure.String {
+	return s.Matches(alphanumericRegex)
+}
+
 func (s *String) Hexadecimal() structure.String {
 	return s.Matches(hexadecimalRegex)
 }
 
-func (s *String) Alphanumeric() structure.String {
-	return s.Matches(alphanumericRegex)
+func (s *String) UUID() structure.String {
+	if s.value != nil {
+		v := *s.value
+		if _, err := uuid.Parse(v); err != nil {
+			s.base.ReportError(ErrorValueStringNotValidUUID(v))
+		}
+	}
+
+	return s
 }

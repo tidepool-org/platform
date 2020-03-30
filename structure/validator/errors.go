@@ -125,6 +125,10 @@ func ErrorValueStringNotMatches(value string, expression *regexp.Regexp) error {
 	return errors.Preparedf(ErrorCodeValueNotMatches, "value does not match expression", "value %s does not match expression %s", stringify(value), stringify(expression))
 }
 
+func ErrorValueStringNotValidUUID(value string) error {
+	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %s is not a valid UUID", stringify(value))
+}
+
 func ErrorValueStringAsTimeNotValid(value string, layout string) error {
 	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %s is not valid as time with layout %s", stringify(value), stringify(layout))
 }

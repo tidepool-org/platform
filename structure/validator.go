@@ -120,8 +120,9 @@ type String interface {
 
 	Email() String
 
-	Hexadecimal() String
 	Alphanumeric() String
+	Hexadecimal() String
+	UUID() String
 }
 
 type StringArrayEachFunc func(stringValidator String)
