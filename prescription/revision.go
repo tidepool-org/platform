@@ -320,6 +320,7 @@ func (w *Weight) ValidateAllRequired(validator structure.Validator) {
 }
 
 type InitialSettings struct {
+	BloodGlucoseUnits          string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
 	BasalRateSchedule          *pump.BasalRateStartArray          `json:"basalSchedule,omitempty" bson:"basalSchedule,omitempty"`
 	BloodGlucoseTargetSchedule *pump.BloodGlucoseTargetStartArray `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
 	CarbohydrateRatioSchedule  *pump.CarbohydrateRatioStartArray  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
@@ -333,18 +334,18 @@ type InitialSettings struct {
 }
 
 func (i *InitialSettings) Validate(validator structure.Validator) {
+	validator.String("bloodGlucoseUnits", &i.BloodGlucoseUnits).OneOf(glucose.Units()...)
 	if i.BasalRateSchedule != nil {
 		i.BasalRateSchedule.Validate(validator.WithReference("basalSchedule"))
 	}
 	if i.BloodGlucoseTargetSchedule != nil {
-		i.BasalRateSchedule.Validate(validator.WithReference("bgTarget"))
+		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bgTarget"), &i.BloodGlucoseUnits)
 	}
 	if i.CarbohydrateRatioSchedule != nil {
 		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbRatio"))
 	}
 	if i.InsulinSensitivitySchedule != nil {
-		units := glucose.MgdL
-		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivity"), &units)
+		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivity"), &i.BloodGlucoseUnits)
 	}
 	if i.BasalRateMaximum != nil {
 		i.BasalRateMaximum.Validate(validator.WithReference("basalRateMaximum"))

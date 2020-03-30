@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tidepool-org/platform/data/blood/glucose"
+
 	userTest "github.com/tidepool-org/platform/user/test"
 
 	"syreclabs.com/go/faker/locales"
@@ -104,12 +106,13 @@ func RandomAddress() *prescription.Address {
 }
 
 func RandomInitialSettings() *prescription.InitialSettings {
-	units := pointer.FromString("mg/dL")
-	randomPump := test.NewPump(units)
+	units := faker.RandomChoice(glucose.Units())
+	randomPump := test.NewPump(&units)
 	scheduleName := *randomPump.ActiveScheduleName
-	randomCGM := cgmTest.RandomCGM(units)
+	randomCGM := cgmTest.RandomCGM(&units)
 
 	return &prescription.InitialSettings{
+		BloodGlucoseUnits:          units,
 		BasalRateSchedule:          randomPump.BasalRateSchedules.Get(scheduleName),
 		BloodGlucoseTargetSchedule: randomPump.BloodGlucoseTargetSchedules.Get(scheduleName),
 		CarbohydrateRatioSchedule:  randomPump.CarbohydrateRatioSchedules.Get(scheduleName),
