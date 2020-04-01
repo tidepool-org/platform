@@ -131,7 +131,6 @@ func States() []string {
 
 type Filter struct {
 	ClinicianID string `json:"-"`
-	PatientID   string `json:"-"`
 	State       string `json:"state"`
 }
 
@@ -140,17 +139,7 @@ func NewFilter() *Filter {
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
-	if f.ClinicianID == "" && f.PatientID == "" {
-		validator.WithReference("clinicianId").ReportError(structureValidator.ErrorValueNotExists())
-		validator.WithReference("patientId").ReportError(structureValidator.ErrorValueNotExists())
-	}
-
-	if f.PatientID != "" {
-		validator.String("clinicianId", &f.PatientID).Using(user.IDValidator)
-	}
-	if f.ClinicianID != "" {
-		validator.String("patientId", &f.ClinicianID).Using(user.IDValidator)
-	}
+	validator.String("clinicianId", &f.ClinicianID).Using(user.IDValidator)
 	if f.State != "" {
 		validator.String("state", &f.State).OneOf(States()...)
 	}

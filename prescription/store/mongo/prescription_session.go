@@ -83,9 +83,6 @@ func (p *PrescriptionSession) ListPrescriptions(ctx context.Context, filter *pre
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter})
 
 	selector := bson.M{}
-	if filter.PatientID != "" {
-		selector["patientId"] = filter.PatientID
-	}
 	if filter.ClinicianID != "" {
 		selector["$or"] = []bson.M{
 			{"prescriberId": filter.ClinicianID},

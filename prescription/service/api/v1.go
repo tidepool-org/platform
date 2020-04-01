@@ -74,18 +74,14 @@ func (r *Router) ListPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	if usr == nil || usr.UserID == nil {
+	if usr == nil || usr.UserID == nil || !usr.HasRole(user.RoleClinic) {
 		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
 		return
 	}
 
 	// TODO: handle clinic access
 	filter := prescription.NewFilter()
-	if usr.HasRole(user.RoleClinic) {
-		filter.ClinicianID = *usr.UserID
-	} else {
-		filter.PatientID = *usr.UserID
-	}
+	filter.ClinicianID = *usr.UserID
 
 	prescr, err := r.PrescriptionClient().ListPrescriptions(ctx, filter, pagination)
 	if err != nil {

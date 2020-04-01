@@ -322,38 +322,18 @@ var _ = Describe("PrescriptionSession", func() {
 						Expect(resultIds).To(ConsistOf(expectedIds))
 					})
 
-					It("returns the correct prescriptions given a patient id", func() {
-						expectedIds := ids[1:3]
-						patientID := userTest.RandomID()
-						_, err := mgoCollection.UpdateAll(bson.M{"id": bson.M{"$in": expectedIds}}, bson.M{"$set": bson.M{"patientId": patientID}})
-						Expect(err).ToNot(HaveOccurred())
-
-						filter := prescription.NewFilter()
-						filter.PatientID = patientID
-						result, err := session.ListPrescriptions(ctx, filter, nil)
-						Expect(result).ToNot(BeNil())
-						Expect(err).ToNot(HaveOccurred())
-
-						resultIds := make([]string, len(result))
-						for i := 0; i < len(result); i++ {
-							resultIds[i] = result[i].ID
-						}
-
-						Expect(resultIds).To(ConsistOf(expectedIds))
-					})
-
-					It("returns the correct prescriptions given a prescription state]", func() {
+					It("returns the correct prescriptions given a prescription state", func() {
 						expectedID := ids[faker.RandomInt(0, count-1)]
 						state := prescription.StateDraft
-						patientID := userTest.RandomID()
-						_, err := mgoCollection.UpdateAll(bson.M{"id": expectedID}, bson.M{"$set": bson.M{"state": state, "patientId": patientID}})
+						createdUserID := userTest.RandomID()
+						_, err := mgoCollection.UpdateAll(bson.M{"id": expectedID}, bson.M{"$set": bson.M{"state": state, "createdUserId": createdUserID}})
 						Expect(err).ToNot(HaveOccurred())
-						_, err = mgoCollection.UpdateAll(bson.M{}, bson.M{"$set": bson.M{"patientId": patientID}})
+						_, err = mgoCollection.UpdateAll(bson.M{}, bson.M{"$set": bson.M{"createdUserId": createdUserID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter := prescription.NewFilter()
 						filter.State = state
-						filter.PatientID = patientID
+						filter.ClinicianID = createdUserID
 						result, err := session.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
