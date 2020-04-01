@@ -33,6 +33,7 @@ type Client interface {
 type Accessor interface {
 	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
 	ListPrescriptions(ctx context.Context, filter *Filter, pagination *page.Pagination) (Prescriptions, error)
+	DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error)
 	GetUnclaimedPrescription(ctx context.Context, accessCode string) (*Prescription, error)
 }
 
@@ -132,6 +133,7 @@ func States() []string {
 type Filter struct {
 	ClinicianID string `json:"-"`
 	State       string `json:"state"`
+	ID          string `json:"id"`
 }
 
 func NewFilter() *Filter {
@@ -142,5 +144,8 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("clinicianId", &f.ClinicianID).Using(user.IDValidator)
 	if f.State != "" {
 		validator.String("state", &f.State).OneOf(States()...)
+	}
+	if f.ID != "" {
+		validator.String("id", &f.ID).UUID()
 	}
 }

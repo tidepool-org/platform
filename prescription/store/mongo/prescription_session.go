@@ -82,7 +82,14 @@ func (p *PrescriptionSession) ListPrescriptions(ctx context.Context, filter *pre
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter})
 
-	selector := bson.M{}
+	selector := bson.M{
+		"deletedTime":   nil,
+		"deletedUserId": nil,
+	}
+
+	if filter.ID != "" {
+		selector["id"] = filter.ID
+	}
 	if filter.ClinicianID != "" {
 		selector["$or"] = []bson.M{
 			{"prescriberId": filter.ClinicianID},
@@ -133,4 +140,51 @@ func (p *PrescriptionSession) GetUnclaimedPrescription(ctx context.Context, acce
 	}
 
 	return prescr, nil
+}
+
+func (p *PrescriptionSession) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+	if p.IsClosed() {
+		return false, errors.New("session closed")
+	}
+	if clinicianID == "" {
+		return false, errors.New("clinician id is missing")
+	}
+	if id == "" {
+		return false, errors.New("prescription id is missing")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicianId": clinicianID, "id": id})
+
+	selector := bson.M{
+		"id": id,
+		"$or": []bson.M{
+			{"id": clinicianID},
+			{"createdUserId": clinicianID},
+		},
+		"state": bson.M{
+			"$in": []string{prescription.StateDraft, prescription.StatePending},
+		},
+		"deletedTime": nil,
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"deletedUserId": clinicianID,
+			"deletedTime":   now,
+		},
+	}
+
+	// id is unique, so we can't update more than 1 record,
+	// but we need changeInfo to return the expected result
+	changeInfo, err := p.C().UpdateAll(selector, update)
+	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeletePrescription")
+	if err != nil {
+		return false, errors.Wrap(err, "unable to delete prescription")
+	}
+
+	success := changeInfo.Updated == 1
+	return success, nil
 }

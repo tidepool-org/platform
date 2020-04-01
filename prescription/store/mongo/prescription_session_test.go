@@ -323,17 +323,14 @@ var _ = Describe("PrescriptionSession", func() {
 					})
 
 					It("returns the correct prescriptions given a prescription state", func() {
-						expectedID := ids[faker.RandomInt(0, count-1)]
+						expected := prescriptions[faker.RandomInt(0, count-1)]
 						state := prescription.StateDraft
-						createdUserID := userTest.RandomID()
-						_, err := mgoCollection.UpdateAll(bson.M{"id": expectedID}, bson.M{"$set": bson.M{"state": state, "createdUserId": createdUserID}})
-						Expect(err).ToNot(HaveOccurred())
-						_, err = mgoCollection.UpdateAll(bson.M{}, bson.M{"$set": bson.M{"createdUserId": createdUserID}})
+						_, err := mgoCollection.UpdateAll(bson.M{"id": expected.ID}, bson.M{"$set": bson.M{"state": state}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter := prescription.NewFilter()
 						filter.State = state
-						filter.ClinicianID = createdUserID
+						filter.ClinicianID = expected.CreatedUserID
 						result, err := session.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
@@ -344,7 +341,169 @@ var _ = Describe("PrescriptionSession", func() {
 						}
 
 						Expect(resultIds).To(HaveLen(1))
-						Expect(resultIds[0]).To(Equal(expectedID))
+						Expect(resultIds[0]).To(Equal(expected.ID))
+					})
+
+					It("returns the correct prescription given an id", func() {
+						expected := prescriptions[faker.RandomInt(0, count-1)]
+
+						filter := prescription.NewFilter()
+						filter.ID = expected.ID
+						filter.ClinicianID = expected.CreatedUserID
+						result, err := session.ListPrescriptions(ctx, filter, nil)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						resultIds := make([]string, len(result))
+						for i := 0; i < len(result); i++ {
+							resultIds[i] = result[i].ID
+						}
+
+						Expect(resultIds).To(HaveLen(1))
+						Expect(resultIds[0]).To(Equal(expected.ID))
+					})
+				})
+			})
+
+			Context("DeletePrescription", func() {
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.DeletePrescription(ctx, "", "")
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.DeletePrescription(ctx, "", "")
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the clinician id is empty", func() {
+					result, err := session.DeletePrescription(ctx, "", "")
+					errorsTest.ExpectEqual(err, errors.New("clinician id is missing"))
+					Expect(result).To(BeFalse())
+				})
+
+				It("returns an error when the prescription id is empty", func() {
+					result, err := session.DeletePrescription(ctx, userTest.RandomID(), "")
+					errorsTest.ExpectEqual(err, errors.New("prescription id is missing"))
+					Expect(result).To(BeFalse())
+				})
+
+				Context("With pre-existing data", func() {
+					count := 5
+					var prescriptions prescription.Prescriptions
+					var prescr *prescription.Prescription
+					var ids []string
+
+					BeforeEach(func() {
+						prescriptions = test.RandomPrescriptions(count)
+						prescr = prescriptions[faker.RandomInt(0, count-1)]
+						ids = make([]string, count)
+						for i := 0; i < count; i++ {
+							p := prescriptions[i]
+							p.PatientID = ""
+							p.State = faker.RandomChoice([]string{prescription.StateDraft, prescription.StatePending})
+							p.DeletedTime = nil
+							p.DeletedUserID = ""
+
+							err := mgoCollection.Insert(p)
+							Expect(err).ToNot(HaveOccurred())
+							ids[i] = p.ID
+						}
+					})
+
+					AfterEach(func() {
+						changeInfo, err := mgoCollection.RemoveAll(bson.M{"id": bson.M{"$in": ids}})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(changeInfo.Removed).To(Equal(count))
+					})
+
+					It("deletes the correct prescriptions given a prescriber id", func() {
+						success, err := session.DeletePrescription(ctx, prescr.PrescriberUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeTrue())
+
+						deletedSelector := bson.M{
+							"id":            prescr.ID,
+							"deletedTime":   bson.M{"$ne": nil},
+							"deletedUserId": prescr.PrescriberUserID,
+						}
+						found, err := mgoCollection.Find(deletedSelector).Count()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(Equal(1))
+					})
+
+					It("deletes the correct prescriptions given a created user id", func() {
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeTrue())
+
+						deletedSelector := bson.M{
+							"id":            prescr.ID,
+							"deletedTime":   bson.M{"$ne": nil},
+							"deletedUserId": prescr.CreatedUserID,
+						}
+						found, err := mgoCollection.Find(deletedSelector).Count()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(found).To(Equal(1))
+					})
+
+					It("does not delete a prescription which is already deleted", func() {
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeTrue())
+
+						success, err = session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeFalse())
+					})
+
+					It("does not delete a prescription which is submitted", func() {
+						err := mgoCollection.Update(bson.M{"id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateSubmitted}})
+						Expect(err).ToNot(HaveOccurred())
+
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeFalse())
+					})
+
+					It("does not delete a prescription which is reviewed", func() {
+						err := mgoCollection.Update(bson.M{"id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateReviewed}})
+						Expect(err).ToNot(HaveOccurred())
+
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeFalse())
+					})
+
+					It("does not delete a prescription which is active", func() {
+						err := mgoCollection.Update(bson.M{"id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateActive}})
+						Expect(err).ToNot(HaveOccurred())
+
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeFalse())
+					})
+
+					It("does not delete a prescription which is inactive", func() {
+						err := mgoCollection.Update(bson.M{"id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateInactive}})
+						Expect(err).ToNot(HaveOccurred())
+
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeFalse())
+					})
+
+					It("does not delete a prescription which is expired", func() {
+						err := mgoCollection.Update(bson.M{"id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateExpired}})
+						Expect(err).ToNot(HaveOccurred())
+
+						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(success).To(BeFalse())
 					})
 				})
 			})

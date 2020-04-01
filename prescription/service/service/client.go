@@ -49,3 +49,10 @@ func (c *Client) GetUnclaimedPrescription(ctx context.Context, accessCode string
 
 	return ssn.GetUnclaimedPrescription(ctx, accessCode)
 }
+
+func (c *Client) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
+	ssn := c.prescriptionStore.NewPrescriptionSession()
+	defer ssn.Close()
+
+	return ssn.DeletePrescription(ctx, clinicianID, id)
+}

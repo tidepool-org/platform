@@ -14,24 +14,10 @@ import (
 )
 
 func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
-	userID := details.UserID()
-
-	if userID == "" {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
-		return
-	}
-
-	usr, err := r.UserClient().Get(ctx, userID)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
-		return
-	}
-
-	if usr == nil || !usr.HasRole(user.RoleClinic) {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+	responder := request.MustNewResponder(res, req)
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
 		return
 	}
 
@@ -42,7 +28,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 	}
 
 	// TODO: check prescription permission
-	prescr, err := r.PrescriptionClient().CreatePrescription(req.Context(), userID, create)
+	prescr, err := r.PrescriptionClient().CreatePrescription(ctx, *usr.UserID, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -52,10 +38,8 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 }
 
 func (r *Router) ListPrescriptions(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
-	userID := details.UserID()
+	responder := request.MustNewResponder(res, req)
 
 	pagination := page.NewPagination()
 	if err := request.DecodeRequestQuery(req.Request, pagination); err != nil {
@@ -63,19 +47,8 @@ func (r *Router) ListPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	if userID == "" {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
-		return
-	}
-
-	usr, err := r.UserClient().Get(ctx, userID)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
-		return
-	}
-
-	if usr == nil || usr.UserID == nil || !usr.HasRole(user.RoleClinic) {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
 		return
 	}
 
@@ -93,10 +66,8 @@ func (r *Router) ListPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 }
 
 func (r *Router) GetUnclaimedPrescription(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
-	userID := details.UserID()
+	responder := request.MustNewResponder(res, req)
 	accessCode := req.PathParam("accessCode")
 
 	if accessCode == "" {
@@ -104,19 +75,8 @@ func (r *Router) GetUnclaimedPrescription(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	if userID == "" {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
-		return
-	}
-
-	usr, err := r.UserClient().Get(ctx, userID)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
-		return
-	}
-
-	if usr == nil || usr.UserID == nil || usr.HasRole(user.RoleClinic) {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
 		return
 	}
 
@@ -127,4 +87,89 @@ func (r *Router) GetUnclaimedPrescription(res rest.ResponseWriter, req *rest.Req
 	}
 
 	responder.Data(http.StatusOK, prescr)
+}
+
+func (r *Router) GetPrescription(res rest.ResponseWriter, req *rest.Request) {
+	ctx := req.Context()
+	responder := request.MustNewResponder(res, req)
+	PrescriptionID := req.PathParam("id")
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
+		return
+	} else if !usr.HasRole(user.RoleClinic) {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return
+	}
+
+	// TODO: handle clinic access
+	filter := prescription.NewFilter()
+	filter.ID = PrescriptionID
+	if usr.HasRole(user.RoleClinic) {
+		filter.ClinicianID = *usr.UserID
+	}
+
+	pagination := &page.Pagination{Page: 0, Size: 1}
+	prescr, err := r.PrescriptionClient().ListPrescriptions(ctx, filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	if prescr == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr)
+}
+
+func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) {
+	ctx := req.Context()
+	responder := request.MustNewResponder(res, req)
+	prescriptionID := req.PathParam("id")
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
+		return
+	}
+
+	if !usr.HasRole(user.RoleClinic) {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+	}
+
+	success, err := r.PrescriptionClient().DeletePrescription(ctx, *usr.UserID, prescriptionID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	if success {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
+		return
+	}
+
+	responder.Empty(http.StatusOK)
+}
+
+func (r *Router) getUserOrRespondWithError(req *rest.Request, responder *request.Responder) *user.User {
+	ctx := req.Context()
+	details := request.DetailsFromContext(ctx)
+	userID := details.UserID()
+
+	if userID == "" {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return nil
+	}
+
+	usr, err := r.UserClient().Get(ctx, userID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
+		return nil
+	}
+
+	if usr == nil || usr.UserID == nil || userID != *usr.UserID {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return nil
+	}
+
+	return usr
 }

@@ -42,6 +42,17 @@ type GetUnclaimedPrescriptionOutput struct {
 	Err    error
 }
 
+type DeletePrescriptionInput struct {
+	Ctx         context.Context
+	ClinicianID string
+	ID          string
+}
+
+type DeletePrescriptionOutput struct {
+	Success bool
+	Err     error
+}
+
 type PrescriptionAccessor struct {
 	CreatePrescriptionInvocations       int
 	CreatePrescriptionInputs            []CreatePrescriptionInput
@@ -52,6 +63,9 @@ type PrescriptionAccessor struct {
 	GetUnclaimedPrescriptionInvocations int
 	GetUnclaimedPrescriptionInputs      []GetUnclaimedPrescriptionInput
 	GetUnclaimedPrescriptionOutputs     []GetUnclaimedPrescriptionOutput
+	DeletePrescriptionInvocations       int
+	DeletePrescriptionInputs            []DeletePrescriptionInput
+	DeletePrescriptionOutputs           []DeletePrescriptionOutput
 }
 
 func NewPrescriptionAccessor() *PrescriptionAccessor {
@@ -94,6 +108,21 @@ func (p *PrescriptionAccessor) GetUnclaimedPrescription(ctx context.Context, acc
 	return output.Prescr, output.Err
 }
 
+func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
+	p.DeletePrescriptionInvocations++
+
+	p.DeletePrescriptionInputs = append(p.DeletePrescriptionInputs, DeletePrescriptionInput{Ctx: ctx, ClinicianID: clinicianID, ID: id})
+
+	gomega.Expect(p.DeletePrescriptionOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.DeletePrescriptionOutputs[0]
+	p.DeletePrescriptionOutputs = p.DeletePrescriptionOutputs[1:]
+	return output.Success, output.Err
+}
+
 func (p *PrescriptionAccessor) Expectations() {
 	gomega.Expect(p.CreatePrescriptionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.ListPrescriptionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.GetUnclaimedPrescriptionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.DeletePrescriptionOutputs).To(gomega.BeEmpty())
 }
