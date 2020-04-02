@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"strconv"
 
+	"github.com/tidepool-org/platform/pointer"
+
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/tidepool-org/platform/errors"
@@ -19,9 +21,10 @@ const (
 	DeviceDisplayDeviceShareReceiver       = "shareReceiver"
 	DeviceDisplayDeviceTouchscreenReceiver = "touchscreenReceiver"
 
-	DeviceTransmitterGenerationG4 = "g4"
-	DeviceTransmitterGenerationG5 = "g5"
-	DeviceTransmitterGenerationG6 = "g6"
+	DeviceTransmitterGenerationG4    = "g4"
+	DeviceTransmitterGenerationG5    = "g5"
+	DeviceTransmitterGenerationG6    = "g6"
+	DeviceTransmitterGenerationG6Pro = "g6 pro"
 )
 
 func DeviceDisplayDevices() []string {
@@ -152,6 +155,9 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 	d.SerialNumber = parser.String("serialNumber")
 	d.TransmitterID = parser.String("transmitterId")
 	d.TransmitterGeneration = parser.String("transmitterGeneration")
+	if d.TransmitterGeneration != nil && *d.TransmitterGeneration == DeviceTransmitterGenerationG6Pro {
+		d.TransmitterGeneration = pointer.FromString(DeviceTransmitterGenerationG6)
+	}
 	d.DisplayDevice = parser.String("displayDevice")
 	d.SoftwareVersion = parser.String("softwareVersion")
 	d.SoftwareNumber = parser.String("softwareNumber")

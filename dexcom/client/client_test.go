@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/pointer"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
@@ -516,6 +518,32 @@ var _ = Describe("Client", func() {
 							Expect(err).ToNot(HaveOccurred())
 							Expect(structureNormalizer.New().Normalize(responseDevicesResponse)).To(Succeed())
 							Expect(devicesResponse).To(Equal(responseDevicesResponse))
+						})
+					})
+
+					Context("with a successful response with a g6 pro transmitter generation", func() {
+						BeforeEach(func() {
+							responseDevicesResponse := dexcom.NewDevicesResponse()
+							responseDevicesResponse.Devices = dexcomTest.RandomDevices(1, 3)
+							(*responseDevicesResponse.Devices)[0].TransmitterGeneration = pointer.FromString("g6 pro")
+
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/p/v2/users/self/devices", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseDevicesResponse), responseHeaders),
+								),
+							)
+						})
+
+						It("to remap 'g6 pro' transmitter generation to 'g6'", func() {
+							devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+							Expect(err).ToNot(HaveOccurred())
+
+							devices := *devicesResponse.Devices
+							Expect(devices[0].TransmitterGeneration).ToNot(BeNil())
+							Expect(*devices[0].TransmitterGeneration).To(Equal("g6"))
 						})
 					})
 				}
