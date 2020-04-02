@@ -2,9 +2,8 @@ package prescription
 
 import (
 	"context"
+	"github.com/globalsign/mgo/bson"
 	"time"
-
-	"github.com/google/uuid"
 
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -33,22 +32,18 @@ type Accessor interface {
 }
 
 type Prescription struct {
-	ID               string     `json:"id" bson:"id"`
-	PatientID        string     `json:"patientId,omitempty" bson:"patientId,omitempty"`
-	AccessCode       string     `json:"accessCode,omitempty" bson:"accessCode"`
-	State            string     `json:"state" bson:"state"`
-	LatestRevision   *Revision  `json:"latestRevision" bson:"latestRevision"`
-	RevisionHistory  Revisions  `json:"-" bson:"revisionHistory"`
-	ExpirationTime   *time.Time `json:"expirationTime" bson:"expirationTime"`
-	PrescriberUserID string     `json:"prescriberUserId,omitempty" bson:"prescriberUserId,omitempty"`
-	CreatedTime      time.Time  `json:"createdTime" bson:"createdTime"`
-	CreatedUserID    string     `json:"createdUserId" bson:"createdUserId"`
-	DeletedTime      *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID    string     `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-}
-
-func NewPrescriptionID() string {
-	return uuid.New().String()
+	ID               bson.ObjectId `json:"id" bson:"_id"`
+	PatientID        string        `json:"patientId,omitempty" bson:"patientId,omitempty"`
+	AccessCode       string        `json:"accessCode,omitempty" bson:"accessCode"`
+	State            string        `json:"state" bson:"state"`
+	LatestRevision   *Revision     `json:"latestRevision" bson:"latestRevision"`
+	RevisionHistory  Revisions     `json:"-" bson:"revisionHistory"`
+	ExpirationTime   *time.Time    `json:"expirationTime" bson:"expirationTime"`
+	PrescriberUserID string        `json:"prescriberUserId,omitempty" bson:"prescriberUserId,omitempty"`
+	CreatedTime      time.Time     `json:"createdTime" bson:"createdTime"`
+	CreatedUserID    string        `json:"createdUserId" bson:"createdUserId"`
+	DeletedTime      *time.Time    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID    string        `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 }
 
 func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescription, error) {
@@ -57,7 +52,7 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescripti
 	revision := NewRevision(userID, 0, revisionCreate)
 	revisionHistory := []*Revision{revision}
 	prescription := &Prescription{
-		ID:               NewPrescriptionID(),
+		ID:               bson.NewObjectId(),
 		AccessCode:       accessCode,
 		State:            revisionCreate.State,
 		LatestRevision:   revision,
@@ -74,7 +69,8 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) (*Prescripti
 type Prescriptions []*Prescription
 
 func (p *Prescription) Validate(validator structure.Validator) {
-	validator.String("id", &p.ID).UUID()
+	id := p.ID.Hex()
+	validator.String("id", &id).Hexadecimal().LengthEqualTo(24)
 
 	if p.PatientID != "" {
 		validator.String("patientId", &p.PatientID).Using(user.IDValidator)
