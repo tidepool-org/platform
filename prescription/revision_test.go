@@ -363,7 +363,7 @@ var _ = Describe("Revision", func() {
 						Sex:                     "",
 						Weight:                  nil,
 						YearOfDiagnosis:         0,
-						PhoneNumber:             "",
+						PhoneNumber:             nil,
 						Address:                 nil,
 						InitialSettings:         nil,
 						Training:                "",

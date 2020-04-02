@@ -30,6 +30,7 @@ const (
 	UnitKg = "kg"
 
 	usPhoneNumberRegexString = "^\\d{10}|\\(\\d{3}\\) ?\\d{3}\\-\\d{4}$" // Matches 1234567890, (123)456-7890 or (123) 456-7890
+	usPhoneNumberCountryCode = 1
 )
 
 var (
@@ -45,7 +46,7 @@ type RevisionCreate struct {
 	Sex                     string           `json:"sex,omitempty"`
 	Weight                  *Weight          `json:"weight,omitempty"`
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty"`
-	PhoneNumber             string           `json:"phoneNumber,omitempty"`
+	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty"`
 	Address                 *Address         `json:"address,omitempty"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty"`
@@ -75,8 +76,8 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 	if r.YearOfDiagnosis != 0 {
 		validator.Int("yearOfDiagnosis", &r.YearOfDiagnosis).GreaterThan(1900)
 	}
-	if r.PhoneNumber != "" {
-		validator.String("phoneNumber", &r.PhoneNumber).Matches(usPhoneNumberRegex)
+	if r.PhoneNumber != nil {
+		r.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
 	}
 	if r.Address != nil {
 		r.Address.Validate(validator.WithReference("address"))
@@ -106,13 +107,18 @@ func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
 	validator.String("email", &r.Email).NotEmpty()
 	validator.String("sex", &r.Sex).NotEmpty()
 	validator.Int("yearOfDiagnosis", &r.YearOfDiagnosis).GreaterThan(1900)
-	validator.String("phoneNumber", &r.PhoneNumber).NotEmpty()
 	validator.String("training", &r.Training).NotEmpty()
 	validator.String("therapySettings", &r.TherapySettings).NotEmpty()
 	validator.String("loopMode", &r.LoopMode).NotEmpty()
 	validator.Bool("prescriberTermsAccepted", &r.PrescriberTermsAccepted).True()
 
-	// if address is nil validate will fail
+	// if phoneNumber is nil validate will fail
+	phoneValidator := validator.WithReference("phoneNumber")
+	if r.PhoneNumber != nil {
+		r.PhoneNumber.Validate(phoneValidator)
+	}
+
+	// if weight is nil validate will fail
 	weightValidator := validator.WithReference("weight")
 	if r.Weight != nil {
 		r.Weight.ValidateAllRequired(weightValidator)
@@ -211,7 +217,7 @@ type Attributes struct {
 	Sex                     string           `json:"sex,omitempty" bson:"sex,omitempty"`
 	Weight                  *Weight          `json:"weight,omitempty" bson:"weight,omitempty"`
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis,omitempty"`
-	PhoneNumber             string           `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
+	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
 	Address                 *Address         `json:"address,omitempty" bson:"address,omitempty"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty" bson:"training,omitempty"`
@@ -236,8 +242,8 @@ func (a *Attributes) Validate(validator structure.Validator) {
 	if a.YearOfDiagnosis != 0 {
 		validator.Int("yearOfDiagnosis", &a.YearOfDiagnosis).GreaterThan(1900)
 	}
-	if a.PhoneNumber != "" {
-		validator.String("phoneNumber", &a.PhoneNumber).Matches(usPhoneNumberRegex)
+	if a.PhoneNumber != nil {
+		a.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
 	}
 	if a.Training != "" {
 		validator.String("training", &a.Training).OneOf(Trainings()...)
@@ -273,11 +279,16 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 	validator.String("email", &a.Email).NotEmpty()
 	validator.String("sex", &a.Sex).NotEmpty()
 	validator.Int("yearOfDiagnosis", &a.YearOfDiagnosis).GreaterThan(1900)
-	validator.String("phoneNumber", &a.PhoneNumber).NotEmpty()
 	validator.String("training", &a.Training).NotEmpty()
 	validator.String("therapySettings", &a.TherapySettings).NotEmpty()
 	validator.String("loopMode", &a.LoopMode).NotEmpty()
 	validator.Bool("prescriberTermsAccepted", &a.PrescriberTermsAccepted).True()
+
+	// if phoneNumber is nil validate will fail
+	phoneValidator := validator.WithReference("phoneNumber")
+	if a.PhoneNumber != nil {
+		a.PhoneNumber.Validate(phoneValidator)
+	}
 
 	// if address is nil validate will fail
 	addressValidator := validator.WithReference("address")
@@ -317,6 +328,16 @@ func (w *Weight) Validate(validator structure.Validator) {
 func (w *Weight) ValidateAllRequired(validator structure.Validator) {
 	validator.Float64("value", w.Value).GreaterThan(0)
 	validator.String("units", &w.Units).NotEmpty()
+}
+
+type PhoneNumber struct {
+	CountryCode int    `json:"countryCode,omitempty" bson:"value,omitempty"`
+	Number      string `json:"number,omitempty" bson:"number,omitempty"`
+}
+
+func (p *PhoneNumber) Validate(validator structure.Validator) {
+	validator.Int("countryCode", &p.CountryCode).EqualTo(usPhoneNumberCountryCode)
+	validator.String("number", &p.Number).Matches(usPhoneNumberRegex)
 }
 
 type InitialSettings struct {

@@ -89,9 +89,12 @@ func RandomWeight() *prescription.Weight {
 	}
 }
 
-func RandomPhoneNumber() string {
+func RandomPhoneNumber() *prescription.PhoneNumber {
 	faker.Locale = locales.En_US
-	return fmt.Sprintf("(%s) %s-%s", faker.PhoneNumber().AreaCode(), faker.PhoneNumber().ExchangeCode(), faker.PhoneNumber().SubscriberNumber(4))
+	return &prescription.PhoneNumber{
+		CountryCode: 1,
+		Number:      fmt.Sprintf("(%s) %s-%s", faker.PhoneNumber().AreaCode(), faker.PhoneNumber().ExchangeCode(), faker.PhoneNumber().SubscriberNumber(4)),
+	}
 }
 
 func RandomAddress() *prescription.Address {
