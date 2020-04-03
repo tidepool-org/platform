@@ -216,6 +216,30 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 	return &timeValue
 }
 
+// ForgivingTime is a parser added specifically to handle https://tidepool.atlassian.net/browse/BACK-1161
+// It should be deprecated once Dexcom fixes their API.
+func (o *Object) ForgivingTime(reference string, layout string) *time.Time {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+		return nil
+	}
+
+	forgivingTime := structure.ForgivingTimeString(stringValue)
+	timeValue, err := time.Parse(layout, forgivingTime)
+	if err != nil {
+		o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
+		return nil
+	}
+
+	return &timeValue
+}
+
 func (o *Object) Object(reference string) *map[string]interface{} {
 	rawValue, ok := o.raw(reference)
 	if !ok {

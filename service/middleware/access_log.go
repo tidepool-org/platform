@@ -53,6 +53,18 @@ func (a *AccessLog) ignore(req *rest.Request) bool {
 	if req.URL.RequestURI() == "/v1/swagger" {
 		return true
 	}
+	if req.URL.RequestURI() == "/v2/swagger" {
+		return true
+	}
+	if req.URL.RequestURI() == "/swagger.json" {
+		return true
+	}
+	if req.URL.RequestURI() == "/swagger/docs/v1" {
+		return true
+	}
+	if req.URL.RequestURI() == "/swagger/docs/v2" {
+		return true
+	}
 
 	// These are HTTP2 requests that look like "PRI" method calls.
 	if req.Method == "PRI" {
