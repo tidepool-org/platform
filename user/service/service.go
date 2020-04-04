@@ -522,6 +522,13 @@ func (s *Service) initializeUserStructuredStore() error {
 	}
 	s.userStructuredStore = userStructuredStore
 
+	s.Logger().Debug("Ensuring user structured store indexes")
+
+	err = s.userStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure user structured store indexes")
+	}
+
 	return nil
 }
 

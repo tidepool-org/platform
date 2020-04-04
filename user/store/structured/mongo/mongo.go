@@ -54,6 +54,7 @@ type Session struct {
 
 func (s *Session) EnsureIndexes() error {
 	return s.EnsureAllIndexes([]mgo.Index{
+		// There is overlap with this call to `EnsureIndexes` and that in `shoreline`
 		{Key: []string{"userid"}, Background: true, Unique: true},
 	})
 }
