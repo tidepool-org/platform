@@ -377,6 +377,13 @@ func (s *Service) initializeConfirmationStore() error {
 	}
 	s.confirmationStore = store
 
+	s.Logger().Debug("Ensuring confirmation store indexes")
+
+	err = s.confirmationStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure confirmation store indexes")
+	}
+
 	return nil
 }
 
