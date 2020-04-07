@@ -25,8 +25,16 @@ var _ = Describe("Units", func() {
 		Expect(pump.CarbohydrateGrams).To(Equal("grams"))
 	})
 
+	It("InsulinUnits is expected", func() {
+		Expect(pump.InsulinUnits).To(Equal("Units"))
+	})
+
 	It("Carbohydrates returns expected", func() {
 		Expect(pump.Carbohydrates()).To(Equal([]string{"exchanges", "grams"}))
+	})
+
+	It("Insulins returns expected", func() {
+		Expect(pump.Insulins()).To(Equal([]string{"Units"}))
 	})
 
 	Context("ParseUnits", func() {
@@ -88,13 +96,25 @@ var _ = Describe("Units", func() {
 				Entry("carbohydrate grams",
 					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("grams") },
 				),
+				Entry("insulin missing",
+					func(datum *pump.Units) { datum.Insulin = nil },
+				),
+				Entry("insulin invalid",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/insulin"),
+				),
+				Entry("insulin Units",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("Units") },
+				),
 				Entry("multiple errors",
 					func(datum *pump.Units) {
 						datum.BloodGlucose = nil
 						datum.Carbohydrate = nil
+						datum.Insulin = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bg"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carb"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/insulin"),
 				),
 			)
 		})
@@ -143,6 +163,18 @@ var _ = Describe("Units", func() {
 				),
 				Entry("does not modify the datum; carbohydrate grams",
 					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("grams") },
+					nil,
+				),
+				Entry("does not modify the datum; insulin missing",
+					func(datum *pump.Units) { datum.Insulin = nil },
+					nil,
+				),
+				Entry("does not modify the datum; insulin invalid",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("invalid") },
+					nil,
+				),
+				Entry("does not modify the datum; insulin Units",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("Units") },
 					nil,
 				),
 			)

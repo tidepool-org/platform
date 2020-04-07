@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"time"
+
 	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -40,6 +42,10 @@ var _ = Describe("RecommendedBasal", func() {
 				Entry("succeeds",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {},
 				),
+				Entry("time invalid",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) { datum.Time = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
+				),
 				Entry("rate missing",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) { datum.Rate = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
@@ -63,21 +69,23 @@ var _ = Describe("RecommendedBasal", func() {
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
 						datum.Duration = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/duration"),
 				),
 				Entry("duration above maximum",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
-						datum.Duration = pointer.FromInt(604800001)
+						datum.Duration = pointer.FromInt(86401)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/duration"),
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Time = pointer.FromString("invalid")
 						datum.Rate = nil
 						datum.Duration = pointer.FromInt(-1)
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/duration"),
 				),
 			)
 		})
