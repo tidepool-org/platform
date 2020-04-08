@@ -38,11 +38,12 @@ var _ = Describe("DosingDecision", func() {
 			datum := dataTypesDosingDecision.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("dosingDecision"))
-			Expect(datum.Alerts).To(BeNil())
+			Expect(datum.Errors).To(BeNil())
 			Expect(datum.InsulinOnBoard).To(BeNil())
 			Expect(datum.CarbohydratesOnBoard).To(BeNil())
-			Expect(datum.BloodGlucoseTargetRangeSchedule).To(BeNil())
+			Expect(datum.BloodGlucoseTargetSchedule).To(BeNil())
 			Expect(datum.BloodGlucoseForecast).To(BeNil())
+			Expect(datum.BloodGlucoseForecastIncludingPendingInsulin).To(BeNil())
 			Expect(datum.RecommendedBasal).To(BeNil())
 			Expect(datum.RecommendedBolus).To(BeNil())
 			Expect(datum.Units).To(BeNil())
@@ -94,9 +95,9 @@ var _ = Describe("DosingDecision", func() {
 				Entry("blood glucose target range schedule invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDosingDecision.DosingDecision, units *string) {
-						datum.BloodGlucoseTargetRangeSchedule = &dataTypesSettingsPump.BloodGlucoseTargetStartArray{nil}
+						datum.BloodGlucoseTargetSchedule = &dataTypesSettingsPump.BloodGlucoseTargetStartArray{nil}
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bloodGlucoseTargetRangeSchedule/0", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bloodGlucoseTargetSchedule/0", NewMeta()),
 				),
 				Entry("blood glucose forecast invalid",
 					pointer.FromString("mmol/L"),
@@ -104,6 +105,13 @@ var _ = Describe("DosingDecision", func() {
 						datum.BloodGlucoseForecast = dataTypesDosingDecision.NewForecastArray()
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/bloodGlucoseForecast", NewMeta()),
+				),
+				Entry("blood glucose forecast including pending insulin invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesDosingDecision.DosingDecision, units *string) {
+						datum.BloodGlucoseForecastIncludingPendingInsulin = dataTypesDosingDecision.NewForecastArray()
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/bloodGlucoseForecastIncludingPendingInsulin", NewMeta()),
 				),
 				Entry("recommended basal invalid",
 					pointer.FromString("mmol/L"),
@@ -132,16 +140,18 @@ var _ = Describe("DosingDecision", func() {
 					func(datum *dataTypesDosingDecision.DosingDecision, units *string) {
 						datum.InsulinOnBoard.Amount = nil
 						datum.CarbohydratesOnBoard.Amount = nil
-						datum.BloodGlucoseTargetRangeSchedule = &dataTypesSettingsPump.BloodGlucoseTargetStartArray{nil}
+						datum.BloodGlucoseTargetSchedule = &dataTypesSettingsPump.BloodGlucoseTargetStartArray{nil}
 						datum.BloodGlucoseForecast = dataTypesDosingDecision.NewForecastArray()
+						datum.BloodGlucoseForecastIncludingPendingInsulin = dataTypesDosingDecision.NewForecastArray()
 						datum.RecommendedBasal.Rate = nil
 						datum.RecommendedBolus.Amount = nil
 						datum.Units = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinOnBoard/amount", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbohydratesOnBoard/amount", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bloodGlucoseTargetRangeSchedule/0", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bloodGlucoseTargetSchedule/0", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/bloodGlucoseForecast", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/bloodGlucoseForecastIncludingPendingInsulin", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/recommendedBasal/rate", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/recommendedBolus/amount", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),

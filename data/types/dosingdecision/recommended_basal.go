@@ -5,13 +5,14 @@ import (
 )
 
 const (
-	RecommendedBasalDurationMaximum = 604800000
+	RecommendedBasalDurationMaximum = 86400
 	RecommendedBasalDurationMinimum = 0
 	RecommendedBasalRateMaximum     = 100
 	RecommendedBasalRateMinimum     = 0
 )
 
 type RecommendedBasal struct {
+	Time     *string  `json:"time,omitempty" bson:"time,omitempty"`
 	Rate     *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
 	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
 }
@@ -30,11 +31,13 @@ func NewRecommendedBasal() *RecommendedBasal {
 }
 
 func (r *RecommendedBasal) Parse(parser structure.ObjectParser) {
+	r.Time = parser.String("time")
 	r.Rate = parser.Float64("rate")
 	r.Duration = parser.Int("duration")
 }
 
 func (r *RecommendedBasal) Validate(validator structure.Validator) {
+	validator.String("time", r.Time).AsTime(TimeFormat)
 	validator.Float64("rate", r.Rate).Exists().InRange(RecommendedBasalRateMinimum, RecommendedBasalRateMaximum)
 	validator.Int("duration", r.Duration).InRange(RecommendedBasalDurationMinimum, RecommendedBasalDurationMaximum)
 }

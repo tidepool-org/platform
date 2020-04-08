@@ -9,6 +9,7 @@ import (
 const (
 	CarbohydrateExchanges = "exchanges"
 	CarbohydrateGrams     = "grams"
+	InsulinUnits          = "Units"
 )
 
 func Carbohydrates() []string {
@@ -18,9 +19,16 @@ func Carbohydrates() []string {
 	}
 }
 
+func Insulins() []string {
+	return []string{
+		InsulinUnits,
+	}
+}
+
 type Units struct {
 	BloodGlucose *string `json:"bg,omitempty" bson:"bg,omitempty"`     // TODO: Rename "bloodGlucose"
 	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"` // TODO: Rename "carbohydrate"
+	Insulin      *string `json:"insulin,omitempty" bson:"insulin,omitempty"`
 }
 
 func ParseUnits(parser structure.ObjectParser) *Units {
@@ -39,11 +47,13 @@ func NewUnits() *Units {
 func (u *Units) Parse(parser structure.ObjectParser) {
 	u.BloodGlucose = parser.String("bg")
 	u.Carbohydrate = parser.String("carb")
+	u.Insulin = parser.String("insulin")
 }
 
 func (u *Units) Validate(validator structure.Validator) {
 	validator.String("bg", u.BloodGlucose).Exists().OneOf(dataBloodGlucose.Units()...)
 	validator.String("carb", u.Carbohydrate).Exists().OneOf(Carbohydrates()...)
+	validator.String("insulin", u.Insulin).OneOf(Insulins()...)
 }
 
 func (u *Units) Normalize(normalizer data.Normalizer) {

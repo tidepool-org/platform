@@ -19,14 +19,15 @@ const (
 type DosingDecision struct {
 	dataTypes.Base `bson:",inline"`
 
-	Alerts                          *[]string                                           `json:"alerts,omitempty" bson:"alerts,omitempty"`
-	InsulinOnBoard                  *InsulinOnBoard                                     `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
-	CarbohydratesOnBoard            *CarbohydratesOnBoard                               `json:"carbohydratesOnBoard,omitempty" bson:"carbohydratesOnBoard,omitempty"`
-	BloodGlucoseTargetRangeSchedule *dataTypesSettingsPump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetRangeSchedule,omitempty" bson:"bloodGlucoseTargetRangeSchedule,omitempty"`
-	BloodGlucoseForecast            *ForecastArray                                      `json:"bloodGlucoseForecast,omitempty" bson:"bloodGlucoseForecast,omitempty"`
-	RecommendedBasal                *RecommendedBasal                                   `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
-	RecommendedBolus                *RecommendedBolus                                   `json:"recommendedBolus,omitempty" bson:"recommendedBolus,omitempty"`
-	Units                           *Units                                              `json:"units,omitempty" bson:"units,omitempty"`
+	Errors                                      *[]string                                           `json:"errors,omitempty" bson:"errors,omitempty"`
+	InsulinOnBoard                              *InsulinOnBoard                                     `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
+	CarbohydratesOnBoard                        *CarbohydratesOnBoard                               `json:"carbohydratesOnBoard,omitempty" bson:"carbohydratesOnBoard,omitempty"`
+	BloodGlucoseTargetSchedule                  *dataTypesSettingsPump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
+	BloodGlucoseForecast                        *ForecastArray                                      `json:"bloodGlucoseForecast,omitempty" bson:"bloodGlucoseForecast,omitempty"`
+	BloodGlucoseForecastIncludingPendingInsulin *ForecastArray                                      `json:"bloodGlucoseForecastIncludingPendingInsulin,omitempty" bson:"bloodGlucoseForecastIncludingPendingInsulin,omitempty"`
+	RecommendedBasal                            *RecommendedBasal                                   `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
+	RecommendedBolus                            *RecommendedBolus                                   `json:"recommendedBolus,omitempty" bson:"recommendedBolus,omitempty"`
+	Units                                       *Units                                              `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func New() *DosingDecision {
@@ -42,11 +43,12 @@ func (d *DosingDecision) Parse(parser structure.ObjectParser) {
 
 	d.Base.Parse(parser)
 
-	d.Alerts = parser.StringArray("alerts")
+	d.Errors = parser.StringArray("errors")
 	d.InsulinOnBoard = ParseInsulinOnBoard(parser.WithReferenceObjectParser("insulinOnBoard"))
 	d.CarbohydratesOnBoard = ParseCarbohydratesOnBoard(parser.WithReferenceObjectParser("carbohydratesOnBoard"))
-	d.BloodGlucoseTargetRangeSchedule = dataTypesSettingsPump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bloodGlucoseTargetRangeSchedule"))
+	d.BloodGlucoseTargetSchedule = dataTypesSettingsPump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bloodGlucoseTargetSchedule"))
 	d.BloodGlucoseForecast = ParseForecastArray(parser.WithReferenceArrayParser("bloodGlucoseForecast"))
+	d.BloodGlucoseForecastIncludingPendingInsulin = ParseForecastArray(parser.WithReferenceArrayParser("bloodGlucoseForecastIncludingPendingInsulin"))
 	d.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
 	d.RecommendedBolus = ParseRecommendedBolus(parser.WithReferenceObjectParser("recommendedBolus"))
 	d.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
@@ -75,11 +77,14 @@ func (d *DosingDecision) Validate(validator structure.Validator) {
 	if d.CarbohydratesOnBoard != nil {
 		d.CarbohydratesOnBoard.Validate(validator.WithReference("carbohydratesOnBoard"))
 	}
-	if d.BloodGlucoseTargetRangeSchedule != nil {
-		d.BloodGlucoseTargetRangeSchedule.Validate(validator.WithReference("bloodGlucoseTargetRangeSchedule"), unitsBloodGlucose)
+	if d.BloodGlucoseTargetSchedule != nil {
+		d.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bloodGlucoseTargetSchedule"), unitsBloodGlucose)
 	}
 	if d.BloodGlucoseForecast != nil {
 		d.BloodGlucoseForecast.Validate(validator.WithReference("bloodGlucoseForecast"))
+	}
+	if d.BloodGlucoseForecastIncludingPendingInsulin != nil {
+		d.BloodGlucoseForecastIncludingPendingInsulin.Validate(validator.WithReference("bloodGlucoseForecastIncludingPendingInsulin"))
 	}
 	if d.RecommendedBasal != nil {
 		d.RecommendedBasal.Validate(validator.WithReference("recommendedBasal"))
