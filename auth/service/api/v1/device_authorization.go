@@ -19,7 +19,7 @@ func (r *Router) DeviceAuthorizationRoutes() []*rest.Route {
 		rest.Get("/v1/users/:userId/device_authorizations", api.Require(r.ListDeviceAuthorizations)),
 		rest.Post("/v1/users/:userId/device_authorizations", api.Require(r.CreateDeviceAuthorization)),
 		rest.Get("/v1/users/:userId/device_authorizations/:deviceAuthorizationId", api.Require(r.GetDeviceAuthorization)),
-		rest.Post("/v1/device_authorizations", api.Require(r.UpdateDeviceAuthorization)),
+		rest.Post("/v1/device_authorizations", r.UpdateDeviceAuthorization),
 	}
 }
 
