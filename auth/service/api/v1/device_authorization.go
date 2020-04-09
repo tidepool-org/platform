@@ -46,7 +46,7 @@ func (r *Router) CreateDeviceAuthorization(res rest.ResponseWriter, req *rest.Re
 
 	deviceAuthorization, err := r.AuthClient().CreateUserDeviceAuthorization(req.Context(), userID, create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (r *Router) GetDeviceAuthorization(res rest.ResponseWriter, req *rest.Reque
 
 	deviceAuthorization, err := r.AuthClient().GetUserDeviceAuthorization(req.Context(), userID, deviceAuthorizationID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
 		return
 	}
 
@@ -113,7 +113,7 @@ func (r *Router) ListDeviceAuthorizations(res rest.ResponseWriter, req *rest.Req
 
 	deviceAuthorizations, err := r.AuthClient().ListUserDeviceAuthorizations(ctx, userID, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
 		return
 	}
 
@@ -132,7 +132,7 @@ func (r *Router) UpdateDeviceAuthorization(res rest.ResponseWriter, req *rest.Re
 
 	deviceAuthorization, err := r.AuthClient().GetDeviceAuthorizationByToken(ctx, token)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
 		return
 	}
 
@@ -153,7 +153,8 @@ func (r *Router) UpdateDeviceAuthorization(res rest.ResponseWriter, req *rest.Re
 
 	updated, err := r.AuthClient().UpdateDeviceAuthorization(ctx, deviceAuthorization.ID, update)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
+		return
 	}
 
 	responder.Data(http.StatusOK, updated)
