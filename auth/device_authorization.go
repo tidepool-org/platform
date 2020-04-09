@@ -58,8 +58,8 @@ type DeviceAuthorizationUpdate struct {
 }
 
 func (d *DeviceAuthorizationUpdate) Validate(validator structure.Validator) {
-	// We should not validate the bundleId here, because it will fail the request,
-	// but it will not persist the failure in the database.
+	// We should not validate the bundleId here, because the request will fail,
+	// without persisting the failure in the database.
 	validator.String("verificationCode", &d.VerificationCode).NotEmpty()
 	validator.String("deviceCheckToken", &d.DeviceCheckToken).NotEmpty()
 }
