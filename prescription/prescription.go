@@ -2,6 +2,7 @@ package prescription
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/pointer"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -37,6 +38,7 @@ type Accessor interface {
 	ListPrescriptions(ctx context.Context, filter *Filter, pagination *page.Pagination) (Prescriptions, error)
 	DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error)
 	GetUnclaimedPrescription(ctx context.Context, accessCode string) (*Prescription, error)
+	AddRevision(ctx context.Context, usr *user.User, id string, create *RevisionCreate) (*Prescription, error)
 }
 
 type Prescription struct {
@@ -138,6 +140,42 @@ func StatesVisibleToPatients() []string {
 	}
 }
 
+func validPatientStateTransitions() map[string][]string {
+	return map[string][]string{
+		StateSubmitted: {StateReviewed},
+		StateReviewed:  {StateReviewed, StateActive},
+		StateActive:    {StateActive, StateInactive},
+	}
+}
+
+func validClinicianStateTransitions() map[string][]string {
+	return map[string][]string{
+		StateDraft:   {StateDraft, StatePending, StateSubmitted},
+		StatePending: {StatePending, StateSubmitted},
+	}
+}
+
+func stateTransitionsForUser(usr *user.User) map[string][]string {
+	if usr.HasRole(user.RoleClinic) {
+		return validClinicianStateTransitions()
+	} else {
+		return validPatientStateTransitions()
+	}
+}
+
+func ValidStateTransitions(usr *user.User, state string) []string {
+	if usr == nil {
+		return []string{}
+	}
+
+	transitions := stateTransitionsForUser(usr)
+	if valid, ok := transitions[state]; !ok {
+		return []string{}
+	} else {
+		return valid
+	}
+}
+
 type Filter struct {
 	currentUser       *user.User
 	clinicianID       string
@@ -223,5 +261,84 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	}
 	if ptr := parser.Time("modifiedTimeEnd", time.RFC3339Nano); ptr != nil {
 		f.ModifiedTimeEnd = ptr
+	}
+}
+
+type Update struct {
+	prescription     *Prescription
+	usr              *user.User
+	Revision         *Revision  `json:"-"`
+	State            string     `json:"state"`
+	PrescriberUserID string     `json:"-"`
+	PatientID        string     `json:"-"`
+	ExpirationTime   *time.Time `json:"-"`
+}
+
+func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription, create *RevisionCreate) *Update {
+	revisionId := prescription.LatestRevision.RevisionID + 1
+	revision := NewRevision(*usr.UserID, revisionId, create)
+	update := &Update{
+		usr:              usr,
+		prescription:     prescription,
+		Revision:         revision,
+		State:            create.State,
+		PrescriberUserID: revision.GetPrescriberUserID(),
+		ExpirationTime:   revision.CalculateExpirationTime(),
+	}
+
+	return update
+}
+
+func (u *Update) AccessCode() *string {
+	if u.State != StateReviewed {
+		return nil
+	}
+
+	// Remove the access code when the user reviews the prescription
+	return pointer.FromString("")
+}
+
+func (u *Update) Validate(validator structure.Validator) {
+	if u.usr == nil {
+		validator.WithReference("user").ReportError(structureValidator.ErrorValueEmpty())
+		return
+	}
+	if u.prescription == nil {
+		validator.WithReference("prescription").ReportError(structureValidator.ErrorValueEmpty())
+		return
+	}
+
+	validator.String("state", &u.State).OneOf(ValidStateTransitions(u.usr, u.prescription.State)...)
+
+	if u.usr.HasRole(user.RoleClinic) {
+		u.validateForClinician(validator)
+	} else {
+		u.validateForPatient(validator)
+	}
+}
+
+func (u *Update) validateForClinician(validator structure.Validator) {
+	if u.Revision != nil {
+		u.Revision.Validate(validator.WithReference("revision"))
+	} else {
+		validator.WithReference("revision").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if u.PrescriberUserID != "" {
+		validator.String("prescriberUserId", &u.PrescriberUserID).EqualTo(*u.usr.UserID)
+	}
+	if u.PatientID != "" {
+		validator.String("patientId", &u.PatientID).Using(user.IDValidator)
+	}
+}
+
+func (u *Update) validateForPatient(validator structure.Validator) {
+	if u.Revision != nil {
+		validator.WithReference("revision").ReportError(structureValidator.ErrorValueExists())
+	}
+	if u.PrescriberUserID != "" {
+		validator.String("prescriberUserId", &u.PrescriberUserID).Empty()
+	}
+	if u.PatientID != "" {
+		validator.String("patientId", &u.PatientID).EqualTo(*u.usr.UserID)
 	}
 }

@@ -121,6 +121,34 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 	responder.Empty(http.StatusOK)
 }
 
+func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
+	ctx := req.Context()
+	responder := request.MustNewResponder(res, req)
+	prescriptionID := req.PathParam("prescriptionId")
+	usr := r.getUserOrRespondWithError(req, responder, user.RoleClinic)
+	if usr == nil {
+		return
+	}
+
+	create := prescription.NewRevisionCreate()
+	if err := request.DecodeRequestBody(req.Request, create); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	// TODO: check prescription permission
+	prescr, err := r.PrescriptionClient().AddRevision(ctx, usr, prescriptionID, create)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if prescr == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr)
+}
+
 func (r *Router) getUserOrRespondWithError(req *rest.Request, responder *request.Responder, requiredRoles ...string) *user.User {
 	ctx := req.Context()
 	details := request.DetailsFromContext(ctx)

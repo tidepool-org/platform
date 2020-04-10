@@ -29,5 +29,6 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Get("/v1/prescriptions", api.Require(r.ListPrescriptions)),
 		rest.Get("/v1/prescriptions/:prescriptionId", api.Require(r.GetPrescription)),
 		rest.Delete("/v1/prescriptions/:prescriptionId", api.Require(r.DeletePrescription)),
+		rest.Post("/v1/prescriptions/:prescriptionId/revisions", api.Require(r.AddRevision)),
 	}
 }

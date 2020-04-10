@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/page"
 
@@ -55,4 +56,11 @@ func (c *Client) DeletePrescription(ctx context.Context, clinicianID string, id 
 	defer ssn.Close()
 
 	return ssn.DeletePrescription(ctx, clinicianID, id)
+}
+
+func (c *Client) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+	ssn := c.prescriptionStore.NewPrescriptionSession()
+	defer ssn.Close()
+
+	return ssn.AddRevision(ctx, usr, id, create)
 }

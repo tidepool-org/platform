@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/user"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -27,8 +28,9 @@ func (p *PrescriptionSession) EnsureIndexes() error {
 		{Key: []string{"patientId"}, Background: true},
 		{Key: []string{"prescriberId"}, Background: true},
 		{Key: []string{"createdUserId"}, Background: true},
-		{Key: []string{"accessCode"}, Unique: true, Background: true},
+		{Key: []string{"accessCode"}, Unique: true, Sparse: true, Background: true},
 		{Key: []string{"latestRevision.attributes.email"}, Background: true, Name: "latest_patient_email"},
+		{Key: []string{"_id", "revisionHistory.revisionId"}, Background: true, Unique: true, Name: "unique_revision_id"},
 	})
 }
 
@@ -54,7 +56,7 @@ func (p *PrescriptionSession) CreatePrescription(ctx context.Context, userID str
 	err := p.C().Insert(model)
 	logger.WithFields(log.Fields{"id": model.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreatePrescription")
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create user restricted token")
+		return nil, errors.Wrap(err, "unable to create prescription")
 	}
 
 	return model, nil
@@ -173,6 +175,85 @@ func (p *PrescriptionSession) DeletePrescription(ctx context.Context, clinicianI
 	} else {
 		return true, nil
 	}
+}
+
+func (p *PrescriptionSession) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if p.IsClosed() {
+		return nil, errors.New("session closed")
+	}
+	if usr == nil {
+		return nil, errors.New("user is missing")
+	}
+	if id == "" {
+		return nil, errors.New("prescription id is missing")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "id": id, "create": create})
+
+	selector := bson.M{
+		"_id": bson.ObjectIdHex(id),
+		"$or": []bson.M{
+			{"prescriberId": *usr.UserID},
+			{"createdUserId": *usr.UserID},
+		},
+	}
+
+	prescr := &prescription.Prescription{}
+	err := p.C().Find(selector).One(prescr)
+	if err == mgo.ErrNotFound {
+		return nil, nil
+	}
+
+	prescriptionUpdate := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+		return nil, errors.Wrap(err, "the prescription update is invalid")
+	}
+
+	// Concurrent updates are safe, because updates are atomic at the document level and
+	// because there's a unique index on the revision id.
+	set := bson.M {
+		"state":          prescriptionUpdate.State,
+		"expirationTime": prescriptionUpdate.ExpirationTime,
+	}
+	update := bson.M{
+		"$set": &set,
+	}
+
+	if prescriptionUpdate.Revision != nil {
+		set["latestRevision"] = prescriptionUpdate.Revision
+		update["$push"] = bson.M{
+			"revisionHistory": prescriptionUpdate.Revision,
+		}
+	}
+	if prescriptionUpdate.AccessCode() != nil {
+		set["accessCode"] = prescriptionUpdate.AccessCode()
+	}
+	if prescriptionUpdate.PrescriberUserID != "" {
+		set["prescriberId"] = prescriptionUpdate.PrescriberUserID
+	}
+
+	// Updates will fail if a new revision was created by a concurrent request
+	updateSelector := bson.M{
+		"_id": bson.ObjectIdHex(id),
+		"latestRevision.revisionId": prescr.LatestRevision.RevisionID,
+	}
+
+	now := time.Now()
+	err = p.C().Update(updateSelector, update)
+	logger.WithFields(log.Fields{"id": id, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to update prescription")
+	}
+
+	err = p.C().FindId(bson.ObjectIdHex(id)).One(prescr)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to find updated prescription")
+	}
+
+	return prescr, nil
 }
 
 func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
