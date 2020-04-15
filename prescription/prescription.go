@@ -39,6 +39,7 @@ type Accessor interface {
 	DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error)
 	GetUnclaimedPrescription(ctx context.Context, accessCode string) (*Prescription, error)
 	AddRevision(ctx context.Context, usr *user.User, id string, create *RevisionCreate) (*Prescription, error)
+	ClaimPrescription(ctx context.Context, usr *user.User, claim *Claim) (*Prescription, error)
 }
 
 type Prescription struct {
@@ -289,6 +290,15 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 	return update
 }
 
+func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Update {
+	return &Update{
+		usr: usr,
+		prescription: prescription,
+		State: StateReviewed,
+		PatientID: *usr.UserID,
+	}
+}
+
 func (u *Update) AccessCode() *string {
 	if u.State != StateReviewed {
 		return nil
@@ -341,4 +351,16 @@ func (u *Update) validateForPatient(validator structure.Validator) {
 	if u.PatientID != "" {
 		validator.String("patientId", &u.PatientID).EqualTo(*u.usr.UserID)
 	}
+}
+
+type Claim struct {
+	AccessCode string `json:"accessCode"`
+}
+
+func NewPrescriptionClaim() *Claim {
+	return &Claim{}
+}
+
+func (p *Claim) Validate(validator structure.Validator) {
+	validator.String("accessCode", &p.AccessCode).NotEmpty()
 }

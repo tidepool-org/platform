@@ -64,3 +64,10 @@ func (c *Client) AddRevision(ctx context.Context, usr *user.User, id string, cre
 
 	return ssn.AddRevision(ctx, usr, id, create)
 }
+
+func (c *Client) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
+	ssn := c.prescriptionStore.NewPrescriptionSession()
+	defer ssn.Close()
+
+	return ssn.ClaimPrescription(ctx, usr, claim)
+}

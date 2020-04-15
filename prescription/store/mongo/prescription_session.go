@@ -214,32 +214,12 @@ func (p *PrescriptionSession) AddRevision(ctx context.Context, usr *user.User, i
 
 	// Concurrent updates are safe, because updates are atomic at the document level and
 	// because there's a unique index on the revision id.
-	set := bson.M {
-		"state":          prescriptionUpdate.State,
-		"expirationTime": prescriptionUpdate.ExpirationTime,
-	}
-	update := bson.M{
-		"$set": &set,
-	}
-
-	if prescriptionUpdate.Revision != nil {
-		set["latestRevision"] = prescriptionUpdate.Revision
-		update["$push"] = bson.M{
-			"revisionHistory": prescriptionUpdate.Revision,
-		}
-	}
-	if prescriptionUpdate.AccessCode() != nil {
-		set["accessCode"] = prescriptionUpdate.AccessCode()
-	}
-	if prescriptionUpdate.PrescriberUserID != "" {
-		set["prescriberId"] = prescriptionUpdate.PrescriberUserID
-	}
-
-	// Updates will fail if a new revision was created by a concurrent request
 	updateSelector := bson.M{
-		"_id": bson.ObjectIdHex(id),
+		"_id": prescr.ID,
 		"latestRevision.revisionId": prescr.LatestRevision.RevisionID,
 	}
+
+	update := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
 
 	now := time.Now()
 	err = p.C().Update(updateSelector, update)
@@ -248,7 +228,54 @@ func (p *PrescriptionSession) AddRevision(ctx context.Context, usr *user.User, i
 		return nil, errors.Wrap(err, "unable to update prescription")
 	}
 
-	err = p.C().FindId(bson.ObjectIdHex(id)).One(prescr)
+	err = p.C().FindId(prescr.ID).One(prescr)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to find updated prescription")
+	}
+
+	return prescr, nil
+}
+
+func (p *PrescriptionSession) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if p.IsClosed() {
+		return nil, errors.New("session closed")
+	}
+	if usr == nil {
+		return nil, errors.New("user is missing")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "claim": claim})
+
+	selector := bson.M{
+		"accessCode": claim.AccessCode,
+		"patientId":  nil,
+		"state":      prescription.StateSubmitted,
+	}
+
+	prescr := &prescription.Prescription{}
+	err := p.C().Find(selector).One(prescr)
+	if err == mgo.ErrNotFound {
+		return nil, nil
+	}
+
+	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(usr, prescr)
+	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+		return nil, errors.Wrap(err, "the prescription update is invalid")
+	}
+
+	update := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
+
+	now := time.Now()
+	err = p.C().Update(selector, update)
+	logger.WithFields(log.Fields{"id": prescr.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to update prescription")
+	}
+
+	err = p.C().FindId(prescr.ID).One(prescr)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to find updated prescription")
 	}
@@ -294,4 +321,40 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	}
 
 	return selector
+}
+
+func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bson.M {
+	set := bson.M{}
+	update := bson.M{
+		"$set": &set,
+	}
+
+	set["state"] = prescrUpdate.State
+	set["expirationTime"] = prescrUpdate.State
+
+	if prescrUpdate.Revision != nil {
+		set["latestRevision"] = prescrUpdate.Revision
+		update["$push"] = bson.M{
+			"revisionHistory": prescrUpdate.Revision,
+		}
+	}
+
+	if prescrUpdate.AccessCode() != nil {
+		code := *prescrUpdate.AccessCode()
+		if code != "" {
+			set["accessCode"] = code
+		} else {
+			set["accessCode"] = nil
+		}
+	}
+
+	if prescrUpdate.PrescriberUserID != "" {
+		set["prescriberId"] = prescrUpdate.PrescriberUserID
+	}
+
+	if prescrUpdate.PatientID != "" {
+		set["patientId"] = prescrUpdate.PatientID
+	}
+
+	return update
 }

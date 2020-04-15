@@ -95,6 +95,13 @@ func (u *User) HasRole(role string) bool {
 	return false
 }
 
+func (u *User) IsPatient() bool {
+	if u.Roles == nil || len(*u.Roles) == 0 {
+		return true
+	}
+	return false
+}
+
 func (u *User) Sanitize(details request.Details) error {
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
 		u.Username = nil

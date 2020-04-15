@@ -149,6 +149,38 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusOK, prescr)
 }
 
+
+func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
+	ctx := req.Context()
+	responder := request.MustNewResponder(res, req)
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
+		return
+	}
+
+	if !usr.IsPatient() {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return
+	}
+
+	claim := prescription.NewPrescriptionClaim()
+	if err := request.DecodeRequestBody(req.Request, claim); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	prescr, err := r.PrescriptionClient().ClaimPrescription(ctx, usr, claim)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if prescr == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr)
+}
+
 func (r *Router) getUserOrRespondWithError(req *rest.Request, responder *request.Responder, requiredRoles ...string) *user.User {
 	ctx := req.Context()
 	details := request.DetailsFromContext(ctx)
