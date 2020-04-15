@@ -90,12 +90,12 @@ func (r *Router) GetPrescription(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	if prescr == nil {
+	if prescr == nil || len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
 
-	responder.Data(http.StatusOK, prescr)
+	responder.Data(http.StatusOK, prescr[0])
 }
 
 func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) {
