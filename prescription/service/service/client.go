@@ -44,13 +44,6 @@ func (c *Client) ListPrescriptions(ctx context.Context, filter *prescription.Fil
 	return ssn.ListPrescriptions(ctx, filter, pagination)
 }
 
-func (c *Client) GetUnclaimedPrescription(ctx context.Context, accessCode string) (*prescription.Prescription, error) {
-	ssn := c.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
-	return ssn.GetUnclaimedPrescription(ctx, accessCode)
-}
-
 func (c *Client) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
 	ssn := c.prescriptionStore.NewPrescriptionSession()
 	defer ssn.Close()
@@ -70,4 +63,11 @@ func (c *Client) ClaimPrescription(ctx context.Context, usr *user.User, claim *p
 	defer ssn.Close()
 
 	return ssn.ClaimPrescription(ctx, usr, claim)
+}
+
+func (c *Client) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+	ssn := c.prescriptionStore.NewPrescriptionSession()
+	defer ssn.Close()
+
+	return ssn.UpdatePrescriptionState(ctx, usr, id, update)
 }

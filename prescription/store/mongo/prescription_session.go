@@ -283,6 +283,79 @@ func (p *PrescriptionSession) ClaimPrescription(ctx context.Context, usr *user.U
 	return prescr, nil
 }
 
+
+func (p *PrescriptionSession) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if p.IsClosed() {
+		return nil, errors.New("session closed")
+	}
+	if usr == nil {
+		return nil, errors.New("user is missing")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "id": id, "update": update})
+
+	selector := bson.M{
+		"_id": bson.ObjectIdHex(id),
+		"patientId": *usr.UserID,
+	}
+
+	prescr := &prescription.Prescription{}
+	err := p.C().Find(selector).One(prescr)
+	if err == mgo.ErrNotFound {
+		return nil, nil
+	}
+
+	prescriptionUpdate := prescription.NewPrescriptionStateUpdate(usr, prescr, update)
+	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+		return nil, errors.Wrap(err, "the prescription update is invalid")
+	}
+	mongoUpdate := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
+
+	if err = p.deactiveActivePrescriptions(ctx, usr); err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	err = p.C().Update(selector, mongoUpdate)
+	logger.WithFields(log.Fields{"id": prescr.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to update prescription")
+	}
+
+	err = p.C().FindId(prescr.ID).One(prescr)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to find updated prescription")
+	}
+
+	return prescr, nil
+}
+
+func (p *PrescriptionSession) deactiveActivePrescriptions(ctx context.Context, usr *user.User) error {
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID})
+
+	selector := bson.M {
+		"patientId": usr.UserID,
+		"state": prescription.StateActive,
+	}
+	update := bson.M {
+		"$set": bson.M {
+			"state": prescription.StateInactive,
+		},
+	}
+
+	now := time.Now()
+	_, err := p.C().UpdateAll(selector, update)
+	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeactivatePrescriptions")
+	if err != nil {
+		return errors.Wrap(err, "unable to deactivate prescriptions for user")
+	}
+
+	return err
+}
+
 func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	selector := bson.M{}
 	if filter.GetClinicianID() != "" {
@@ -339,8 +412,8 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 		}
 	}
 
-	if prescrUpdate.AccessCode() != nil {
-		code := *prescrUpdate.AccessCode()
+	if prescrUpdate.GetUpdatedAccessCode() != nil {
+		code := *prescrUpdate.GetUpdatedAccessCode()
 		if code != "" {
 			set["accessCode"] = code
 		} else {

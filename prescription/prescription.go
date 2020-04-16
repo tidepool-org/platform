@@ -37,9 +37,9 @@ type Accessor interface {
 	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
 	ListPrescriptions(ctx context.Context, filter *Filter, pagination *page.Pagination) (Prescriptions, error)
 	DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error)
-	GetUnclaimedPrescription(ctx context.Context, accessCode string) (*Prescription, error)
 	AddRevision(ctx context.Context, usr *user.User, id string, create *RevisionCreate) (*Prescription, error)
 	ClaimPrescription(ctx context.Context, usr *user.User, claim *Claim) (*Prescription, error)
+	UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *StateUpdate) (*Prescription, error)
 }
 
 type Prescription struct {
@@ -144,8 +144,7 @@ func StatesVisibleToPatients() []string {
 func validPatientStateTransitions() map[string][]string {
 	return map[string][]string{
 		StateSubmitted: {StateReviewed},
-		StateReviewed:  {StateReviewed, StateActive},
-		StateActive:    {StateActive, StateInactive},
+		StateReviewed:  {StateActive},
 	}
 }
 
@@ -268,11 +267,11 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 type Update struct {
 	prescription     *Prescription
 	usr              *user.User
-	Revision         *Revision  `json:"-"`
-	State            string     `json:"state"`
-	PrescriberUserID string     `json:"-"`
-	PatientID        string     `json:"-"`
-	ExpirationTime   *time.Time `json:"-"`
+	Revision         *Revision
+	State            string
+	PrescriberUserID string
+	PatientID        string
+	ExpirationTime   *time.Time
 }
 
 func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription, create *RevisionCreate) *Update {
@@ -299,13 +298,29 @@ func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Upd
 	}
 }
 
-func (u *Update) AccessCode() *string {
+func NewPrescriptionStateUpdate(usr *user.User, prescription *Prescription, update *StateUpdate) *Update {
+	return &Update{
+		usr: usr,
+		prescription: prescription,
+		State: update.State,
+	}
+}
+
+func (u *Update) GetUpdatedAccessCode() *string {
 	if u.State != StateReviewed {
 		return nil
 	}
 
 	// Remove the access code when the user reviews the prescription
 	return pointer.FromString("")
+}
+
+func (u *Update) GetCurrentUserId() string {
+	return *u.usr.UserID
+}
+
+func (u *Update) GetPrescriptionId() bson.ObjectId {
+	return u.prescription.ID
 }
 
 func (u *Update) Validate(validator structure.Validator) {
@@ -363,4 +378,16 @@ func NewPrescriptionClaim() *Claim {
 
 func (p *Claim) Validate(validator structure.Validator) {
 	validator.String("accessCode", &p.AccessCode).NotEmpty()
+}
+
+type StateUpdate struct {
+	State string `json:"state"`
+}
+
+func NewStateUpdate() *StateUpdate {
+	return &StateUpdate{}
+}
+
+func (s *StateUpdate) Validate(validator structure.Validator) {
+	validator.String("status", &s.State).OneOf(StatesVisibleToPatients()...)
 }

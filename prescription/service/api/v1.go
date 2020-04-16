@@ -149,7 +149,6 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusOK, prescr)
 }
 
-
 func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	responder := request.MustNewResponder(res, req)
@@ -170,6 +169,38 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	prescr, err := r.PrescriptionClient().ClaimPrescription(ctx, usr, claim)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if prescr == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr)
+}
+
+func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
+	ctx := req.Context()
+	responder := request.MustNewResponder(res, req)
+	prescriptionID := req.PathParam("prescriptionId")
+	usr := r.getUserOrRespondWithError(req, responder)
+	if usr == nil {
+		return
+	}
+
+	if !usr.IsPatient() {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return
+	}
+
+	update := prescription.NewStateUpdate()
+	if err := request.DecodeRequestBody(req.Request, update); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	prescr, err := r.PrescriptionClient().UpdatePrescriptionState(ctx, usr, prescriptionID, update)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
