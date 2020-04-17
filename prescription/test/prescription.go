@@ -25,7 +25,16 @@ import (
 func RandomPrescriptions(count int) prescription.Prescriptions {
 	prescriptions := make(prescription.Prescriptions, count)
 	for i := 0; i < count; i++ {
-		prescriptions[i] = RandomPrescription()
+		prescr := RandomPrescription()
+
+		createdTime := prescr.CreatedTime.Add(time.Second * time.Duration(i) - time.Hour)
+		modifiedTime := prescr.LatestRevision.Attributes.ModifiedTime.Add(time.Second * time.Duration(i))
+
+		prescr.CreatedTime = createdTime
+		prescr.LatestRevision.Attributes.ModifiedTime = modifiedTime
+		prescr.RevisionHistory[0].Attributes.ModifiedTime = modifiedTime
+
+		prescriptions[i] = prescr
 	}
 
 	return prescriptions
@@ -41,6 +50,7 @@ func RandomClaimedPrescription() *prescription.Prescription {
 	prescr := prescription.NewPrescription(userTest.RandomID(), create)
 	prescr.AccessCode = ""
 	prescr.PatientID = userTest.RandomID()
+	prescr.State = prescription.StateReviewed
 
 	return prescr
 }

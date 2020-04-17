@@ -149,104 +149,6 @@ var _ = Describe("PrescriptionSession", func() {
 				})
 			})
 
-			Context("GetUnclaimedPrescription", func() {
-				It("returns an error when the context is missing", func() {
-					ctx = nil
-					result, err := session.GetUnclaimedPrescription(ctx, prescription.GenerateAccessCode())
-					errorsTest.ExpectEqual(err, errors.New("context is missing"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the accessCode is missing", func() {
-					accessCode := ""
-					result, err := session.GetUnclaimedPrescription(ctx, accessCode)
-					errorsTest.ExpectEqual(err, errors.New("access code is missing"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					result, err := session.GetUnclaimedPrescription(ctx, prescription.GenerateAccessCode())
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
-					Expect(result).To(BeNil())
-				})
-
-				Context("With pre-existing data", func() {
-					count := 5
-					var prescr *prescription.Prescription = nil
-					var prescriptions prescription.Prescriptions
-					var ids []string
-
-					BeforeEach(func() {
-						prescriptions = test.RandomPrescriptions(count)
-						ids = make([]string, count)
-						prescr = prescriptions[faker.RandomInt(0, count-1)]
-						for i := 0; i < count; i++ {
-							p := prescriptions[i]
-							p.PatientID = ""
-							p.State = prescription.StateSubmitted
-
-							err := mgoCollection.Insert(p)
-							Expect(err).ToNot(HaveOccurred())
-							ids[i] = p.ID.Hex()
-						}
-					})
-
-					AfterEach(func() {
-						_, err := mgoCollection.RemoveAll(bson.M{"id": bson.M{"$in": ids}})
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					It("returns the correct prescription", func() {
-						result, err := session.GetUnclaimedPrescription(ctx, prescr.AccessCode)
-
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).ToNot(BeNil())
-						Expect(result.ID).To(Equal(prescr.ID))
-					})
-
-					It("doesn't return claimed prescriptions", func() {
-						claimed := test.RandomPrescription()
-						claimed.PatientID = userTest.RandomID()
-						err := mgoCollection.Insert(claimed)
-						Expect(err).ToNot(HaveOccurred())
-
-						result, err := session.GetUnclaimedPrescription(ctx, claimed.AccessCode)
-
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).To(BeNil())
-					})
-
-					It("doesn't return draft prescriptions", func() {
-						p := test.RandomPrescription()
-						p.PatientID = ""
-						p.State = prescription.StateDraft
-
-						err := mgoCollection.Insert(p)
-						Expect(err).ToNot(HaveOccurred())
-
-						result, err := session.GetUnclaimedPrescription(ctx, p.AccessCode)
-
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).To(BeNil())
-					})
-
-					It("doesn't return pending prescriptions", func() {
-						p := test.RandomPrescription()
-						p.PatientID = ""
-						p.State = prescription.StatePending
-
-						err := mgoCollection.Insert(p)
-						Expect(err).ToNot(HaveOccurred())
-
-						result, err := session.GetUnclaimedPrescription(ctx, p.AccessCode)
-
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result).To(BeNil())
-					})
-				})
-			})
-
 			Context("ListPrescriptions", func() {
 				It("returns an error when the context is missing", func() {
 					ctx = nil
@@ -279,8 +181,11 @@ var _ = Describe("PrescriptionSession", func() {
 					var clinician *user.User
 					var prescriptions prescription.Prescriptions
 					var ids []bson.ObjectId
-					//
+
 					BeforeEach(func() {
+						_, err := mgoCollection.RemoveAll(bson.M{})
+						Expect(err).ToNot(HaveOccurred())
+
 						clinician = userTest.RandomUser()
 						clinician.Roles = &[]string{user.RoleClinic}
 
@@ -632,6 +537,263 @@ var _ = Describe("PrescriptionSession", func() {
 						success, err := session.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
+					})
+				})
+			})
+
+			Context("AddRevision", func() {
+				var usr *user.User
+				var prescr *prescription.Prescription
+				var prescrID string
+				var create *prescription.RevisionCreate
+
+				BeforeEach(func() {
+					usr = userTest.RandomUser()
+					usr.Roles = &[]string{user.RoleClinic}
+					prescr = test.RandomPrescription()
+					prescr.State = prescription.StateDraft
+					prescr.CreatedUserID = *usr.UserID
+					prescrID = prescr.ID.Hex()
+					create = test.RandomRevisionCreate()
+					create.State = prescription.StatePending
+				})
+
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.AddRevision(ctx, usr, prescrID, create)
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.AddRevision(ctx, usr, prescrID, create)
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the user is nil", func() {
+					result, err := session.AddRevision(ctx, nil, prescrID, create)
+					errorsTest.ExpectEqual(err, errors.New("user is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the prescription id is empty", func() {
+					result, err := session.AddRevision(ctx, usr, "", create)
+					errorsTest.ExpectEqual(err, errors.New("prescription id is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				Context("With pre-existing data", func() {
+					BeforeEach(func() {
+						prescr.ID = bson.NewObjectId()
+						prescrID = prescr.ID.Hex()
+						err := mgoCollection.Insert(prescr)
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					AfterEach(func() {
+						_, err := mgoCollection.RemoveAll(bson.M{"_id": prescrID})
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns nil if the prescription doesn't exist", func() {
+						result, err := session.AddRevision(ctx, usr, bson.NewObjectId().Hex(), create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("returns the result on success", func() {
+						result, err := session.AddRevision(ctx, usr, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+					})
+
+					It("adds a revision to the list of revisions", func() {
+						result, err := session.AddRevision(ctx, usr, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.RevisionHistory).To(HaveLen(2))
+					})
+
+					It("does not prepend the new revision to the revision history array", func() {
+						result, err := session.AddRevision(ctx, usr, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.RevisionHistory[0].RevisionID).To(Equal(0))
+					})
+
+					It("appends the latest revision to the newly created revision", func() {
+						result, err := session.AddRevision(ctx, usr, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.RevisionHistory[1].RevisionID).To(Equal(1))
+					})
+
+					It("sets the revision attributes correctly", func() {
+						result, err := session.AddRevision(ctx, usr, prescrID, create)
+						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						result.LatestRevision.Attributes.ModifiedTime = update.Revision.Attributes.ModifiedTime
+						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
+					})
+				})
+			})
+
+			Context("ClaimPrescription", func() {
+				var usr *user.User
+				var prescr *prescription.Prescription
+				var prescrID string
+				var claim *prescription.Claim
+
+				BeforeEach(func() {
+					usr = userTest.RandomUser()
+					prescr = test.RandomPrescription()
+					prescr.State = prescription.StateSubmitted
+					prescrID = prescr.ID.Hex()
+					claim = prescription.NewPrescriptionClaim()
+					claim.AccessCode = prescr.AccessCode
+				})
+
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.ClaimPrescription(ctx, usr, claim)
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.ClaimPrescription(ctx, usr, claim)
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the user is nil", func() {
+					result, err := session.ClaimPrescription(ctx, nil, claim)
+					errorsTest.ExpectEqual(err, errors.New("user is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				Context("With pre-existing data", func() {
+					BeforeEach(func() {
+						prescr.ID = bson.NewObjectId()
+						prescrID = prescr.ID.Hex()
+						err := mgoCollection.Insert(prescr)
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					AfterEach(func() {
+						_, err := mgoCollection.RemoveAll(bson.M{"_id": prescrID})
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns nil if the access code is incorrect", func() {
+						claim.AccessCode = "XXXXXX"
+						result, err := session.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("returns the prescription on success", func() {
+						result, err := session.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+					})
+
+					It("resets the access code", func() {
+						result, err := session.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.AccessCode).To(BeEmpty())
+					})
+
+					It("sets the state of the prescription to reviewed", func() {
+						result, err := session.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.State).To(Equal(prescription.StateReviewed))
+					})
+
+					It("sets the patient id", func() {
+						result, err := session.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.PatientID).To(Equal(*usr.UserID))
+					})
+				})
+			})
+
+
+			Context("UpdateState", func() {
+				var usr *user.User
+				var prescr *prescription.Prescription
+				var prescrID string
+				var stateUpdate *prescription.StateUpdate
+
+				BeforeEach(func() {
+					usr = userTest.RandomUser()
+					prescr = test.RandomClaimedPrescription()
+					prescr.PatientID = *usr.UserID
+					prescrID = prescr.ID.Hex()
+					stateUpdate = prescription.NewStateUpdate()
+					stateUpdate.State = prescription.StateActive
+				})
+
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := session.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the session is closed", func() {
+					session.Close()
+					result, err := session.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+					errorsTest.ExpectEqual(err, errors.New("session closed"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the user is nil", func() {
+					result, err := session.UpdatePrescriptionState(ctx, nil, prescrID, stateUpdate)
+					errorsTest.ExpectEqual(err, errors.New("user is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the prescription id is empty", func() {
+					result, err := session.UpdatePrescriptionState(ctx, usr, "", stateUpdate)
+					errorsTest.ExpectEqual(err, errors.New("prescription id is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				Context("With pre-existing data", func() {
+					BeforeEach(func() {
+						prescr.ID = bson.NewObjectId()
+						prescrID = prescr.ID.Hex()
+						err := mgoCollection.Insert(prescr)
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					AfterEach(func() {
+						_, err := mgoCollection.RemoveAll(bson.M{"_id": prescrID})
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns the prescription on success", func() {
+						result, err := session.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+					})
+
+					It("returns an error when trying to activate an already active prescription", func() {
+						result, err := session.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						result, err = session.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+						errorsTest.ExpectEqual(err, errors.New("the prescription update is invalid"))
 					})
 				})
 			})

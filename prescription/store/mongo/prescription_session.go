@@ -97,38 +97,6 @@ func (p *PrescriptionSession) ListPrescriptions(ctx context.Context, filter *pre
 	return prescriptions, nil
 }
 
-func (p *PrescriptionSession) GetUnclaimedPrescription(ctx context.Context, accessCode string) (*prescription.Prescription, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if p.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-	if accessCode == "" {
-		return nil, errors.New("access code is missing")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"accessCode": accessCode})
-
-	selector := bson.M{
-		"accessCode": accessCode,
-		"patientId":  nil,
-		"state":      prescription.StateSubmitted,
-	}
-
-	prescr := &prescription.Prescription{}
-	err := p.C().Find(selector).One(prescr)
-	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("GetUnclaimedPrescription")
-	if err == mgo.ErrNotFound {
-		return nil, nil
-	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to find unclaimed prescription")
-	}
-
-	return prescr, nil
-}
-
 func (p *PrescriptionSession) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
@@ -283,7 +251,6 @@ func (p *PrescriptionSession) ClaimPrescription(ctx context.Context, usr *user.U
 	return prescr, nil
 }
 
-
 func (p *PrescriptionSession) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -293,6 +260,9 @@ func (p *PrescriptionSession) UpdatePrescriptionState(ctx context.Context, usr *
 	}
 	if usr == nil {
 		return nil, errors.New("user is missing")
+	}
+	if id == "" {
+		return nil, errors.New("prescription id is missing")
 	}
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "id": id, "update": update})
