@@ -113,6 +113,13 @@ func (s *Service) initializeImageStructuredStore() error {
 	}
 	s.imageStructuredStore = imageStructuredStore
 
+	s.Logger().Debug("Ensuring image structured store indexes")
+
+	err = s.imageStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure image structured store indexes")
+	}
+
 	return nil
 }
 

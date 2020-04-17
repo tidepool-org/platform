@@ -93,6 +93,13 @@ func (s *Service) initializeBlobStructuredStore() error {
 	}
 	s.blobStructuredStore = blobStructuredStore
 
+	s.Logger().Debug("Ensuring blob structured store indexes")
+
+	err = s.blobStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure blob structured store indexes")
+	}
+
 	return nil
 }
 
