@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/page"

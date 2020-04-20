@@ -2,8 +2,9 @@ package mongo
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/user"
 	"time"
+
+	"github.com/tidepool-org/platform/user"
 
 	"github.com/globalsign/mgo/bson"
 
@@ -183,7 +184,7 @@ func (p *PrescriptionSession) AddRevision(ctx context.Context, usr *user.User, i
 	// Concurrent updates are safe, because updates are atomic at the document level and
 	// because there's a unique index on the revision id.
 	updateSelector := bson.M{
-		"_id": prescr.ID,
+		"_id":                       prescr.ID,
 		"latestRevision.revisionId": prescr.LatestRevision.RevisionID,
 	}
 
@@ -268,7 +269,7 @@ func (p *PrescriptionSession) UpdatePrescriptionState(ctx context.Context, usr *
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "id": id, "update": update})
 
 	selector := bson.M{
-		"_id": bson.ObjectIdHex(id),
+		"_id":       bson.ObjectIdHex(id),
 		"patientId": *usr.UserID,
 	}
 
@@ -306,12 +307,12 @@ func (p *PrescriptionSession) UpdatePrescriptionState(ctx context.Context, usr *
 func (p *PrescriptionSession) deactiveActivePrescriptions(ctx context.Context, usr *user.User) error {
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID})
 
-	selector := bson.M {
+	selector := bson.M{
 		"patientId": usr.UserID,
-		"state": prescription.StateActive,
+		"state":     prescription.StateActive,
 	}
-	update := bson.M {
-		"$set": bson.M {
+	update := bson.M{
+		"$set": bson.M{
 			"state": prescription.StateInactive,
 		},
 	}

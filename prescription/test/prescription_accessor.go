@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/user"
+
 	"github.com/tidepool-org/platform/page"
 
 	"github.com/tidepool-org/platform/prescription"
@@ -32,16 +34,6 @@ type ListPrescriptionsOutput struct {
 	Err           error
 }
 
-type GetUnclaimedPrescriptionInput struct {
-	Ctx        context.Context
-	AccessCode string
-}
-
-type GetUnclaimedPrescriptionOutput struct {
-	Prescr *prescription.Prescription
-	Err    error
-}
-
 type DeletePrescriptionInput struct {
 	Ctx         context.Context
 	ClinicianID string
@@ -53,19 +45,60 @@ type DeletePrescriptionOutput struct {
 	Err     error
 }
 
+type AddRevisionInput struct {
+	Ctx    context.Context
+	User   *user.User
+	ID     string
+	Create *prescription.RevisionCreate
+}
+
+type AddRevisionOutput struct {
+	Prescr *prescription.Prescription
+	Err    error
+}
+
+type ClaimPrescriptionInput struct {
+	Ctx   context.Context
+	User  *user.User
+	Claim *prescription.Claim
+}
+
+type ClaimPrescriptionOutput struct {
+	Prescr *prescription.Prescription
+	Err    error
+}
+
+type UpdatePrescriptionStateInput struct {
+	Ctx    context.Context
+	User   *user.User
+	ID     string
+	Update *prescription.StateUpdate
+}
+
+type UpdatePrescriptionStateOutput struct {
+	Prescr *prescription.Prescription
+	Err    error
+}
+
 type PrescriptionAccessor struct {
-	CreatePrescriptionInvocations       int
-	CreatePrescriptionInputs            []CreatePrescriptionInput
-	CreatePrescriptionOutputs           []CreatePrescriptionOutput
-	ListPrescriptionsInvocations        int
-	ListPrescriptionsInputs             []ListPrescriptionsInput
-	ListPrescriptionOutputs             []ListPrescriptionsOutput
-	GetUnclaimedPrescriptionInvocations int
-	GetUnclaimedPrescriptionInputs      []GetUnclaimedPrescriptionInput
-	GetUnclaimedPrescriptionOutputs     []GetUnclaimedPrescriptionOutput
-	DeletePrescriptionInvocations       int
-	DeletePrescriptionInputs            []DeletePrescriptionInput
-	DeletePrescriptionOutputs           []DeletePrescriptionOutput
+	CreatePrescriptionInvocations      int
+	CreatePrescriptionInputs           []CreatePrescriptionInput
+	CreatePrescriptionOutputs          []CreatePrescriptionOutput
+	ListPrescriptionsInvocations       int
+	ListPrescriptionsInputs            []ListPrescriptionsInput
+	ListPrescriptionOutputs            []ListPrescriptionsOutput
+	DeletePrescriptionInvocations      int
+	DeletePrescriptionInputs           []DeletePrescriptionInput
+	DeletePrescriptionOutputs          []DeletePrescriptionOutput
+	AddRevisionInvocations             int
+	AddRevisionInputs                  []AddRevisionInput
+	AddRevisionOutputs                 []AddRevisionOutput
+	ClaimPrescriptionInvocations       int
+	ClaimPrescriptionInputs            []ClaimPrescriptionInput
+	ClaimPrescriptionOutputs           []ClaimPrescriptionOutput
+	UpdatePrescriptionStateInvocations int
+	UpdatePrescriptionStateInputs      []UpdatePrescriptionStateInput
+	UpdatePrescriptionStateOutputs     []UpdatePrescriptionStateOutput
 }
 
 func NewPrescriptionAccessor() *PrescriptionAccessor {
@@ -96,18 +129,6 @@ func (p *PrescriptionAccessor) ListPrescriptions(ctx context.Context, filter *pr
 	return output.Prescriptions, output.Err
 }
 
-func (p *PrescriptionAccessor) GetUnclaimedPrescription(ctx context.Context, accessCode string) (*prescription.Prescription, error) {
-	p.GetUnclaimedPrescriptionInvocations++
-
-	p.GetUnclaimedPrescriptionInputs = append(p.GetUnclaimedPrescriptionInputs, GetUnclaimedPrescriptionInput{Ctx: ctx, AccessCode: accessCode})
-
-	gomega.Expect(p.GetUnclaimedPrescriptionOutputs).ToNot(gomega.BeEmpty())
-
-	output := p.GetUnclaimedPrescriptionOutputs[0]
-	p.GetUnclaimedPrescriptionOutputs = p.GetUnclaimedPrescriptionOutputs[1:]
-	return output.Prescr, output.Err
-}
-
 func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
 	p.DeletePrescriptionInvocations++
 
@@ -120,9 +141,47 @@ func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinician
 	return output.Success, output.Err
 }
 
+func (p *PrescriptionAccessor) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+	p.AddRevisionInvocations++
+
+	p.AddRevisionInputs = append(p.AddRevisionInputs, AddRevisionInput{Ctx: ctx, User: usr, ID: id, Create: create})
+
+	gomega.Expect(p.AddRevisionOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.AddRevisionOutputs[0]
+	p.AddRevisionOutputs = p.AddRevisionOutputs[1:]
+	return output.Prescr, output.Err
+}
+
+func (p *PrescriptionAccessor) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
+	p.ClaimPrescriptionInvocations++
+
+	p.ClaimPrescriptionInputs = append(p.ClaimPrescriptionInputs, ClaimPrescriptionInput{Ctx: ctx, User: usr, Claim: claim})
+
+	gomega.Expect(p.ClaimPrescriptionOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.ClaimPrescriptionOutputs[0]
+	p.ClaimPrescriptionOutputs = p.ClaimPrescriptionOutputs[1:]
+	return output.Prescr, output.Err
+}
+
+func (p *PrescriptionAccessor) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+	p.UpdatePrescriptionStateInvocations++
+
+	p.UpdatePrescriptionStateInputs = append(p.UpdatePrescriptionStateInputs, UpdatePrescriptionStateInput{Ctx: ctx, User: usr, ID: id, Update: update})
+
+	gomega.Expect(p.UpdatePrescriptionStateOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.UpdatePrescriptionStateOutputs[0]
+	p.UpdatePrescriptionStateOutputs = p.UpdatePrescriptionStateOutputs[1:]
+	return output.Prescr, output.Err
+}
+
 func (p *PrescriptionAccessor) Expectations() {
 	gomega.Expect(p.CreatePrescriptionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.ListPrescriptionOutputs).To(gomega.BeEmpty())
-	gomega.Expect(p.GetUnclaimedPrescriptionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.DeletePrescriptionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.AddRevisionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.ClaimPrescriptionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.UpdatePrescriptionStateOutputs).To(gomega.BeEmpty())
 }

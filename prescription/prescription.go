@@ -2,8 +2,9 @@ package prescription
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/pointer"
 	"time"
+
+	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/tidepool-org/platform/errors"
 
@@ -158,9 +159,9 @@ func validClinicianStateTransitions() map[string][]string {
 func stateTransitionsForUser(usr *user.User) map[string][]string {
 	if usr.HasRole(user.RoleClinic) {
 		return validClinicianStateTransitions()
-	} else {
-		return validPatientStateTransitions()
 	}
+
+	return validPatientStateTransitions()
 }
 
 func ValidStateTransitions(usr *user.User, state string) []string {
@@ -169,11 +170,12 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 	}
 
 	transitions := stateTransitionsForUser(usr)
-	if valid, ok := transitions[state]; !ok {
+	valid, ok := transitions[state]
+	if !ok {
 		return []string{}
-	} else {
-		return valid
 	}
+
+	return valid
 }
 
 type Filter struct {
@@ -275,8 +277,8 @@ type Update struct {
 }
 
 func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription, create *RevisionCreate) *Update {
-	revisionId := prescription.LatestRevision.RevisionID + 1
-	revision := NewRevision(*usr.UserID, revisionId, create)
+	revisionID := prescription.LatestRevision.RevisionID + 1
+	revision := NewRevision(*usr.UserID, revisionID, create)
 	update := &Update{
 		usr:              usr,
 		prescription:     prescription,
@@ -291,18 +293,18 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 
 func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Update {
 	return &Update{
-		usr: usr,
+		usr:          usr,
 		prescription: prescription,
-		State: StateReviewed,
-		PatientID: *usr.UserID,
+		State:        StateReviewed,
+		PatientID:    *usr.UserID,
 	}
 }
 
 func NewPrescriptionStateUpdate(usr *user.User, prescription *Prescription, update *StateUpdate) *Update {
 	return &Update{
-		usr: usr,
+		usr:          usr,
 		prescription: prescription,
-		State: update.State,
+		State:        update.State,
 	}
 }
 
@@ -315,11 +317,11 @@ func (u *Update) GetUpdatedAccessCode() *string {
 	return pointer.FromString("")
 }
 
-func (u *Update) GetCurrentUserId() string {
+func (u *Update) GetCurrentUserID() string {
 	return *u.usr.UserID
 }
 
-func (u *Update) GetPrescriptionId() bson.ObjectId {
+func (u *Update) GetPrescriptionID() bson.ObjectId {
 	return u.prescription.ID
 }
 

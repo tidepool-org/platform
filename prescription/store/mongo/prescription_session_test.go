@@ -726,7 +726,6 @@ var _ = Describe("PrescriptionSession", func() {
 				})
 			})
 
-
 			Context("UpdateState", func() {
 				var usr *user.User
 				var prescr *prescription.Prescription
