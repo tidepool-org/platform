@@ -66,13 +66,23 @@ var _ = Describe("CarbohydratesOnBoard", func() {
 					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) { datum.Amount = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
-				Entry("amount below minimum",
+				Entry("amount; out of range (lower)",
 					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
 						datum.Amount = pointer.FromFloat64(-0.1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amount"),
 				),
-				Entry("amount above maximum",
+				Entry("amount; in range (lower)",
+					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
+						datum.Amount = pointer.FromFloat64(0)
+					},
+				),
+				Entry("amount; in range (upper)",
+					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
+						datum.Amount = pointer.FromFloat64(1000)
+					},
+				),
+				Entry("amount; out of range (upper)",
 					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
 						datum.Amount = pointer.FromFloat64(1000.1)
 					},

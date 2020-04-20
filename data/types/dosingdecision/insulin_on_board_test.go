@@ -50,17 +50,27 @@ var _ = Describe("InsulinOnBoard", func() {
 					func(datum *dataTypesDosingDecision.InsulinOnBoard) { datum.Amount = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
-				Entry("amount below minimum",
+				Entry("amount; out of range (lower)",
 					func(datum *dataTypesDosingDecision.InsulinOnBoard) {
-						datum.Amount = pointer.FromFloat64(-0.1)
+						datum.Amount = pointer.FromFloat64(-1000.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1000.1, -1000, 1000), "/amount"),
 				),
-				Entry("amount above maximum",
+				Entry("amount; in range (lower)",
+					func(datum *dataTypesDosingDecision.InsulinOnBoard) {
+						datum.Amount = pointer.FromFloat64(-1000)
+					},
+				),
+				Entry("amount; in range (upper)",
+					func(datum *dataTypesDosingDecision.InsulinOnBoard) {
+						datum.Amount = pointer.FromFloat64(1000)
+					},
+				),
+				Entry("amount; out of range (upper)",
 					func(datum *dataTypesDosingDecision.InsulinOnBoard) {
 						datum.Amount = pointer.FromFloat64(1000.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0, 1000), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, -1000, 1000), "/amount"),
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesDosingDecision.InsulinOnBoard) {

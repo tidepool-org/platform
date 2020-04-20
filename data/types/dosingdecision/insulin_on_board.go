@@ -6,7 +6,7 @@ import (
 
 const (
 	InsulinOnBoardAmountMaximum = 1000
-	InsulinOnBoardAmountMinimum = 0
+	InsulinOnBoardAmountMinimum = -1000
 )
 
 type InsulinOnBoard struct {

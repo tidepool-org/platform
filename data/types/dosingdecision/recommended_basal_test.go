@@ -50,13 +50,23 @@ var _ = Describe("RecommendedBasal", func() {
 					func(datum *dataTypesDosingDecision.RecommendedBasal) { datum.Rate = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
-				Entry("rate below minimum",
+				Entry("rate; out of range (lower)",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
 						datum.Rate = pointer.FromFloat64(-0.1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/rate"),
 				),
-				Entry("rate above maximum",
+				Entry("rate; in range (lower)",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Rate = pointer.FromFloat64(0)
+					},
+				),
+				Entry("rate; in range (upper)",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Rate = pointer.FromFloat64(100)
+					},
+				),
+				Entry("rate; out of range (upper)",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
 						datum.Rate = pointer.FromFloat64(100.1)
 					},
@@ -65,13 +75,23 @@ var _ = Describe("RecommendedBasal", func() {
 				Entry("duration missing",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) { datum.Duration = nil },
 				),
-				Entry("duration below minimum",
+				Entry("duration; out of range (lower)",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
 						datum.Duration = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/duration"),
 				),
-				Entry("duration above maximum",
+				Entry("duration; in range (lower)",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Duration = pointer.FromInt(0)
+					},
+				),
+				Entry("duration; in range (upper)",
+					func(datum *dataTypesDosingDecision.RecommendedBasal) {
+						datum.Duration = pointer.FromInt(86400)
+					},
+				),
+				Entry("duration; out of range (upper)",
 					func(datum *dataTypesDosingDecision.RecommendedBasal) {
 						datum.Duration = pointer.FromInt(86401)
 					},
