@@ -2,25 +2,34 @@ package api
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/tidepool-org/platform/prescription"
+	"github.com/tidepool-org/platform/prescription/status"
+	"github.com/tidepool-org/platform/user"
+	"go.uber.org/fx"
 
-	"github.com/tidepool-org/platform/prescription/container"
-
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service/api"
 )
 
 type Router struct {
-	container.Container
+	prescriptionService prescription.Service
+	statusReporter      status.Reporter
+	userClient          user.Client
 }
 
-func NewRouter(svc container.Container) (*Router, error) {
-	if svc == nil {
-		return nil, errors.New("service is missing")
-	}
+type Params struct {
+	fx.In
 
+	PrescriptionService prescription.Service
+	StatusReporter      status.Reporter
+	UserClient          user.Client
+}
+
+func NewRouter(p Params) *Router {
 	return &Router{
-		Container: svc,
-	}, nil
+		prescriptionService: p.PrescriptionService,
+		statusReporter:      p.StatusReporter,
+		userClient:          p.UserClient,
+	}
 }
 
 func (r *Router) Routes() []*rest.Route {

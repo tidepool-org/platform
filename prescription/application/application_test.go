@@ -89,7 +89,7 @@ var _ = Describe("Application", func() {
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig
 
-			service = application.New()
+			service = application.NewApplication()
 			Expect(service).ToNot(BeNil())
 		})
 

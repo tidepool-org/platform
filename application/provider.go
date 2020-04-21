@@ -2,6 +2,7 @@ package application
 
 import (
 	"fmt"
+	"go.uber.org/fx"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,6 +17,8 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
+var ProviderModule = fx.Provide(DefaultProvider)
+
 type Provider interface {
 	VersionReporter() version.Reporter
 	ConfigReporter() config.Reporter
@@ -25,6 +28,16 @@ type Provider interface {
 	UserAgent() string
 }
 
+type ProviderResult struct {
+	fx.Out
+
+	Provider        Provider
+	ConfigReporter  config.Reporter
+	Logger          log.Logger
+	UserAgent       string `name:"userAgent"`
+	VersionReporter version.Reporter
+}
+
 type ProviderImpl struct {
 	versionReporter version.Reporter
 	configReporter  config.Reporter
@@ -32,6 +45,21 @@ type ProviderImpl struct {
 	prefix          string
 	name            string
 	userAgent       string
+}
+
+func DefaultProvider() (*ProviderResult, error) {
+	prvdr, err := NewProvider("TIDEPOOL", "service")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ProviderResult{
+		Provider:        prvdr,
+		ConfigReporter:  prvdr.configReporter,
+		Logger:          prvdr.logger,
+		UserAgent:       prvdr.userAgent,
+		VersionReporter: prvdr.versionReporter,
+	}, nil
 }
 
 func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {

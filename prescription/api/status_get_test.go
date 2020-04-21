@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/prescription/status"
-	"github.com/tidepool-org/platform/prescription/status/test"
+	"github.com/tidepool-org/platform/status/test"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"

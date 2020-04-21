@@ -20,12 +20,13 @@ require (
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
 	github.com/urfave/cli v1.20.0
-	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	go.uber.org/fx v1.12.0
+	golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
 	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b // indirect
-	golang.org/x/lint v0.0.0-20181217174547-8f45f776aaf1
+	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
 	golang.org/x/text v0.3.2 // indirect
-	golang.org/x/tools v0.0.0-20190116202437-c3e156772774
+	golang.org/x/tools v0.0.0-20191114200427-caa0b0f7d508
 	gopkg.in/tylerb/graceful.v1 v1.2.15
 	gopkg.in/yaml.v2 v2.2.2
 	syreclabs.com/go/faker v1.2.2

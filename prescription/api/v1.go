@@ -28,7 +28,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 	}
 
 	// TODO: check prescription permission
-	prescr, err := r.PrescriptionService().CreatePrescription(ctx, *usr.UserID, create)
+	prescr, err := r.prescriptionService.CreatePrescription(ctx, *usr.UserID, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -57,7 +57,7 @@ func (r *Router) ListPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	prescr, err := r.PrescriptionService().ListPrescriptions(ctx, filter, pagination)
+	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -84,7 +84,7 @@ func (r *Router) GetPrescription(res rest.ResponseWriter, req *rest.Request) {
 	filter.ID = prescriptionID
 
 	pagination := &page.Pagination{Page: 0, Size: 1}
-	prescr, err := r.PrescriptionService().ListPrescriptions(ctx, filter, pagination)
+	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -107,7 +107,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	success, err := r.PrescriptionService().DeletePrescription(ctx, *usr.UserID, prescriptionID)
+	success, err := r.prescriptionService.DeletePrescription(ctx, *usr.UserID, prescriptionID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -137,7 +137,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	// TODO: check prescription permission
-	prescr, err := r.PrescriptionService().AddRevision(ctx, usr, prescriptionID, create)
+	prescr, err := r.prescriptionService.AddRevision(ctx, usr, prescriptionID, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -168,7 +168,7 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	prescr, err := r.PrescriptionService().ClaimPrescription(ctx, usr, claim)
+	prescr, err := r.prescriptionService.ClaimPrescription(ctx, usr, claim)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -200,7 +200,7 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	prescr, err := r.PrescriptionService().UpdatePrescriptionState(ctx, usr, prescriptionID, update)
+	prescr, err := r.prescriptionService.UpdatePrescriptionState(ctx, usr, prescriptionID, update)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -222,7 +222,7 @@ func (r *Router) getUserOrRespondWithError(req *rest.Request, responder *request
 		return nil
 	}
 
-	usr, err := r.UserClient().Get(ctx, userID)
+	usr, err := r.userClient.Get(ctx, userID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
 		return nil

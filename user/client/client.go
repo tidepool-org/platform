@@ -2,6 +2,9 @@ package client
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/log"
+	"go.uber.org/fx"
 	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
@@ -13,6 +16,35 @@ import (
 
 type Client struct {
 	client *platform.Client
+}
+
+var ClientModule = fx.Provide(NewDefaultClient)
+
+type Params struct {
+	fx.In
+
+	ConfigReporter config.Reporter
+	Logger log.Logger
+	UserAgent string `name:"userAgent"`
+}
+
+func NewDefaultClient(p Params) (*Client, error) {
+	p.Logger.Debug("Loading user client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = p.UserAgent
+	if err := cfg.Load(p.ConfigReporter.WithScopes("user", "client")); err != nil {
+		return nil, errors.Wrap(err, "unable to get user client config")
+	}
+
+	p.Logger.Debug("Creating user client")
+
+	clnt, err := New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create user client")
+	}
+
+	return clnt, nil
 }
 
 func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {

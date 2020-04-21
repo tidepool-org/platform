@@ -8,6 +8,7 @@ import (
 
 type Store interface {
 	NewPrescriptionSession() PrescriptionSession
+	Status() interface{}
 }
 
 type PrescriptionSession interface {

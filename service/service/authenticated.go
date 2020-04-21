@@ -5,7 +5,10 @@ import (
 	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
+	"go.uber.org/fx"
 )
+
+var AuthenticatedModule = fx.Provide(NewAuthenticated)
 
 type Authenticated struct {
 	*Service
