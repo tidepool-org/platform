@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/tidepool-org/platform/application"
-	prescriptionServiceService "github.com/tidepool-org/platform/prescription/service/service"
+	prescriptionApplication "github.com/tidepool-org/platform/prescription/application"
 )
 
 func main() {
-	application.RunAndExit(prescriptionServiceService.New(), "service")
+	application.RunAndExit(prescriptionApplication.New(), "service")
 }

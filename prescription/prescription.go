@@ -30,7 +30,7 @@ const (
 	MaximumExpirationTime = time.Hour * 24 * 30 // 30 days
 )
 
-type Client interface {
+type Service interface {
 	Accessor
 }
 

@@ -1,8 +1,10 @@
-package service_test
+package application_test
 
 import (
 	"net/http"
 	"os"
+
+	"github.com/tidepool-org/platform/prescription/application"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 
@@ -16,14 +18,13 @@ import (
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	prescriptionServiceService "github.com/tidepool-org/platform/prescription/service/service"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
-var _ = Describe("Service", func() {
+var _ = Describe("Application", func() {
 	Context("New", func() {
 		It("returns successfully", func() {
-			Expect(prescriptionServiceService.New()).ToNot(BeNil())
+			Expect(application.New()).ToNot(BeNil())
 		})
 	})
 
@@ -35,7 +36,7 @@ var _ = Describe("Service", func() {
 		var serverSecret string
 		var sessionToken string
 		var server *Server
-		var service *prescriptionServiceService.Service
+		var service *application.Application
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -88,7 +89,7 @@ var _ = Describe("Service", func() {
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig
 
-			service = prescriptionServiceService.New()
+			service = application.New()
 			Expect(service).ToNot(BeNil())
 		})
 

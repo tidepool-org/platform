@@ -4,38 +4,41 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/tidepool-org/platform/prescription/service"
-	"github.com/tidepool-org/platform/prescription/service/api"
+	"github.com/tidepool-org/platform/prescription/status"
+	"github.com/tidepool-org/platform/prescription/status/test"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/prescription/api"
+
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
-	serviceTest "github.com/tidepool-org/platform/prescription/service/test"
+	serviceTest "github.com/tidepool-org/platform/prescription/container/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("StatusGet", func() {
 	var response *testRest.ResponseWriter
 	var request *rest.Request
-	var svc *serviceTest.Service
+	var container *serviceTest.Container
 	var rtr *api.Router
 
 	BeforeEach(func() {
 		response = testRest.NewResponseWriter()
 		request = testRest.NewRequest()
 		request.Request = request.WithContext(log.NewContextWithLogger(request.Context(), logNull.NewLogger()))
-		svc = serviceTest.NewService()
+
+		container = serviceTest.NewContainer()
 		var err error
-		rtr, err = api.NewRouter(svc)
+		rtr, err = api.NewRouter(container)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(rtr).ToNot(BeNil())
 	})
 
 	AfterEach(func() {
-		svc.Expectations()
+		container.Expectations()
 		response.AssertOutputsEmpty()
 	})
 
@@ -49,11 +52,13 @@ var _ = Describe("StatusGet", func() {
 		})
 
 		Context("with service status", func() {
-			var sts *service.Status
+			var sts *status.Status
 
 			BeforeEach(func() {
-				sts = &service.Status{}
-				svc.StatusOutputs = []*service.Status{sts}
+				reporter := test.NewReporter()
+				container.StatusReporterOutputs = []status.Reporter{reporter}
+				sts = &status.Status{}
+				reporter.StatusOutputs = []*status.Status{sts}
 				response.HeaderOutput = &http.Header{}
 				response.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 			})

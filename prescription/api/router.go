@@ -3,22 +3,23 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/prescription/container"
+
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/prescription/service"
 	"github.com/tidepool-org/platform/service/api"
 )
 
 type Router struct {
-	service.Service
+	container.Container
 }
 
-func NewRouter(svc service.Service) (*Router, error) {
+func NewRouter(svc container.Container) (*Router, error) {
 	if svc == nil {
 		return nil, errors.New("service is missing")
 	}
 
 	return &Router{
-		Service: svc,
+		Container: svc,
 	}, nil
 }
 
