@@ -227,9 +227,7 @@ func (e *Event) validateExercise(validator structure.Validator) {
 func (e *Event) validateHealth(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesHealth()...)
 	validator.String("unit", e.Unit).NotExists()
-	if e.Value != nil {
-		validator.Float64("value", e.Value).EqualTo(0)
-	}
+	validator.Float64("value", e.Value).EqualTo(0)
 }
 
 func (e *Event) validateInsulin(validator structure.Validator) {
