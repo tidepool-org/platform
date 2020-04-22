@@ -3,6 +3,9 @@ package dexcom_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure/validator"
 
 	"github.com/tidepool-org/platform/dexcom"
 )
@@ -130,5 +133,19 @@ var _ = Describe("Event", func() {
 
 	It("EventStatuses returns expected", func() {
 		Expect(dexcom.EventStatuses()).To(Equal([]string{"created", "deleted"}))
+	})
+	
+	Describe("Validate", func() {
+		It("Allows health events value to be 0", func() {
+			event := test.RandomEvent()
+			event.Type = pointer.FromString(dexcom.EventTypeHealth)
+			event.SubType = pointer.FromString(dexcom.EventSubTypeHealthIllness)
+			event.Value = pointer.FromFloat64(0)
+
+			validator := validator.New()
+			event.Validate(validator)
+
+			Expect(validator.Error()).ToNot(HaveOccurred())
+		})
 	})
 })
