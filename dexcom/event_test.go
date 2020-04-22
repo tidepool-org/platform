@@ -141,6 +141,7 @@ var _ = Describe("Event", func() {
 			event := test.RandomEvent()
 			event.Type = pointer.FromString(dexcom.EventTypeHealth)
 			event.SubType = pointer.FromString(dexcom.EventSubTypeHealthIllness)
+			event.Unit = nil
 			event.Value = pointer.FromFloat64(0)
 
 			validator := validator.New()
