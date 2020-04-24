@@ -2,15 +2,18 @@ package mongo
 
 import (
 	"context"
+
+	"go.uber.org/fx"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/prescription/store"
+	"github.com/tidepool-org/platform/status"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	"go.uber.org/fx"
 )
 
-type Store struct {
+type PrescriptionStore struct {
 	*storeStructuredMongo.Store
 }
 
@@ -18,9 +21,14 @@ type Params struct {
 	fx.In
 
 	ConfigReporter config.Reporter
-	Logger log.Logger
+	Logger         log.Logger
 
 	Lifestyle fx.Lifecycle
+}
+
+// fx.Provide() requires explicit conversion to the status reporter interface
+func NewStoreStatusReporter(str store.Store) status.StoreStatusReporter {
+	return str
 }
 
 func NewStore(p Params) (store.Store, error) {
@@ -35,7 +43,7 @@ func NewStore(p Params) (store.Store, error) {
 		return nil, err
 	}
 
-	prescriptionStore := &Store{
+	prescriptionStore := &PrescriptionStore{
 		Store: str,
 	}
 
@@ -60,17 +68,17 @@ func NewStore(p Params) (store.Store, error) {
 	return prescriptionStore, nil
 }
 
-func (s *Store) EnsureIndexes() error {
+func (s *PrescriptionStore) EnsureIndexes() error {
 	session := s.prescriptionSession()
 	defer session.Close()
 	return session.EnsureIndexes()
 }
 
-func (s *Store) NewPrescriptionSession() store.PrescriptionSession {
+func (s *PrescriptionStore) NewPrescriptionSession() store.PrescriptionSession {
 	return s.prescriptionSession()
 }
 
-func (s *Store) prescriptionSession() *PrescriptionSession {
+func (s *PrescriptionStore) prescriptionSession() *PrescriptionSession {
 	return &PrescriptionSession{
 		Session: s.Store.NewSession("prescriptions"),
 	}

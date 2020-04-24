@@ -2,10 +2,12 @@ package client
 
 import (
 	"context"
+	"net/http"
+
+	"go.uber.org/fx"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/log"
-	"go.uber.org/fx"
-	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
@@ -24,8 +26,8 @@ type Params struct {
 	fx.In
 
 	ConfigReporter config.Reporter
-	Logger log.Logger
-	UserAgent string `name:"userAgent"`
+	Logger         log.Logger
+	UserAgent      string `name:"userAgent"`
 }
 
 func NewDefaultClient(p Params) (*Client, error) {

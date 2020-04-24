@@ -2,11 +2,12 @@ package application
 
 import (
 	"fmt"
-	"go.uber.org/fx"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"go.uber.org/fx"
 
 	"github.com/tidepool-org/platform/config"
 	configEnv "github.com/tidepool-org/platform/config/env"
@@ -47,13 +48,13 @@ type ProviderImpl struct {
 	userAgent       string
 }
 
-func DefaultProvider() (*ProviderResult, error) {
+func DefaultProvider() (ProviderResult, error) {
 	prvdr, err := NewProvider("TIDEPOOL", "service")
 	if err != nil {
-		return nil, err
+		return ProviderResult{}, err
 	}
 
-	return &ProviderResult{
+	return ProviderResult{
 		Provider:        prvdr,
 		ConfigReporter:  prvdr.configReporter,
 		Logger:          prvdr.logger,

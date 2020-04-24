@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"os"
 
+	"go.uber.org/fx"
+
 	"github.com/tidepool-org/platform/prescription/application"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -22,12 +24,6 @@ import (
 )
 
 var _ = Describe("Application", func() {
-	Context("New", func() {
-		It("returns successfully", func() {
-			Expect(application.New()).ToNot(BeNil())
-		})
-	})
-
 	Context("with started server, config reporter, and new service", func() {
 		var provider *applicationTest.Provider
 		var prescriptionStoreConfig map[string]interface{}
@@ -36,7 +32,7 @@ var _ = Describe("Application", func() {
 		var serverSecret string
 		var sessionToken string
 		var server *Server
-		var service *application.Application
+		var app *fx.App
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -89,6 +85,7 @@ var _ = Describe("Application", func() {
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig
 
+			app = fx.New(application.Prescription)
 			service = application.NewApplication()
 			Expect(service).ToNot(BeNil())
 		})
