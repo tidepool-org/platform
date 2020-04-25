@@ -30,3 +30,7 @@ services:
 
 script:
   - make ci-generate ci-build ci-test ci-snyk ci-deploy ci-docker
+
+cache:
+  directories:
+    - $HOME/.cache/go-build
