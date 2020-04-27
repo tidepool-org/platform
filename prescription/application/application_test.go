@@ -1,6 +1,8 @@
 package application_test
 
 import (
+	provider "github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/service"
 	"net/http"
 	"os"
 
@@ -18,31 +20,33 @@ import (
 
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	configTest "github.com/tidepool-org/platform/config/test"
-	"github.com/tidepool-org/platform/errors"
-	errorsTest "github.com/tidepool-org/platform/errors/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("Application", func() {
 	Context("with started server, config reporter, and new service", func() {
-		var provider *applicationTest.Provider
+		var prvdr *applicationTest.Provider
 		var prescriptionStoreConfig map[string]interface{}
 		var prescriptionServiceConfig map[string]interface{}
 		var authClientConfig map[string]interface{}
 		var serverSecret string
 		var sessionToken string
 		var server *Server
-		var app *fx.App
+
+		type Result struct {
+			fx.In
+			Routers  []service.Router `group:"routers"`
+		}
 
 		BeforeEach(func() {
-			provider = applicationTest.NewProviderWithDefaults()
+			prvdr = applicationTest.NewProviderWithDefaults()
 			serverSecret = authTest.NewServiceSecret()
 			sessionToken = authTest.NewSessionToken()
 			server = NewServer()
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/auth/serverlogin"),
-					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
+					VerifyHeaderKV("X-Tidepool-Server-Name", *prvdr.NameOutput),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
 					VerifyBody(nil),
 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{sessionToken}})),
@@ -83,11 +87,8 @@ var _ = Describe("Application", func() {
 				},
 			}
 
-			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig
+			(*prvdr.ConfigReporterOutput).(*configTest.Reporter).Config = prescriptionServiceConfig
 
-			app = fx.New(application.Prescription)
-			service = application.NewApplication()
-			Expect(service).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
@@ -96,40 +97,34 @@ var _ = Describe("Application", func() {
 			}
 		})
 
-		Context("Initialize", func() {
-			It("returns an error when the provider is missing", func() {
-				errorsTest.ExpectEqual(service.Initialize(nil), errors.New("provider is missing"))
-			})
+		Describe("Application Dependency Graph", func() {
+			var routers []service.Router = nil
+			var dependencies []fx.Option = nil
 
-			It("returns an error when the prescription store config load returns an error", func() {
-				prescriptionStoreConfig["timeout"] = "invalid"
-				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load prescription store config"))
-			})
-
-			It("returns an error when the prescription store returns an error", func() {
-				prescriptionStoreConfig["addresses"] = ""
-				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create prescription store"))
-			})
-
-			It("returns successfully", func() {
-				Expect(service.Initialize(provider)).To(Succeed())
-				service.Terminate()
-			})
-		})
-
-		Context("with being initialized", func() {
 			BeforeEach(func() {
-				Expect(service.Initialize(provider)).To(Succeed())
+				dependencies = []fx.Option{
+					fx.Provide(func() provider.Provider { return prvdr }),
+					provider.ProviderComponentsModule,
+					application.Prescription,
+					fx.Invoke(func(res Result) {
+						routers = res.Routers
+					}),
+				}
 			})
 
 			AfterEach(func() {
-				service.Terminate()
+				routers = nil
+				dependencies = nil
 			})
 
-			Context("Terminate", func() {
-				It("returns successfully", func() {
-					service.Terminate()
-				})
+			It("can be built successfully", func() {
+				app := fx.New(dependencies...)
+				Expect(app.Err()).ToNot(HaveOccurred())
+			})
+
+			It("exposes application routers", func() {
+				fx.New(dependencies...)
+				Expect(routers).ToNot(BeEmpty())
 			})
 		})
 	})

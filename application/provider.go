@@ -18,7 +18,20 @@ import (
 	"github.com/tidepool-org/platform/version"
 )
 
-var ProviderModule = fx.Provide(DefaultProvider)
+var ProviderModule = fx.Options(
+	fx.Provide(DefaultProvider),
+	ProviderComponentsModule,
+)
+
+var ProviderComponentsModule = fx.Provide(
+	ExportConfigReporter,
+	ExportLogger,
+	ExportVersionReporter,
+	fx.Annotated{
+		Name:   "userAgent",
+		Target: ExportUserAgent,
+	},
+)
 
 type Provider interface {
 	VersionReporter() version.Reporter
@@ -27,16 +40,6 @@ type Provider interface {
 	Prefix() string
 	Name() string
 	UserAgent() string
-}
-
-type ProviderResult struct {
-	fx.Out
-
-	Provider        Provider
-	ConfigReporter  config.Reporter
-	Logger          log.Logger
-	UserAgent       string `name:"userAgent"`
-	VersionReporter version.Reporter
 }
 
 type ProviderImpl struct {
@@ -48,19 +51,29 @@ type ProviderImpl struct {
 	userAgent       string
 }
 
-func DefaultProvider() (ProviderResult, error) {
+func DefaultProvider() (Provider, error) {
 	prvdr, err := NewProvider("TIDEPOOL", "service")
 	if err != nil {
-		return ProviderResult{}, err
+		return nil, err
 	}
 
-	return ProviderResult{
-		Provider:        prvdr,
-		ConfigReporter:  prvdr.configReporter,
-		Logger:          prvdr.logger,
-		UserAgent:       prvdr.userAgent,
-		VersionReporter: prvdr.versionReporter,
-	}, nil
+	return prvdr, nil
+}
+
+func ExportConfigReporter(prvdr Provider) config.Reporter {
+	return prvdr.ConfigReporter()
+}
+
+func ExportLogger(prvdr Provider) log.Logger {
+	return prvdr.Logger()
+}
+
+func ExportUserAgent(prvdr Provider) string {
+	return prvdr.UserAgent()
+}
+
+func ExportVersionReporter(prvdr Provider) version.Reporter {
+	return prvdr.VersionReporter()
 }
 
 func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {

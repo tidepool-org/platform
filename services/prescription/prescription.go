@@ -6,7 +6,6 @@ import (
 	provider "github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/prescription/application"
 	"github.com/tidepool-org/platform/service/service"
-	tidepool "github.com/tidepool-org/platform/service/service"
 )
 
 func main() {
@@ -14,6 +13,6 @@ func main() {
 		provider.ProviderModule,
 		application.Prescription,
 		service.APIServiceModule,
-		fx.Invoke(tidepool.Start),
+		fx.Invoke(service.Start),
 	).Run()
 }

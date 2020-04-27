@@ -58,8 +58,8 @@ type Params struct {
 // 	     Group:  "routers",
 //	     Target: V2PrescriptionsRouter, // "V1PrescriptionsRouter(...) service.Router" is a constructor function
 //   }),
-//   fx.Provide(NewRestService),
-//   fx.Invoke(StartApplication)
+//   fx.Provide(NewAPIService),
+//   fx.Invoke(Start)
 // ).Run()
 func NewAPIService(p Params) (*APIService, error) {
 	if p.Routers == nil || len(p.Routers) == 0 {
