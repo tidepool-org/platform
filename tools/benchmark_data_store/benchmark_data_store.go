@@ -354,10 +354,9 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dat
 	}
 
 	selector := bson.M{
-		"_active":        true,
-		"deviceId":       *input.DeviceID,
-		"_groupId":       *input.GroupID,
-		"_schemaVersion": 3,
+		"_active":  true,
+		"deviceId": *input.DeviceID,
+		"_groupId": *input.GroupID,
 		"time": bson.M{
 			"$lt": *input.Time,
 		},
