@@ -2,11 +2,12 @@ package status_test
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/tidepool-org/platform/status"
 	"github.com/tidepool-org/platform/status/test"
 	"github.com/tidepool-org/platform/version"
 	versionTest "github.com/tidepool-org/platform/version/test"
-	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
@@ -22,7 +23,7 @@ var _ = Describe("StatusGet", func() {
 	var request *rest.Request
 	var rtr *status.Router
 	var versionReporter version.Reporter
-	var storeStatusReporter *test.TestStoreStatusReporter
+	var storeStatusReporter *test.StoreStatusReporter
 
 	BeforeEach(func() {
 		response = testRest.NewResponseWriter()
@@ -32,7 +33,7 @@ var _ = Describe("StatusGet", func() {
 		storeStatusReporter = test.NewStoreStatusReporter()
 
 		rtr = status.NewRouter(status.Params{
-			VersionReporter: versionReporter,
+			VersionReporter:     versionReporter,
 			StoreStatusReporter: storeStatusReporter,
 		}).(*status.Router)
 

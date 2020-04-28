@@ -32,18 +32,19 @@ type Params struct {
 	Service  *Authenticated
 }
 
-// Each APIService is a stand-alone web micro-service which accepts an array of routers
-// that will handle incoming http requests.
+// NewAPIService instantiates APIService in an 'fx' dependency injection application, and
+// is meant to be used a stand-alone web micro-service which accepts an array of routers to
+// handle incoming http requests.
 //
 // It should be provided as a dependency to an 'fx' application. It expects one or more
 // routers to be present in the dependency graph and added in the "routers" value group.
 //
-// This is an example of an application with 3 routers - a health check routers and two
+// This is an example of an application with 3 routers - a health check router and two
 // routers for handling 2 different API version requests.
 //
 // var StatusRouterModule = fx.Provide(fx.Annotated{
-// 	   Group:  "routers",
-//	   Target: NewStatusRouter, // "NewRouter(...) service.Router" is a constructor function
+// 	   Group: "routers", // Params requires routers to be tagged with "routers" group
+//	   Target: NewStatusRouter, // "NewStatusRouter(...) service.Router" is a constructor function
 // })
 //
 // fx.New(

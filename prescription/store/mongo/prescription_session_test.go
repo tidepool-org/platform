@@ -2,8 +2,14 @@ package mongo_test
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strings"
 	"time"
+
+	"go.uber.org/fx/fxtest"
+
+	logNull "github.com/tidepool-org/platform/log/null"
 
 	"github.com/tidepool-org/platform/user"
 
@@ -18,6 +24,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
+	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -31,14 +38,30 @@ import (
 )
 
 var _ = Describe("PrescriptionSession", func() {
-	var config *storeStructuredMongo.Config
+	var mongoConfig *storeStructuredMongo.Config
+	var store *prescriptionStoreMongo.PrescriptionStore
+	var configReporter *configTest.Reporter
 	var logger *logTest.Logger
-	var store *prescriptionStoreMongo.Store
 	var session prescriptionStore.PrescriptionSession
 
 	BeforeEach(func() {
-		config = storeStructuredMongoTest.NewConfig()
 		logger = logTest.NewLogger()
+		mongoConfig = storeStructuredMongoTest.NewConfig()
+		prescriptionStoreConfig := map[string]interface{}{
+			"addresses":         strings.Join(mongoConfig.Addresses, ","),
+			"collection_prefix": mongoConfig.CollectionPrefix,
+			"database":          mongoConfig.Database,
+			"tls":               fmt.Sprintf("%v", mongoConfig.TLS),
+			"timeout":           fmt.Sprintf("%v", int(mongoConfig.Timeout.Seconds())),
+		}
+		serviceConfig := map[string]interface{}{
+			"prescription": map[string]interface{}{
+				"store": prescriptionStoreConfig,
+			},
+		}
+
+		configReporter = configTest.NewReporter()
+		configReporter.Config = serviceConfig
 	})
 
 	AfterEach(func() {
@@ -50,33 +73,25 @@ var _ = Describe("PrescriptionSession", func() {
 		}
 	})
 
-	Context("NewStore", func() {
-		It("returns an error when unsuccessful", func() {
-			var err error
-			store, err = prescriptionStoreMongo.NewStore(nil, logger)
-			errorsTest.ExpectEqual(err, errors.New("config is missing"))
-			Expect(store).To(BeNil())
-		})
-
-		It("returns a new store and no error when successful", func() {
-			var err error
-			store, err = prescriptionStoreMongo.NewStore(config, logger)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
-		})
-	})
-
 	Context("with a new store", func() {
 		var mgoSession *mgo.Session
 		var mgoCollection *mgo.Collection
 
 		BeforeEach(func() {
-			var err error
-			store, err = prescriptionStoreMongo.NewStore(config, logger)
+			prescrStr, err := prescriptionStoreMongo.NewStore(prescriptionStoreMongo.Params{
+				ConfigReporter: configReporter,
+				Logger:         logNull.NewLogger(),
+				Lifestyle:      fxtest.NewLifecycle(GinkgoT()),
+			})
 			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
+			Expect(prescrStr).ToNot(BeNil())
+
+			store = prescrStr.(*prescriptionStoreMongo.PrescriptionStore)
+			err = store.Initialize()
+			Expect(err).ToNot(HaveOccurred())
+
 			mgoSession = storeStructuredMongoTest.Session().Copy()
-			mgoCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "prescriptions")
+			mgoCollection = mgoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "prescriptions")
 		})
 
 		AfterEach(func() {

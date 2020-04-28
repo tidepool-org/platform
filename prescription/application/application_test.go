@@ -1,10 +1,11 @@
 package application_test
 
 import (
-	provider "github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/service"
 	"net/http"
 	"os"
+
+	provider "github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/service"
 
 	"go.uber.org/fx"
 
@@ -35,7 +36,7 @@ var _ = Describe("Application", func() {
 
 		type Result struct {
 			fx.In
-			Routers  []service.Router `group:"routers"`
+			Routers []service.Router `group:"routers"`
 		}
 
 		BeforeEach(func() {

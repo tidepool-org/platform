@@ -15,6 +15,9 @@ import (
 
 type PrescriptionStore struct {
 	*storeStructuredMongo.Store
+
+	configReporter config.Reporter
+	logger         log.Logger
 }
 
 type Params struct {
@@ -26,34 +29,29 @@ type Params struct {
 	Lifestyle fx.Lifecycle
 }
 
-// fx.Provide() requires explicit conversion to the status reporter interface
+// NewStoreStatusReporter explicitly casts the store to status.StoreStatusReporter
+// as required by fx.Provide()
 func NewStoreStatusReporter(str store.Store) status.StoreStatusReporter {
 	return str
 }
 
 func NewStore(p Params) (store.Store, error) {
-	p.Logger.Debug("Initializing prescription store")
-	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(p.ConfigReporter.WithScopes("prescription", "store")); err != nil {
-		return nil, errors.Wrap(err, "unable to load prescription store config")
+	if p.Logger == nil {
+		return nil, errors.New("logger is missing")
 	}
-
-	str, err := storeStructuredMongo.NewStore(cfg, p.Logger)
-	if err != nil {
-		return nil, err
+	if p.ConfigReporter == nil {
+		return nil, errors.New("config reporter is missing")
 	}
 
 	prescriptionStore := &PrescriptionStore{
-		Store: str,
+		configReporter: p.ConfigReporter,
+		logger:         p.Logger,
+		Store:          nil,
 	}
 
 	p.Lifestyle.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			p.Logger.Debug("Creating prescription store indexes")
-			if err := prescriptionStore.EnsureIndexes(); err != nil {
-				return errors.Wrap(err, "unable to ensure prescription store indexes")
-			}
-			return nil
+			return prescriptionStore.Initialize()
 		},
 		OnStop: func(context.Context) error {
 			p.Logger.Debug("Terminating prescription store")
@@ -68,18 +66,39 @@ func NewStore(p Params) (store.Store, error) {
 	return prescriptionStore, nil
 }
 
-func (s *PrescriptionStore) EnsureIndexes() error {
-	session := s.prescriptionSession()
+func (p *PrescriptionStore) Initialize() error {
+	p.logger.Debug("Initializing prescription store")
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(p.configReporter.WithScopes("prescription", "store")); err != nil {
+		return errors.Wrap(err, "unable to load prescription store config")
+	}
+
+	str, err := storeStructuredMongo.NewStore(cfg, p.logger)
+	if err != nil {
+		return err
+	}
+
+	p.Store = str
+
+	p.logger.Debug("Creating prescription store indexes")
+	if err := p.EnsureIndexes(); err != nil {
+		return errors.Wrap(err, "unable to ensure prescription store indexes")
+	}
+	return nil
+}
+
+func (p *PrescriptionStore) EnsureIndexes() error {
+	session := p.prescriptionSession()
 	defer session.Close()
 	return session.EnsureIndexes()
 }
 
-func (s *PrescriptionStore) NewPrescriptionSession() store.PrescriptionSession {
-	return s.prescriptionSession()
+func (p *PrescriptionStore) NewPrescriptionSession() store.PrescriptionSession {
+	return p.prescriptionSession()
 }
 
-func (s *PrescriptionStore) prescriptionSession() *PrescriptionSession {
+func (p *PrescriptionStore) prescriptionSession() *PrescriptionSession {
 	return &PrescriptionSession{
-		Session: s.Store.NewSession("prescriptions"),
+		Session: p.Store.NewSession("prescriptions"),
 	}
 }

@@ -1,7 +1,7 @@
 package test
 
-func NewStoreStatusReporter() *TestStoreStatusReporter {
-	return &TestStoreStatusReporter{}
+func NewStoreStatusReporter() *StoreStatusReporter {
+	return &StoreStatusReporter{}
 }
 
 type StoreStatus struct {
@@ -9,18 +9,17 @@ type StoreStatus struct {
 }
 
 func OkStoreStatus() interface{} {
-	return &StoreStatus{Ping:"OK"}
+	return &StoreStatus{Ping: "OK"}
 }
 
-type TestStoreStatusReporter struct {
+type StoreStatusReporter struct {
 	sts interface{}
 }
 
-func (r *TestStoreStatusReporter) SetStatus(sts interface{}) {
+func (r *StoreStatusReporter) SetStatus(sts interface{}) {
 	r.sts = sts
 }
 
-
-func (r *TestStoreStatusReporter) Status() interface{} {
+func (r *StoreStatusReporter) Status() interface{} {
 	return r.sts
 }
