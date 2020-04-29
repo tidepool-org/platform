@@ -10,7 +10,8 @@ import (
 var _ = Describe("GenerateAccessCode", func() {
 	It("generates an alphanumeric code", func() {
 		code := prescription.GenerateAccessCode()
-		Expect(code).To(MatchRegexp("^[A-Z0-9]+$"))
+		// I, O and 0 are excluded
+		Expect(code).To(MatchRegexp("^[A-HJ-NP-Z1-9]+$"))
 	})
 
 	It("generates a code with length of 6 characters", func() {

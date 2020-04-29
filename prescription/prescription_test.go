@@ -120,7 +120,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the revision correctly", func() {
-				expectedRevision := prescription.NewRevision(*usr.UserID, prescr.LatestRevision.RevisionID + 1, newRevision)
+				expectedRevision := prescription.NewRevision(*usr.UserID, prescr.LatestRevision.RevisionID+1, newRevision)
 				expectedRevision.Attributes.ModifiedTime = update.Revision.Attributes.ModifiedTime
 				Expect(*update.Revision).To(Equal(*expectedRevision))
 			})
