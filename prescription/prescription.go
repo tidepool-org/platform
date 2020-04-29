@@ -56,6 +56,8 @@ type Prescription struct {
 	CreatedUserID    string        `json:"createdUserId" bson:"createdUserId"`
 	DeletedTime      *time.Time    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID    string        `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	ModifiedTime     time.Time     `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID   string        `json:"modifiedUserId" bson:"modifiedUserId"`
 }
 
 func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescription {
@@ -73,6 +75,8 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescriptio
 		CreatedTime:      now,
 		CreatedUserID:    userID,
 		PrescriberUserID: revision.GetPrescriberUserID(),
+		ModifiedTime:     now,
+		ModifiedUserID:   userID,
 	}
 
 	return prescription
@@ -107,18 +111,17 @@ func (p *Prescription) Validate(validator structure.Validator) {
 	}
 
 	validator.Time("createdTime", &p.CreatedTime).NotZero()
-
-	if p.CreatedUserID != "" {
-		validator.String("createdUserId", &p.CreatedUserID).Using(user.IDValidator)
-	}
+	validator.String("createdUserId", &p.CreatedUserID).NotEmpty().Using(user.IDValidator)
 
 	if p.DeletedTime != nil {
 		validator.Time("deletedTime", p.DeletedTime).NotZero()
 	}
-
 	if p.DeletedUserID != "" {
 		validator.String("deletedUserId", &p.DeletedUserID).Using(user.IDValidator)
 	}
+
+	validator.Time("modifiedTime", &p.ModifiedTime).NotZero()
+	validator.String("modifiedUserId", &p.ModifiedUserID).NotEmpty().Using(user.IDValidator)
 }
 
 func States() []string {
@@ -274,6 +277,8 @@ type Update struct {
 	PrescriberUserID string
 	PatientID        string
 	ExpirationTime   *time.Time
+	ModifiedTime     time.Time
+	ModifiedUserID   string
 }
 
 func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription, create *RevisionCreate) *Update {
@@ -286,6 +291,8 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 		State:            create.State,
 		PrescriberUserID: revision.GetPrescriberUserID(),
 		ExpirationTime:   revision.CalculateExpirationTime(),
+		ModifiedUserID:   *usr.UserID,
+		ModifiedTime:     time.Now(),
 	}
 
 	return update
@@ -293,18 +300,22 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 
 func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Update {
 	return &Update{
-		usr:          usr,
-		prescription: prescription,
-		State:        StateReviewed,
-		PatientID:    *usr.UserID,
+		usr:            usr,
+		prescription:   prescription,
+		State:          StateReviewed,
+		PatientID:      *usr.UserID,
+		ModifiedUserID: *usr.UserID,
+		ModifiedTime:   time.Now(),
 	}
 }
 
 func NewPrescriptionStateUpdate(usr *user.User, prescription *Prescription, update *StateUpdate) *Update {
 	return &Update{
-		usr:          usr,
-		prescription: prescription,
-		State:        update.State,
+		usr:            usr,
+		prescription:   prescription,
+		State:          update.State,
+		ModifiedUserID: *usr.UserID,
+		ModifiedTime:   time.Now(),
 	}
 }
 

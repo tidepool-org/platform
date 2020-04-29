@@ -87,11 +87,147 @@ var _ = Describe("Prescription", func() {
 			It("creates a revision with id 0", func() {
 				Expect(prescr.LatestRevision.RevisionID).To(Equal(0))
 			})
+
+			It("sets the modified time", func() {
+				Expect(prescr.ModifiedTime).To(BeTemporally("~", time.Now()))
+			})
+
+			It("sets the modified time", func() {
+				Expect(prescr.ModifiedUserID).To(Equal(userID))
+			})
+		})
+	})
+
+	Describe("Update", func() {
+		var revisionCreate *prescription.RevisionCreate
+		var usr *user.User
+
+		BeforeEach(func() {
+			revisionCreate = test.RandomRevisionCreate()
+			revisionCreate.State = prescription.StatePending
+			usr = userTest.RandomUser()
+		})
+
+		Describe("AddRevision", func() {
+			var prescr *prescription.Prescription
+			var newRevision *prescription.RevisionCreate
+			var update *prescription.Update
+
+			BeforeEach(func() {
+				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
+				newRevision = test.RandomRevisionCreate()
+				update = prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, newRevision)
+			})
+
+			It("sets the revision correctly", func() {
+				expectedRevision := prescription.NewRevision(*usr.UserID, prescr.LatestRevision.RevisionID + 1, newRevision)
+				expectedRevision.Attributes.ModifiedTime = update.Revision.Attributes.ModifiedTime
+				Expect(*update.Revision).To(Equal(*expectedRevision))
+			})
+
+			It("sets the state correctly", func() {
+				Expect(update.State).To(Equal(newRevision.State))
+			})
+
+			It("sets the prescriber id correctly", func() {
+				Expect(update.PrescriberUserID).To(Equal(*usr.UserID))
+			})
+
+			It("doesn't set the patient id", func() {
+				Expect(update.PatientID).To(BeEmpty())
+			})
+
+			It("sets the expiration time", func() {
+				Expect(*update.ExpirationTime).To(BeTemporally(">", time.Now()))
+			})
+
+			It("sets the modified time", func() {
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+			})
+
+			It("sets the modified user id", func() {
+				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+			})
+		})
+
+		Describe("ClaimUpdate", func() {
+			var prescr *prescription.Prescription
+			var update *prescription.Update
+
+			BeforeEach(func() {
+				revisionCreate.State = prescription.StateSubmitted
+				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
+				update = prescription.NewPrescriptionClaimUpdate(usr, prescr)
+			})
+
+			It("sets the state to reviewed", func() {
+				Expect(update.State).To(Equal(prescription.StateReviewed))
+			})
+
+			It("sets the patient id correctly", func() {
+				Expect(update.PatientID).To(Equal(*usr.UserID))
+			})
+
+			It("doesn't set the prescriber id", func() {
+				Expect(update.PrescriberUserID).To(BeEmpty())
+			})
+
+			It("resets the expiration time", func() {
+				Expect(update.ExpirationTime).To(BeNil())
+			})
+
+			It("sets the modified time", func() {
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+			})
+
+			It("sets the modified user id", func() {
+				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+			})
+		})
+
+		Describe("StateUpdate", func() {
+			var prescr *prescription.Prescription
+			var update *prescription.Update
+
+			BeforeEach(func() {
+				revisionCreate.State = prescription.StateReviewed
+				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
+				stateUpdate := prescription.NewStateUpdate()
+				stateUpdate.State = prescription.StateActive
+				update = prescription.NewPrescriptionStateUpdate(usr, prescr, stateUpdate)
+			})
+
+			It("doesn't create a new revision", func() {
+				Expect(update.Revision).To(BeNil())
+			})
+
+			It("sets the state to reviewed", func() {
+				Expect(update.State).To(Equal(prescription.StateActive))
+			})
+
+			It("doesn't set a patient id", func() {
+				Expect(update.PatientID).To(BeEmpty())
+			})
+
+			It("doesn't set the prescriber id", func() {
+				Expect(update.PrescriberUserID).To(BeEmpty())
+			})
+
+			It("resets the expiration time", func() {
+				Expect(update.ExpirationTime).To(BeNil())
+			})
+
+			It("sets the modified time", func() {
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+			})
+
+			It("sets the modified user id", func() {
+				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+			})
 		})
 	})
 
 	Describe("Filter", func() {
-
 		Describe("Validate", func() {
 			When("current user is NOT a clinician", func() {
 				var usr *user.User
@@ -333,7 +469,6 @@ var _ = Describe("Prescription", func() {
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 			})
-
 		})
 	})
 })

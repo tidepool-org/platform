@@ -374,7 +374,7 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 	}
 
 	set["state"] = prescrUpdate.State
-	set["expirationTime"] = prescrUpdate.State
+	set["expirationTime"] = prescrUpdate.ExpirationTime
 
 	if prescrUpdate.Revision != nil {
 		set["latestRevision"] = prescrUpdate.Revision
