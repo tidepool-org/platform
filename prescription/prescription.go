@@ -183,7 +183,7 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 
 type Filter struct {
 	currentUser       *user.User
-	clinicianID       string
+	ClinicianID       string
 	PatientID         string
 	PatientEmail      string
 	State             string
@@ -204,7 +204,7 @@ func NewFilter(currentUser *user.User) (*Filter, error) {
 	}
 
 	if currentUser.HasRole(user.RoleClinic) {
-		f.clinicianID = *currentUser.UserID
+		f.ClinicianID = *currentUser.UserID
 	} else {
 		f.PatientID = *currentUser.UserID
 	}
@@ -212,16 +212,12 @@ func NewFilter(currentUser *user.User) (*Filter, error) {
 	return f, nil
 }
 
-func (f *Filter) GetClinicianID() string {
-	return f.clinicianID
-}
-
 func (f *Filter) Validate(validator structure.Validator) {
 	if f.ID != "" {
 		validator.String("id", &f.ID).Hexadecimal().LengthEqualTo(24)
 	}
 	if f.currentUser.HasRole(user.RoleClinic) {
-		validator.String("clinicianId", &f.clinicianID).NotEmpty().EqualTo(*f.currentUser.UserID)
+		validator.String("clinicianId", &f.ClinicianID).NotEmpty().EqualTo(*f.currentUser.UserID)
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(States()...)
 		}

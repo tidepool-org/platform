@@ -329,10 +329,10 @@ func (p *PrescriptionSession) deactiveActivePrescriptions(ctx context.Context, u
 
 func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	selector := bson.M{}
-	if filter.GetClinicianID() != "" {
+	if filter.ClinicianID != "" {
 		selector["$or"] = []bson.M{
-			{"prescriberId": filter.GetClinicianID()},
-			{"createdUserId": filter.GetClinicianID()},
+			{"prescriberId": filter.ClinicianID},
+			{"createdUserId": filter.ClinicianID},
 		}
 	}
 	if filter.PatientID != "" {
