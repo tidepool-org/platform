@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/tidepool-org/platform/errors"
-
-	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/page"
 
@@ -44,20 +44,20 @@ type Accessor interface {
 }
 
 type Prescription struct {
-	ID               bson.ObjectId `json:"id" bson:"_id"`
-	PatientID        string        `json:"patientId,omitempty" bson:"patientId,omitempty"`
-	AccessCode       string        `json:"accessCode,omitempty" bson:"accessCode"`
-	State            string        `json:"state" bson:"state"`
-	LatestRevision   *Revision     `json:"latestRevision" bson:"latestRevision"`
-	RevisionHistory  Revisions     `json:"-" bson:"revisionHistory"`
-	ExpirationTime   *time.Time    `json:"expirationTime" bson:"expirationTime"`
-	PrescriberUserID string        `json:"prescriberUserId,omitempty" bson:"prescriberUserId,omitempty"`
-	CreatedTime      time.Time     `json:"createdTime" bson:"createdTime"`
-	CreatedUserID    string        `json:"createdUserId" bson:"createdUserId"`
-	DeletedTime      *time.Time    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID    string        `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	ModifiedTime     time.Time     `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID   string        `json:"modifiedUserId" bson:"modifiedUserId"`
+	ID               primitive.ObjectID `json:"id" bson:"_id"`
+	PatientID        string             `json:"patientId,omitempty" bson:"patientId,omitempty"`
+	AccessCode       string             `json:"accessCode,omitempty" bson:"accessCode"`
+	State            string             `json:"state" bson:"state"`
+	LatestRevision   *Revision          `json:"latestRevision" bson:"latestRevision"`
+	RevisionHistory  Revisions          `json:"-" bson:"revisionHistory"`
+	ExpirationTime   *time.Time         `json:"expirationTime" bson:"expirationTime"`
+	PrescriberUserID string             `json:"prescriberUserId,omitempty" bson:"prescriberUserId,omitempty"`
+	CreatedTime      time.Time          `json:"createdTime" bson:"createdTime"`
+	CreatedUserID    string             `json:"createdUserId" bson:"createdUserId"`
+	DeletedTime      *time.Time         `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID    string             `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	ModifiedTime     time.Time          `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID   string             `json:"modifiedUserId" bson:"modifiedUserId"`
 }
 
 func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescription {
@@ -66,7 +66,7 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescriptio
 	revision := NewRevision(userID, 0, revisionCreate)
 	revisionHistory := []*Revision{revision}
 	prescription := &Prescription{
-		ID:               bson.NewObjectId(),
+		ID:               primitive.NewObjectID(),
 		AccessCode:       accessCode,
 		State:            revisionCreate.State,
 		LatestRevision:   revision,
@@ -328,7 +328,7 @@ func (u *Update) GetCurrentUserID() string {
 	return *u.usr.UserID
 }
 
-func (u *Update) GetPrescriptionID() bson.ObjectId {
+func (u *Update) GetPrescriptionID() primitive.ObjectID {
 	return u.prescription.ID
 }
 

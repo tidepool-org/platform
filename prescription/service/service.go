@@ -28,43 +28,31 @@ func NewService(store prescriptionStore.Store) (prescription.Service, error) {
 }
 
 func (p *PrescriptionService) CreatePrescription(ctx context.Context, userID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
-	ssn := p.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
-	return ssn.CreatePrescription(ctx, userID, create)
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+	return repo.CreatePrescription(ctx, userID, create)
 }
 
 func (p *PrescriptionService) ListPrescriptions(ctx context.Context, filter *prescription.Filter, pagination *page.Pagination) (prescription.Prescriptions, error) {
-	ssn := p.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
-	return ssn.ListPrescriptions(ctx, filter, pagination)
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+	return repo.ListPrescriptions(ctx, filter, pagination)
 }
 
 func (p *PrescriptionService) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
-	ssn := p.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
-	return ssn.DeletePrescription(ctx, clinicianID, id)
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+	return repo.DeletePrescription(ctx, clinicianID, id)
 }
 
 func (p *PrescriptionService) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
-	ssn := p.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
-	return ssn.AddRevision(ctx, usr, id, create)
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+	return repo.AddRevision(ctx, usr, id, create)
 }
 
 func (p *PrescriptionService) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
-	ssn := p.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
-	return ssn.ClaimPrescription(ctx, usr, claim)
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+	return repo.ClaimPrescription(ctx, usr, claim)
 }
 
 func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
-	ssn := p.prescriptionStore.NewPrescriptionSession()
-	defer ssn.Close()
-
+	ssn := p.prescriptionStore.GetPrescriptionRepository()
 	return ssn.UpdatePrescriptionState(ctx, usr, id, update)
 }

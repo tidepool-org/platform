@@ -1,6 +1,7 @@
 package status
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -22,7 +23,7 @@ type Status struct {
 }
 
 type StoreStatusReporter interface {
-	Status() interface{}
+	Status(ctx context.Context) interface{}
 }
 
 type Router struct {
@@ -53,7 +54,7 @@ func (r *Router) Routes() []*rest.Route {
 func (r *Router) StatusGet(res rest.ResponseWriter, req *rest.Request) {
 	s := &Status{
 		Version: r.versionReporter.Long(),
-		Store:   r.storeStatusReporter.Status(),
+		Store:   r.storeStatusReporter.Status(req.Context()),
 	}
 
 	request.MustNewResponder(res, req).Data(http.StatusOK, s)

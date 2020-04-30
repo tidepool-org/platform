@@ -5,21 +5,21 @@ import (
 )
 
 type Store struct {
-	NewPrescriptionSessionInvocations int
-	NewPrescriptionSessionImpl        *PrescriptionSession
+	NewPrescriptionRepositoryInvocations int
+	NewPrescriptionRepositoryImpl        *PrescriptionRepository
 }
 
 func NewStore() *Store {
 	return &Store{
-		NewPrescriptionSessionImpl: NewPrescriptionSession(),
+		NewPrescriptionRepositoryImpl: NewPrescriptionSession(),
 	}
 }
 
-func (s *Store) NewPrescriptionSession() store.PrescriptionSession {
-	s.NewPrescriptionSessionInvocations++
-	return s.NewPrescriptionSessionImpl
+func (s *Store) NewPrescriptionSession() store.PrescriptionRepository {
+	s.NewPrescriptionRepositoryInvocations++
+	return s.NewPrescriptionRepositoryImpl
 }
 
 func (s *Store) Expectations() {
-	s.NewPrescriptionSessionImpl.Expectations()
+	s.NewPrescriptionRepositoryImpl.Expectations()
 }

@@ -104,6 +104,7 @@ var _ = Describe("Application", func() {
 
 			BeforeEach(func() {
 				dependencies = []fx.Option{
+					fx.NopLogger,
 					fx.Provide(func() provider.Provider { return prvdr }),
 					provider.ProviderComponentsModule,
 					application.Prescription,

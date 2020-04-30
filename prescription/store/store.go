@@ -1,17 +1,19 @@
 package store
 
 import (
-	"io"
+	"context"
 
 	"github.com/tidepool-org/platform/prescription"
+	"github.com/tidepool-org/platform/status"
 )
 
 type Store interface {
-	NewPrescriptionSession() PrescriptionSession
-	Status() interface{}
+	status.StoreStatusReporter
+	GetPrescriptionRepository() PrescriptionRepository
+	CreateIndexes(ctx context.Context) error
 }
 
-type PrescriptionSession interface {
-	io.Closer
+type PrescriptionRepository interface {
 	prescription.Accessor
+	CreateIndexes(ctx context.Context) error
 }

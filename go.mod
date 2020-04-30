@@ -18,17 +18,17 @@ require (
 	github.com/mitchellh/go-homedir v1.0.0
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.7.0
-	github.com/onsi/gomega v1.4.3
+	github.com/onsi/gomega v1.9.0
 	github.com/urfave/cli v1.20.0
+	go.mongodb.org/mongo-driver v1.3.2
 	go.uber.org/fx v1.12.0
-	golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
+	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
 	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b // indirect
 	golang.org/x/lint v0.0.0-20190930215403-16217165b5de
 	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
-	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/tools v0.0.0-20191114200427-caa0b0f7d508
 	gopkg.in/tylerb/graceful.v1 v1.2.15
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.4
 	syreclabs.com/go/faker v1.2.2
 )
 

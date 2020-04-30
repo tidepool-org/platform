@@ -1,5 +1,7 @@
 package test
 
+import "context"
+
 func NewStoreStatusReporter() *StoreStatusReporter {
 	return &StoreStatusReporter{}
 }
@@ -20,6 +22,6 @@ func (r *StoreStatusReporter) SetStatus(sts interface{}) {
 	r.sts = sts
 }
 
-func (r *StoreStatusReporter) Status() interface{} {
+func (r *StoreStatusReporter) Status(ctx context.Context) interface{} {
 	return r.sts
 }
