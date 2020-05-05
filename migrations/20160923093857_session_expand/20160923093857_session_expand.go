@@ -110,7 +110,7 @@ func (m *Migration) execute() error {
 
 	iter := iterateSessionsSession.C().Find(bson.M{}).Iter()
 
-	now := time.Now().Unix()
+	now := time.Now()
 	expiredSessionCount := 0
 	migratedSessionCount := 0
 	session := &session.Session{}
@@ -133,7 +133,7 @@ func (m *Migration) execute() error {
 			continue
 		}
 
-		if session.ExpiresAt < now {
+		if session.ExpiresAt.Before(now) {
 			if !m.DryRun() {
 				if err = updateSessionsSession.C().RemoveId(sessionID); err != nil {
 					sessionLogger.WithError(err).Error("Unable to remove session")
@@ -143,7 +143,7 @@ func (m *Migration) execute() error {
 
 			expiredSessionCount++
 
-			sessionLogger.Debugf("Expired session (expired %d seconds ago)", now-session.ExpiresAt)
+			sessionLogger.Debugf("Expired session (expired %d seconds ago)", now.Unix()-session.ExpiresAt.Unix())
 		} else {
 			if !m.DryRun() {
 				if err = updateSessionsSession.C().UpdateId(sessionID, session); err != nil {
@@ -154,7 +154,7 @@ func (m *Migration) execute() error {
 
 			migratedSessionCount++
 
-			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt-now)
+			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt.Unix()-now.Unix())
 		}
 	}
 	if err = iter.Close(); err != nil {
@@ -226,7 +226,7 @@ func (m *Migration) expandSession(session *session.Session, secret string) error
 		session.UserID = parsedClaims.UserID
 	}
 	session.Duration = int64(parsedClaims.Duration)
-	session.ExpiresAt = parsedClaims.ExpiresAt
+	session.ExpiresAt = time.Unix(parsedClaims.ExpiresAt, 0)
 
 	session.CreatedAt = session.Time
 
