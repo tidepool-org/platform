@@ -10,7 +10,6 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 var StoreModule = fx.Provide(
@@ -20,14 +19,18 @@ var StoreModule = fx.Provide(
 
 type Store struct {
 	client *mongoDriver.Client
-	config *mongo.Config
+	config *Config
 	ctx    context.Context
+}
+
+type Status struct {
+	Ping string
 }
 
 type Params struct {
 	fx.In
 
-	DatabaseConfig *mongo.Config
+	DatabaseConfig *Config
 
 	Lifecycle fx.Lifecycle
 }
@@ -80,8 +83,8 @@ func (o *Store) Ping(ctx context.Context) error {
 	return o.client.Ping(ctx, readpref.Primary())
 }
 
-func (o *Store) Status(ctx context.Context) *mongo.Status {
-	status := &mongo.Status{
+func (o *Store) Status(ctx context.Context) *Status {
+	status := &Status{
 		Ping: "FAILED",
 	}
 

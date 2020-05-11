@@ -11,8 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/fx"
 
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/store/structured/mongoofficial"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongoofficial/test"
 
 	logNull "github.com/tidepool-org/platform/log/null"
 
@@ -35,7 +35,7 @@ import (
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
 	"github.com/tidepool-org/platform/prescription/test"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongoofficial"
 )
 
 var _ = Describe("PrescriptionRepository", func() {

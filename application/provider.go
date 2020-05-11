@@ -20,11 +20,11 @@ import (
 
 var ProviderModule = fx.Options(
 	fx.Provide(DefaultProvider),
+	fx.Provide(configEnv.NewDefaultReporter),
 	ProviderComponentsModule,
 )
 
 var ProviderComponentsModule = fx.Provide(
-	ExportConfigReporter,
 	ExportLogger,
 	ExportVersionReporter,
 	fx.Annotated{
@@ -58,10 +58,6 @@ func DefaultProvider() (Provider, error) {
 	}
 
 	return prvdr, nil
-}
-
-func ExportConfigReporter(prvdr Provider) config.Reporter {
-	return prvdr.ConfigReporter()
 }
 
 func ExportLogger(prvdr Provider) log.Logger {

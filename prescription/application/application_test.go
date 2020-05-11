@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/tidepool-org/platform/config"
+
 	provider "github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/service"
 
@@ -107,6 +109,7 @@ var _ = Describe("Application", func() {
 					fx.NopLogger,
 					fx.Provide(func() provider.Provider { return prvdr }),
 					provider.ProviderComponentsModule,
+					fx.Provide(func(provider.Provider) config.Reporter { return prvdr.ConfigReporter() }),
 					application.Prescription,
 					fx.Invoke(func(res Result) {
 						routers = res.Routers

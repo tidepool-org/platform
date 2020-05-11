@@ -13,8 +13,8 @@ import (
 	logNull "github.com/tidepool-org/platform/log/null"
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongoofficial"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongoofficial/test"
 )
 
 var _ = Describe("Store", func() {

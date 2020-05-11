@@ -5,12 +5,20 @@ import (
 	"strings"
 	"syscall"
 
+	"go.uber.org/fx"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 )
 
 var isValidPrefix = regexp.MustCompile("^[A-Z][A-Z0-9_]*$").MatchString
 var replaceInvalidCharacters = regexp.MustCompile("[^A-Z0-9_]").ReplaceAllString
+
+var Module = fx.Provide(NewDefaultReporter)
+
+func NewDefaultReporter() (config.Reporter, error) {
+	return NewReporter("TIDEPOOL")
+}
 
 func NewReporter(prefix string) (config.Reporter, error) {
 	if prefix == "" {
