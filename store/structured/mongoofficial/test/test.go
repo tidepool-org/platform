@@ -3,12 +3,13 @@ package test
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
-	"time"
 
 	"github.com/tidepool-org/platform/test"
 )
