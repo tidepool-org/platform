@@ -1,19 +1,39 @@
 package test
 
 import (
+	"context"
 	"fmt"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"time"
 
 	"github.com/tidepool-org/platform/test"
 )
 
+var database string
+
+var _ = ginkgo.BeforeSuite(func() {
+	database = generateUniqueName("database")
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	cfg := NewConfig()
+	clientOptions := options.Client().ApplyURI(cfg.AsConnectionString())
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	err = client.Database(database).Drop(context.Background())
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+})
+
 func Address() string {
 	return os.Getenv("TIDEPOOL_STORE_ADDRESSES")
 }
 
 func Database() string {
-	return generateUniqueName("database")
+	return database
 }
 
 func NewCollectionPrefix() string {
