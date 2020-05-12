@@ -8,7 +8,6 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -36,7 +35,6 @@ import (
 // @Router /v1/datasets/:dataSetId/data [post]
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
-	lgr := log.LoggerFromContext(ctx)
 
 	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
 	if dataSetID == "" {
@@ -130,10 +128,6 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataSession(), dataSet, datumArray); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
-	}
-
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
-		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})

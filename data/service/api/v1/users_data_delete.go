@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
@@ -25,7 +24,6 @@ import (
 // @Router /v1/users/:userId/data [delete]
 func UsersDataDelete(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
-	lgr := log.LoggerFromContext(ctx)
 
 	targetUserID := dataServiceContext.Request().PathParam("userId")
 	if targetUserID == "" {
@@ -48,10 +46,6 @@ func UsersDataDelete(dataServiceContext dataService.Context) {
 	if err := dataServiceContext.SyncTaskSession().DestroySyncTasksForUserByID(ctx, targetUserID); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to delete sync tasks for user by id", err)
 		return
-	}
-
-	if err := dataServiceContext.MetricClient().RecordMetric(ctx, "users_data_delete"); err != nil {
-		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})

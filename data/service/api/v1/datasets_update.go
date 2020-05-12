@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -35,7 +34,6 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	res := dataServiceContext.Response()
 	ctx := req.Context()
-	lgr := log.LoggerFromContext(ctx)
 
 	dataSetID := req.PathParam("dataSetId")
 	if dataSetID == "" {
@@ -108,10 +106,6 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}
-	}
-
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {
-		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSet)

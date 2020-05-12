@@ -35,7 +35,6 @@ var _ = Describe("Service", func() {
 		var dataClientConfig map[string]interface{}
 		var dataSourceClientConfig map[string]interface{}
 		var imageClientConfig map[string]interface{}
-		var metricClientConfig map[string]interface{}
 		var permissionClientConfig map[string]interface{}
 		var permissionStoreConfig map[string]interface{}
 		var confirmationStoreConfig map[string]interface{}
@@ -80,9 +79,6 @@ var _ = Describe("Service", func() {
 				"address": server.URL(),
 			}
 			imageClientConfig = map[string]interface{}{
-				"address": server.URL(),
-			}
-			metricClientConfig = map[string]interface{}{
 				"address": server.URL(),
 			}
 			permissionClientConfig = map[string]interface{}{
@@ -138,9 +134,6 @@ var _ = Describe("Service", func() {
 				},
 				"image": map[string]interface{}{
 					"client": imageClientConfig,
-				},
-				"metric": map[string]interface{}{
-					"client": metricClientConfig,
 				},
 				"permission": map[string]interface{}{
 					"client": permissionClientConfig,
@@ -213,11 +206,6 @@ var _ = Describe("Service", func() {
 				It("returns an error when the image client returns an error", func() {
 					imageClientConfig["address"] = ""
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create image client"))
-				})
-
-				It("returns an error when the metric client returns an error", func() {
-					metricClientConfig["address"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create metric client"))
 				})
 
 				It("returns an error when the permission client returns an error", func() {
@@ -339,12 +327,6 @@ var _ = Describe("Service", func() {
 				Context("ImageClient", func() {
 					It("returns successfully", func() {
 						Expect(service.ImageClient()).ToNot(BeNil())
-					})
-				})
-
-				Context("MetricClient", func() {
-					It("returns successfully", func() {
-						Expect(service.MetricClient()).ToNot(BeNil())
 					})
 				})
 

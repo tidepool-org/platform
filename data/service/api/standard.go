@@ -10,7 +10,6 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
@@ -19,7 +18,6 @@ import (
 
 type Standard struct {
 	*api.API
-	metricClient            metric.Client
 	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
@@ -28,12 +26,9 @@ type Standard struct {
 	dataSourceClient        dataSource.Client
 }
 
-func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
+func NewStandard(svc service.Service, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
 	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
-	if metricClient == nil {
-		return nil, errors.New("metric client is missing")
-	}
 	if permissionClient == nil {
 		return nil, errors.New("permission client is missing")
 	}
@@ -60,7 +55,6 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 
 	return &Standard{
 		API:                     a,
-		metricClient:            metricClient,
 		permissionClient:        permissionClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
@@ -98,7 +92,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 }
 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
-	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
+	return dataContext.WithContext(s.AuthClient(), s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
 }

@@ -11,7 +11,6 @@ import (
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
-	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
@@ -23,7 +22,6 @@ import (
 
 type Standard struct {
 	*service.DEPRECATEDService
-	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
 	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
@@ -46,9 +44,6 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 
-	if err := s.initializeMetricClient(); err != nil {
-		return err
-	}
 	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
@@ -94,7 +89,6 @@ func (s *Standard) Terminate() {
 	}
 	s.dataDeduplicatorFactory = nil
 	s.permissionClient = nil
-	s.metricClient = nil
 
 	s.DEPRECATEDService.Terminate()
 }
@@ -113,26 +107,6 @@ func (s *Standard) PermissionClient() permission.Client {
 
 func (s *Standard) DataSourceStructuredStore() dataSourceStoreStructured.Store {
 	return s.dataSourceStructuredStore
-}
-
-func (s *Standard) initializeMetricClient() error {
-	s.Logger().Debug("Loading metric client config")
-
-	cfg := platform.NewConfig()
-	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
-		return errors.Wrap(err, "unable to load metric client config")
-	}
-
-	s.Logger().Debug("Creating metric client")
-
-	clnt, err := metricClient.New(cfg, platform.AuthorizeAsUser, s.Name(), s.VersionReporter())
-	if err != nil {
-		return errors.Wrap(err, "unable to create metric client")
-	}
-	s.metricClient = clnt
-
-	return nil
 }
 
 func (s *Standard) initializePermissionClient() error {
@@ -300,7 +274,7 @@ func (s *Standard) initializeDataSourceClient() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
+	newAPI, err := api.NewStandard(s, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
 	if err != nil {

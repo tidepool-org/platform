@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## Unreleased 
+### Changed
+- PT-1291 Remove Highwater metrics
+
 ## 0.7.1 - 2020-03-16
 ### Fixed
 - PT-1169 Align mongoDb index between platform-data "ensureIndex" and manually created index

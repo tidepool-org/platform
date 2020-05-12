@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -33,7 +32,6 @@ type dataSetsDeleteParams struct {
 // @Router /v1/datasets/:dataSetID [delete]
 func DataSetsDelete(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
-	lgr := log.LoggerFromContext(ctx)
 
 	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
 	if dataSetID == "" {
@@ -104,10 +102,6 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to delete", err)
 			return
 		}
-	}
-
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_delete"); err != nil {
-		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, struct{}{})
