@@ -12,7 +12,6 @@ import (
 	"github.com/tidepool-org/platform/image"
 	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
-	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStoreStructured "github.com/tidepool-org/platform/profile/store/structured"
@@ -32,7 +31,6 @@ type Provider interface {
 	DataClient() dataClient.Client
 	DataSourceClient() dataSource.Client
 	ImageClient() image.Client
-	MetricClient() metric.Client
 	PermissionClient() permission.Client
 
 	ConfirmationStore() confirmationStore.Store
@@ -113,10 +111,6 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		return false, err
 	} else if !deleted {
 		return false, nil
-	}
-
-	if err = c.MetricClient().RecordMetric(ctx, "users_delete", map[string]string{"userId": id}); err != nil {
-		logger.WithError(err).Error("Unable to record metric for delete")
 	}
 
 	sessionSession := c.SessionStore().NewSessionsSession()

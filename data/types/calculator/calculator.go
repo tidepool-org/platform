@@ -118,6 +118,11 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	}
 }
 
+// IsValid returns true if there is no error in the validator
+func (c *Calculator) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(c.Meta())

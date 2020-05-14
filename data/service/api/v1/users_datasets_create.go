@@ -6,7 +6,6 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -15,9 +14,26 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+// UsersDataSetsCreate godoc
+// @Summary Create a data sets
+// @Description Create a new data sets.
+// @Description Caller must be a service, the owner, or have the authorizations to do it in behalf of the user.
+// @ID platform-data-api-UsersDataSetsCreate
+// @Accept json
+// @Produce json
+// @Param userId path string true "user ID"
+// @Param usersDataSetsCreateParams body data.DataSetCreate true "The new data set information"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
+// @Success 200 {object} upload.Upload "Operation is a success"
+// @Failure 400 {object} service.Error "User id is missing or JSON body is malformed"
+// @Failure 403 {object} service.Error "Forbiden: caller is not authorized"
+// @Failure 500 {object} service.Error "Unable to perform the operation"
+// @Router /v1/users/:userId/datasets [post]
 func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
-	lgr := log.LoggerFromContext(ctx)
 
 	targetUserID := dataServiceContext.Request().PathParam("userId")
 	if targetUserID == "" {
@@ -93,10 +109,6 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	} else if dataSet, err = deduplicator.Open(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to open", err)
 		return
-	}
-
-	if err := dataServiceContext.MetricClient().RecordMetric(ctx, "users_data_sets_create"); err != nil {
-		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusCreated, dataSet)

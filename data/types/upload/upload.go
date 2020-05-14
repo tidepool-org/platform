@@ -60,19 +60,20 @@ func TimeProcessings() []string {
 // TODO: Upload does not use at least the following fields from Base: annotations, clockDriftOffset, deviceTime, payload, others?
 // TODO: Upload (DataSet) should be separate from Base and eliminate all unnecessary fields
 
+// Upload godoc
 type Upload struct {
 	types.Base `bson:",inline"`
 
 	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
 	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
-	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
-	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
-	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
+	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"`                         // TODO: Do we really need this? CreatedTime should suffice.
+	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty" enums:"continuous,normal"` // TODO: Migrate to "type" after migration to DataSet (not based on Base)
+	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                                                // TODO: Deprecated! (remove after data migration)
 	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
 	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
 	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
 	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
+	State               *string   `json:"-" bson:"_state,omitempty" enums:"closed,open"` // TODO: Should this be returned in JSON? I think so.
 	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
@@ -168,6 +169,11 @@ func (u *Upload) Validate(validator structure.Validator) {
 
 	validator.String("timeProcessing", u.TimeProcessing).OneOf(TimeProcessings()...) // TODO: Some clients USED to send ""; requires DB migration
 	validator.String("version", u.Version).LengthGreaterThanOrEqualTo(VersionLengthMinimum)
+}
+
+// IsValid returns true if there is no error in the validator
+func (u *Upload) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
 }
 
 func (u *Upload) Normalize(normalizer data.Normalizer) {

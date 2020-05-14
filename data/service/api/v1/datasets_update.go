@@ -6,18 +6,34 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
 
+// DataSetsUpdate godoc
+// @Summary Update a data sets
+// @ID platform-data-api-DataSetsUpdate
+// @Accept json
+// @Produce json
+// @Param dataSetID path string true "dataSet ID"
+// @Param dataSetUpdate body data.DataSetUpdate true "The dataSet to update"
+// @Security TidepoolSessionToken
+// @Security TidepoolServiceSecret
+// @Security TidepoolAuthorization
+// @Security TidepoolRestrictedToken
+// @Success 200 {object} upload.Upload "Operation is a success"
+// @Failure 400 {object} service.Error "Data set id is missing"
+// @Failure 403 {object} service.Error "Auth token is not authorized for requested action"
+// @Failure 404 {object} service.Error "Data set with specified id not found"
+// @Failure 409 {object} service.Error "Data set with specified id is closed for new data"
+// @Failure 500 {object} service.Error "Unable to perform the operation"
+// @Router /v1/datasets/:dataSetId [put]
 func DataSetsUpdate(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	res := dataServiceContext.Response()
 	ctx := req.Context()
-	lgr := log.LoggerFromContext(ctx)
 
 	dataSetID := req.PathParam("dataSetId")
 	if dataSetID == "" {
@@ -90,10 +106,6 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}
-	}
-
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {
-		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSet)

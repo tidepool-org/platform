@@ -24,6 +24,11 @@ func (g *Glucose) Validate(validator structure.Validator) {
 	validator.Float64("value", g.Value).Exists().InRange(dataBloodGlucose.ValueRangeForUnits(g.Units))
 }
 
+// IsValid returns true if there is no error in the validator
+func (g *Glucose) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (g *Glucose) Normalize(normalizer data.Normalizer) {
 	g.Blood.Normalize(normalizer)
 

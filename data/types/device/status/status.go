@@ -113,6 +113,11 @@ func (s *Status) Validate(validator structure.Validator) {
 	}
 }
 
+// IsValid returns true if there is no error in the validator
+func (s *Status) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (s *Status) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(s.Meta())

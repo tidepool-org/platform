@@ -86,6 +86,11 @@ func (t *Temporary) Validate(validator structure.Validator) {
 	validateSuppressed(validator.WithReference("suppressed"), t.Suppressed)
 }
 
+// IsValid returns true if there is no error in the validator
+func (t *Temporary) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (t *Temporary) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(t.Meta())

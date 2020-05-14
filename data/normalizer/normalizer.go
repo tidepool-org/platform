@@ -46,6 +46,14 @@ func (n *Normalizer) Error() error {
 	return n.normalizer.Error()
 }
 
+func (n *Normalizer) HasWarning() bool {
+	return n.normalizer.HasWarning()
+}
+
+func (n *Normalizer) Warning() error {
+	return n.normalizer.Warning()
+}
+
 func (n *Normalizer) ReportError(err error) {
 	n.normalizer.ReportError(err)
 }

@@ -73,6 +73,11 @@ func (a *Automated) Validate(validator structure.Validator) {
 	validator.String("scheduleName", a.ScheduleName).NotEmpty()
 }
 
+// IsValid returns true if there is no error in the validator
+func (a *Automated) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (a *Automated) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(a.Meta())

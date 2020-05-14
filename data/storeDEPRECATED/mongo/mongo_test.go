@@ -181,10 +181,11 @@ var _ = Describe("Mongo", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(indexes).Should(ConsistOf(
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_userId", "_active", "type", "_schemaVersion", "-time"), "Background": Equal(true), "Name": Equal("UserIdTypeWeighted")}),
+					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_userId", "_active", "_schemaVersion", "-time"), "Background": Equal(true), "Name": Equal("UserIdTypeWeighted")}),
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("origin.id", "type", "-deletedTime", "_active"), "Background": Equal(true), "Name": Equal("OriginId")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId"), "Background": Equal(true), "Unique": Equal(true), "Name": Equal("UniqueUploadId"), "PartialFilter": HaveKeyWithValue("type", "upload")}),
+					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("type", "uploadId"), "Background": Equal(true), "Name": Equal("typeUploadId")}),
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId", "type", "-deletedTime", "_active"), "Background": Equal(true), "Name": Equal("UploadId")}),
+					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId"), "Background": Equal(true), "Unique": Equal(true), "Name": Equal("UniqueUploadId"), "PartialFilter": HaveKeyWithValue("type", "upload")}),
 				))
 			})
 		})
@@ -219,9 +220,13 @@ var _ = Describe("Mongo", func() {
 					Expect(mgoCollection.Insert(dataSetExistingOther)).To(Succeed())
 					dataSetExistingOne = NewDataSet(userID, deviceID)
 					dataSetExistingOne.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
+					dataSetExistingOne.DataSetType = pointer.FromString("continuous")
+					dataSetExistingOne.State = pointer.FromString("open")
 					Expect(mgoCollection.Insert(dataSetExistingOne)).To(Succeed())
 					dataSetExistingTwo = NewDataSet(userID, deviceID)
 					dataSetExistingTwo.CreatedTime = pointer.FromString("2016-09-01T10:00:00Z")
+					dataSetExistingTwo.DataSetType = pointer.FromString("normal")
+					dataSetExistingTwo.State = pointer.FromString("closed")
 					Expect(mgoCollection.Insert(dataSetExistingTwo)).To(Succeed())
 				}
 
@@ -230,6 +235,8 @@ var _ = Describe("Mongo", func() {
 					userID = userTest.RandomID()
 					deviceID = dataTest.NewDeviceID()
 					dataSet = NewDataSet(userID, deviceID)
+					dataSet.DataSetType = pointer.FromString("normal")
+					dataSet.State = pointer.FromString("open")
 				})
 
 				Context("GetDataSetsForUserByID", func() {
@@ -266,6 +273,22 @@ var _ = Describe("Mongo", func() {
 						pagination.Size = 1001
 						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 						Expect(err).To(MatchError("pagination is invalid; value 1001 is not between 1 and 1000"))
+						Expect(resultDataSets).To(BeNil())
+					})
+
+					It("return an error if the data set type is invalid", func() {
+						filter.DataSetType = pointer.FromString("unknown")
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						Expect(err).NotTo(BeNil())
+						Expect(err.Error()).To(Equal("filter is invalid; value \"unknown\" is not one of [\"continuous\", \"normal\"]"))
+						Expect(resultDataSets).To(BeNil())
+					})
+
+					It("return an error if the data set state is invalid", func() {
+						filter.State = pointer.FromString("opens")
+						resultDataSets, err := session.GetDataSetsForUserByID(ctx, userID, filter, pagination)
+						Expect(err).NotTo(BeNil())
+						Expect(err.Error()).To(Equal("filter is invalid; value \"opens\" is not one of [\"closed\", \"open\"]"))
 						Expect(resultDataSets).To(BeNil())
 					})
 
@@ -325,6 +348,30 @@ var _ = Describe("Mongo", func() {
 							It("succeeds if it successfully finds all the user data sets", func() {
 								filter.Deleted = true
 								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+							})
+						})
+
+						Context("with type filter", func() {
+							It("succeeds if it successfully finds all the continuous data sets", func() {
+								filter.DataSetType = pointer.FromString("continuous")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne}))
+							})
+
+							It("succeeds if it successfully finds all the normal data sets", func() {
+								filter.DataSetType = pointer.FromString("normal")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo, dataSet}))
+							})
+						})
+
+						Context("with state filter", func() {
+							It("succeeds if it successfully finds all the open data sets", func() {
+								filter.State = pointer.FromString("open")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet}))
+							})
+
+							It("succeeds if it successfully finds all the closed data sets", func() {
+								filter.State = pointer.FromString("closed")
+								Expect(session.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo}))
 							})
 						})
 					})
@@ -556,32 +603,32 @@ var _ = Describe("Mongo", func() {
 
 					Context("DeleteDataSet", func() {
 						It("returns an error if the data set is missing", func() {
-							Expect(session.DeleteDataSet(ctx, nil)).To(MatchError("data set is missing"))
+							Expect(session.DeleteDataSet(ctx, nil, false)).To(MatchError("data set is missing"))
 						})
 
 						It("returns an error if the user id is missing", func() {
 							dataSet.UserID = nil
-							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set user id is missing"))
+							Expect(session.DeleteDataSet(ctx, dataSet, false)).To(MatchError("data set user id is missing"))
 						})
 
 						It("returns an error if the user id is empty", func() {
 							dataSet.UserID = pointer.FromString("")
-							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set user id is empty"))
+							Expect(session.DeleteDataSet(ctx, dataSet, false)).To(MatchError("data set user id is empty"))
 						})
 
 						It("returns an error if the upload id is missing", func() {
 							dataSet.UploadID = nil
-							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set upload id is missing"))
+							Expect(session.DeleteDataSet(ctx, dataSet, false)).To(MatchError("data set upload id is missing"))
 						})
 
 						It("returns an error if the upload id is empty", func() {
 							dataSet.UploadID = pointer.FromString("")
-							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("data set upload id is empty"))
+							Expect(session.DeleteDataSet(ctx, dataSet, false)).To(MatchError("data set upload id is empty"))
 						})
 
 						It("returns an error if the session is closed", func() {
 							session.Close()
-							Expect(session.DeleteDataSet(ctx, dataSet)).To(MatchError("session closed"))
+							Expect(session.DeleteDataSet(ctx, dataSet, false)).To(MatchError("session closed"))
 						})
 
 						Context("with database access", func() {
@@ -591,11 +638,11 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("succeeds if it successfully deletes the data set", func() {
-								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								Expect(session.DeleteDataSet(ctx, dataSet, false)).To(Succeed())
 							})
 
 							It("sets the deleted time on the data set", func() {
-								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								Expect(session.DeleteDataSet(ctx, dataSet, false)).To(Succeed())
 								Expect(dataSet.DeletedTime).ToNot(BeNil())
 								Expect(*dataSet.DeletedTime).ToNot(BeEmpty())
 								Expect(dataSet.DeletedUserID).To(BeNil())
@@ -603,14 +650,18 @@ var _ = Describe("Mongo", func() {
 
 							It("has the correct stored data sets", func() {
 								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
-								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								Expect(session.DeleteDataSet(ctx, dataSet, false)).To(Succeed())
 								ValidateDataSet(mgoCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
 							})
 
 							It("has the correct stored data set data", func() {
 								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSetData)
-								Expect(session.DeleteDataSet(ctx, dataSet)).To(Succeed())
+								Expect(session.DeleteDataSet(ctx, dataSet, false)).To(Succeed())
 								ValidateDataSetData(mgoCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, data.Data{})
+							})
+
+							It("succeed to purge the data set", func() {
+								Expect(session.DeleteDataSet(ctx, dataSet, true)).To(Succeed())
 							})
 						})
 					})

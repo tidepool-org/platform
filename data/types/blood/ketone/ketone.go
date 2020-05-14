@@ -44,6 +44,11 @@ func (k *Ketone) Validate(validator structure.Validator) {
 	validator.Float64("value", k.Value).Exists().InRange(ketone.ValueRangeForUnits(k.Units))
 }
 
+// IsValid returns true if there is no error in the validator
+func (k *Ketone) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (k *Ketone) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(k.Meta())

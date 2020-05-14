@@ -15,8 +15,6 @@ import (
 	imageMultipart "github.com/tidepool-org/platform/image/multipart"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	messageStoreMongo "github.com/tidepool-org/platform/message/store/mongo"
-	"github.com/tidepool-org/platform/metric"
-	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
@@ -47,7 +45,6 @@ type Service struct {
 	dataClient          *dataClient.ClientImpl
 	dataSourceClient    *dataSourceClient.Client
 	imageClient         *imageClient.Client
-	metricClient        *metricClient.Client
 	permissionClient    *permissionClient.Client
 	confirmationStore   *confirmationStoreMongo.Store
 	messageStore        *messageStoreMongo.Store
@@ -80,9 +77,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeImageClient(); err != nil {
-		return err
-	}
-	if err := s.initializeMetricClient(); err != nil {
 		return err
 	}
 	if err := s.initializePermissionClient(); err != nil {
@@ -126,7 +120,6 @@ func (s *Service) Terminate() {
 	s.terminateMessageStore()
 	s.terminateConfirmationStore()
 	s.terminatePermissionClient()
-	s.terminateMetricClient()
 	s.terminateImageClient()
 	s.terminateDataSourceClient()
 	s.terminateDataClient()
@@ -157,10 +150,6 @@ func (s *Service) DataSourceClient() dataSource.Client {
 
 func (s *Service) ImageClient() image.Client {
 	return s.imageClient
-}
-
-func (s *Service) MetricClient() metric.Client {
-	return s.metricClient
 }
 
 func (s *Service) PermissionClient() permission.Client {
@@ -304,33 +293,6 @@ func (s *Service) terminateImageClient() {
 	if s.imageClient != nil {
 		s.Logger().Debug("Destroying image client")
 		s.imageClient = nil
-	}
-}
-
-func (s *Service) initializeMetricClient() error {
-	s.Logger().Debug("Loading metric client config")
-
-	config := platform.NewConfig()
-	config.UserAgent = s.UserAgent()
-	if err := config.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
-		return errors.Wrap(err, "unable to load metric client config")
-	}
-
-	s.Logger().Debug("Creating metric client")
-
-	client, err := metricClient.New(config, platform.AuthorizeAsUser, s.Name(), s.VersionReporter())
-	if err != nil {
-		return errors.Wrap(err, "unable to create metric client")
-	}
-	s.metricClient = client
-
-	return nil
-}
-
-func (s *Service) terminateMetricClient() {
-	if s.metricClient != nil {
-		s.Logger().Debug("Destroying metric client")
-		s.metricClient = nil
 	}
 }
 

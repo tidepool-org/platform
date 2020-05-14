@@ -17,6 +17,7 @@ const (
 	MealOther              = "other"
 	MealOtherLengthMaximum = 100
 	MealSnack              = "snack"
+	MealRescueCarbs        = "rescuecarbs"
 	NameLengthMaximum      = 100
 )
 
@@ -27,6 +28,7 @@ func Meals() []string {
 		MealLunch,
 		MealOther,
 		MealSnack,
+		MealRescueCarbs,
 	}
 }
 
@@ -95,6 +97,11 @@ func (f *Food) Validate(validator structure.Validator) {
 	if f.Nutrition != nil {
 		f.Nutrition.Validate(validator.WithReference("nutrition"))
 	}
+}
+
+// IsValid returns true if there is no error in the validator
+func (f *Food) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
 }
 
 func (f *Food) Normalize(normalizer data.Normalizer) {

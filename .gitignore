@@ -4,3 +4,5 @@
 /_log
 /_tmp
 /deploy
+/vendor
+/docs/api/v1/data

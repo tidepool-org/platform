@@ -94,6 +94,15 @@ func (i *Int) InRange(lowerLimit int, upperLimit int) structure.Int {
 	return i
 }
 
+func (i *Int) InRangeWarning(lowerLimit int, upperLimit int) structure.Int {
+	if i.value != nil {
+		if *i.value < lowerLimit || *i.value > upperLimit {
+			i.base.ReportWarning(ErrorValueNotInRange(*i.value, lowerLimit, upperLimit))
+		}
+	}
+	return i
+}
+
 func (i *Int) OneOf(allowedValues ...int) structure.Int {
 	if i.value != nil {
 		for _, allowedValue := range allowedValues {

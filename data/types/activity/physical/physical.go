@@ -267,6 +267,11 @@ func (p *Physical) Validate(validator structure.Validator) {
 	}
 }
 
+// IsValid returns true if there is no error in the validator
+func (p *Physical) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (p *Physical) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(p.Meta())

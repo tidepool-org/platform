@@ -60,6 +60,14 @@ func (o *Object) Error() error {
 	return o.base.Error()
 }
 
+func (o *Object) HasWarning() bool {
+	return o.base.HasWarning()
+}
+
+func (o *Object) Warning() error {
+	return o.base.Warning()
+}
+
 func (o *Object) ReportError(err error) {
 	o.base.ReportError(err)
 }

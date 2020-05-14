@@ -48,6 +48,11 @@ func (r *Reported) Validate(validator structure.Validator) {
 	}
 }
 
+// IsValid returns true if there is no error in the validator
+func (r *Reported) IsValid(validator structure.Validator) bool {
+	return !(validator.HasError())
+}
+
 func (r *Reported) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(r.Meta())

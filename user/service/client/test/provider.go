@@ -8,7 +8,6 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/image"
 	messageStore "github.com/tidepool-org/platform/message/store"
-	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	profileStoreStructured "github.com/tidepool-org/platform/profile/store/structured"
@@ -38,10 +37,6 @@ type Provider struct {
 	ImageClientStub                func() image.Client
 	ImageClientOutputs             []image.Client
 	ImageClientOutput              *image.Client
-	MetricClientInvocations        int
-	MetricClientStub               func() metric.Client
-	MetricClientOutputs            []metric.Client
-	MetricClientOutput             *metric.Client
 	PermissionClientInvocations    int
 	PermissionClientStub           func() permission.Client
 	PermissionClientOutputs        []permission.Client
@@ -158,22 +153,6 @@ func (p *Provider) ImageClient() image.Client {
 		return *p.ImageClientOutput
 	}
 	panic("ImageClient has no output")
-}
-
-func (p *Provider) MetricClient() metric.Client {
-	p.MetricClientInvocations++
-	if p.MetricClientStub != nil {
-		return p.MetricClientStub()
-	}
-	if len(p.MetricClientOutputs) > 0 {
-		output := p.MetricClientOutputs[0]
-		p.MetricClientOutputs = p.MetricClientOutputs[1:]
-		return output
-	}
-	if p.MetricClientOutput != nil {
-		return *p.MetricClientOutput
-	}
-	panic("MetricClient has no output")
 }
 
 func (p *Provider) PermissionClient() permission.Client {
@@ -319,9 +298,6 @@ func (p *Provider) AssertOutputsEmpty() {
 	}
 	if len(p.ImageClientOutputs) > 0 {
 		panic("ImageClientOutputs is not empty")
-	}
-	if len(p.MetricClientOutputs) > 0 {
-		panic("MetricClientOutputs is not empty")
 	}
 	if len(p.PermissionClientOutputs) > 0 {
 		panic("PermissionClientOutputs is not empty")

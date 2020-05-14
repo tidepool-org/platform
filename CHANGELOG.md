@@ -1,4 +1,73 @@
-## HEAD
+# Platform 
+The Tidepool platform API
+
+## Unreleased
+### Changed
+- PT-1287 Integrate Tidepool master for platform
+
+## 0.7.2 - 2020-05-14 
+### Changed
+- PT-1291 Remove Highwater metrics
+
+## 0.7.1 - 2020-03-16
+### Fixed
+- PT-1169 Align mongoDb index between platform-data "ensureIndex" and manually created index
+
+## 0.7.0 2020-03-04
+### Added
+- PT-1004 Document the api using openApi and swaggo
+- PT-1142 Missing index on data/deviceData Mongo collection
+- PT-1132 Parse incoming data objects to make their time correct
+- PT-1147 Add Filters on Get DataSet
+
+## 0.6.4 2020-02-13
+### Fixed
+- PT-1117 Delete DataSet should return a 200 when the data set ID does not exist (temporary fix)
+
+## 0.6.3 2020-02-04
+### Added
+- PT-879 Create Parameter object in DeviceData. Handle new deviceParameter objects to store parameters change as any other types of objects in YourLoops (type: deviceEvent / subtype: deviceParameter).
+
+## 0.6.2 2020-01-21
+### Fixed
+- PT-1035 Fix on the PT-903 patch. Warning were not managed correctly when a warning was in the middle of the process. All the objects after the warnings were ignored. 
+
+## 0.6.1 2020-01-21
+### Fixed
+- PT-903 Patch platform-data to prevent an Android bug to happen
+
+## 0.6.0 2019-10-15
+### Added
+- [PT-580] Integration from Tidepool 1.32.1](#v1.32.1)
+
+## 0.5.1 2019-09-23
+### Fixed
+- [PT-670] Platform data cannot ingest messages larger than 4096 Bytes
+
+## 0.5.0 2019-09-13
+### Added
+- [PT-650] Add DBLHU device
+
+## 0.4.1 2019-09-10
+### Fixed
+- [PT-624] Platform Data: dataset is not deleted when calling "DELETE" on "/v1/data_sets/:dataSetId"
+
+## 0.4.0 2019-07-30
+### Added
+- Integration from Tidepool latest changes
+
+## 0.3.1 2019-06-06
+### Fix
+- PT-423 temporarily remove the condition that forces bolus.expectedNormal > bolus.normal
+
+## 0.3.0 2019-05-07
+### Added
+- Add Diabeloop device DBL4K
+
+## 0.2.1 2018-12-06
+- Bring back DBLG1 device
+
+# Tidepool
 
 ## v1.32.1
 

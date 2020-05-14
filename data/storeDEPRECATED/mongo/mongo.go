@@ -51,8 +51,9 @@ type DataSession struct {
 
 func (d *DataSession) EnsureIndexes() error {
 	return d.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"_userId", "_active", "type", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
+		{Key: []string{"_userId", "_active", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
 		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
+		{Key: []string{"type", "uploadId"}, Background: true, Name: "typeUploadId"},
 		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
 		{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
 	})
@@ -90,6 +91,12 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	}
 	if !filter.Deleted {
 		selector["deletedTime"] = bson.M{"$exists": false}
+	}
+	if filter.State != nil {
+		selector["_state"] = *filter.State
+	}
+	if filter.DataSetType != nil {
+		selector["dataSetType"] = *filter.DataSetType
 	}
 	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 
@@ -249,7 +256,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -265,16 +272,25 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var err error
+	var selector bson.M
 	var removeInfo *mgo.ChangeInfo
 	var updateInfo *mgo.ChangeInfo
 
-	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
+	if doPurge {
+		selector = bson.M{
+			"_userId":  dataSet.UserID,
+			"uploadId": dataSet.UploadID,
+		}
+	} else {
+		selector = bson.M{
+			"_userId":  dataSet.UserID,
+			"uploadId": dataSet.UploadID,
+			"type":     bson.M{"$ne": "upload"},
+		}
 	}
+
 	removeInfo, err = d.C().RemoveAll(selector)
-	if err == nil {
+	if err == nil && doPurge == false {
 		selector = bson.M{
 			"_userId":       dataSet.UserID,
 			"uploadId":      dataSet.UploadID,
@@ -289,7 +305,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload)
 		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
 	}
 
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "doPurge": doPurge, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteDataSet")
 
 	if err != nil {
@@ -820,6 +836,12 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 	}
 	if filter.DeviceID != nil {
 		selector["deviceId"] = *filter.DeviceID
+	}
+	if filter.State != nil {
+		selector["_state"] = *filter.State
+	}
+	if filter.DataSetType != nil {
+		selector["dataSetType"] = *filter.DataSetType
 	}
 	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 	logger.WithFields(log.Fields{"count": len(dataSets), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserDataSets")

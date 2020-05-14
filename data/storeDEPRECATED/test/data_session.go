@@ -53,6 +53,7 @@ type UpdateDataSetOutput struct {
 type DeleteDataSetInput struct {
 	Context context.Context
 	DataSet *upload.Upload
+	doPurge bool
 }
 
 type CreateDataSetDataInput struct {
@@ -247,10 +248,10 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	return output.DataSet, output.Error
 }
 
-func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
 	d.DeleteDataSetInvocations++
 
-	d.DeleteDataSetInputs = append(d.DeleteDataSetInputs, DeleteDataSetInput{Context: ctx, DataSet: dataSet})
+	d.DeleteDataSetInputs = append(d.DeleteDataSetInputs, DeleteDataSetInput{Context: ctx, DataSet: dataSet, doPurge: doPurge})
 
 	gomega.Expect(d.DeleteDataSetOutputs).ToNot(gomega.BeEmpty())
 
