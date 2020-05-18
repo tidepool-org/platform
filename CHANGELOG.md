@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## Unreleased
+### Changed
+- PT-1287 Integrate Tidepool master for platform
+
 ## 0.7.2 - 2020-05-14 
 ### Changed
 - PT-1291 Remove Highwater metrics

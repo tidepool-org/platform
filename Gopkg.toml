@@ -1,9 +1,0 @@
-required = ["github.com/githubnemo/CompileDaemon", "github.com/mjibson/esc", "github.com/onsi/ginkgo/ginkgo", "golang.org/x/lint/golint", "golang.org/x/tools/cmd/goimports"]
-
-[[override]]
-  name = "gopkg.in/fsnotify.v1"
-  source = "gopkg.in/fsnotify/fsnotify.v1"
-
-[prune]
-  go-tests = true
-  unused-packages = true

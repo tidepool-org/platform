@@ -104,8 +104,8 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader, options *
 		ServerSideEncryption: pointer.FromString("AES256"),
 	}
 	if _, err := s.awsAPI.S3Manager().Uploader().UploadWithContext(ctx, input); err != nil {
-		logger.WithError(err).Errorf("Unable to upload object with key %q", key)
-		return errors.Wrapf(err, "unable to upload object with key %q", key)
+		logger.WithError(err).Errorf("Unable to upload object with key %q, bucket %q", key, s.bucket)
+		return errors.Wrapf(err, "unable to upload object with key %q, bucket %q", key, s.bucket)
 	}
 
 	logger.Debug("Put")

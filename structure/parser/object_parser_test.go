@@ -565,6 +565,54 @@ var _ = Describe("Object", func() {
 		})
 	})
 
+	Context("ForgivingTime", func() {
+		var now time.Time
+		var parser *structureParser.Object
+
+		BeforeEach(func() {
+			now = time.Now()
+			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+				"zero":  false,
+				"one":   "abc",
+				"two":   now.Format(time.RFC3339Nano),
+				"three": "2020-02-01T00:13",
+			})
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("with key not found in the object returns nil", func() {
+			Expect(parser.ForgivingTime("unknown", time.RFC3339Nano)).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with different type returns nil and reports an ErrorCodeTypeNotTime", func() {
+			Expect(parser.ForgivingTime("zero", time.RFC3339Nano)).To(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/zero"))
+		})
+
+		It("with key with different type returns nil and reports an ErrorCodeTimeNotParsable", func() {
+			Expect(parser.ForgivingTime("one", time.RFC3339Nano)).To(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "/one"))
+		})
+
+		It("with key with string type returns value", func() {
+			value := parser.ForgivingTime("two", time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with partial string type returns value", func() {
+			value := parser.ForgivingTime("three", "2006-01-02T15:04:05")
+			expectedValue, _ := time.Parse("2006-01-02T15:04:05", "2020-02-01T00:13:00")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", expectedValue))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
 	Context("Object", func() {
 		var parser *structureParser.Object
 

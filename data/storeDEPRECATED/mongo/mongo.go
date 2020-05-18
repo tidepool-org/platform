@@ -55,6 +55,7 @@ func (d *DataSession) EnsureIndexes() error {
 		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
 		{Key: []string{"type", "uploadId"}, Background: true, Name: "typeUploadId"},
 		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
+		{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
 	})
 }
 
@@ -168,10 +169,9 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
-	// TODO: Consider upsert instead to prevent multiples being created?
-
+	// This search is protected by the `UniqueUploadId` index, so it's not possible for there to be
+	// duplicate `uploadId`s, even if a race condition occurs here.
 	selector := bson.M{
-		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
 		"type":     dataSet.Type,
 	}

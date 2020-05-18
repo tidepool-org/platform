@@ -171,8 +171,8 @@ func NewEGV(unit *string) *EGV {
 }
 
 func (e *EGV) Parse(parser structure.ObjectParser) {
-	e.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
-	e.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
+	e.SystemTime = TimeFromRaw(parser.ForgivingTime("systemTime", TimeFormat))
+	e.DisplayTime = TimeFromRaw(parser.ForgivingTime("displayTime", TimeFormat))
 	e.Value = parser.Float64("value")
 	e.RealTimeValue = parser.Float64("realtimeValue")
 	e.SmoothedValue = parser.Float64("smoothedValue")

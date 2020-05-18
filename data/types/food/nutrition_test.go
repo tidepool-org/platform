@@ -9,12 +9,15 @@ import (
 	"github.com/tidepool-org/platform/data/types/food"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewNutrition() *food.Nutrition {
 	datum := food.NewNutrition()
+	datum.EstimatedAbsorptionDuration = pointer.FromInt(test.RandomIntFromRange(food.EstimatedAbsorptionDurationSecondsMinimum, food.EstimatedAbsorptionDurationSecondsMaximum))
 	datum.Carbohydrate = NewCarbohydrate()
 	datum.Energy = NewEnergy()
 	datum.Fat = NewFat()
@@ -27,6 +30,7 @@ func CloneNutrition(datum *food.Nutrition) *food.Nutrition {
 		return nil
 	}
 	clone := food.NewNutrition()
+	clone.EstimatedAbsorptionDuration = pointer.CloneInt(datum.EstimatedAbsorptionDuration)
 	clone.Carbohydrate = CloneCarbohydrate(datum.Carbohydrate)
 	clone.Energy = CloneEnergy(datum.Energy)
 	clone.Fat = CloneFat(datum.Fat)
@@ -35,6 +39,14 @@ func CloneNutrition(datum *food.Nutrition) *food.Nutrition {
 }
 
 var _ = Describe("Nutrition", func() {
+	It("EstimatedAbsorptionDuration is expected", func() {
+		Expect(food.EstimatedAbsorptionDurationSecondsMaximum).To(Equal(86400))
+	})
+
+	It("AbsorptionDurationSecondsMinimum is expected", func() {
+		Expect(food.EstimatedAbsorptionDurationSecondsMinimum).To(Equal(0))
+	})
+
 	Context("ParseNutrition", func() {
 		// TODO
 	})
@@ -59,6 +71,23 @@ var _ = Describe("Nutrition", func() {
 				},
 				Entry("succeeds",
 					func(datum *food.Nutrition) {},
+				),
+				Entry("absorption duration missing",
+					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = nil },
+				),
+				Entry("absorption duration out of range (lower)",
+					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(-1) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/estimatedAbsorptionDuration"),
+				),
+				Entry("absorption duration in range (lower)",
+					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(0) },
+				),
+				Entry("absorption duration in range (upper)",
+					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(86400) },
+				),
+				Entry("absorption duration out of range (upper)",
+					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = pointer.FromInt(86401) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/estimatedAbsorptionDuration"),
 				),
 				Entry("carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
@@ -102,11 +131,13 @@ var _ = Describe("Nutrition", func() {
 				),
 				Entry("multiple errors",
 					func(datum *food.Nutrition) {
+						datum.EstimatedAbsorptionDuration = pointer.FromInt(-1)
 						datum.Carbohydrate.Units = nil
 						datum.Energy.Units = nil
 						datum.Fat.Units = nil
 						datum.Protein.Units = nil
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/estimatedAbsorptionDuration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carbohydrate/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/energy/units"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/fat/units"),
@@ -132,6 +163,9 @@ var _ = Describe("Nutrition", func() {
 				},
 				Entry("does not modify the datum",
 					func(datum *food.Nutrition) {},
+				),
+				Entry("does not modify the datum; estimated absorption duration missing",
+					func(datum *food.Nutrition) { datum.EstimatedAbsorptionDuration = nil },
 				),
 				Entry("does not modify the datum; carbohydrate missing",
 					func(datum *food.Nutrition) { datum.Carbohydrate = nil },
