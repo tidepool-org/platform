@@ -190,4 +190,27 @@ var _ = Describe("Config", func() {
 			Expect(config.Validate()).To(MatchError("timeout is invalid"))
 		})
 	})
+
+	Context("AsConnectionString", func() {
+		var config *mongoofficial.Config
+
+		BeforeEach(func() {
+			config = &mongoofficial.Config{
+				Scheme:           "mongodb",
+				Addresses:        []string{"1.2.3.4:1234", "5.6.7.8:5678"},
+				TLS:              true,
+				Database:         "database",
+				CollectionPrefix: "collection_prefix",
+				Username:         pointer.FromString("username"),
+				Password:         pointer.FromString("password"),
+				Timeout:          5 * time.Second,
+				OptParams:        pointer.FromString("w=majority"),
+			}
+		})
+
+		It("generates correct connection string", func() {
+			expected := "mongodb://username:password@1.2.3.4:1234,5.6.7.8:5678/database?ssl=true&w=majority"
+			Expect(config.AsConnectionString()).To(Equal(expected))
+		})
+	})
 })
