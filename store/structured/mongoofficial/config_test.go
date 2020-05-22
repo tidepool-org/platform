@@ -16,7 +16,7 @@ import (
 var _ = Describe("Config", func() {
 	scheme := "mongodb+srv"
 	addresses := []string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}
-	tls := false
+	tls := true
 	database := "tp_database"
 	collectionPrefix := "tp_collection_prefix"
 	username := "tp_username"
@@ -142,7 +142,7 @@ var _ = Describe("Config", func() {
 				Username:         pointer.FromString(username),
 				Password:         pointer.FromString(password),
 				Timeout:          timeout,
-				OptParams:        nil,
+				OptParams:        pointer.FromString("w=majority"),
 			}
 		})
 

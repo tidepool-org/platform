@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -71,7 +70,7 @@ func (c *Config) AsConnectionString() string {
 		connectionString += "?ssl=false"
 	}
 	if c.OptParams != nil && *c.OptParams != "" {
-		connectionString += *c.OptParams
+		connectionString += fmt.Sprintf("&%s", *c.OptParams)
 	}
 
 	return connectionString
@@ -91,7 +90,6 @@ func (c *Config) Validate() error {
 		if address == "" {
 			return errors.New("address is missing")
 		} else if _, err := url.Parse(address); err != nil {
-			fmt.Fprintf(os.Stdout, "%v", address)
 			return errors.New("address is invalid")
 		}
 	}
@@ -103,7 +101,7 @@ func (c *Config) Validate() error {
 	}
 
 	if _, err := connstring.Parse(c.AsConnectionString()); err != nil {
-		return errors.New("URL is unparseable by driver, check validity of optional parameters")
+		return errors.Wrap(err, "URL is unparseable by driver, check validity of optional parameters")
 	}
 
 	return nil
