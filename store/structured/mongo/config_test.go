@@ -183,6 +183,28 @@ var _ = Describe("Config", func() {
 		})
 	})
 
+	Context("AsConnectionString", func() {
+		var config *storeStructuredMongo.Config
+
+		BeforeEach(func() {
+			config = storeStructuredMongo.NewConfig()
+			config.Scheme = "mongodb"
+			config.Addresses = []string{"1.2.3.4:1234", "5.6.7.8:5678"}
+			config.TLS = true
+			config.Database = "database"
+			config.CollectionPrefix = "collection_prefix"
+			config.Username = pointer.FromString("username")
+			config.Password = pointer.FromString("password")
+			config.Timeout = 5 * time.Second
+			config.OptParams = pointer.FromString("w=majority")
+		})
+
+		It("generates correct connection string", func() {
+			expected := "mongodb://username:password@1.2.3.4:1234,5.6.7.8:5678/database?ssl=true&w=majority"
+			Expect(config.AsConnectionString()).To(Equal(expected))
+		})
+	})
+
 	Context("SplitAddresses", func() {
 		DescribeTable("returns expected addresses when",
 			func(addressesString string, expectedAddresses []string) {

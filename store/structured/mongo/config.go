@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -60,7 +61,7 @@ func (c *Config) AsConnectionString() string {
 		url += "?ssl=false"
 	}
 	if c.OptParams != nil && *c.OptParams != "" {
-		url += *c.OptParams
+		url += fmt.Sprintf("&%s", *c.OptParams)
 	}
 
 	return url
