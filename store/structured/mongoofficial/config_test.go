@@ -22,12 +22,29 @@ var _ = Describe("Config", func() {
 	username := "tp_username"
 	password := "tp_password"
 	timeout := time.Duration(120) * time.Second
-	optParams := "safe=1"
+	optParams := "replicaSet=Cluster0-shard-0&authSource=admin&w=majority"
 
 	Describe("Load", func() {
 		var config *mongoofficial.Config
+		var variables = []string{
+			"TIDEPOOL_STORE_SCHEME",
+			"TIDEPOOL_STORE_TLS",
+			"TIDEPOOL_STORE_DATABASE",
+			"TIDEPOOL_STORE_ADDRESSES",
+			"TIDEPOOL_STORE_COLLECTION_PREFIX",
+			"TIDEPOOL_STORE_USERNAME",
+			"TIDEPOOL_STORE_PASSWORD",
+			"TIDEPOOL_STORE_TIMEOUT",
+			"TIDEPOOL_STORE_OPT_PARAMS",
+		}
+		var existingEnvVars map[string]string
 
 		BeforeEach(func() {
+			existingEnvVars = make(map[string]string)
+			for _, v := range variables {
+				existingEnvVars[v] = os.Getenv(v)
+			}
+
 			Expect(os.Setenv("TIDEPOOL_STORE_SCHEME", scheme)).To(Succeed())
 			Expect(os.Setenv("TIDEPOOL_STORE_TLS", fmt.Sprintf("%v", tls))).To(Succeed())
 			Expect(os.Setenv("TIDEPOOL_STORE_DATABASE", database)).To(Succeed())
@@ -43,6 +60,11 @@ var _ = Describe("Config", func() {
 		})
 
 		AfterEach(func() {
+			existingEnvVars = make(map[string]string)
+			for _, v := range variables {
+				_ = os.Setenv(v, existingEnvVars[v])
+			}
+
 			_ = os.Unsetenv("TIDEPOOL_STORE_SCHEME")
 			_ = os.Unsetenv("TIDEPOOL_STORE_ADDRESSES")
 			_ = os.Unsetenv("TIDEPOOL_STORE_TLS")
@@ -63,7 +85,7 @@ var _ = Describe("Config", func() {
 		})
 
 		It("loads tls from environment", func() {
-			Expect(config.TLS).To(Equal(false))
+			Expect(config.TLS).To(Equal(tls))
 		})
 
 		It("sets tls to 'true' if not found in env", func() {
