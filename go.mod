@@ -18,6 +18,7 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
+	github.com/snowman-mh/device-check-go v1.0.4
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/urfave/cli v1.20.0
 	golang.org/x/crypto v0.0.0-20190103213133-ff983b9c42bc

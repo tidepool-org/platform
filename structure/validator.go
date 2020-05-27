@@ -117,6 +117,8 @@ type String interface {
 	Using(usingFunc StringUsingFunc) String
 
 	AsTime(layout string) Time
+
+	Alphanumeric() String
 }
 
 type StringArrayEachFunc func(stringValidator String)

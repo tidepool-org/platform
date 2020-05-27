@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	appleTest "github.com/tidepool-org/platform/apple/test"
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	authServiceService "github.com/tidepool-org/platform/auth/service/service"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -35,6 +36,7 @@ var _ = Describe("Service", func() {
 		var dataSourceClientConfig map[string]interface{}
 		var taskClientConfig map[string]interface{}
 		var authServiceConfig map[string]interface{}
+		var appleDeviceCheckerConfig map[string]interface{}
 		var service *authServiceService.Service
 
 		BeforeEach(func() {
@@ -71,8 +73,14 @@ var _ = Describe("Service", func() {
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 			}
-
+			appleDeviceCheckerConfig = map[string]interface{}{
+				"key_id":                      appleTest.Kid,
+				"issuer":                      appleTest.Issuer,
+				"private_key":                 appleTest.PrivateKey,
+				"use_development_environment": "true",
+			}
 			authServiceConfig = map[string]interface{}{
+				"apple_device_checker": appleDeviceCheckerConfig,
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
 					"store":  authStoreConfig,

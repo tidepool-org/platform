@@ -9,6 +9,7 @@ import (
 type Store interface {
 	NewProviderSessionSession() ProviderSessionSession
 	NewRestrictedTokenSession() RestrictedTokenSession
+	NewDeviceAuthorizationSession() DeviceAuthorizationSession
 }
 
 type ProviderSessionSession interface {
@@ -19,4 +20,9 @@ type ProviderSessionSession interface {
 type RestrictedTokenSession interface {
 	io.Closer
 	auth.RestrictedTokenAccessor
+}
+
+type DeviceAuthorizationSession interface {
+	io.Closer
+	auth.DeviceAuthorizationAccessor
 }

@@ -16,6 +16,7 @@ const (
 type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor
+	DeviceAuthorizationAccessor
 	ExternalAccessor
 }
 

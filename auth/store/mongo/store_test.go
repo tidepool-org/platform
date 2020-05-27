@@ -49,8 +49,6 @@ var _ = Describe("Store", func() {
 			Expect(str).ToNot(BeNil())
 		})
 
-		// TODO: EnsureIndexes
-
 		Context("NewProviderSessionSession", func() {
 			var ssn store.ProviderSessionSession
 
@@ -77,6 +75,21 @@ var _ = Describe("Store", func() {
 
 			It("returns successfully", func() {
 				ssn = str.NewRestrictedTokenSession()
+				Expect(ssn).ToNot(BeNil())
+			})
+		})
+
+		Context("NewDeviceAuthorizationSession", func() {
+			var ssn store.DeviceAuthorizationSession
+
+			AfterEach(func() {
+				if ssn != nil {
+					ssn.Close()
+				}
+			})
+
+			It("returns successfully", func() {
+				ssn = str.NewDeviceAuthorizationSession()
 				Expect(ssn).ToNot(BeNil())
 			})
 		})

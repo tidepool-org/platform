@@ -4,3 +4,8 @@
 /_log
 /_tmp
 /deploy
+
+#IntelliJ Idea project files
+.idea/
+platform.iml
+
