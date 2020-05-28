@@ -655,6 +655,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					prescr.State = prescription.StateSubmitted
 					claim = prescription.NewPrescriptionClaim()
 					claim.AccessCode = prescr.AccessCode
+					claim.Birthday = prescr.LatestRevision.Attributes.Birthday
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -684,6 +685,13 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("returns nil if the access code is incorrect", func() {
 						claim.AccessCode = "XXXXXX"
+						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("returns nil if the birthday is incorrect", func() {
+						claim.Birthday = "1900-01-01"
 						result, err := repository.ClaimPrescription(ctx, usr, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(BeNil())

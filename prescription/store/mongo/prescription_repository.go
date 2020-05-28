@@ -255,9 +255,10 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, usr *use
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "claim": claim})
 
 	selector := bson.M{
-		"accessCode": claim.AccessCode,
-		"patientId":  nil,
-		"state":      prescription.StateSubmitted,
+		"accessCode":                         claim.AccessCode,
+		"latestRevision.attributes.birthday": claim.Birthday,
+		"patientId":                          nil,
+		"state":                              prescription.StateSubmitted,
 	}
 
 	prescr := &prescription.Prescription{}

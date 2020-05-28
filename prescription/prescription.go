@@ -379,6 +379,7 @@ func (u *Update) validateForPatient(validator structure.Validator) {
 
 type Claim struct {
 	AccessCode string `json:"accessCode"`
+	Birthday   string `json:"birthday"`
 }
 
 func NewPrescriptionClaim() *Claim {
@@ -387,6 +388,7 @@ func NewPrescriptionClaim() *Claim {
 
 func (p *Claim) Validate(validator structure.Validator) {
 	validator.String("accessCode", &p.AccessCode).NotEmpty()
+	validator.String("birthday", &p.Birthday).NotEmpty().AsTime("2006-01-02")
 }
 
 type StateUpdate struct {
