@@ -25,11 +25,11 @@ func RandomPrescriptions(count int) prescription.Prescriptions {
 		prescr := RandomPrescription()
 
 		createdTime := prescr.CreatedTime.Add(time.Second*time.Duration(i) - time.Hour)
-		modifiedTime := prescr.LatestRevision.Attributes.ModifiedTime.Add(time.Second * time.Duration(i))
+		modifiedTime := prescr.LatestRevision.Attributes.CreatedTime.Add(time.Second * time.Duration(i))
 
 		prescr.CreatedTime = createdTime
-		prescr.LatestRevision.Attributes.ModifiedTime = modifiedTime
-		prescr.RevisionHistory[0].Attributes.ModifiedTime = modifiedTime
+		prescr.LatestRevision.Attributes.CreatedTime = modifiedTime
+		prescr.RevisionHistory[0].Attributes.CreatedTime = modifiedTime
 
 		prescriptions[i] = prescr
 	}
@@ -95,8 +95,8 @@ func RandomAttribtues() *prescription.Attributes {
 		TherapySettings:         RandomTherapySettings(),
 		PrescriberTermsAccepted: true,
 		State:                   prescription.StateSubmitted,
-		ModifiedTime:            time.Now(),
-		ModifiedUserID:          userTest.RandomID(),
+		CreatedTime:             time.Now(),
+		CreatedUserID:           userTest.RandomID(),
 	}
 }
 

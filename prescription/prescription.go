@@ -288,7 +288,7 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 		PrescriberUserID: revision.GetPrescriberUserID(),
 		ExpirationTime:   revision.CalculateExpirationTime(),
 		ModifiedUserID:   *usr.UserID,
-		ModifiedTime:     time.Now(),
+		ModifiedTime:     revision.Attributes.CreatedTime,
 	}
 
 	return update

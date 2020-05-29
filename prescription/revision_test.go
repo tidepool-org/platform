@@ -105,11 +105,11 @@ var _ = Describe("Revision", func() {
 			})
 
 			It("sets the modified time correctly", func() {
-				Expect(revision.Attributes.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(revision.Attributes.CreatedTime).To(BeTemporally("~", time.Now()))
 			})
 
 			It("sets the modified userID correctly", func() {
-				Expect(revision.Attributes.ModifiedUserID).To(Equal(userID))
+				Expect(revision.Attributes.CreatedUserID).To(Equal(userID))
 			})
 		})
 	})
@@ -316,7 +316,7 @@ var _ = Describe("Revision", func() {
 				})
 
 				It("fails with invalid modified user id", func() {
-					attr.ModifiedUserID = "invalid"
+					attr.CreatedUserID = "invalid"
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
@@ -337,8 +337,8 @@ var _ = Describe("Revision", func() {
 						TherapySettings:         "",
 						PrescriberTermsAccepted: false,
 						State:                   "",
-						ModifiedTime:            now,
-						ModifiedUserID:          userTest.RandomID(),
+						CreatedTime:             now,
+						CreatedUserID:           userTest.RandomID(),
 					}
 					attr.State = prescription.StateDraft
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())

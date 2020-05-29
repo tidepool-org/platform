@@ -153,8 +153,8 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 			TherapySettings:         create.TherapySettings,
 			PrescriberTermsAccepted: create.PrescriberTermsAccepted,
 			State:                   create.State,
-			ModifiedTime:            now,
-			ModifiedUserID:          userID,
+			CreatedTime:             now,
+			CreatedUserID:           userID,
 		},
 	}
 }
@@ -183,7 +183,7 @@ func (r *Revision) GetPrescriberUserID() string {
 		return ""
 	}
 
-	return r.Attributes.ModifiedUserID
+	return r.Attributes.CreatedUserID
 }
 
 type Attributes struct {
@@ -201,8 +201,8 @@ type Attributes struct {
 	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted,omitempty"`
 	State                   string           `json:"state" bson:"state"`
-	ModifiedTime            time.Time        `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID          string           `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	CreatedTime             time.Time        `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID           string           `json:"createdUserId,omitempty" bson:"cratedUserId,omitempty"`
 }
 
 func (a *Attributes) Validate(validator structure.Validator) {
@@ -234,8 +234,8 @@ func (a *Attributes) Validate(validator structure.Validator) {
 		a.InitialSettings.Validate(validator.WithReference("initialSettings"))
 	}
 	validator.String("state", &a.State).OneOf(RevisionStates()...)
-	validator.Time("modifiedTime", &a.ModifiedTime).BeforeNow(time.Second)
-	validator.String("modifiedUserId", &a.ModifiedUserID).Using(user.IDValidator)
+	validator.Time("createdTime", &a.CreatedTime).BeforeNow(time.Second)
+	validator.String("createdUserId", &a.CreatedUserID).Using(user.IDValidator)
 
 	if a.State == StateSubmitted {
 		a.ValidateAllRequired(validator)

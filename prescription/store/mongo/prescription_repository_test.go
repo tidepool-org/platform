@@ -240,7 +240,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						expectedIDs := ids[1:3]
-						_, err = collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"prescriberId": *clinician.UserID}})
+						_, err = collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"prescriberUserId": *clinician.UserID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter, err := prescription.NewFilter(clinician)
@@ -376,14 +376,14 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("returns the correct prescriptions given a modified start date", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
-							return prescriptions[i].LatestRevision.Attributes.ModifiedTime.Before(prescriptions[j].LatestRevision.Attributes.ModifiedTime)
+							return prescriptions[i].ModifiedTime.Before(prescriptions[j].ModifiedTime)
 						})
 
 						expectedIDs := ids[3:5]
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.ModifiedTimeStart = &prescriptions[2].LatestRevision.Attributes.ModifiedTime
+						filter.ModifiedTimeStart = &prescriptions[2].ModifiedTime
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
@@ -392,14 +392,14 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("returns the correct prescriptions given a modified end date", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
-							return prescriptions[i].LatestRevision.Attributes.ModifiedTime.Before(prescriptions[j].LatestRevision.Attributes.ModifiedTime)
+							return prescriptions[i].ModifiedTime.Before(prescriptions[j].ModifiedTime)
 						})
 
 						expectedIDs := ids[0:2]
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.ModifiedTimeEnd = &prescriptions[2].LatestRevision.Attributes.ModifiedTime
+						filter.ModifiedTimeEnd = &prescriptions[2].ModifiedTime
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
@@ -638,7 +638,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
-						result.LatestRevision.Attributes.ModifiedTime = update.Revision.Attributes.ModifiedTime
+						result.LatestRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
 					})
 				})

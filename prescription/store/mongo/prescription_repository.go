@@ -155,7 +155,7 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinici
 	selector := bson.M{
 		"_id": prescriptionID,
 		"$or": []bson.M{
-			{"prescriberId": clinicianID},
+			{"prescriberUserId": clinicianID},
 			{"createdUserId": clinicianID},
 		},
 		"state": bson.M{
@@ -200,7 +200,7 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, usr *user.User
 	selector := bson.M{
 		"_id": prescriptionID,
 		"$or": []bson.M{
-			{"prescriberId": *usr.UserID},
+			{"prescriberUserId": *usr.UserID},
 			{"createdUserId": *usr.UserID},
 		},
 	}
@@ -374,7 +374,7 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	selector := bson.M{}
 	if filter.ClinicianID != "" {
 		selector["$or"] = []bson.M{
-			{"prescriberId": filter.ClinicianID},
+			{"prescriberUserId": filter.ClinicianID},
 			{"createdUserId": filter.ClinicianID},
 		}
 	}
@@ -402,10 +402,10 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 		selector["createdTime"] = bson.M{"$lt": filter.CreatedTimeEnd}
 	}
 	if filter.ModifiedTimeStart != nil {
-		selector["latestRevision.attributes.modifiedTime"] = bson.M{"$gt": filter.ModifiedTimeStart}
+		selector["modifiedTime"] = bson.M{"$gt": filter.ModifiedTimeStart}
 	}
 	if filter.ModifiedTimeEnd != nil {
-		selector["latestRevision.attributes.modifiedTime"] = bson.M{"$lt": filter.ModifiedTimeEnd}
+		selector["modifiedTime"] = bson.M{"$lt": filter.ModifiedTimeEnd}
 	}
 
 	return selector
@@ -443,7 +443,7 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 	}
 
 	if prescrUpdate.PrescriberUserID != "" {
-		set["prescriberId"] = prescrUpdate.PrescriberUserID
+		set["prescriberUserId"] = prescrUpdate.PrescriberUserID
 	}
 
 	if prescrUpdate.PatientUserID != "" {
