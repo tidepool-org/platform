@@ -68,7 +68,6 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		InitialSettings:         RandomInitialSettings(),
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
-		LoopMode:                RandomLoopMode(),
 		PrescriberTermsAccepted: true,
 		State:                   prescription.StateSubmitted,
 	}
@@ -96,7 +95,6 @@ func RandomAttribtues() *prescription.Attributes {
 		InitialSettings:         RandomInitialSettings(),
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
-		LoopMode:                RandomLoopMode(),
 		PrescriberTermsAccepted: true,
 		State:                   prescription.StateSubmitted,
 		ModifiedTime:            time.Now(),
@@ -179,12 +177,5 @@ func RandomTherapySettings() string {
 	return faker.RandomChoice([]string{
 		prescription.TherapySettingInitial,
 		prescription.TherapySettingTransferPumpSettings,
-	})
-}
-
-func RandomLoopMode() string {
-	return faker.RandomChoice([]string{
-		prescription.LoopModeSuspendOnly,
-		prescription.LoopModeClosedLoop,
 	})
 }

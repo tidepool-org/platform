@@ -19,9 +19,6 @@ const (
 	TherapySettingInitial              = "initial"
 	TherapySettingTransferPumpSettings = "transferPumpSettings"
 
-	LoopModeClosedLoop  = "closedLoop"
-	LoopModeSuspendOnly = "suspendOnly"
-
 	SexMale        = "male"
 	SexFemale      = "female"
 	SexUndisclosed = "undisclosed"
@@ -49,7 +46,6 @@ type RevisionCreate struct {
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty"`
 	TherapySettings         string           `json:"therapySettings,omitempty"`
-	LoopMode                string           `json:"loopMode,omitempty"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty"`
 	State                   string           `json:"state"`
 }
@@ -86,9 +82,6 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 	if r.TherapySettings != "" {
 		validator.String("therapySettings", &r.TherapySettings).OneOf(TherapySettings()...)
 	}
-	if r.LoopMode != "" {
-		validator.String("loopMode", &r.LoopMode).OneOf(LoopModes()...)
-	}
 	validator.String("state", &r.State).OneOf(RevisionStates()...)
 	if r.State == StateSubmitted {
 		r.ValidateAllRequired(validator)
@@ -104,7 +97,6 @@ func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
 	validator.Int("yearOfDiagnosis", &r.YearOfDiagnosis).GreaterThan(1900)
 	validator.String("training", &r.Training).NotEmpty()
 	validator.String("therapySettings", &r.TherapySettings).NotEmpty()
-	validator.String("loopMode", &r.LoopMode).NotEmpty()
 	validator.Bool("prescriberTermsAccepted", &r.PrescriberTermsAccepted).True()
 
 	// if phoneNumber is nil validate will fail
@@ -158,7 +150,6 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 			InitialSettings:         create.InitialSettings,
 			Training:                create.Training,
 			TherapySettings:         create.TherapySettings,
-			LoopMode:                create.LoopMode,
 			PrescriberTermsAccepted: create.PrescriberTermsAccepted,
 			State:                   create.State,
 			ModifiedTime:            now,
@@ -207,7 +198,6 @@ type Attributes struct {
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty" bson:"training,omitempty"`
 	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
-	LoopMode                string           `json:"loopMode,omitempty" bson:"loopMode,omitempty"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted,omitempty"`
 	State                   string           `json:"state" bson:"state"`
 	ModifiedTime            time.Time        `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
@@ -236,9 +226,6 @@ func (a *Attributes) Validate(validator structure.Validator) {
 	if a.TherapySettings != "" {
 		validator.String("therapySettings", &a.TherapySettings).OneOf(TherapySettings()...)
 	}
-	if a.LoopMode != "" {
-		validator.String("loopMode", &a.LoopMode).OneOf(LoopModes()...)
-	}
 	if a.Weight != nil {
 		a.Weight.Validate(validator.WithReference("weight"))
 	}
@@ -263,7 +250,6 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 	validator.Int("yearOfDiagnosis", &a.YearOfDiagnosis).GreaterThan(1900)
 	validator.String("training", &a.Training).NotEmpty()
 	validator.String("therapySettings", &a.TherapySettings).NotEmpty()
-	validator.String("loopMode", &a.LoopMode).NotEmpty()
 	validator.Bool("prescriberTermsAccepted", &a.PrescriberTermsAccepted).True()
 
 	// if phoneNumber is nil validate will fail
@@ -403,13 +389,6 @@ func TherapySettings() []string {
 	return []string{
 		TherapySettingInitial,
 		TherapySettingTransferPumpSettings,
-	}
-}
-
-func LoopModes() []string {
-	return []string{
-		LoopModeClosedLoop,
-		LoopModeSuspendOnly,
 	}
 }
 

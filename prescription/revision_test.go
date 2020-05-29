@@ -96,10 +96,6 @@ var _ = Describe("Revision", func() {
 				Expect(revision.Attributes.TherapySettings).To(Equal(create.TherapySettings))
 			})
 
-			It("sets the loop mode correctly", func() {
-				Expect(revision.Attributes.LoopMode).To(Equal(create.LoopMode))
-			})
-
 			It("sets the prescriber terms accepted correctly", func() {
 				Expect(revision.Attributes.PrescriberTermsAccepted).To(Equal(create.PrescriberTermsAccepted))
 			})
@@ -278,13 +274,6 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
-				It("doesn't fail with valid loop modes", func() {
-					attr.LoopMode = prescription.LoopModeClosedLoop
-					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-					attr.LoopMode = prescription.LoopModeSuspendOnly
-					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-				})
-
 				It("fails when state is 'submitted' and prescriber terms are not accepted", func() {
 					attr.PrescriberTermsAccepted = false
 					attr.State = prescription.StateSubmitted
@@ -346,7 +335,6 @@ var _ = Describe("Revision", func() {
 						InitialSettings:         nil,
 						Training:                "",
 						TherapySettings:         "",
-						LoopMode:                "",
 						PrescriberTermsAccepted: false,
 						State:                   "",
 						ModifiedTime:            now,
