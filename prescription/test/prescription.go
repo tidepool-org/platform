@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -66,7 +65,6 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		Weight:                  RandomWeight(),
 		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 		PhoneNumber:             RandomPhoneNumber(),
-		Address:                 RandomAddress(),
 		InitialSettings:         RandomInitialSettings(),
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
@@ -95,7 +93,6 @@ func RandomAttribtues() *prescription.Attributes {
 		Weight:                  RandomWeight(),
 		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 		PhoneNumber:             RandomPhoneNumber(),
-		Address:                 RandomAddress(),
 		InitialSettings:         RandomInitialSettings(),
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
@@ -127,17 +124,6 @@ func RandomPhoneNumber() *prescription.PhoneNumber {
 	return &prescription.PhoneNumber{
 		CountryCode: 1,
 		Number:      fmt.Sprintf("(%s) %s-%s", faker.PhoneNumber().AreaCode(), faker.PhoneNumber().ExchangeCode(), faker.PhoneNumber().SubscriberNumber(4)),
-	}
-}
-
-func RandomAddress() *prescription.Address {
-	return &prescription.Address{
-		Line1:      faker.Address().StreetAddress(),
-		Line2:      faker.Address().SecondaryAddress(),
-		City:       faker.Address().City(),
-		State:      strings.ToUpper(faker.Address().StateAbbr()),
-		PostalCode: faker.Address().Postcode(),
-		Country:    "US",
 	}
 }
 

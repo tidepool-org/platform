@@ -47,7 +47,6 @@ type RevisionCreate struct {
 	Weight                  *Weight          `json:"weight,omitempty"`
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty"`
 	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty"`
-	Address                 *Address         `json:"address,omitempty"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty"`
 	TherapySettings         string           `json:"therapySettings,omitempty"`
@@ -78,9 +77,6 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 	}
 	if r.PhoneNumber != nil {
 		r.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
-	}
-	if r.Address != nil {
-		r.Address.Validate(validator.WithReference("address"))
 	}
 	if r.InitialSettings != nil {
 		r.InitialSettings.Validate(validator.WithReference("initialSettings"))
@@ -124,14 +120,6 @@ func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
 		r.Weight.ValidateAllRequired(weightValidator)
 	}
 
-	// if address is nil validate will fail
-	addressValidator := validator.WithReference("address")
-	if r.Address != nil {
-		r.Address.ValidateAllRequired(addressValidator)
-	} else {
-		addressValidator.ReportError(structureValidator.ErrorValueEmpty())
-	}
-
 	initialSettingsValidator := validator.WithReference("initialSettings")
 	if r.InitialSettings != nil {
 		r.InitialSettings.ValidateAllRequired(initialSettingsValidator, r.TherapySettings)
@@ -168,7 +156,6 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 			Weight:                  create.Weight,
 			YearOfDiagnosis:         create.YearOfDiagnosis,
 			PhoneNumber:             create.PhoneNumber,
-			Address:                 create.Address,
 			InitialSettings:         create.InitialSettings,
 			Training:                create.Training,
 			TherapySettings:         create.TherapySettings,
@@ -218,7 +205,6 @@ type Attributes struct {
 	Weight                  *Weight          `json:"weight,omitempty" bson:"weight,omitempty"`
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis,omitempty"`
 	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
-	Address                 *Address         `json:"address,omitempty" bson:"address,omitempty"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty" bson:"training,omitempty"`
 	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
@@ -257,9 +243,6 @@ func (a *Attributes) Validate(validator structure.Validator) {
 	if a.Weight != nil {
 		a.Weight.Validate(validator.WithReference("weight"))
 	}
-	if a.Address != nil {
-		a.Address.Validate(validator.WithReference("address"))
-	}
 	if a.InitialSettings != nil {
 		a.InitialSettings.Validate(validator.WithReference("initialSettings"))
 	}
@@ -288,14 +271,6 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 	phoneValidator := validator.WithReference("phoneNumber")
 	if a.PhoneNumber != nil {
 		a.PhoneNumber.Validate(phoneValidator)
-	}
-
-	// if address is nil validate will fail
-	addressValidator := validator.WithReference("address")
-	if a.Address != nil {
-		a.Address.ValidateAllRequired(addressValidator)
-	} else {
-		addressValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
 
 	weightValidator := validator.WithReference("weight")

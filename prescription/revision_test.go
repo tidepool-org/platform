@@ -84,15 +84,6 @@ var _ = Describe("Revision", func() {
 				Expect(revision.Attributes.PhoneNumber).To(Equal(create.PhoneNumber))
 			})
 
-			It("sets the address correctly", func() {
-				Expect(revision.Attributes.Address.Line1).To(Equal(create.Address.Line1))
-				Expect(revision.Attributes.Address.Line2).To(Equal(create.Address.Line2))
-				Expect(revision.Attributes.Address.City).To(Equal(create.Address.City))
-				Expect(revision.Attributes.Address.PostalCode).To(Equal(create.Address.PostalCode))
-				Expect(revision.Attributes.Address.State).To(Equal(create.Address.State))
-				Expect(revision.Attributes.Address.Country).To(Equal(create.Address.Country))
-			})
-
 			It("sets the initial settings correctly", func() {
 				Expect(revision.Attributes.InitialSettings).To(Equal(create.InitialSettings))
 			})
@@ -246,16 +237,6 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
-				It("fails with an invalid address", func() {
-					attr.Address.Country = "invalid"
-					Expect(validate.Validate(attr)).To(HaveOccurred())
-				})
-
-				It("fails with an empty address", func() {
-					attr.Address = nil
-					Expect(validate.Validate(attr)).To(HaveOccurred())
-				})
-
 				It("fails with invalid initial settings", func() {
 					attr.InitialSettings.BasalRateMaximum.Value = pointer.FromFloat64(10000.0)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
@@ -364,7 +345,6 @@ var _ = Describe("Revision", func() {
 						Weight:                  nil,
 						YearOfDiagnosis:         0,
 						PhoneNumber:             nil,
-						Address:                 nil,
 						InitialSettings:         nil,
 						Training:                "",
 						TherapySettings:         "",
