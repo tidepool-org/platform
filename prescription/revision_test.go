@@ -404,13 +404,13 @@ var _ = Describe("Revision", func() {
 				})
 
 				It("fails with empty pump type", func() {
-					settings.PumpType = nil
+					settings.PumpID = nil
 					settings.ValidateAllRequired(validate, therapySettings)
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 
 				It("fails with empty cgm type", func() {
-					settings.CGMType = nil
+					settings.CgmID = nil
 					settings.ValidateAllRequired(validate, therapySettings)
 					Expect(validate.Error()).To(HaveOccurred())
 				})
@@ -460,13 +460,13 @@ var _ = Describe("Revision", func() {
 				})
 
 				It("fails with empty pump type", func() {
-					settings.PumpType = nil
+					settings.PumpID = nil
 					settings.ValidateAllRequired(validate, therapySettings)
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 
 				It("fails with empty cgm type", func() {
-					settings.CGMType = nil
+					settings.CgmID = nil
 					settings.ValidateAllRequired(validate, therapySettings)
 					Expect(validate.Error()).To(HaveOccurred())
 				})

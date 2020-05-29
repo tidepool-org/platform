@@ -4,9 +4,10 @@ import (
 	"regexp"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	"github.com/tidepool-org/platform/device"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -310,8 +311,8 @@ type InitialSettings struct {
 	InsulinSensitivitySchedule *pump.InsulinSensitivityStartArray `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
 	BasalRateMaximum           *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
 	BolusAmountMaximum         *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
-	PumpType                   *device.Device                     `json:"pumpType" bson:"pumpType"`
-	CGMType                    *device.Device                     `json:"cgmType" bson:"cgmType"`
+	PumpID                     *primitive.ObjectID                `json:"pumpId" bson:"pumpId"`
+	CgmID                      *primitive.ObjectID                `json:"cgmId" bson:"cgmId"`
 	// TODO: Add Suspend threshold - Dependent on latest data model changes
 	// TODO: Add Insulin model - Dependent on latest data model changes
 }
@@ -336,11 +337,13 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	if i.BolusAmountMaximum != nil {
 		i.BolusAmountMaximum.Validate(validator.WithReference("bolusAmountMaximum"))
 	}
-	if i.PumpType == nil {
-		i.PumpType.Validate(validator.WithReference("pumpType"))
+	if i.PumpID == nil {
+		id := i.PumpID.Hex()
+		validator.String("pumpId", &id).Hexadecimal().LengthEqualTo(24)
 	}
-	if i.CGMType == nil {
-		i.CGMType.Validate(validator.WithReference("cgmType"))
+	if i.CgmID == nil {
+		id := i.CgmID.Hex()
+		validator.String("cgmId", &id).Hexadecimal().LengthEqualTo(24)
 	}
 }
 
@@ -363,11 +366,11 @@ func (i *InitialSettings) ValidateAllRequired(validator structure.Validator, the
 	if i.BolusAmountMaximum == nil {
 		validator.WithReference("bolusAmountMaximum").ReportError(structureValidator.ErrorValueEmpty())
 	}
-	if i.PumpType == nil {
-		validator.WithReference("pumpType").ReportError(structureValidator.ErrorValueEmpty())
+	if i.PumpID == nil {
+		validator.WithReference("pumpId").ReportError(structureValidator.ErrorValueEmpty())
 	}
-	if i.CGMType == nil {
-		validator.WithReference("cgmType").ReportError(structureValidator.ErrorValueEmpty())
+	if i.CgmID == nil {
+		validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	// TODO: Validate Suspend Threshold and Insulin Type
 }

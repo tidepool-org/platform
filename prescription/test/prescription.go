@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -12,11 +14,7 @@ import (
 
 	"syreclabs.com/go/faker"
 
-	"github.com/tidepool-org/platform/data/types/settings/cgm"
-	cgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
-	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/types/settings/pump/test"
-	"github.com/tidepool-org/platform/device"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/prescription"
 )
@@ -129,7 +127,6 @@ func RandomInitialSettings() *prescription.InitialSettings {
 	units := faker.RandomChoice(glucose.Units())
 	randomPump := test.NewPump(&units)
 	scheduleName := *randomPump.ActiveScheduleName
-	randomCGM := cgmTest.RandomCGM(&units)
 
 	return &prescription.InitialSettings{
 		BloodGlucoseUnits:          units,
@@ -139,31 +136,14 @@ func RandomInitialSettings() *prescription.InitialSettings {
 		InsulinSensitivitySchedule: randomPump.InsulinSensitivitySchedules.Get(scheduleName),
 		BasalRateMaximum:           randomPump.Basal.RateMaximum,
 		BolusAmountMaximum:         randomPump.Bolus.AmountMaximum,
-		PumpType:                   getPumpType(randomPump),
-		CGMType:                    getCGMType(randomCGM),
+		PumpID:                     RandomDeviceID(),
+		CgmID:                      RandomDeviceID(),
 	}
 }
 
-func getPumpType(pump *pump.Pump) *device.Device {
-	manufacturers := *pump.Manufacturers
-	manufacturer := manufacturers[0]
-
-	return &device.Device{
-		Type:         device.DeviceTypePump,
-		Manufacturer: manufacturer,
-		Model:        *pump.Model,
-	}
-}
-
-func getCGMType(cgm *cgm.CGM) *device.Device {
-	manufacturers := *cgm.Manufacturers
-	manufacturer := manufacturers[0]
-
-	return &device.Device{
-		Type:         device.DeviceTypePump,
-		Manufacturer: manufacturer,
-		Model:        *cgm.Model,
-	}
+func RandomDeviceID() *primitive.ObjectID {
+	id := primitive.NewObjectID()
+	return &id
 }
 
 func RandomTraining() string {
