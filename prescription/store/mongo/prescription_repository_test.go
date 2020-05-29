@@ -97,12 +97,12 @@ var _ = Describe("PrescriptionRepository", func() {
 						"key": HaveKey("_id"),
 					}),
 					MatchKeys(IgnoreExtras, Keys{
-						"key":        HaveKey("patientId"),
+						"key":        HaveKey("patientUserId"),
 						"name":       Equal("GetByPatientId"),
 						"background": Equal(true),
 					}),
 					MatchKeys(IgnoreExtras, Keys{
-						"key":        HaveKey("prescriberId"),
+						"key":        HaveKey("prescriberUserId"),
 						"name":       Equal("GetByPrescriberId"),
 						"background": Equal(true),
 					}),
@@ -195,7 +195,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					patient.Roles = &[]string{}
 					filter, err := prescription.NewFilter(patient)
 					Expect(err).ToNot(HaveOccurred())
-					filter.PatientID = userTest.RandomID()
+					filter.PatientUserId = userTest.RandomID()
 
 					result, err := repository.ListPrescriptions(ctx, filter, nil)
 					errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
@@ -219,7 +219,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						ids = make([]primitive.ObjectID, count)
 						for i := 0; i < count; i++ {
 							p := prescriptions[i]
-							p.PatientID = ""
+							p.PatientUserID = ""
 							p.State = prescription.StateSubmitted
 							p.CreatedUserID = *clinician.UserID
 
@@ -314,12 +314,12 @@ var _ = Describe("PrescriptionRepository", func() {
 						expectedIDs := ids[1:3]
 						patientID := userTest.RandomID()
 
-						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientId": patientID}})
+						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientUserId": patientID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.PatientID = patientID
+						filter.PatientUserId = patientID
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
@@ -411,7 +411,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						patient := userTest.RandomUser()
 						patientID := patient.UserID
 
-						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientId": patientID}})
+						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientUserId": patientID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter, err := prescription.NewFilter(patient)
@@ -450,7 +450,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						ids = make([]primitive.ObjectID, count)
 						for i := 0; i < count; i++ {
 							p := prescriptions[i]
-							p.PatientID = ""
+							p.PatientUserID = ""
 							p.State = faker.RandomChoice([]string{prescription.StateDraft, prescription.StatePending})
 							p.DeletedTime = nil
 							p.DeletedUserID = ""
@@ -713,7 +713,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						result, err := repository.ClaimPrescription(ctx, usr, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
-						Expect(result.PatientID).To(Equal(*usr.UserID))
+						Expect(result.PatientUserID).To(Equal(*usr.UserID))
 					})
 				})
 			})
@@ -727,7 +727,7 @@ var _ = Describe("PrescriptionRepository", func() {
 				BeforeEach(func() {
 					usr = userTest.RandomUser()
 					prescr = test.RandomClaimedPrescription()
-					prescr.PatientID = *usr.UserID
+					prescr.PatientUserID = *usr.UserID
 					prescrID = prescr.ID.Hex()
 					stateUpdate = prescription.NewStateUpdate()
 					stateUpdate.State = prescription.StateActive

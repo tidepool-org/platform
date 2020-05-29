@@ -28,13 +28,13 @@ type PrescriptionRepository struct {
 func (p *PrescriptionRepository) CreateIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
 		{
-			Keys: bson.D{{Key: "patientId", Value: 1}},
+			Keys: bson.D{{Key: "patientUserId", Value: 1}},
 			Options: options.Index().
 				SetName("GetByPatientId").
 				SetBackground(true),
 		},
 		{
-			Keys: bson.D{{Key: "prescriberId", Value: 1}},
+			Keys: bson.D{{Key: "prescriberUserId", Value: 1}},
 			Options: options.Index().
 				SetName("GetByPrescriberId").
 				SetBackground(true),
@@ -255,9 +255,9 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, usr *use
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "claim": claim})
 
 	selector := bson.M{
-		"accessCode": claim.AccessCode,
-		"patientId":  nil,
-		"state":      prescription.StateSubmitted,
+		"accessCode":    claim.AccessCode,
+		"patientUserId": nil,
+		"state":         prescription.StateSubmitted,
 	}
 
 	prescr := &prescription.Prescription{}
@@ -310,8 +310,8 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, us
 	}
 
 	selector := bson.M{
-		"_id":       prescriptionID,
-		"patientId": *usr.UserID,
+		"_id":           prescriptionID,
+		"patientUserId": *usr.UserID,
 	}
 
 	prescr := &prescription.Prescription{}
@@ -351,8 +351,8 @@ func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID})
 
 	selector := bson.M{
-		"patientId": usr.UserID,
-		"state":     prescription.StateActive,
+		"patientUserId": usr.UserID,
+		"state":         prescription.StateActive,
 	}
 	update := bson.M{
 		"$set": bson.M{
@@ -378,8 +378,8 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 			{"createdUserId": filter.ClinicianID},
 		}
 	}
-	if filter.PatientID != "" {
-		selector["patientId"] = filter.PatientID
+	if filter.PatientUserId != "" {
+		selector["patientUserId"] = filter.PatientUserId
 	}
 	if filter.PatientEmail != "" {
 		selector["latestRevision.attributes.email"] = filter.PatientEmail
@@ -446,8 +446,8 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 		set["prescriberId"] = prescrUpdate.PrescriberUserID
 	}
 
-	if prescrUpdate.PatientID != "" {
-		set["patientId"] = prescrUpdate.PatientID
+	if prescrUpdate.PatientUserID != "" {
+		set["patientUserId"] = prescrUpdate.PatientUserID
 	}
 
 	return update

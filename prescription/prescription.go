@@ -45,7 +45,7 @@ type Accessor interface {
 
 type Prescription struct {
 	ID               primitive.ObjectID `json:"id" bson:"_id"`
-	PatientID        string             `json:"patientId,omitempty" bson:"patientId,omitempty"`
+	PatientUserID    string             `json:"patientUserId,omitempty" bson:"patientUserId,omitempty"`
 	AccessCode       string             `json:"accessCode,omitempty" bson:"accessCode"`
 	State            string             `json:"state" bson:"state"`
 	LatestRevision   *Revision          `json:"latestRevision" bson:"latestRevision"`
@@ -88,8 +88,8 @@ func (p *Prescription) Validate(validator structure.Validator) {
 	id := p.ID.Hex()
 	validator.String("id", &id).Hexadecimal().LengthEqualTo(24)
 
-	if p.PatientID != "" {
-		validator.String("patientId", &p.PatientID).Using(user.IDValidator)
+	if p.PatientUserID != "" {
+		validator.String("patientUserId", &p.PatientUserID).Using(user.IDValidator)
 	}
 
 	validator.String("accessCode", &p.AccessCode).LengthEqualTo(6).Alphanumeric()
@@ -184,7 +184,7 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 type Filter struct {
 	currentUser       *user.User
 	ClinicianID       string
-	PatientID         string
+	PatientUserId     string
 	PatientEmail      string
 	State             string
 	ID                string
@@ -206,7 +206,7 @@ func NewFilter(currentUser *user.User) (*Filter, error) {
 	if currentUser.HasRole(user.RoleClinic) {
 		f.ClinicianID = *currentUser.UserID
 	} else {
-		f.PatientID = *currentUser.UserID
+		f.PatientUserId = *currentUser.UserID
 	}
 
 	return f, nil
@@ -221,14 +221,14 @@ func (f *Filter) Validate(validator structure.Validator) {
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(States()...)
 		}
-		if f.PatientID != "" {
-			validator.String("patientId", &f.PatientID).Using(user.IDValidator)
+		if f.PatientUserId != "" {
+			validator.String("patientUserId", &f.PatientUserId).Using(user.IDValidator)
 		}
 		if f.PatientEmail != "" {
 			validator.String("patientEmail", &f.PatientEmail).Email()
 		}
 	} else {
-		validator.String("patientId", &f.PatientID).NotEmpty().EqualTo(*f.currentUser.UserID)
+		validator.String("patientUserId", &f.PatientUserId).NotEmpty().EqualTo(*f.currentUser.UserID)
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(StatesVisibleToPatients()...)
 		}
@@ -241,8 +241,8 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 		f.ID = *ptr
 	}
 	if f.currentUser.HasRole(user.RoleClinic) {
-		if ptr := parser.String("patientId"); ptr != nil {
-			f.PatientID = *ptr
+		if ptr := parser.String("patientUserId"); ptr != nil {
+			f.PatientUserId = *ptr
 		}
 		if ptr := parser.String("patientEmail"); ptr != nil {
 			f.PatientEmail = *ptr
@@ -271,7 +271,7 @@ type Update struct {
 	Revision         *Revision
 	State            string
 	PrescriberUserID string
-	PatientID        string
+	PatientUserID    string
 	ExpirationTime   *time.Time
 	ModifiedTime     time.Time
 	ModifiedUserID   string
@@ -299,7 +299,7 @@ func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Upd
 		usr:            usr,
 		prescription:   prescription,
 		State:          StateReviewed,
-		PatientID:      *usr.UserID,
+		PatientUserID:  *usr.UserID,
 		ModifiedUserID: *usr.UserID,
 		ModifiedTime:   time.Now(),
 	}
@@ -360,8 +360,8 @@ func (u *Update) validateForClinician(validator structure.Validator) {
 	if u.PrescriberUserID != "" {
 		validator.String("prescriberUserId", &u.PrescriberUserID).EqualTo(*u.usr.UserID)
 	}
-	if u.PatientID != "" {
-		validator.String("patientId", &u.PatientID).Using(user.IDValidator)
+	if u.PatientUserID != "" {
+		validator.String("patientUserId", &u.PatientUserID).Using(user.IDValidator)
 	}
 }
 
@@ -372,8 +372,8 @@ func (u *Update) validateForPatient(validator structure.Validator) {
 	if u.PrescriberUserID != "" {
 		validator.String("prescriberUserId", &u.PrescriberUserID).Empty()
 	}
-	if u.PatientID != "" {
-		validator.String("patientId", &u.PatientID).EqualTo(*u.usr.UserID)
+	if u.PatientUserID != "" {
+		validator.String("patientUserId", &u.PatientUserID).EqualTo(*u.usr.UserID)
 	}
 }
 

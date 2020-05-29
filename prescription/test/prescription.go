@@ -46,7 +46,7 @@ func RandomClaimedPrescription() *prescription.Prescription {
 	create := RandomRevisionCreate()
 	prescr := prescription.NewPrescription(userTest.RandomID(), create)
 	prescr.AccessCode = ""
-	prescr.PatientID = userTest.RandomID()
+	prescr.PatientUserID = userTest.RandomID()
 	prescr.State = prescription.StateReviewed
 
 	return prescr
