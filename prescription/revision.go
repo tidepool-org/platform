@@ -256,6 +256,8 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 	phoneValidator := validator.WithReference("phoneNumber")
 	if a.PhoneNumber != nil {
 		a.PhoneNumber.Validate(phoneValidator)
+	} else {
+		phoneValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
 
 	weightValidator := validator.WithReference("weight")
