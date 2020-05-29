@@ -342,64 +342,88 @@ var _ = Describe("PrescriptionRepository", func() {
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a created start date", func() {
+					It("returns the correct prescriptions given a created after filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
 							return prescriptions[i].CreatedTime.Before(prescriptions[j].CreatedTime)
 						})
 
-						expectedIDs := ids[3:5]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].CreatedTime
+						for i, id := range ids {
+							if prescriptions[i].CreatedTime.Equal(*time) || prescriptions[i].CreatedTime.After(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.CreatedTimeStart = &prescriptions[2].CreatedTime
+						filter.CreatedAfter = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a created end date", func() {
+					It("returns the correct prescriptions given a created before filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
 							return prescriptions[i].CreatedTime.Before(prescriptions[j].CreatedTime)
 						})
 
-						expectedIDs := ids[0:2]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].CreatedTime
+						for i, id := range ids {
+							if prescriptions[i].CreatedTime.Before(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.CreatedTimeEnd = &prescriptions[2].CreatedTime
+						filter.CreatedBefore = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a modified start date", func() {
+					It("returns the correct prescriptions given a modified after filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
 							return prescriptions[i].ModifiedTime.Before(prescriptions[j].ModifiedTime)
 						})
 
-						expectedIDs := ids[3:5]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].ModifiedTime
+						for i, id := range ids {
+							if prescriptions[i].ModifiedTime.Equal(*time) || prescriptions[i].ModifiedTime.After(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.ModifiedTimeStart = &prescriptions[2].ModifiedTime
+						filter.ModifiedAfter = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a modified end date", func() {
+					It("returns the correct prescriptions given a modified before filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
 							return prescriptions[i].ModifiedTime.Before(prescriptions[j].ModifiedTime)
 						})
 
-						expectedIDs := ids[0:2]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].ModifiedTime
+						for i, id := range ids {
+							if prescriptions[i].ModifiedTime.Before(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.ModifiedTimeEnd = &prescriptions[2].ModifiedTime
+						filter.ModifiedBefore = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())

@@ -182,16 +182,16 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 }
 
 type Filter struct {
-	currentUser       *user.User
-	ClinicianID       string
-	PatientUserId     string
-	PatientEmail      string
-	State             string
-	ID                string
-	CreatedTimeStart  *time.Time
-	CreatedTimeEnd    *time.Time
-	ModifiedTimeStart *time.Time
-	ModifiedTimeEnd   *time.Time
+	currentUser    *user.User
+	ClinicianID    string
+	PatientUserId  string
+	PatientEmail   string
+	State          string
+	ID             string
+	CreatedAfter   *time.Time
+	CreatedBefore  *time.Time
+	ModifiedAfter  *time.Time
+	ModifiedBefore *time.Time
 }
 
 func NewFilter(currentUser *user.User) (*Filter, error) {
@@ -251,17 +251,17 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("state"); ptr != nil {
 		f.State = *ptr
 	}
-	if ptr := parser.Time("createdTimeStart", time.RFC3339Nano); ptr != nil {
-		f.CreatedTimeStart = ptr
+	if ptr := parser.Time("createdAfter", time.RFC3339Nano); ptr != nil {
+		f.CreatedAfter = ptr
 	}
-	if ptr := parser.Time("createdTimeEnd", time.RFC3339Nano); ptr != nil {
-		f.CreatedTimeEnd = ptr
+	if ptr := parser.Time("createdBefore", time.RFC3339Nano); ptr != nil {
+		f.CreatedBefore = ptr
 	}
-	if ptr := parser.Time("modifiedTimeStart", time.RFC3339Nano); ptr != nil {
-		f.ModifiedTimeStart = ptr
+	if ptr := parser.Time("modifiedAfter", time.RFC3339Nano); ptr != nil {
+		f.ModifiedAfter = ptr
 	}
-	if ptr := parser.Time("modifiedTimeEnd", time.RFC3339Nano); ptr != nil {
-		f.ModifiedTimeEnd = ptr
+	if ptr := parser.Time("modifiedBefore", time.RFC3339Nano); ptr != nil {
+		f.ModifiedBefore = ptr
 	}
 }
 

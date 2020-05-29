@@ -395,17 +395,17 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	if filter.State != "" {
 		selector["state"] = filter.State
 	}
-	if filter.CreatedTimeStart != nil {
-		selector["createdTime"] = bson.M{"$gt": filter.CreatedTimeStart}
+	if filter.CreatedAfter != nil {
+		selector["createdTime"] = bson.M{"$gte": filter.CreatedAfter}
 	}
-	if filter.CreatedTimeEnd != nil {
-		selector["createdTime"] = bson.M{"$lt": filter.CreatedTimeEnd}
+	if filter.CreatedBefore != nil {
+		selector["createdTime"] = bson.M{"$lt": filter.CreatedBefore}
 	}
-	if filter.ModifiedTimeStart != nil {
-		selector["modifiedTime"] = bson.M{"$gt": filter.ModifiedTimeStart}
+	if filter.ModifiedAfter != nil {
+		selector["modifiedTime"] = bson.M{"$gte": filter.ModifiedAfter}
 	}
-	if filter.ModifiedTimeEnd != nil {
-		selector["modifiedTime"] = bson.M{"$lt": filter.ModifiedTimeEnd}
+	if filter.ModifiedBefore != nil {
+		selector["modifiedTime"] = bson.M{"$lt": filter.ModifiedBefore}
 	}
 
 	return selector

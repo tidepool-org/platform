@@ -24,10 +24,11 @@ func RandomPrescriptions(count int) prescription.Prescriptions {
 	for i := 0; i < count; i++ {
 		prescr := RandomPrescription()
 
-		createdTime := prescr.CreatedTime.Add(time.Second*time.Duration(i) - time.Hour)
-		modifiedTime := prescr.LatestRevision.Attributes.CreatedTime.Add(time.Second * time.Duration(i))
+		createdTime := prescr.CreatedTime.Add(time.Hour * time.Duration(i))
+		modifiedTime := createdTime.Add(time.Hour * time.Duration(i))
 
 		prescr.CreatedTime = createdTime
+		prescr.ModifiedTime = modifiedTime
 		prescr.LatestRevision.Attributes.CreatedTime = modifiedTime
 		prescr.RevisionHistory[0].Attributes.CreatedTime = modifiedTime
 
