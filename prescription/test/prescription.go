@@ -179,7 +179,6 @@ func RandomTherapySettings() string {
 	return faker.RandomChoice([]string{
 		prescription.TherapySettingInitial,
 		prescription.TherapySettingTransferPumpSettings,
-		prescription.TherapySettingCertifiedPumpTrainer,
 	})
 }
 

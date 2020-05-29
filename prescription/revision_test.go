@@ -248,10 +248,10 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty initial settings when therapy settings is CPT", func() {
+				It("fails with empty initial settings when therapy settings is 'transfer pump settings'", func() {
 					attr.InitialSettings = nil
-					attr.TherapySettings = prescription.TherapySettingCertifiedPumpTrainer
-					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+					attr.TherapySettings = prescription.TherapySettingTransferPumpSettings
+					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail with valid training", func() {
@@ -270,8 +270,6 @@ var _ = Describe("Revision", func() {
 					attr.TherapySettings = prescription.TherapySettingInitial
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 					attr.TherapySettings = prescription.TherapySettingTransferPumpSettings
-					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-					attr.TherapySettings = prescription.TherapySettingCertifiedPumpTrainer
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
@@ -374,64 +372,64 @@ var _ = Describe("Revision", func() {
 		})
 
 		Describe("Validate", func() {
-			When("therapy settings is 'certified pump trainer'", func() {
-				therapySettings := prescription.TherapySettingCertifiedPumpTrainer
+			When("therapy settings is 'initial'", func() {
+				therapySettings := prescription.TherapySettingInitial
 
 				BeforeEach(func() {
 					validate = validator.New()
 				})
 
-				It("doesn't fail with empty basal rate schedule", func() {
+				It("fails with empty basal rate schedule", func() {
 					settings.BasalRateSchedule = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty blood glucose target schedule", func() {
+				It("fails with empty blood glucose target schedule", func() {
 					settings.BloodGlucoseTargetSchedule = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty carbohydrate ratio schedule", func() {
+				It("fails with empty carbohydrate ratio schedule", func() {
 					settings.CarbohydrateRatioSchedule = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty insulin sensitivity schedule", func() {
+				It("fails fail with empty insulin sensitivity schedule", func() {
 					settings.InsulinSensitivitySchedule = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty basal rate maximum", func() {
+				It("fails with empty basal rate maximum", func() {
 					settings.BasalRateMaximum = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty bolus amount maximum", func() {
+				It("fails with empty bolus amount maximum", func() {
 					settings.BolusAmountMaximum = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty pump type", func() {
+				It("fails with empty pump type", func() {
 					settings.PumpType = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty cgm type", func() {
+				It("fails with empty cgm type", func() {
 					settings.CGMType = nil
 					settings.ValidateAllRequired(validate, therapySettings)
-					Expect(validate.Error()).ToNot(HaveOccurred())
+					Expect(validate.Error()).To(HaveOccurred())
 				})
 			})
 
-			When("therapy settings is 'certified pump trainer'", func() {
-				therapySettings := prescription.TherapySettingInitial
+			When("therapy settings is 'initial'", func() {
+				therapySettings := prescription.TherapySettingTransferPumpSettings
 
 				BeforeEach(func() {
 					validate = validator.New()

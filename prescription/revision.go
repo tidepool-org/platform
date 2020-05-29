@@ -18,7 +18,6 @@ const (
 
 	TherapySettingInitial              = "initial"
 	TherapySettingTransferPumpSettings = "transferPumpSettings"
-	TherapySettingCertifiedPumpTrainer = "certifiedPumpTrainer"
 
 	LoopModeClosedLoop  = "closedLoop"
 	LoopModeSuspendOnly = "suspendOnly"
@@ -281,7 +280,7 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 	initialSettingsValidator := validator.WithReference("initialSettings")
 	if a.InitialSettings != nil {
 		a.InitialSettings.ValidateAllRequired(initialSettingsValidator, a.TherapySettings)
-	} else if a.TherapySettings != TherapySettingCertifiedPumpTrainer {
+	} else {
 		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
 }
@@ -358,35 +357,31 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 }
 
 func (i *InitialSettings) ValidateAllRequired(validator structure.Validator, therapySettings string) {
-	if therapySettings != TherapySettingCertifiedPumpTrainer {
-		if therapySettings == TherapySettingInitial {
-			if i.BasalRateSchedule == nil {
-				validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.BloodGlucoseTargetSchedule == nil {
-				validator.WithReference("bgTarget").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.CarbohydrateRatioSchedule == nil {
-				validator.WithReference("carbRatio").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.InsulinSensitivitySchedule == nil {
-				validator.WithReference("insulinSensitivity").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.BasalRateMaximum == nil {
-				validator.WithReference("basalRateMaximum").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.BolusAmountMaximum == nil {
-				validator.WithReference("bolusAmountMaximum").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.PumpType == nil {
-				validator.WithReference("pumpType").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.CGMType == nil {
-				validator.WithReference("cgmType").ReportError(structureValidator.ErrorValueEmpty())
-			}
-		}
-		// TODO: Validate Suspend Threshold and Insulin Type
+	if i.BasalRateSchedule == nil {
+		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
+	if i.BloodGlucoseTargetSchedule == nil {
+		validator.WithReference("bgTarget").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.CarbohydrateRatioSchedule == nil {
+		validator.WithReference("carbRatio").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.InsulinSensitivitySchedule == nil {
+		validator.WithReference("insulinSensitivity").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.BasalRateMaximum == nil {
+		validator.WithReference("basalRateMaximum").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.BolusAmountMaximum == nil {
+		validator.WithReference("bolusAmountMaximum").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.PumpType == nil {
+		validator.WithReference("pumpType").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.CGMType == nil {
+		validator.WithReference("cgmType").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	// TODO: Validate Suspend Threshold and Insulin Type
 }
 
 func RevisionStates() []string {
@@ -408,7 +403,6 @@ func TherapySettings() []string {
 	return []string{
 		TherapySettingInitial,
 		TherapySettingTransferPumpSettings,
-		TherapySettingCertifiedPumpTrainer,
 	}
 }
 
