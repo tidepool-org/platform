@@ -96,12 +96,8 @@ var _ = Describe("Mongo", func() {
 		Context("EnsureIndexes", func() {
 			It("returns successfully", func() {
 				Expect(store.EnsureIndexes()).To(Succeed())
-				indexes, err := mgoCollection.Indexes()
+				_, err := mgoCollection.Indexes()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("userid"), "Background": Equal(true), "Unique": Equal(true)}),
-				))
 			})
 		})
 
