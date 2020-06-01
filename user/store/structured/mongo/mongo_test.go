@@ -96,8 +96,6 @@ var _ = Describe("Mongo", func() {
 		Context("EnsureIndexes", func() {
 			It("returns successfully", func() {
 				Expect(store.EnsureIndexes()).To(Succeed())
-				_, err := mgoCollection.Indexes()
-				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 
