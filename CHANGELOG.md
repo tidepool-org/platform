@@ -4,6 +4,8 @@ The Tidepool platform API
 ## Unreleased
 ### Changed
 - PT-1287 Integrate Tidepool master for platform
+- PT-1298 Store Zen mode object
+- PT-1314 Add Confidential mode in database and Update related APIs
 
 ## 0.7.2 - 2020-05-14 
 ### Changed

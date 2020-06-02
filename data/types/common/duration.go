@@ -1,4 +1,4 @@
-package physical
+package commontypes
 
 import (
 	"math"

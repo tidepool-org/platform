@@ -251,7 +251,7 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
 - `eventType`: `start | stop` is the type of event for the given event.
   - `start`: event created by the system. The `duration` attached to this object is the expected duration of the event.
   - `stop`: the event is stopped. The `duration` attached to this object is the actual duration of the event.
-- `eventId`: unique ID provided by the client that is used to link stop and start events.
+- `eventId`: unique ID provided by the client that is used to link stop and start events. __This ID is mandatory__.
 
 ```json
 {

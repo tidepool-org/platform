@@ -7,13 +7,23 @@ import (
 )
 
 const (
-	Type = "deviceEvent"
+	Type       = "deviceEvent"
+	StartEvent = "start"
+	StopEvent  = "stop"
 )
+
+func Events() []string {
+	return []string{
+		StartEvent,
+		StopEvent,
+	}
+}
 
 type Device struct {
 	types.Base `bson:",inline"`
 
-	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
+	SubType   string `json:"subType,omitempty" bson:"subType,omitempty"`
+	EventType string `json:"eventType,omitempty" bson:"eventType,omitempty"`
 }
 
 type Meta struct {
@@ -25,6 +35,14 @@ func New(subType string) Device {
 	return Device{
 		Base:    types.New(Type),
 		SubType: subType,
+	}
+}
+
+func NewWithEvent(subType string, eventType string) Device {
+	return Device{
+		Base:      types.New(Type),
+		SubType:   subType,
+		EventType: eventType,
 	}
 }
 
