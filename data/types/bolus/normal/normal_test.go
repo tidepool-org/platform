@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
 	dataTypesBolusNormalTest "github.com/tidepool-org/platform/data/types/bolus/normal/test"
+	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -282,6 +283,9 @@ var _ = Describe("Normal", func() {
 						datum := dataTypesBolusNormalTest.NewNormal()
 						mutator(datum)
 						expectedDatum := dataTypesBolusNormalTest.CloneNormal(datum)
+						if *datum.Prescriptor.Prescriptor == prescriptor.ManualPrescriptor {
+							expectedDatum.InsulinOnBoard = nil
+						}
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

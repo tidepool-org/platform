@@ -7,6 +7,7 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
 	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -116,6 +117,9 @@ var _ = Describe("Bolus", func() {
 						datum := dataTypesBolusTest.NewBolus()
 						mutator(datum)
 						expectedDatum := dataTypesBolusTest.CloneBolus(datum)
+						if *datum.Prescriptor.Prescriptor == prescriptor.ManualPrescriptor {
+							expectedDatum.InsulinOnBoard = nil
+						}
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -135,6 +139,12 @@ var _ = Describe("Bolus", func() {
 				),
 				Entry("does not modify the datum; insulin formulation missing",
 					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
+				),
+				Entry("does modify the datum; iob is ignored for manual prescriptor",
+					func(datum *bolus.Bolus) {
+						datum.Prescriptor.Prescriptor = pointer.FromString(prescriptor.ManualPrescriptor)
+						datum.InsulinOnBoard.InsulinOnBoard = pointer.FromFloat64(10)
+					},
 				),
 			)
 		})

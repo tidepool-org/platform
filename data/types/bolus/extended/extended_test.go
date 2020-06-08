@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/extended"
 	dataTypesBolusExtendedTest "github.com/tidepool-org/platform/data/types/bolus/extended/test"
+	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -509,6 +510,9 @@ var _ = Describe("Extended", func() {
 						datum := dataTypesBolusExtendedTest.NewExtended()
 						mutator(datum)
 						expectedDatum := dataTypesBolusExtendedTest.CloneExtended(datum)
+						if *datum.Prescriptor.Prescriptor == prescriptor.ManualPrescriptor {
+							expectedDatum.InsulinOnBoard = nil
+						}
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

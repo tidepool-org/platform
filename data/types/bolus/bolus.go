@@ -3,6 +3,8 @@ package bolus
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/bolus/iob"
+	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
 	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -17,7 +19,9 @@ type Bolus struct {
 
 	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
 
-	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	InsulinFormulation *insulin.Formulation     `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Prescriptor        *prescriptor.Prescriptor `bson:",inline"`
+	InsulinOnBoard     *iob.Iob                 `bson:",inline"`
 }
 
 type Meta struct {
@@ -27,8 +31,10 @@ type Meta struct {
 
 func New(subType string) Bolus {
 	return Bolus{
-		Base:    types.New(Type),
-		SubType: subType,
+		Base:           types.New(Type),
+		SubType:        subType,
+		InsulinOnBoard: iob.NewIob(),
+		Prescriptor:    prescriptor.NewPrescriptor(),
 	}
 }
 
@@ -43,6 +49,8 @@ func (b *Bolus) Parse(parser structure.ObjectParser) {
 	b.Base.Parse(parser)
 
 	b.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	b.InsulinOnBoard.Parse(parser)
+	b.Prescriptor.Parse(parser)
 }
 
 func (b *Bolus) Validate(validator structure.Validator) {
@@ -57,6 +65,12 @@ func (b *Bolus) Validate(validator structure.Validator) {
 	if b.InsulinFormulation != nil {
 		b.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
+	if b.InsulinOnBoard != nil {
+		b.InsulinOnBoard.Validate(validator)
+	}
+	if b.Prescriptor != nil {
+		b.Prescriptor.Validate(validator)
+	}
 }
 
 func (b *Bolus) Normalize(normalizer data.Normalizer) {
@@ -64,6 +78,16 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 
 	if b.InsulinFormulation != nil {
 		b.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
+	}
+	if b.Prescriptor != nil {
+		b.Prescriptor.Normalize(normalizer)
+	}
+	if b.InsulinOnBoard != nil {
+		if b.Prescriptor != nil && *b.Prescriptor.Prescriptor == prescriptor.ManualPrescriptor {
+			b.InsulinOnBoard = nil
+		} else {
+			b.InsulinOnBoard.Normalize(normalizer)
+		}
 	}
 }
 
