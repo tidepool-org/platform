@@ -23,6 +23,10 @@ Here is an example of what can be sent with the related meaning:
 
 And the additional field we would need:
 - `inputTime` is a UTC string timestamp that defines at what time the patient has entered the meal. This field is optional. It takes the same format as `time` field.
+- `inputMeal` is a structure describing the meal
+  - `inputMeal.meal`: type of meal as defined on the handset, `small | medium | large`. This field is optional.
+  - `inputMeal.snack`: is is defined as a snack by the user on the handset, `yes | no`. This field is optional.
+  - `inputMeal.fat`: is is defined as a fat meal by the user on the handset, `yes | no`. This field is optional.
 
 ```json
 {
@@ -30,6 +34,11 @@ And the additional field we would need:
   "timezoneOffset": 120,
   "deviceTime": "2020-05-12T08:50:08",
   "inputTime": "2020-05-12T08:45:08.000Z",
+  "inputMeal": {
+    "meal": "small",
+    "snack": "yes",
+    "fat": "no"
+  },
   "deviceId": "IdOfTheDevice",
   "type": "wizard",
   "carbInput": 50,

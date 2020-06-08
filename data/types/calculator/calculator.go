@@ -8,6 +8,8 @@ import (
 	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
 	dataTypesBolusFactory "github.com/tidepool-org/platform/data/types/bolus/factory"
 	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
+	"github.com/tidepool-org/platform/data/types/food"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -36,22 +38,25 @@ func CarbUnits() []string {
 type Calculator struct {
 	types.Base `bson:",inline"`
 
-	BloodGlucoseInput        *float64                 `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
-	BloodGlucoseTarget       *dataBloodGlucose.Target `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
-	Bolus                    *data.Datum              `json:"-" bson:"-"`
-	BolusID                  *string                  `json:"bolus,omitempty" bson:"bolus,omitempty"`
-	CarbohydrateInput        *float64                 `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
-	InsulinCarbohydrateRatio *float64                 `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
-	InsulinOnBoard           *float64                 `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
-	InsulinSensitivity       *float64                 `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
-	Recommended              *Recommended             `json:"recommended,omitempty" bson:"recommended,omitempty"`
-	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
-	CarbUnits                *string                  `json:"carbUnits,omitempty" bson:"carbUnits,omitempty"`
+	BloodGlucoseInput        *float64                   `json:"bgInput,omitempty" bson:"bgInput,omitempty"`
+	BloodGlucoseTarget       *dataBloodGlucose.Target   `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
+	Bolus                    *data.Datum                `json:"-" bson:"-"`
+	BolusID                  *string                    `json:"bolus,omitempty" bson:"bolus,omitempty"`
+	CarbohydrateInput        *float64                   `json:"carbInput,omitempty" bson:"carbInput,omitempty"`
+	InsulinCarbohydrateRatio *float64                   `json:"insulinCarbRatio,omitempty" bson:"insulinCarbRatio,omitempty"`
+	InsulinOnBoard           *float64                   `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
+	InsulinSensitivity       *float64                   `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
+	Recommended              *Recommended               `json:"recommended,omitempty" bson:"recommended,omitempty"`
+	Units                    *string                    `json:"units,omitempty" bson:"units,omitempty"`
+	CarbUnits                *string                    `json:"carbUnits,omitempty" bson:"carbUnits,omitempty"`
+	InputTime                *dataTypesCommon.InputTime `bson:",inline"`
+	InputMeal                *food.Meal                 `json:"inputMeal,omitempty" bson:"inputMeal,omitempty"`
 }
 
 func New() *Calculator {
 	return &Calculator{
-		Base: types.New(Type),
+		Base:      types.New(Type),
+		InputTime: dataTypesCommon.NewInputTime(),
 	}
 }
 
@@ -72,6 +77,8 @@ func (c *Calculator) Parse(parser structure.ObjectParser) {
 	c.Units = parser.String("units")
 	c.Bolus = dataTypesBolusFactory.ParseBolusDatum(parser.WithReferenceObjectParser("bolus"))
 	c.CarbUnits = parser.String("carbUnits")
+	c.InputTime.Parse(parser)
+	c.InputMeal = food.ParseMeal(parser.WithReferenceObjectParser("inputMeal"))
 }
 
 func (c *Calculator) Validate(validator structure.Validator) {
@@ -115,6 +122,10 @@ func (c *Calculator) Validate(validator structure.Validator) {
 
 	if c.CarbUnits != nil {
 		validator.String("carbUnits", c.CarbUnits).OneOf(CarbUnits()...)
+	}
+	c.InputTime.Validate(validator)
+	if c.InputMeal != nil {
+		c.InputMeal.Validate(validator)
 	}
 }
 
@@ -164,5 +175,10 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		c.Units = dataBloodGlucose.NormalizeUnits(c.Units)
+	}
+
+	c.InputTime.Normalize(normalizer.WithReference("inputTime"))
+	if c.InputMeal != nil {
+		c.InputMeal.Normalize(normalizer.WithReference("inputMeal"))
 	}
 }
