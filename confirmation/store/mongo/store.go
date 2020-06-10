@@ -50,6 +50,7 @@ type ConfirmationSession struct {
 
 func (c *ConfirmationSession) EnsureIndexes() error {
 	return c.EnsureAllIndexes([]mgo.Index{
+		// Additional indexes are also created in `hydrophone`.
 		{Key: []string{"email"}, Background: true},
 		{Key: []string{"status"}, Background: true},
 		{Key: []string{"type"}, Background: true},
