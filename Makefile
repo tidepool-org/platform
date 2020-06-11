@@ -111,8 +111,8 @@ imports-write: goimports
 vet: tmp
 	@echo "go vet"
 	cd $(ROOT_DIRECTORY) && \
-		go vet ./... 2> _tmp/govet.out > _tmp/govet.out && \
-		O=`diff .govetignore _tmp/govet.out` || (echo "$${O}" && exit 1)
+    		go vet ./... > _tmp/govet.out 2>&1 || \
+    		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore

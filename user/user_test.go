@@ -409,10 +409,6 @@ var _ = Describe("User", func() {
 				Entry("roles valid",
 					func(datum *user.User) { datum.Roles = pointer.FromStringArray(user.Roles()) },
 				),
-				Entry("created time missing",
-					func(datum *user.User) { datum.CreatedTime = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
-				),
 				Entry("created time zero",
 					func(datum *user.User) { datum.CreatedTime = pointer.FromTime(time.Time{}) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/createdTime"),
@@ -430,16 +426,6 @@ var _ = Describe("User", func() {
 						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 					},
 				),
-				Entry("modified time missing",
-					func(datum *user.User) { datum.ModifiedTime = nil },
-				),
-				Entry("modified time before created time",
-					func(datum *user.User) {
-						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
-						datum.ModifiedTime = pointer.FromTime(test.PastFarTime())
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/modifiedTime"),
-				),
 				Entry("modified time after now",
 					func(datum *user.User) { datum.ModifiedTime = pointer.FromTime(test.FutureFarTime()) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
@@ -448,17 +434,6 @@ var _ = Describe("User", func() {
 					func(datum *user.User) {
 						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 					},
-				),
-				Entry("deleted time missing",
-					func(datum *user.User) { datum.DeletedTime = nil },
-				),
-				Entry("deleted time before created time",
-					func(datum *user.User) {
-						datum.CreatedTime = pointer.FromTime(test.PastNearTime())
-						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
-						datum.DeletedTime = pointer.FromTime(test.PastFarTime())
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/deletedTime"),
 				),
 				Entry("deleted time after now",
 					func(datum *user.User) { datum.DeletedTime = pointer.FromTime(test.FutureFarTime()) },
@@ -492,7 +467,6 @@ var _ = Describe("User", func() {
 						datum.Username = nil
 						datum.TermsAccepted = pointer.FromString("")
 						datum.Roles = pointer.FromStringArray([]string{user.RoleClinic, "invalid"})
-						datum.CreatedTime = nil
 						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
 						datum.Revision = pointer.FromInt(-1)
@@ -501,7 +475,6 @@ var _ = Describe("User", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/username"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("", time.RFC3339Nano), "/termsAccepted"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", user.Roles()), "/roles/1"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),

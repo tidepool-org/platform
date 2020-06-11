@@ -3,6 +3,8 @@ package pump_test
 import (
 	"math"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -14,25 +16,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewBolusAmountMaximum() *pump.BolusAmountMaximum {
-	datum := pump.NewBolusAmountMaximum()
-	datum.Units = pointer.FromString(test.RandomStringFromArray(pump.BolusAmountMaximumUnits()))
-	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(pump.BolusAmountMaximumValueRangeForUnits(datum.Units)))
-	return datum
-}
-
-func CloneBolusAmountMaximum(datum *pump.BolusAmountMaximum) *pump.BolusAmountMaximum {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBolusAmountMaximum()
-	clone.Units = pointer.CloneString(datum.Units)
-	clone.Value = pointer.CloneFloat64(datum.Value)
-	return clone
-}
 
 var _ = Describe("BolusAmountMaximum", func() {
 	It("BolusAmountMaximumUnitsUnits is expected", func() {
@@ -69,7 +53,7 @@ var _ = Describe("BolusAmountMaximum", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.BolusAmountMaximum), expectedErrors ...error) {
-					datum := NewBolusAmountMaximum()
+					datum := pumpTest.NewBolusAmountMaximum()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -210,9 +194,9 @@ var _ = Describe("BolusAmountMaximum", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BolusAmountMaximum)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBolusAmountMaximum()
+						datum := pumpTest.NewBolusAmountMaximum()
 						mutator(datum)
-						expectedDatum := CloneBolusAmountMaximum(datum)
+						expectedDatum := pumpTest.CloneBolusAmountMaximum(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

@@ -7,28 +7,12 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
-
-func NewBasal() *pump.Basal {
-	datum := pump.NewBasal()
-	datum.RateMaximum = NewBasalRateMaximum()
-	datum.Temporary = NewBasalTemporary()
-	return datum
-}
-
-func CloneBasal(datum *pump.Basal) *pump.Basal {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBasal()
-	clone.RateMaximum = CloneBasalRateMaximum(datum.RateMaximum)
-	clone.Temporary = CloneBasalTemporary(datum.Temporary)
-	return clone
-}
 
 var _ = Describe("Basal", func() {
 	Context("ParseBasal", func() {
@@ -49,7 +33,7 @@ var _ = Describe("Basal", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.Basal), expectedErrors ...error) {
-					datum := NewBasal()
+					datum := pumpTest.NewBasal()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -64,7 +48,7 @@ var _ = Describe("Basal", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rateMaximum/units"),
 				),
 				Entry("rate maximum valid",
-					func(datum *pump.Basal) { datum.RateMaximum = NewBasalRateMaximum() },
+					func(datum *pump.Basal) { datum.RateMaximum = pumpTest.NewBasalRateMaximum() },
 				),
 				Entry("temporary missing",
 					func(datum *pump.Basal) { datum.Temporary = nil },
@@ -74,7 +58,7 @@ var _ = Describe("Basal", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/temporary/type"),
 				),
 				Entry("temporary valid",
-					func(datum *pump.Basal) { datum.Temporary = NewBasalTemporary() },
+					func(datum *pump.Basal) { datum.Temporary = pumpTest.NewBasalTemporary() },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Basal) {
@@ -91,9 +75,9 @@ var _ = Describe("Basal", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.Basal)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBasal()
+						datum := pumpTest.NewBasal()
 						mutator(datum)
-						expectedDatum := CloneBasal(datum)
+						expectedDatum := pumpTest.CloneBasal(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

@@ -3,6 +3,8 @@ package pump_test
 import (
 	"math"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -14,26 +16,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewBolusCalculatorInsulin() *pump.BolusCalculatorInsulin {
-	units := pointer.FromString(test.RandomStringFromArray(pump.BolusCalculatorInsulinUnits()))
-	datum := pump.NewBolusCalculatorInsulin()
-	datum.Duration = pointer.FromFloat64(test.RandomFloat64FromRange(pump.BolusCalculatorInsulinDurationRangeForUnits(units)))
-	datum.Units = units
-	return datum
-}
-
-func CloneBolusCalculatorInsulin(datum *pump.BolusCalculatorInsulin) *pump.BolusCalculatorInsulin {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBolusCalculatorInsulin()
-	clone.Duration = pointer.CloneFloat64(datum.Duration)
-	clone.Units = pointer.CloneString(datum.Units)
-	return clone
-}
 
 var _ = Describe("BolusCalculatorInsulin", func() {
 	It("BolusCalculatorInsulinDurationHoursMaximum is expected", func() {
@@ -94,7 +77,7 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.BolusCalculatorInsulin), expectedErrors ...error) {
-					datum := NewBolusCalculatorInsulin()
+					datum := pumpTest.NewBolusCalculatorInsulin()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -301,9 +284,9 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BolusCalculatorInsulin)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBolusCalculatorInsulin()
+						datum := pumpTest.NewBolusCalculatorInsulin()
 						mutator(datum)
-						expectedDatum := CloneBolusCalculatorInsulin(datum)
+						expectedDatum := pumpTest.CloneBolusCalculatorInsulin(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

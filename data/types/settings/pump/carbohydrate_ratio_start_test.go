@@ -5,73 +5,16 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewCarbohydrateRatioStart(startMinimum int) *pump.CarbohydrateRatioStart {
-	datum := pump.NewCarbohydrateRatioStart()
-	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(pump.CarbohydrateRatioStartAmountMinimum, pump.CarbohydrateRatioStartAmountMaximum))
-	if startMinimum == pump.CarbohydrateRatioStartStartMinimum {
-		datum.Start = pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)
-	} else {
-		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.CarbohydrateRatioStartStartMaximum))
-	}
-	return datum
-}
-
-func CloneCarbohydrateRatioStart(datum *pump.CarbohydrateRatioStart) *pump.CarbohydrateRatioStart {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewCarbohydrateRatioStart()
-	clone.Amount = pointer.CloneFloat64(datum.Amount)
-	clone.Start = pointer.CloneInt(datum.Start)
-	return clone
-}
-
-func NewCarbohydrateRatioStartArray() *pump.CarbohydrateRatioStartArray {
-	datum := pump.NewCarbohydrateRatioStartArray()
-	*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
-	*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
-	*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
-	return datum
-}
-
-func CloneCarbohydrateRatioStartArray(datumArray *pump.CarbohydrateRatioStartArray) *pump.CarbohydrateRatioStartArray {
-	if datumArray == nil {
-		return nil
-	}
-	clone := pump.NewCarbohydrateRatioStartArray()
-	for _, datum := range *datumArray {
-		*clone = append(*clone, CloneCarbohydrateRatioStart(datum))
-	}
-	return clone
-}
-
-func NewCarbohydrateRatioStartArrayMap() *pump.CarbohydrateRatioStartArrayMap {
-	datum := pump.NewCarbohydrateRatioStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewCarbohydrateRatioStartArray())
-	return datum
-}
-
-func CloneCarbohydrateRatioStartArrayMap(datumArrayMap *pump.CarbohydrateRatioStartArrayMap) *pump.CarbohydrateRatioStartArrayMap {
-	if datumArrayMap == nil {
-		return nil
-	}
-	clone := pump.NewCarbohydrateRatioStartArrayMap()
-	for datumName, datumArray := range *datumArrayMap {
-		clone.Set(datumName, CloneCarbohydrateRatioStartArray(datumArray))
-	}
-	return clone
-}
 
 var _ = Describe("CarbohydrateRatioStart", func() {
 	It("CarbohydrateRatioStartAmountMaximum is expected", func() {
@@ -108,7 +51,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
-					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
+					datum := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
@@ -149,7 +92,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 
 			DescribeTable("validates the datum with minimum start",
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
-					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
+					datum := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
@@ -168,7 +111,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 
 			DescribeTable("validates the datum with non-minimum start",
 				func(mutator func(datum *pump.CarbohydrateRatioStart), expectedErrors ...error) {
-					datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
+					datum := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.CarbohydrateRatioStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
@@ -193,9 +136,9 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.CarbohydrateRatioStart)) {
 					for _, origin := range structure.Origins() {
-						datum := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
+						datum := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
 						mutator(datum)
-						expectedDatum := CloneCarbohydrateRatioStart(datum)
+						expectedDatum := pumpTest.CloneCarbohydrateRatioStart(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -251,7 +194,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("single invalid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
-						invalid := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
+						invalid := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
@@ -259,32 +202,32 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("single valid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
-						*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+						*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
-						*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
-						invalid := NewCarbohydrateRatioStart(*datum.Last().Start + 1)
+						*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+						invalid := pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start + 1)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
-						*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.CarbohydrateRatioStartArray) {
-						*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
-						*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
-						*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+						*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
 					},
 				),
 				Entry("multiple errors",
 					func(datum *pump.CarbohydrateRatioStartArray) {
-						invalid := NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
+						invalid := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum)
 						invalid.Amount = nil
 						*datum = append(*datum, nil, invalid)
-						*datum = append(*datum, nil, NewCarbohydrateRatioStart(*datum.Last().Start+1))
+						*datum = append(*datum, nil, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
@@ -297,9 +240,9 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.CarbohydrateRatioStartArray)) {
 					for _, origin := range structure.Origins() {
-						datum := NewCarbohydrateRatioStartArray()
+						datum := pumpTest.NewCarbohydrateRatioStartArray()
 						mutator(datum)
-						expectedDatum := CloneCarbohydrateRatioStartArray(datum)
+						expectedDatum := pumpTest.CloneCarbohydrateRatioStartArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -332,14 +275,14 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 			})
 
 			It("returns the first element if the array has one element", func() {
-				*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
 				Expect(datum.First()).To(Equal((*datum)[0]))
 			})
 
 			It("returns the first element if the array has multiple elements", func() {
-				*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
-				*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
-				*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
 				Expect(datum.First()).To(Equal((*datum)[0]))
 			})
 		})
@@ -356,14 +299,14 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 			})
 
 			It("returns the last element if the array has one element", func() {
-				*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
 				Expect(datum.Last()).To(Equal((*datum)[0]))
 			})
 
 			It("returns the last element if the array has multiple elements", func() {
-				*datum = append(*datum, NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
-				*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
-				*datum = append(*datum, NewCarbohydrateRatioStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewCarbohydrateRatioStart(*datum.Last().Start+1))
 				Expect(datum.Last()).To(Equal((*datum)[2]))
 			})
 		})
@@ -398,7 +341,9 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 					func(datum *pump.CarbohydrateRatioStartArrayMap) { *datum = *pump.NewCarbohydrateRatioStartArrayMap() },
 				),
 				Entry("empty name",
-					func(datum *pump.CarbohydrateRatioStartArrayMap) { datum.Set("", NewCarbohydrateRatioStartArray()) },
+					func(datum *pump.CarbohydrateRatioStartArrayMap) {
+						datum.Set("", pumpTest.NewCarbohydrateRatioStartArray())
+					},
 				),
 				Entry("nil value",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) { datum.Set("", nil) },
@@ -406,7 +351,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("single invalid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
-						invalid := NewCarbohydrateRatioStartArray()
+						invalid := pumpTest.NewCarbohydrateRatioStartArray()
 						(*invalid)[0].Start = nil
 						datum.Set("one", invalid)
 					},
@@ -414,33 +359,33 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("single valid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
-						datum.Set("one", NewCarbohydrateRatioStartArray())
+						datum.Set("one", pumpTest.NewCarbohydrateRatioStartArray())
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
-						invalid := NewCarbohydrateRatioStartArray()
+						invalid := pumpTest.NewCarbohydrateRatioStartArray()
 						(*invalid)[0].Start = nil
-						datum.Set("one", NewCarbohydrateRatioStartArray())
+						datum.Set("one", pumpTest.NewCarbohydrateRatioStartArray())
 						datum.Set("two", invalid)
-						datum.Set("three", NewCarbohydrateRatioStartArray())
+						datum.Set("three", pumpTest.NewCarbohydrateRatioStartArray())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
-						datum.Set("one", NewCarbohydrateRatioStartArray())
-						datum.Set("two", NewCarbohydrateRatioStartArray())
-						datum.Set("three", NewCarbohydrateRatioStartArray())
+						datum.Set("one", pumpTest.NewCarbohydrateRatioStartArray())
+						datum.Set("two", pumpTest.NewCarbohydrateRatioStartArray())
+						datum.Set("three", pumpTest.NewCarbohydrateRatioStartArray())
 					},
 				),
 				Entry("multiple errors",
 					func(datum *pump.CarbohydrateRatioStartArrayMap) {
-						invalid := NewCarbohydrateRatioStartArray()
+						invalid := pumpTest.NewCarbohydrateRatioStartArray()
 						(*invalid)[0].Start = nil
 						datum.Set("one", nil)
 						datum.Set("two", invalid)
-						datum.Set("three", NewCarbohydrateRatioStartArray())
+						datum.Set("three", pumpTest.NewCarbohydrateRatioStartArray())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
@@ -452,9 +397,9 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.CarbohydrateRatioStartArrayMap)) {
 					for _, origin := range structure.Origins() {
-						datum := NewCarbohydrateRatioStartArrayMap()
+						datum := pumpTest.NewCarbohydrateRatioStartArrayMap()
 						mutator(datum)
-						expectedDatum := CloneCarbohydrateRatioStartArrayMap(datum)
+						expectedDatum := pumpTest.CloneCarbohydrateRatioStartArrayMap(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
