@@ -6,6 +6,7 @@ import (
 	dataTypesDeviceAlarm "github.com/tidepool-org/platform/data/types/device/alarm"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesDeviceParameter "github.com/tidepool-org/platform/data/types/device/deviceparameter"
+	dataTypesDeviceMode "github.com/tidepool-org/platform/data/types/device/mode"
 	dataTypesDevicePrime "github.com/tidepool-org/platform/data/types/device/prime"
 	dataTypesDeviceReservoirchange "github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
@@ -21,6 +22,8 @@ var subTypes = []string{
 	dataTypesDeviceReservoirchange.SubType,
 	dataTypesDeviceStatus.SubType,
 	dataTypesDeviceTimechange.SubType,
+	dataTypesDeviceMode.ConfidentialMode,
+	dataTypesDeviceMode.ZenMode,
 }
 
 func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
@@ -42,6 +45,8 @@ func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
 		return nil
 	}
 
+	eventType := parser.String("eventType")
+
 	switch *value {
 	case dataTypesDeviceAlarm.SubType:
 		return dataTypesDeviceAlarm.New()
@@ -57,8 +62,17 @@ func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesDeviceTimechange.New()
 	case dataTypesDeviceParameter.SubType:
 		return dataTypesDeviceParameter.New()
+	case dataTypesDeviceMode.ConfidentialMode:
+		if eventType != nil {
+			return dataTypesDeviceMode.NewWithEvent(dataTypesDeviceMode.ConfidentialMode, eventType)
+		}
+		return dataTypesDeviceMode.New(dataTypesDeviceMode.ConfidentialMode)
+	case dataTypesDeviceMode.ZenMode:
+		if eventType != nil {
+			return dataTypesDeviceMode.NewWithEvent(dataTypesDeviceMode.ZenMode, eventType)
+		}
+		return dataTypesDeviceMode.New(dataTypesDeviceMode.ZenMode)
 	}
-
 	parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, subTypes))
 	return nil
 }

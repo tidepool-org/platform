@@ -3,6 +3,7 @@ package physical
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -184,18 +185,18 @@ func ReportedIntensities() []string {
 type Physical struct {
 	types.Base `bson:",inline"`
 
-	ActivityType      *string          `json:"activityType,omitempty" bson:"activityType,omitempty"`
-	ActivityTypeOther *string          `json:"activityTypeOther,omitempty" bson:"activityTypeOther,omitempty"`
-	Aggregate         *bool            `json:"aggregate,omitempty" bson:"aggregate,omitempty"`
-	Distance          *Distance        `json:"distance,omitempty" bson:"distance,omitempty"`
-	Duration          *Duration        `json:"duration,omitempty" bson:"duration,omitempty"`
-	ElevationChange   *ElevationChange `json:"elevationChange,omitempty" bson:"elevationChange,omitempty"`
-	Energy            *Energy          `json:"energy,omitempty" bson:"energy,omitempty"`
-	Flight            *Flight          `json:"flight,omitempty" bson:"flight,omitempty"`
-	Lap               *Lap             `json:"lap,omitempty" bson:"lap,omitempty"`
-	Name              *string          `json:"name,omitempty" bson:"name,omitempty"`
-	ReportedIntensity *string          `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
-	Step              *Step            `json:"step,omitempty" bson:"step,omitempty"`
+	ActivityType      *string                   `json:"activityType,omitempty" bson:"activityType,omitempty"`
+	ActivityTypeOther *string                   `json:"activityTypeOther,omitempty" bson:"activityTypeOther,omitempty"`
+	Aggregate         *bool                     `json:"aggregate,omitempty" bson:"aggregate,omitempty"`
+	Distance          *Distance                 `json:"distance,omitempty" bson:"distance,omitempty"`
+	Duration          *dataTypesCommon.Duration `json:"duration,omitempty" bson:"duration,omitempty"`
+	ElevationChange   *ElevationChange          `json:"elevationChange,omitempty" bson:"elevationChange,omitempty"`
+	Energy            *Energy                   `json:"energy,omitempty" bson:"energy,omitempty"`
+	Flight            *Flight                   `json:"flight,omitempty" bson:"flight,omitempty"`
+	Lap               *Lap                      `json:"lap,omitempty" bson:"lap,omitempty"`
+	Name              *string                   `json:"name,omitempty" bson:"name,omitempty"`
+	ReportedIntensity *string                   `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
+	Step              *Step                     `json:"step,omitempty" bson:"step,omitempty"`
 }
 
 func New() *Physical {
@@ -215,7 +216,7 @@ func (p *Physical) Parse(parser structure.ObjectParser) {
 	p.ActivityTypeOther = parser.String("activityTypeOther")
 	p.Aggregate = parser.Bool("aggregate")
 	p.Distance = ParseDistance(parser.WithReferenceObjectParser("distance"))
-	p.Duration = ParseDuration(parser.WithReferenceObjectParser("duration"))
+	p.Duration = dataTypesCommon.ParseDuration(parser.WithReferenceObjectParser("duration"))
 	p.ElevationChange = ParseElevationChange(parser.WithReferenceObjectParser("elevationChange"))
 	p.Energy = ParseEnergy(parser.WithReferenceObjectParser("energy"))
 	p.Flight = ParseFlight(parser.WithReferenceObjectParser("flight"))

@@ -3,17 +3,28 @@ package device
 import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	Type = "deviceEvent"
+	Type       = "deviceEvent"
+	StartEvent = "start"
+	StopEvent  = "stop"
 )
+
+func Events() []string {
+	return []string{
+		StartEvent,
+		StopEvent,
+	}
+}
 
 type Device struct {
 	types.Base `bson:",inline"`
 
-	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
+	SubType   string  `json:"subType,omitempty" bson:"subType,omitempty"`
+	EventType *string `json:"eventType,omitempty" bson:"eventType,omitempty"`
 }
 
 type Meta struct {
@@ -26,6 +37,12 @@ func New(subType string) Device {
 		Base:    types.New(Type),
 		SubType: subType,
 	}
+}
+
+func NewWithEvent(subType string, eventType *string) Device {
+	device := New(subType)
+	device.EventType = pointer.CloneString(eventType)
+	return device
 }
 
 func (d *Device) Meta() interface{} {
@@ -43,6 +60,10 @@ func (d *Device) Validate(validator structure.Validator) {
 	}
 
 	validator.String("subType", &d.SubType).Exists().NotEmpty()
+
+	if d.EventType != nil {
+		validator.String("eventType", d.EventType).OneOf(Events()...)
+	}
 }
 
 func (d *Device) IdentityFields() ([]string, error) {

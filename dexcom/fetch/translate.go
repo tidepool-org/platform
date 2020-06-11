@@ -8,6 +8,7 @@ import (
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
@@ -435,7 +436,7 @@ func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
-		datum.Duration = &dataTypesActivityPhysical.Duration{
+		datum.Duration = &dataTypesCommon.Duration{
 			Units: pointer.CloneString(event.Unit),
 			Value: pointer.CloneFloat64(event.Value),
 		}

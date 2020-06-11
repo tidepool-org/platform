@@ -8,6 +8,8 @@ The Tidepool platform API
 - PT-1282 Update meal information
 - PT-1295 Store Additional fields for Bolus object
 - PT-1293 Store rescueCarbs recommendation
+- PT-1298 Store Zen mode object
+- PT-1314 Add Confidential mode in database and Update related APIs
 
 ## 0.7.2 - 2020-05-14 
 ### Changed

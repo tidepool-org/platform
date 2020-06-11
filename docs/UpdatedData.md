@@ -257,11 +257,11 @@ For a given alarm that has been acknowledged by the patient, we will receive 2 d
 Leveraging the `deviceEvent` type and creating 2 new subTypes with the same structure: `zen` and `confidential`.
 
 - `subType`: `zen | confidential`
-- `duration`: is a structured object that gives the duration of the event. 
-- `eventType`: `start | stop` is the type of event for the given event.
+- `duration`: is a structured object that gives the duration of the event. __This field is mandatory__.
+- `eventType`: `start | stop` is the type of event for the given event. __This field is mandatory__.
   - `start`: event created by the system. The `duration` attached to this object is the expected duration of the event.
   - `stop`: the event is stopped. The `duration` attached to this object is the actual duration of the event.
-- `eventId`: unique ID provided by the client that is used to link stop and start events.
+- `eventId`: unique ID provided by the client that is used to link stop and start events. __This ID is mandatory__.
 
 ```json
 {
