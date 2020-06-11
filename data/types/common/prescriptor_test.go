@@ -1,4 +1,4 @@
-package prescriptor_test
+package common_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
-	dataTypesBolusPrescriptorTest "github.com/tidepool-org/platform/data/types/bolus/prescriptor/test"
+	"github.com/tidepool-org/platform/data/types/common"
+	dataTypeCommonTest "github.com/tidepool-org/platform/data/types/common/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -19,20 +19,20 @@ var _ = Describe("Prescriptor", func() {
 	Context("Object Creation", func() {
 
 		It("Manual Prescriptor is expected", func() {
-			Expect(prescriptor.ManualPrescriptor).To(Equal("manual"))
+			Expect(common.ManualPrescriptor).To(Equal("manual"))
 		})
 
 		It("Auto Prescriptor is expected", func() {
-			Expect(prescriptor.AutoPrescriptor).To(Equal("auto"))
+			Expect(common.AutoPrescriptor).To(Equal("auto"))
 		})
 
 		It("Hybrid Prescriptor is expected", func() {
-			Expect(prescriptor.HybridPrescriptor).To(Equal("hybrid"))
+			Expect(common.HybridPrescriptor).To(Equal("hybrid"))
 		})
 
 		Context("NewPrescriptor", func() {
 			It("is successful", func() {
-				Expect(prescriptor.NewPrescriptor()).To(Equal(&prescriptor.Prescriptor{}))
+				Expect(common.NewPrescriptor()).To(Equal(&common.Prescriptor{}))
 			})
 		})
 
@@ -44,21 +44,21 @@ var _ = Describe("Prescriptor", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *prescriptor.Prescriptor), expectedErrors ...error) {
-					datum := dataTypesBolusPrescriptorTest.NewPrescriptor()
+				func(mutator func(datum *common.Prescriptor), expectedErrors ...error) {
+					datum := dataTypeCommonTest.NewPrescriptor()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *prescriptor.Prescriptor) {},
+					func(datum *common.Prescriptor) {},
 				),
 				Entry("Prescriptor is nil",
-					func(datum *prescriptor.Prescriptor) {
+					func(datum *common.Prescriptor) {
 						datum.Prescriptor = nil
 					},
 				),
 				Entry("Invalid Prescriptor value",
-					func(datum *prescriptor.Prescriptor) {
+					func(datum *common.Prescriptor) {
 						datum.Prescriptor = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto", "manual", "hybrid"}), "/prescriptor"),
@@ -68,11 +68,11 @@ var _ = Describe("Prescriptor", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *prescriptor.Prescriptor)) {
+				func(mutator func(datum *common.Prescriptor)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesBolusPrescriptorTest.NewPrescriptor()
+						datum := dataTypeCommonTest.NewPrescriptor()
 						mutator(datum)
-						expectedDatum := dataTypesBolusPrescriptorTest.ClonePrescriptor(datum)
+						expectedDatum := dataTypeCommonTest.ClonePrescriptor(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -82,7 +82,7 @@ var _ = Describe("Prescriptor", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *prescriptor.Prescriptor) {},
+					func(datum *common.Prescriptor) {},
 				),
 			)
 		})

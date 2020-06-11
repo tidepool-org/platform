@@ -8,6 +8,8 @@ Here we document the data types that have to be created or udpated with new fiel
 - deviceEvent - Zen mode
 - deviceEvent - Private Mode
 
+_Note_: the examples below focused on the new fields. All the other fields (such as time, timezone, timezoneOffset) are not impacted by those changes and will not require updates.
+
 ## wizard 
 
 The wizard object comes with an optional `recommended` structure that can be leveraged for our purpose. This structure is composed of 3 optional floating point value fields:
@@ -67,9 +69,9 @@ As of now we don't have the information of the origin of the rescueCarbs value, 
 
 Here we are introducing 2 new fields in the food object:
 - `prescribedNutrition`: same structure as nutrition. It's an optional field. It gives the value that has been recommended by the system. 
-- `prescriptor`: is the origin of the `rescuecarbs` object. This field is optional in most of the cases. 
+- `prescriptor`: is the origin of the `rescuecarbs` object. This field is mandatory in one case, `hybrid`: 
     - range of values: `auto | manual | hybrid`
-    - `auto`: nutrition and prescribedNutrition are equal
+    - `auto`: prescribedNutrition is ignored
     - `manual`: prescribedNutrition is ignored
     - `hybrid`: nutrition and prescribedNutrition are __not equal__, `prescribedNutrition` is mandatory in that case. 
 
@@ -90,7 +92,6 @@ Here we are introducing 2 new fields in the food object:
     }
   },
   "prescriptor": "hybrid",
-  "meal": "rescuecarbs",
   "deviceId": "IdOfTheDevice",
   "deviceTime": "2020-05-12T06:50:08",
   "time": "2020-05-12T06:50:08.000Z",

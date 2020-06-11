@@ -7,6 +7,7 @@ The Tidepool platform API
 - PT-1301 Add declaration time to wizard object
 - PT-1282 Update meal information
 - PT-1295 Store Additional fields for Bolus object
+- PT-1293 Store rescueCarbs recommendation
 
 ## 0.7.2 - 2020-05-14 
 ### Changed

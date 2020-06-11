@@ -1,4 +1,4 @@
-package prescriptor
+package common
 
 import (
 	"github.com/tidepool-org/platform/data"

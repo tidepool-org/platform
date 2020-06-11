@@ -7,6 +7,8 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/common"
+	dataTypesCommonTest "github.com/tidepool-org/platform/data/types/common/test"
 	"github.com/tidepool-org/platform/data/types/food"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -36,6 +38,8 @@ func NewFood(ingredientArrayDepthLimit int) *food.Food {
 	}
 	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.Nutrition = NewNutrition()
+	datum.Prescriptor = dataTypesCommonTest.NewPrescriptor()
+	datum.PrescribedNutrition = NewNutrition()
 	return datum
 }
 
@@ -53,6 +57,8 @@ func CloneFood(datum *food.Food) *food.Food {
 	clone.MealOther = pointer.CloneString(datum.MealOther)
 	clone.Name = pointer.CloneString(datum.Name)
 	clone.Nutrition = CloneNutrition(datum.Nutrition)
+	clone.Prescriptor = dataTypesCommonTest.ClonePrescriptor(datum.Prescriptor)
+	clone.PrescribedNutrition = CloneNutrition(datum.PrescribedNutrition)
 	return clone
 }
 
@@ -114,6 +120,8 @@ var _ = Describe("Food", func() {
 			Expect(datum.MealOther).To(BeNil())
 			Expect(datum.Name).To(BeNil())
 			Expect(datum.Nutrition).To(BeNil())
+			Expect(datum.Prescriptor).To(Equal(&common.Prescriptor{}))
+			Expect(datum.PrescribedNutrition).To(BeNil())
 		})
 	})
 
@@ -311,6 +319,46 @@ var _ = Describe("Food", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/mealOther", NewMeta()),
 				),
+				Entry("meal rescuecarbs; prescriptor exists",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = nil
+						datum.Prescriptor.Prescriptor = pointer.FromString("auto")
+					},
+				),
+				Entry("meal rescuecarbs; prescriptor and prescribedNutrition exist",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = nil
+						datum.Prescriptor.Prescriptor = pointer.FromString("auto")
+						datum.PrescribedNutrition = NewNutrition()
+					},
+				),
+				Entry("meal rescuecarbs; invalid prescriptor ",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = nil
+						datum.Prescriptor.Prescriptor = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto", "manual", "hybrid"}), "/prescriptor", NewMeta()),
+				),
+				Entry("meal rescuecarbs; prescriptor is hybrid and prescribedNutrition does not exist",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = nil
+						datum.Prescriptor.Prescriptor = pointer.FromString("hybrid")
+						datum.PrescribedNutrition = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/prescribedNutrition", NewMeta()),
+				),
+				Entry("meal rescuecarbs; prescriptor is missing and prescribedNutrition exists",
+					func(datum *food.Food) {
+						datum.Meal = pointer.FromString("rescuecarbs")
+						datum.MealOther = nil
+						datum.Prescriptor = nil
+						datum.PrescribedNutrition = NewNutrition()
+					},
+				),
 				Entry("name missing",
 					func(datum *food.Food) { datum.Name = nil },
 				),
@@ -365,6 +413,8 @@ var _ = Describe("Food", func() {
 				func(mutator func(datum *food.Food)) {
 					for _, origin := range structure.Origins() {
 						datum := NewFood(3)
+						datum.Prescriptor = nil
+						datum.PrescribedNutrition = nil
 						mutator(datum)
 						expectedDatum := CloneFood(datum)
 						normalizer := dataNormalizer.New()
@@ -403,6 +453,98 @@ var _ = Describe("Food", func() {
 					func(datum *food.Food) { datum.Nutrition = nil },
 				),
 			)
+
+			DescribeTable("normalizes the datum for rescueCarbs, hybrid prescription",
+				func(mutator func(datum *food.Food)) {
+					for _, origin := range structure.Origins() {
+						datum := NewFood(3)
+						datum.Meal = pointer.FromString(food.MealRescueCarbs)
+						datum.Prescriptor.Prescriptor = pointer.FromString(common.HybridPrescriptor)
+						mutator(datum)
+						expectedDatum := CloneFood(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *food.Food) {},
+				),
+				Entry("does not modify the datum; amount missing",
+					func(datum *food.Food) { datum.Amount = nil },
+				),
+				Entry("does not modify the datum; brand missing",
+					func(datum *food.Food) { datum.Brand = nil },
+				),
+				Entry("does not modify the datum; code missing",
+					func(datum *food.Food) { datum.Code = nil },
+				),
+				Entry("does not modify the datum; ingredients missing",
+					func(datum *food.Food) { datum.Ingredients = nil },
+				),
+				Entry("does not modify the datum; meal missing",
+					func(datum *food.Food) { datum.Meal = nil },
+				),
+				Entry("does not modify the datum; meal other missing",
+					func(datum *food.Food) { datum.MealOther = nil },
+				),
+				Entry("does not modify the datum; name missing",
+					func(datum *food.Food) { datum.Name = nil },
+				),
+				Entry("does not modify the datum; nutrition missing",
+					func(datum *food.Food) { datum.Nutrition = nil },
+				),
+			)
+
+			DescribeTable("normalizes the datum for rescueCarbs, other prescriptor",
+				func(mutator func(datum *food.Food)) {
+					for _, origin := range structure.Origins() {
+						datum := NewFood(3)
+						datum.Meal = pointer.FromString(food.MealRescueCarbs)
+						datum.Prescriptor.Prescriptor = pointer.FromString(test.RandomStringFromArray([]string{common.ManualPrescriptor, common.AutoPrescriptor}))
+						mutator(datum)
+						expectedDatum := CloneFood(datum)
+						expectedDatum.PrescribedNutrition = nil
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *food.Food) {},
+				),
+				Entry("does not modify the datum; amount missing",
+					func(datum *food.Food) { datum.Amount = nil },
+				),
+				Entry("does not modify the datum; brand missing",
+					func(datum *food.Food) { datum.Brand = nil },
+				),
+				Entry("does not modify the datum; code missing",
+					func(datum *food.Food) { datum.Code = nil },
+				),
+				Entry("does not modify the datum; ingredients missing",
+					func(datum *food.Food) { datum.Ingredients = nil },
+				),
+				Entry("does not modify the datum; meal missing",
+					func(datum *food.Food) { datum.Meal = nil },
+				),
+				Entry("does not modify the datum; meal other missing",
+					func(datum *food.Food) { datum.MealOther = nil },
+				),
+				Entry("does not modify the datum; name missing",
+					func(datum *food.Food) { datum.Name = nil },
+				),
+				Entry("does not modify the datum; nutrition missing",
+					func(datum *food.Food) { datum.Nutrition = nil },
+				),
+			)
+
 		})
 	})
 })

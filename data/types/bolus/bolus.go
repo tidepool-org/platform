@@ -4,7 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/bolus/iob"
-	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
+	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -19,9 +19,9 @@ type Bolus struct {
 
 	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
 
-	InsulinFormulation *insulin.Formulation     `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Prescriptor        *prescriptor.Prescriptor `bson:",inline"`
-	InsulinOnBoard     *iob.Iob                 `bson:",inline"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Prescriptor        *common.Prescriptor  `bson:",inline"`
+	InsulinOnBoard     *iob.Iob             `bson:",inline"`
 }
 
 type Meta struct {
@@ -34,7 +34,7 @@ func New(subType string) Bolus {
 		Base:           types.New(Type),
 		SubType:        subType,
 		InsulinOnBoard: iob.NewIob(),
-		Prescriptor:    prescriptor.NewPrescriptor(),
+		Prescriptor:    common.NewPrescriptor(),
 	}
 }
 
@@ -83,7 +83,7 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 		b.Prescriptor.Normalize(normalizer)
 	}
 	if b.InsulinOnBoard != nil {
-		if b.Prescriptor != nil && *b.Prescriptor.Prescriptor == prescriptor.ManualPrescriptor {
+		if b.Prescriptor != nil && *b.Prescriptor.Prescriptor == common.ManualPrescriptor {
 			b.InsulinOnBoard = nil
 		} else {
 			b.InsulinOnBoard.Normalize(normalizer)

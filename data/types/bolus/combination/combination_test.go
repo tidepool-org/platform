@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/bolus/combination"
 	dataTypesBolusCombinationTest "github.com/tidepool-org/platform/data/types/bolus/combination/test"
-	"github.com/tidepool-org/platform/data/types/bolus/prescriptor"
+	"github.com/tidepool-org/platform/data/types/common"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -1150,7 +1150,7 @@ var _ = Describe("Combination", func() {
 						datum := dataTypesBolusCombinationTest.NewCombination()
 						mutator(datum)
 						expectedDatum := dataTypesBolusCombinationTest.CloneCombination(datum)
-						if *datum.Prescriptor.Prescriptor == prescriptor.ManualPrescriptor {
+						if *datum.Prescriptor.Prescriptor == common.ManualPrescriptor {
 							expectedDatum.InsulinOnBoard = nil
 						}
 						normalizer := dataNormalizer.New()
