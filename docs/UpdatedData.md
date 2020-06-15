@@ -258,16 +258,12 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
 
 - `subType`: `zen | confidential`
 - `duration`: is a structured object that gives the duration of the event. __This field is mandatory__.
-- `eventType`: `start | stop` is the type of event for the given event. __This field is mandatory__.
-  - `start`: event created by the system. The `duration` attached to this object is the expected duration of the event.
-  - `stop`: the event is stopped. The `duration` attached to this object is the actual duration of the event.
 - `eventId`: unique ID provided by the client that is used to link stop and start events. __This ID is mandatory__.
 
 ```json
 {
   "type": "deviceEvent",
   "subType": "zen",
-  "eventType": "start", 
   "eventId": "Zen123456789",
   "duration": { 
     "value": 3,
@@ -281,7 +277,6 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
 {
   "type": "deviceEvent",
   "subType": "confidential",
-  "eventType": "start", 
   "eventId": "Conf123456789",
   "duration": { 
     "value": 180,

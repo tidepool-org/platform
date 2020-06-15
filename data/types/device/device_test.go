@@ -12,7 +12,6 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Device", func() {
@@ -26,7 +25,6 @@ var _ = Describe("Device", func() {
 			datum := device.New(subType)
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal(subType))
-			Expect(datum.EventType).To(BeNil())
 		})
 	})
 
@@ -78,17 +76,6 @@ var _ = Describe("Device", func() {
 				),
 				Entry("sub type valid",
 					func(datum *device.Device) { datum.SubType = dataTypesTest.NewType() },
-				),
-				Entry("EventType valid",
-					func(datum *device.Device) {
-						datum.EventType = pointer.FromString(test.RandomStringFromArray(device.Events()))
-					},
-				),
-				Entry("EventType invalid",
-					func(datum *device.Device) {
-						datum.EventType = pointer.FromString("invalid")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", device.Events()), "/eventType"),
 				),
 				Entry("multiple errors",
 					func(datum *device.Device) {

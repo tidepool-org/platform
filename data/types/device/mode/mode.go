@@ -32,12 +32,6 @@ func New(subType string) *Mode {
 	}
 }
 
-func NewWithEvent(subType string, deviceEvent *string) *Mode {
-	return &Mode{
-		Device: device.NewWithEvent(subType, deviceEvent),
-	}
-}
-
 func (m *Mode) Parse(parser structure.ObjectParser) {
 	if !parser.HasMeta() {
 		parser = parser.WithMeta(m.Meta())
@@ -55,7 +49,6 @@ func (m *Mode) Validate(validator structure.Validator) {
 
 	m.Device.Validate(validator)
 	validator.String("subType", &m.SubType).OneOf(Modes()...)
-	validator.String("eventType", m.EventType).Exists()
 	validator.String("eventId", m.EventID).Exists().NotEmpty()
 	if m.Duration != nil {
 		m.Duration.Validate(validator.WithReference("duration"))
