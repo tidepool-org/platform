@@ -114,7 +114,7 @@ func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
 
 	initialSettingsValidator := validator.WithReference("initialSettings")
 	if r.InitialSettings != nil {
-		r.InitialSettings.ValidateAllRequired(initialSettingsValidator, r.TherapySettings)
+		r.InitialSettings.ValidateAllRequired(initialSettingsValidator)
 	} else {
 		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
@@ -268,7 +268,7 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 
 	initialSettingsValidator := validator.WithReference("initialSettings")
 	if a.InitialSettings != nil {
-		a.InitialSettings.ValidateAllRequired(initialSettingsValidator, a.TherapySettings)
+		a.InitialSettings.ValidateAllRequired(initialSettingsValidator)
 	} else {
 		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
@@ -323,13 +323,13 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 		i.BasalRateSchedule.Validate(validator.WithReference("basalSchedule"))
 	}
 	if i.BloodGlucoseTargetSchedule != nil {
-		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bgTarget"), &i.BloodGlucoseUnits)
+		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bloodGlucoseTargetSchedule"), &i.BloodGlucoseUnits)
 	}
 	if i.CarbohydrateRatioSchedule != nil {
-		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbRatio"))
+		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbohydrateRatioSchedule"))
 	}
 	if i.InsulinSensitivitySchedule != nil {
-		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivity"), &i.BloodGlucoseUnits)
+		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivitySchedule"), &i.BloodGlucoseUnits)
 	}
 	if i.BasalRateMaximum != nil {
 		i.BasalRateMaximum.Validate(validator.WithReference("basalRateMaximum"))
@@ -352,13 +352,13 @@ func (i *InitialSettings) ValidateAllRequired(validator structure.Validator) {
 		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	if i.BloodGlucoseTargetSchedule == nil {
-		validator.WithReference("bgTarget").ReportError(structureValidator.ErrorValueEmpty())
+		validator.WithReference("bloodGlucoseTargetSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	if i.CarbohydrateRatioSchedule == nil {
-		validator.WithReference("carbRatio").ReportError(structureValidator.ErrorValueEmpty())
+		validator.WithReference("carbohydrateRatioSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	if i.InsulinSensitivitySchedule == nil {
-		validator.WithReference("insulinSensitivity").ReportError(structureValidator.ErrorValueEmpty())
+		validator.WithReference("insulinSensitivitySchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	if i.BasalRateMaximum == nil {
 		validator.WithReference("basalRateMaximum").ReportError(structureValidator.ErrorValueEmpty())
