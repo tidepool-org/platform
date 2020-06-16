@@ -27,7 +27,7 @@ const (
 	StateActive    = "active"
 	StateInactive  = "inactive"
 
-	MaximumExpirationTime = time.Hour * 24 * 90 // 30 days
+	MaximumExpirationTime = time.Hour * 24 * 90 // 90 days
 )
 
 type Service interface {
