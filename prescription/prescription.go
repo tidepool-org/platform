@@ -184,7 +184,7 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 type Filter struct {
 	currentUser    *user.User
 	ClinicianID    string
-	PatientUserId  string
+	PatientUserID  string
 	PatientEmail   string
 	State          string
 	ID             string
@@ -206,7 +206,7 @@ func NewFilter(currentUser *user.User) (*Filter, error) {
 	if currentUser.HasRole(user.RoleClinic) {
 		f.ClinicianID = *currentUser.UserID
 	} else {
-		f.PatientUserId = *currentUser.UserID
+		f.PatientUserID = *currentUser.UserID
 	}
 
 	return f, nil
@@ -221,14 +221,14 @@ func (f *Filter) Validate(validator structure.Validator) {
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(States()...)
 		}
-		if f.PatientUserId != "" {
-			validator.String("patientUserId", &f.PatientUserId).Using(user.IDValidator)
+		if f.PatientUserID != "" {
+			validator.String("patientUserId", &f.PatientUserID).Using(user.IDValidator)
 		}
 		if f.PatientEmail != "" {
 			validator.String("patientEmail", &f.PatientEmail).Email()
 		}
 	} else {
-		validator.String("patientUserId", &f.PatientUserId).NotEmpty().EqualTo(*f.currentUser.UserID)
+		validator.String("patientUserId", &f.PatientUserID).NotEmpty().EqualTo(*f.currentUser.UserID)
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(StatesVisibleToPatients()...)
 		}
@@ -242,7 +242,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	}
 	if f.currentUser.HasRole(user.RoleClinic) {
 		if ptr := parser.String("patientUserId"); ptr != nil {
-			f.PatientUserId = *ptr
+			f.PatientUserID = *ptr
 		}
 		if ptr := parser.String("patientEmail"); ptr != nil {
 			f.PatientEmail = *ptr

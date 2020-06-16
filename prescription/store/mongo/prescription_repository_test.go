@@ -195,7 +195,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					patient.Roles = &[]string{}
 					filter, err := prescription.NewFilter(patient)
 					Expect(err).ToNot(HaveOccurred())
-					filter.PatientUserId = userTest.RandomID()
+					filter.PatientUserID = userTest.RandomID()
 
 					result, err := repository.ListPrescriptions(ctx, filter, nil)
 					errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
@@ -319,7 +319,7 @@ var _ = Describe("PrescriptionRepository", func() {
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.PatientUserId = patientID
+						filter.PatientUserID = patientID
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())

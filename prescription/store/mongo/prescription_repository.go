@@ -378,8 +378,8 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 			{"createdUserId": filter.ClinicianID},
 		}
 	}
-	if filter.PatientUserId != "" {
-		selector["patientUserId"] = filter.PatientUserId
+	if filter.PatientUserID != "" {
+		selector["patientUserId"] = filter.PatientUserID
 	}
 	if filter.PatientEmail != "" {
 		selector["latestRevision.attributes.email"] = filter.PatientEmail

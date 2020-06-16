@@ -248,8 +248,8 @@ var _ = Describe("Prescription", func() {
 
 				It("fails when patient id is not same as current user id", func() {
 					patientID := userTest.RandomID()
-					Expect(patientID).ToNot(Equal(filter.PatientUserId))
-					filter.PatientUserId = patientID
+					Expect(patientID).ToNot(Equal(filter.PatientUserID))
+					filter.PatientUserID = patientID
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
@@ -358,14 +358,14 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("fails when patient id is invalid", func() {
-					filter.PatientUserId = "invalid"
+					filter.PatientUserID = "invalid"
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 
 				It("doesn't fail when patient id invalid", func() {
-					filter.PatientUserId = userTest.RandomID()
+					filter.PatientUserID = userTest.RandomID()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
