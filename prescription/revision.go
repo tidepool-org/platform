@@ -337,11 +337,11 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	if i.BolusAmountMaximum != nil {
 		i.BolusAmountMaximum.Validate(validator.WithReference("bolusAmountMaximum"))
 	}
-	if i.PumpID == nil {
+	if i.PumpID != nil {
 		id := i.PumpID.Hex()
 		validator.String("pumpId", &id).Hexadecimal().LengthEqualTo(24)
 	}
-	if i.CgmID == nil {
+	if i.CgmID != nil {
 		id := i.CgmID.Hex()
 		validator.String("cgmId", &id).Hexadecimal().LengthEqualTo(24)
 	}
