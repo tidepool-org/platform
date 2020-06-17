@@ -10,6 +10,7 @@ The Tidepool platform API
 - PT-1293 Store rescueCarbs recommendation
 - PT-1298 Store Zen mode object
 - PT-1314 Add Confidential mode in database and Update related APIs
+- PT-1303 Store additional fields in physical activity
 
 ## 0.7.2 - 2020-05-14 
 ### Changed

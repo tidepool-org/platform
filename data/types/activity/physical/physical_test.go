@@ -1,6 +1,8 @@
 package physical_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -41,6 +43,7 @@ func NewPhysical() *physical.Physical {
 	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.ReportedIntensity = pointer.FromString(test.RandomStringFromArray(physical.ReportedIntensities()))
 	datum.Step = NewStep()
+	datum.EventID = pointer.FromString("123456789")
 	return datum
 }
 
@@ -62,6 +65,8 @@ func ClonePhysical(datum *physical.Physical) *physical.Physical {
 	clone.Name = pointer.CloneString(datum.Name)
 	clone.ReportedIntensity = pointer.CloneString(datum.ReportedIntensity)
 	clone.Step = CloneStep(datum.Step)
+	clone.InputTime = dataTypesCommonTest.CloneInputTime(datum.InputTime)
+	clone.EventID = pointer.CloneString(datum.EventID)
 	return clone
 }
 
@@ -120,6 +125,8 @@ var _ = Describe("Physical", func() {
 			Expect(datum.Name).To(BeNil())
 			Expect(datum.ReportedIntensity).To(BeNil())
 			Expect(datum.Step).To(BeNil())
+			Expect(datum.EventID).To(BeNil())
+			Expect(datum.InputTime.InputTime).To(BeNil())
 		})
 	})
 
@@ -1177,8 +1184,11 @@ var _ = Describe("Physical", func() {
 				Entry("distance valid",
 					func(datum *physical.Physical) { datum.Distance = NewDistance() },
 				),
-				Entry("duration missing",
-					func(datum *physical.Physical) { datum.Duration = nil },
+				Entry("eventID missing, duration missing",
+					func(datum *physical.Physical) {
+						datum.EventID = nil
+						datum.Duration = nil
+					},
 				),
 				Entry("duration invalid",
 					func(datum *physical.Physical) {
@@ -1279,6 +1289,23 @@ var _ = Describe("Physical", func() {
 				Entry("step valid",
 					func(datum *physical.Physical) { datum.Step = NewStep() },
 				),
+				Entry("EventID exists, duration missing",
+					func(datum *physical.Physical) {
+						datum.Duration = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
+				),
+				Entry("Valid inputTime",
+					func(datum *physical.Physical) {
+						datum.InputTime.InputTime = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+					},
+				),
+				Entry("InputTime invalid",
+					func(datum *physical.Physical) {
+						datum.InputTime.InputTime = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/inputTime", NewMeta()),
+				),
 				Entry("multiple errors",
 					func(datum *physical.Physical) {
 						datum.Type = "invalidType"
@@ -1291,6 +1318,7 @@ var _ = Describe("Physical", func() {
 						datum.Lap.Count = nil
 						datum.Name = pointer.FromString("")
 						datum.ReportedIntensity = pointer.FromString("invalid")
+						datum.InputTime.InputTime = pointer.FromString("invalid")
 						datum.Step.Count = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "physicalActivity"), "/type", &types.Meta{Type: "invalidType"}),
@@ -1304,6 +1332,7 @@ var _ = Describe("Physical", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"high", "low", "medium"}), "/reportedIntensity", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/step/count", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/inputTime", &types.Meta{Type: "invalidType"}),
 				),
 			)
 		})

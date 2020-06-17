@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
+	"github.com/tidepool-org/platform/data/types/common"
 	dataTypesCommonTest "github.com/tidepool-org/platform/data/types/common/test"
 	"github.com/tidepool-org/platform/test"
 
@@ -19,27 +19,11 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func NewInputTime() *dataTypesCommon.InputTime {
-	datum := dataTypesCommonTest.NewInputTime()
-	timeReference := test.RandomTime()
-	datum.InputTime = pointer.FromString(timeReference.Format(time.RFC3339Nano))
-	return datum
-}
-
-func CloneInputTime(datum *dataTypesCommon.InputTime) *dataTypesCommon.InputTime {
-	if datum == nil {
-		return nil
-	}
-	clone := dataTypesCommonTest.NewInputTime()
-	clone.InputTime = pointer.CloneString(datum.InputTime)
-	return clone
-}
-
 var _ = Describe("InputTime", func() {
 
 	Context("NewInputTime", func() {
 		It("is successful", func() {
-			Expect(dataTypesCommon.NewInputTime()).To(Equal(&dataTypesCommon.InputTime{}))
+			Expect(common.NewInputTime()).To(Equal(&common.InputTime{}))
 		})
 	})
 
@@ -50,21 +34,21 @@ var _ = Describe("InputTime", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *dataTypesCommon.InputTime), expectedErrors ...error) {
-					datum := NewInputTime()
+				func(mutator func(datum *common.InputTime), expectedErrors ...error) {
+					datum := dataTypesCommonTest.NewInputTime()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *dataTypesCommon.InputTime) {},
+					func(datum *common.InputTime) {},
 				),
 				Entry("Valid inputTime",
-					func(datum *dataTypesCommon.InputTime) {
+					func(datum *common.InputTime) {
 						datum.InputTime = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
 					},
 				),
 				Entry("invalid inputTime",
-					func(datum *dataTypesCommon.InputTime) {
+					func(datum *common.InputTime) {
 						datum.InputTime = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/inputTime"),
@@ -74,11 +58,11 @@ var _ = Describe("InputTime", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *dataTypesCommon.InputTime)) {
+				func(mutator func(datum *common.InputTime)) {
 					for _, origin := range structure.Origins() {
-						datum := NewInputTime()
+						datum := dataTypesCommonTest.NewInputTime()
 						mutator(datum)
-						expectedDatum := CloneInputTime(datum)
+						expectedDatum := dataTypesCommonTest.CloneInputTime(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -88,7 +72,7 @@ var _ = Describe("InputTime", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *dataTypesCommon.InputTime) {},
+					func(datum *common.InputTime) {},
 				),
 			)
 		})
