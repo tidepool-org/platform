@@ -95,6 +95,16 @@ var _ = Describe("Bolus", func() {
 				Entry("insulin formulation valid",
 					func(datum *bolus.Bolus) { datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3) },
 				),
+				Entry("No insulinOnBoard",
+					func(datum *bolus.Bolus) {
+						datum.InsulinOnBoard.InsulinOnBoard = nil
+					},
+				),
+				Entry("No Prescriptor",
+					func(datum *bolus.Bolus) {
+						datum.Prescriptor.Prescriptor = nil
+					},
+				),
 				Entry("multiple errors",
 					func(datum *bolus.Bolus) {
 						datum.Type = "invalid"
@@ -145,6 +155,36 @@ var _ = Describe("Bolus", func() {
 						datum.Prescriptor.Prescriptor = pointer.FromString(common.ManualPrescriptor)
 						datum.InsulinOnBoard.InsulinOnBoard = pointer.FromFloat64(10)
 					},
+				),
+			)
+
+			DescribeTable("normalizes the datum No Prescriptor No InsulinOnBoard",
+				func(mutator func(datum *bolus.Bolus)) {
+					for _, origin := range structure.Origins() {
+						datum := dataTypesBolusTest.NewBolus()
+						datum.Prescriptor.Prescriptor = nil
+						datum.InsulinOnBoard.InsulinOnBoard = nil
+						mutator(datum)
+						expectedDatum := dataTypesBolusTest.CloneBolus(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *bolus.Bolus) {},
+				),
+				Entry("does not modify the datum; type missing",
+					func(datum *bolus.Bolus) { datum.Type = "" },
+				),
+				Entry("does not modify the datum; sub type missing",
+					func(datum *bolus.Bolus) { datum.SubType = "" },
+				),
+				Entry("does not modify the datum; insulin formulation missing",
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
 				),
 			)
 		})

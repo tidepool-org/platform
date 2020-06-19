@@ -33,7 +33,7 @@ And the additional field we would need:
 ```json
 {
   "time": "2020-05-12T08:50:08.000Z",
-  "timezoneOffset": 120,
+  "timezone": "Europe/Paris",
   "deviceTime": "2020-05-12T08:50:08",
   "inputTime": "2020-05-12T08:45:08.000Z",
   "inputMeal": {
@@ -51,7 +51,7 @@ And the additional field we would need:
   "units": "mg/dL",
   "bolus": {
     "time": "2020-05-12T08:50:08.000Z",
-    "timezoneOffset": 120,
+    "timezone": "Europe/Paris",
     "deviceTime": "2020-05-12T08:50:08",
     "deviceId": "IdOfTheDevice",
     "type": "bolus",
@@ -114,7 +114,7 @@ Here we are introducing 2 new fields in the bolus objects:
 ```json
 {
   "time": "2020-05-12T08:50:08.000Z",
-  "timezoneOffset": 120,
+  "timezone": "Europe/Paris",
   "deviceTime": "2020-05-12T08:50:08",
   "deviceId": "IdOfTheDevice",
   "type": "bolus",
@@ -144,7 +144,7 @@ __Note #2__: the `"part":2` object is not mandatory. The system can decide to ca
 ```json
 {
   "time": "2020-05-12T12:00:00.000Z",
-  "timezoneOffset": 120,
+  "timezone": "Europe/Paris",
   "deviceTime": "2020-05-12T12:00:08",
   "deviceId": "IdOfTheDevice",
   "type": "bolus",
@@ -164,7 +164,7 @@ __Note #2__: the `"part":2` object is not mandatory. The system can decide to ca
 }
 {
   "time": "2020-05-12T12:50:00.000Z",
-  "timezoneOffset": 120,
+  "timezone": "Europe/Paris",
   "deviceTime": "2020-05-12T12:50:08",
   "deviceId": "IdOfTheDevice",
   "type": "bolus",
@@ -173,6 +173,23 @@ __Note #2__: the `"part":2` object is not mandatory. The system can decide to ca
   "part": 2,
   "normal": 3.5,
   "prescriptor": "system"
+}
+```
+
+## Pen bolus
+
+A `pen` bolus is a normal bolus administered manually with insulin pen or syringe. The subType associated to this type of bolus is `pen`. This new structure is based on the `Bolus` object with an additional field: 
+- `normal` is similar to what is defined in `normal` bolus. 
+
+```json
+{
+  "time": "2020-05-12T12:00:00.000Z",
+  "timezone": "Europe/Paris",
+  "deviceTime": "2020-05-12T12:00:08",
+  "deviceId": "IdOfTheDevice",
+  "type": "bolus",
+  "subType": "pen",
+  "normal": 5
 }
 ```
 

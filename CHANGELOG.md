@@ -11,6 +11,7 @@ The Tidepool platform API
 - PT-1298 Store Zen mode object
 - PT-1314 Add Confidential mode in database and Update related APIs
 - PT-1303 Store additional fields in physical activity
+- PT-1379 Add a way to represent pen bolus structure in Backloops
 
 ## 0.7.2 - 2020-05-14 
 ### Changed
