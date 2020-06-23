@@ -34,8 +34,8 @@ type PrescriptionServiceParams struct {
 }
 
 type PrescriptionServiceConfig struct {
-	WebAppUrl string `envconfig:"TIDEPOOL_WEBAPP_URL" required:"true"`
-	AssetUrl  string `envconfig:"TIDEPOOL_ASSETS_URL" required:"true"`
+	WebAppURL string `envconfig:"TIDEPOOL_WEBAPP_URL" required:"true"`
+	AssetURL  string `envconfig:"TIDEPOOL_ASSETS_URL" required:"true"`
 }
 
 func NewPrescriptionServiceConfig(lifecycle fx.Lifecycle) *PrescriptionServiceConfig {
@@ -143,8 +143,8 @@ func (p *PrescriptionService) createEmail(prescr *prescription.Prescription) (*m
 	}
 	emailParams := map[string]string{
 		"AccessCode": prescr.AccessCode,
-		"AssetURL":   p.config.AssetUrl,
-		"WebURL":     p.config.WebAppUrl,
+		"AssetURL":   p.config.AssetURL,
+		"WebURL":     p.config.WebAppURL,
 	}
 	if err := p.emailTemplate.RenderToEmail(emailParams, email); err != nil {
 		return nil, err
