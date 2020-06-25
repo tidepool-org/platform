@@ -70,7 +70,7 @@ func (r *Router) GetPrescription(res rest.ResponseWriter, req *rest.Request) {
 
 	prescriptionID := req.PathParam("prescriptionId")
 	userID := details.UserID()
-	usr := r.getUserOrRespondWithError(req, responder, userID, user.RoleClinic)
+	usr := r.getUserOrRespondWithError(req, responder, userID)
 	if usr == nil {
 		return
 	}
@@ -116,7 +116,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	if success {
+	if !success {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
@@ -167,7 +167,7 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	if !usr.IsPatient() {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
 
