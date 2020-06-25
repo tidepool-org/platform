@@ -99,8 +99,9 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns an error when the user client ensure authorized service returns an error", func() {
-					responseErr := errorsTest.RandomError()
-					authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: responseErr}}
+					responseErr := request.ErrorUnauthorized()
+					authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: errorsTest.RandomError()}}
+					authClient.EnsureAuthorizedServiceOutputs = []error{errorsTest.RandomError()}
 					result, err := client.Get(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())

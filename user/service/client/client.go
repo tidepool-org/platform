@@ -62,14 +62,24 @@ func New(provider Provider) (*Client, error) {
 func (c *Client) Get(ctx context.Context, id string) (*user.User, error) {
 	ctx = log.ContextWithField(ctx, "id", id)
 
-	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, id, permission.Owner); err != nil {
-		return nil, err
+	if !c.canAccessUserAccount(ctx, id) {
+		return nil, request.ErrorUnauthorized()
 	}
 
 	session := c.UserStructuredStore().NewSession()
 	defer session.Close()
 
 	return session.Get(ctx, id, nil)
+}
+
+func (c *Client) canAccessUserAccount(ctx context.Context, id string) bool {
+	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, id, permission.Owner); err == nil {
+		return true
+	}
+	if err := c.AuthClient().EnsureAuthorizedService(ctx); err == nil {
+		return true
+	}
+	return false
 }
 
 func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, condition *request.Condition) (bool, error) {
