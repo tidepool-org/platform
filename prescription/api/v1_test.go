@@ -207,6 +207,14 @@ var _ = Describe("V1", func() {
 								currentUser = patient
 							})
 
+							It("filters the prescriptions with the currently signed in patient user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(BeEmpty())
+							})
+
 							It("returns ok status code", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
@@ -218,6 +226,14 @@ var _ = Describe("V1", func() {
 						Context("as clinician", func() {
 							BeforeEach(func() {
 								currentUser = clinician
+							})
+
+							It("filters the prescriptions with the currently signed in clinician user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(Equal(*currentUser.UserID))
 							})
 
 							It("returns ok status code", func() {
@@ -259,6 +275,14 @@ var _ = Describe("V1", func() {
 								currentUser = patient
 							})
 
+							It("filters the prescriptions with the currently signed in patient user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(BeEmpty())
+							})
+
 							It("returns ok status code", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
@@ -270,6 +294,14 @@ var _ = Describe("V1", func() {
 						Context("as clinician", func() {
 							BeforeEach(func() {
 								currentUser = clinician
+							})
+
+							It("filters the prescriptions with the currently signed in clinician user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(Equal(*currentUser.UserID))
 							})
 
 							It("returns ok status code", func() {
@@ -286,6 +318,14 @@ var _ = Describe("V1", func() {
 								asService = true
 							})
 
+							It("filters the prescriptions with the given patient user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(BeEmpty())
+							})
+
 							It("returns ok status code", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
@@ -298,6 +338,14 @@ var _ = Describe("V1", func() {
 							BeforeEach(func() {
 								currentUser = clinician
 								asService = true
+							})
+
+							It("filters the prescriptions with the given clinician user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(Equal(*currentUser.UserID))
 							})
 
 							It("returns ok status code", func() {
