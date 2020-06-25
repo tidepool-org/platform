@@ -2,6 +2,7 @@ package alarm
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	"github.com/tidepool-org/platform/structure"
@@ -11,18 +12,27 @@ import (
 const (
 	SubType = "alarm" // TODO: Rename Type to "device/alarm"; remove SubType
 
-	AlarmTypeAutoOff    = "auto_off"
-	AlarmTypeLowInsulin = "low_insulin"
-	AlarmTypeLowPower   = "low_power"
-	AlarmTypeNoDelivery = "no_delivery"
-	AlarmTypeNoInsulin  = "no_insulin"
-	AlarmTypeNoPower    = "no_power"
-	AlarmTypeOcclusion  = "occlusion"
-	AlarmTypeOther      = "other"
-	AlarmTypeOverLimit  = "over_limit"
+	AlarmTypeAutoOff        = "auto_off"
+	AlarmTypeLowInsulin     = "low_insulin"
+	AlarmTypeLowPower       = "low_power"
+	AlarmTypeNoDelivery     = "no_delivery"
+	AlarmTypeNoInsulin      = "no_insulin"
+	AlarmTypeNoPower        = "no_power"
+	AlarmTypeOcclusion      = "occlusion"
+	AlarmTypeOther          = "other"
+	AlarmTypeOverLimit      = "over_limit"
+	AlarmTypeHandset        = "handset"
+	IsAnAlarm               = "alarm"
+	IsAnAlert               = "alert"
+	NewAck                  = "new"
+	Acknowledged            = "acknowledged"
+	Outdated                = "outdated"
+	AlarmCodeMaximumLength  = 64
+	EventIDMaximumLength    = 64
+	AlarmLabelMaximumLength = 256
 )
 
-func AlarmTypes() []string {
+func LegacyAlarmTypes() []string {
 	return []string{
 		AlarmTypeAutoOff,
 		AlarmTypeLowInsulin,
@@ -36,12 +46,37 @@ func AlarmTypes() []string {
 	}
 }
 
+func AlarmTypes() []string {
+	return append(LegacyAlarmTypes(), AlarmTypeHandset)
+}
+
+func AlarmLevels() []string {
+	return []string{
+		IsAnAlarm,
+		IsAnAlert,
+	}
+}
+
+func AckStatuses() []string {
+	return []string{
+		NewAck,
+		Acknowledged,
+		Outdated,
+	}
+}
+
 type Alarm struct {
 	device.Device `bson:",inline"`
 
-	AlarmType *string     `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
-	Status    *data.Datum `json:"-" bson:"-"`
-	StatusID  *string     `json:"status,omitempty" bson:"status,omitempty"`
+	AlarmType  *string     `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
+	Status     *data.Datum `json:"-" bson:"-"`
+	StatusID   *string     `json:"status,omitempty" bson:"status,omitempty"`
+	EventID    *string     `json:"eventId,omitempty" bson:"eventId,omitempty"`
+	AlarmLevel *string     `json:"alarmLevel,omitempty" bson:"alarmLevel,omitempty"`
+	AlarmCode  *string     `json:"alarmCode,omitempty" bson:"alarmCode,omitempty"`
+	AlarmLabel *string     `json:"alarmLabel,omitempty" bson:"alarmLabel,omitempty"`
+	AckStatus  *string     `json:"ackStatus,omitempty" bson:"ackStatus,omitempty"`
+	UpdateTime *string     `json:"updateTime,omitempty" bson:"updateTime,omitempty"`
 }
 
 func New() *Alarm {
@@ -59,6 +94,12 @@ func (a *Alarm) Parse(parser structure.ObjectParser) {
 
 	a.AlarmType = parser.String("alarmType")
 	a.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.WithReferenceObjectParser("status"))
+	a.EventID = parser.String("eventId")
+	a.AlarmLevel = parser.String("alarmLevel")
+	a.AlarmCode = parser.String("alarmCode")
+	a.AlarmLabel = parser.String("alarmLabel")
+	a.AckStatus = parser.String("ackStatus")
+	a.UpdateTime = parser.String("updateTime")
 }
 
 func (a *Alarm) Validate(validator structure.Validator) {
@@ -84,6 +125,24 @@ func (a *Alarm) Validate(validator structure.Validator) {
 			validator.WithReference("status").ReportError(structureValidator.ErrorValueExists())
 		}
 		validator.String("statusId", a.StatusID).Using(data.IDValidator)
+	}
+
+	alarmLevelValidator := validator.String("alarmLevel", a.AlarmLevel)
+	alarmLevelValidator.OneOf(AlarmLevels()...)
+
+	ackStatusValidator := validator.String("ackStatus", a.AckStatus)
+	ackStatusValidator.OneOf(AckStatuses()...)
+
+	timeValidator := validator.String("updateTime", a.UpdateTime)
+	timeValidator.AsTime(types.TimeFormat)
+
+	if a.AlarmType != nil && *a.AlarmType == AlarmTypeHandset {
+		validator.String("eventID", a.EventID).Exists().LengthLessThanOrEqualTo(EventIDMaximumLength)
+		alarmLevelValidator.Exists()
+		validator.String("alarmCode", a.AlarmCode).Exists().LengthLessThanOrEqualTo(AlarmCodeMaximumLength)
+		validator.String("alarmLabel", a.AlarmLabel).Exists().LengthLessThanOrEqualTo(AlarmLabelMaximumLength)
+		ackStatusValidator.Exists()
+		timeValidator.Exists()
 	}
 }
 

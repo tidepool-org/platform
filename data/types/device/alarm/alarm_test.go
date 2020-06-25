@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/alarm"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
@@ -32,7 +33,7 @@ func NewAlarm() *alarm.Alarm {
 	datum := alarm.New()
 	datum.Device = *dataTypesDeviceTest.NewDevice()
 	datum.SubType = "alarm"
-	datum.AlarmType = pointer.FromString(test.RandomStringFromArray(alarm.AlarmTypes()))
+	datum.AlarmType = pointer.FromString(test.RandomStringFromArray(alarm.LegacyAlarmTypes()))
 	return datum
 }
 
@@ -50,6 +51,18 @@ func NewAlarmWithStatusID() *alarm.Alarm {
 	return datum
 }
 
+func NewAlarmFromHandset() *alarm.Alarm {
+	datum := NewAlarm()
+	datum.EventID = pointer.FromString("ID123456789")
+	datum.AlarmType = pointer.FromString(alarm.AlarmTypeHandset)
+	datum.AlarmLevel = pointer.FromString(test.RandomStringFromArray(alarm.AlarmLevels()))
+	datum.AlarmCode = pointer.FromString("code123")
+	datum.AlarmLabel = pointer.FromString("label")
+	datum.AckStatus = pointer.FromString(test.RandomStringFromArray(alarm.AckStatuses()))
+	datum.UpdateTime = pointer.CloneString(datum.Time)
+	return datum
+}
+
 func CloneAlarm(datum *alarm.Alarm) *alarm.Alarm {
 	if datum == nil {
 		return nil
@@ -63,7 +76,13 @@ func CloneAlarm(datum *alarm.Alarm) *alarm.Alarm {
 			clone.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.CloneStatus(status))
 		}
 	}
+	clone.EventID = pointer.CloneString(datum.EventID)
 	clone.StatusID = pointer.CloneString(datum.StatusID)
+	clone.AlarmLevel = pointer.CloneString(datum.AlarmLevel)
+	clone.AlarmCode = pointer.CloneString(datum.AlarmCode)
+	clone.AlarmLabel = pointer.CloneString(datum.AlarmLabel)
+	clone.AckStatus = pointer.CloneString(datum.AckStatus)
+	clone.UpdateTime = pointer.CloneString(datum.UpdateTime)
 	return clone
 }
 
@@ -108,8 +127,24 @@ var _ = Describe("Change", func() {
 		Expect(alarm.AlarmTypeOverLimit).To(Equal("over_limit"))
 	})
 
+	It("IsAnAlarm is expected", func() {
+		Expect(alarm.AlarmTypeOverLimit).To(Equal("over_limit"))
+	})
+
+	It("isAnAlarm is expected", func() {
+		Expect(alarm.IsAnAlarm).To(Equal("alarm"))
+	})
+
+	It("isAnAlert is expected", func() {
+		Expect(alarm.IsAnAlert).To(Equal("alert"))
+	})
+
+	It("Legacy AlarmTypes returns expected", func() {
+		Expect(alarm.LegacyAlarmTypes()).To(Equal([]string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}))
+	})
+
 	It("AlarmTypes returns expected", func() {
-		Expect(alarm.AlarmTypes()).To(Equal([]string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}))
+		Expect(alarm.AlarmTypes()).To(Equal([]string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit", "handset"}))
 	})
 
 	Context("New", func() {
@@ -121,6 +156,9 @@ var _ = Describe("Change", func() {
 			Expect(datum.AlarmType).To(BeNil())
 			Expect(datum.Status).To(BeNil())
 			Expect(datum.StatusID).To(BeNil())
+			Expect(datum.AlarmLevel).To(BeNil())
+			Expect(datum.AlarmCode).To(BeNil())
+			Expect(datum.AlarmLabel).To(BeNil())
 		})
 	})
 
@@ -167,7 +205,7 @@ var _ = Describe("Change", func() {
 				),
 				Entry("alarm type invalid",
 					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("invalid") },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}), "/alarmType", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit", "handset"}), "/alarmType", NewMeta()),
 				),
 				Entry("alarm type auto_off",
 					func(datum *alarm.Alarm) { datum.AlarmType = pointer.FromString("auto_off") },
@@ -204,7 +242,7 @@ var _ = Describe("Change", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "alarm"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit"}), "/alarmType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"auto_off", "low_insulin", "low_power", "no_delivery", "no_insulin", "no_power", "occlusion", "other", "over_limit", "handset"}), "/alarmType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 
@@ -278,6 +316,114 @@ var _ = Describe("Change", func() {
 					errorsTest.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 			)
+
+			DescribeTable("validates the datum with handset alarms",
+				func(mutator func(datum *alarm.Alarm), expectedErrors ...error) {
+					datum := NewAlarmFromHandset()
+					mutator(datum)
+					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *alarm.Alarm) {},
+				),
+				Entry("EventId is missing",
+					func(datum *alarm.Alarm) {
+						datum.EventID = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventID", NewMeta()),
+				),
+				Entry("EventId length out of range",
+					func(datum *alarm.Alarm) {
+						datum.EventID = pointer.FromString(test.RandomStringFromRange(65, 65))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(65, 64), "/eventID", NewMeta()),
+				),
+				Entry("EventId length in range",
+					func(datum *alarm.Alarm) {
+						datum.EventID = pointer.FromString(test.RandomStringFromRange(64, 64))
+					},
+				),
+				Entry("invalid alarm level",
+					func(datum *alarm.Alarm) {
+						datum.AlarmLevel = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"alarm", "alert"}), "/alarmLevel", NewMeta()),
+				),
+				Entry("alarm level is missing",
+					func(datum *alarm.Alarm) {
+						datum.AlarmLevel = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmLevel", NewMeta()),
+				),
+				Entry("alarm code is missing",
+					func(datum *alarm.Alarm) {
+						datum.AlarmCode = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmCode", NewMeta()),
+				),
+				Entry("Alarm Code length out of range",
+					func(datum *alarm.Alarm) {
+						datum.AlarmCode = pointer.FromString(test.RandomStringFromRange(65, 65))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(65, 64), "/alarmCode", NewMeta()),
+				),
+				Entry("Alarm code length in range",
+					func(datum *alarm.Alarm) {
+						datum.AlarmCode = pointer.FromString(test.RandomStringFromRange(64, 64))
+					},
+				),
+				Entry("alarm label is missing",
+					func(datum *alarm.Alarm) {
+						datum.AlarmLabel = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmLabel", NewMeta()),
+				),
+				Entry("Alarm label out of range",
+					func(datum *alarm.Alarm) {
+						datum.AlarmLabel = pointer.FromString(test.RandomStringFromRange(257, 257))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256), "/alarmLabel", NewMeta()),
+				),
+				Entry("Alarm label in range",
+					func(datum *alarm.Alarm) {
+						datum.AlarmLabel = pointer.FromString(test.RandomStringFromRange(256, 256))
+					},
+				),
+				Entry("ackStatus is missing",
+					func(datum *alarm.Alarm) {
+						datum.AckStatus = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/ackStatus", NewMeta()),
+				),
+				Entry("updateTime is missing",
+					func(datum *alarm.Alarm) {
+						datum.UpdateTime = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/updateTime", NewMeta()),
+				),
+				Entry("Mulitple missing",
+					func(datum *alarm.Alarm) {
+						datum.EventID = nil
+						datum.AlarmLevel = nil
+						datum.AlarmCode = nil
+						datum.AlarmLabel = nil
+						datum.AckStatus = nil
+						datum.UpdateTime = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventID", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmLevel", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmCode", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmLabel", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/ackStatus", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/updateTime", NewMeta()),
+				),
+				Entry("updateTime is invalid",
+					func(datum *alarm.Alarm) {
+						datum.UpdateTime = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", types.TimeFormat), "/updateTime", NewMeta()),
+				),
+			)
 		})
 
 		Context("Normalize", func() {
@@ -295,6 +441,34 @@ var _ = Describe("Change", func() {
 			It("normalizes the datum and replaces status with status id", func() {
 				datumStatus := dataTypesDeviceStatusTest.NewStatus()
 				datum := NewAlarmWithStatusID()
+				datum.Status = data.DatumAsPointer(datumStatus)
+				expectedDatum := CloneAlarm(datum)
+				normalizer := dataNormalizer.New()
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(normalizer.Data()).To(Equal([]data.Datum{datumStatus}))
+				expectedDatum.Status = nil
+				expectedDatum.StatusID = pointer.FromString(*datumStatus.ID)
+				Expect(datum).To(Equal(expectedDatum))
+			})
+
+			It("does not modify datum if handset and status missing", func() {
+				datum := NewAlarmFromHandset()
+				datum.StatusID = pointer.FromString(dataTest.RandomID())
+				expectedDatum := CloneAlarm(datum)
+				normalizer := dataNormalizer.New()
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(normalizer.Data()).To(BeEmpty())
+				Expect(datum).To(Equal(expectedDatum))
+			})
+
+			It("normalizes the datum if handset and replaces status with status id", func() {
+				datumStatus := dataTypesDeviceStatusTest.NewStatus()
+				datum := NewAlarmFromHandset()
+				datum.StatusID = pointer.FromString(dataTest.RandomID())
 				datum.Status = data.DatumAsPointer(datumStatus)
 				expectedDatum := CloneAlarm(datum)
 				normalizer := dataNormalizer.New()
