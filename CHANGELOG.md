@@ -1,7 +1,7 @@
 # Platform 
 The Tidepool platform API
 
-## Unreleased
+## 0.8.0 - 2020-06-25
 ### Changed
 - PT-1287 Integrate Tidepool master for platform
 - PT-1301 Add declaration time to wizard object
