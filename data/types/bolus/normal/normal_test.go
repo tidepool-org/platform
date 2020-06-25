@@ -80,7 +80,7 @@ var _ = Describe("Normal", func() {
 				),
 				Entry("sub type invalid",
 					func(datum *normal.Normal) { datum.SubType = "invalidSubType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "normal"), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", normal.SubTypes()), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
 				),
 				Entry("sub type normal",
 					func(datum *normal.Normal) { datum.SubType = "normal" },
@@ -269,7 +269,7 @@ var _ = Describe("Normal", func() {
 						datum.NormalExpected = pointer.FromFloat64(100.1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "normal"), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", normal.SubTypes()), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),

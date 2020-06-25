@@ -129,10 +129,10 @@ Here we are introducing 2 new fields in the bolus objects:
 
 A `biphasic` bolus is a 2 parts bolus that is defined by the system. Below is the definition for this new type of bolus that leverages most of the fields from `normal` bolus. The subType associated to this type of bolus is `biphasic`.
 We add the following fields:
-- `eventId`: unique ID provided by the client that is used to link the 2 parts of the bolus.
-- part: `1 | 2`. It's either the first part or the second part of the bolus. We will see that the first part of the bolus has to contain additional mandatory fields. 
+- `eventId`: unique ID provided by the client that is used to link the 2 parts of the bolus. This field is mandatory. 
+- part: `1 | 2`. It's either the first part or the second part of the bolus. This field is mandatory. 
 - `normal` and `expectedNormal` are similar to what is defined in `normal` bolus. 
-- `linkedBolus` defined the second part of the bolus at the time the first part is created. It's an estimated bolus that may be modified by the system. This section is mandatory for any `"part":1` object. 
+- `linkedBolus` defined the second part of the bolus at the time the first part is created. It's an estimated bolus that may be modified by the system. This section is optional. 
   - `linkedBolus.normal`: the expected value for the second part of the biphasic bolus. The actual value is provided by the `"part":2` object.
   - `linkedBolus.duration`: the expected duration between the first and the second part of the biphasic bolus. The actual duration is provided by the `"part":2` object through the effective time of this second object. The duration structure is leveraged from structure already used in other objects such as physical activity.
 - `prescriptor`: same as above in `food`. This field is optional. 

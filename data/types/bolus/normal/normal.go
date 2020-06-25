@@ -9,9 +9,17 @@ import (
 const (
 	SubType = "normal" // TODO: Rename Type to "bolus/normal"; remove SubType
 
-	NormalMaximum = 100.0
-	NormalMinimum = 0.0
+	BiphasicSubType = "biphasic"
+	NormalMaximum   = 100.0
+	NormalMinimum   = 0.0
 )
+
+func SubTypes() []string {
+	return []string{
+		SubType,
+		BiphasicSubType,
+	}
+}
 
 type Normal struct {
 	bolus.Bolus `bson:",inline"`
@@ -23,6 +31,12 @@ type Normal struct {
 func New() *Normal {
 	return &Normal{
 		Bolus: bolus.New(SubType),
+	}
+}
+
+func NewWithSubType(subtype string) Normal {
+	return Normal{
+		Bolus: bolus.New(subtype),
 	}
 }
 
@@ -45,7 +59,7 @@ func (n *Normal) Validate(validator structure.Validator) {
 	n.Bolus.Validate(validator)
 
 	if n.SubType != "" {
-		validator.String("subType", &n.SubType).EqualTo(SubType)
+		validator.String("subType", &n.SubType).OneOf(SubTypes()...)
 	}
 
 	validator.Float64("normal", n.Normal).Exists().InRange(NormalMinimum, NormalMaximum)
