@@ -355,7 +355,7 @@ var _ = Describe("Food", func() {
 					func(datum *food.Food) {
 						datum.Meal = pointer.FromString("rescuecarbs")
 						datum.MealOther = nil
-						datum.Prescriptor = nil
+						datum.Prescriptor = common.NewPrescriptor()
 						datum.PrescribedNutrition = NewNutrition()
 					},
 				),
@@ -413,10 +413,13 @@ var _ = Describe("Food", func() {
 				func(mutator func(datum *food.Food)) {
 					for _, origin := range structure.Origins() {
 						datum := NewFood(3)
+						datum.Meal = pointer.FromString(test.RandomStringFromArray([]string{food.MealBreakfast, food.MealDinner, food.MealLunch, food.MealOther, food.MealSnack}))
 						datum.Prescriptor = nil
 						datum.PrescribedNutrition = nil
 						mutator(datum)
 						expectedDatum := CloneFood(datum)
+						expectedDatum.Prescriptor = nil
+						expectedDatum.PrescribedNutrition = nil
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -451,6 +454,16 @@ var _ = Describe("Food", func() {
 				),
 				Entry("does not modify the datum; nutrition missing",
 					func(datum *food.Food) { datum.Nutrition = nil },
+				),
+				Entry("does not crash when prescriptor is set",
+					func(datum *food.Food) {
+						datum.Prescriptor = dataTypesCommonTest.NewPrescriptor()
+					},
+				),
+				Entry("does not crash when prescribedNutrition is set",
+					func(datum *food.Food) {
+						datum.PrescribedNutrition = NewNutrition()
+					},
 				),
 			)
 
@@ -497,9 +510,12 @@ var _ = Describe("Food", func() {
 				Entry("does not modify the datum; nutrition missing",
 					func(datum *food.Food) { datum.Nutrition = nil },
 				),
+				Entry("does not modify the datum; prescribedNutrition missing",
+					func(datum *food.Food) { datum.PrescribedNutrition = nil },
+				),
 			)
 
-			DescribeTable("normalizes the datum for rescueCarbs, other prescriptor",
+			DescribeTable("normalizes the datum for rescueCarbs and any other prescriptor; PrescribedNutrition is changed to nil",
 				func(mutator func(datum *food.Food)) {
 					for _, origin := range structure.Origins() {
 						datum := NewFood(3)
@@ -542,6 +558,16 @@ var _ = Describe("Food", func() {
 				),
 				Entry("does not modify the datum; nutrition missing",
 					func(datum *food.Food) { datum.Nutrition = nil },
+				),
+				Entry("modify the datum; prescribedNutrition is reset to nil",
+					func(datum *food.Food) {
+						datum.PrescribedNutrition = NewNutrition()
+					},
+				),
+				Entry("does not crash when prescriptor is not set",
+					func(datum *food.Food) {
+						datum.Prescriptor.Prescriptor = nil
+					},
 				),
 			)
 

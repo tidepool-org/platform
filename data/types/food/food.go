@@ -105,7 +105,7 @@ func (f *Food) Validate(validator structure.Validator) {
 		f.Nutrition.Validate(validator.WithReference("nutrition"))
 	}
 	if f.Meal != nil && *f.Meal == MealRescueCarbs {
-		if f.Prescriptor != nil {
+		if f.Prescriptor != nil && f.Prescriptor.Prescriptor != nil {
 			f.Prescriptor.Validate(validator)
 			if *f.Prescriptor.Prescriptor == common.HybridPrescriptor && f.PrescribedNutrition == nil {
 				// Prescribed Nutrition is mandatory
@@ -145,7 +145,7 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 	if f.Nutrition != nil {
 		f.Nutrition.Normalize(normalizer.WithReference("nutrition"))
 	}
-	if f.Prescriptor != nil && *f.Prescriptor.Prescriptor == common.HybridPrescriptor && f.PrescribedNutrition != nil {
+	if f.Prescriptor != nil && f.Prescriptor.Prescriptor != nil && *f.Prescriptor.Prescriptor == common.HybridPrescriptor && f.PrescribedNutrition != nil {
 		f.PrescribedNutrition.Normalize(normalizer.WithReference("nutrition"))
 	} else {
 		f.PrescribedNutrition = nil

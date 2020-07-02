@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.8.1 - 2020-07-02
+### Fixed
+- PT-1392 make data service backward compatible for food object that does contain prescriptor. 
+
 ## 0.8.0 - 2020-06-25
 ### Changed
 - PT-1287 Integrate Tidepool master for platform
