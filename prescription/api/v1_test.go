@@ -211,7 +211,7 @@ var _ = Describe("V1", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(*currentUser.UserID))
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(BeEmpty())
 							})
 
@@ -232,7 +232,7 @@ var _ = Describe("V1", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(BeEmpty())
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(Equal(*currentUser.UserID))
 							})
 
@@ -279,7 +279,7 @@ var _ = Describe("V1", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(*currentUser.UserID))
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(BeEmpty())
 							})
 
@@ -300,7 +300,7 @@ var _ = Describe("V1", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(BeEmpty())
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(Equal(*currentUser.UserID))
 							})
 
@@ -322,7 +322,7 @@ var _ = Describe("V1", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(*currentUser.UserID))
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(BeEmpty())
 							})
 
@@ -344,7 +344,7 @@ var _ = Describe("V1", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(BeEmpty())
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicianID).To(Equal(*currentUser.UserID))
 							})
 
