@@ -23,6 +23,7 @@ import (
 
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	configTest "github.com/tidepool-org/platform/config/test"
+	mailerTest "github.com/tidepool-org/platform/mailer/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
@@ -110,6 +111,7 @@ var _ = Describe("Application", func() {
 					fx.Provide(func() provider.Provider { return prvdr }),
 					provider.ProviderComponentsModule,
 					fx.Provide(func(provider.Provider) config.Reporter { return prvdr.ConfigReporter() }),
+					fx.Provide(mailerTest.NewNoopMailer),
 					application.Prescription,
 					fx.Invoke(func(res Result) {
 						routers = res.Routers

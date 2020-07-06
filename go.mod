@@ -4,8 +4,9 @@ go 1.11
 
 require (
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.29.23
+	github.com/aws/aws-sdk-go v1.31.7
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/confluentinc/confluent-kafka-go v1.4.2
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.5.0
 	github.com/fatih/color v1.7.0 // indirect
@@ -20,6 +21,7 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.9.0
+	github.com/tidepool-org/mailer v0.0.0-20200622154010-07343253861d
 	github.com/urfave/cli v1.20.0
 	go.mongodb.org/mongo-driver v1.3.2
 	go.uber.org/fx v1.12.0
@@ -29,7 +31,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
 	golang.org/x/tools v0.0.0-20191114200427-caa0b0f7d508
 	gopkg.in/tylerb/graceful.v1 v1.2.15
-	gopkg.in/yaml.v2 v2.2.4
+	gopkg.in/yaml.v2 v2.2.5
 	syreclabs.com/go/faker v1.2.2
 )
 

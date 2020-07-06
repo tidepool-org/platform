@@ -18,6 +18,7 @@ var Prescription = fx.Options(
 	fx.Provide(
 		prescriptionMongo.NewStore,
 		prescriptionMongo.NewStatusReporter,
+		service.NewPrescriptionServiceConfig,
 		service.NewService,
 		fx.Annotated{
 			Group:  "routers",
