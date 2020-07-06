@@ -181,7 +181,7 @@ var _ = Describe("Mongo", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(indexes).Should(ConsistOf(
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_userId", "_active", "type", "_schemaVersion", "-time"), "Background": Equal(true), "Name": Equal("UserIdTypeWeighted")}),
+					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_userId", "_active", "type", "-time"), "Background": Equal(true), "Name": Equal("UserIdTypeWeighted_v2")}),
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("origin.id", "type", "-deletedTime", "_active"), "Background": Equal(true), "Name": Equal("OriginId")}),
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId"), "Background": Equal(true), "Unique": Equal(true), "Name": Equal("UniqueUploadId"), "PartialFilter": HaveKeyWithValue("type", "upload")}),
 					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId", "type", "-deletedTime", "_active"), "Background": Equal(true), "Name": Equal("UploadId")}),

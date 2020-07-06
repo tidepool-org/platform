@@ -51,7 +51,8 @@ type DataSession struct {
 
 func (d *DataSession) EnsureIndexes() error {
 	return d.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"_userId", "_active", "type", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
+		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
+		{Key: []string{"_userId", "_active", "type", "-time"}, Background: true, Name: "UserIdTypeWeighted_v2"},
 		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
 		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
 		{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},

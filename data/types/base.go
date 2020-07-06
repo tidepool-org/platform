@@ -26,9 +26,6 @@ const (
 	ModifiedTimeFormat      = time.RFC3339Nano
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
-	SchemaVersionCurrent    = SchemaVersionMaximum
-	SchemaVersionMaximum    = 3
-	SchemaVersionMinimum    = 1
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339Nano
@@ -60,7 +57,6 @@ type Base struct {
 	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
 	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
 	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
-	SchemaVersion     int                           `json:"-" bson:"_schemaVersion,omitempty"`
 	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *string                       `json:"time,omitempty" bson:"time,omitempty"`
@@ -196,10 +192,6 @@ func (b *Base) Validate(validator structure.Validator) {
 		b.Payload.Validate(validator.WithReference("payload"))
 	}
 
-	if validator.Origin() <= structure.OriginStore {
-		validator.Int("_schemaVersion", &b.SchemaVersion).Exists().InRange(SchemaVersionMinimum, SchemaVersionMaximum)
-	}
-
 	validator.String("source", b.Source).EqualTo("carelink")
 	validator.StringArray("tags", b.Tags).NotEmpty().LengthLessThanOrEqualTo(TagsLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
@@ -232,12 +224,6 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())
-		}
-	}
-
-	if normalizer.Origin() == structure.OriginExternal {
-		if b.SchemaVersion == 0 {
-			b.SchemaVersion = SchemaVersionCurrent
 		}
 	}
 

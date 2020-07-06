@@ -6,21 +6,21 @@ import (
 
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/service"
-	user "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/service/api"
 )
 
 type Router struct {
 	prescriptionService prescription.Service
-	userClient          *user.Client
+	userClient          user.Client
 }
 
 type Params struct {
 	fx.In
 
 	PrescriptionService prescription.Service
-	UserClient          *user.Client
+	UserClient          user.Client
 }
 
 func NewRouter(p Params) service.Router {
@@ -33,7 +33,8 @@ func NewRouter(p Params) service.Router {
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Post("/v1/prescriptions", api.Require(r.CreatePrescription)),
-		rest.Get("/v1/prescriptions", api.Require(r.ListPrescriptions)),
+		rest.Get("/v1/prescriptions", api.Require(r.ListCurrentUserPrescriptions)),
+		rest.Get("/v1/users/:userId/prescriptions", api.Require(r.ListUserPrescriptions)),
 		rest.Post("/v1/prescriptions/claim", api.Require(r.ClaimPrescription)),
 		rest.Get("/v1/prescriptions/:prescriptionId", api.Require(r.GetPrescription)),
 		rest.Patch("/v1/prescriptions/:prescriptionId", api.Require(r.UpdateState)),

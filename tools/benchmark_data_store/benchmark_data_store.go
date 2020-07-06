@@ -354,10 +354,9 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dat
 	}
 
 	selector := bson.M{
-		"_active":        true,
-		"deviceId":       *input.DeviceID,
-		"_groupId":       *input.GroupID,
-		"_schemaVersion": 3,
+		"_active":  true,
+		"deviceId": *input.DeviceID,
+		"_groupId": *input.GroupID,
 		"time": bson.M{
 			"$lt": *input.Time,
 		},
@@ -590,7 +589,6 @@ func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, session dat
 	dataSet.CreatedUserID = pointer.CloneString(input.UserID)
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.ID = pointer.FromString(data.NewID())
-	dataSet.SchemaVersion = 3
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.CreateDataSet(ctx, dataSet)
@@ -737,9 +735,8 @@ func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, sessio
 	}
 
 	selector := bson.M{
-		"_userId":        input.UserID,
-		"_active":        true,
-		"_schemaVersion": bson.M{"$gte": 1, "$lte": 99},
+		"_userId": input.UserID,
+		"_active": true,
 	}
 
 	// FUTURE: Consider adding some/all of these options
@@ -802,7 +799,6 @@ func (t *Tool) prepareDataSetWithData(input *BenchmarkInput) (*dataTypesUpload.U
 	dataSet.CreatedUserID = pointer.CloneString(input.UserID)
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.ID = pointer.FromString(data.NewID())
-	dataSet.SchemaVersion = 3
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.FromString(data.NewSetID())
 	return dataSet, t.generateRandomDataSetData(input.DeviceID)
@@ -851,12 +847,11 @@ func (t *Tool) generateRandomDataSetDatum(deviceID *string) data.Datum {
 		ID: pointer.FromString(strconv.Itoa(rand.Int())),
 	}
 	return &dataTypes.Base{
-		DeviceID:      pointer.CloneString(deviceID),
-		ID:            pointer.FromString(data.NewID()),
-		Origin:        origin,
-		SchemaVersion: 3,
-		Time:          pointer.FromString(time.Now().Add(-timeYear).Add(time.Duration(rand.Int63n(int64(2 * timeYear)))).Format(time.RFC3339Nano)),
-		Type:          "benchmark",
+		DeviceID: pointer.CloneString(deviceID),
+		ID:       pointer.FromString(data.NewID()),
+		Origin:   origin,
+		Time:     pointer.FromString(time.Now().Add(-timeYear).Add(time.Duration(rand.Int63n(int64(2 * timeYear)))).Format(time.RFC3339Nano)),
+		Type:     "benchmark",
 	}
 }
 

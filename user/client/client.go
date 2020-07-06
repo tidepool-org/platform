@@ -30,7 +30,7 @@ type Params struct {
 	UserAgent      string `name:"userAgent"`
 }
 
-func NewDefaultClient(p Params) (*Client, error) {
+func NewDefaultClient(p Params) (user.Client, error) {
 	p.Logger.Debug("Loading user client config")
 
 	cfg := platform.NewConfig()

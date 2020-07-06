@@ -97,12 +97,12 @@ var _ = Describe("PrescriptionRepository", func() {
 						"key": HaveKey("_id"),
 					}),
 					MatchKeys(IgnoreExtras, Keys{
-						"key":        HaveKey("patientId"),
+						"key":        HaveKey("patientUserId"),
 						"name":       Equal("GetByPatientId"),
 						"background": Equal(true),
 					}),
 					MatchKeys(IgnoreExtras, Keys{
-						"key":        HaveKey("prescriberId"),
+						"key":        HaveKey("prescriberUserId"),
 						"name":       Equal("GetByPrescriberId"),
 						"background": Equal(true),
 					}),
@@ -195,7 +195,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					patient.Roles = &[]string{}
 					filter, err := prescription.NewFilter(patient)
 					Expect(err).ToNot(HaveOccurred())
-					filter.PatientID = userTest.RandomID()
+					filter.PatientUserID = userTest.RandomID()
 
 					result, err := repository.ListPrescriptions(ctx, filter, nil)
 					errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
@@ -219,7 +219,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						ids = make([]primitive.ObjectID, count)
 						for i := 0; i < count; i++ {
 							p := prescriptions[i]
-							p.PatientID = ""
+							p.PatientUserID = ""
 							p.State = prescription.StateSubmitted
 							p.CreatedUserID = *clinician.UserID
 
@@ -240,7 +240,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						expectedIDs := ids[1:3]
-						_, err = collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"prescriberId": *clinician.UserID}})
+						_, err = collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"prescriberUserId": *clinician.UserID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter, err := prescription.NewFilter(clinician)
@@ -314,12 +314,12 @@ var _ = Describe("PrescriptionRepository", func() {
 						expectedIDs := ids[1:3]
 						patientID := userTest.RandomID()
 
-						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientId": patientID}})
+						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientUserId": patientID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.PatientID = patientID
+						filter.PatientUserID = patientID
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
@@ -342,64 +342,88 @@ var _ = Describe("PrescriptionRepository", func() {
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a created start date", func() {
+					It("returns the correct prescriptions given a created after filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
 							return prescriptions[i].CreatedTime.Before(prescriptions[j].CreatedTime)
 						})
 
-						expectedIDs := ids[3:5]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].CreatedTime
+						for i, id := range ids {
+							if prescriptions[i].CreatedTime.Equal(*time) || prescriptions[i].CreatedTime.After(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.CreatedTimeStart = &prescriptions[2].CreatedTime
+						filter.CreatedAfter = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a created end date", func() {
+					It("returns the correct prescriptions given a created before filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
 							return prescriptions[i].CreatedTime.Before(prescriptions[j].CreatedTime)
 						})
 
-						expectedIDs := ids[0:2]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].CreatedTime
+						for i, id := range ids {
+							if prescriptions[i].CreatedTime.Before(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.CreatedTimeEnd = &prescriptions[2].CreatedTime
+						filter.CreatedBefore = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a modified start date", func() {
+					It("returns the correct prescriptions given a modified after filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
-							return prescriptions[i].LatestRevision.Attributes.ModifiedTime.Before(prescriptions[j].LatestRevision.Attributes.ModifiedTime)
+							return prescriptions[i].ModifiedTime.Before(prescriptions[j].ModifiedTime)
 						})
 
-						expectedIDs := ids[3:5]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].ModifiedTime
+						for i, id := range ids {
+							if prescriptions[i].ModifiedTime.Equal(*time) || prescriptions[i].ModifiedTime.After(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.ModifiedTimeStart = &prescriptions[2].LatestRevision.Attributes.ModifiedTime
+						filter.ModifiedAfter = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
 						ExpectPrescriptionIdsToMatch(result, expectedIDs)
 					})
 
-					It("returns the correct prescriptions given a modified end date", func() {
+					It("returns the correct prescriptions given a modified before filter", func() {
 						sort.SliceStable(prescriptions, func(i int, j int) bool {
-							return prescriptions[i].LatestRevision.Attributes.ModifiedTime.Before(prescriptions[j].LatestRevision.Attributes.ModifiedTime)
+							return prescriptions[i].ModifiedTime.Before(prescriptions[j].ModifiedTime)
 						})
 
-						expectedIDs := ids[0:2]
+						expectedIDs := make([]primitive.ObjectID, 0)
+						time := &prescriptions[2].ModifiedTime
+						for i, id := range ids {
+							if prescriptions[i].ModifiedTime.Before(*time) {
+								expectedIDs = append(expectedIDs, id)
+							}
+						}
 
 						filter, err := prescription.NewFilter(clinician)
 						Expect(err).ToNot(HaveOccurred())
-						filter.ModifiedTimeEnd = &prescriptions[2].LatestRevision.Attributes.ModifiedTime
+						filter.ModifiedBefore = time
 
 						result, err := repository.ListPrescriptions(ctx, filter, nil)
 						Expect(err).ToNot(HaveOccurred())
@@ -411,7 +435,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						patient := userTest.RandomUser()
 						patientID := patient.UserID
 
-						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientId": patientID}})
+						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientUserId": patientID}})
 						Expect(err).ToNot(HaveOccurred())
 
 						filter, err := prescription.NewFilter(patient)
@@ -450,7 +474,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						ids = make([]primitive.ObjectID, count)
 						for i := 0; i < count; i++ {
 							p := prescriptions[i]
-							p.PatientID = ""
+							p.PatientUserID = ""
 							p.State = faker.RandomChoice([]string{prescription.StateDraft, prescription.StatePending})
 							p.DeletedTime = nil
 							p.DeletedUserID = ""
@@ -638,7 +662,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
-						result.LatestRevision.Attributes.ModifiedTime = update.Revision.Attributes.ModifiedTime
+						result.LatestRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
 					})
 				})
@@ -721,7 +745,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						result, err := repository.ClaimPrescription(ctx, usr, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
-						Expect(result.PatientID).To(Equal(*usr.UserID))
+						Expect(result.PatientUserID).To(Equal(*usr.UserID))
 					})
 				})
 			})
@@ -735,7 +759,7 @@ var _ = Describe("PrescriptionRepository", func() {
 				BeforeEach(func() {
 					usr = userTest.RandomUser()
 					prescr = test.RandomClaimedPrescription()
-					prescr.PatientID = *usr.UserID
+					prescr.PatientUserID = *usr.UserID
 					prescrID = prescr.ID.Hex()
 					stateUpdate = prescription.NewStateUpdate()
 					stateUpdate.State = prescription.StateActive
