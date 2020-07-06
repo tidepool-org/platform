@@ -4,9 +4,10 @@ import (
 	"regexp"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	"github.com/tidepool-org/platform/device"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -18,10 +19,6 @@ const (
 
 	TherapySettingInitial              = "initial"
 	TherapySettingTransferPumpSettings = "transferPumpSettings"
-	TherapySettingCertifiedPumpTrainer = "certifiedPumpTrainer"
-
-	LoopModeClosedLoop  = "closedLoop"
-	LoopModeSuspendOnly = "suspendOnly"
 
 	SexMale        = "male"
 	SexFemale      = "female"
@@ -47,11 +44,9 @@ type RevisionCreate struct {
 	Weight                  *Weight          `json:"weight,omitempty"`
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty"`
 	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty"`
-	Address                 *Address         `json:"address,omitempty"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty"`
 	TherapySettings         string           `json:"therapySettings,omitempty"`
-	LoopMode                string           `json:"loopMode,omitempty"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty"`
 	State                   string           `json:"state"`
 }
@@ -79,9 +74,6 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 	if r.PhoneNumber != nil {
 		r.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
 	}
-	if r.Address != nil {
-		r.Address.Validate(validator.WithReference("address"))
-	}
 	if r.InitialSettings != nil {
 		r.InitialSettings.Validate(validator.WithReference("initialSettings"))
 	}
@@ -90,9 +82,6 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 	}
 	if r.TherapySettings != "" {
 		validator.String("therapySettings", &r.TherapySettings).OneOf(TherapySettings()...)
-	}
-	if r.LoopMode != "" {
-		validator.String("loopMode", &r.LoopMode).OneOf(LoopModes()...)
 	}
 	validator.String("state", &r.State).OneOf(RevisionStates()...)
 	if r.State == StateSubmitted {
@@ -109,7 +98,6 @@ func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
 	validator.Int("yearOfDiagnosis", &r.YearOfDiagnosis).GreaterThan(1900)
 	validator.String("training", &r.Training).NotEmpty()
 	validator.String("therapySettings", &r.TherapySettings).NotEmpty()
-	validator.String("loopMode", &r.LoopMode).NotEmpty()
 	validator.Bool("prescriberTermsAccepted", &r.PrescriberTermsAccepted).True()
 
 	// if phoneNumber is nil validate will fail
@@ -124,17 +112,9 @@ func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
 		r.Weight.ValidateAllRequired(weightValidator)
 	}
 
-	// if address is nil validate will fail
-	addressValidator := validator.WithReference("address")
-	if r.Address != nil {
-		r.Address.ValidateAllRequired(addressValidator)
-	} else {
-		addressValidator.ReportError(structureValidator.ErrorValueEmpty())
-	}
-
 	initialSettingsValidator := validator.WithReference("initialSettings")
 	if r.InitialSettings != nil {
-		r.InitialSettings.ValidateAllRequired(initialSettingsValidator, r.TherapySettings)
+		r.InitialSettings.ValidateAllRequired(initialSettingsValidator)
 	} else {
 		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
@@ -168,15 +148,13 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 			Weight:                  create.Weight,
 			YearOfDiagnosis:         create.YearOfDiagnosis,
 			PhoneNumber:             create.PhoneNumber,
-			Address:                 create.Address,
 			InitialSettings:         create.InitialSettings,
 			Training:                create.Training,
 			TherapySettings:         create.TherapySettings,
-			LoopMode:                create.LoopMode,
 			PrescriberTermsAccepted: create.PrescriberTermsAccepted,
 			State:                   create.State,
-			ModifiedTime:            now,
-			ModifiedUserID:          userID,
+			CreatedTime:             now,
+			CreatedUserID:           userID,
 		},
 	}
 }
@@ -205,7 +183,7 @@ func (r *Revision) GetPrescriberUserID() string {
 		return ""
 	}
 
-	return r.Attributes.ModifiedUserID
+	return r.Attributes.CreatedUserID
 }
 
 type Attributes struct {
@@ -218,15 +196,13 @@ type Attributes struct {
 	Weight                  *Weight          `json:"weight,omitempty" bson:"weight,omitempty"`
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis,omitempty"`
 	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
-	Address                 *Address         `json:"address,omitempty" bson:"address,omitempty"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
 	Training                string           `json:"training,omitempty" bson:"training,omitempty"`
 	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
-	LoopMode                string           `json:"loopMode,omitempty" bson:"loopMode,omitempty"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted,omitempty"`
 	State                   string           `json:"state" bson:"state"`
-	ModifiedTime            time.Time        `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID          string           `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	CreatedTime             time.Time        `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID           string           `json:"createdUserId,omitempty" bson:"cratedUserId,omitempty"`
 }
 
 func (a *Attributes) Validate(validator structure.Validator) {
@@ -251,21 +227,15 @@ func (a *Attributes) Validate(validator structure.Validator) {
 	if a.TherapySettings != "" {
 		validator.String("therapySettings", &a.TherapySettings).OneOf(TherapySettings()...)
 	}
-	if a.LoopMode != "" {
-		validator.String("loopMode", &a.LoopMode).OneOf(LoopModes()...)
-	}
 	if a.Weight != nil {
 		a.Weight.Validate(validator.WithReference("weight"))
-	}
-	if a.Address != nil {
-		a.Address.Validate(validator.WithReference("address"))
 	}
 	if a.InitialSettings != nil {
 		a.InitialSettings.Validate(validator.WithReference("initialSettings"))
 	}
 	validator.String("state", &a.State).OneOf(RevisionStates()...)
-	validator.Time("modifiedTime", &a.ModifiedTime).BeforeNow(time.Second)
-	validator.String("modifiedUserId", &a.ModifiedUserID).Using(user.IDValidator)
+	validator.Time("createdTime", &a.CreatedTime).BeforeNow(time.Second)
+	validator.String("createdUserId", &a.CreatedUserID).Using(user.IDValidator)
 
 	if a.State == StateSubmitted {
 		a.ValidateAllRequired(validator)
@@ -281,21 +251,14 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 	validator.Int("yearOfDiagnosis", &a.YearOfDiagnosis).GreaterThan(1900)
 	validator.String("training", &a.Training).NotEmpty()
 	validator.String("therapySettings", &a.TherapySettings).NotEmpty()
-	validator.String("loopMode", &a.LoopMode).NotEmpty()
 	validator.Bool("prescriberTermsAccepted", &a.PrescriberTermsAccepted).True()
 
 	// if phoneNumber is nil validate will fail
 	phoneValidator := validator.WithReference("phoneNumber")
 	if a.PhoneNumber != nil {
 		a.PhoneNumber.Validate(phoneValidator)
-	}
-
-	// if address is nil validate will fail
-	addressValidator := validator.WithReference("address")
-	if a.Address != nil {
-		a.Address.ValidateAllRequired(addressValidator)
 	} else {
-		addressValidator.ReportError(structureValidator.ErrorValueEmpty())
+		phoneValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
 
 	weightValidator := validator.WithReference("weight")
@@ -305,8 +268,8 @@ func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
 
 	initialSettingsValidator := validator.WithReference("initialSettings")
 	if a.InitialSettings != nil {
-		a.InitialSettings.ValidateAllRequired(initialSettingsValidator, a.TherapySettings)
-	} else if a.TherapySettings != TherapySettingCertifiedPumpTrainer {
+		a.InitialSettings.ValidateAllRequired(initialSettingsValidator)
+	} else {
 		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
 }
@@ -342,14 +305,14 @@ func (p *PhoneNumber) Validate(validator structure.Validator) {
 
 type InitialSettings struct {
 	BloodGlucoseUnits          string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
-	BasalRateSchedule          *pump.BasalRateStartArray          `json:"basalSchedule,omitempty" bson:"basalSchedule,omitempty"`
-	BloodGlucoseTargetSchedule *pump.BloodGlucoseTargetStartArray `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`
-	CarbohydrateRatioSchedule  *pump.CarbohydrateRatioStartArray  `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`
-	InsulinSensitivitySchedule *pump.InsulinSensitivityStartArray `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`
+	BasalRateSchedule          *pump.BasalRateStartArray          `json:"basalRateSchedule,omitempty" bson:"basalRateSchedule,omitempty"`
+	BloodGlucoseTargetSchedule *pump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
+	CarbohydrateRatioSchedule  *pump.CarbohydrateRatioStartArray  `json:"carbohydrateRatioSchedule,omitempty" bson:"carbohydrateRatioSchedule,omitempty"`
+	InsulinSensitivitySchedule *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
 	BasalRateMaximum           *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
 	BolusAmountMaximum         *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
-	PumpType                   *device.Device                     `json:"pumpType" bson:"pumpType"`
-	CGMType                    *device.Device                     `json:"cgmType" bson:"cgmType"`
+	PumpID                     *primitive.ObjectID                `json:"pumpId" bson:"pumpId"`
+	CgmID                      *primitive.ObjectID                `json:"cgmId" bson:"cgmId"`
 	// TODO: Add Suspend threshold - Dependent on latest data model changes
 	// TODO: Add Insulin model - Dependent on latest data model changes
 }
@@ -360,13 +323,13 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 		i.BasalRateSchedule.Validate(validator.WithReference("basalSchedule"))
 	}
 	if i.BloodGlucoseTargetSchedule != nil {
-		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bgTarget"), &i.BloodGlucoseUnits)
+		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bloodGlucoseTargetSchedule"), &i.BloodGlucoseUnits)
 	}
 	if i.CarbohydrateRatioSchedule != nil {
-		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbRatio"))
+		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbohydrateRatioSchedule"))
 	}
 	if i.InsulinSensitivitySchedule != nil {
-		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivity"), &i.BloodGlucoseUnits)
+		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivitySchedule"), &i.BloodGlucoseUnits)
 	}
 	if i.BasalRateMaximum != nil {
 		i.BasalRateMaximum.Validate(validator.WithReference("basalRateMaximum"))
@@ -374,44 +337,42 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	if i.BolusAmountMaximum != nil {
 		i.BolusAmountMaximum.Validate(validator.WithReference("bolusAmountMaximum"))
 	}
-	if i.PumpType == nil {
-		i.PumpType.Validate(validator.WithReference("pumpType"))
+	if i.PumpID != nil {
+		id := i.PumpID.Hex()
+		validator.String("pumpId", &id).Hexadecimal().LengthEqualTo(24)
 	}
-	if i.CGMType == nil {
-		i.CGMType.Validate(validator.WithReference("cgmType"))
+	if i.CgmID != nil {
+		id := i.CgmID.Hex()
+		validator.String("cgmId", &id).Hexadecimal().LengthEqualTo(24)
 	}
 }
 
-func (i *InitialSettings) ValidateAllRequired(validator structure.Validator, therapySettings string) {
-	if therapySettings != TherapySettingCertifiedPumpTrainer {
-		if therapySettings == TherapySettingInitial {
-			if i.BasalRateSchedule == nil {
-				validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.BloodGlucoseTargetSchedule == nil {
-				validator.WithReference("bgTarget").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.CarbohydrateRatioSchedule == nil {
-				validator.WithReference("carbRatio").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.InsulinSensitivitySchedule == nil {
-				validator.WithReference("insulinSensitivity").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.BasalRateMaximum == nil {
-				validator.WithReference("basalRateMaximum").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.BolusAmountMaximum == nil {
-				validator.WithReference("bolusAmountMaximum").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.PumpType == nil {
-				validator.WithReference("pumpType").ReportError(structureValidator.ErrorValueEmpty())
-			}
-			if i.CGMType == nil {
-				validator.WithReference("cgmType").ReportError(structureValidator.ErrorValueEmpty())
-			}
-		}
-		// TODO: Validate Suspend Threshold and Insulin Type
+func (i *InitialSettings) ValidateAllRequired(validator structure.Validator) {
+	if i.BasalRateSchedule == nil {
+		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
+	if i.BloodGlucoseTargetSchedule == nil {
+		validator.WithReference("bloodGlucoseTargetSchedule").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.CarbohydrateRatioSchedule == nil {
+		validator.WithReference("carbohydrateRatioSchedule").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.InsulinSensitivitySchedule == nil {
+		validator.WithReference("insulinSensitivitySchedule").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.BasalRateMaximum == nil {
+		validator.WithReference("basalRateMaximum").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.BolusAmountMaximum == nil {
+		validator.WithReference("bolusAmountMaximum").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.PumpID == nil {
+		validator.WithReference("pumpId").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.CgmID == nil {
+		validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	// TODO: Validate Suspend Threshold and Insulin Type
 }
 
 func RevisionStates() []string {
@@ -433,14 +394,6 @@ func TherapySettings() []string {
 	return []string{
 		TherapySettingInitial,
 		TherapySettingTransferPumpSettings,
-		TherapySettingCertifiedPumpTrainer,
-	}
-}
-
-func LoopModes() []string {
-	return []string{
-		LoopModeClosedLoop,
-		LoopModeSuspendOnly,
 	}
 }
 

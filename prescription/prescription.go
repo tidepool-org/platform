@@ -27,7 +27,7 @@ const (
 	StateActive    = "active"
 	StateInactive  = "inactive"
 
-	MaximumExpirationTime = time.Hour * 24 * 30 // 30 days
+	MaximumExpirationTime = time.Hour * 24 * 90 // 90 days
 )
 
 type Service interface {
@@ -45,7 +45,7 @@ type Accessor interface {
 
 type Prescription struct {
 	ID               primitive.ObjectID `json:"id" bson:"_id"`
-	PatientID        string             `json:"patientId,omitempty" bson:"patientId,omitempty"`
+	PatientUserID    string             `json:"patientUserId,omitempty" bson:"patientUserId,omitempty"`
 	AccessCode       string             `json:"accessCode,omitempty" bson:"accessCode"`
 	State            string             `json:"state" bson:"state"`
 	LatestRevision   *Revision          `json:"latestRevision" bson:"latestRevision"`
@@ -88,8 +88,8 @@ func (p *Prescription) Validate(validator structure.Validator) {
 	id := p.ID.Hex()
 	validator.String("id", &id).Hexadecimal().LengthEqualTo(24)
 
-	if p.PatientID != "" {
-		validator.String("patientId", &p.PatientID).Using(user.IDValidator)
+	if p.PatientUserID != "" {
+		validator.String("patientUserId", &p.PatientUserID).Using(user.IDValidator)
 	}
 
 	validator.String("accessCode", &p.AccessCode).LengthEqualTo(6).Alphanumeric()
@@ -182,16 +182,16 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 }
 
 type Filter struct {
-	currentUser       *user.User
-	ClinicianID       string
-	PatientID         string
-	PatientEmail      string
-	State             string
-	ID                string
-	CreatedTimeStart  *time.Time
-	CreatedTimeEnd    *time.Time
-	ModifiedTimeStart *time.Time
-	ModifiedTimeEnd   *time.Time
+	currentUser    *user.User
+	ClinicianID    string
+	PatientUserID  string
+	PatientEmail   string
+	State          string
+	ID             string
+	CreatedAfter   *time.Time
+	CreatedBefore  *time.Time
+	ModifiedAfter  *time.Time
+	ModifiedBefore *time.Time
 }
 
 func NewFilter(currentUser *user.User) (*Filter, error) {
@@ -206,7 +206,7 @@ func NewFilter(currentUser *user.User) (*Filter, error) {
 	if currentUser.HasRole(user.RoleClinic) {
 		f.ClinicianID = *currentUser.UserID
 	} else {
-		f.PatientID = *currentUser.UserID
+		f.PatientUserID = *currentUser.UserID
 	}
 
 	return f, nil
@@ -221,14 +221,14 @@ func (f *Filter) Validate(validator structure.Validator) {
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(States()...)
 		}
-		if f.PatientID != "" {
-			validator.String("patientId", &f.PatientID).Using(user.IDValidator)
+		if f.PatientUserID != "" {
+			validator.String("patientUserId", &f.PatientUserID).Using(user.IDValidator)
 		}
 		if f.PatientEmail != "" {
 			validator.String("patientEmail", &f.PatientEmail).Email()
 		}
 	} else {
-		validator.String("patientId", &f.PatientID).NotEmpty().EqualTo(*f.currentUser.UserID)
+		validator.String("patientUserId", &f.PatientUserID).NotEmpty().EqualTo(*f.currentUser.UserID)
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(StatesVisibleToPatients()...)
 		}
@@ -241,8 +241,8 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 		f.ID = *ptr
 	}
 	if f.currentUser.HasRole(user.RoleClinic) {
-		if ptr := parser.String("patientId"); ptr != nil {
-			f.PatientID = *ptr
+		if ptr := parser.String("patientUserId"); ptr != nil {
+			f.PatientUserID = *ptr
 		}
 		if ptr := parser.String("patientEmail"); ptr != nil {
 			f.PatientEmail = *ptr
@@ -251,17 +251,17 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("state"); ptr != nil {
 		f.State = *ptr
 	}
-	if ptr := parser.Time("createdTimeStart", time.RFC3339Nano); ptr != nil {
-		f.CreatedTimeStart = ptr
+	if ptr := parser.Time("createdAfter", time.RFC3339Nano); ptr != nil {
+		f.CreatedAfter = ptr
 	}
-	if ptr := parser.Time("createdTimeEnd", time.RFC3339Nano); ptr != nil {
-		f.CreatedTimeEnd = ptr
+	if ptr := parser.Time("createdBefore", time.RFC3339Nano); ptr != nil {
+		f.CreatedBefore = ptr
 	}
-	if ptr := parser.Time("modifiedTimeStart", time.RFC3339Nano); ptr != nil {
-		f.ModifiedTimeStart = ptr
+	if ptr := parser.Time("modifiedAfter", time.RFC3339Nano); ptr != nil {
+		f.ModifiedAfter = ptr
 	}
-	if ptr := parser.Time("modifiedTimeEnd", time.RFC3339Nano); ptr != nil {
-		f.ModifiedTimeEnd = ptr
+	if ptr := parser.Time("modifiedBefore", time.RFC3339Nano); ptr != nil {
+		f.ModifiedBefore = ptr
 	}
 }
 
@@ -271,7 +271,7 @@ type Update struct {
 	Revision         *Revision
 	State            string
 	PrescriberUserID string
-	PatientID        string
+	PatientUserID    string
 	ExpirationTime   *time.Time
 	ModifiedTime     time.Time
 	ModifiedUserID   string
@@ -288,7 +288,7 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 		PrescriberUserID: revision.GetPrescriberUserID(),
 		ExpirationTime:   revision.CalculateExpirationTime(),
 		ModifiedUserID:   *usr.UserID,
-		ModifiedTime:     time.Now(),
+		ModifiedTime:     revision.Attributes.CreatedTime,
 	}
 
 	return update
@@ -299,7 +299,7 @@ func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Upd
 		usr:            usr,
 		prescription:   prescription,
 		State:          StateReviewed,
-		PatientID:      *usr.UserID,
+		PatientUserID:  *usr.UserID,
 		ModifiedUserID: *usr.UserID,
 		ModifiedTime:   time.Now(),
 	}
@@ -360,8 +360,8 @@ func (u *Update) validateForClinician(validator structure.Validator) {
 	if u.PrescriberUserID != "" {
 		validator.String("prescriberUserId", &u.PrescriberUserID).EqualTo(*u.usr.UserID)
 	}
-	if u.PatientID != "" {
-		validator.String("patientId", &u.PatientID).Using(user.IDValidator)
+	if u.PatientUserID != "" {
+		validator.String("patientUserId", &u.PatientUserID).Using(user.IDValidator)
 	}
 }
 
@@ -372,8 +372,8 @@ func (u *Update) validateForPatient(validator structure.Validator) {
 	if u.PrescriberUserID != "" {
 		validator.String("prescriberUserId", &u.PrescriberUserID).Empty()
 	}
-	if u.PatientID != "" {
-		validator.String("patientId", &u.PatientID).EqualTo(*u.usr.UserID)
+	if u.PatientUserID != "" {
+		validator.String("patientUserId", &u.PatientUserID).EqualTo(*u.usr.UserID)
 	}
 }
 

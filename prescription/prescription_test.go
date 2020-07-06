@@ -44,7 +44,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("does not set the patientId", func() {
-				Expect(prescr.PatientID).To(BeEmpty())
+				Expect(prescr.PatientUserID).To(BeEmpty())
 			})
 
 			It("generates a non-empty access code", func() {
@@ -121,7 +121,7 @@ var _ = Describe("Prescription", func() {
 
 			It("sets the revision correctly", func() {
 				expectedRevision := prescription.NewRevision(*usr.UserID, prescr.LatestRevision.RevisionID+1, newRevision)
-				expectedRevision.Attributes.ModifiedTime = update.Revision.Attributes.ModifiedTime
+				expectedRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 				Expect(*update.Revision).To(Equal(*expectedRevision))
 			})
 
@@ -134,7 +134,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("doesn't set the patient id", func() {
-				Expect(update.PatientID).To(BeEmpty())
+				Expect(update.PatientUserID).To(BeEmpty())
 			})
 
 			It("sets the expiration time", func() {
@@ -165,7 +165,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the patient id correctly", func() {
-				Expect(update.PatientID).To(Equal(*usr.UserID))
+				Expect(update.PatientUserID).To(Equal(*usr.UserID))
 			})
 
 			It("doesn't set the prescriber id", func() {
@@ -206,7 +206,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("doesn't set a patient id", func() {
-				Expect(update.PatientID).To(BeEmpty())
+				Expect(update.PatientUserID).To(BeEmpty())
 			})
 
 			It("doesn't set the prescriber id", func() {
@@ -248,8 +248,8 @@ var _ = Describe("Prescription", func() {
 
 				It("fails when patient id is not same as current user id", func() {
 					patientID := userTest.RandomID()
-					Expect(patientID).ToNot(Equal(filter.PatientID))
-					filter.PatientID = patientID
+					Expect(patientID).ToNot(Equal(filter.PatientUserID))
+					filter.PatientUserID = patientID
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
@@ -358,14 +358,14 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("fails when patient id is invalid", func() {
-					filter.PatientID = "invalid"
+					filter.PatientUserID = "invalid"
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 
 				It("doesn't fail when patient id invalid", func() {
-					filter.PatientID = userTest.RandomID()
+					filter.PatientUserID = userTest.RandomID()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())

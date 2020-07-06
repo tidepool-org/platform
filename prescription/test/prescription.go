@@ -2,8 +2,9 @@ package test
 
 import (
 	"fmt"
-	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 
@@ -13,11 +14,7 @@ import (
 
 	"syreclabs.com/go/faker"
 
-	"github.com/tidepool-org/platform/data/types/settings/cgm"
-	cgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
-	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/data/types/settings/pump/test"
-	"github.com/tidepool-org/platform/device"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/prescription"
 )
@@ -27,12 +24,13 @@ func RandomPrescriptions(count int) prescription.Prescriptions {
 	for i := 0; i < count; i++ {
 		prescr := RandomPrescription()
 
-		createdTime := prescr.CreatedTime.Add(time.Second*time.Duration(i) - time.Hour)
-		modifiedTime := prescr.LatestRevision.Attributes.ModifiedTime.Add(time.Second * time.Duration(i))
+		createdTime := prescr.CreatedTime.Add(time.Hour * time.Duration(i))
+		modifiedTime := createdTime.Add(time.Hour * time.Duration(i))
 
 		prescr.CreatedTime = createdTime
-		prescr.LatestRevision.Attributes.ModifiedTime = modifiedTime
-		prescr.RevisionHistory[0].Attributes.ModifiedTime = modifiedTime
+		prescr.ModifiedTime = modifiedTime
+		prescr.LatestRevision.Attributes.CreatedTime = modifiedTime
+		prescr.RevisionHistory[0].Attributes.CreatedTime = modifiedTime
 
 		prescriptions[i] = prescr
 	}
@@ -49,7 +47,7 @@ func RandomClaimedPrescription() *prescription.Prescription {
 	create := RandomRevisionCreate()
 	prescr := prescription.NewPrescription(userTest.RandomID(), create)
 	prescr.AccessCode = ""
-	prescr.PatientID = userTest.RandomID()
+	prescr.PatientUserID = userTest.RandomID()
 	prescr.State = prescription.StateReviewed
 
 	return prescr
@@ -66,11 +64,9 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		Weight:                  RandomWeight(),
 		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 		PhoneNumber:             RandomPhoneNumber(),
-		Address:                 RandomAddress(),
 		InitialSettings:         RandomInitialSettings(),
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
-		LoopMode:                RandomLoopMode(),
 		PrescriberTermsAccepted: true,
 		State:                   prescription.StateSubmitted,
 	}
@@ -95,15 +91,13 @@ func RandomAttribtues() *prescription.Attributes {
 		Weight:                  RandomWeight(),
 		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 		PhoneNumber:             RandomPhoneNumber(),
-		Address:                 RandomAddress(),
 		InitialSettings:         RandomInitialSettings(),
 		Training:                RandomTraining(),
 		TherapySettings:         RandomTherapySettings(),
-		LoopMode:                RandomLoopMode(),
 		PrescriberTermsAccepted: true,
 		State:                   prescription.StateSubmitted,
-		ModifiedTime:            time.Now(),
-		ModifiedUserID:          userTest.RandomID(),
+		CreatedTime:             time.Now(),
+		CreatedUserID:           userTest.RandomID(),
 	}
 }
 
@@ -130,22 +124,10 @@ func RandomPhoneNumber() *prescription.PhoneNumber {
 	}
 }
 
-func RandomAddress() *prescription.Address {
-	return &prescription.Address{
-		Line1:      faker.Address().StreetAddress(),
-		Line2:      faker.Address().SecondaryAddress(),
-		City:       faker.Address().City(),
-		State:      strings.ToUpper(faker.Address().StateAbbr()),
-		PostalCode: faker.Address().Postcode(),
-		Country:    "US",
-	}
-}
-
 func RandomInitialSettings() *prescription.InitialSettings {
 	units := faker.RandomChoice(glucose.Units())
 	randomPump := test.NewPump(&units)
 	scheduleName := *randomPump.ActiveScheduleName
-	randomCGM := cgmTest.RandomCGM(&units)
 
 	return &prescription.InitialSettings{
 		BloodGlucoseUnits:          units,
@@ -155,31 +137,14 @@ func RandomInitialSettings() *prescription.InitialSettings {
 		InsulinSensitivitySchedule: randomPump.InsulinSensitivitySchedules.Get(scheduleName),
 		BasalRateMaximum:           randomPump.Basal.RateMaximum,
 		BolusAmountMaximum:         randomPump.Bolus.AmountMaximum,
-		PumpType:                   getPumpType(randomPump),
-		CGMType:                    getCGMType(randomCGM),
+		PumpID:                     RandomDeviceID(),
+		CgmID:                      RandomDeviceID(),
 	}
 }
 
-func getPumpType(pump *pump.Pump) *device.Device {
-	manufacturers := *pump.Manufacturers
-	manufacturer := manufacturers[0]
-
-	return &device.Device{
-		Type:         device.DeviceTypePump,
-		Manufacturer: manufacturer,
-		Model:        *pump.Model,
-	}
-}
-
-func getCGMType(cgm *cgm.CGM) *device.Device {
-	manufacturers := *cgm.Manufacturers
-	manufacturer := manufacturers[0]
-
-	return &device.Device{
-		Type:         device.DeviceTypePump,
-		Manufacturer: manufacturer,
-		Model:        *cgm.Model,
-	}
+func RandomDeviceID() *primitive.ObjectID {
+	id := primitive.NewObjectID()
+	return &id
 }
 
 func RandomTraining() string {
@@ -193,13 +158,5 @@ func RandomTherapySettings() string {
 	return faker.RandomChoice([]string{
 		prescription.TherapySettingInitial,
 		prescription.TherapySettingTransferPumpSettings,
-		prescription.TherapySettingCertifiedPumpTrainer,
-	})
-}
-
-func RandomLoopMode() string {
-	return faker.RandomChoice([]string{
-		prescription.LoopModeSuspendOnly,
-		prescription.LoopModeClosedLoop,
 	})
 }
