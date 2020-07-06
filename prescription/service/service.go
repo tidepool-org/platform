@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/device"
+	"go.uber.org/fx"
 
 	"github.com/tidepool-org/platform/user"
 
@@ -15,15 +17,27 @@ import (
 
 type PrescriptionService struct {
 	prescriptionStore prescriptionStore.Store
+	settingsValidator device.SettingsValidator
 }
 
-func NewService(store prescriptionStore.Store) (prescription.Service, error) {
-	if store == nil {
+type Params struct {
+	fx.In
+
+	store             prescriptionStore.Store
+	settingsValidator device.SettingsValidator
+}
+
+func NewService(params Params) (prescription.Service, error) {
+	if params.store == nil {
 		return nil, errors.New("prescription store is missing")
+	}
+	if params.settingsValidator == nil {
+		return nil, errors.New("settings validator is missing")
 	}
 
 	return &PrescriptionService{
-		prescriptionStore: store,
+		prescriptionStore: params.store,
+		settingsValidator: params.settingsValidator,
 	}, nil
 }
 
