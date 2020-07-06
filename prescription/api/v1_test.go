@@ -579,8 +579,11 @@ var _ = Describe("V1", func() {
 						var prescr *prescription.Prescription
 
 						BeforeEach(func() {
-							claim = &prescription.Claim{AccessCode: prescription.GenerateAccessCode()}
 							prescr = prescriptionTest.RandomPrescription()
+							claim = &prescription.Claim{
+								AccessCode: prescription.GenerateAccessCode(),
+								Birthday:   prescr.LatestRevision.Attributes.Birthday,
+							}
 							body, err := json.Marshal(claim)
 							Expect(err).ToNot(HaveOccurred())
 
