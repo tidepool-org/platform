@@ -38,7 +38,7 @@ func NewBolusAmountMaximumGuardRail() *api.BolusAmountMaximumGuardRail {
 	}
 }
 
-func newAbsoluteBoundsFromNanos(from, to int64, incrementNanos int32) *api.AbsoluteBounds {
+func newAbsoluteBoundsFromNanos(from, to int32, incrementNanos int32) *api.AbsoluteBounds {
 	return &api.AbsoluteBounds{
 		Minimum: &api.FixedDecimal{
 			Units: from,
@@ -52,7 +52,7 @@ func newAbsoluteBoundsFromNanos(from, to int64, incrementNanos int32) *api.Absol
 	}
 }
 
-func newAbsoluteBoundsFromUnits(from, to int64, units int64) *api.AbsoluteBounds {
+func newAbsoluteBoundsFromUnits(from, to int32, units int32) *api.AbsoluteBounds {
 	return &api.AbsoluteBounds{
 		Minimum: &api.FixedDecimal{
 			Units: from,
