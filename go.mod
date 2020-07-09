@@ -21,7 +21,7 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.9.0
-	github.com/tidepool-org/devices v0.0.0-20200708115700-8a4aafb4c6f7
+	github.com/tidepool-org/devices v0.0.0-20200709151222-3d1edbd4a58e
 	github.com/urfave/cli v1.20.0
 	go.mongodb.org/mongo-driver v1.3.2
 	go.uber.org/fx v1.12.0

@@ -194,7 +194,7 @@ message RecommendedBounds {
 
 message FixedDecimal {
   // The whole units of the amount
-  int64 units = 1;
+  int32 units = 1;
 
   // Number of nano (10^-9) units of the amount.
   int32 nanos = 2;

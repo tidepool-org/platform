@@ -172,6 +172,8 @@ github.com/tidepool-org/devices v0.0.0-20200706124936-528418b3447c h1:a24FvkEqsN
 github.com/tidepool-org/devices v0.0.0-20200706124936-528418b3447c/go.mod h1:x4D1tcGrGjeJS73nxnkUzpl3TsSLc43py1OuPtPtIjg=
 github.com/tidepool-org/devices v0.0.0-20200708115700-8a4aafb4c6f7 h1:q04Th1LNp4S851tX8yx+bpeCw25hAsDFOo9ObM6JzhY=
 github.com/tidepool-org/devices v0.0.0-20200708115700-8a4aafb4c6f7/go.mod h1:x4D1tcGrGjeJS73nxnkUzpl3TsSLc43py1OuPtPtIjg=
+github.com/tidepool-org/devices v0.0.0-20200709151222-3d1edbd4a58e h1:n+eVJEQoIs7zLLM3hh8qp3Zy/2VzhZfC9VRwB4jEHxg=
+github.com/tidepool-org/devices v0.0.0-20200709151222-3d1edbd4a58e/go.mod h1:x4D1tcGrGjeJS73nxnkUzpl3TsSLc43py1OuPtPtIjg=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=

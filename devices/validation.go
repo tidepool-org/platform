@@ -109,7 +109,7 @@ func generateValidValues(bounds *api.AbsoluteBounds) []float64 {
 
 func fixedDecimalToBigInt(decimal *api.FixedDecimal) *big.Int {
 	bi := big.NewInt(0)
-	bi.Mul(big.NewInt(decimal.Units), scale).Add(bi, big.NewInt(int64(decimal.Nanos)))
+	bi.Mul(big.NewInt(int64(decimal.Units)), scale).Add(bi, big.NewInt(int64(decimal.Nanos)))
 	return bi
 }
 
