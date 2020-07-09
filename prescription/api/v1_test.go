@@ -8,6 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	prescriptionService "github.com/tidepool-org/platform/prescription/service"
+	serviceTest "github.com/tidepool-org/platform/prescription/service/test"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,9 +33,11 @@ import (
 
 var _ = Describe("V1", func() {
 	var userClient *userTest.Client
+	var deviceSettingsValidator prescriptionService.DeviceSettingsValidator
 	var prescriptionService *prescriptionTest.PrescriptionAccessor
 
 	BeforeEach(func() {
+		deviceSettingsValidator = serviceTest.NewNoopSettingsValidator()
 		prescriptionService = prescriptionTest.NewPrescriptionAccessor()
 		userClient = userTest.NewClient()
 	})
@@ -45,8 +50,9 @@ var _ = Describe("V1", func() {
 	Context("NewRouter", func() {
 		It("returns successfully", func() {
 			Expect(api.NewRouter(api.Params{
-				PrescriptionService: prescriptionService,
-				UserClient:          userClient,
+				DeviceSettingsValidator: deviceSettingsValidator,
+				PrescriptionService:     prescriptionService,
+				UserClient:              userClient,
 			})).ToNot(BeNil())
 		})
 	})
@@ -56,8 +62,9 @@ var _ = Describe("V1", func() {
 
 		BeforeEach(func() {
 			router = api.NewRouter(api.Params{
-				PrescriptionService: prescriptionService,
-				UserClient:          userClient,
+				DeviceSettingsValidator: deviceSettingsValidator,
+				PrescriptionService:     prescriptionService,
+				UserClient:              userClient,
 			})
 			Expect(router).ToNot(BeNil())
 		})

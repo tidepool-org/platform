@@ -4,29 +4,34 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"go.uber.org/fx"
 
+	"github.com/tidepool-org/platform/prescription/service"
+
 	"github.com/tidepool-org/platform/prescription"
-	"github.com/tidepool-org/platform/service"
+	router "github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/service/api"
 )
 
 type Router struct {
-	prescriptionService prescription.Service
-	userClient          user.Client
+	deviceSettingsValidator service.DeviceSettingsValidator
+	prescriptionService     prescription.Service
+	userClient              user.Client
 }
 
 type Params struct {
 	fx.In
 
-	PrescriptionService prescription.Service
-	UserClient          user.Client
+	DeviceSettingsValidator service.DeviceSettingsValidator
+	PrescriptionService     prescription.Service
+	UserClient              user.Client
 }
 
-func NewRouter(p Params) service.Router {
+func NewRouter(p Params) router.Router {
 	return &Router{
-		prescriptionService: p.PrescriptionService,
-		userClient:          p.UserClient,
+		deviceSettingsValidator: p.DeviceSettingsValidator,
+		prescriptionService:     p.PrescriptionService,
+		userClient:              p.UserClient,
 	}
 }
 

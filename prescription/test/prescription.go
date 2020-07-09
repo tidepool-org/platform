@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 
@@ -125,7 +125,7 @@ func RandomPhoneNumber() *prescription.PhoneNumber {
 }
 
 func RandomInitialSettings() *prescription.InitialSettings {
-	units := faker.RandomChoice(glucose.Units())
+	units := glucose.MgdL
 	randomPump := test.NewPump(&units)
 	scheduleName := *randomPump.ActiveScheduleName
 
@@ -142,9 +142,8 @@ func RandomInitialSettings() *prescription.InitialSettings {
 	}
 }
 
-func RandomDeviceID() *primitive.ObjectID {
-	id := primitive.NewObjectID()
-	return &id
+func RandomDeviceID() string {
+	return uuid.New().String()
 }
 
 func RandomTraining() string {

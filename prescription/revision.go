@@ -4,10 +4,6 @@ import (
 	"regexp"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"

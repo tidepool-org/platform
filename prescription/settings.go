@@ -22,7 +22,7 @@ type InitialSettings struct {
 }
 
 func (i *InitialSettings) Validate(validator structure.Validator) {
-	validator.String("bloodGlucoseUnits", &i.BloodGlucoseUnits).OneOf(glucose.Units()...)
+	validator.String("bloodGlucoseUnits", &i.BloodGlucoseUnits).EqualTo(glucose.MgdL)
 	if i.BasalRateSchedule != nil {
 		i.BasalRateSchedule.Validate(validator.WithReference("basalSchedule"))
 	}

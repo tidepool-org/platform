@@ -3,6 +3,7 @@ package prescription_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 
@@ -61,14 +62,14 @@ var _ = Describe("Initial Settings", func() {
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
-		It("fails with empty pump type", func() {
-			settings.PumpID = nil
+		It("fails with empty pump id", func() {
+			settings.PumpID = ""
 			settings.ValidateAllRequired(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
 		It("fails with empty cgm type", func() {
-			settings.CgmID = nil
+			settings.CgmID = ""
 			settings.ValidateAllRequired(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})

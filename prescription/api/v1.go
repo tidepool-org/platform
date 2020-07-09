@@ -3,6 +3,8 @@ package api
 import (
 	"net/http"
 
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+
 	"github.com/tidepool-org/platform/page"
 
 	"github.com/tidepool-org/platform/user"
@@ -26,6 +28,16 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 	create := prescription.NewRevisionCreate()
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	validator := structureValidator.New().WithReference("initialSettings")
+	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	if err := validator.Error(); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
@@ -138,6 +150,16 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 
 	create := prescription.NewRevisionCreate()
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	validator := structureValidator.New().WithReference("initialSettings")
+	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	if err := validator.Error(); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}

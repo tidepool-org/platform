@@ -1,0 +1,245 @@
+syntax = "proto3";
+
+package api;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/tidepool-org/devices/api";
+
+// A service that returns information about Tidepool supported devices
+service Devices {
+  // Get pump by id
+  rpc GetPumpById(GetPumpByIdRequest) returns (GetPumpByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/pumps/{id}"
+    };
+  }
+
+  // List pumps
+  rpc ListPumps(ListPumpsRequest) returns (ListPumpsResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/pumps"
+    };
+  }
+
+  // Get cgm by id
+  rpc GetCgmById(GetCgmByIdRequest) returns (GetCgmByIdResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/cgms/{id}"
+    };
+  }
+
+  // List cgms
+  rpc ListCgms(ListCgmsRequest) returns (ListCgmsResponse) {
+    option (google.api.http) = {
+      get: "/v1/devices/cgms"
+    };
+  }
+}
+
+message GetPumpByIdRequest {
+  string id = 1;
+}
+
+message GetPumpByIdResponse {
+  Pump pump = 1;
+}
+
+message ListPumpsRequest {}
+
+message ListPumpsResponse {
+  repeated Pump pumps = 1;
+}
+
+message Pump {
+  // unique device identifier
+  string id = 1;
+
+  // device display name
+  string displayName = 2;
+
+  // device manufacturers
+  repeated string manufacturers = 3;
+
+  // device model
+  string model = 4;
+
+  // guard rails
+  GuardRails guardRails = 5;
+}
+
+message GuardRails {
+  // Suspend threshold guard rail
+  SuspendThresholdGuardRail suspendThreshold = 1;
+
+  // Insulin sensitivity guard rail
+  InsulinSensitivityGuardRail insulinSensitivity = 2;
+
+  // Basal rates guard rail
+  BasalRatesGuardRail basalRates = 3;
+
+  // Carbohydrate ratio guard rail
+  CarbohydrateRatioGuardRail carbohydrateRatio = 4;
+
+  // Basal rate maximum guard rail
+  BasalRateMaximumGuardRail basalRateMaximum = 5;
+
+  // Bolus amount maximum guard rail
+  BolusAmountMaximumGuardRail bolusAmountMaximum = 6;
+
+  // Correction range guard rail
+  CorrectionRangeGuardRail correctionRange = 7;
+}
+
+message SuspendThresholdGuardRail {
+  // Blood glucose units
+  BloodGlucoseUnits units = 1;
+
+  // Tidepool recommended bounds
+  RecommendedBounds recommendedBounds = 2;
+
+  // Device specific absolute bounds
+  AbsoluteBounds absoluteBounds = 3;
+}
+
+message InsulinSensitivityGuardRail {
+  // Blood glucose units
+  BloodGlucoseUnits units = 1;
+
+  // Tidepool recommended bounds
+  RecommendedBounds recommendedBounds = 2;
+
+  // Device specific absolute bounds
+  AbsoluteBounds absoluteBounds = 3;
+}
+
+message BasalRatesGuardRail {
+  // Basal rate units
+  BasalRateUnits units = 1;
+
+  // Default value
+  FixedDecimal defaultValue = 2;
+
+  // Device specific absolute bounds. Some pumps might have different increments for different ranges.
+  repeated AbsoluteBounds absoluteBounds = 3;
+}
+
+message CarbohydrateRatioGuardRail {
+  // Carbohydrate ratio units
+  CarbohydrateRatioUnits units = 1;
+
+  // Tidepool recommended bounds
+  RecommendedBounds recommendedBounds = 2;
+
+  // Device specific absolute bounds
+  AbsoluteBounds absoluteBounds = 3;
+}
+
+message BasalRateMaximumGuardRail {
+  // Basal rate units
+  BasalRateUnits units = 1;
+
+  // Default value
+  FixedDecimal defaultValue = 2;
+
+  // Device specific absolute bounds
+  AbsoluteBounds absoluteBounds = 3;
+}
+
+message BolusAmountMaximumGuardRail {
+  // Bolus units
+  BolusUnits units = 1;
+
+  // Default value
+  FixedDecimal defaultValue = 2;
+
+  // Tidepool recommended bounds
+  RecommendedBounds recommendedBounds = 3;
+
+  // Device specific absolute bounds
+  AbsoluteBounds absoluteBounds = 4;
+}
+
+message CorrectionRangeGuardRail {
+  // Blood glucose units
+  BloodGlucoseUnits units = 1;
+
+  // Tidepool recommended bounds
+  RecommendedBounds recommendedBounds = 2;
+
+  // Device specific absolute bounds
+  AbsoluteBounds absoluteBounds = 3;
+}
+
+// Closed range double interval
+message AbsoluteBounds {
+  // Lower bound (inclusive)
+  FixedDecimal minimum = 1;
+
+  // Upper bound (inclusive)
+  FixedDecimal maximum = 2;
+
+  // Increment
+  FixedDecimal increment = 3;
+}
+
+// Closed range double interval
+message RecommendedBounds {
+  // Lower bound (inclusive)
+  FixedDecimal minimum = 1;
+
+  // Upper bound (inclusive)
+  FixedDecimal maximum = 2;
+}
+
+message FixedDecimal {
+  // The whole units of the amount
+  int64 units = 1;
+
+  // Number of nano (10^-9) units of the amount.
+  int32 nanos = 2;
+}
+
+enum BloodGlucoseUnits {
+  MilligramsPerDeciliter = 0;
+}
+
+enum BasalRateUnits {
+  UnitsPerHour = 0;
+}
+
+enum CarbohydrateRatioUnits {
+  GramsPerUnit = 0;
+}
+
+enum BolusUnits {
+  Units = 0;
+}
+
+message GetCgmByIdRequest {
+  string id = 1;
+}
+
+message GetCgmByIdResponse {
+  Cgm cgm = 1;
+}
+
+message ListCgmsRequest {}
+
+message ListCgmsResponse {
+  repeated Cgm cgms = 1;
+}
+
+message Cgm {
+  // unique device identifier
+  string id = 1;
+
+  // device display name
+  string displayName = 2;
+
+  // device manufacturers
+  repeated string manufacturers = 3;
+
+  // device model
+  string model = 4;
+}
