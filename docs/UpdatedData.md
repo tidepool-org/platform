@@ -152,10 +152,10 @@ __Note #2__: the `"part":2` object is not mandatory. The system can decide to ca
   "eventId": "Bo123456789",
   "part": 1,
   "normal": 3.5,
-  "expectedNormal": 4.0, 
+  "expectedNormal": 4.0,
   "linkedBolus": {
     "normal": 3.5,
-    "duration": { 
+    "duration": {
     	  "value": 60,
     	  "units": "minutes"
     }

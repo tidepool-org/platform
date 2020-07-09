@@ -62,6 +62,19 @@ var _ = Describe("Normal", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &bolus.Meta{SubType: "biphasic"}),
 				),
+				Entry("normal missing",
+					func(datum *biphasic.Biphasic) {
+						datum.Normal.Normal = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+				),
+				Entry("normal missing; normal expected missing",
+					func(datum *biphasic.Biphasic) {
+						datum.Normal.Normal = nil
+						datum.Normal.NormalExpected = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
+				),
 				Entry("type invalid",
 					func(datum *biphasic.Biphasic) {
 						datum.Type = "invalidType"

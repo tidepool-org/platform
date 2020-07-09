@@ -38,7 +38,7 @@ func (b *Biphasic) Parse(parser structure.ObjectParser) {
 		parser = parser.WithMeta(b.Meta())
 	}
 
-	b.Bolus.Parse(parser)
+	b.Normal.Parse(parser)
 	b.LinkedBolus = ParseLinkedBolus(parser.WithReferenceObjectParser("linkedBolus"))
 	b.Part = parser.String("part")
 	b.EventID = parser.String("eventId")
@@ -49,7 +49,7 @@ func (b *Biphasic) Validate(validator structure.Validator) {
 		validator = validator.WithMeta(b.Meta())
 	}
 
-	b.Bolus.Validate(validator)
+	b.Normal.Validate(validator)
 
 	if b.SubType != "" {
 		validator.String("subType", &b.SubType).EqualTo(SubType)
