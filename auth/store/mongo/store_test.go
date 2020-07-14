@@ -1,41 +1,44 @@
 package mongo_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/auth/store/mongo"
-	logNull "github.com/tidepool-org/platform/log/null"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Store", func() {
-	var cfg *storeStructuredMongo.Config
+	var params storeStructuredMongo.Params
 	var str *mongo.Store
 
 	BeforeEach(func() {
-		cfg = storeStructuredMongoTest.NewConfig()
+		params = storeStructuredMongo.Params{
+			DatabaseConfig: storeStructuredMongoTest.NewConfig(),
+		}
 	})
 
 	AfterEach(func() {
 		if str != nil {
-			str.Close()
+			str.Terminate(context.Background())
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			str, err = mongo.NewStore(nil, nil)
+			str, err = mongo.NewStore(storeStructuredMongo.Params{})
 			Expect(err).To(HaveOccurred())
 			Expect(str).To(BeNil())
 		})
 
 		It("returns successfully", func() {
 			var err error
-			str, err = mongo.NewStore(cfg, logNull.NewLogger())
+			str, err = mongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
@@ -44,40 +47,28 @@ var _ = Describe("Store", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			str, err = mongo.NewStore(cfg, logNull.NewLogger())
+			str, err = mongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
 
 		// TODO: EnsureIndexes
 
-		Context("NewProviderSessionSession", func() {
-			var ssn store.ProviderSessionSession
-
-			AfterEach(func() {
-				if ssn != nil {
-					ssn.Close()
-				}
-			})
+		Context("NewProviderSessionRepository", func() {
+			var coll store.ProviderSessionRepository
 
 			It("returns successfully", func() {
-				ssn = str.NewProviderSessionSession()
-				Expect(ssn).ToNot(BeNil())
+				coll = str.NewProviderSessionRepository()
+				Expect(coll).ToNot(BeNil())
 			})
 		})
 
-		Context("NewRestrictedTokenSession", func() {
-			var ssn store.RestrictedTokenSession
-
-			AfterEach(func() {
-				if ssn != nil {
-					ssn.Close()
-				}
-			})
+		Context("NewRestrictedTokenRepository", func() {
+			var coll store.RestrictedTokenRepository
 
 			It("returns successfully", func() {
-				ssn = str.NewRestrictedTokenSession()
-				Expect(ssn).ToNot(BeNil())
+				coll = str.NewRestrictedTokenRepository()
+				Expect(coll).ToNot(BeNil())
 			})
 		})
 	})

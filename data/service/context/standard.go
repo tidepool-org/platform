@@ -25,9 +25,9 @@ type Standard struct {
 	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
-	dataSession             dataStoreDEPRECATED.DataSession
+	dataCollection          dataStoreDEPRECATED.DataRepository
 	syncTaskStore           syncTaskStore.Store
-	syncTasksSession        syncTaskStore.SyncTaskSession
+	syncTasksSession        syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
 	dataSourceClient        dataSource.Client
 }
@@ -101,12 +101,10 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 
 func (s *Standard) Close() {
 	if s.syncTasksSession != nil {
-		s.syncTasksSession.Close()
 		s.syncTasksSession = nil
 	}
-	if s.dataSession != nil {
-		s.dataSession.Close()
-		s.dataSession = nil
+	if s.dataCollection != nil {
+		s.dataCollection = nil
 	}
 }
 
@@ -126,16 +124,16 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
-func (s *Standard) DataSession() dataStoreDEPRECATED.DataSession {
-	if s.dataSession == nil {
-		s.dataSession = s.dataStoreDEPRECATED.NewDataSession()
+func (s *Standard) DataRepository() dataStoreDEPRECATED.DataRepository {
+	if s.dataCollection == nil {
+		s.dataCollection = s.dataStoreDEPRECATED.NewDataRepository()
 	}
-	return s.dataSession
+	return s.dataCollection
 }
 
-func (s *Standard) SyncTaskSession() syncTaskStore.SyncTaskSession {
+func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
 	if s.syncTasksSession == nil {
-		s.syncTasksSession = s.syncTaskStore.NewSyncTaskSession()
+		s.syncTasksSession = s.syncTaskStore.NewSyncTaskRepository()
 	}
 	return s.syncTasksSession
 }

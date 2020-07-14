@@ -21,8 +21,8 @@ type Context interface {
 
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	DataSession() dataStoreDEPRECATED.DataSession
-	SyncTaskSession() syncTaskStore.SyncTaskSession
+	DataRepository() dataStoreDEPRECATED.DataRepository
+	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 
 	DataClient() dataClient.Client
 	DataSourceClient() dataSource.Client

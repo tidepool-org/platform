@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/structure"
 )
@@ -342,24 +342,24 @@ func (s *Serializable) UnmarshalJSON(bites []byte) error {
 	return nil
 }
 
-func (s Serializable) GetBSON() (interface{}, error) {
+func (s Serializable) MarshalBSON() ([]byte, error) {
 	if arrayErr, arrayOK := s.Error.(*array); arrayOK {
-		return arrayErr.Errors, nil
+		return bson.Marshal(arrayErr.Errors)
 	} else if objectErr, objectOK := s.Error.(*object); objectOK {
-		return objectErr, nil
+		return bson.Marshal(objectErr)
 	} else if s.Error != nil {
-		return s.Error.Error(), nil
+		return bson.Marshal(s.Error.Error())
 	}
 	return nil, nil
 }
 
-func (s *Serializable) SetBSON(raw bson.Raw) error {
+func (s *Serializable) UnmarshalBSON(b []byte) error {
 	errObject := &object{}
-	if err := raw.Unmarshal(&errObject); err != nil {
+	if err := bson.Unmarshal(b, &errObject); err != nil {
 		errObjects := []*object{}
-		if err = raw.Unmarshal(&errObjects); err != nil {
+		if err = bson.Unmarshal(b, &errObjects); err != nil {
 			var errString string
-			if err = raw.Unmarshal(&errString); err != nil {
+			if err = bson.Unmarshal(b, &errString); err != nil {
 				return err
 			}
 			s.Error = errors.New(errString)

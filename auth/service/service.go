@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
@@ -17,7 +19,7 @@ type Service interface {
 
 	TaskClient() task.Client
 
-	Status() *Status
+	Status(context.Context) *Status
 }
 
 type Status struct {

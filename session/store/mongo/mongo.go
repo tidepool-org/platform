@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -12,8 +12,8 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -27,17 +27,17 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func (s *Store) NewSessionsSession() store.SessionsSession {
-	return &SessionsSession{
-		Session: s.Store.NewSession("tokens"),
+func (s *Store) NewTokenRepository() store.TokenRepository {
+	return &TokenRepository{
+		s.Store.GetRepository("tokens"),
 	}
 }
 
-type SessionsSession struct {
-	*storeStructuredMongo.Session
+type TokenRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *SessionsSession) DestroySessionsForUserByID(ctx context.Context, userID string) error {
+func (s *TokenRepository) DestroySessionsForUserByID(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -45,16 +45,12 @@ func (s *SessionsSession) DestroySessionsForUserByID(ctx context.Context, userID
 		return errors.New("user id is missing")
 	}
 
-	if s.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	selector := bson.M{
 		"userId": userID,
 	}
-	removeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err := s.DeleteMany(ctx, selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroySessionsForUserByID")

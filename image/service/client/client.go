@@ -57,10 +57,8 @@ func (c *Client) List(ctx context.Context, userID string, filter *image.Filter, 
 		return nil, err
 	}
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.List(ctx, userID, filter, pagination)
+	repository := c.ImageStructuredStore().NewImageRepository()
+	return repository.List(ctx, userID, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, metadata *image.Metadata, contentIntent string, content *image.Content) (*image.Image, error) {
@@ -80,10 +78,8 @@ func (c *Client) CreateWithMetadata(ctx context.Context, userID string, metadata
 		return nil, err
 	}
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.Create(ctx, userID, metadata)
+	repository := c.ImageStructuredStore().NewImageRepository()
+	return repository.Create(ctx, userID, metadata)
 }
 
 func (c *Client) CreateWithContent(ctx context.Context, userID string, contentIntent string, content *image.Content) (*image.Image, error) {
@@ -115,19 +111,17 @@ func (c *Client) createWithMetadataAndContent(ctx context.Context, userID string
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
-
-	original, err := session.Create(ctx, userID, metadata)
+	collecton := c.ImageStructuredStore().NewImageRepository()
+	original, err := collecton.Create(ctx, userID, metadata)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "id", *original.ID)
 
-	updated, err := c.putContent(ctx, session, original, contentIntent, content)
+	updated, err := c.putContent(ctx, collecton, original, contentIntent, content)
 	if err != nil {
-		if _, destroyErr := session.Destroy(ctx, *original.ID, nil); destroyErr != nil {
+		if _, destroyErr := collecton.Destroy(ctx, *original.ID, nil); destroyErr != nil {
 			logger.WithError(destroyErr).Error("Unable to destroy image after failure to put image content")
 		}
 		return nil, err
@@ -143,10 +137,8 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 		return err
 	}
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
-
-	if deleted, err := session.DeleteAll(ctx, userID); err != nil {
+	repository := c.ImageStructuredStore().NewImageRepository()
+	if deleted, err := repository.DeleteAll(ctx, userID); err != nil {
 		return err
 	} else if !deleted {
 		return nil
@@ -156,17 +148,15 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 		return err
 	}
 
-	_, err := session.DestroyAll(ctx, userID)
+	_, err := repository.DestroyAll(ctx, userID)
 	return err
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*image.Image, error) {
 	ctx = log.ContextWithField(ctx, "id", id)
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
-
-	result, err := session.Get(ctx, id, nil)
+	repository := c.ImageStructuredStore().NewImageRepository()
+	result, err := repository.Get(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -183,10 +173,9 @@ func (c *Client) Get(ctx context.Context, id string) (*image.Image, error) {
 func (c *Client) GetMetadata(ctx context.Context, id string) (*image.Metadata, error) {
 	ctx = log.ContextWithField(ctx, "id", id)
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.ImageStructuredStore().NewImageRepository()
 
-	result, err := session.Get(ctx, id, nil)
+	result, err := repository.Get(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -208,10 +197,9 @@ func (c *Client) GetMetadata(ctx context.Context, id string) (*image.Metadata, e
 func (c *Client) GetContent(ctx context.Context, id string, mediaType *string) (*image.Content, error) {
 	ctx = log.ContextWithFields(ctx, log.Fields{"id": id, "mediaType": mediaType})
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.ImageStructuredStore().NewImageRepository()
 
-	result, err := session.Get(ctx, id, nil)
+	result, err := repository.Get(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -243,10 +231,9 @@ func (c *Client) GetContent(ctx context.Context, id string, mediaType *string) (
 func (c *Client) GetRenditionContent(ctx context.Context, id string, rendition *image.Rendition) (*image.Content, error) {
 	ctx = log.ContextWithFields(ctx, log.Fields{"id": id, "rendition": rendition})
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.ImageStructuredStore().NewImageRepository()
 
-	result, err := session.Get(ctx, id, nil)
+	result, err := repository.Get(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -308,7 +295,7 @@ func (c *Client) GetRenditionContent(ctx context.Context, id string, rendition *
 			update.RenditionsID = renditionsID
 		}
 		update.Rendition = pointer.FromString(renditionString)
-		if updated, updateErr := session.Update(ctx, *result.ID, condition, update); updateErr != nil || updated == nil {
+		if updated, updateErr := repository.Update(ctx, *result.ID, condition, update); updateErr != nil || updated == nil {
 			logger.WithError(updateErr).Error("Unable to update image with rendition; orphaned rendition")
 		} else if result.RenditionsID != nil && *result.RenditionsID != *renditionsID {
 			logger.Error("Deleting excess image rendition content")
@@ -334,10 +321,9 @@ func (c *Client) GetRenditionContent(ctx context.Context, id string, rendition *
 func (c *Client) PutMetadata(ctx context.Context, id string, condition *request.Condition, metadata *image.Metadata) (*image.Image, error) {
 	ctx = log.ContextWithFields(ctx, log.Fields{"id": id, "condition": condition, "metadata": metadata})
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.ImageStructuredStore().NewImageRepository()
 
-	result, err := session.Get(ctx, id, condition)
+	result, err := repository.Get(ctx, id, condition)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -357,16 +343,15 @@ func (c *Client) PutMetadata(ctx context.Context, id string, condition *request.
 	update := imageStoreStructured.NewUpdate()
 	update.Metadata = metadata
 
-	return session.Update(ctx, id, condition, update)
+	return repository.Update(ctx, id, condition, update)
 }
 
 func (c *Client) PutContent(ctx context.Context, id string, condition *request.Condition, contentIntent string, content *image.Content) (*image.Image, error) {
 	ctx = log.ContextWithFields(ctx, log.Fields{"id": id, "condition": condition, "contentIntent": contentIntent, "content": content})
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.ImageStructuredStore().NewImageRepository()
 
-	original, err := session.Get(ctx, id, condition)
+	original, err := repository.Get(ctx, id, condition)
 	if err != nil {
 		return nil, err
 	} else if original == nil {
@@ -390,10 +375,10 @@ func (c *Client) PutContent(ctx context.Context, id string, condition *request.C
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
-	return c.putContent(ctx, session, original, contentIntent, content)
+	return c.putContent(ctx, repository, original, contentIntent, content)
 }
 
-func (c *Client) putContent(ctx context.Context, session imageStoreStructured.Session, original *image.Image, contentIntent string, content *image.Content) (*image.Image, error) {
+func (c *Client) putContent(ctx context.Context, repository imageStoreStructured.ImageRepository, original *image.Image, contentIntent string, content *image.Content) (*image.Image, error) {
 	ctx = log.ContextWithFields(ctx, log.Fields{"userId": *original.UserID, "id": *original.ID, "contentIntent": contentIntent, "content": content})
 
 	contentID := image.NewContentID()
@@ -451,7 +436,7 @@ func (c *Client) putContent(ctx context.Context, session imageStoreStructured.Se
 	update.ContentAttributes.Width = pointer.FromInt(width)
 	update.ContentAttributes.Height = pointer.FromInt(height)
 	update.ContentAttributes.Size = pointer.FromInt(size)
-	updated, err := session.Update(ctx, *original.ID, condition, update)
+	updated, err := repository.Update(ctx, *original.ID, condition, update)
 	if err != nil {
 		if deleteErr := c.ImageUnstructuredStore().DeleteContent(ctx, *original.UserID, *original.ID, contentID); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete image content for failed update")
@@ -471,10 +456,9 @@ func (c *Client) putContent(ctx context.Context, session imageStoreStructured.Se
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx = log.ContextWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
-	session := c.ImageStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.ImageStructuredStore().NewImageRepository()
 
-	result, err := session.Get(ctx, id, condition)
+	result, err := repository.Get(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if result == nil {
@@ -485,7 +469,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		return false, err
 	}
 
-	deleted, err := session.Delete(ctx, id, condition)
+	deleted, err := repository.Delete(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if !deleted {
@@ -496,7 +480,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		return false, err
 	}
 
-	return session.Destroy(ctx, id, nil)
+	return repository.Destroy(ctx, id, nil)
 }
 
 func (c *Client) decodeConfig(reader io.Reader) (string, int, int, error) {

@@ -110,11 +110,11 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 
 		Context("with context and session", func() {
 			var ctx context.Context
-			var session *dataStoreDEPRECATEDTest.DataSession
+			var session *dataStoreDEPRECATEDTest.DataRepository
 
 			BeforeEach(func() {
 				ctx = context.Background()
-				session = dataStoreDEPRECATEDTest.NewDataSession()
+				session = dataStoreDEPRECATEDTest.NewDataRepository()
 			})
 
 			AfterEach(func() {

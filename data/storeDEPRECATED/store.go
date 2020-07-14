@@ -2,23 +2,21 @@ package storeDEPRECATED
 
 import (
 	"context"
-	"io"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Store interface {
-	Status() interface{}
+	Status(ctx context.Context) *storeStructuredMongo.Status
 
-	NewDataSession() DataSession
+	NewDataRepository() DataRepository
 }
 
-type DataSession interface {
-	io.Closer
-
+type DataRepository interface {
 	EnsureIndexes() error
 
 	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)

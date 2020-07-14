@@ -4,7 +4,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	nullLog "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/notification/store"
 	"github.com/tidepool-org/platform/notification/store/mongo"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -14,32 +13,31 @@ import (
 var _ = Describe("Mongo", func() {
 	var cfg *storeStructuredMongo.Config
 	var str *mongo.Store
-	var ssn store.NotificationsSession
+	var ssn store.NotificationsRepository
 
 	BeforeEach(func() {
 		cfg = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
-		if ssn != nil {
-			ssn.Close()
-		}
 		if str != nil {
-			str.Close()
+			str.Terminate(nil)
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			str, err = mongo.NewStore(nil, nil)
+			params := storeStructuredMongo.Params{DatabaseConfig: nil}
+			str, err = mongo.NewStore(params)
 			Expect(err).To(HaveOccurred())
 			Expect(str).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			str, err = mongo.NewStore(cfg, nullLog.NewLogger())
+			params := storeStructuredMongo.Params{DatabaseConfig: cfg}
+			str, err = mongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
@@ -48,14 +46,15 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			str, err = mongo.NewStore(cfg, nullLog.NewLogger())
+			params := storeStructuredMongo.Params{DatabaseConfig: cfg}
+			str, err = mongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
 
-		Context("NewNotificationsSession", func() {
+		Context("NewNotificationsRepository", func() {
 			It("returns a new session", func() {
-				ssn = str.NewNotificationsSession()
+				ssn = str.NewNotificationsRepository()
 				Expect(ssn).ToNot(BeNil())
 			})
 		})

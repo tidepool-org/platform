@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Config struct {
@@ -82,8 +83,8 @@ type Queue struct {
 	dispatchChannel   chan *task.Task
 	completionChannel chan *task.Task
 	timer             *time.Timer
-	session           store.TaskSession
-	iterator          store.TaskIterator
+	collection        store.TaskRepository
+	iterator          *mongo.Cursor
 }
 
 func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
@@ -216,11 +217,13 @@ func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 		iter := q.startPendingIterator(ctx)
 
 		tsk := &task.Task{}
-		if iter.Next(tsk) {
+		if iter.Next(ctx) {
+			err := iter.Decode(tsk)
 			q.dispatchTask(ctx, tsk)
-		} else if err := iter.Error(); err != nil {
-			q.logger.WithError(err).Error("Failure iterating tasks") // TODO: Only warn after n fallbacks
-			return q.delay                                           // TODO: Exponential fallback
+			if err != nil {
+				q.logger.WithError(err).Error("Failure iterating tasks") // TODO: Only warn after n fallbacks
+				return q.delay                                           // TODO: Exponential fallback
+			}
 		} else {
 			return q.delay
 		}
@@ -232,8 +235,7 @@ func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
-	ssn := q.store.NewTaskSession()
-	defer ssn.Close()
+	ssn := q.store.NewTaskRepository()
 
 	tsk.State = task.TaskStateRunning
 	tsk.RunTime = pointer.FromTime(time.Now())
@@ -254,8 +256,7 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 
 	q.workersAvailable++
 
-	ssn := q.store.NewTaskSession()
-	defer ssn.Close()
+	ssn := q.store.NewTaskRepository()
 
 	if tsk.RunTime != nil {
 		tsk.Duration = pointer.FromFloat64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
@@ -310,23 +311,22 @@ func (q *Queue) stopTimer() {
 	}
 }
 
-func (q *Queue) startPendingIterator(ctx context.Context) store.TaskIterator {
-	if q.session == nil {
-		q.session = q.store.NewTaskSession()
+func (q *Queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
+	if q.collection == nil {
+		q.collection = q.store.NewTaskRepository()
 	}
 	if q.iterator == nil {
-		q.iterator = q.session.IteratePending(ctx)
+		// TODO: What happens when an error is returned?
+		q.iterator, _ = q.collection.IteratePending(ctx)
 	}
 	return q.iterator
 }
 
 func (q *Queue) stopPendingIterator() {
 	if q.iterator != nil {
-		q.iterator.Close()
 		q.iterator = nil
 	}
-	if q.session != nil {
-		q.session.Close()
-		q.session = nil
+	if q.collection != nil {
+		q.collection = nil
 	}
 }

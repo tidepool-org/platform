@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
@@ -23,8 +24,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
-	store, err := storeStructuredMongo.NewStore(config, logger)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -35,35 +36,52 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 }
 
 func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
+	coll := s.newRepository()
+	return coll.EnsureIndexes()
 }
 
-func (s *Store) NewSession() blobStoreStructured.Session {
-	return s.newSession()
+func (s *Store) NewBlobRepository() blobStoreStructured.BlobRepository {
+	return s.newRepository()
 }
 
-func (s *Store) newSession() *Session {
-	return &Session{
-		Session: s.Store.NewSession("blobs"),
+func (s *Store) newRepository() *BlobRepository {
+	return &BlobRepository{
+		s.Store.GetRepository("blobs"),
 	}
 }
 
-type Session struct {
-	*storeStructuredMongo.Session
+type BlobRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Background: true, Unique: true},
-		{Key: []string{"userId"}, Background: true},
-		{Key: []string{"mediaType"}, Background: true},
-		{Key: []string{"status"}, Background: true},
-	})
+func (c *BlobRepository) EnsureIndexes() error {
+	return c.CreateAllIndexes(context.Background(),
+		[]mongo.IndexModel{
+			{
+				Keys: bson.D{{Key: "id", Value: 1}},
+				Options: options.Index().
+					SetUnique(true).
+					SetBackground(true),
+			},
+			{
+				Keys: bson.D{{Key: "userId", Value: 1}},
+				Options: options.Index().
+					SetBackground(true),
+			},
+			{
+				Keys: bson.D{{Key: "mediaType", Value: 1}},
+				Options: options.Index().
+					SetBackground(true),
+			},
+			{
+				Keys: bson.D{{Key: "status", Value: 1}},
+				Options: options.Index().
+					SetBackground(true),
+			},
+		})
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
+func (c *BlobRepository) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
 	if ctx == nil {
@@ -83,10 +101,6 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -113,17 +127,23 @@ func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, 
 			"$in": *filter.MediaType,
 		}
 	}
-	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&result)
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := c.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to list blobs")
 		return nil, errors.Wrap(err, "unable to list blobs")
+	}
+
+	if err = cursor.All(ctx, &result); err != nil {
+		return nil, errors.Wrap(err, "unable to decode blobs")
 	}
 
 	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
 	return result, nil
 }
 
-func (s *Session) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
+func (c *BlobRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "create": create})
 
 	if ctx == nil {
@@ -138,10 +158,6 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		return nil, errors.New("create is missing")
 	} else if err := structureValidator.New().Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -161,7 +177,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		logger = logger.WithField("id", id)
 
 		doc.ID = pointer.FromString(id)
-		if err = s.C().Insert(doc); mgo.IsDup(err) {
+		if _, err = c.InsertOne(ctx, doc); storeStructuredMongo.IsDup(err) {
 			logger.WithError(err).Error("Duplicate blob id")
 		} else {
 			break
@@ -172,7 +188,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 		return nil, errors.Wrap(err, "unable to create blob")
 	}
 
-	result, err := s.get(logger, id, nil)
+	result, err := c.get(ctx, logger, id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +197,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *blobStoreSt
 	return result, nil
 }
 
-func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
+func (c *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	if ctx == nil {
@@ -191,10 +207,6 @@ func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
 		return false, errors.New("user id is missing")
 	} else if !user.IsValidID(userID) {
 		return false, errors.New("user id is invalid")
-	}
-
-	if s.IsClosed() {
-		return false, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -207,17 +219,17 @@ func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
 		"deletedTime":  now.Truncate(time.Millisecond),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+	changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete all blobs")
 		return false, errors.Wrap(err, "unable to delete all blobs")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DeleteAll")
-	return changeInfo.Updated > 0, nil
+	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+func (c *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	if ctx == nil {
@@ -229,26 +241,22 @@ func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
 		return false, errors.New("user id is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	query := bson.M{
 		"userId": userID,
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := c.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy all blobs")
 		return false, errors.Wrap(err, "unable to destroy all blobs")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyAll")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
+func (c *BlobRepository) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -265,13 +273,9 @@ func (s *Session) Get(ctx context.Context, id string, condition *request.Conditi
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 
-	result, err := s.get(logger, id, condition, storeStructuredMongo.NotDeleted)
+	result, err := c.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +284,7 @@ func (s *Session) Get(ctx context.Context, id string, condition *request.Conditi
 	return result, nil
 }
 
-func (s *Session) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
+func (c *BlobRepository) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition, "update": update})
 
 	if ctx == nil {
@@ -300,10 +304,6 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -334,11 +334,11 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 		if update.Status != nil {
 			set["status"] = *update.Status
 		}
-		changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+		changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
 		if err != nil {
 			logger.WithError(err).Error("Unable to update blob")
 			return nil, errors.Wrap(err, "unable to update blob")
-		} else if changeInfo.Matched > 0 {
+		} else if changeInfo.MatchedCount > 0 {
 			condition = nil
 		} else {
 			update = nil
@@ -350,7 +350,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	var result *blob.Blob
 	if update != nil {
 		var err error
-		if result, err = s.get(logger, id, condition); err != nil {
+		if result, err = c.get(ctx, logger, id, condition); err != nil {
 			return nil, err
 		}
 	}
@@ -359,7 +359,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (c *BlobRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -374,10 +374,6 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		condition = request.NewCondition()
 	} else if err := structureValidator.New().Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
-	}
-
-	if s.IsClosed() {
-		return false, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -393,17 +389,17 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		"deletedTime":  now.Truncate(time.Millisecond),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+	changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete blob")
 		return false, errors.Wrap(err, "unable to delete blob")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
-	return changeInfo.Updated > 0, nil
+	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (c *BlobRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -420,10 +416,6 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	query := bson.M{
@@ -432,17 +424,17 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := c.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy blob")
 		return false, errors.Wrap(err, "unable to destroy blob")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) get(logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*blob.Blob, error) {
+func (c *BlobRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*blob.Blob, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
 	results := blob.BlobArray{}
@@ -453,10 +445,15 @@ func (s *Session) get(logger log.Logger, id string, condition *request.Condition
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	err := s.C().Find(query).Limit(2).All(&results)
+	opts := options.Find().SetLimit(2)
+	cursor, err := c.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to get blob")
 		return nil, errors.Wrap(err, "unable to get blob")
+	}
+
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, errors.Wrap(err, "unable to decode blob")
 	}
 
 	var result *blob.Blob

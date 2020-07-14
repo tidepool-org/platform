@@ -6,6 +6,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -25,7 +26,7 @@ type Tool struct {
 func NewTool() *Tool {
 	return &Tool{
 		Tool:        tool.New(),
-		mongoConfig: storeStructuredMongo.NewConfig(),
+		mongoConfig: storeStructuredMongo.NewConfig(nil),
 	}
 }
 
@@ -34,7 +35,7 @@ func (t *Tool) Initialize(provider application.Provider) error {
 		return err
 	}
 
-	if err := t.mongoConfig.Load(t.ConfigReporter().WithScopes("store")); err != nil {
+	if err := t.mongoConfig.Load(); err != nil {
 		return errors.Wrap(err, "unable to load store config")
 	}
 
@@ -64,7 +65,7 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 	}
 
 	if ctx.IsSet(AddressesFlag) {
-		t.mongoConfig.Addresses = storeStructuredMongo.SplitAddresses(ctx.String(AddressesFlag))
+		t.mongoConfig.Addresses = config.SplitTrimCompact(ctx.String(AddressesFlag))
 	}
 	if ctx.IsSet(TLSFlag) {
 		t.mongoConfig.TLS = ctx.Bool(TLSFlag)
@@ -74,7 +75,7 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 }
 
 func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
-	mongoConfig := storeStructuredMongo.NewConfig()
+	mongoConfig := storeStructuredMongo.NewConfig(nil)
 	mongoConfig.Scheme = t.mongoConfig.Scheme
 	if t.mongoConfig.Addresses != nil {
 		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)

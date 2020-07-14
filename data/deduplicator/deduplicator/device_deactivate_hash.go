@@ -74,7 +74,7 @@ func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED
 }
 
-func (d *DeviceDeactivateHash) AddData(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DeviceDeactivateHash) AddData(ctx context.Context, session storeDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -95,7 +95,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, session storeDEPRECA
 	return d.Base.AddData(ctx, session, dataSet, dataSetData)
 }
 
-func (d *DeviceDeactivateHash) Close(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Close(ctx context.Context, session storeDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -113,7 +113,7 @@ func (d *DeviceDeactivateHash) Close(ctx context.Context, session storeDEPRECATE
 	return d.Base.Close(ctx, session, dataSet)
 }
 
-func (d *DeviceDeactivateHash) Delete(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Delete(ctx context.Context, session storeDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

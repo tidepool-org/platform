@@ -11,8 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/fx"
 
-	"github.com/tidepool-org/platform/store/structured/mongoofficial"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongoofficial/test"
+	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 
 	logNull "github.com/tidepool-org/platform/log/null"
 
@@ -35,11 +35,10 @@ import (
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
 	"github.com/tidepool-org/platform/prescription/test"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongoofficial"
 )
 
 var _ = Describe("PrescriptionRepository", func() {
-	var mongoConfig *storeStructuredMongo.Config
+	var mongoConfig *structuredMongo.Config
 	var store *prescriptionStoreMongo.PrescriptionStore
 	var logger *logTest.Logger
 	var repository prescriptionStore.PrescriptionRepository
@@ -63,7 +62,7 @@ var _ = Describe("PrescriptionRepository", func() {
 				fx.NopLogger,
 				fx.Supply(mongoConfig),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(mongoofficial.NewStore),
+				fx.Provide(structuredMongo.NewStore),
 				fx.Provide(prescriptionStoreMongo.NewStore),
 				fx.Invoke(func(str prescriptionStore.Store) {
 					store = str.(*prescriptionStoreMongo.PrescriptionStore)
@@ -90,7 +89,7 @@ var _ = Describe("PrescriptionRepository", func() {
 				Expect(cur).ToNot(BeNil())
 
 				indexes := make([]bson.M, 0)
-				err = cur.All(nil, &indexes)
+				err = cur.All(context.Background(), &indexes)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(indexes).To(ConsistOf(
 					MatchKeys(IgnoreExtras, Keys{

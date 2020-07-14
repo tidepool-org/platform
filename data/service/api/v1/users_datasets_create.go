@@ -79,7 +79,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	dataSet.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
 	dataSet.State = pointer.FromString("open")
 
-	if err := dataServiceContext.DataSession().CreateDataSet(ctx, dataSet); err != nil {
+	if err := dataServiceContext.DataRepository().CreateDataSet(ctx, dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert data set", err)
 		return
 	}
@@ -90,7 +90,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found", err)
 		return
-	} else if dataSet, err = deduplicator.Open(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+	} else if dataSet, err = deduplicator.Open(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to open", err)
 		return
 	}

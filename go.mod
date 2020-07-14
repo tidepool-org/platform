@@ -10,11 +10,9 @@ require (
 	github.com/disintegration/imaging v1.5.0
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/githubnemo/CompileDaemon v1.0.0
-	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
 	github.com/google/uuid v1.1.1
 	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/kr/pty v1.1.1 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.0.0
@@ -23,7 +21,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/tidepool-org/devices v0.0.0-20200709151222-3d1edbd4a58e
 	github.com/urfave/cli v1.20.0
-	go.mongodb.org/mongo-driver v1.3.2
+	go.mongodb.org/mongo-driver v1.4.1
 	go.uber.org/fx v1.12.0
 	golang.org/x/crypto v0.0.0-20190530122614-20be4c3c3ed5
 	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b // indirect

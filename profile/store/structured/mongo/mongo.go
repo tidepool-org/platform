@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -22,8 +23,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
-	store, err := storeStructuredMongo.NewStore(config, logger)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -33,21 +34,21 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 	}, nil
 }
 
-func (s *Store) NewSession() profileStoreStructured.Session {
-	return s.newSession()
+func (s *Store) NewMetaRepository() profileStoreStructured.MetaRepository {
+	return s.newMetaRepository()
 }
 
-func (s *Store) newSession() *Session {
-	return &Session{
-		Session: s.Store.NewSession("seagull"),
+func (s *Store) newMetaRepository() *MetaRepository {
+	return &MetaRepository{
+		s.Store.GetRepository("seagull"),
 	}
 }
 
-type Session struct {
-	*storeStructuredMongo.Session
+type MetaRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *Session) Get(ctx context.Context, userID string, condition *request.Condition) (*profile.Profile, error) {
+func (s *MetaRepository) Get(ctx context.Context, userID string, condition *request.Condition) (*profile.Profile, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "condition": condition})
 
 	if ctx == nil {
@@ -64,13 +65,9 @@ func (s *Session) Get(ctx context.Context, userID string, condition *request.Con
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 
-	result, err := s.get(logger, userID, condition, storeStructuredMongo.NotDeleted)
+	result, err := s.get(ctx, logger, userID, condition, storeStructuredMongo.NotDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +76,7 @@ func (s *Session) Get(ctx context.Context, userID string, condition *request.Con
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, userID string, condition *request.Condition) (bool, error) {
+func (s *MetaRepository) Delete(ctx context.Context, userID string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "condition": condition})
 
 	if ctx == nil {
@@ -94,10 +91,6 @@ func (s *Session) Delete(ctx context.Context, userID string, condition *request.
 		condition = request.NewCondition()
 	} else if err := structureValidator.New().Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
-	}
-
-	if s.IsClosed() {
-		return false, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -113,17 +106,17 @@ func (s *Session) Delete(ctx context.Context, userID string, condition *request.
 		"deletedTime":  now.Truncate(time.Second),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+	changeInfo, err := s.UpdateMany(ctx, query, s.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete profile")
 		return false, errors.Wrap(err, "unable to delete profile")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
-	return changeInfo.Updated > 0, nil
+	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *Session) Destroy(ctx context.Context, userID string, condition *request.Condition) (bool, error) {
+func (s *MetaRepository) Destroy(ctx context.Context, userID string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "condition": condition})
 
 	if ctx == nil {
@@ -140,10 +133,6 @@ func (s *Session) Destroy(ctx context.Context, userID string, condition *request
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	query := bson.M{
@@ -152,17 +141,17 @@ func (s *Session) Destroy(ctx context.Context, userID string, condition *request
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := s.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy profile")
 		return false, errors.Wrap(err, "unable to destroy profile")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) get(logger log.Logger, userID string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*profile.Profile, error) {
+func (s *MetaRepository) get(ctx context.Context, logger log.Logger, userID string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*profile.Profile, error) {
 	logger = logger.WithFields(log.Fields{"userId": userID, "condition": condition})
 
 	results := profile.ProfileArray{}
@@ -173,10 +162,15 @@ func (s *Session) get(logger log.Logger, userID string, condition *request.Condi
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	err := s.C().Find(query).Limit(2).All(&results)
+	opts := options.Find().SetLimit(2)
+	cursor, err := s.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to get profile")
 		return nil, errors.Wrap(err, "unable to get profile")
+	}
+
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, errors.Wrap(err, "unable to decode profile")
 	}
 
 	var result *profile.Profile

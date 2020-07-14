@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -92,50 +93,52 @@ func (m *Migration) execute() error {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	sessionsStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+	sessionsStore, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sessions store")
 	}
-	defer sessionsStore.Close()
+	defer sessionsStore.Terminate(context.Background())
 
-	m.Logger().Debug("Creating sessions sessions")
+	m.Logger().Debug("Creating sessions repositories")
 
-	iterateSessionsSession := sessionsStore.NewSession("tokens")
-	defer iterateSessionsSession.Close()
+	iterateTokenRepository := sessionsStore.GetRepository("tokens")
 
-	updateSessionsSession := sessionsStore.NewSession("tokens")
-	defer updateSessionsSession.Close()
+	updateTokenRepository := sessionsStore.GetRepository("tokens")
 
 	m.Logger().Debug("Iterating sessions")
 
-	iter := iterateSessionsSession.C().Find(bson.M{}).Iter()
+	cursor, err := iterateTokenRepository.Find(context.Background(), bson.M{})
 
 	now := time.Now()
 	expiredSessionCount := 0
 	migratedSessionCount := 0
-	session := &session.Session{}
-	for iter.Next(session) {
+	var repository session.SessionRepository
+	for cursor.Next(context.Background()) {
+		if err = cursor.Decode(&repository); err != nil {
+			return errors.Wrap(err, "unable to decode session")
+		}
 
-		if m.isSessionExpanded(session) {
+		if m.isSessionExpanded(&repository) {
 			continue
 		}
 
-		sessionLogger := m.Logger().WithField("session", session)
+		sessionLogger := m.Logger().WithField("session", repository)
 
-		sessionID := session.ID
+		sessionID := repository.ID
 		if sessionID == "" {
 			sessionLogger.Warn("Missing session id in result from sessions query")
 			continue
 		}
 
-		if err = m.expandSession(session, m.Secret()); err != nil {
+		if err = m.expandSession(&repository, m.Secret()); err != nil {
 			sessionLogger.WithError(err).Error("Unable to expand session")
 			continue
 		}
 
-		if session.ExpiresAt.Before(now) {
+		if repository.ExpiresAt.Before(now) {
 			if !m.DryRun() {
-				if err = updateSessionsSession.C().RemoveId(sessionID); err != nil {
+				if _, err = updateTokenRepository.DeleteOne(context.Background(), bson.M{"_id": sessionID}); err != nil {
 					sessionLogger.WithError(err).Error("Unable to remove session")
 					continue
 				}
@@ -143,10 +146,10 @@ func (m *Migration) execute() error {
 
 			expiredSessionCount++
 
-			sessionLogger.Debugf("Expired session (expired %d seconds ago)", now.Unix()-session.ExpiresAt.Unix())
+			sessionLogger.Debugf("Expired session (expired %d seconds ago)", now.Unix()-repository.ExpiresAt.Unix())
 		} else {
 			if !m.DryRun() {
-				if err = updateSessionsSession.C().UpdateId(sessionID, session); err != nil {
+				if _, err = updateTokenRepository.UpdateOne(context.Background(), bson.M{"_id": sessionID}, repository); err != nil {
 					sessionLogger.WithError(err).Error("Unable to update session")
 					continue
 				}
@@ -154,11 +157,8 @@ func (m *Migration) execute() error {
 
 			migratedSessionCount++
 
-			sessionLogger.Debugf("Migrated session (expires %d second from now)", session.ExpiresAt.Unix()-now.Unix())
+			sessionLogger.Debugf("Migrated session (expires %d second from now)", repository.ExpiresAt.Unix()-now.Unix())
 		}
-	}
-	if err = iter.Close(); err != nil {
-		return errors.Wrap(err, "unable to iterate sessions")
 	}
 
 	if !m.DryRun() {
@@ -180,8 +180,8 @@ func (m *Migration) execute() error {
 				{"createdAt": bson.M{"$exists": false}},
 			},
 		}
-		var count int
-		if count, err = iterateSessionsSession.C().Find(selector).Count(); err != nil {
+		var count int64
+		if count, err = iterateTokenRepository.CountDocuments(context.Background(), selector); err != nil {
 			m.Logger().WithError(err).Error("Unable to query for unexpanded sessions")
 		} else if count != 0 {
 			m.Logger().WithField("count", count).Error("Found unexpanded sessions")
@@ -193,11 +193,11 @@ func (m *Migration) execute() error {
 	return nil
 }
 
-func (m *Migration) isSessionExpanded(session *session.Session) bool {
+func (m *Migration) isSessionExpanded(session *session.SessionRepository) bool {
 	return session.Duration != 0
 }
 
-func (m *Migration) expandSession(session *session.Session, secret string) error {
+func (m *Migration) expandSession(session *session.SessionRepository, secret string) error {
 	parsedClaims := struct {
 		jwt.StandardClaims
 		IsServer string  `json:"svr"`

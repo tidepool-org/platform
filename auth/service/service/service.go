@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service"
@@ -95,10 +97,10 @@ func (s *Service) ProviderFactory() provider.Factory {
 	return s.providerFactory
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
 		Version:   s.VersionReporter().Long(),
-		AuthStore: s.authStore.Status(),
+		AuthStore: s.authStore.Status(ctx),
 		Server:    s.API().Status(),
 	}
 }
@@ -152,14 +154,15 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeAuthStore() error {
 	s.Logger().Debug("Loading auth store config")
 
-	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "store")); err != nil {
+	cfg := storeStructuredMongo.NewConfig(nil)
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load auth store config")
 	}
 
 	s.Logger().Debug("Creating auth store")
 
-	str, err := authMongo.NewStore(cfg, s.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
+	str, err := authMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth store")
 	}
@@ -178,7 +181,7 @@ func (s *Service) initializeAuthStore() error {
 func (s *Service) terminateAuthStore() {
 	if s.authStore != nil {
 		s.Logger().Debug("Closing auth store")
-		s.authStore.Close()
+		s.authStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying auth store")
 		s.authStore = nil

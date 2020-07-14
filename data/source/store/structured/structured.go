@@ -2,7 +2,6 @@ package structured
 
 import (
 	"context"
-	"io"
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
@@ -10,12 +9,10 @@ import (
 )
 
 type Store interface {
-	NewSession() Session
+	NewDataRepository() DataRepository
 }
 
-type Session interface {
-	io.Closer
-
+type DataRepository interface {
 	List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
 	DestroyAll(ctx context.Context, userID string) (bool, error)

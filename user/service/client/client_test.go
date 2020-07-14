@@ -42,7 +42,7 @@ var _ = Describe("Client", func() {
 		userStructuredStore = userStoreStructuredTest.NewStore()
 		userStructuredSession = userStoreStructuredTest.NewSession()
 		userStructuredSession.CloseOutput = func(err error) *error { return &err }(nil)
-		userStructuredStore.NewSessionOutput = func(s userStoreStructured.Session) *userStoreStructured.Session { return &s }(userStructuredSession)
+		userStructuredStore.NewRepositoryOutput = func(s userStoreStructured.UserRepository) *userStoreStructured.UserRepository { return &s }(userStructuredSession)
 
 		passwordHasher = userServiceClientTest.NewPasswordHasher()
 

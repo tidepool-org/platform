@@ -4,8 +4,10 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -45,41 +47,44 @@ func NewSyncTasks(userID string) []interface{} {
 	return syncTasks
 }
 
-func ValidateSyncTasks(testMongoCollection *mgo.Collection, selector bson.M, expectedSyncTasks []interface{}) {
-	var actualSyncTasks []interface{}
-	Expect(testMongoCollection.Find(selector).Select(bson.M{"_id": 0}).All(&actualSyncTasks)).To(Succeed())
+func ValidateSyncTasks(testMongoCollection *mongo.Collection, selector bson.M, expectedSyncTasks []interface{}) {
+	var actualSyncTasks []bson.M
+	opts := options.Find().SetProjection(bson.M{"_id": 0})
+	cursor, err := testMongoCollection.Find(context.Background(), selector, opts)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cursor).ToNot(BeNil())
+	Expect(cursor.All(context.Background(), &actualSyncTasks)).To(Succeed())
 	Expect(actualSyncTasks).To(ConsistOf(expectedSyncTasks))
 }
 
 var _ = Describe("Mongo", func() {
 	var mongoConfig *storeStructuredMongo.Config
 	var mongoStore *synctaskStoreMongo.Store
-	var mongoSession synctaskStore.SyncTaskSession
+	var mongoSession synctaskStore.SyncTaskRepository
 
 	BeforeEach(func() {
 		mongoConfig = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
-		if mongoSession != nil {
-			mongoSession.Close()
-		}
 		if mongoStore != nil {
-			mongoStore.Close()
+			mongoStore.Terminate(nil)
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			mongoStore, err = synctaskStoreMongo.NewStore(nil, nil)
+			params := storeStructuredMongo.Params{DatabaseConfig: nil}
+			mongoStore, err = synctaskStoreMongo.NewStore(params)
 			Expect(err).To(HaveOccurred())
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = synctaskStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
+			params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+			mongoStore, err = synctaskStoreMongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -88,45 +93,39 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = synctaskStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
+			params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+			mongoStore, err = synctaskStoreMongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewSyncTaskSession", func() {
+		Context("NewSyncTaskRepository", func() {
 			It("returns a new session", func() {
-				mongoSession = mongoStore.NewSyncTaskSession()
+				mongoSession = mongoStore.NewSyncTaskRepository()
 				Expect(mongoSession).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSyncTaskSession()
+				mongoSession = mongoStore.NewSyncTaskRepository()
 				Expect(mongoSession).ToNot(BeNil())
 			})
 
 			Context("with persisted data", func() {
-				var testMongoSession *mgo.Session
-				var testMongoCollection *mgo.Collection
+				var testMongoCollection *mongo.Collection
 				var syncTasks []interface{}
 				var ctx context.Context
 
 				BeforeEach(func() {
-					testMongoSession = storeStructuredMongoTest.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "syncTasks")
+					testMongoCollection = mongoStore.GetCollection("syncTasks")
 					syncTasks = NewSyncTasks(user.NewID())
 					ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 				})
 
 				JustBeforeEach(func() {
-					Expect(testMongoCollection.Insert(syncTasks...)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					if testMongoSession != nil {
-						testMongoSession.Close()
-					}
+					_, err := testMongoCollection.InsertMany(context.Background(), syncTasks)
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				Context("DestroySyncTasksForUserByID", func() {
@@ -139,7 +138,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(testMongoCollection.Insert(destroySyncTasks...)).To(Succeed())
+						_, err := testMongoCollection.InsertMany(context.Background(), destroySyncTasks)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("succeeds if it successfully removes sync tasks", func() {
@@ -152,11 +152,6 @@ var _ = Describe("Mongo", func() {
 
 					It("returns an error if the user id is missing", func() {
 						Expect(mongoSession.DestroySyncTasksForUserByID(ctx, "")).To(MatchError("user id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DestroySyncTasksForUserByID(ctx, destroyUserID)).To(MatchError("session closed"))
 					})
 
 					It("has the correct stored sync tasks", func() {

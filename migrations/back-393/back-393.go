@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"os"
 	"time"
 
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/crypto"
@@ -62,18 +64,18 @@ func (m *Migration) execute() error {
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "gatekeeper"
 	mongoConfig.Timeout = 60 * time.Minute
-	dataStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+	dataStore, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
-	defer dataStore.Close()
+	defer dataStore.Terminate(nil)
 
-	m.Logger().Debug("Creating data session")
+	m.Logger().Debug("Creating data repository")
 
-	dataSession := dataStore.NewSession("perms")
-	defer dataSession.Close()
+	dataRepository := dataStore.GetRepository("perms")
 
-	numChanged := m.addSharerID(dataSession)
+	numChanged := m.addSharerID(dataRepository)
 
 	m.Logger().Infof("Updated %d shares", numChanged)
 
@@ -102,23 +104,25 @@ func UserIDFromGroupID(groupID string, secret string) (string, error) {
 	return string(userIDBytes), nil
 }
 
-func (m *Migration) addSharerID(dataSession *storeStructuredMongo.Session) int {
+func (m *Migration) addSharerID(dataRepository *storeStructuredMongo.Repository) int {
 	logger := m.Logger()
 
 	logger.Debug("Finding shares")
 
 	type doc struct {
-		ID      bson.ObjectId `bson:"_id"`
-		GroupID string        `bson:"groupId"`
+		ID      primitive.ObjectID `bson:"_id"`
+		GroupID string             `bson:"groupId"`
 	}
 	docs := make([]doc, 0)
 	var numChanged int
 
 	secret := os.Getenv("GATEKEEPER_SECRET")
-	err := dataSession.C().Find(bson.M{}).Select(bson.M{"_id": 1, "groupId": 1}).All(&docs)
+	opts := options.Find().SetProjection(bson.M{"_id": 1, "groupId": 1})
+	c, err := dataRepository.Find(context.Background(), bson.M{}, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to find any shares")
 	} else {
+		c.All(context.Background(), &docs)
 		logger.Infof("Found %d shares", len(docs))
 		for _, doc := range docs {
 			logger.Debugf("Updating document id %s, groupID %s", doc.ID, doc.GroupID)
@@ -128,12 +132,10 @@ func (m *Migration) addSharerID(dataSession *storeStructuredMongo.Session) int {
 				logger.WithError(err).Error("failed to decode groupId")
 				continue
 			}
-			change := mgo.Change{
-				Update:    bson.M{"$set": bson.M{"sharerId": sharerID}},
-				ReturnNew: true,
-			}
+			change := bson.M{"$set": bson.M{"sharerId": sharerID}}
 			var result interface{}
-			_, err = dataSession.C().FindId(doc.ID).Apply(change, &result)
+			opts := options.FindOneAndUpdate().SetUpsert(true)
+			err = dataRepository.FindOneAndUpdate(context.Background(), bson.M{"_id": doc.ID}, change, opts).Decode(&result)
 
 			if err != nil {
 				logger.WithError(err).Errorf("Could not update share ID %s", doc.ID)

@@ -4,16 +4,16 @@ import dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/s
 
 type Store struct {
 	NewSessionInvocations int
-	NewSessionStub        func() dataSourceStoreStructured.Session
-	NewSessionOutputs     []dataSourceStoreStructured.Session
-	NewSessionOutput      *dataSourceStoreStructured.Session
+	NewSessionStub        func() dataSourceStoreStructured.DataRepository
+	NewSessionOutputs     []dataSourceStoreStructured.DataRepository
+	NewSessionOutput      *dataSourceStoreStructured.DataRepository
 }
 
 func NewStore() *Store {
 	return &Store{}
 }
 
-func (s *Store) NewSession() dataSourceStoreStructured.Session {
+func (s *Store) NewDataRepository() dataSourceStoreStructured.DataRepository {
 	s.NewSessionInvocations++
 	if s.NewSessionStub != nil {
 		return s.NewSessionStub()
@@ -26,7 +26,7 @@ func (s *Store) NewSession() dataSourceStoreStructured.Session {
 	if s.NewSessionOutput != nil {
 		return *s.NewSessionOutput
 	}
-	panic("NewSession has no output")
+	panic("NewDataRepository has no output")
 }
 
 func (s *Store) AssertOutputsEmpty() {

@@ -90,29 +90,27 @@ var _ = Describe("Context", func() {
 		})
 
 		Context("with store session", func() {
-			var ssn *notificationStoreTest.NotificationsSession
+			var collection *notificationStoreTest.NotificationsRepository
 
 			BeforeEach(func() {
-				ssn = notificationStoreTest.NewNotificationsSession()
-				svc.NotificationStoreImpl.NewNotificationsSessionOutputs = []store.NotificationsSession{ssn}
+				collection = notificationStoreTest.NewNotificationsRepository()
+				svc.NotificationStoreImpl.NewNotificationsRepositoryOutputs = []store.NotificationsRepository{collection}
 			})
 
 			AfterEach(func() {
-				ssn.AssertOutputsEmpty()
+				collection.AssertOutputsEmpty()
 			})
 
 			Context("Close", func() {
 				It("returns successfully", func() {
-					ssn.CloseOutputs = []error{nil}
-					Expect(ctx.NotificationsSession()).To(Equal(ssn))
+					Expect(ctx.NotificationsRepository()).To(Equal(collection))
 					ctx.Close()
-					Expect(ssn.CloseInvocations).To(Equal(1))
 				})
 			})
 
-			Context("NotificationsSession", func() {
+			Context("NotificationsRepository", func() {
 				It("returns successfully", func() {
-					Expect(ctx.NotificationsSession()).To(Equal(ssn))
+					Expect(ctx.NotificationsRepository()).To(Equal(collection))
 				})
 			})
 		})

@@ -31,5 +31,5 @@ func (r *Router) Routes() []*rest.Route {
 }
 
 func (r *Router) StatusGet(res rest.ResponseWriter, req *rest.Request) {
-	request.MustNewResponder(res, req).Data(http.StatusOK, r.Status())
+	request.MustNewResponder(res, req).Data(http.StatusOK, r.Status(req.Context()))
 }

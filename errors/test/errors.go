@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/test"

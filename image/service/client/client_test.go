@@ -42,7 +42,7 @@ import (
 var _ = Describe("Client", func() {
 	var authClient *authTest.Client
 	var imageStructuredStore *imageStoreStructuredTest.Store
-	var imageStructuredSession *imageStoreStructuredTest.Session
+	var imageStructuredSession *imageStoreStructuredTest.ImageRepository
 	var imageUnstructuredStore *imageStoreUnstructuredTest.Store
 	var imageTransformer *imageTransformTest.Transformer
 	var provider *imageServiceClientTest.Provider
@@ -50,9 +50,9 @@ var _ = Describe("Client", func() {
 	BeforeEach(func() {
 		authClient = authTest.NewClient()
 		imageStructuredStore = imageStoreStructuredTest.NewStore()
-		imageStructuredSession = imageStoreStructuredTest.NewSession()
+		imageStructuredSession = imageStoreStructuredTest.NewImageRepository()
 		imageStructuredSession.CloseOutput = func(err error) *error { return &err }(nil)
-		imageStructuredStore.NewSessionOutput = func(s imageStoreStructured.Session) *imageStoreStructured.Session { return &s }(imageStructuredSession)
+		imageStructuredStore.NewImageRepositoryOutput = func(s imageStoreStructured.ImageRepository) *imageStoreStructured.ImageRepository { return &s }(imageStructuredSession)
 		imageUnstructuredStore = imageStoreUnstructuredTest.NewStore()
 		imageTransformer = imageTransformTest.NewTransformer()
 		provider = imageServiceClientTest.NewProvider()

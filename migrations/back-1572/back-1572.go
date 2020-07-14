@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -18,7 +20,7 @@ func main() {
 
 type Migration struct {
 	*migrationMongo.Migration
-	dataSession *storeStructuredMongo.Session
+	dataRepository *storeStructuredMongo.Repository
 }
 
 func NewMigration() *Migration {
@@ -64,16 +66,16 @@ func (m *Migration) execute() error {
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
 	mongoConfig.Timeout = 60 * time.Minute
-	dataStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+	dataStore, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
-	defer dataStore.Close()
+	defer dataStore.Terminate(context.Background())
 
-	m.Logger().Debug("Creating data session")
+	m.Logger().Debug("Creating data repository")
 
-	m.dataSession = dataStore.NewSession("deviceData")
-	defer m.dataSession.Close()
+	m.dataRepository = dataStore.GetRepository("deviceData")
 
 	hashUpdatedCount, archivedCount, errorCount := m.migrateOmnipodDocuments()
 
@@ -89,10 +91,9 @@ func (m *Migration) migrateOmnipodDocuments() (int, int, int) {
 
 	logger.Debug("Finding distinct users")
 
-	var userIDs []string
 	var hashUpdatedCount, archivedCount, errorCount int
 
-	err := m.dataSession.C().Find(bson.M{}).Distinct("_userId", &userIDs)
+	userIDs, err := m.dataRepository.Distinct(context.Background(), "_userId", bson.M{})
 	if err != nil {
 		logger.WithError(err).Error("Unable to execute distinct query")
 	} else {
@@ -109,12 +110,16 @@ func (m *Migration) migrateOmnipodDocuments() (int, int, int) {
 				// on `upload` types on `uploadId` (UniqueUploadId). This would then require us to _delete_
 				// the old `upload` record first, and outright deleting data seems scary.
 				"type":     bson.M{"$ne": "upload"},
-				"deviceId": bson.M{"$regex": bson.RegEx{Pattern: `^InsOmn`}},
+				"deviceId": bson.M{"$regex": primitive.Regex{Pattern: `^InsOmn`}},
 			}
 
 			var omnipodResult bson.M
-			omnipodDocCursor := m.dataSession.C().Find(selector).Iter()
-			for omnipodDocCursor.Next(&omnipodResult) {
+			omnipodDocCursor, err := m.dataRepository.Find(context.Background(), selector)
+			if err != nil {
+				logger.WithError(err).Error("Unable to find Omnipod results")
+			}
+			for omnipodDocCursor.Next(context.Background()) {
+				omnipodDocCursor.Decode(&omnipodResult)
 				expectedID := JellyfishIDHash(omnipodResult)
 				expectedObjectID := JellyfishObjectIDHash(omnipodResult)
 
@@ -129,8 +134,8 @@ func (m *Migration) migrateOmnipodDocuments() (int, int, int) {
 						"id":       expectedID,
 						"_groupId": omnipodResult["_groupId"],
 					}
-					dupCursor := m.dataSession.C().Find(dupQuery).Iter()
-					if dupCursor.Done() {
+					dupCursor, err := m.dataRepository.Find(context.Background(), dupQuery)
+					if !dupCursor.Next(context.Background()) {
 						// No duplicate. Update the ID Hashes.
 						// Because `_id` is immutable, we need to insert the new document, then make the old one inactive.
 						logger.Debugf("Migrating Omnipod Document ID %s to %s (type: %s)", omnipodResult["id"], expectedID, omnipodResult["type"])
@@ -163,7 +168,7 @@ func (m *Migration) migrateOmnipodDocuments() (int, int, int) {
 							}
 						}
 					}
-					err = dupCursor.Close()
+					err = dupCursor.Close(context.Background())
 				} else if expectedObjectID != omnipodResult["_id"] {
 					logger.Debugf("Migrating Object ID %s to %s", omnipodResult["_id"], expectedObjectID)
 					if m.DryRun() {
@@ -180,11 +185,11 @@ func (m *Migration) migrateOmnipodDocuments() (int, int, int) {
 					}
 				}
 			}
-			if omnipodDocCursor.Timeout() {
-				logger.WithError(err).Error("Got a cursor timeout. Please re-run to complete the migration.")
+			if err := omnipodDocCursor.Err(); err != nil {
+				logger.WithError(err).Error("error while fetching data. Please re-run to complete the migration.")
 				errorCount++
 			}
-			err = omnipodDocCursor.Close()
+			err = omnipodDocCursor.Close(context.Background())
 		}
 	}
 
@@ -204,7 +209,8 @@ func (m *Migration) archiveDocument(objectId interface{}) error {
 		},
 	}
 
-	return m.dataSession.C().UpdateId(objectId, archiveUpdate)
+	_, err := m.dataRepository.UpdateOne(context.Background(), bson.M{"_id": objectId}, archiveUpdate)
+	return err
 }
 
 func (m *Migration) migrateDocument(originalDocument bson.M, expectedID string, expectedObjectID string) error {
@@ -218,7 +224,7 @@ func (m *Migration) migrateDocument(originalDocument bson.M, expectedID string, 
 		newDocument[key] = value
 	}
 
-	err := m.dataSession.C().Insert(newDocument)
+	_, err := m.dataRepository.InsertOne(context.Background(), newDocument)
 	if err != nil {
 		m.Logger().WithError(err).Errorf("Could not add new document for Omnipod Document ID %s.", newDocument["id"])
 		return err

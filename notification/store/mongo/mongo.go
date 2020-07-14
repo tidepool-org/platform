@@ -1,7 +1,6 @@
 package mongo
 
 import (
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notification/store"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -10,8 +9,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := storeStructuredMongo.NewStore(cfg, lgr)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	str, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -21,12 +20,12 @@ func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) 
 	}, nil
 }
 
-func (s *Store) NewNotificationsSession() store.NotificationsSession {
-	return &NotificationsSession{
-		Session: s.Store.NewSession("notifications"),
+func (s *Store) NewNotificationsRepository() store.NotificationsRepository {
+	return &NotificationsRepository{
+		s.Store.GetRepository("notifications"),
 	}
 }
 
-type NotificationsSession struct {
-	*storeStructuredMongo.Session
+type NotificationsRepository struct {
+	*storeStructuredMongo.Repository
 }

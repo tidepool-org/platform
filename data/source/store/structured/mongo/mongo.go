@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
@@ -23,8 +24,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
-	store, err := storeStructuredMongo.NewStore(config, logger)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -35,33 +36,41 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 }
 
 func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
+	collection := s.newRepository()
+	return collection.EnsureIndexes()
 }
 
-func (s *Store) NewSession() dataSourceStoreStructured.Session {
-	return s.newSession()
+func (s *Store) NewDataRepository() dataSourceStoreStructured.DataRepository {
+	return s.newRepository()
 }
 
-func (s *Store) newSession() *Session {
-	return &Session{
-		Session: s.Store.NewSession("data_sources"),
+func (s *Store) newRepository() *DataCollection {
+	return &DataCollection{
+		s.Store.GetRepository("data_sources"),
 	}
 }
 
-type Session struct {
-	*storeStructuredMongo.Session
+type DataCollection struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Background: true, Unique: true},
-		{Key: []string{"userId"}, Background: true},
+func (c *DataCollection) EnsureIndexes() error {
+	return c.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+		{
+			Keys: bson.D{{Key: "id", Value: 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "userId", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
 	})
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *DataCollection) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -79,10 +88,6 @@ func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Fi
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -112,17 +117,24 @@ func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Fi
 			"$in": *filter.State,
 		}
 	}
-	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&result)
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := c.Find(ctx, query, opts)
+
 	if err != nil {
 		logger.WithError(err).Error("Unable to list data sources")
 		return nil, errors.Wrap(err, "unable to list data sources")
+	}
+
+	if err = cursor.All(ctx, &result); err != nil {
+		return nil, errors.Wrap(err, "unable to decode data sources")
 	}
 
 	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
 	return result, nil
 }
 
-func (s *Session) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
+func (c *DataCollection) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -135,10 +147,6 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 		return nil, errors.New("create is missing")
 	} else if err := structureValidator.New().Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -161,7 +169,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 		logger = logger.WithField("id", id)
 
 		doc.ID = pointer.FromString(id)
-		if err = s.C().Insert(doc); mgo.IsDup(err) {
+		if _, err = c.InsertOne(ctx, doc); storeStructuredMongo.IsDup(err) {
 			logger.WithError(err).Error("Duplicate data source id")
 		} else {
 			break
@@ -172,7 +180,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 		return nil, errors.Wrap(err, "unable to create data source")
 	}
 
-	result, err := s.get(logger, id, nil)
+	result, err := c.get(ctx, logger, id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +189,7 @@ func (s *Session) Create(ctx context.Context, userID string, create *dataSource.
 	return result, nil
 }
 
-func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+func (c *DataCollection) DestroyAll(ctx context.Context, userID string) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -191,27 +199,23 @@ func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
 		return false, errors.New("user id is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
 
 	query := bson.M{
 		"userId": userID,
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := c.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy all data sources")
 		return false, errors.Wrap(err, "unable to destroy all data sources")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyAll")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) Get(ctx context.Context, id string) (*dataSource.Source, error) {
+func (c *DataCollection) Get(ctx context.Context, id string) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -221,14 +225,10 @@ func (s *Session) Get(ctx context.Context, id string) (*dataSource.Source, error
 		return nil, errors.New("id is invalid")
 	}
 
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	result, err := s.get(logger, id, nil)
+	result, err := c.get(ctx, logger, id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func (s *Session) Get(ctx context.Context, id string) (*dataSource.Source, error
 	return result, nil
 }
 
-func (s *Session) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
+func (c *DataCollection) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -255,10 +255,6 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -305,11 +301,11 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 		if update.LastImportTime != nil {
 			set["lastImportTime"] = *update.LastImportTime
 		}
-		changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+		changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
 		if err != nil {
 			logger.WithError(err).Error("Unable to update data source")
 			return nil, errors.Wrap(err, "unable to update data source")
-		} else if changeInfo.Matched > 0 {
+		} else if changeInfo.MatchedCount > 0 {
 			condition = nil
 		} else {
 			update = nil
@@ -321,7 +317,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	var result *dataSource.Source
 	if update != nil {
 		var err error
-		if result, err = s.get(logger, id, condition); err != nil {
+		if result, err = c.get(ctx, logger, id, condition); err != nil {
 			return nil, err
 		}
 	}
@@ -330,7 +326,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	return result, nil
 }
 
-func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (c *DataCollection) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -345,10 +341,6 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition})
 
@@ -358,17 +350,17 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := c.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data source")
 		return false, errors.Wrap(err, "unable to destroy data source")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) get(logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
+func (c *DataCollection) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
 	results := dataSource.SourceArray{}
 	query := bson.M{
 		"id": id,
@@ -376,10 +368,16 @@ func (s *Session) get(logger log.Logger, id string, condition *request.Condition
 	if condition != nil && condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	err := s.C().Find(query).Limit(2).All(&results)
+	opts := options.Find().SetLimit(2)
+	cursor, err := c.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to get data source")
 		return nil, errors.Wrap(err, "unable to get data source")
+	}
+
+	if err = cursor.All(ctx, &results); err != nil {
+		logger.WithError(err).Error("Unable to decode data source")
+		return nil, errors.Wrap(err, "unable to decode data source")
 	}
 
 	var result *dataSource.Source

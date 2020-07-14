@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/application"
@@ -108,20 +111,21 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	usersStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+	usersStore, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create users store")
 	}
-	defer usersStore.Close()
+	defer usersStore.Terminate(nil)
 
-	m.Logger().Debug("Creating users session")
+	m.Logger().Debug("Creating users repository")
 
-	usersSession := usersStore.NewSession("users")
-	defer usersSession.Close()
+	usersRepository := usersStore.GetRepository("users")
 
 	m.Logger().Debug("Iterating users")
 
-	iter := usersSession.C().Find(bson.M{}).Select(bson.M{"_id": 0, "userid": 1, "private.meta.id": 1}).Iter()
+	opts := options.Find().SetProjection(bson.M{"_id": 0, "userid": 1, "private.meta.id": 1})
+	cursor, err := usersRepository.Find(context.Background(), bson.M{}, opts)
 
 	var result struct {
 		UserID  string `bson:"userid"`
@@ -131,7 +135,10 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 			} `bson:"meta"`
 		} `bson:"private"`
 	}
-	for iter.Next(&result) {
+	for cursor.Next(context.Background()) {
+		if err = cursor.Decode(result); err != nil {
+			return nil, errors.Wrap(err, "unable to decode users")
+		}
 		userLogger := m.Logger()
 
 		userID := result.UserID
@@ -162,9 +169,6 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 		}
 		metaIDToUserIDMap[metaID] = userID
 	}
-	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "unable to iterate users")
-	}
 
 	m.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
 
@@ -175,26 +179,26 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 	m.Logger().Debug("Migrating meta id to user id for metadata")
 
 	var migrateMetaCount int
-	var migrateMetadataCount int
+	var migrateMetadataCount int64
 
 	m.Logger().Debug("Creating metadata data store")
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	metadataStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+	metadataStore, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create metadata store")
 	}
-	defer metadataStore.Close()
+	defer metadataStore.Terminate(nil)
 
-	m.Logger().Debug("Creating metadata session")
+	m.Logger().Debug("Creating metadata repository")
 
-	metadataSession := metadataStore.NewSession("seagull")
-	defer metadataSession.Close()
+	metadataRepository := metadataStore.GetRepository("seagull")
 
 	m.Logger().Debug("Walking meta id to user id map")
 
-	var count int
+	var count int64
 	for metaID, userID := range metaIDToUserIDMap {
 		metadataLogger := m.Logger().WithFields(log.Fields{"metaId": metaID, "userId": userID})
 
@@ -205,10 +209,14 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 			UserID *string `bson:"userId"`
 			Value  *string `bson:"value"`
 		}
-		err = metadataSession.C().Find(bson.M{"_id": metaID}).All(&results)
+		cursor, err := metadataRepository.Find(context.Background(), bson.M{"_id": metaID})
 		if err != nil {
 			metadataLogger.WithError(err).Error("Unable to query for metadata")
 			continue
+		}
+
+		if err = cursor.All(context.Background(), &results); err != nil {
+			return errors.Wrap(err, "unable to decode metadata")
 		}
 
 		resultsCount := len(results)
@@ -238,16 +246,16 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 		}
 
 		if m.DryRun() {
-			count, err = metadataSession.C().Find(selector).Count()
+			count, err = metadataRepository.CountDocuments(context.Background(), selector)
 		} else {
 			update := bson.M{
 				"$set": bson.M{"userId": userID},
 			}
 
-			var changeInfo *mgo.ChangeInfo
-			changeInfo, err = metadataSession.C().UpdateAll(selector, update)
+			var changeInfo *mongo.UpdateResult
+			changeInfo, err = metadataRepository.UpdateMany(context.Background(), selector, update)
 			if changeInfo != nil {
-				count = changeInfo.Updated
+				count = changeInfo.ModifiedCount
 			}
 		}
 
@@ -264,13 +272,13 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 	}
 
 	if !m.DryRun() {
-		iter := metadataSession.C().Find(bson.M{"userId": bson.M{"$exists": false}}).Iter()
+		cursor, err := metadataRepository.Find(context.Background(), bson.M{"userId": bson.M{"$exists": false}})
 		var result map[string]interface{}
-		for iter.Next(&result) {
+		for cursor.Next(context.Background()) {
+			if err = cursor.Decode(&result); err != nil {
+				return errors.Wrap(err, "unable to decode metadata")
+			}
 			m.Logger().WithField("metaId", result["_id"]).Error("Metadata found without user id")
-		}
-		if err = iter.Close(); err != nil {
-			return errors.Wrap(err, "unable to iterate metadata without user id")
 		}
 	}
 
@@ -279,12 +287,13 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 	if m.Index() {
 		m.Logger().Info("Creating unique index on user id")
 
-		index := mgo.Index{
-			Key:        []string{"userId"},
-			Unique:     true,
-			Background: false,
-		}
-		err = metadataSession.C().EnsureIndex(index)
+		index := []mongo.IndexModel{{
+			Keys: bson.D{{Key: "userId", Value: 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetBackground(true),
+		}}
+		err = metadataRepository.CreateAllIndexes(context.Background(), index)
 		if err != nil {
 			return errors.Wrap(err, "unable to create metadata index on user id")
 		}

@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/confirmation/store"
 	"github.com/tidepool-org/platform/errors"
@@ -17,8 +18,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := storeStructuredMongo.NewStore(cfg, lgr)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	str, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -29,45 +30,56 @@ func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) 
 }
 
 func (s *Store) EnsureIndexes() error {
-	ssn := s.confirmationSession()
-	defer ssn.Close()
-	return ssn.EnsureIndexes()
+	coll := s.ConfirmationRepository()
+	return coll.EnsureIndexes()
 }
 
-func (s *Store) NewConfirmationSession() store.ConfirmationSession {
-	return s.confirmationSession()
+func (s *Store) NewConfirmationRepository() store.ConfirmationRepository {
+	return s.ConfirmationRepository()
 }
 
-func (s *Store) confirmationSession() *ConfirmationSession {
-	return &ConfirmationSession{
-		Session: s.Store.NewSession("confirmations"),
+func (s *Store) ConfirmationRepository() *ConfirmationRepository {
+	return &ConfirmationRepository{
+		s.Store.GetRepository("confirmations"),
 	}
 }
 
-type ConfirmationSession struct {
-	*storeStructuredMongo.Session
+type ConfirmationRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (c *ConfirmationSession) EnsureIndexes() error {
-	return c.EnsureAllIndexes([]mgo.Index{
+func (c *ConfirmationRepository) EnsureIndexes() error {
+	return c.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `hydrophone`.
-		{Key: []string{"email"}, Background: true},
-		{Key: []string{"status"}, Background: true},
-		{Key: []string{"type"}, Background: true},
-		{Key: []string{"userId"}, Background: true},
+		{
+			Keys: bson.D{{Key: "email", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "status", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "type", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "userId", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
 	})
 }
 
-func (c *ConfirmationSession) DeleteUserConfirmations(ctx context.Context, userID string) error {
+func (c *ConfirmationRepository) DeleteUserConfirmations(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if userID == "" {
 		return errors.New("user id is missing")
-	}
-
-	if c.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -79,7 +91,7 @@ func (c *ConfirmationSession) DeleteUserConfirmations(ctx context.Context, userI
 			{"creatorId": userID},
 		},
 	}
-	changeInfo, err := c.C().RemoveAll(selector)
+	changeInfo, err := c.DeleteMany(ctx, selector)
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteUserConfirmations")
 	if err != nil {
 		return errors.Wrap(err, "unable to delete user confirmations")

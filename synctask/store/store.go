@@ -2,15 +2,12 @@ package store
 
 import (
 	"context"
-	"io"
 )
 
 type Store interface {
-	NewSyncTaskSession() SyncTaskSession
+	NewSyncTaskRepository() SyncTaskRepository
 }
 
-type SyncTaskSession interface {
-	io.Closer
-
+type SyncTaskRepository interface {
 	DestroySyncTasksForUserByID(ctx context.Context, userID string) error
 }

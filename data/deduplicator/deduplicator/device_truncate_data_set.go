@@ -66,7 +66,7 @@ func (t *DeviceTruncateDataSet) Get(dataSet *dataTypesUpload.Upload) (bool, erro
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.truncate"), nil // TODO: DEPRECATED
 }
 
-func (t *DeviceTruncateDataSet) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (t *DeviceTruncateDataSet) Close(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/tidepool-org/platform/application"
@@ -57,11 +59,11 @@ func (s *Service) Terminate() {
 	s.Authenticated.Terminate()
 }
 
-func (s *Service) Status() interface{} {
+func (s *Service) Status(ctx context.Context) interface{} {
 	return &status{
 		Version: s.VersionReporter().Long(),
 		Server:  s.API().Status(),
-		Store:   s.blobStructuredStore.Status(),
+		Store:   s.blobStructuredStore.Status(ctx),
 	}
 }
 
@@ -80,14 +82,15 @@ func (s *Service) BlobClient() blob.Client {
 func (s *Service) initializeBlobStructuredStore() error {
 	s.Logger().Debug("Loading blob structured store config")
 
-	config := storeStructuredMongo.NewConfig()
-	if err := config.Load(s.ConfigReporter().WithScopes("structured", "store")); err != nil {
+	config := storeStructuredMongo.NewConfig(nil)
+	params := storeStructuredMongo.Params{DatabaseConfig: config}
+	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load blob structured store config")
 	}
 
 	s.Logger().Debug("Creating blob structured store")
 
-	blobStructuredStore, err := blobStoreStructuredMongo.NewStore(config, s.Logger())
+	blobStructuredStore, err := blobStoreStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create blob structured store")
 	}
@@ -106,7 +109,7 @@ func (s *Service) initializeBlobStructuredStore() error {
 func (s *Service) terminateBlobStructuredStore() {
 	if s.blobStructuredStore != nil {
 		s.Logger().Debug("Closing blob structured store")
-		s.blobStructuredStore.Close()
+		s.blobStructuredStore.Terminate(nil)
 
 		s.Logger().Debug("Destroying blob structured store")
 		s.blobStructuredStore = nil

@@ -48,10 +48,9 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 		return nil, err
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.BlobStructuredStore().NewBlobRepository()
 
-	return session.List(ctx, userID, filter, pagination)
+	return repository.List(ctx, userID, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
@@ -65,8 +64,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	session := c.BlobStructuredStore().NewBlobRepository()
 
 	structuredCreate := blobStoreStructured.NewCreate()
 	structuredCreate.MediaType = pointer.CloneString(content.MediaType)
@@ -125,8 +123,7 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 		return err
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	session := c.BlobStructuredStore().NewBlobRepository()
 
 	if deleted, err := session.DeleteAll(ctx, userID); err != nil {
 		return err
@@ -147,8 +144,7 @@ func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
 		return nil, err
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	session := c.BlobStructuredStore().NewBlobRepository()
 
 	return session.Get(ctx, id, nil)
 }
@@ -158,8 +154,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 		return nil, err
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	session := c.BlobStructuredStore().NewBlobRepository()
 
 	result, err := session.Get(ctx, id, nil)
 	if err != nil {
@@ -185,8 +180,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		return false, err
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	session := c.BlobStructuredStore().NewBlobRepository()
 
 	result, err := session.Get(ctx, id, condition)
 	if err != nil {

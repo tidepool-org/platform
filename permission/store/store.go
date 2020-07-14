@@ -2,15 +2,12 @@ package store
 
 import (
 	"context"
-	"io"
 )
 
 type Store interface {
-	NewPermissionsSession() PermissionsSession
+	NewPermissionsRepository() PermissionsRepository
 }
 
-type PermissionsSession interface {
-	io.Closer
-
+type PermissionsRepository interface {
 	DestroyPermissionsForUserByID(ctx context.Context, userID string) error
 }

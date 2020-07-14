@@ -1,6 +1,7 @@
 package mongo_test
 
 import (
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -37,18 +38,20 @@ var _ = Describe("Config", func() {
 				configReporter.Config["secret"] = "super"
 			})
 
-			It("returns an error if config reporter is missing", func() {
-				Expect(config.Load(nil)).To(MatchError("config reporter is missing"))
-			})
-
 			It("returns an error if base config is missing", func() {
 				config.Config = nil
 				Expect(config.Load(configReporter)).To(MatchError("config is missing"))
 			})
 
 			It("returns an error if base config returns an error", func() {
-				configReporter.Config["tls"] = "abc"
-				Expect(config.Load(configReporter)).To(MatchError("tls is invalid"))
+				tls, tlsSet := os.LookupEnv("TIDEPOOL_STORE_TLS")
+				os.Setenv("TIDEPOOL_STORE_TLS", "abc")
+				Expect(config.Load(configReporter)).To(MatchError("envconfig.Process: assigning TIDEPOOL_STORE_TLS to TLS: converting 'abc' to type bool. details: strconv.ParseBool: parsing \"abc\": invalid syntax"))
+				if tlsSet {
+					os.Setenv("TIDEPOOL_STORE_TLS", tls)
+				} else {
+					os.Unsetenv("TIDEPOOL_STORE_TLS")
+				}
 			})
 
 			It("uses default secret if not set", func() {
@@ -65,7 +68,7 @@ var _ = Describe("Config", func() {
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Config = storeStructuredMongo.NewConfig()
+				config.Config = storeStructuredMongo.NewConfig(nil)
 				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
 				config.TLS = false
 				config.Database = "database"

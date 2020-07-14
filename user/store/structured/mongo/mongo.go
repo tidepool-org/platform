@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -20,8 +21,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
-	store, err := storeStructuredMongo.NewStore(config, logger)
+func NewStore(params storeStructuredMongo.Params) (*Store, error) {
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return nil, err
 	}
@@ -32,31 +33,30 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 }
 
 func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
+	session := s.newUserRepository()
 	return session.EnsureIndexes()
 }
 
-func (s *Store) NewSession() userStoreStructured.Session {
-	return s.newSession()
+func (s *Store) NewUserRepository() userStoreStructured.UserRepository {
+	return s.newUserRepository()
 }
 
-func (s *Store) newSession() *Session {
-	return &Session{
-		Session: s.Store.NewSession("users"),
+func (s *Store) newUserRepository() *UserRepository {
+	return &UserRepository{
+		s.Store.GetRepository("users"),
 	}
 }
 
-type Session struct {
-	*storeStructuredMongo.Session
+type UserRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *Session) EnsureIndexes() error {
+func (s *UserRepository) EnsureIndexes() error {
 	// Indexes are created in `shoreline`
 	return nil
 }
 
-func (s *Session) Get(ctx context.Context, id string, condition *request.Condition) (*user.User, error) {
+func (s *UserRepository) Get(ctx context.Context, id string, condition *request.Condition) (*user.User, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -73,13 +73,9 @@ func (s *Session) Get(ctx context.Context, id string, condition *request.Conditi
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 
-	result, err := s.get(logger, id, condition, storeStructuredMongo.NotDeleted)
+	result, err := s.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +84,7 @@ func (s *Session) Get(ctx context.Context, id string, condition *request.Conditi
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *UserRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -103,10 +99,6 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		condition = request.NewCondition()
 	} else if err := structureValidator.New().Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
-	}
-
-	if s.IsClosed() {
-		return false, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -122,17 +114,17 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		"deletedTime":  now.Truncate(time.Second),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+	changeInfo, err := s.UpdateMany(ctx, query, s.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete user")
 		return false, errors.Wrap(err, "unable to delete user")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
-	return changeInfo.Updated > 0, nil
+	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *UserRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -149,10 +141,6 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	query := bson.M{
@@ -161,17 +149,17 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := s.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy user")
 		return false, errors.Wrap(err, "unable to destroy user")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) get(logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*user.User, error) {
+func (s *UserRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*user.User, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
 	results := user.UserArray{}
@@ -182,10 +170,15 @@ func (s *Session) get(logger log.Logger, id string, condition *request.Condition
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	err := s.C().Find(query).Limit(2).All(&results)
+	opts := options.Find().SetLimit(2)
+	cursor, err := s.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to get user")
 		return nil, errors.Wrap(err, "unable to get user")
+	}
+
+	if err = cursor.All(ctx, &results); err != nil {
+		return nil, errors.Wrap(err, "unable to decode user")
 	}
 
 	var result *user.User

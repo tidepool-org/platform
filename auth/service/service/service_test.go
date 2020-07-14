@@ -114,13 +114,21 @@ var _ = Describe("Service", func() {
 			})
 
 			It("returns an error when the auth store config load returns an error", func() {
-				authStoreConfig["timeout"] = "invalid"
+				timeout, timeoutSet := os.LookupEnv("TIDEPOOL_STORE_TIMEOUT")
+				os.Setenv("TIDEPOOL_STORE_TIMEOUT", "invalid")
 				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load auth store config"))
+				if timeoutSet {
+					os.Setenv("TIDEPOOL_STORE_TIMEOUT", timeout)
+				} else {
+					os.Unsetenv("TIDEPOOL_STORE_TIMEOUT")
+				}
 			})
 
 			It("returns an error when the auth store returns an error", func() {
-				authStoreConfig["addresses"] = ""
+				addresses := os.Getenv("TIDEPOOL_STORE_ADDRESSES")
+				os.Setenv("TIDEPOOL_STORE_ADDRESSES", "")
 				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create auth store"))
+				os.Setenv("TIDEPOOL_STORE_ADDRESSES", addresses)
 			})
 
 			It("returns successfully", func() {

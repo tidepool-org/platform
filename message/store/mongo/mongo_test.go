@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -64,41 +66,38 @@ func MarkMessageDeleted(message bson.M) bson.M {
 	return message
 }
 
-func ValidateMessages(testMongoCollection *mgo.Collection, selector bson.M, expectedMessages []interface{}) {
-	var actualMessages []interface{}
-	Expect(testMongoCollection.Find(selector).Select(bson.M{"_id": 0}).All(&actualMessages)).To(Succeed())
+func ValidateMessages(testMongoCollection *mongo.Collection, selector bson.M, expectedMessages []interface{}) {
+	var actualMessages []bson.M
+	opts := options.Find().SetProjection(bson.M{"_id": 0})
+	cursor, err := testMongoCollection.Find(context.Background(), selector, opts)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cursor).ToNot(BeNil())
+	Expect(cursor.All(context.Background(), &actualMessages)).To(Succeed())
 	Expect(actualMessages).To(ConsistOf(expectedMessages...))
 }
 
 var _ = Describe("Mongo", func() {
 	var mongoConfig *storeStructuredMongo.Config
 	var mongoStore *messageStoreMongo.Store
-	var mongoSession messageStore.MessagesSession
+	var repository messageStore.MessageRepository
 
 	BeforeEach(func() {
 		mongoConfig = storeStructuredMongoTest.NewConfig()
 	})
 
-	AfterEach(func() {
-		if mongoSession != nil {
-			mongoSession.Close()
-		}
-		if mongoStore != nil {
-			mongoStore.Close()
-		}
-	})
-
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			mongoStore, err = messageStoreMongo.NewStore(nil, nil)
+			params := storeStructuredMongo.Params{DatabaseConfig: nil}
+			mongoStore, err = messageStoreMongo.NewStore(params)
 			Expect(err).To(HaveOccurred())
 			Expect(mongoStore).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			mongoStore, err = messageStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
+			params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+			mongoStore, err = messageStoreMongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -107,45 +106,39 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			mongoStore, err = messageStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
+			params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
+			mongoStore, err = messageStoreMongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewMessagesSession", func() {
+		Context("NewMessageCollection", func() {
 			It("returns a new session", func() {
-				mongoSession = mongoStore.NewMessagesSession()
-				Expect(mongoSession).ToNot(BeNil())
+				repository = mongoStore.NewMessageRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewMessagesSession()
-				Expect(mongoSession).ToNot(BeNil())
+				repository = mongoStore.NewMessageRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 
 			Context("with persisted data", func() {
-				var testMongoSession *mgo.Session
-				var testMongoCollection *mgo.Collection
+				var testMongoCollection *mongo.Collection
 				var messages []interface{}
 				var ctx context.Context
 
 				BeforeEach(func() {
-					testMongoSession = storeStructuredMongoTest.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "messages")
+					testMongoCollection = mongoStore.GetCollection("messages")
 					messages = append(NewMessages(user.NewID(), user.NewID()), NewMessages(user.NewID(), user.NewID())...)
 					ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 				})
 
 				JustBeforeEach(func() {
-					Expect(testMongoCollection.Insert(messages...)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					if testMongoSession != nil {
-						testMongoSession.Close()
-					}
+					_, err := testMongoCollection.InsertMany(ctx, messages)
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				Context("DeleteMessagesFromUser", func() {
@@ -166,34 +159,30 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(testMongoCollection.Insert(deleteMessages...)).To(Succeed())
+						_, err := testMongoCollection.InsertMany(ctx, deleteMessages)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("succeeds if it successfully removes messages", func() {
-						Expect(mongoSession.DeleteMessagesFromUser(ctx, deleteUser)).To(Succeed())
+						Expect(repository.DeleteMessagesFromUser(ctx, deleteUser)).To(Succeed())
 					})
 
 					It("returns an error if the context is missing", func() {
-						Expect(mongoSession.DeleteMessagesFromUser(nil, deleteUser)).To(MatchError("context is missing"))
+						Expect(repository.DeleteMessagesFromUser(nil, deleteUser)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error if the user is missing", func() {
-						Expect(mongoSession.DeleteMessagesFromUser(ctx, nil)).To(MatchError("user is missing"))
+						Expect(repository.DeleteMessagesFromUser(ctx, nil)).To(MatchError("user is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
 						deleteUser.ID = ""
-						Expect(mongoSession.DeleteMessagesFromUser(ctx, deleteUser)).To(MatchError("user id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DeleteMessagesFromUser(ctx, deleteUser)).To(MatchError("session closed"))
+						Expect(repository.DeleteMessagesFromUser(ctx, deleteUser)).To(MatchError("user id is missing"))
 					})
 
 					It("has the correct stored messages", func() {
 						ValidateMessages(testMongoCollection, bson.M{}, append(messages, deleteMessages...))
-						Expect(mongoSession.DeleteMessagesFromUser(ctx, deleteUser)).To(Succeed())
+						Expect(repository.DeleteMessagesFromUser(ctx, deleteUser)).To(Succeed())
 						MarkMessagesDeleted(deleteMessages)
 						ValidateMessages(testMongoCollection, bson.M{}, append(messages, deleteMessages...))
 					})
@@ -212,29 +201,25 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(testMongoCollection.Insert(destroyMessages...)).To(Succeed())
+						_, err := testMongoCollection.InsertMany(ctx, destroyMessages)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("succeeds if it successfully removes messages", func() {
-						Expect(mongoSession.DestroyMessagesForUserByID(ctx, destroyGroupID)).To(Succeed())
+						Expect(repository.DestroyMessagesForUserByID(ctx, destroyGroupID)).To(Succeed())
 					})
 
 					It("returns an error if the context is missing", func() {
-						Expect(mongoSession.DestroyMessagesForUserByID(nil, destroyGroupID)).To(MatchError("context is missing"))
+						Expect(repository.DestroyMessagesForUserByID(nil, destroyGroupID)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroyMessagesForUserByID(ctx, "")).To(MatchError("user id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DestroyMessagesForUserByID(ctx, destroyGroupID)).To(MatchError("session closed"))
+						Expect(repository.DestroyMessagesForUserByID(ctx, "")).To(MatchError("user id is missing"))
 					})
 
 					It("has the correct stored messages", func() {
 						ValidateMessages(testMongoCollection, bson.M{}, append(messages, destroyMessages...))
-						Expect(mongoSession.DestroyMessagesForUserByID(ctx, destroyGroupID)).To(Succeed())
+						Expect(repository.DestroyMessagesForUserByID(ctx, destroyGroupID)).To(Succeed())
 						ValidateMessages(testMongoCollection, bson.M{}, messages)
 					})
 				})

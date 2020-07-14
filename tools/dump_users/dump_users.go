@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,8 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -119,15 +122,15 @@ type User struct {
 
 type Tool struct {
 	*toolMongo.Tool
-	usersStore         *storeStructuredMongo.Store
-	usersSession       *storeStructuredMongo.Session
-	metadataStore      *storeStructuredMongo.Store
-	metadataSession    *storeStructuredMongo.Session
-	dataStore          *storeStructuredMongo.Store
-	dataSession        *storeStructuredMongo.Session
-	dataSourcesStore   *storeStructuredMongo.Store
-	dataSourcesSession *storeStructuredMongo.Session
-	output             string
+	usersStore            *storeStructuredMongo.Store
+	usersRepository       *storeStructuredMongo.Repository
+	metadataStore         *storeStructuredMongo.Store
+	metadataRepository    *storeStructuredMongo.Repository
+	dataStore             *storeStructuredMongo.Store
+	dataRepository        *storeStructuredMongo.Repository
+	dataSourcesStore      *storeStructuredMongo.Store
+	dataSourcesRepository *storeStructuredMongo.Repository
+	output                string
 }
 
 func NewTool() *Tool {
@@ -161,16 +164,16 @@ func (t *Tool) Initialize(provider application.Provider) error {
 		return t.execute()
 	}
 
-	if err := t.initializeUsersSession(); err != nil {
+	if err := t.initializeUsersRepository(); err != nil {
 		return err
 	}
-	if err := t.initializeMetadataSession(); err != nil {
+	if err := t.initializeMetadataRepository(); err != nil {
 		return err
 	}
-	if err := t.initializeDataSession(); err != nil {
+	if err := t.initializeDataRepository(); err != nil {
 		return err
 	}
-	if err := t.initializeDataSourcesSession(); err != nil {
+	if err := t.initializeDataSourcesRepository(); err != nil {
 		return err
 	}
 
@@ -178,10 +181,10 @@ func (t *Tool) Initialize(provider application.Provider) error {
 }
 
 func (t *Tool) Terminate() {
-	t.terminateDataSourcesSession()
-	t.terminateDataSession()
-	t.terminateMetadataSession()
-	t.terminateUsersSession()
+	t.terminateDataSourcesRepository()
+	t.terminateDataRepository()
+	t.terminateMetadataRepository()
+	t.terminateUsersRepository()
 
 	t.Tool.Terminate()
 }
@@ -196,122 +199,122 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 	return true
 }
 
-func (t *Tool) initializeUsersSession() error {
+func (t *Tool) initializeUsersRepository() error {
 	t.Logger().Debug("Creating users store")
 
 	config := t.NewMongoConfig()
 	config.Database = "user"
-	store, err := storeStructuredMongo.NewStore(config, t.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: config}
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create users store")
 	}
 	t.usersStore = store
 
-	t.Logger().Debug("Creating users session")
+	t.Logger().Debug("Creating users repository")
 
-	t.usersSession = store.NewSession("users")
+	t.usersRepository = store.GetRepository("users")
 	return nil
 }
 
-func (t *Tool) terminateUsersSession() {
-	if t.usersSession != nil {
-		t.Logger().Debug("Destroying users session")
-		t.usersSession.Close()
-		t.usersSession = nil
+func (t *Tool) terminateUsersRepository() {
+	if t.usersRepository != nil {
+		t.Logger().Debug("Destroying users repository")
+		t.usersRepository = nil
 	}
 	if t.usersStore != nil {
 		t.Logger().Debug("Destroying users store")
-		t.usersStore.Close()
+		t.usersStore.Terminate(nil)
 		t.usersStore = nil
 	}
 }
 
-func (t *Tool) initializeMetadataSession() error {
+func (t *Tool) initializeMetadataRepository() error {
 	t.Logger().Debug("Creating metadata store")
 
 	config := t.NewMongoConfig()
 	config.Database = "seagull"
-	store, err := storeStructuredMongo.NewStore(config, t.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: config}
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create metadata store")
 	}
 	t.metadataStore = store
 
-	t.Logger().Debug("Creating metadata session")
+	t.Logger().Debug("Creating metadata repository")
 
-	t.metadataSession = store.NewSession("seagull")
+	t.metadataRepository = store.GetRepository("seagull")
 	return nil
 }
 
-func (t *Tool) terminateMetadataSession() {
-	if t.metadataSession != nil {
-		t.Logger().Debug("Destroying metadata session")
-		t.metadataSession.Close()
-		t.metadataSession = nil
+func (t *Tool) terminateMetadataRepository() {
+	if t.metadataRepository != nil {
+		t.Logger().Debug("Destroying metadata repository")
+		t.metadataRepository = nil
 	}
 	if t.metadataStore != nil {
 		t.Logger().Debug("Destroying metadata store")
-		t.metadataStore.Close()
+		t.metadataStore.Terminate(nil)
 		t.metadataStore = nil
 	}
 }
 
-func (t *Tool) initializeDataSession() error {
+func (t *Tool) initializeDataRepository() error {
 	t.Logger().Debug("Creating data store")
 
 	config := t.NewMongoConfig()
 	config.Database = "data"
-	store, err := storeStructuredMongo.NewStore(config, t.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: config}
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
 	t.dataStore = store
 
-	t.Logger().Debug("Creating data session")
+	t.Logger().Debug("Creating data repository")
 
-	t.dataSession = store.NewSession("deviceData")
+	t.dataRepository = store.GetRepository("deviceData")
 	return nil
 }
 
-func (t *Tool) terminateDataSession() {
-	if t.dataSession != nil {
-		t.Logger().Debug("Destroying data session")
-		t.dataSession.Close()
-		t.dataSession = nil
+func (t *Tool) terminateDataRepository() {
+	if t.dataRepository != nil {
+		t.Logger().Debug("Destroying data repository")
+		t.dataRepository = nil
 	}
 	if t.dataStore != nil {
 		t.Logger().Debug("Destroying data store")
-		t.dataStore.Close()
+		t.dataStore.Terminate(nil)
 		t.dataStore = nil
 	}
 }
 
-func (t *Tool) initializeDataSourcesSession() error {
+func (t *Tool) initializeDataSourcesRepository() error {
 	t.Logger().Debug("Creating data sources store")
 
 	config := t.NewMongoConfig()
 	config.Database = "tidepool"
-	store, err := storeStructuredMongo.NewStore(config, t.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: config}
+	store, err := storeStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data sources store")
 	}
 	t.dataSourcesStore = store
 
-	t.Logger().Debug("Creating data sources session")
+	t.Logger().Debug("Creating data sources repository")
 
-	t.dataSourcesSession = store.NewSession("data_sources")
+	t.dataSourcesRepository = store.GetRepository("data_sources")
 	return nil
 }
 
-func (t *Tool) terminateDataSourcesSession() {
-	if t.dataSourcesSession != nil {
-		t.Logger().Debug("Destroying data sources session")
-		t.dataSourcesSession.Close()
-		t.dataSourcesSession = nil
+func (t *Tool) terminateDataSourcesRepository() {
+	if t.dataSourcesRepository != nil {
+		t.Logger().Debug("Destroying data sources repository")
+		t.dataSourcesRepository = nil
 	}
 	if t.dataSourcesStore != nil {
 		t.Logger().Debug("Destroying data sources store")
-		t.dataSourcesStore.Close()
+		t.dataSourcesStore.Terminate(nil)
 		t.dataSourcesStore = nil
 	}
 }
@@ -338,7 +341,10 @@ func (t *Tool) iterateUsers(writer io.Writer) error {
 
 	userIndex := -1
 
-	iter := t.usersSession.C().Find(nil).Iter()
+	iter, err := t.usersRepository.Find(context.Background(), bson.M{})
+	if err != nil {
+		return errors.Wrap(err, "unable to find users")
+	}
 
 	var result struct {
 		UserID        string   `bson:"userid"`
@@ -347,7 +353,10 @@ func (t *Tool) iterateUsers(writer io.Writer) error {
 		TermsAccepted string   `bson:"termsAccepted"`
 		Roles         []string `bson:"roles"`
 	}
-	for iter.Next(&result) {
+	for iter.Next(context.Background()) {
+		if err := iter.Decode(result); err != nil {
+			return errors.Wrap(err, "unable to iterate users")
+		}
 		userIndex++
 		userID := result.UserID
 		logger := t.Logger().WithFields(log.Fields{"userIndex": userIndex, "userId": userID})
@@ -387,10 +396,6 @@ func (t *Tool) iterateUsers(writer io.Writer) error {
 		)
 	}
 
-	if err := iter.Close(); err != nil {
-		return errors.Wrap(err, "unable to iterate users")
-	}
-
 	t.Logger().Debug("Iterated users")
 
 	return nil
@@ -402,7 +407,12 @@ func (t *Tool) getUserMetadata(userID string, user *User, logger log.Logger) err
 	var result []struct {
 		Value string `bson:"value"`
 	}
-	if err := t.metadataSession.C().Find(bson.M{"userId": userID}).Limit(2).All(&result); err != nil {
+	opts := options.Find().SetLimit(2)
+	cursor, err := t.metadataRepository.Find(context.Background(), bson.M{"userId": userID}, opts)
+	if err != nil {
+		return errors.Wrap(err, "unable to get user metadata")
+	}
+	if err := cursor.All(context.Background(), &result); err != nil {
 		return errors.Wrap(err, "unable to get user metadata")
 	} else if length := len(result); length == 0 {
 		return errors.New("no user metadata found")
@@ -452,7 +462,12 @@ func (t *Tool) getUserDataDevicesDexcomAPI(userID string, user *User, logger log
 	var result []struct {
 		LatestDataTime time.Time `bson:"latestDataTime"`
 	}
-	if err := t.dataSourcesSession.C().Find(bson.M{"userId": userID}).Limit(2).All(&result); err != nil {
+	opts := options.Find().SetLimit(2)
+	cursor, err := t.metadataRepository.Find(context.Background(), bson.M{"userId": userID}, opts)
+	if err != nil {
+		return errors.Wrap(err, "unable to get user metadata")
+	}
+	if err := cursor.All(context.Background(), &result); err != nil {
 		return err
 	} else if length := len(result); length == 0 {
 		return nil
@@ -476,7 +491,7 @@ func (t *Tool) getUserDataDevicesHealthKit(userID string, user *User, logger log
 	query := bson.M{
 		"_userId": userID,
 		"type":    "upload",
-		"deviceModel": bson.RegEx{
+		"deviceModel": primitive.Regex{
 			Pattern: "^(DexHealthKit_|HealthKit_)",
 		},
 	}
@@ -502,7 +517,7 @@ func (t *Tool) getUserDataDevicesOther(userID string, user *User, logger log.Log
 					"$ne": "org.tidepool.oauth.dexcom.fetch",
 				},
 				"deviceId": bson.M{
-					"$not": bson.RegEx{
+					"$not": primitive.Regex{
 						Pattern: "^(DexHealthKit_|HealthKit_)",
 					},
 				},
@@ -526,7 +541,10 @@ func (t *Tool) getUserDataDevicesOther(userID string, user *User, logger log.Log
 			},
 		},
 	}
-	iter := t.dataSession.C().Pipe(pipeline).Iter()
+	iter, err := t.dataRepository.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return errors.Wrap(err, "unable to iterate user data devices other")
+	}
 
 	logger.Debug("Iterating user data devices other")
 
@@ -537,7 +555,12 @@ func (t *Tool) getUserDataDevicesOther(userID string, user *User, logger log.Log
 		LatestUploadTime string     `bson:"latestUploadTime"`
 		UploadCount      int        `bson:"uploadCount"`
 	}
-	for iter.Next(&result) {
+	for iter.Next(context.Background()) {
+		err := iter.Decode(&result)
+		if err != nil {
+			return errors.Wrap(err, "unable to iterate user data devices other")
+		}
+
 		device := &Device{
 			Model:            result.Model,
 			Manufacturers:    mergeStringArrays(result.Manufacturers),
@@ -548,10 +571,6 @@ func (t *Tool) getUserDataDevicesOther(userID string, user *User, logger log.Log
 		user.Devices = append(user.Devices, device)
 	}
 
-	if err := iter.Close(); err != nil {
-		return errors.Wrap(err, "unable to iterate user data devices other")
-	}
-
 	return nil
 }
 
@@ -559,20 +578,25 @@ func (t *Tool) getUserDataDevice(query interface{}, logger log.Logger) (*Device,
 	var result []struct {
 		CreatedTime string `bson:"createdTime"`
 	}
-	if err := t.dataSession.C().Find(query).Sort("-createdTime").Limit(2).All(&result); err != nil {
+	opts := options.Find().SetSort(bson.M{"createdTime": -1}).SetLimit(2)
+	cursor, err := t.dataRepository.Find(context.Background(), query, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := cursor.All(context.Background(), &result); err != nil {
 		return nil, err
 	} else if len(result) == 0 {
 		return nil, nil
 	}
 
-	uploadCount, err := t.dataSession.C().Find(query).Count()
+	uploadCount, err := t.dataRepository.CountDocuments(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Device{
 		LatestUploadTime: timestampAsUTC(result[0].CreatedTime),
-		UploadCount:      uploadCount,
+		UploadCount:      int(uploadCount),
 	}, nil
 }
 
@@ -602,21 +626,25 @@ func (t *Tool) getUserDataActiveTypesStats(userID string, user *User, logger log
 			},
 		},
 	}
-	iter := t.dataSession.C().Pipe(pipeline).Iter()
+	cursor, err := t.dataRepository.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return errors.Wrap(err, "unable to iterate data active types stats")
+	}
 
 	var result struct {
 		TypeTuple TypeTuple `bson:"_id"`
 		TypeStats `bson:",inline"`
 	}
-	for iter.Next(&result) {
+	for cursor.Next(context.Background()) {
+		err := cursor.Decode(&result)
+		if err != nil {
+			return errors.Wrap(err, "unable to iterate data active types stats")
+		}
+
 		if user.ActiveTypesStats == nil {
 			user.ActiveTypesStats = map[string]TypeStats{}
 		}
 		user.ActiveTypesStats[result.TypeTuple.ResolvedType()] = result.TypeStats
-	}
-
-	if err := iter.Close(); err != nil {
-		return errors.Wrap(err, "unable to iterate data active types stats")
 	}
 
 	return nil

@@ -39,7 +39,7 @@ func (d *DataSetDeleteOrigin) Get(dataSet *dataTypesUpload.Upload) (bool, error)
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-func (d *DataSetDeleteOrigin) Open(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (d *DataSetDeleteOrigin) Open(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -57,7 +57,7 @@ func (d *DataSetDeleteOrigin) Open(ctx context.Context, session dataStoreDEPRECA
 	return d.Base.Open(ctx, session, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) AddData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DataSetDeleteOrigin) AddData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -88,7 +88,7 @@ func (d *DataSetDeleteOrigin) AddData(ctx context.Context, session dataStoreDEPR
 	return d.Base.AddData(ctx, session, dataSet, dataSetData)
 }
 
-func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -105,7 +105,7 @@ func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, session dataStoreD
 	return session.ArchiveDataSetData(ctx, dataSet, selectors)
 }
 
-func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

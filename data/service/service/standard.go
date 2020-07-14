@@ -81,15 +81,15 @@ func (s *Standard) Terminate() {
 	s.api = nil
 	s.dataClient = nil
 	if s.syncTaskStore != nil {
-		s.syncTaskStore.Close()
+		s.syncTaskStore.Terminate(nil)
 		s.syncTaskStore = nil
 	}
 	if s.dataSourceStructuredStore != nil {
-		s.dataSourceStructuredStore.Close()
+		s.dataSourceStructuredStore.Terminate(nil)
 		s.dataSourceStructuredStore = nil
 	}
 	if s.dataStoreDEPRECATED != nil {
-		s.dataStoreDEPRECATED.Close()
+		s.dataStoreDEPRECATED.Terminate(nil)
 		s.dataStoreDEPRECATED = nil
 	}
 	s.dataDeduplicatorFactory = nil
@@ -205,14 +205,15 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataStoreDEPRECATED() error {
 	s.Logger().Debug("Loading data store DEPRECATED config")
 
-	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+	cfg := storeStructuredMongo.NewConfig(nil)
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data store DEPRECATED config")
 	}
 
 	s.Logger().Debug("Creating data store")
 
-	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, s.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
+	str, err := dataStoreDEPRECATEDMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}
@@ -231,14 +232,15 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 func (s *Standard) initializeDataSourceStructuredStore() error {
 	s.Logger().Debug("Loading data source structured store config")
 
-	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "store")); err != nil {
+	cfg := storeStructuredMongo.NewConfig(nil)
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
 	s.Logger().Debug("Creating data source structured store")
 
-	str, err := dataSourceStoreStructuredMongo.NewStore(cfg, s.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
+	str, err := dataSourceStoreStructuredMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data source structured store")
 	}
@@ -257,14 +259,15 @@ func (s *Standard) initializeDataSourceStructuredStore() error {
 func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
-	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
+	cfg := storeStructuredMongo.NewConfig(nil)
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load sync task store config")
 	}
 
 	s.Logger().Debug("Creating sync task store")
 
-	str, err := syncTaskMongo.NewStore(cfg, s.Logger())
+	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
+	str, err := syncTaskMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sync task store")
 	}

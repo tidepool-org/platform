@@ -38,10 +38,8 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 		return nil, err
 	}
 
-	session := c.DataSourceStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.List(ctx, userID, filter, pagination)
+	collection := c.DataSourceStructuredStore().NewDataRepository()
+	return collection.List(ctx, userID, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
@@ -49,10 +47,8 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 		return nil, err
 	}
 
-	session := c.DataSourceStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.Create(ctx, userID, create)
+	collection := c.DataSourceStructuredStore().NewDataRepository()
+	return collection.Create(ctx, userID, create)
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
@@ -60,10 +56,8 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 		return err
 	}
 
-	session := c.DataSourceStructuredStore().NewSession()
-	defer session.Close()
-
-	_, err := session.DestroyAll(ctx, userID)
+	collection := c.DataSourceStructuredStore().NewDataRepository()
+	_, err := collection.DestroyAll(ctx, userID)
 	return err
 }
 
@@ -72,10 +66,8 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 		return nil, err
 	}
 
-	session := c.DataSourceStructuredStore().NewSession()
-	defer session.Close()
-
-	result, err := session.Get(ctx, id)
+	collection := c.DataSourceStructuredStore().NewDataRepository()
+	result, err := collection.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -92,10 +84,8 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 		return nil, err
 	}
 
-	session := c.DataSourceStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.Update(ctx, id, condition, update)
+	collection := c.DataSourceStructuredStore().NewDataRepository()
+	return collection.Update(ctx, id, condition, update)
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
@@ -103,8 +93,6 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		return false, err
 	}
 
-	session := c.DataSourceStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.Destroy(ctx, id, condition)
+	collection := c.DataSourceStructuredStore().NewDataRepository()
+	return collection.Destroy(ctx, id, condition)
 }

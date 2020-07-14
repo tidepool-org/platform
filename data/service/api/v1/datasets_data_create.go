@@ -26,7 +26,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
@@ -104,7 +104,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 		return
-	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataSession(), dataSet, datumArray); err != nil {
+	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataRepository(), dataSet, datumArray); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
 	}

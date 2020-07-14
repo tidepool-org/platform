@@ -38,7 +38,7 @@ func (n *None) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous"), nil // TODO: DEPRECATED
 }
 
-func (n *None) Open(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (n *None) Open(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -56,7 +56,7 @@ func (n *None) Open(ctx context.Context, session dataStoreDEPRECATED.DataSession
 	return n.Base.Open(ctx, session, dataSet)
 }
 
-func (n *None) AddData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (n *None) AddData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -77,7 +77,7 @@ func (n *None) AddData(ctx context.Context, session dataStoreDEPRECATED.DataSess
 	return n.Base.AddData(ctx, session, dataSet, dataSetData)
 }
 
-func (n *None) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (n *None) Close(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

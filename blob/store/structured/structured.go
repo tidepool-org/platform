@@ -2,7 +2,6 @@ package structured
 
 import (
 	"context"
-	"io"
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/crypto"
@@ -13,12 +12,10 @@ import (
 )
 
 type Store interface {
-	NewSession() Session
+	NewBlobRepository() BlobRepository
 }
 
-type Session interface {
-	io.Closer
-
+type BlobRepository interface {
 	List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*blob.Blob, error)
 	DeleteAll(ctx context.Context, userID string) (bool, error)
