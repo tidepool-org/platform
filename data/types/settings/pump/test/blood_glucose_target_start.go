@@ -2,8 +2,10 @@ package test
 
 import (
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
+	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -48,4 +50,43 @@ func CloneBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGl
 		*cloneArray = append(*cloneArray, CloneBloodGlucoseTargetStart(datum))
 	}
 	return cloneArray
+}
+
+func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
+	if datumArrayMap == nil {
+		return nil
+	}
+	clone := dataTypesSettingsPump.NewBloodGlucoseTargetStartArrayMap()
+	for datumName, datumArray := range *datumArrayMap {
+		clone.Set(datumName, CloneBloodGlucoseTargetStartArray(datumArray))
+	}
+	return clone
+}
+
+func NewBloodGlucoseTargetStartArrayMap(units *string) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
+	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStartArrayMap()
+	datum.Set(dataTypesBasalTest.NewScheduleName(), RandomBloodGlucoseTargetStartArray(units))
+	return datum
+}
+
+type ValidatableWithUnitsAndStartMinimum interface {
+	Validate(validator structure.Validator, units *string, startMinimum *int)
+}
+
+type ValidatableWithUnitsAndStartMinimumAdapter struct {
+	validatableWithUnitsAndStartMinimum ValidatableWithUnitsAndStartMinimum
+	units                               *string
+	startMinimum                        *int
+}
+
+func NewValidatableWithUnitsAndStartMinimumAdapter(validatableWithUnitsAndStartMinimum ValidatableWithUnitsAndStartMinimum, units *string, startMinimum *int) *ValidatableWithUnitsAndStartMinimumAdapter {
+	return &ValidatableWithUnitsAndStartMinimumAdapter{
+		validatableWithUnitsAndStartMinimum: validatableWithUnitsAndStartMinimum,
+		units:                               units,
+		startMinimum:                        startMinimum,
+	}
+}
+
+func (v *ValidatableWithUnitsAndStartMinimumAdapter) Validate(validator structure.Validator) {
+	v.validatableWithUnitsAndStartMinimum.Validate(validator, v.units, v.startMinimum)
 }

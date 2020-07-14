@@ -33,6 +33,12 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+func (s *Store) EnsureIndexes() error {
+	session := s.NewDataSession()
+	defer session.Close()
+	return session.EnsureIndexes()
+}
+
 func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 	return &DataSession{
 		Session: s.Store.NewSession("deviceData"),
@@ -41,6 +47,16 @@ func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 
 type DataSession struct {
 	*storeStructuredMongo.Session
+}
+
+func (d *DataSession) EnsureIndexes() error {
+	return d.EnsureAllIndexes([]mgo.Index{
+		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
+		{Key: []string{"_userId", "_active", "type", "-time"}, Background: true, Name: "UserIdTypeWeighted_v2"},
+		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
+		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
+		{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
+	})
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
@@ -147,10 +163,9 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
-	// TODO: Consider upsert instead to prevent multiples being created?
-
+	// This search is protected by the `UniqueUploadId` index, so it's not possible for there to be
+	// duplicate `uploadId`s, even if a race condition occurs here.
 	selector := bson.M{
-		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
 		"type":     dataSet.Type,
 	}

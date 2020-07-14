@@ -57,7 +57,6 @@ var _ = Describe("Base", func() {
 			Expect(datum.Notes).To(BeNil())
 			Expect(datum.Origin).To(BeNil())
 			Expect(datum.Payload).To(BeNil())
-			Expect(datum.SchemaVersion).To(Equal(0))
 			Expect(datum.Source).To(BeNil())
 			Expect(datum.Tags).To(BeNil())
 			Expect(datum.Time).To(BeNil())
@@ -593,24 +592,6 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.Payload = metadataTest.RandomMetadata() },
 					structure.Origins(),
 				),
-				Entry("schema version; out of range (lower)",
-					func(datum *types.Base) { datum.SchemaVersion = 0 },
-					[]structure.Origin{structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 3), "/_schemaVersion"),
-				),
-				Entry("schema version; in range (lower)",
-					func(datum *types.Base) { datum.SchemaVersion = 1 },
-					structure.Origins(),
-				),
-				Entry("schema version; in range (upper)",
-					func(datum *types.Base) { datum.SchemaVersion = 3 },
-					structure.Origins(),
-				),
-				Entry("schema version; out of range (upper)",
-					func(datum *types.Base) { datum.SchemaVersion = 4 },
-					[]structure.Origin{structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(4, 1, 3), "/_schemaVersion"),
-				),
 				Entry("source missing",
 					func(datum *types.Base) { datum.Source = nil },
 					structure.Origins(),
@@ -784,12 +765,10 @@ var _ = Describe("Base", func() {
 				),
 				Entry("multiple errors with store origin",
 					func(datum *types.Base) {
-						datum.SchemaVersion = 0
 						datum.UserID = nil
 						datum.VersionInternal = -1
 					},
 					[]structure.Origin{structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0, 1, 3), "/_schemaVersion"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/_userId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/_version"),
 				),
@@ -905,14 +884,6 @@ var _ = Describe("Base", func() {
 						sort.Strings(*expectedDatum.Tags)
 					},
 				),
-				Entry("default schema version",
-					func(datum *types.Base) { datum.SchemaVersion = 0 },
-					func(datum *types.Base, expectedDatum *types.Base) {
-						Expect(datum.SchemaVersion).To(Equal(3))
-						expectedDatum.SchemaVersion = datum.SchemaVersion
-						sort.Strings(*expectedDatum.Tags)
-					},
-				),
 				Entry("all missing",
 					func(datum *types.Base) {
 						*datum = types.New("")
@@ -920,9 +891,7 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base, expectedDatum *types.Base) {
 						Expect(datum.ID).ToNot(BeNil())
 						Expect(datum.ID).ToNot(Equal(expectedDatum.ID))
-						Expect(datum.SchemaVersion).To(Equal(3))
 						expectedDatum.ID = datum.ID
-						expectedDatum.SchemaVersion = datum.SchemaVersion
 					},
 				),
 			)
@@ -946,12 +915,6 @@ var _ = Describe("Base", func() {
 				},
 				Entry("id missing",
 					func(datum *types.Base) { datum.ID = nil },
-					func(datum *types.Base, expectedDatum *types.Base) {
-						sort.Strings(*expectedDatum.Tags)
-					},
-				),
-				Entry("default schema version",
-					func(datum *types.Base) { datum.SchemaVersion = 0 },
 					func(datum *types.Base, expectedDatum *types.Base) {
 						sort.Strings(*expectedDatum.Tags)
 					},

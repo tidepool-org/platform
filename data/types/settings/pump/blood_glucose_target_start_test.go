@@ -10,7 +10,6 @@ import (
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -18,66 +17,6 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
-
-func CloneBloodGlucoseTargetStart(datum *pump.BloodGlucoseTargetStart) *pump.BloodGlucoseTargetStart {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBloodGlucoseTargetStart()
-	clone.Target = *dataBloodGlucoseTest.CloneTarget(&datum.Target)
-	clone.Start = pointer.CloneInt(datum.Start)
-	return clone
-}
-
-func CloneBloodGlucoseTargetStartArray(datumArray *pump.BloodGlucoseTargetStartArray) *pump.BloodGlucoseTargetStartArray {
-	if datumArray == nil {
-		return nil
-	}
-	clone := pump.NewBloodGlucoseTargetStartArray()
-	for _, datum := range *datumArray {
-		*clone = append(*clone, CloneBloodGlucoseTargetStart(datum))
-	}
-	return clone
-}
-
-func NewBloodGlucoseTargetStartArrayMap(units *string) *pump.BloodGlucoseTargetStartArrayMap {
-	datum := pump.NewBloodGlucoseTargetStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), test.RandomBloodGlucoseTargetStartArray(units))
-	return datum
-}
-
-func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *pump.BloodGlucoseTargetStartArrayMap) *pump.BloodGlucoseTargetStartArrayMap {
-	if datumArrayMap == nil {
-		return nil
-	}
-	clone := pump.NewBloodGlucoseTargetStartArrayMap()
-	for datumName, datumArray := range *datumArrayMap {
-		clone.Set(datumName, CloneBloodGlucoseTargetStartArray(datumArray))
-	}
-	return clone
-}
-
-type ValidatableWithUnitsAndStartMinimum interface {
-	Validate(validator structure.Validator, units *string, startMinimum *int)
-}
-
-type ValidatableWithUnitsAndStartMinimumAdapter struct {
-	validatableWithUnitsAndStartMinimum ValidatableWithUnitsAndStartMinimum
-	units                               *string
-	startMinimum                        *int
-}
-
-func NewValidatableWithUnitsAndStartMinimumAdapter(validatableWithUnitsAndStartMinimum ValidatableWithUnitsAndStartMinimum, units *string, startMinimum *int) *ValidatableWithUnitsAndStartMinimumAdapter {
-	return &ValidatableWithUnitsAndStartMinimumAdapter{
-		validatableWithUnitsAndStartMinimum: validatableWithUnitsAndStartMinimum,
-		units:                               units,
-		startMinimum:                        startMinimum,
-	}
-}
-
-func (v *ValidatableWithUnitsAndStartMinimumAdapter) Validate(validator structure.Validator) {
-	v.validatableWithUnitsAndStartMinimum.Validate(validator, v.units, v.startMinimum)
-}
 
 var _ = Describe("BloodGlucoseTargetStart", func() {
 	It("BloodGlucoseTargetStartStartMaximum is expected", func() {
@@ -108,7 +47,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectedErrors ...error) {
 					datum := test.RandomBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum)
 					mutator(datum, units)
-					dataTypesTest.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(test.NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					pointer.FromString("mmol/L"),
@@ -141,7 +80,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectedErrors ...error) {
 					datum := test.RandomBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum)
 					mutator(datum, units)
-					dataTypesTest.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(test.NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					pointer.FromString("mmol/L"),
@@ -163,7 +102,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectedErrors ...error) {
 					datum := test.RandomBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum+1)
 					mutator(datum, units)
-					dataTypesTest.ValidateWithExpectedOrigins(NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum+1)), structure.Origins(), expectedErrors...)
+					dataTypesTest.ValidateWithExpectedOrigins(test.NewValidatableWithUnitsAndStartMinimumAdapter(datum, units, pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
 				Entry("start out of range (lower)",
 					pointer.FromString("mmol/L"),
@@ -192,7 +131,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					for _, origin := range structure.Origins() {
 						datum := test.RandomBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum+1)
 						mutator(datum, units)
-						expectedDatum := CloneBloodGlucoseTargetStart(datum)
+						expectedDatum := test.CloneBloodGlucoseTargetStart(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -230,7 +169,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStart, units *string), expectator func(datum *pump.BloodGlucoseTargetStart, expectedDatum *pump.BloodGlucoseTargetStart, units *string)) {
 					datum := test.RandomBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum+1)
 					mutator(datum, units)
-					expectedDatum := CloneBloodGlucoseTargetStart(datum)
+					expectedDatum := test.CloneBloodGlucoseTargetStart(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -272,7 +211,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
 						datum := test.RandomBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum+1)
 						mutator(datum, units)
-						expectedDatum := CloneBloodGlucoseTargetStart(datum)
+						expectedDatum := test.CloneBloodGlucoseTargetStart(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -400,7 +339,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					for _, origin := range structure.Origins() {
 						datum := test.RandomBloodGlucoseTargetStartArray(units)
 						mutator(datum, units)
-						expectedDatum := CloneBloodGlucoseTargetStartArray(datum)
+						expectedDatum := test.CloneBloodGlucoseTargetStartArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -438,7 +377,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStartArray, units *string), expectator func(datum *pump.BloodGlucoseTargetStartArray, expectedDatum *pump.BloodGlucoseTargetStartArray, units *string)) {
 					datum := test.RandomBloodGlucoseTargetStartArray(units)
 					mutator(datum, units)
-					expectedDatum := CloneBloodGlucoseTargetStartArray(datum)
+					expectedDatum := test.CloneBloodGlucoseTargetStartArray(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -484,7 +423,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
 						datum := test.RandomBloodGlucoseTargetStartArray(units)
 						mutator(datum, units)
-						expectedDatum := CloneBloodGlucoseTargetStartArray(datum)
+						expectedDatum := test.CloneBloodGlucoseTargetStartArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -664,9 +603,9 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 			DescribeTable("normalizes the datum",
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string), expectator func(datum *pump.BloodGlucoseTargetStartArrayMap, expectedDatum *pump.BloodGlucoseTargetStartArrayMap, units *string)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBloodGlucoseTargetStartArrayMap(units)
+						datum := test.NewBloodGlucoseTargetStartArrayMap(units)
 						mutator(datum, units)
-						expectedDatum := CloneBloodGlucoseTargetStartArrayMap(datum)
+						expectedDatum := test.CloneBloodGlucoseTargetStartArrayMap(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -706,9 +645,9 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 
 			DescribeTable("normalizes the datum with structure external",
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string), expectator func(datum *pump.BloodGlucoseTargetStartArrayMap, expectedDatum *pump.BloodGlucoseTargetStartArrayMap, units *string)) {
-					datum := NewBloodGlucoseTargetStartArrayMap(units)
+					datum := test.NewBloodGlucoseTargetStartArrayMap(units)
 					mutator(datum, units)
-					expectedDatum := CloneBloodGlucoseTargetStartArrayMap(datum)
+					expectedDatum := test.CloneBloodGlucoseTargetStartArrayMap(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -756,9 +695,9 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(units *string, mutator func(datum *pump.BloodGlucoseTargetStartArrayMap, units *string), expectator func(datum *pump.BloodGlucoseTargetStartArrayMap, expectedDatum *pump.BloodGlucoseTargetStartArrayMap, units *string)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := NewBloodGlucoseTargetStartArrayMap(units)
+						datum := test.NewBloodGlucoseTargetStartArrayMap(units)
 						mutator(datum, units)
-						expectedDatum := CloneBloodGlucoseTargetStartArrayMap(datum)
+						expectedDatum := test.CloneBloodGlucoseTargetStartArrayMap(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)

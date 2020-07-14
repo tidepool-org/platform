@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -12,21 +14,6 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
-
-func NewDisplay() *pump.Display {
-	datum := pump.NewDisplay()
-	datum.BloodGlucose = NewDisplayBloodGlucose()
-	return datum
-}
-
-func CloneDisplay(datum *pump.Display) *pump.Display {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewDisplay()
-	clone.BloodGlucose = CloneDisplayBloodGlucose(datum.BloodGlucose)
-	return clone
-}
 
 var _ = Describe("Display", func() {
 	Context("ParseDisplay", func() {
@@ -47,7 +34,7 @@ var _ = Describe("Display", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.Display), expectedErrors ...error) {
-					datum := NewDisplay()
+					datum := pumpTest.NewDisplay()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -62,7 +49,7 @@ var _ = Describe("Display", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bloodGlucose/units"),
 				),
 				Entry("blood glucose valid",
-					func(datum *pump.Display) { datum.BloodGlucose = NewDisplayBloodGlucose() },
+					func(datum *pump.Display) { datum.BloodGlucose = pumpTest.NewDisplayBloodGlucose() },
 				),
 				Entry("multiple errors",
 					func(datum *pump.Display) {
@@ -77,9 +64,9 @@ var _ = Describe("Display", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.Display)) {
 					for _, origin := range structure.Origins() {
-						datum := NewDisplay()
+						datum := pumpTest.NewDisplay()
 						mutator(datum)
-						expectedDatum := CloneDisplay(datum)
+						expectedDatum := pumpTest.CloneDisplay(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

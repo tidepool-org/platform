@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/errors"
@@ -53,9 +52,8 @@ type Session struct {
 }
 
 func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"userid"}, Background: true, Unique: true},
-	})
+	// Indexes are created in `shoreline`
+	return nil
 }
 
 func (s *Session) Get(ctx context.Context, id string, condition *request.Condition) (*user.User, error) {

@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -12,23 +14,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewDisplayBloodGlucose() *pump.DisplayBloodGlucose {
-	datum := pump.NewDisplayBloodGlucose()
-	datum.Units = pointer.FromString(test.RandomStringFromArray(pump.DisplayBloodGlucoseUnits()))
-	return datum
-}
-
-func CloneDisplayBloodGlucose(datum *pump.DisplayBloodGlucose) *pump.DisplayBloodGlucose {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewDisplayBloodGlucose()
-	clone.Units = pointer.CloneString(datum.Units)
-	return clone
-}
 
 var _ = Describe("DisplayBloodGlucose", func() {
 	It("DisplayBloodGlucoseUnitsMgPerDL is expected", func() {
@@ -61,7 +47,7 @@ var _ = Describe("DisplayBloodGlucose", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.DisplayBloodGlucose), expectedErrors ...error) {
-					datum := NewDisplayBloodGlucose()
+					datum := pumpTest.NewDisplayBloodGlucose()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -95,9 +81,9 @@ var _ = Describe("DisplayBloodGlucose", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.DisplayBloodGlucose)) {
 					for _, origin := range structure.Origins() {
-						datum := NewDisplayBloodGlucose()
+						datum := pumpTest.NewDisplayBloodGlucose()
 						mutator(datum)
-						expectedDatum := CloneDisplayBloodGlucose(datum)
+						expectedDatum := pumpTest.CloneDisplayBloodGlucose(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

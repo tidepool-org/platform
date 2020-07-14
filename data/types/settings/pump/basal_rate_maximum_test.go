@@ -9,30 +9,13 @@ import (
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewBasalRateMaximum() *pump.BasalRateMaximum {
-	datum := pump.NewBasalRateMaximum()
-	datum.Units = pointer.FromString(test.RandomStringFromArray(pump.BasalRateMaximumUnits()))
-	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(pump.BasalRateMaximumValueRangeForUnits(datum.Units)))
-	return datum
-}
-
-func CloneBasalRateMaximum(datum *pump.BasalRateMaximum) *pump.BasalRateMaximum {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBasalRateMaximum()
-	clone.Units = pointer.CloneString(datum.Units)
-	clone.Value = pointer.CloneFloat64(datum.Value)
-	return clone
-}
 
 var _ = Describe("BasalRateMaximum", func() {
 	It("BasalRateMaximumUnitsUnitsPerHour is expected", func() {
@@ -69,7 +52,7 @@ var _ = Describe("BasalRateMaximum", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.BasalRateMaximum), expectedErrors ...error) {
-					datum := NewBasalRateMaximum()
+					datum := pumpTest.NewBasalRateMaximum()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -210,9 +193,9 @@ var _ = Describe("BasalRateMaximum", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BasalRateMaximum)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBasalRateMaximum()
+						datum := pumpTest.NewBasalRateMaximum()
 						mutator(datum)
-						expectedDatum := CloneBasalRateMaximum(datum)
+						expectedDatum := pumpTest.CloneBasalRateMaximum(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

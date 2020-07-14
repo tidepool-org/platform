@@ -5,73 +5,16 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
-
-func NewBasalRateStart(startMinimum int) *pump.BasalRateStart {
-	datum := pump.NewBasalRateStart()
-	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(pump.BasalRateStartRateMinimum, pump.BasalRateStartRateMaximum))
-	if startMinimum == pump.BasalRateStartStartMinimum {
-		datum.Start = pointer.FromInt(pump.BasalRateStartStartMinimum)
-	} else {
-		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.BasalRateStartStartMaximum))
-	}
-	return datum
-}
-
-func CloneBasalRateStart(datum *pump.BasalRateStart) *pump.BasalRateStart {
-	if datum == nil {
-		return nil
-	}
-	clone := pump.NewBasalRateStart()
-	clone.Rate = pointer.CloneFloat64(datum.Rate)
-	clone.Start = pointer.CloneInt(datum.Start)
-	return clone
-}
-
-func NewBasalRateStartArray() *pump.BasalRateStartArray {
-	datum := pump.NewBasalRateStartArray()
-	*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
-	*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
-	*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
-	return datum
-}
-
-func CloneBasalRateStartArray(datumArray *pump.BasalRateStartArray) *pump.BasalRateStartArray {
-	if datumArray == nil {
-		return nil
-	}
-	clone := pump.NewBasalRateStartArray()
-	for _, datum := range *datumArray {
-		*clone = append(*clone, CloneBasalRateStart(datum))
-	}
-	return clone
-}
-
-func NewBasalRateStartArrayMap() *pump.BasalRateStartArrayMap {
-	datum := pump.NewBasalRateStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewBasalRateStartArray())
-	return datum
-}
-
-func CloneBasalRateStartArrayMap(datumArrayMap *pump.BasalRateStartArrayMap) *pump.BasalRateStartArrayMap {
-	if datumArrayMap == nil {
-		return nil
-	}
-	clone := pump.NewBasalRateStartArrayMap()
-	for datumName, datumArray := range *datumArrayMap {
-		clone.Set(datumName, CloneBasalRateStartArray(datumArray))
-	}
-	return clone
-}
 
 var _ = Describe("BasalRateStart", func() {
 	It("BasalRateStartRateMaximum is expected", func() {
@@ -108,7 +51,7 @@ var _ = Describe("BasalRateStart", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
-					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum)
+					datum := pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
@@ -149,7 +92,7 @@ var _ = Describe("BasalRateStart", func() {
 
 			DescribeTable("validates the datum with minimum start",
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
-					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum)
+					datum := pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum)), structure.Origins(), expectedErrors...)
 				},
@@ -168,7 +111,7 @@ var _ = Describe("BasalRateStart", func() {
 
 			DescribeTable("validates the datum with non-minimum start",
 				func(mutator func(datum *pump.BasalRateStart), expectedErrors ...error) {
-					datum := NewBasalRateStart(pump.BasalRateStartStartMinimum + 1)
+					datum := pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum + 1)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithIntAdapter(datum, pointer.FromInt(pump.BasalRateStartStartMinimum+1)), structure.Origins(), expectedErrors...)
 				},
@@ -193,9 +136,9 @@ var _ = Describe("BasalRateStart", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BasalRateStart)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBasalRateStart(pump.BasalRateStartStartMinimum + 1)
+						datum := pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum + 1)
 						mutator(datum)
-						expectedDatum := CloneBasalRateStart(datum)
+						expectedDatum := pumpTest.CloneBasalRateStart(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -251,7 +194,7 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("single invalid",
 					func(datum *pump.BasalRateStartArray) {
-						invalid := NewBasalRateStart(pump.BasalRateStartStartMinimum)
+						invalid := pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum)
 						invalid.Rate = nil
 						*datum = append(*datum, invalid)
 					},
@@ -259,32 +202,32 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("single valid",
 					func(datum *pump.BasalRateStartArray) {
-						*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
+						*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *pump.BasalRateStartArray) {
-						*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
-						invalid := NewBasalRateStart(*datum.Last().Start + 1)
+						*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
+						invalid := pumpTest.NewBasalRateStart(*datum.Last().Start + 1)
 						invalid.Rate = nil
 						*datum = append(*datum, invalid)
-						*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/rate"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.BasalRateStartArray) {
-						*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
-						*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
-						*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
+						*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
+						*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
 					},
 				),
 				Entry("multiple errors",
 					func(datum *pump.BasalRateStartArray) {
-						invalid := NewBasalRateStart(pump.BasalRateStartStartMinimum)
+						invalid := pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum)
 						invalid.Rate = nil
 						*datum = append(*datum, nil, invalid)
-						*datum = append(*datum, nil, NewBasalRateStart(*datum.Last().Start+1))
+						*datum = append(*datum, nil, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/rate"),
@@ -297,9 +240,9 @@ var _ = Describe("BasalRateStart", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BasalRateStartArray)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBasalRateStartArray()
+						datum := pumpTest.NewBasalRateStartArray()
 						mutator(datum)
-						expectedDatum := CloneBasalRateStartArray(datum)
+						expectedDatum := pumpTest.CloneBasalRateStartArray(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -332,14 +275,14 @@ var _ = Describe("BasalRateStart", func() {
 			})
 
 			It("returns the first element if the array has one element", func() {
-				*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
 				Expect(datum.First()).To(Equal((*datum)[0]))
 			})
 
 			It("returns the first element if the array has multiple elements", func() {
-				*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
-				*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
-				*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
 				Expect(datum.First()).To(Equal((*datum)[0]))
 			})
 		})
@@ -356,14 +299,14 @@ var _ = Describe("BasalRateStart", func() {
 			})
 
 			It("returns the last element if the array has one element", func() {
-				*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
 				Expect(datum.Last()).To(Equal((*datum)[0]))
 			})
 
 			It("returns the last element if the array has multiple elements", func() {
-				*datum = append(*datum, NewBasalRateStart(pump.BasalRateStartStartMinimum))
-				*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
-				*datum = append(*datum, NewBasalRateStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(pump.BasalRateStartStartMinimum))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
+				*datum = append(*datum, pumpTest.NewBasalRateStart(*datum.Last().Start+1))
 				Expect(datum.Last()).To(Equal((*datum)[2]))
 			})
 		})
@@ -398,7 +341,7 @@ var _ = Describe("BasalRateStart", func() {
 					func(datum *pump.BasalRateStartArrayMap) { *datum = *pump.NewBasalRateStartArrayMap() },
 				),
 				Entry("empty name",
-					func(datum *pump.BasalRateStartArrayMap) { datum.Set("", NewBasalRateStartArray()) },
+					func(datum *pump.BasalRateStartArrayMap) { datum.Set("", pumpTest.NewBasalRateStartArray()) },
 				),
 				Entry("nil value",
 					func(datum *pump.BasalRateStartArrayMap) { datum.Set("", nil) },
@@ -406,7 +349,7 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("single invalid",
 					func(datum *pump.BasalRateStartArrayMap) {
-						invalid := NewBasalRateStartArray()
+						invalid := pumpTest.NewBasalRateStartArray()
 						(*invalid)[0].Start = nil
 						datum.Set("one", invalid)
 					},
@@ -414,33 +357,33 @@ var _ = Describe("BasalRateStart", func() {
 				),
 				Entry("single valid",
 					func(datum *pump.BasalRateStartArrayMap) {
-						datum.Set("one", NewBasalRateStartArray())
+						datum.Set("one", pumpTest.NewBasalRateStartArray())
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *pump.BasalRateStartArrayMap) {
-						invalid := NewBasalRateStartArray()
+						invalid := pumpTest.NewBasalRateStartArray()
 						(*invalid)[0].Start = nil
-						datum.Set("one", NewBasalRateStartArray())
+						datum.Set("one", pumpTest.NewBasalRateStartArray())
 						datum.Set("two", invalid)
-						datum.Set("three", NewBasalRateStartArray())
+						datum.Set("three", pumpTest.NewBasalRateStartArray())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
 				),
 				Entry("multiple valid",
 					func(datum *pump.BasalRateStartArrayMap) {
-						datum.Set("one", NewBasalRateStartArray())
-						datum.Set("two", NewBasalRateStartArray())
-						datum.Set("three", NewBasalRateStartArray())
+						datum.Set("one", pumpTest.NewBasalRateStartArray())
+						datum.Set("two", pumpTest.NewBasalRateStartArray())
+						datum.Set("three", pumpTest.NewBasalRateStartArray())
 					},
 				),
 				Entry("multiple errors",
 					func(datum *pump.BasalRateStartArrayMap) {
-						invalid := NewBasalRateStartArray()
+						invalid := pumpTest.NewBasalRateStartArray()
 						(*invalid)[0].Start = nil
 						datum.Set("one", nil)
 						datum.Set("two", invalid)
-						datum.Set("three", NewBasalRateStartArray())
+						datum.Set("three", pumpTest.NewBasalRateStartArray())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/one"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/two/0/start"),
@@ -452,9 +395,9 @@ var _ = Describe("BasalRateStart", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.BasalRateStartArrayMap)) {
 					for _, origin := range structure.Origins() {
-						datum := NewBasalRateStartArrayMap()
+						datum := pumpTest.NewBasalRateStartArrayMap()
 						mutator(datum)
-						expectedDatum := CloneBasalRateStartArrayMap(datum)
+						expectedDatum := pumpTest.CloneBasalRateStartArrayMap(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))

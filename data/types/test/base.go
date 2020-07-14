@@ -44,7 +44,6 @@ func NewBase() *types.Base {
 	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
 	datum.Origin = originTest.RandomOrigin()
 	datum.Payload = metadataTest.RandomMetadata()
-	datum.SchemaVersion = 2
 	datum.Source = pointer.FromString("carelink")
 	datum.Tags = pointer.FromStringArray([]string{NewTag(1, 10)})
 	datum.Time = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
@@ -84,7 +83,6 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.Notes = pointer.CloneStringArray(datum.Notes)
 	clone.Origin = originTest.CloneOrigin(datum.Origin)
 	clone.Payload = metadataTest.CloneMetadata(datum.Payload)
-	clone.SchemaVersion = datum.SchemaVersion
 	clone.Source = pointer.CloneString(datum.Source)
 	clone.Tags = pointer.CloneStringArray(datum.Tags)
 	clone.Time = pointer.CloneString(datum.Time)
