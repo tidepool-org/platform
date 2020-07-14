@@ -89,6 +89,10 @@ func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit 
 	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not between %s and %s", stringify(value), stringify(lowerLimit), stringify(upperLimit))
 }
 
+func ErrorValueNotValid() error {
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value is not valid")
+}
+
 func ErrorValueNotSerializable() error {
 	return errors.Preparedf(ErrorCodeValueNotSerializable, "value is not serializable", "value is not serializable")
 }

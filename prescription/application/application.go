@@ -3,6 +3,8 @@ package application
 import (
 	"go.uber.org/fx"
 
+	"github.com/tidepool-org/platform/devices"
+
 	"github.com/tidepool-org/platform/store/structured/mongoofficial"
 
 	"github.com/tidepool-org/platform/prescription/api"
@@ -13,11 +15,13 @@ import (
 )
 
 var Prescription = fx.Options(
+	devices.ClientModule,
 	user.ClientModule,
 	mongoofficial.StoreModule,
 	fx.Provide(
 		prescriptionMongo.NewStore,
 		prescriptionMongo.NewStatusReporter,
+		service.NewDeviceSettingsValidator,
 		service.NewService,
 		fx.Annotated{
 			Group:  "routers",
