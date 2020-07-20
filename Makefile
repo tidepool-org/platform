@@ -222,6 +222,22 @@ endif
 
 ci-deploy: deploy
 
+ci-soups: clean-soup-doc generate-soups 
+
+generate-soups:
+ifdef TRAVIS_TAG
+	@cd $(ROOT_DIRECTORY) && \
+		for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) service-soup SERVICE_DIRECTORY=$${SERVICE} SERVICE=$${SERVICE} TARGET=soup VERSION=${VERSION_BASE}; done && \
+		$(MAKE) service-soup SERVICE_DIRECTORY=data SERVICE=platform TARGET=soup VERSION=${VERSION_BASE} 
+endif
+
+service-soup: 
+	@cd ${SERVICE_DIRECTORY} && \
+		echo "# SOUPs List for ${SERVICE}@${VERSION}" > soup.md && \
+		go list -f '## {{printf "%s \n\t* description: \n\t* version: %s\n\t* webSite: https://%s\n\t* sources:" .Path .Version .Path}}' -m all >> soup.md && \
+		mkdir -p $(ROOT_DIRECTORY)/${TARGET}/${SERVICE} && \
+		mv soup.md $(ROOT_DIRECTORY)/${TARGET}/${SERVICE}/${SERVICE}-${VERSION}-soup.md
+
 bundle-deploy:
 ifdef DEPLOY
 ifdef TRAVIS_TAG
@@ -309,6 +325,9 @@ clean-debug:
 
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy
+
+clean-soup-doc:
+	@cd $(ROOT_DIRECTORY) && rm -rf soup
 
 clean-all: clean
 

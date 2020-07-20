@@ -29,31 +29,43 @@ deploy:
   # Control deployment by setting a value for `on`. Setting the `branch`
   # option to `master` means Travis will only attempt a deployment on
   # builds of your repo's master branch (e.g., after you merge a PR).
-  on:
-    tags: true
-#    branch: dblp
-  provider: s3
-  # You can refer to environment variables from Travis repo settings!
-  access_key_id: $AWS_ACCESS_KEY_ID
-  secret_access_key: $AWS_SECRET_ACCESS_KEY
-  region: $AWS_DEFAULT_REGION
-  # Name of the S3 bucket to which your site should be uploaded.
-  bucket: $AWS_BUCKET
-  # Prevent Travis from deleting your built site so it can be uploaded.
-  skip_cleanup: true
-  # Path of the source directory containing your built site.
-  local_dir: deploy
-  # Path to a directory containing your built site.
-  upload-dir: deploy
-  # Set the Cache-Control header.
-  cache_control: "max-age=21600"
+  - provider: s3
+    on:
+      tags: true
+  #    branch: dblp
+    # You can refer to environment variables from Travis repo settings!
+    access_key_id: $AWS_ACCESS_KEY_ID
+    secret_access_key: $AWS_SECRET_ACCESS_KEY
+    region: $AWS_DEFAULT_REGION
+    # Name of the S3 bucket to which your site should be uploaded.
+    bucket: $AWS_BUCKET
+    # Prevent Travis from deleting your built site so it can be uploaded.
+    skip_cleanup: true
+    # Path of the source directory containing your built site.
+    local_dir: deploy
+    # Path to a directory containing your built site.
+    upload-dir: deploy
+    # Set the Cache-Control header.
+    cache_control: "max-age=21600"
+    # Deploy SOUP list
+  - provider: s3
+    on:
+      tags: true
+    access_key_id: $AWS_ACCESS_KEY_ID
+    secret_access_key: $AWS_SECRET_ACCESS_KEY
+    region: $AWS_DEFAULT_REGION
+    bucket: com.diabeloop.yourloops.doc
+    skip_cleanup: true
+    local_dir: soup
+    upload-dir: soup
+    cache_control: "max-age=21600"
 
 services:
   - docker
 
 script:
   # - make ci-generate ci-build ci-test ci-snyk ci-deploy ci-docker
-  - make ci-generate ci-build ci-test ci-deploy ci-docker
+  - make ci-generate ci-build ci-test ci-deploy ci-soups ci-docker
 cache:
   directories:
     - $HOME/.cache/go-build

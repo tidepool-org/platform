@@ -22,6 +22,7 @@ The Tidepool platform API
 - PT-1379 Add a way to represent pen bolus structure in Backloops
 - PT-1296 Store Biphasic bolus
 - PT-1312 Add fields to Alarm objects
+- Generate Soups documentations
 
 ## 0.7.2 - 2020-05-14 
 ### Changed
