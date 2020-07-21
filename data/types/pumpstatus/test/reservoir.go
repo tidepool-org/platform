@@ -9,7 +9,7 @@ import (
 func RandomReservoir() *dataTypesPumpStatus.Reservoir {
 	units := test.RandomStringFromArray(dataTypesPumpStatus.ReservoirUnits())
 	datum := dataTypesPumpStatus.NewReservoir()
-	datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+	datum.Time = pointer.FromTime(test.RandomTime())
 	switch units {
 	case dataTypesPumpStatus.ReservoirUnitsUnits:
 		datum.Remaining = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesPumpStatus.ReservoirRemainingUnitsMinimum, dataTypesPumpStatus.ReservoirRemainingUnitsMaximum))
@@ -23,7 +23,7 @@ func CloneReservoir(datum *dataTypesPumpStatus.Reservoir) *dataTypesPumpStatus.R
 		return nil
 	}
 	clone := dataTypesPumpStatus.NewReservoir()
-	clone.Time = pointer.CloneString(datum.Time)
+	clone.Time = pointer.CloneTime(datum.Time)
 	clone.Remaining = pointer.CloneFloat64(datum.Remaining)
 	clone.Units = pointer.CloneString(datum.Units)
 	return clone

@@ -13,8 +13,8 @@ const (
 )
 
 type Forecast struct {
-	Time  *string  `json:"time,omitempty" bson:"time,omitempty"`
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Time  *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Value *float64   `json:"value,omitempty" bson:"value,omitempty"`
 }
 
 func ParseForecast(parser structure.ObjectParser) *Forecast {
@@ -31,12 +31,12 @@ func NewForecast() *Forecast {
 }
 
 func (f *Forecast) Parse(parser structure.ObjectParser) {
-	f.Time = parser.String("time")
+	f.Time = parser.Time("time", time.RFC3339Nano)
 	f.Value = parser.Float64("value")
 }
 
 func (f *Forecast) Validate(validator structure.Validator) {
-	validator.String("time", f.Time).Exists().AsTime(time.RFC3339Nano)
+	validator.Time("time", f.Time).Exists()
 	validator.Float64("value", f.Value).Exists()
 }
 

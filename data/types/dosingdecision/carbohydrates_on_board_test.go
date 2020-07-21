@@ -5,8 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -43,22 +41,10 @@ var _ = Describe("CarbohydratesOnBoard", func() {
 				Entry("succeeds",
 					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {},
 				),
-				Entry("startTime invalid",
-					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
-						datum.StartTime = pointer.FromString("invalid")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/startTime"),
-				),
-				Entry("endTime invalid",
-					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
-						datum.EndTime = pointer.FromString("invalid")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/endTime"),
-				),
 				Entry("endTime before startTime",
 					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
-						datum.StartTime = pointer.FromString(test.PastNearTime().Format(dataTypesDosingDecision.TimeFormat))
-						datum.EndTime = pointer.FromString(test.PastFarTime().Format(dataTypesDosingDecision.TimeFormat))
+						datum.StartTime = pointer.FromTime(test.PastNearTime())
+						datum.EndTime = pointer.FromTime(test.PastFarTime())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/endTime"),
 				),
@@ -90,12 +76,11 @@ var _ = Describe("CarbohydratesOnBoard", func() {
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesDosingDecision.CarbohydratesOnBoard) {
-						datum.StartTime = pointer.FromString("invalid")
-						datum.EndTime = pointer.FromString("invalid")
+						datum.StartTime = pointer.FromTime(test.PastNearTime())
+						datum.EndTime = pointer.FromTime(test.PastFarTime())
 						datum.Amount = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/startTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/endTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/endTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
 			)

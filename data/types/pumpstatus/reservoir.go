@@ -1,6 +1,8 @@
 package pumpstatus
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -17,9 +19,9 @@ func ReservoirUnits() []string {
 }
 
 type Reservoir struct {
-	Time      *string  `json:"time,omitempty" bson:"time,omitempty"`
-	Remaining *float64 `json:"remaining,omitempty" bson:"remaining,omitempty"`
-	Units     *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Time      *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Remaining *float64   `json:"remaining,omitempty" bson:"remaining,omitempty"`
+	Units     *string    `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseReservoir(parser structure.ObjectParser) *Reservoir {
@@ -36,13 +38,12 @@ func NewReservoir() *Reservoir {
 }
 
 func (r *Reservoir) Parse(parser structure.ObjectParser) {
-	r.Time = parser.String("time")
+	r.Time = parser.Time("time", TimeFormat)
 	r.Remaining = parser.Float64("remaining")
 	r.Units = parser.String("units")
 }
 
 func (r *Reservoir) Validate(validator structure.Validator) {
-	validator.String("time", r.Time).AsTime(TimeFormat)
 	validator.Float64("remaining", r.Remaining).Exists().InRange(ReservoirRemainingUnitsMinimum, ReservoirRemainingUnitsMaximum)
 	validator.String("units", r.Units).Exists().OneOf(ReservoirUnits()...)
 }

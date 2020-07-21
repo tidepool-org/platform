@@ -7,10 +7,9 @@ import (
 )
 
 func RandomCarbohydratesOnBoard() *dataTypesDosingDecision.CarbohydratesOnBoard {
-	startTime := test.RandomTime()
 	datum := dataTypesDosingDecision.NewCarbohydratesOnBoard()
-	datum.StartTime = pointer.FromString(startTime.Format(dataTypesDosingDecision.TimeFormat))
-	datum.EndTime = pointer.FromString(test.RandomTimeFromRange(startTime, test.RandomTimeMaximum()).Format(dataTypesDosingDecision.TimeFormat))
+	datum.StartTime = pointer.FromTime(test.RandomTime())
+	datum.EndTime = pointer.FromTime(test.RandomTimeFromRange(*datum.StartTime, test.RandomTimeMaximum()))
 	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingDecision.CarbohydratesOnBoardAmountMinimum, dataTypesDosingDecision.CarbohydratesOnBoardAmountMaximum))
 	return datum
 }
@@ -20,8 +19,8 @@ func CloneCarbohydratesOnBoard(datum *dataTypesDosingDecision.CarbohydratesOnBoa
 		return nil
 	}
 	clone := dataTypesDosingDecision.NewCarbohydratesOnBoard()
-	clone.StartTime = pointer.CloneString(datum.StartTime)
-	clone.EndTime = pointer.CloneString(datum.EndTime)
+	clone.StartTime = pointer.CloneTime(datum.StartTime)
+	clone.EndTime = pointer.CloneTime(datum.EndTime)
 	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	return clone
 }

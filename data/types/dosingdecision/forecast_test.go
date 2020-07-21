@@ -5,13 +5,10 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -46,10 +43,6 @@ var _ = Describe("Forecast", func() {
 					Entry("time missing",
 						func(datum *dataTypesDosingDecision.Forecast) { datum.Time = nil },
 						errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
-					),
-					Entry("time invalid",
-						func(datum *dataTypesDosingDecision.Forecast) { datum.Time = pointer.FromString("invalid") },
-						errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
 					),
 					Entry("value missing",
 						func(datum *dataTypesDosingDecision.Forecast) { datum.Value = nil },

@@ -1,6 +1,8 @@
 package pumpstatus
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -17,9 +19,9 @@ func BatteryUnits() []string {
 }
 
 type Battery struct {
-	Time      *string  `json:"time,omitempty" bson:"time,omitempty"`
-	Remaining *float64 `json:"remaining,omitempty" bson:"remaining,omitempty"`
-	Units     *string  `json:"units,omitempty" bson:"units,omitempty"`
+	Time      *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Remaining *float64   `json:"remaining,omitempty" bson:"remaining,omitempty"`
+	Units     *string    `json:"units,omitempty" bson:"units,omitempty"`
 }
 
 func ParseBattery(parser structure.ObjectParser) *Battery {
@@ -36,13 +38,12 @@ func NewBattery() *Battery {
 }
 
 func (b *Battery) Parse(parser structure.ObjectParser) {
-	b.Time = parser.String("time")
+	b.Time = parser.Time("time", TimeFormat)
 	b.Remaining = parser.Float64("remaining")
 	b.Units = parser.String("units")
 }
 
 func (b *Battery) Validate(validator structure.Validator) {
-	validator.String("time", b.Time).AsTime(TimeFormat)
 	validator.Float64("remaining", b.Remaining).Exists().InRange(BatteryRemainingPercentMinimum, BatteryRemainingPercentMaximum)
 	validator.String("units", b.Units).Exists().OneOf(BatteryUnits()...)
 }

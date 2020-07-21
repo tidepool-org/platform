@@ -1,6 +1,8 @@
 package dosingdecision
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -10,8 +12,8 @@ const (
 )
 
 type InsulinOnBoard struct {
-	StartTime *string  `json:"startTime,omitempty" bson:"startTime,omitempty"`
-	Amount    *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
+	StartTime *time.Time `json:"startTime,omitempty" bson:"startTime,omitempty"`
+	Amount    *float64   `json:"amount,omitempty" bson:"amount,omitempty"`
 }
 
 func ParseInsulinOnBoard(parser structure.ObjectParser) *InsulinOnBoard {
@@ -28,11 +30,10 @@ func NewInsulinOnBoard() *InsulinOnBoard {
 }
 
 func (i *InsulinOnBoard) Parse(parser structure.ObjectParser) {
-	i.StartTime = parser.String("startTime")
+	i.StartTime = parser.Time("startTime", TimeFormat)
 	i.Amount = parser.Float64("amount")
 }
 
 func (i *InsulinOnBoard) Validate(validator structure.Validator) {
-	validator.String("startTime", i.StartTime).AsTime(TimeFormat)
 	validator.Float64("amount", i.Amount).Exists().InRange(InsulinOnBoardAmountMinimum, InsulinOnBoardAmountMaximum)
 }

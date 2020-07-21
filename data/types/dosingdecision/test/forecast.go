@@ -8,7 +8,7 @@ import (
 
 func RandomForecast() *dataTypesDosingDecision.Forecast {
 	datum := dataTypesDosingDecision.NewForecast()
-	datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesDosingDecision.TimeFormat))
+	datum.Time = pointer.FromTime(test.RandomTime())
 	datum.Value = pointer.FromFloat64(test.RandomFloat64())
 	return datum
 }
@@ -18,7 +18,7 @@ func CloneForecast(datum *dataTypesDosingDecision.Forecast) *dataTypesDosingDeci
 		return nil
 	}
 	clone := dataTypesDosingDecision.NewForecast()
-	clone.Time = pointer.CloneString(datum.Time)
+	clone.Time = pointer.CloneTime(datum.Time)
 	clone.Value = pointer.CloneFloat64(datum.Value)
 	return clone
 }

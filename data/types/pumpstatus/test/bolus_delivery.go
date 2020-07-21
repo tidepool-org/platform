@@ -29,7 +29,7 @@ func CloneBolusDelivery(datum *dataTypesPumpStatus.BolusDelivery) *dataTypesPump
 
 func RandomBolusDose() *dataTypesPumpStatus.BolusDose {
 	datum := dataTypesPumpStatus.NewBolusDose()
-	datum.StartTime = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+	datum.StartTime = pointer.FromTime(test.RandomTime())
 	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesPumpStatus.BolusDoseAmountMinimum, dataTypesPumpStatus.BolusDoseAmountMaximum))
 	datum.AmountDelivered = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesPumpStatus.BolusDoseAmountDeliveredMinimum, dataTypesPumpStatus.BolusDoseAmountDeliveredMaximum))
 	return datum
@@ -40,7 +40,7 @@ func CloneBolusDose(datum *dataTypesPumpStatus.BolusDose) *dataTypesPumpStatus.B
 		return nil
 	}
 	clone := dataTypesPumpStatus.NewBolusDose()
-	clone.StartTime = pointer.CloneString(datum.StartTime)
+	clone.StartTime = pointer.CloneTime(datum.StartTime)
 	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	clone.AmountDelivered = pointer.CloneFloat64(datum.AmountDelivered)
 	return clone

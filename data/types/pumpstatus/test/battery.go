@@ -9,7 +9,7 @@ import (
 func RandomBattery() *dataTypesPumpStatus.Battery {
 	units := test.RandomStringFromArray(dataTypesPumpStatus.BatteryUnits())
 	datum := dataTypesPumpStatus.NewBattery()
-	datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+	datum.Time = pointer.FromTime(test.RandomTime())
 	switch units {
 	case dataTypesPumpStatus.BatteryUnitsPercent:
 		datum.Remaining = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesPumpStatus.BatteryRemainingPercentMinimum, dataTypesPumpStatus.BatteryRemainingPercentMaximum))
@@ -23,7 +23,7 @@ func CloneBattery(datum *dataTypesPumpStatus.Battery) *dataTypesPumpStatus.Batte
 		return nil
 	}
 	clone := dataTypesPumpStatus.NewBattery()
-	clone.Time = pointer.CloneString(datum.Time)
+	clone.Time = pointer.CloneTime(datum.Time)
 	clone.Remaining = pointer.CloneFloat64(datum.Remaining)
 	clone.Units = pointer.CloneString(datum.Units)
 	return clone

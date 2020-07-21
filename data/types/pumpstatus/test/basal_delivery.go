@@ -12,7 +12,7 @@ func RandomBasalDelivery() *dataTypesPumpStatus.BasalDelivery {
 	datum.State = pointer.FromString(state)
 	switch state {
 	case dataTypesPumpStatus.BasalDeliveryStateScheduled, dataTypesPumpStatus.BasalDeliveryStateSuspended:
-		datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+		datum.Time = pointer.FromTime(test.RandomTime())
 	case dataTypesPumpStatus.BasalDeliveryStateTemporary:
 		datum.Dose = RandomBasalDose()
 	}
@@ -25,16 +25,15 @@ func CloneBasalDelivery(datum *dataTypesPumpStatus.BasalDelivery) *dataTypesPump
 	}
 	clone := dataTypesPumpStatus.NewBasalDelivery()
 	clone.State = pointer.CloneString(datum.State)
-	clone.Time = pointer.CloneString(datum.Time)
+	clone.Time = pointer.CloneTime(datum.Time)
 	clone.Dose = CloneBasalDose(datum.Dose)
 	return clone
 }
 
 func RandomBasalDose() *dataTypesPumpStatus.BasalDose {
-	startTime := test.RandomTime()
 	datum := dataTypesPumpStatus.NewBasalDose()
-	datum.StartTime = pointer.FromString(startTime.Format(dataTypesPumpStatus.TimeFormat))
-	datum.EndTime = pointer.FromString(test.RandomTimeFromRange(startTime, test.RandomTimeMaximum()).Format(dataTypesPumpStatus.TimeFormat))
+	datum.StartTime = pointer.FromTime(test.RandomTime())
+	datum.EndTime = pointer.FromTime(test.RandomTimeFromRange(*datum.StartTime, test.RandomTimeMaximum()))
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesPumpStatus.BasalDoseRateMinimum, dataTypesPumpStatus.BasalDoseRateMaximum))
 	datum.AmountDelivered = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesPumpStatus.BasalDoseAmountDeliveredMinimum, dataTypesPumpStatus.BasalDoseAmountDeliveredMaximum))
 	return datum
@@ -45,8 +44,8 @@ func CloneBasalDose(datum *dataTypesPumpStatus.BasalDose) *dataTypesPumpStatus.B
 		return nil
 	}
 	clone := dataTypesPumpStatus.NewBasalDose()
-	clone.StartTime = pointer.CloneString(datum.StartTime)
-	clone.EndTime = pointer.CloneString(datum.EndTime)
+	clone.StartTime = pointer.CloneTime(datum.StartTime)
+	clone.EndTime = pointer.CloneTime(datum.EndTime)
 	clone.Rate = pointer.CloneFloat64(datum.Rate)
 	clone.AmountDelivered = pointer.CloneFloat64(datum.AmountDelivered)
 	return clone

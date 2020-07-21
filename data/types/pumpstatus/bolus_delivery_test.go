@@ -5,8 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	dataTypesPumpStatus "github.com/tidepool-org/platform/data/types/pumpstatus"
 	dataTypesPumpStatusTest "github.com/tidepool-org/platform/data/types/pumpstatus/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -181,10 +179,6 @@ var _ = Describe("BolusDelivery", func() {
 				Entry("succeeds",
 					func(datum *dataTypesPumpStatus.BolusDose) {},
 				),
-				Entry("start time invalid",
-					func(datum *dataTypesPumpStatus.BolusDose) { datum.StartTime = pointer.FromString("invalid") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/startTime"),
-				),
 				Entry("amount missing",
 					func(datum *dataTypesPumpStatus.BolusDose) { datum.Amount = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
@@ -215,11 +209,9 @@ var _ = Describe("BolusDelivery", func() {
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesPumpStatus.BolusDose) {
-						datum.StartTime = pointer.FromString("invalid")
 						datum.Amount = nil
 						datum.AmountDelivered = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/startTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amountDelivered"),
 				),

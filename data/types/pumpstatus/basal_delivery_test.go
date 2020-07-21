@@ -5,8 +5,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"time"
-
 	dataTypesPumpStatus "github.com/tidepool-org/platform/data/types/pumpstatus"
 	dataTypesPumpStatusTest "github.com/tidepool-org/platform/data/types/pumpstatus/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -117,7 +115,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state cancelingTemporary; time exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("cancelingTemporary")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/time"),
@@ -140,7 +138,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state initiatingTemporary; time exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("initiatingTemporary")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/time"),
@@ -163,7 +161,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state resuming; time exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("resuming")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/time"),
@@ -179,7 +177,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state scheduled",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("scheduled")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = nil
 					},
 				),
@@ -191,18 +189,10 @@ var _ = Describe("BasalDelivery", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
-				Entry("state scheduled; time invalid",
-					func(datum *dataTypesPumpStatus.BasalDelivery) {
-						datum.State = pointer.FromString("scheduled")
-						datum.Time = pointer.FromString("invalid")
-						datum.Dose = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
-				),
 				Entry("state scheduled; dose exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("scheduled")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = dataTypesPumpStatusTest.RandomBasalDose()
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/dose"),
@@ -210,7 +200,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state suspended",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("suspended")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = nil
 					},
 				),
@@ -222,18 +212,10 @@ var _ = Describe("BasalDelivery", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
-				Entry("state suspended; time invalid",
-					func(datum *dataTypesPumpStatus.BasalDelivery) {
-						datum.State = pointer.FromString("suspended")
-						datum.Time = pointer.FromString("invalid")
-						datum.Dose = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
-				),
 				Entry("state suspended; dose exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("suspended")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = dataTypesPumpStatusTest.RandomBasalDose()
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/dose"),
@@ -248,7 +230,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state suspending; time exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("suspending")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/time"),
@@ -271,7 +253,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("state temporary; time exists",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = pointer.FromString("temporary")
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = dataTypesPumpStatusTest.RandomBasalDose()
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/time"),
@@ -296,7 +278,7 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("multiple errors",
 					func(datum *dataTypesPumpStatus.BasalDelivery) {
 						datum.State = nil
-						datum.Time = pointer.FromString(test.RandomTime().Format(dataTypesPumpStatus.TimeFormat))
+						datum.Time = pointer.FromTime(test.RandomTime())
 						datum.Dose = dataTypesPumpStatusTest.RandomBasalDose()
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
@@ -332,13 +314,12 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("succeeds",
 					func(datum *dataTypesPumpStatus.BasalDose) {},
 				),
-				Entry("start time invalid",
-					func(datum *dataTypesPumpStatus.BasalDose) { datum.StartTime = pointer.FromString("invalid") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/startTime"),
-				),
-				Entry("end time invalid",
-					func(datum *dataTypesPumpStatus.BasalDose) { datum.EndTime = pointer.FromString("invalid") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/endTime"),
+				Entry("endTime before startTime",
+					func(datum *dataTypesPumpStatus.BasalDose) {
+						datum.StartTime = pointer.FromTime(test.PastNearTime())
+						datum.EndTime = pointer.FromTime(test.PastFarTime())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/endTime"),
 				),
 				Entry("rate missing",
 					func(datum *dataTypesPumpStatus.BasalDose) { datum.Rate = nil },
@@ -362,13 +343,12 @@ var _ = Describe("BasalDelivery", func() {
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesPumpStatus.BasalDose) {
-						datum.StartTime = pointer.FromString("invalid")
-						datum.EndTime = pointer.FromString("invalid")
+						datum.StartTime = pointer.FromTime(test.PastNearTime())
+						datum.EndTime = pointer.FromTime(test.PastFarTime())
 						datum.Rate = nil
 						datum.AmountDelivered = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/startTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/endTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/endTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amountDelivered"),
 				),
