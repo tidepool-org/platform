@@ -971,8 +971,62 @@ var _ = Describe("Base", func() {
 					},
 					func(datum *types.Base, expectedDatum *types.Base) {
 						expectedDatum.Time = pointer.FromString("2020-01-01T14:00:00Z")
-						expectedDatum.TimeZoneName = nil
+						expectedDatum.TimeZoneName = pointer.FromString("Etc/GMT-1")
 						expectedDatum.TimeZoneOffset = pointer.FromInt(60)
+					},
+				),
+				Entry("Time field set with offset, wrong TimeZoneName, correct TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00-0300")
+						datum.TimeZoneName = pointer.FromString("America/Chicago")
+						datum.TimeZoneOffset = pointer.FromInt(-180)
+						datum.DeviceTime = pointer.FromString("2020-01-01T15:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T18:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("Etc/GMT+3")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(-180)
+					},
+				),
+				Entry("Time field set with offset, no TimeZoneName, wrong TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00-0100")
+						datum.TimeZoneName = nil
+						datum.TimeZoneOffset = pointer.FromInt(180)
+						datum.DeviceTime = pointer.FromString("2020-01-01T15:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T16:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("Etc/GMT+1")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(-60)
+					},
+				),
+				Entry("Time field set as iso date, no TimeZoneName, correct TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						datum.TimeZoneName = nil
+						datum.TimeZoneOffset = pointer.FromInt(180)
+						datum.DeviceTime = pointer.FromString("2020-01-01T12:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("Etc/GMT-3")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(180)
+						expectedDatum.DeviceTime = pointer.FromString("2020-01-01T18:00:00")
+					},
+				),
+				Entry("Time field set as iso date, no TimeZoneName, no TimeZoneOffset",
+					func(datum *types.Base) {
+						datum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						datum.TimeZoneName = nil
+						datum.TimeZoneOffset = nil
+						datum.DeviceTime = pointer.FromString("2020-01-01T15:00:00")
+					},
+					func(datum *types.Base, expectedDatum *types.Base) {
+						expectedDatum.Time = pointer.FromString("2020-01-01T15:00:00Z")
+						expectedDatum.TimeZoneName = pointer.FromString("Etc/GMT")
+						expectedDatum.TimeZoneOffset = pointer.FromInt(0)
+						expectedDatum.DeviceTime = pointer.FromString("2020-01-01T15:00:00")
 					},
 				),
 				Entry("Time field set with offset , correct TimeZoneName and wrong TimeZoneOffset",

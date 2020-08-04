@@ -1,6 +1,7 @@
 package zone
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -37,6 +38,15 @@ func ValidateName(value string) error {
 
 func ErrorValueStringAsNameNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid time zone name", value)
+}
+
+func GetEtcZone(offset int) string {
+	etcTzOffset := offset / 60
+	etcTzSuffix := fmt.Sprintf("%+d", -etcTzOffset)
+	if etcTzOffset == 0 {
+		etcTzSuffix = ""
+	}
+	return fmt.Sprintf("Etc/GMT%s", etcTzSuffix)
 }
 
 var _Names []string

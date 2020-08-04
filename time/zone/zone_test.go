@@ -41,4 +41,15 @@ var _ = Describe("Zone", func() {
 			Entry("is ErrorValueStringAsNameNotValid with non-empty string", timeZone.ErrorValueStringAsNameNotValid("invalid"), "value-not-valid", "value is not valid", `value "invalid" is not valid time zone name`),
 		)
 	})
+	Context("GetEtcZone", func() {
+		It("returns an Etc/Gmt-{offset} when passing positive offset", func() {
+			Expect(timeZone.GetEtcZone(120)).To(Equal("Etc/GMT-2"))
+		})
+		It("returns an Etc/Gmt+{offset} when passing negative offset", func() {
+			Expect(timeZone.GetEtcZone(-240)).To(Equal("Etc/GMT+4"))
+		})
+		It("returns an Etc/Gmt when passing 0 offset", func() {
+			Expect(timeZone.GetEtcZone(0)).To(Equal("Etc/GMT"))
+		})
+	})
 })
