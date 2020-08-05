@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.8.4 2020-08-04 
+### Changed
+- PT-1455 Fix soup list generation in CI
+
 ## 0.8.3 2020-07-13 
 ### Changed
 - PT-1403 Add a timezone based on timezoneOffset on data upload.

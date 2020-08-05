@@ -65,7 +65,8 @@ services:
 
 script:
   # - make ci-generate ci-build ci-test ci-snyk ci-deploy ci-docker
-  - make ci-generate ci-build ci-test ci-deploy ci-soups ci-docker
+  - make ci-generate ci-build ci-test ci-deploy ci-docker
+  - GO111MODULE="on" make ci-soups
 cache:
   directories:
     - $HOME/.cache/go-build
