@@ -3,67 +3,70 @@ package test
 import (
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
-	"github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewBloodGlucoseTargetStart(units *string, startMinimum int) *pump.BloodGlucoseTargetStart {
-	datum := pump.NewBloodGlucoseTargetStart()
+func RandomBloodGlucoseTargetStart(units *string, startMinimum int) *dataTypesSettingsPump.BloodGlucoseTargetStart {
+	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStart()
 	datum.Target = *dataBloodGlucoseTest.NewTarget(units)
-	if startMinimum == pump.BloodGlucoseTargetStartStartMinimum {
-		datum.Start = pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)
+	if startMinimum == dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum {
+		datum.Start = pointer.FromInt(dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum)
 	} else {
-		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, pump.BloodGlucoseTargetStartStartMaximum))
+		datum.Start = pointer.FromInt(test.RandomIntFromRange(startMinimum, dataTypesSettingsPump.BloodGlucoseTargetStartStartMaximum))
 	}
 	return datum
 }
 
-func CloneBloodGlucoseTargetStart(datum *pump.BloodGlucoseTargetStart) *pump.BloodGlucoseTargetStart {
+func CloneBloodGlucoseTargetStart(datum *dataTypesSettingsPump.BloodGlucoseTargetStart) *dataTypesSettingsPump.BloodGlucoseTargetStart {
 	if datum == nil {
 		return nil
 	}
-	clone := pump.NewBloodGlucoseTargetStart()
+	clone := dataTypesSettingsPump.NewBloodGlucoseTargetStart()
 	clone.Target = *dataBloodGlucoseTest.CloneTarget(&datum.Target)
 	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
 }
 
-func NewBloodGlucoseTargetStartArray(units *string) *pump.BloodGlucoseTargetStartArray {
-	datum := pump.NewBloodGlucoseTargetStartArray()
-	*datum = append(*datum, NewBloodGlucoseTargetStart(units, pump.BloodGlucoseTargetStartStartMinimum))
-	*datum = append(*datum, NewBloodGlucoseTargetStart(units, *datum.Last().Start+1))
-	*datum = append(*datum, NewBloodGlucoseTargetStart(units, *datum.Last().Start+1))
-	return datum
+func RandomBloodGlucoseTargetStartArray(units *string) *dataTypesSettingsPump.BloodGlucoseTargetStartArray {
+	startMinimum := dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum
+	datumArray := dataTypesSettingsPump.NewBloodGlucoseTargetStartArray()
+	for count := test.RandomIntFromRange(1, 3); count > 0; count-- {
+		datum := RandomBloodGlucoseTargetStart(units, startMinimum)
+		*datumArray = append(*datumArray, datum)
+		startMinimum = *datum.Start + 1
+	}
+	return datumArray
 }
 
-func CloneBloodGlucoseTargetStartArray(datumArray *pump.BloodGlucoseTargetStartArray) *pump.BloodGlucoseTargetStartArray {
+func CloneBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGlucoseTargetStartArray) *dataTypesSettingsPump.BloodGlucoseTargetStartArray {
 	if datumArray == nil {
 		return nil
 	}
-	clone := pump.NewBloodGlucoseTargetStartArray()
+	cloneArray := dataTypesSettingsPump.NewBloodGlucoseTargetStartArray()
 	for _, datum := range *datumArray {
-		*clone = append(*clone, CloneBloodGlucoseTargetStart(datum))
+		*cloneArray = append(*cloneArray, CloneBloodGlucoseTargetStart(datum))
 	}
-	return clone
+	return cloneArray
 }
 
-func NewBloodGlucoseTargetStartArrayMap(units *string) *pump.BloodGlucoseTargetStartArrayMap {
-	datum := pump.NewBloodGlucoseTargetStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewBloodGlucoseTargetStartArray(units))
-	return datum
-}
-
-func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *pump.BloodGlucoseTargetStartArrayMap) *pump.BloodGlucoseTargetStartArrayMap {
+func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
 	if datumArrayMap == nil {
 		return nil
 	}
-	clone := pump.NewBloodGlucoseTargetStartArrayMap()
+	clone := dataTypesSettingsPump.NewBloodGlucoseTargetStartArrayMap()
 	for datumName, datumArray := range *datumArrayMap {
 		clone.Set(datumName, CloneBloodGlucoseTargetStartArray(datumArray))
 	}
 	return clone
+}
+
+func NewBloodGlucoseTargetStartArrayMap(units *string) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
+	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStartArrayMap()
+	datum.Set(dataTypesBasalTest.NewScheduleName(), RandomBloodGlucoseTargetStartArray(units))
+	return datum
 }
 
 type ValidatableWithUnitsAndStartMinimum interface {

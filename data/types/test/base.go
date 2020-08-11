@@ -52,7 +52,7 @@ func NewBase() *types.Base {
 	datum.Type = NewType()
 	datum.UploadID = pointer.FromString(dataTest.RandomSetID())
 	datum.UserID = pointer.FromString(userTest.RandomID())
-	datum.Version = NewVersion()
+	datum.VersionInternal = NewVersionInternal()
 	return datum
 }
 
@@ -91,6 +91,6 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.Type = datum.Type
 	clone.UploadID = pointer.CloneString(datum.UploadID)
 	clone.UserID = pointer.CloneString(datum.UserID)
-	clone.Version = datum.Version
+	clone.VersionInternal = datum.VersionInternal
 	return clone
 }

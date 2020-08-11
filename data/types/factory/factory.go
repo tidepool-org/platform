@@ -13,12 +13,16 @@ import (
 	dataTypesCalculator "github.com/tidepool-org/platform/data/types/calculator"
 	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceFactory "github.com/tidepool-org/platform/data/types/device/factory"
+	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
+	dataTypesPumpStatus "github.com/tidepool-org/platform/data/types/pumpstatus"
+	dataTypesSettingsApplication "github.com/tidepool-org/platform/data/types/settings/application"
 	dataTypesSettingsCGM "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
+	dataTypesWater "github.com/tidepool-org/platform/data/types/water"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -32,12 +36,16 @@ var types = []string{
 	dataTypesBolus.Type,
 	dataTypesCalculator.Type,
 	dataTypesDevice.Type,
+	dataTypesDosingDecision.Type,
 	dataTypesFood.Type,
 	dataTypesInsulin.Type,
+	dataTypesPumpStatus.Type,
+	dataTypesSettingsApplication.Type,
 	dataTypesSettingsCGM.Type,
 	dataTypesSettingsPump.Type,
 	dataTypesStateReported.Type,
 	dataTypesUpload.Type,
+	dataTypesWater.Type,
 }
 
 func NewDatum(parser structure.ObjectParser) data.Datum {
@@ -68,10 +76,16 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesCalculator.New()
 	case dataTypesDevice.Type:
 		return dataTypesDeviceFactory.NewDeviceDatum(parser)
+	case dataTypesDosingDecision.Type:
+		return dataTypesDosingDecision.New()
 	case dataTypesFood.Type:
 		return dataTypesFood.New()
 	case dataTypesInsulin.Type:
 		return dataTypesInsulin.New()
+	case dataTypesPumpStatus.Type:
+		return dataTypesPumpStatus.New()
+	case dataTypesSettingsApplication.Type:
+		return dataTypesSettingsApplication.New()
 	case dataTypesSettingsCGM.Type:
 		return dataTypesSettingsCGM.New()
 	case dataTypesSettingsPump.Type:
@@ -80,6 +94,8 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesStateReported.New()
 	case dataTypesUpload.Type:
 		return dataTypesUpload.New()
+	case dataTypesWater.Type:
+		return dataTypesWater.New()
 	}
 
 	parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, types))

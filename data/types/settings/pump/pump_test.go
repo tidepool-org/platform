@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
@@ -33,19 +34,25 @@ var _ = Describe("Pump", func() {
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("pumpSettings"))
 			Expect(datum.ActiveScheduleName).To(BeNil())
+			Expect(datum.AutomatedDelivery).To(BeNil())
 			Expect(datum.Basal).To(BeNil())
 			Expect(datum.BasalRateSchedule).To(BeNil())
 			Expect(datum.BasalRateSchedules).To(BeNil())
+			Expect(datum.BloodGlucoseSuspendThreshold).To(BeNil())
+			Expect(datum.BloodGlucoseTargetPhysicalActivity).To(BeNil())
+			Expect(datum.BloodGlucoseTargetPreprandial).To(BeNil())
 			Expect(datum.BloodGlucoseTargetSchedule).To(BeNil())
 			Expect(datum.BloodGlucoseTargetSchedules).To(BeNil())
 			Expect(datum.Bolus).To(BeNil())
 			Expect(datum.CarbohydrateRatioSchedule).To(BeNil())
 			Expect(datum.CarbohydrateRatioSchedules).To(BeNil())
 			Expect(datum.Display).To(BeNil())
+			Expect(datum.InsulinModel).To(BeNil())
 			Expect(datum.InsulinSensitivitySchedule).To(BeNil())
 			Expect(datum.InsulinSensitivitySchedules).To(BeNil())
 			Expect(datum.Manufacturers).To(BeNil())
 			Expect(datum.Model).To(BeNil())
+			Expect(datum.ScheduleTimeZoneOffset).To(BeNil())
 			Expect(datum.SerialNumber).To(BeNil())
 			Expect(datum.Units).To(BeNil())
 		})
@@ -96,6 +103,18 @@ var _ = Describe("Pump", func() {
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.ActiveScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
 					},
+				),
+				Entry("automated delivery missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.AutomatedDelivery = nil },
+				),
+				Entry("automated delivery false",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.AutomatedDelivery = pointer.FromBool(false) },
+				),
+				Entry("automated delivery true",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.AutomatedDelivery = pointer.FromBool(true) },
 				),
 				Entry("basal missing",
 					pointer.FromString("mmol/L"),
@@ -150,6 +169,70 @@ var _ = Describe("Pump", func() {
 						datum.BasalRateSchedules.Set("one", pumpTest.NewBasalRateStartArray())
 					},
 				),
+				Entry("blood glucose suspend threshold missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.BloodGlucoseSuspendThreshold = nil },
+				),
+				Entry("blood glucose suspend threshold out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseSuspendThreshold = pointer.FromFloat64(-0.1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 55.0), "/bgSuspendThreshold", pumpTest.NewMeta()),
+				),
+				Entry("blood glucose suspend threshold in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseSuspendThreshold = pointer.FromFloat64(0.0)
+					},
+				),
+				Entry("blood glucose suspend threshold in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseSuspendThreshold = pointer.FromFloat64(55.0)
+					},
+				),
+				Entry("blood glucose suspend threshold out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseSuspendThreshold = pointer.FromFloat64(55.1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(55.1, 0.0, 55.0), "/bgSuspendThreshold", pumpTest.NewMeta()),
+				),
+				Entry("blood glucose target physical activity missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.BloodGlucoseTargetPhysicalActivity = nil },
+				),
+				Entry("blood glucose target physical activity invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucose.NewTarget()
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPhysicalActivity/target", pumpTest.NewMeta()),
+				),
+				Entry("blood glucose target physical activity valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+					},
+				),
+				Entry("blood glucose target preprandial missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.BloodGlucoseTargetPreprandial = nil },
+				),
+				Entry("blood glucose target preprandial invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucose.NewTarget()
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPreprandial/target", pumpTest.NewMeta()),
+				),
+				Entry("blood glucose target preprandial valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+					},
+				),
 				Entry("blood glucose target schedule and blood glucose target schedules missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
@@ -161,7 +244,7 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target schedule invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						invalidBloodGlucoseTargetSchedule := pumpTest.NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						invalidBloodGlucoseTargetSchedule := pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
 						datum.BloodGlucoseTargetSchedule = invalidBloodGlucoseTargetSchedule
 						datum.BloodGlucoseTargetSchedules = nil
@@ -171,14 +254,14 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target schedule valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTargetSchedule = pumpTest.NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						datum.BloodGlucoseTargetSchedule = pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.BloodGlucoseTargetSchedules = nil
 					},
 				),
 				Entry("blood glucose target schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						invalidBloodGlucoseTargetSchedule := pumpTest.NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						invalidBloodGlucoseTargetSchedule := pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						(*invalidBloodGlucoseTargetSchedule)[0].Start = nil
 						datum.BloodGlucoseTargetSchedules.Set("one", invalidBloodGlucoseTargetSchedule)
 					},
@@ -187,7 +270,7 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target schedules valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTargetSchedules.Set("one", pumpTest.NewBloodGlucoseTargetStartArray(unitsBloodGlucose))
+						datum.BloodGlucoseTargetSchedules.Set("one", pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose))
 					},
 				),
 				Entry("bolus missing",
@@ -255,6 +338,24 @@ var _ = Describe("Pump", func() {
 				Entry("display valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Display = pumpTest.NewDisplay() },
+				),
+				Entry("insulin model missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.InsulinModel = nil },
+				),
+				Entry("insulin model invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinModel.ModelType = pointer.FromString("invalid")
+						datum.InsulinModel.ModelTypeOther = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"fiasp", "other", "rapidAdult", "rapidChild", "walsh"}), "/insulinModel/modelType", pumpTest.NewMeta()),
+				),
+				Entry("insulin model valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinModel = pumpTest.RandomInsulinModel()
+					},
 				),
 				Entry("insulin sensitivity schedule and insulin sensitivity schedules missing",
 					pointer.FromString("mmol/L"),
@@ -365,6 +466,36 @@ var _ = Describe("Pump", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/model", pumpTest.NewMeta()),
 				),
+				Entry("schedules time zone offset missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.ScheduleTimeZoneOffset = nil },
+				),
+				Entry("schedules time zone offset out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.ScheduleTimeZoneOffset = pointer.FromInt(pump.ScheduleTimeZoneOffsetMinimum - 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.ScheduleTimeZoneOffsetMinimum-1, pump.ScheduleTimeZoneOffsetMinimum, pump.ScheduleTimeZoneOffsetMaximum), "/scheduleTimeZoneOffset", pumpTest.NewMeta()),
+				),
+				Entry("schedules time zone offset in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.ScheduleTimeZoneOffset = pointer.FromInt(pump.ScheduleTimeZoneOffsetMinimum)
+					},
+				),
+				Entry("schedules time zone offset in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.ScheduleTimeZoneOffset = pointer.FromInt(pump.ScheduleTimeZoneOffsetMaximum)
+					},
+				),
+				Entry("schedules time zone offset out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.ScheduleTimeZoneOffset = pointer.FromInt(pump.ScheduleTimeZoneOffsetMaximum + 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.ScheduleTimeZoneOffsetMaximum+1, pump.ScheduleTimeZoneOffsetMinimum, pump.ScheduleTimeZoneOffsetMaximum), "/scheduleTimeZoneOffset", pumpTest.NewMeta()),
+				),
 				Entry("serial number missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.SerialNumber = nil },
@@ -400,7 +531,9 @@ var _ = Describe("Pump", func() {
 				),
 				Entry("units valid",
 					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Units = pumpTest.NewUnits(unitsBloodGlucose) },
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.Units = pumpTest.RandomUnits(unitsBloodGlucose)
+					},
 				),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
@@ -409,27 +542,36 @@ var _ = Describe("Pump", func() {
 						datum.ActiveScheduleName = pointer.FromString("")
 						datum.Basal.Temporary.Type = nil
 						datum.BasalRateSchedules = nil
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucose.NewTarget()
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucose.NewTarget()
 						datum.BloodGlucoseTargetSchedules = nil
 						datum.Bolus.Extended.Enabled = nil
 						datum.CarbohydrateRatioSchedules = nil
 						datum.Display.BloodGlucose.Units = nil
+						datum.InsulinModel.ModelType = pointer.FromString("invalid")
+						datum.InsulinModel.ModelTypeOther = nil
 						datum.InsulinSensitivitySchedules = nil
 						datum.Manufacturers = pointer.FromStringArray([]string{})
 						datum.Model = pointer.FromString("")
+						datum.ScheduleTimeZoneOffset = pointer.FromInt(pump.ScheduleTimeZoneOffsetMinimum - 1)
 						datum.SerialNumber = pointer.FromString("")
-						datum.Units = pumpTest.NewUnits(pointer.FromString("invalid"))
+						datum.Units = pumpTest.RandomUnits(pointer.FromString("invalid"))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "pumpSettings"), "/type", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/activeSchedule", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basal/temporary/type", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basalSchedule", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPhysicalActivity/target", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPreprandial/target", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"fiasp", "other", "rapidAdult", "rapidChild", "walsh"}), "/insulinModel/modelType", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.ScheduleTimeZoneOffsetMinimum-1, pump.ScheduleTimeZoneOffsetMinimum, pump.ScheduleTimeZoneOffsetMaximum), "/scheduleTimeZoneOffset", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units/bg", &types.Meta{Type: "invalidType"}),
 				),
@@ -492,7 +634,10 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mg/dL"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BasalRateSchedule = pumpTest.NewBasalRateStartArray()
-						datum.BloodGlucoseTargetSchedule = pumpTest.NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						datum.BloodGlucoseSuspendThreshold = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(unitsBloodGlucose)))
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetSchedule = pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = pumpTest.NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = pumpTest.NewInsulinSensitivityStartArray(unitsBloodGlucose)
 					},
@@ -500,6 +645,9 @@ var _ = Describe("Pump", func() {
 						for index := range *datum.BloodGlucoseTargetSchedule {
 							dataBloodGlucoseTest.ExpectNormalizedTarget(&(*datum.BloodGlucoseTargetSchedule)[index].Target, &(*expectedDatum.BloodGlucoseTargetSchedule)[index].Target, unitsBloodGlucose)
 						}
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.BloodGlucoseSuspendThreshold, expectedDatum.BloodGlucoseSuspendThreshold, unitsBloodGlucose)
+						dataBloodGlucoseTest.ExpectNormalizedTarget(datum.BloodGlucoseTargetPhysicalActivity, expectedDatum.BloodGlucoseTargetPhysicalActivity, unitsBloodGlucose)
+						dataBloodGlucoseTest.ExpectNormalizedTarget(datum.BloodGlucoseTargetPreprandial, expectedDatum.BloodGlucoseTargetPreprandial, unitsBloodGlucose)
 						for name := range *datum.BloodGlucoseTargetSchedules {
 							for index := range *(*datum.BloodGlucoseTargetSchedules)[name] {
 								dataBloodGlucoseTest.ExpectNormalizedTarget(&(*(*datum.BloodGlucoseTargetSchedules)[name])[index].Target, &(*(*expectedDatum.BloodGlucoseTargetSchedules)[name])[index].Target, unitsBloodGlucose)
@@ -521,7 +669,10 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mg/dl"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BasalRateSchedule = pumpTest.NewBasalRateStartArray()
-						datum.BloodGlucoseTargetSchedule = pumpTest.NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
+						datum.BloodGlucoseSuspendThreshold = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(unitsBloodGlucose)))
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetSchedule = pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = pumpTest.NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = pumpTest.NewInsulinSensitivityStartArray(unitsBloodGlucose)
 					},
@@ -529,6 +680,9 @@ var _ = Describe("Pump", func() {
 						for index := range *datum.BloodGlucoseTargetSchedule {
 							dataBloodGlucoseTest.ExpectNormalizedTarget(&(*datum.BloodGlucoseTargetSchedule)[index].Target, &(*expectedDatum.BloodGlucoseTargetSchedule)[index].Target, unitsBloodGlucose)
 						}
+						dataBloodGlucoseTest.ExpectNormalizedValue(datum.BloodGlucoseSuspendThreshold, expectedDatum.BloodGlucoseSuspendThreshold, unitsBloodGlucose)
+						dataBloodGlucoseTest.ExpectNormalizedTarget(datum.BloodGlucoseTargetPhysicalActivity, expectedDatum.BloodGlucoseTargetPhysicalActivity, unitsBloodGlucose)
+						dataBloodGlucoseTest.ExpectNormalizedTarget(datum.BloodGlucoseTargetPreprandial, expectedDatum.BloodGlucoseTargetPreprandial, unitsBloodGlucose)
 						for name := range *datum.BloodGlucoseTargetSchedules {
 							for index := range *(*datum.BloodGlucoseTargetSchedules)[name] {
 								dataBloodGlucoseTest.ExpectNormalizedTarget(&(*(*datum.BloodGlucoseTargetSchedules)[name])[index].Target, &(*(*expectedDatum.BloodGlucoseTargetSchedules)[name])[index].Target, unitsBloodGlucose)

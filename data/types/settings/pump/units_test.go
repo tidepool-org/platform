@@ -5,11 +5,10 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
-
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypesSettingsPumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -26,8 +25,16 @@ var _ = Describe("Units", func() {
 		Expect(pump.CarbohydrateGrams).To(Equal("grams"))
 	})
 
+	It("InsulinUnits is expected", func() {
+		Expect(pump.InsulinUnits).To(Equal("Units"))
+	})
+
 	It("Carbohydrates returns expected", func() {
 		Expect(pump.Carbohydrates()).To(Equal([]string{"exchanges", "grams"}))
+	})
+
+	It("Insulins returns expected", func() {
+		Expect(pump.Insulins()).To(Equal([]string{"Units"}))
 	})
 
 	Context("ParseUnits", func() {
@@ -48,7 +55,7 @@ var _ = Describe("Units", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.Units), expectedErrors ...error) {
-					datum := pumpTest.NewUnits(pointer.FromString("mmol/L"))
+					datum := dataTypesSettingsPumpTest.RandomUnits(pointer.FromString("mmol/L"))
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -89,13 +96,25 @@ var _ = Describe("Units", func() {
 				Entry("carbohydrate grams",
 					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("grams") },
 				),
+				Entry("insulin missing",
+					func(datum *pump.Units) { datum.Insulin = nil },
+				),
+				Entry("insulin invalid",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/insulin"),
+				),
+				Entry("insulin Units",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("Units") },
+				),
 				Entry("multiple errors",
 					func(datum *pump.Units) {
 						datum.BloodGlucose = nil
 						datum.Carbohydrate = nil
+						datum.Insulin = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/bg"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/carb"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"Units"}), "/insulin"),
 				),
 			)
 		})
@@ -104,9 +123,9 @@ var _ = Describe("Units", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
 					for _, origin := range structure.Origins() {
-						datum := pumpTest.NewUnits(pointer.FromString("mmol/L"))
+						datum := dataTypesSettingsPumpTest.RandomUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
-						expectedDatum := pumpTest.CloneUnits(datum)
+						expectedDatum := dataTypesSettingsPumpTest.CloneUnits(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -146,13 +165,25 @@ var _ = Describe("Units", func() {
 					func(datum *pump.Units) { datum.Carbohydrate = pointer.FromString("grams") },
 					nil,
 				),
+				Entry("does not modify the datum; insulin missing",
+					func(datum *pump.Units) { datum.Insulin = nil },
+					nil,
+				),
+				Entry("does not modify the datum; insulin invalid",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("invalid") },
+					nil,
+				),
+				Entry("does not modify the datum; insulin Units",
+					func(datum *pump.Units) { datum.Insulin = pointer.FromString("Units") },
+					nil,
+				),
 			)
 
 			DescribeTable("normalizes the datum with origin external",
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
-					datum := pumpTest.NewUnits(pointer.FromString("mmol/L"))
+					datum := dataTypesSettingsPumpTest.RandomUnits(pointer.FromString("mmol/L"))
 					mutator(datum)
-					expectedDatum := pumpTest.CloneUnits(datum)
+					expectedDatum := dataTypesSettingsPumpTest.CloneUnits(datum)
 					normalizer := dataNormalizer.New()
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -190,9 +221,9 @@ var _ = Describe("Units", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(mutator func(datum *pump.Units), expectator func(datum *pump.Units, expectedDatum *pump.Units)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := pumpTest.NewUnits(pointer.FromString("mmol/L"))
+						datum := dataTypesSettingsPumpTest.RandomUnits(pointer.FromString("mmol/L"))
 						mutator(datum)
-						expectedDatum := pumpTest.CloneUnits(datum)
+						expectedDatum := dataTypesSettingsPumpTest.CloneUnits(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
