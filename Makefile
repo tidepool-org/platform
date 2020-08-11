@@ -36,7 +36,7 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPOSITORY:="${DOCKER_REGISTRY}/mdblp/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
+	DOCKER_REPOSITORY:="${DOCKER_REGISTRY}/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
 endif
 
 default: test

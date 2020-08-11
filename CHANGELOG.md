@@ -4,6 +4,8 @@ The Tidepool platform API
 ## Unreleased
 ### Changed 
 - PT-1332 Remove external gateway calls in platform
+### Engineering
+- YLP-130 Remove "mdblp" from docker image name
 
 ## 0.8.4 2020-08-04 
 ### Changed
