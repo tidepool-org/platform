@@ -64,9 +64,11 @@ func (d *DEPRECATEDService) initializeSecret() error {
 func (d *DEPRECATEDService) initializeAuthClient() error {
 	d.Logger().Debug("Loading auth client config")
 
+	userAgent := d.UserAgent()
 	cfg := authClient.NewConfig()
-	cfg.UserAgent = d.UserAgent()
-	cfg.ExternalConfig.UserAgent = d.UserAgent()
+	cfg.UserAgent = userAgent
+	cfg.ExternalConfig.AuthenticationConfig.UserAgent = d.UserAgent()
+	cfg.ExternalConfig.AuthorizationConfig.UserAgent = d.UserAgent()
 	if err := cfg.Load(d.ConfigReporter().WithScopes("auth", "client")); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}

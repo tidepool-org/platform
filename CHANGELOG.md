@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## Unreleased
+### Changed 
+- PT-1332 Remove external gateway calls in platform
+
 ## 0.8.4 2020-08-04 
 ### Changed
 - PT-1455 Fix soup list generation in CI

@@ -44,7 +44,7 @@ var _ = Describe("Service", func() {
 			server = NewServer()
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/auth/serverlogin"),
+					VerifyRequest(http.MethodPost, "/serverlogin"),
 					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
 					VerifyBody(nil),
@@ -55,7 +55,8 @@ var _ = Describe("Service", func() {
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 				"external": map[string]interface{}{
-					"address":                     server.URL(),
+					"authentication_address":      server.URL(),
+					"authorization_address":       server.URL(),
 					"server_session_token_secret": serverSecret,
 				},
 			}

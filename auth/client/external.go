@@ -25,23 +25,29 @@ const (
 )
 
 type ExternalConfig struct {
-	*platform.Config
+	AuthenticationConfig      *platform.Config
+	AuthorizationConfig       *platform.Config
 	ServerSessionTokenSecret  string
 	ServerSessionTokenTimeout time.Duration
 }
 
 func NewExternalConfig() *ExternalConfig {
 	return &ExternalConfig{
-		Config:                    platform.NewConfig(),
+		AuthenticationConfig:      platform.NewConfig(),
+		AuthorizationConfig:       platform.NewConfig(),
 		ServerSessionTokenTimeout: 3600 * time.Second,
 	}
 }
 
 func (e *ExternalConfig) Load(configReporter config.Reporter) error {
-	if err := e.Config.Load(configReporter); err != nil {
+	if err := e.AuthenticationConfig.Load(configReporter); err != nil {
 		return err
 	}
-
+	if err := e.AuthorizationConfig.Load(configReporter); err != nil {
+		return err
+	}
+	e.AuthenticationConfig.Address = configReporter.GetWithDefault("authentication_address", "")
+	e.AuthorizationConfig.Address = configReporter.GetWithDefault("authorization_address", "")
 	e.ServerSessionTokenSecret = configReporter.GetWithDefault("server_session_token_secret", "")
 	if serverSessionTokenTimeoutString, err := configReporter.Get("server_session_token_timeout"); err == nil {
 		var serverSessionTokenTimeoutInteger int64
@@ -56,7 +62,10 @@ func (e *ExternalConfig) Load(configReporter config.Reporter) error {
 }
 
 func (e *ExternalConfig) Validate() error {
-	if err := e.Config.Validate(); err != nil {
+	if err := e.AuthenticationConfig.Validate(); err != nil {
+		return err
+	}
+	if err := e.AuthorizationConfig.Validate(); err != nil {
 		return err
 	}
 
@@ -71,7 +80,8 @@ func (e *ExternalConfig) Validate() error {
 }
 
 type External struct {
-	client                    *platform.Client
+	authenticationClient      *platform.Client
+	authorizationClient       *platform.Client
 	name                      string
 	logger                    log.Logger
 	serverSessionTokenSecret  string
@@ -96,13 +106,18 @@ func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name str
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	clnt, err := platform.NewClient(cfg.Config, authorizeAs)
+	authenticationClnt, err := platform.NewClient(cfg.AuthenticationConfig, authorizeAs)
+	if err != nil {
+		return nil, err
+	}
+	authorizationClnt, err := platform.NewClient(cfg.AuthorizationConfig, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
 
 	return &External{
-		client:                    clnt,
+		authenticationClient:      authenticationClnt,
+		authorizationClient:       authorizationClnt,
 		logger:                    lgr,
 		name:                      name,
 		serverSessionTokenSecret:  cfg.ServerSessionTokenSecret,
@@ -172,7 +187,7 @@ func (e *External) ValidateSessionToken(ctx context.Context, token string) (requ
 		IsServer bool
 		UserID   string
 	}
-	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL("auth", "token", token), nil, nil, &result); err != nil {
+	if err := e.authenticationClient.RequestData(ctx, "GET", e.authenticationClient.ConstructURL("token", token), nil, nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -233,9 +248,9 @@ func (e *External) EnsureAuthorizedUser(ctx context.Context, targetUserID string
 				return authenticatedUserID, nil
 			}
 		} else {
-			url := e.client.ConstructURL("access", targetUserID, authenticatedUserID)
+			url := e.authorizationClient.ConstructURL("access", targetUserID, authenticatedUserID)
 			permissions := permission.Permissions{}
-			if err := e.client.RequestData(ctx, "GET", url, nil, nil, &permissions); err != nil {
+			if err := e.authorizationClient.RequestData(ctx, "GET", url, nil, nil, &permissions); err != nil {
 				if !request.IsErrorResourceNotFound(err) {
 					return "", errors.Wrap(err, "unable to get user permissions")
 				}
@@ -273,7 +288,7 @@ func (e *External) refreshServerSessionToken() error {
 	e.logger.Debug("Refreshing server session token")
 
 	requestMethod := "POST"
-	requestURL := e.client.ConstructURL("auth", "serverlogin")
+	requestURL := e.authenticationClient.ConstructURL("serverlogin")
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new request for %s %s", requestMethod, requestURL)
@@ -282,7 +297,7 @@ func (e *External) refreshServerSessionToken() error {
 	request.Header.Add(TidepoolServerNameHeaderName, e.name)
 	request.Header.Add(TidepoolServerSecretHeaderName, e.serverSessionTokenSecret)
 
-	response, err := e.client.HTTPClient().Do(request)
+	response, err := e.authenticationClient.HTTPClient().Do(request)
 	if err != nil {
 		return errors.Wrap(err, "unable to refresh server session token")
 	}

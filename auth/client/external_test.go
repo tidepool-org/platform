@@ -30,7 +30,8 @@ var _ = Describe("External", func() {
 
 	BeforeEach(func() {
 		config = authClient.NewExternalConfig()
-		config.UserAgent = testHttp.NewUserAgent()
+		config.AuthenticationConfig.UserAgent = testHttp.NewUserAgent()
+		config.AuthorizationConfig.UserAgent = testHttp.NewUserAgent()
 		config.ServerSessionTokenSecret = authTest.NewServiceSecret()
 		authorizeAs = platform.AuthorizeAsService
 		name = test.RandomString()
@@ -39,7 +40,8 @@ var _ = Describe("External", func() {
 
 	Context("NewExternal", func() {
 		BeforeEach(func() {
-			config.Address = testHttp.NewAddress()
+			config.AuthenticationConfig.Address = testHttp.NewAddress()
+			config.AuthorizationConfig.Address = testHttp.NewAddress()
 		})
 
 		It("returns an error when the config is missing", func() {
@@ -98,7 +100,8 @@ var _ = Describe("External", func() {
 		JustBeforeEach(func() {
 			server.AppendHandlers(CombineHandlers(requestHandlers...))
 			var err error
-			config.Address = server.URL()
+			config.AuthenticationConfig.Address = server.URL()
+			config.AuthorizationConfig.Address = server.URL()
 			client, err = authClient.NewExternal(config, authorizeAs, name, logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())

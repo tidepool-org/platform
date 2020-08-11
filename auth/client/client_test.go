@@ -53,8 +53,10 @@ var _ = Describe("Client", func() {
 			config.Config.Address = testHttp.NewAddress()
 			config.Config.UserAgent = testHttp.NewUserAgent()
 			config.Config.ServiceSecret = authTest.NewServiceSecret()
-			config.ExternalConfig.Address = testHttp.NewAddress()
-			config.ExternalConfig.UserAgent = testHttp.NewUserAgent()
+			config.ExternalConfig.AuthenticationConfig.Address = testHttp.NewAddress()
+			config.ExternalConfig.AuthorizationConfig.Address = testHttp.NewAddress()
+			config.ExternalConfig.AuthenticationConfig.UserAgent = testHttp.NewUserAgent()
+			config.ExternalConfig.AuthorizationConfig.UserAgent = testHttp.NewUserAgent()
 			config.ExternalConfig.ServerSessionTokenSecret = serverTokenSecret
 			config.ExternalConfig.ServerSessionTokenTimeout = time.Duration(serverTokenTimeout) * time.Second
 			authorizeAs = platform.AuthorizeAsService
@@ -92,6 +94,20 @@ var _ = Describe("Client", func() {
 			Expect(client).To(BeNil())
 		})
 
+		It("returns an error if config external authentication address is missing", func() {
+			config.ExternalConfig.AuthenticationConfig.Address = ""
+			client, err := authClient.NewClient(config, authorizeAs, name, logger)
+			errorsTest.ExpectEqual(err, errors.New("config is invalid"))
+			Expect(client).To(BeNil())
+		})
+
+		It("returns an error if config external authorization address is missing", func() {
+			config.ExternalConfig.AuthorizationConfig.Address = ""
+			client, err := authClient.NewClient(config, authorizeAs, name, logger)
+			errorsTest.ExpectEqual(err, errors.New("config is invalid"))
+			Expect(client).To(BeNil())
+		})
+
 		It("returns success", func() {
 			client, err := authClient.NewClient(config, authorizeAs, name, logger)
 			Expect(err).ToNot(HaveOccurred())
@@ -114,8 +130,10 @@ var _ = Describe("Client", func() {
 			config.Config.Address = server.URL()
 			config.Config.UserAgent = testHttp.NewUserAgent()
 			config.Config.ServiceSecret = authTest.NewServiceSecret()
-			config.ExternalConfig.Address = server.URL()
-			config.ExternalConfig.UserAgent = testHttp.NewUserAgent()
+			config.ExternalConfig.AuthenticationConfig.Address = server.URL()
+			config.ExternalConfig.AuthorizationConfig.Address = server.URL()
+			config.ExternalConfig.AuthenticationConfig.UserAgent = testHttp.NewUserAgent()
+			config.ExternalConfig.AuthorizationConfig.UserAgent = testHttp.NewUserAgent()
 			config.ExternalConfig.ServerSessionTokenSecret = serverTokenSecret
 			authorizeAs = platform.AuthorizeAsService
 		})
@@ -139,7 +157,7 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
@@ -159,13 +177,13 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusBadRequest, nil)),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
@@ -186,19 +204,19 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusBadRequest, nil)),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusBadRequest, nil)),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
@@ -218,13 +236,13 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusOK, nil)),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
@@ -245,25 +263,25 @@ var _ = Describe("Client", func() {
 					config.ServerSessionTokenTimeout = 1 * time.Second
 					server.AppendHandlers(
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
 						CombineHandlers(
-							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyRequest("POST", "/serverlogin"),
 							VerifyHeaderKV("X-Tidepool-Server-Name", name),
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
@@ -290,7 +308,7 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest("POST", "/auth/serverlogin"),
+						VerifyRequest("POST", "/serverlogin"),
 						VerifyHeaderKV("X-Tidepool-Server-Name", name),
 						VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 						VerifyBody(nil),
@@ -345,7 +363,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/auth/token/"+token),
+								VerifyRequest("GET", "/token/"+token),
 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusBadRequest, nil)),
@@ -365,7 +383,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/auth/token/"+token),
+								VerifyRequest("GET", "/token/"+token),
 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, nil)),
@@ -384,7 +402,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/auth/token/"+token),
+								VerifyRequest("GET", "/token/"+token),
 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusOK, "}{")),
@@ -404,7 +422,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/auth/token/"+token),
+								VerifyRequest("GET", "/token/"+token),
 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusOK, "{}")),
@@ -423,7 +441,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/auth/token/"+token),
+								VerifyRequest("GET", "/token/"+token),
 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusOK, `{"userid": "session-user-id"}`)),
@@ -444,7 +462,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/auth/token/"+token),
+								VerifyRequest("GET", "/token/"+token),
 								VerifyHeaderKV("X-Tidepool-Session-Token", serverToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusOK, "{\"isserver\": true}")),
