@@ -167,8 +167,8 @@ func (m *Migration) migrateOmnipodDocuments(dataSession *storeStructuredMongo.Se
 						} else {
 							archiveUpdate := bson.M{
 								"$set": bson.M{
-									"_active":      false,
-									"archivedTime": time.Now().Truncate(time.Millisecond).Format(time.RFC3339Nano),
+									"_active":       false,
+									"_archivedTime": time.Now().UnixNano() / int64(time.Millisecond),
 								},
 							}
 
