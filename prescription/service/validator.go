@@ -59,6 +59,12 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 	if settings.BloodGlucoseSuspendThreshold != nil {
 		devices.ValidateBloodGlucoseSuspendThreshold(settings.BloodGlucoseSuspendThreshold, guardRails.GetSuspendThreshold(), validator.WithReference("bloodGlucoseSuspendThreshold"))
 	}
+	if settings.BloodGlucoseTargetPhysicalActivity != nil {
+		devices.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPhysicalActivity, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPhysicalActivity"))
+	}
+	if settings.BloodGlucoseTargetPreprandial != nil {
+		devices.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPreprandial, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPreprandial"))
+	}
 	if settings.BloodGlucoseTargetSchedule != nil {
 		devices.ValidateBloodGlucoseTargetSchedule(*settings.BloodGlucoseTargetSchedule, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetSchedule"))
 	}

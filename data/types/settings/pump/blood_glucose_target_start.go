@@ -119,6 +119,31 @@ func (b *BloodGlucoseTargetStartArray) Last() *BloodGlucoseTargetStart {
 	return nil
 }
 
+func (b *BloodGlucoseTargetStartArray) GetBounds() *dataBloodGlucose.Bounds {
+	allBounds := make([]*dataBloodGlucose.Bounds, 0)
+	for _, v := range *b {
+		if b := v.GetBounds(); b != nil {
+			allBounds = append(allBounds, b)
+		}
+	}
+
+	if len(allBounds) == 0 {
+		return nil
+	}
+
+	bounds := &dataBloodGlucose.Bounds{}
+	for _, b := range allBounds {
+		if b.Lower < bounds.Lower {
+			bounds.Lower = b.Lower
+		}
+		if b.Upper > bounds.Upper {
+			bounds.Upper = b.Upper
+		}
+	}
+
+	return bounds
+}
+
 type BloodGlucoseTargetStartArrayMap map[string]*BloodGlucoseTargetStartArray
 
 func ParseBloodGlucoseTargetStartArrayMap(parser structure.ObjectParser) *BloodGlucoseTargetStartArrayMap {
