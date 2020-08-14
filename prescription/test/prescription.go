@@ -2,8 +2,9 @@ package test
 
 import (
 	"fmt"
-	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	"time"
+
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 
 	"github.com/google/uuid"
 

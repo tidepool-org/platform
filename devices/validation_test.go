@@ -53,6 +53,36 @@ var _ = Describe("Validation", func() {
 		})
 	})
 
+	Context("ValidateBloodGlucoseSuspendThreshold", func() {
+		var guardRail *api.SuspendThresholdGuardRail
+		var validator *structureValidator.Validator
+
+		BeforeEach(func() {
+			guardRail = test.NewSuspendThresholdGuardRail()
+			validator = structureValidator.New()
+		})
+
+		It("doesn't return error with a valid value", func() {
+			suspendThreshold := pointer.FromFloat64(70)
+			devices.ValidateBloodGlucoseSuspendThreshold(suspendThreshold, guardRail, validator)
+			Expect(validator.Error()).To(BeNil())
+		})
+
+		It("returns an error with a value outside of the range", func() {
+			suspendThreshold := pointer.FromFloat64(190)
+			expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "")
+			devices.ValidateBloodGlucoseSuspendThreshold(suspendThreshold, guardRail, validator)
+			errorsTest.ExpectEqual(validator.Error(), expected)
+		})
+
+		It("returns an error with a fractional value", func() {
+			suspendThreshold := pointer.FromFloat64(70.5)
+			expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "")
+			devices.ValidateBloodGlucoseSuspendThreshold(suspendThreshold, guardRail, validator)
+			errorsTest.ExpectEqual(validator.Error(), expected)
+		})
+	})
+
 	Context("ValidateBloodGlucoseTargetSchedule", func() {
 		var guardRail *api.CorrectionRangeGuardRail
 
