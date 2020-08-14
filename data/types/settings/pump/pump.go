@@ -119,7 +119,7 @@ func (p *Pump) Validate(validator structure.Validator) {
 	} else {
 		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.Float64("bgSuspendThreshold", p.BloodGlucoseSuspendThreshold).InRange(dataBloodGlucose.ValueRangeForUnits(unitsBloodGlucose))
+	ValidateBloodGlucoseSuspendThreshold(p.BloodGlucoseSuspendThreshold, unitsBloodGlucose, "bgSuspendThreshold", validator)
 	if p.BloodGlucoseTargetPhysicalActivity != nil {
 		p.BloodGlucoseTargetPhysicalActivity.Validate(validator.WithReference("bgTargetPhysicalActivity"), unitsBloodGlucose)
 	}
