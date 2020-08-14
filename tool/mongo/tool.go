@@ -75,6 +75,7 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 
 func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
 	mongoConfig := storeStructuredMongo.NewConfig()
+	mongoConfig.Scheme = t.mongoConfig.Scheme
 	if t.mongoConfig.Addresses != nil {
 		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)
 	}
@@ -87,5 +88,7 @@ func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
 	if t.mongoConfig.Password != nil {
 		mongoConfig.Password = pointer.FromString(*t.mongoConfig.Password)
 	}
+	mongoConfig.Timeout = t.mongoConfig.Timeout
+	mongoConfig.OptParams = t.mongoConfig.OptParams
 	return mongoConfig
 }
