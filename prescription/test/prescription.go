@@ -2,11 +2,13 @@ package test
 
 import (
 	"fmt"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	testUtils "github.com/tidepool-org/platform/test"
 
 	userTest "github.com/tidepool-org/platform/user/test"
 
@@ -130,16 +132,26 @@ func RandomInitialSettings() *prescription.InitialSettings {
 	scheduleName := *randomPump.ActiveScheduleName
 
 	return &prescription.InitialSettings{
-		BloodGlucoseUnits:          units,
-		BasalRateSchedule:          randomPump.BasalRateSchedules.Get(scheduleName),
-		BloodGlucoseTargetSchedule: randomPump.BloodGlucoseTargetSchedules.Get(scheduleName),
-		CarbohydrateRatioSchedule:  randomPump.CarbohydrateRatioSchedules.Get(scheduleName),
-		InsulinSensitivitySchedule: randomPump.InsulinSensitivitySchedules.Get(scheduleName),
-		BasalRateMaximum:           randomPump.Basal.RateMaximum,
-		BolusAmountMaximum:         randomPump.Bolus.AmountMaximum,
-		PumpID:                     RandomDeviceID(),
-		CgmID:                      RandomDeviceID(),
+		BloodGlucoseUnits:            units,
+		BasalRateSchedule:            randomPump.BasalRateSchedules.Get(scheduleName),
+		BloodGlucoseSuspendThreshold: randomPump.BloodGlucoseSuspendThreshold,
+		BloodGlucoseTargetSchedule:   randomPump.BloodGlucoseTargetSchedules.Get(scheduleName),
+		CarbohydrateRatioSchedule:    randomPump.CarbohydrateRatioSchedules.Get(scheduleName),
+		InsulinModel:                 RandomInsulinModel(),
+		InsulinSensitivitySchedule:   randomPump.InsulinSensitivitySchedules.Get(scheduleName),
+		BasalRateMaximum:             randomPump.Basal.RateMaximum,
+		BolusAmountMaximum:           randomPump.Bolus.AmountMaximum,
+		PumpID:                       RandomDeviceID(),
+		CgmID:                        RandomDeviceID(),
 	}
+}
+
+func RandomInsulinModel() *string {
+	validInsulinTypes := []string{
+		dataTypesSettingsPump.InsulinModelModelTypeRapidAdult,
+		dataTypesSettingsPump.InsulinModelModelTypeRapidChild,
+	}
+	return pointer.FromString(testUtils.RandomStringFromArray(validInsulinTypes))
 }
 
 func RandomDeviceID() string {

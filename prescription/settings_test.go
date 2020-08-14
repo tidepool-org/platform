@@ -38,14 +38,26 @@ var _ = Describe("Initial Settings", func() {
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
+		It("fails with empty blood glucose suspend threshold", func() {
+			settings.BloodGlucoseSuspendThreshold = nil
+			settings.ValidateAllRequired(validate)
+			Expect(validate.Error()).To(HaveOccurred())
+		})
+
 		It("fails with empty carbohydrate ratio schedule", func() {
 			settings.CarbohydrateRatioSchedule = nil
 			settings.ValidateAllRequired(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
-		It("fails fail with empty insulin sensitivity schedule", func() {
+		It("fails with empty insulin sensitivity schedule", func() {
 			settings.InsulinSensitivitySchedule = nil
+			settings.ValidateAllRequired(validate)
+			Expect(validate.Error()).To(HaveOccurred())
+		})
+
+		It("fails with empty insulin model", func() {
+			settings.InsulinModel = nil
 			settings.ValidateAllRequired(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})
