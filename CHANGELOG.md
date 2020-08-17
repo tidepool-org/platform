@@ -1,11 +1,12 @@
 # Platform 
 The Tidepool platform API
 
-## Unreleased
+## 0.9.0 2020-08-12
 ### Changed 
 - PT-1332 Remove external gateway calls in platform
 ### Engineering
 - YLP-130 Remove "mdblp" from docker image name
+- YLP-131 Update pipeline to push image on Pictime gitlab
 
 ## 0.8.4 2020-08-04 
 ### Changed
