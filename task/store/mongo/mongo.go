@@ -15,6 +15,16 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	actionFailed = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_action_failed_count",
+		Help: "The .",
+	}, []string{"type", "reason"})
 )
 
 type Store struct {
@@ -99,6 +109,7 @@ func (t *TaskSession) ListTasks(ctx context.Context, filter *task.TaskFilter, pa
 	err := t.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&tsks)
 	logger.WithFields(log.Fields{"count": len(tsks), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListTasks")
 	if err != nil {
+		actionFailed.WithLabelValues("list", err.Error())
 		return nil, errors.Wrap(err, "unable to list tasks")
 	}
 
@@ -131,6 +142,7 @@ func (t *TaskSession) CreateTask(ctx context.Context, create *task.TaskCreate) (
 	err = t.C().Insert(tsk)
 	logger.WithFields(log.Fields{"id": tsk.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateTask")
 	if err != nil {
+		actionFailed.WithLabelValues("create", err.Error())
 		return nil, errors.Wrap(err, "unable to create task")
 	}
 
@@ -156,6 +168,7 @@ func (t *TaskSession) GetTask(ctx context.Context, id string) (*task.Task, error
 	err := t.C().Find(bson.M{"id": id}).Limit(2).All(&tsks)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
 	if err != nil {
+		actionFailed.WithLabelValues("get", err.Error())
 		return nil, errors.Wrap(err, "unable to get task")
 	}
 
@@ -180,6 +193,7 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 	if update == nil {
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
+		actionFailed.WithLabelValues("update", err.Error())
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -208,6 +222,7 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 	changeInfo, err := t.C().UpdateAll(bson.M{"id": id}, t.ConstructUpdate(set, bson.M{}))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
 	if err != nil {
+		actionFailed.WithLabelValues("update", err.Error())
 		return nil, errors.Wrap(err, "unable to update task")
 	}
 
@@ -232,6 +247,7 @@ func (t *TaskSession) DeleteTask(ctx context.Context, id string) error {
 	changeInfo, err := t.C().RemoveAll(bson.M{"id": id})
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteTask")
 	if err != nil {
+		actionFailed.WithLabelValues("delete", err.Error())
 		return errors.Wrap(err, "unable to delete task")
 	}
 
@@ -264,6 +280,7 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 	err := t.C().Update(selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
 	if err != nil {
+		actionFailed.WithLabelValues("update_state", err.Error())
 		return nil, errors.Wrap(err, "unable to update from state")
 	}
 
