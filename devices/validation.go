@@ -1,10 +1,11 @@
 package devices
 
 import (
-	"github.com/tidepool-org/platform/data/blood/glucose"
 	"math/big"
 	"sort"
 	"strconv"
+
+	"github.com/tidepool-org/platform/data/blood/glucose"
 
 	"github.com/tidepool-org/devices/api"
 

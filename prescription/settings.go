@@ -8,19 +8,19 @@ import (
 )
 
 type InitialSettings struct {
-	BloodGlucoseUnits            string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
-	BasalRateSchedule            *pump.BasalRateStartArray          `json:"basalRateSchedule,omitempty" bson:"basalRateSchedule,omitempty"`
-	BloodGlucoseSuspendThreshold *float64                           `json:"bloodGlucoseSuspendThreshold,omitempty" bson:"bloodGlucoseSuspendThreshold,omitempty"`
+	BloodGlucoseUnits                  string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
+	BasalRateSchedule                  *pump.BasalRateStartArray          `json:"basalRateSchedule,omitempty" bson:"basalRateSchedule,omitempty"`
+	BloodGlucoseSuspendThreshold       *float64                           `json:"bloodGlucoseSuspendThreshold,omitempty" bson:"bloodGlucoseSuspendThreshold,omitempty"`
 	BloodGlucoseTargetPhysicalActivity *glucose.Target                    `json:"bloodGlucoseTargetPhysicalActivity,omitempty" bson:"bloodGlucoseTargetPhysicalActivity,omitempty"`
 	BloodGlucoseTargetPreprandial      *glucose.Target                    `json:"bloodGlucoseTargetPreprandial,omitempty" bson:"bloodGlucoseTargetPreprandial,omitempty"`
-	BloodGlucoseTargetSchedule   *pump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
-	CarbohydrateRatioSchedule    *pump.CarbohydrateRatioStartArray  `json:"carbohydrateRatioSchedule,omitempty" bson:"carbohydrateRatioSchedule,omitempty"`
-	InsulinModel                 *string                            `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
-	InsulinSensitivitySchedule   *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
-	BasalRateMaximum             *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
-	BolusAmountMaximum           *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
-	PumpID                       string                             `json:"pumpId,omitempty" bson:"pumpId,omitempty"`
-	CgmID                        string                             `json:"cgmId,omitempty" bson:"cgmId,omitempty"`
+	BloodGlucoseTargetSchedule         *pump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
+	CarbohydrateRatioSchedule          *pump.CarbohydrateRatioStartArray  `json:"carbohydrateRatioSchedule,omitempty" bson:"carbohydrateRatioSchedule,omitempty"`
+	InsulinModel                       *string                            `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
+	InsulinSensitivitySchedule         *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
+	BasalRateMaximum                   *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
+	BolusAmountMaximum                 *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
+	PumpID                             string                             `json:"pumpId,omitempty" bson:"pumpId,omitempty"`
+	CgmID                              string                             `json:"cgmId,omitempty" bson:"cgmId,omitempty"`
 }
 
 func AllowedInsulinModels() []string {
