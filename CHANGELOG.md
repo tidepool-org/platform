@@ -1,9 +1,14 @@
 # Platform 
 The Tidepool platform API
 
+## 0.9.1 2020-08-18
+### Fixed 
+- PT-1457 Add inputTime and make it mandatory in ZenMode and ConfidentialMode objects
+
 ## 0.9.0 2020-08-12
 ### Changed 
 - PT-1332 Remove external gateway calls in platform
+
 ### Engineering
 - YLP-130 Remove "mdblp" from docker image name
 - YLP-131 Update pipeline to push image on Pictime gitlab

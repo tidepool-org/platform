@@ -269,6 +269,7 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
 - `subType`: `zen | confidential`
 - `duration`: is a structured object that gives the duration of the event. __This field is mandatory__.
 - `eventId`: unique ID provided by the client that is used to link stop and start events. __This ID is mandatory__.
+- `inputTime`: is a UTC string timestamp that defines at what time the patient has entered or modified the event. __This field is manadatory__. It takes the same format as `time` field.
 
 ```json
 {
@@ -282,6 +283,7 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
   "deviceId": "Id12345",
   "deviceTime": "2018-02-01T00:00:00",
   "time": "2020-05-12T08:50:08.000Z",
+  "inputTime": "2020-05-12T08:40:00.000Z",
   "timezoneOffset": 60
 }
 {
@@ -295,6 +297,7 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
   "deviceId": "Id12345",
   "deviceTime": "2018-02-01T00:00:00",
   "time": "2020-05-12T08:50:08.000Z",
+  "inputTime": "2020-05-12T08:40:00.000Z",
   "timezoneOffset": 60
 }
 ```

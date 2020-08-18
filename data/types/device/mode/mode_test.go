@@ -1,10 +1,13 @@
 package mode_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTypesCommonTest "github.com/tidepool-org/platform/data/types/common/test"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/mode"
@@ -14,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -29,6 +33,7 @@ func NewMode() *mode.Mode {
 	datum.SubType = mode.ZenMode
 	datum.EventID = pointer.FromString("123456789")
 	datum.Duration = dataTypesCommonTest.NewDuration()
+	datum.InputTime = dataTypesCommonTest.NewInputTime()
 	return datum
 }
 
@@ -40,6 +45,7 @@ func CloneMode(datum *mode.Mode) *mode.Mode {
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
 	clone.EventID = pointer.FromString("123456789")
 	clone.Duration = dataTypesCommonTest.CloneDuration(datum.Duration)
+	clone.InputTime = dataTypesCommonTest.CloneInputTime(datum.InputTime)
 	return clone
 }
 
@@ -55,12 +61,14 @@ var _ = Describe("Change", func() {
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("zen"))
+			Expect(datum.InputTime.InputTime).To(BeNil())
 		})
 		It("returns the expected datum with all confidential values initialized", func() {
 			datum := mode.New(mode.ConfidentialMode)
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("confidential"))
+			Expect(datum.InputTime.InputTime).To(BeNil())
 		})
 	})
 
@@ -123,6 +131,24 @@ var _ = Describe("Change", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventId", &device.Meta{Type: "deviceEvent", SubType: "confidential"}),
 				),
+				Entry("inputTime is missing",
+					func(datum *mode.Mode) {
+						datum.SubType = "confidential"
+						datum.InputTime.InputTime = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/inputTime", &device.Meta{Type: "deviceEvent", SubType: "confidential"}),
+				),
+				Entry("Valid inputTime",
+					func(datum *mode.Mode) {
+						datum.InputTime.InputTime = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+					},
+				),
+				Entry("InputTime invalid",
+					func(datum *mode.Mode) {
+						datum.InputTime.InputTime = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/inputTime", NewMeta()),
+				),
 			)
 
 			DescribeTable("validates the datum with origin internal/store",
@@ -139,6 +165,24 @@ var _ = Describe("Change", func() {
 		})
 
 		Context("Normalize", func() {
+			DescribeTable("normalizes the datum",
+				func(mutator func(datum *mode.Mode)) {
+					for _, origin := range structure.Origins() {
+						datum := NewMode()
+						mutator(datum)
+						expectedDatum := CloneMode(datum)
+						normalizer := dataNormalizer.New()
+						Expect(normalizer).ToNot(BeNil())
+						datum.Normalize(normalizer.WithOrigin(origin))
+						Expect(normalizer.Error()).To(BeNil())
+						Expect(normalizer.Data()).To(BeEmpty())
+						Expect(datum).To(Equal(expectedDatum))
+					}
+				},
+				Entry("does not modify the datum",
+					func(datum *mode.Mode) {},
+				),
+			)
 		})
 	})
 })

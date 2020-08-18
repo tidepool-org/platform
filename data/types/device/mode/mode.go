@@ -22,13 +22,15 @@ func Modes() []string {
 
 type Mode struct {
 	device.Device `bson:",inline"`
-	EventID       *string               `json:"eventId,omitempty" bson:"eventId,omitempty"`
-	Duration      *commontypes.Duration `json:"duration,omitempty" bson:"duration,omitempty"`
+	EventID       *string                `json:"eventId,omitempty" bson:"eventId,omitempty"`
+	Duration      *commontypes.Duration  `json:"duration,omitempty" bson:"duration,omitempty"`
+	InputTime     *commontypes.InputTime `bson:",inline"`
 }
 
 func New(subType string) *Mode {
 	return &Mode{
-		Device: device.New(subType),
+		Device:    device.New(subType),
+		InputTime: commontypes.NewInputTime(),
 	}
 }
 
@@ -40,6 +42,7 @@ func (m *Mode) Parse(parser structure.ObjectParser) {
 	m.Device.Parse(parser)
 	m.EventID = parser.String("eventId")
 	m.Duration = commontypes.ParseDuration(parser.WithReferenceObjectParser("duration"))
+	m.InputTime.Parse(parser)
 }
 
 func (m *Mode) Validate(validator structure.Validator) {
@@ -54,6 +57,11 @@ func (m *Mode) Validate(validator structure.Validator) {
 		m.Duration.Validate(validator.WithReference("duration"))
 	} else {
 		validator.WithReference("duration").ReportError(structureValidator.ErrorValueNotExists())
+	}
+	if m.InputTime.InputTime != nil {
+		m.InputTime.Validate(validator)
+	} else {
+		validator.WithReference("inputTime").ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
@@ -70,4 +78,5 @@ func (m *Mode) Normalize(normalizer data.Normalizer) {
 	if m.Duration != nil {
 		m.Duration.Normalize(normalizer.WithReference("duration"))
 	}
+	m.InputTime.Normalize(normalizer)
 }
