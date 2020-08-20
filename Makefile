@@ -38,7 +38,7 @@ endif
 else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
-ifdef DOCKER_FILE
+ifdef DOCKER
 	DOCKER_REPOSITORY:="${DOCKER_REGISTRY}/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
 ifdef OPS_DOCKER_REGISTRY
 	OPS_DOCKER_REPOSITORY:="${OPS_DOCKER_REGISTRY}/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))"
@@ -260,11 +260,13 @@ endif
 
 docker:
 ifdef DOCKER
+	@echo "Login to Docker Default registry..."
 	@echo $(DOCKER_PASSWORD) | docker login --username "$(DOCKER_USERNAME)" --password-stdin $(DOCKER_REGISTRY)
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
 ifdef OPS_DOCKER_REPOSITORY
+	@echo "Login to Docker Ops registry..."
 	@echo $(OPS_DOCKER_PASSWORD) | docker login --username "$(OPS_DOCKER_USERNAME)" --password-stdin $(OPS_DOCKER_REGISTRY)
 endif
+	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
 endif
 
@@ -284,9 +286,9 @@ endif
 endif
 endif
 ifdef TRAVIS_TAG
-	@docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 ifdef OPS_DOCKER_REPOSITORY
-	@docker tag "$(DOCKER_REPOSITORY)" "$(OPS_DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker tag "$(DOCKER_REPOSITORY)" "$(OPS_DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
@@ -317,12 +319,13 @@ endif
 endif
 endif
 ifdef TRAVIS_TAG
-	@docker push "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker push "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 ifdef OPS_DOCKER_REPOSITORY
 ifdef TRAVIS_TAG
-	@docker push "$(OPS_DOCKER_REPOSITORY):$(VERSION_BASE)"
+	@echo "Pushing to Ops..."
+	docker push "$(OPS_DOCKER_REPOSITORY):$(VERSION_BASE)"
 endif
 endif
 endif
