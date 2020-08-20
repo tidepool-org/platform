@@ -7,6 +7,9 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	taskService "github.com/tidepool-org/platform/task/service"
 )
 
@@ -27,6 +30,10 @@ func NewRouter(service taskService.Service) (*Router, error) {
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/status", r.StatusGet),
+		rest.Get("/metrics", func(w rest.ResponseWriter, req *rest.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			promhttp.Handler().ServeHTTP(w.(http.ResponseWriter), req.Request)
+		}),
 	}
 }
 
