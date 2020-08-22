@@ -111,7 +111,7 @@ func (m *Migration) addSharerID(dataSession *storeStructuredMongo.Session) int {
 		ID      string `bson:"_id"`
 		GroupID string `bson:"groupId"`
 	}
-	var docs []doc
+	doc := make([]doc, 0)
 	var numChanged int
 
 	secret := os.Getenv("GATEKEEPER_SECRET")
