@@ -108,8 +108,8 @@ func (m *Migration) addSharerID(dataSession *storeStructuredMongo.Session) int {
 	logger.Debug("Finding shares")
 
 	type doc struct {
-		ID      string `bson:"_id"`
-		GroupID string `bson:"groupId"`
+		ID      bson.ObjectId `bson:"_id"`
+		GroupID string        `bson:"groupId"`
 	}
 	docs := make([]doc, 0)
 	var numChanged int
@@ -133,7 +133,7 @@ func (m *Migration) addSharerID(dataSession *storeStructuredMongo.Session) int {
 				ReturnNew: true,
 			}
 			var result interface{}
-			_, err = dataSession.C().Find(bson.M{"_id": doc.ID}).Apply(change, &result)
+			_, err = dataSession.C().FindId(doc.ID).Apply(change, &result)
 
 			if err != nil {
 				logger.WithError(err).Errorf("Could not update share ID %s", doc.ID)
