@@ -115,7 +115,7 @@ func (m *Migration) addSharerID(dataSession *storeStructuredMongo.Session) int {
 	var numChanged int
 
 	secret := os.Getenv("GATEKEEPER_SECRET")
-	err := dataSession.C().Find(bson.M{}).Select(bson.M{"_id": 1, "groupId": 1}).All(docs)
+	err := dataSession.C().Find(bson.M{}).Select(bson.M{"_id": 1, "groupId": 1}).All(&docs)
 	if err != nil {
 		logger.WithError(err).Error("Unable to find any shares")
 	} else {
