@@ -53,7 +53,7 @@ func JellyfishIDHash(bsonData bson.M) string {
 
 func JellyfishObjectIDHash(bsonData bson.M) string {
 	return makeJellyfishHash(
-		bsonData["id"].(string),
+		JellyfishIDHash(bsonData),
 		bsonData["_groupId"].(string),
 	)
 }
