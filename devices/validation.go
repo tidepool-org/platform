@@ -21,6 +21,11 @@ func ValidateBasalRateSchedule(basalRateSchedule pump.BasalRateStartArray, guard
 	}
 }
 
+func ValidateBloodGlucoseSuspendThreshold(bloodGlucoseSuspendThreshold *float64, guardRail *api.SuspendThresholdGuardRail, validator structure.Validator) {
+	validValues := generateValidValues(guardRail.AbsoluteBounds)
+	ValidateIncrementIfValueNotNil(bloodGlucoseSuspendThreshold, validValues, validator)
+}
+
 func ValidateBloodGlucoseTargetSchedule(bloodGlucoseTargetSchedule pump.BloodGlucoseTargetStartArray, guardRail *api.CorrectionRangeGuardRail, validator structure.Validator) {
 	validValues := generateValidValues(guardRail.AbsoluteBounds)
 	for i, bloodGlucoseTarget := range bloodGlucoseTargetSchedule {

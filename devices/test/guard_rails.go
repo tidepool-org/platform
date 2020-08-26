@@ -26,6 +26,12 @@ func NewInsulinSensitivityGuardRail() *api.InsulinSensitivityGuardRail {
 	}
 }
 
+func NewSuspendThresholdGuardRail() *api.SuspendThresholdGuardRail {
+	return &api.SuspendThresholdGuardRail{
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(60, 180, 1),
+	}
+}
+
 func NewBasalRateMaximumGuardRail() *api.BasalRateMaximumGuardRail {
 	return &api.BasalRateMaximumGuardRail{
 		AbsoluteBounds: newAbsoluteBoundsFromNanos(0, 30, 50000000),

@@ -52,8 +52,12 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 	if !canValidatePrescriptionSettings(settings, guardRails) {
 		return errors.New("cannot validate device specific prescription settings increments and limits")
 	}
+
 	if settings.BasalRateSchedule != nil {
 		devices.ValidateBasalRateSchedule(*settings.BasalRateSchedule, guardRails.GetBasalRates(), validator.WithReference("basalRateSchedule"))
+	}
+	if settings.BloodGlucoseSuspendThreshold != nil {
+		devices.ValidateBloodGlucoseSuspendThreshold(settings.BloodGlucoseSuspendThreshold, guardRails.GetSuspendThreshold(), validator.WithReference("bloodGlucoseSuspendThreshold"))
 	}
 	if settings.BloodGlucoseTargetSchedule != nil {
 		devices.ValidateBloodGlucoseTargetSchedule(*settings.BloodGlucoseTargetSchedule, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetSchedule"))
@@ -71,7 +75,7 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 		devices.ValidateBolusAmountMaximum(*settings.BolusAmountMaximum, guardRails.GetBolusAmountMaximum(), validator.WithReference("bolusAmountMaximum"))
 	}
 
-	return validator.Error()
+	return nil
 }
 
 func canValidatePrescriptionSettings(settings *prescription.InitialSettings, guardRails *devicesApi.GuardRails) bool {
