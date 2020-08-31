@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
 
@@ -19,6 +18,7 @@ func main() {
 
 type Migration struct {
 	*migrationMongo.Migration
+	dataSession *storeStructuredMongo.Session
 }
 
 func NewMigration() *Migration {
@@ -72,26 +72,27 @@ func (m *Migration) execute() error {
 
 	m.Logger().Debug("Creating data session")
 
-	dataSession := dataStore.NewSession("deviceData")
-	defer dataSession.Close()
+	m.dataSession = dataStore.NewSession("deviceData")
+	defer m.dataSession.Close()
 
-	hashUpdatedCount, archivedCount := m.migrateOmnipodDocuments(dataSession)
+	hashUpdatedCount, archivedCount, errorCount := m.migrateOmnipodDocuments()
 
 	m.Logger().Infof("Migrated %d duplicate Omnipod documents", hashUpdatedCount)
 	m.Logger().Infof("Archived %d duplicate Omnipod documents", archivedCount)
+	m.Logger().Infof("%d errors occurred", errorCount)
 
 	return nil
 }
 
-func (m *Migration) migrateOmnipodDocuments(dataSession *storeStructuredMongo.Session) (int, int) {
+func (m *Migration) migrateOmnipodDocuments() (int, int, int) {
 	logger := m.Logger()
 
 	logger.Debug("Finding distinct users")
 
 	var userIDs []string
-	var hashUpdatedCount, archivedCount int
+	var hashUpdatedCount, archivedCount, errorCount int
 
-	err := dataSession.C().Find(bson.M{}).Distinct("_userId", &userIDs)
+	err := m.dataSession.C().Find(bson.M{}).Distinct("_userId", &userIDs)
 	if err != nil {
 		logger.WithError(err).Error("Unable to execute distinct query")
 	} else {
@@ -100,13 +101,19 @@ func (m *Migration) migrateOmnipodDocuments(dataSession *storeStructuredMongo.Se
 		for _, userID := range userIDs {
 			logger.Debugf("Finding Omnipod records for user ID %s", userID)
 			selector := bson.M{
-				"_userId":  userID,
-				"_active":  true,
+				"_userId": userID,
+				"_active": true,
+				// Don't need to change the IDs for uploads, since uploads aren't de-duped.
+				// All uploads have new `time` fields, and therefore won't have collisions.
+				// We avoid trying to change the IDs for `upload` fields, because there's a unique index
+				// on `upload` types on `uploadId` (UniqueUploadId). This would then require us to _delete_
+				// the old `upload` record first, and outright deleting data seems scary.
+				"type":     bson.M{"$ne": "upload"},
 				"deviceId": bson.M{"$regex": bson.RegEx{Pattern: `^InsOmn`}},
 			}
 
 			var omnipodResult bson.M
-			omnipodDocCursor := dataSession.C().Find(selector).Iter()
+			omnipodDocCursor := m.dataSession.C().Find(selector).Iter()
 			for omnipodDocCursor.Next(&omnipodResult) {
 				expectedID := JellyfishIDHash(omnipodResult)
 				expectedObjectID := JellyfishObjectIDHash(omnipodResult)
@@ -122,83 +129,60 @@ func (m *Migration) migrateOmnipodDocuments(dataSession *storeStructuredMongo.Se
 						"id":       expectedID,
 						"_groupId": omnipodResult["_groupId"],
 					}
-					dupCursor := dataSession.C().Find(dupQuery).Iter()
+					dupCursor := m.dataSession.C().Find(dupQuery).Iter()
 					if dupCursor.Done() {
 						// No duplicate. Update the ID Hashes.
-						logger.Debugf("Changing Omnipod Document ID %s to %s (type: %s)", omnipodResult["id"], expectedID, omnipodResult["type"])
-						logger.Debugf("Changing _id to %s", expectedObjectID)
+						// Because `_id` is immutable, we need to insert the new document, then make the old one inactive.
+						logger.Debugf("Migrating Omnipod Document ID %s to %s (type: %s)", omnipodResult["id"], expectedID, omnipodResult["type"])
 						if m.DryRun() {
 							hashUpdatedCount++
 						} else {
-							update := bson.M{
-								"$set": bson.M{
-									"_id": expectedObjectID,
-									"id":  expectedID,
-								},
-							}
+							err = m.migrateDocument(omnipodResult, expectedID, expectedObjectID)
 
-							var changeInfo *mgo.ChangeInfo
-							changeInfo, err = dataSession.C().UpdateAll(bson.M{"_id": omnipodResult["_id"]}, update)
 							if err != nil {
-								logger.WithError(err).Errorf("Could not update ID Hashes for Omnipod Document ID %s.", omnipodResult["id"])
-							}
-							if changeInfo != nil {
-								hashUpdatedCount += changeInfo.Updated
+								logger.WithError(err).Errorf("Could not migrate Omnipod Document ID %s.", omnipodResult["id"])
+								errorCount++
+							} else {
+								hashUpdatedCount++
 							}
 						}
 					} else {
 						// Got a duplicate. Archive the document with the incorrect ID.
 						logger.Debugf("Archiving Omnipod Document ID %s", omnipodResult["id"])
 
-						var dupResult bson.M
-						var updateDupObjectID bool
-						if dupCursor.Next(&dupResult) {
-							// Jellyfish de-duplicates based on the generated ObjectID.
-							// If we found a duplicate, we also need to make sure that the ObjectID of
-							// the document we're keeping matches what Jellyfish expects it to be.
-							updateDupObjectID = (dupResult["_id"] != expectedObjectID)
-						}
-
 						if m.DryRun() {
 							archivedCount++
-							if updateDupObjectID {
-								logger.Debugf("Updating Object ID %s to %s", dupResult["_id"], expectedObjectID)
-							}
 						} else {
-							archiveUpdate := bson.M{
-								"$set": bson.M{
-									"_active":       false,
-									"_archivedTime": time.Now().UnixNano() / int64(time.Millisecond),
-								},
-							}
+							err := m.archiveDocument(omnipodResult["_id"])
 
-							changeInfo, err := dataSession.C().UpdateAll(bson.M{"_id": omnipodResult["_id"]}, archiveUpdate)
 							if err != nil {
 								logger.WithError(err).Errorf("Could not archive Omnipod Document ID %s.", omnipodResult["id"])
-							}
-
-							if updateDupObjectID {
-								updateObjectID := bson.M{
-									"$set": bson.M{
-										"_id": expectedObjectID,
-									},
-								}
-								err = dataSession.C().UpdateId(dupResult["_id"], updateObjectID)
-								if err != nil {
-									logger.WithError(err).Errorf("Could not update Object ID %s to %s.", dupResult["_id"], expectedObjectID)
-								}
-							}
-
-							if changeInfo != nil {
-								archivedCount += changeInfo.Updated
+								errorCount++
+							} else {
+								archivedCount++
 							}
 						}
 					}
 					err = dupCursor.Close()
+				} else if expectedObjectID != omnipodResult["_id"] {
+					logger.Debugf("Migrating Object ID %s to %s", omnipodResult["_id"], expectedObjectID)
+					if m.DryRun() {
+						hashUpdatedCount++
+					} else {
+						err = m.migrateDocument(omnipodResult, expectedID, expectedObjectID)
+
+						if err != nil {
+							logger.WithError(err).Errorf("Could not migrate Omnipod Object ID %s.", omnipodResult["_id"])
+							errorCount++
+						} else {
+							hashUpdatedCount++
+						}
+					}
 				}
 			}
 			if omnipodDocCursor.Timeout() {
 				logger.WithError(err).Error("Got a cursor timeout. Please re-run to complete the migration.")
+				errorCount++
 			}
 			err = omnipodDocCursor.Close()
 		}
@@ -206,7 +190,46 @@ func (m *Migration) migrateOmnipodDocuments(dataSession *storeStructuredMongo.Se
 
 	if err != nil {
 		logger.WithError(err).Error("Unable to migrate Omnipod documents")
+		errorCount++
 	}
 
-	return hashUpdatedCount, archivedCount
+	return hashUpdatedCount, archivedCount, errorCount
+}
+
+func (m *Migration) archiveDocument(objectId interface{}) error {
+	archiveUpdate := bson.M{
+		"$set": bson.M{
+			"_active":       false,
+			"_archivedTime": time.Now().UnixNano() / int64(time.Millisecond),
+		},
+	}
+
+	return m.dataSession.C().UpdateId(objectId, archiveUpdate)
+}
+
+func (m *Migration) migrateDocument(originalDocument bson.M, expectedID string, expectedObjectID string) error {
+	newDocument := make(bson.M, len(originalDocument))
+	for key, value := range originalDocument {
+		if key == "id" {
+			value = expectedID
+		} else if key == "_id" {
+			value = expectedObjectID
+		}
+		newDocument[key] = value
+	}
+
+	err := m.dataSession.C().Insert(newDocument)
+	if err != nil {
+		m.Logger().WithError(err).Errorf("Could not add new document for Omnipod Document ID %s.", newDocument["id"])
+		return err
+	} else {
+		err := m.archiveDocument(originalDocument["_id"])
+
+		if err != nil {
+			m.Logger().WithError(err).Errorf("Could not archive Omnipod Object ID %s.", originalDocument["_id"])
+			return err
+		}
+	}
+
+	return nil
 }
