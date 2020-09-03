@@ -31,7 +31,6 @@ func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/status", r.StatusGet),
 		rest.Get("/metrics", func(w rest.ResponseWriter, req *rest.Request) {
-			w.Header().Set("Content-Type", "text/plain")
 			promhttp.Handler().ServeHTTP(w.(http.ResponseWriter), req.Request)
 		}),
 	}
