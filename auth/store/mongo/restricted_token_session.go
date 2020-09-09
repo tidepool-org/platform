@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/auth"
@@ -17,13 +16,6 @@ import (
 
 type RestrictedTokenSession struct {
 	*storeStructuredMongo.Session
-}
-
-func (r *RestrictedTokenSession) EnsureIndexes() error {
-	return r.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Unique: true, Background: true},
-		{Key: []string{"userId"}, Background: true},
-	})
 }
 
 func (r *RestrictedTokenSession) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {

@@ -19,11 +19,23 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
+var (
+	dataSourcesIndexes = map[string][]mgo.Index{
+		"data_sources": {
+			{Key: []string{"id"}, Background: true, Unique: true},
+			{Key: []string{"userId"}, Background: true},
+		},
+	}
+)
+
 type Store struct {
 	*storeStructuredMongo.Store
 }
 
 func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
+	if config != nil {
+		config.Indexes = dataSourcesIndexes
+	}
 	store, err := storeStructuredMongo.NewStore(config, logger)
 	if err != nil {
 		return nil, err
@@ -32,12 +44,6 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 	return &Store{
 		Store: store,
 	}, nil
-}
-
-func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
 }
 
 func (s *Store) NewSession() dataSourceStoreStructured.Session {
@@ -52,13 +58,6 @@ func (s *Store) newSession() *Session {
 
 type Session struct {
 	*storeStructuredMongo.Session
-}
-
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Background: true, Unique: true},
-		{Key: []string{"userId"}, Background: true},
-	})
 }
 
 func (s *Session) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {

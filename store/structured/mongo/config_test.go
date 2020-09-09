@@ -18,7 +18,7 @@ var _ = Describe("Config", func() {
 			datum := storeStructuredMongo.NewConfig()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Scheme).To(BeEmpty())
-			Expect(datum.Addresses).To(BeNil())
+			Expect(datum.Addresses()).To(BeNil())
 			Expect(datum.TLS).To(BeTrue())
 			Expect(datum.Database).To(BeEmpty())
 			Expect(datum.CollectionPrefix).To(BeEmpty())
@@ -58,7 +58,7 @@ var _ = Describe("Config", func() {
 			It("uses default addresses if not set", func() {
 				delete(configReporter.Config, "addresses")
 				Expect(config.Load(configReporter)).To(Succeed())
-				Expect(config.Addresses).To(BeEmpty())
+				Expect(config.Addresses()).To(BeEmpty())
 			})
 
 			It("uses default tls if not set", func() {
@@ -112,7 +112,7 @@ var _ = Describe("Config", func() {
 			It("returns successfully and uses values from config reporter", func() {
 				Expect(config.Load(configReporter)).To(Succeed())
 				Expect(config.Scheme).To(Equal("mongodb+srv"))
-				Expect(config.Addresses).To(Equal([]string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}))
+				Expect(config.Addresses()).To(Equal([]string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}))
 				Expect(config.TLS).To(BeFalse())
 				Expect(config.Database).To(Equal("database"))
 				Expect(config.CollectionPrefix).To(Equal("collection_prefix"))
@@ -126,7 +126,7 @@ var _ = Describe("Config", func() {
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
+				config.SetAddresses([]string{"1.2.3.4", "5.6.7.8"})
 				config.TLS = false
 				config.Database = "database"
 				config.CollectionPrefix = "collection_prefix"
@@ -141,22 +141,22 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error if the addresses is nil", func() {
-					config.Addresses = nil
+					config.SetAddresses(nil)
 					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 
 				It("returns an error if the addresses is empty", func() {
-					config.Addresses = []string{}
+					config.SetAddresses([]string{})
 					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 
 				It("returns an error if one of the addresses is missing", func() {
-					config.Addresses = []string{""}
+					config.SetAddresses([]string{""})
 					Expect(config.Validate()).To(MatchError("address is missing"))
 				})
 
 				It("returns an error if one of the addresses is not a parseable URL", func() {
-					config.Addresses = []string{"Not%Parseable"}
+					config.SetAddresses([]string{"Not%Parseable"})
 					Expect(config.Validate()).To(MatchError("address is invalid"))
 				})
 

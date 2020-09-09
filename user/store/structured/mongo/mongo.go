@@ -21,7 +21,19 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+var (
+	userIndexes = map[string][]mgo.Index{
+		// There is overlap with indexes defined in `shoreline`
+		"users": {
+			{Key: []string{"userid"}, Background: true, Unique: true},
+		},
+	}
+)
+
 func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
+	if config != nil {
+		config.Indexes = userIndexes
+	}
 	store, err := storeStructuredMongo.NewStore(config, logger)
 	if err != nil {
 		return nil, err
@@ -30,12 +42,6 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 	return &Store{
 		Store: store,
 	}, nil
-}
-
-func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
 }
 
 func (s *Store) NewSession() userStoreStructured.Session {
@@ -50,13 +56,6 @@ func (s *Store) newSession() *Session {
 
 type Session struct {
 	*storeStructuredMongo.Session
-}
-
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		// There is overlap with this call to `EnsureIndexes` and that in `shoreline`
-		{Key: []string{"userid"}, Background: true, Unique: true},
-	})
 }
 
 func (s *Session) Get(ctx context.Context, id string, condition *request.Condition) (*user.User, error) {

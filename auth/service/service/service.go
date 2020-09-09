@@ -165,13 +165,6 @@ func (s *Service) initializeAuthStore() error {
 	}
 	s.authStore = str
 
-	s.Logger().Debug("Ensuring auth store indexes")
-
-	err = s.authStore.EnsureIndexes()
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure auth store indexes")
-	}
-
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 
 	"github.com/tidepool-org/platform/auth"
@@ -17,14 +16,6 @@ import (
 
 type ProviderSessionSession struct {
 	*storeStructuredMongo.Session
-}
-
-func (p *ProviderSessionSession) EnsureIndexes() error {
-	return p.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Unique: true, Background: true},
-		{Key: []string{"userId"}, Background: true},
-		{Key: []string{"userId", "type", "name"}, Unique: true, Background: true},
-	})
 }
 
 func (p *ProviderSessionSession) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {

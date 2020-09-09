@@ -109,13 +109,6 @@ func (s *Service) initializeTaskStore() error {
 	}
 	s.taskStore = taskStore
 
-	s.Logger().Debug("Ensuring task store indexes")
-
-	err = s.taskStore.EnsureIndexes()
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure task store indexes")
-	}
-
 	return nil
 }
 

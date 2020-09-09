@@ -70,6 +70,7 @@ var _ = Describe("Mongo", func() {
 		It("returns a new store and no error when successful", func() {
 			var err error
 			store, err = profileStoreStructuredMongo.NewStore(config, logger)
+			store.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
@@ -82,6 +83,7 @@ var _ = Describe("Mongo", func() {
 		BeforeEach(func() {
 			var err error
 			store, err = profileStoreStructuredMongo.NewStore(config, logger)
+			store.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			mgoSession = storeStructuredMongoTest.Session().Copy()

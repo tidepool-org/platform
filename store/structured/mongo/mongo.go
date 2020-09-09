@@ -3,6 +3,8 @@ package mongo
 import (
 	"crypto/tls"
 	"net"
+	"sync"
+	"time"
 
 	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -41,68 +43,169 @@ func NewStore(config *Config, logger log.Logger) (*Store, error) {
 	}
 	logger = logger.WithFields(loggerFields)
 
-	dialInfo, err := mgo.ParseURL(config.AsConnectionString())
+	_, err := mgo.ParseURL(config.AsConnectionString())
 	if err != nil {
 		return nil, errors.Wrap(err, "URL is unparseable")
 	}
 
-	// override the DialServer is we are using TLS because we don't have the proper CA certs installed.
-	if config.TLS {
+	store := &Store{
+		Config:  config,
+		session: nil,
+		logger:  logger,
+	}
+
+	store.Start()
+	return store, nil
+}
+func (s *Store) getDialInfo() (*mgo.DialInfo, error) {
+	dialInfo, err := mgo.ParseURL(s.Config.AsConnectionString())
+	if err != nil {
+		return nil, err
+	}
+
+	if s.Config.TLS {
 		dialInfo.DialServer = func(serverAddr *mgo.ServerAddr) (net.Conn, error) {
 			return tls.Dial("tcp", serverAddr.String(), &tls.Config{InsecureSkipVerify: true}) // TODO: Secure this connection
 		}
 	}
+	dialInfo.Timeout = s.Config.Timeout
+	return dialInfo, nil
+}
 
-	dialInfo.Timeout = config.Timeout
+func (s *Store) Start() {
+	if s.Session() == nil && s.closingChannel == nil {
+		s.initializeGroup.Add(1)
+		go s.connectionRoutine()
+	} else if s.Session() != nil {
+		close(s.closingChannel)
+		s.closingChannel = nil
+	}
+}
 
-	logger.WithField("config", config).Debug("Dialing Mongo database")
-
-	session, err := mgo.DialWithInfo(dialInfo)
+func (s *Store) connectionRoutine() {
+	err := s.initializeSession()
+	var attempts int64
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to dial database")
+		s.logger.Errorf("Unable to open inital store session : %v", err)
+		s.closingChannel = make(chan bool, 1)
+		for {
+			timer := time.After(s.Config.WaitConnectionInterval)
+			select {
+			case <-s.closingChannel:
+				close(s.closingChannel)
+				s.closingChannel = nil
+				s.initializeGroup.Done()
+				return
+			case <-timer:
+				err := s.initializeSession()
+				if err == nil {
+					s.logger.Debug("Store session opened succesfully")
+					s.closingChannel <- true
+				} else {
+					if s.Config.MaxConnectionAttempts > 0 && s.Config.MaxConnectionAttempts > attempts {
+						s.logger.Errorf("Unable to open store session, maximum connection attempts reached : %v", err)
+						s.closingChannel <- true
+						panic(err)
+					} else if s.Config.MaxConnectionAttempts > 0 {
+						s.logger.Errorf("Unable to open store session : %v", err)
+						attempts++
+					}
+				}
+			}
+		}
+	} else {
+		s.createIndexesFromConfig()
+		if s.closingChannel != nil {
+			close(s.closingChannel)
+			s.closingChannel = nil
+		}
+		s.initializeGroup.Done()
+		return
+	}
+}
+
+func (s *Store) createIndexesFromConfig() {
+	if s.Config.Indexes != nil {
+		for collection, idxs := range s.Config.Indexes {
+			session := s.NewSession(collection)
+			defer session.Close()
+			err := session.EnsureAllIndexes(idxs)
+			if err != nil {
+				s.logger.Errorf("unable to ensure indexes on %s : %v", collection, err)
+			}
+		}
+	}
+}
+
+func (s *Store) WaitUntilStarted() {
+	s.initializeGroup.Wait()
+}
+
+func (s *Store) initializeSession() error {
+	dialInfo, err := s.getDialInfo()
+	if err != nil {
+		return errors.Wrap(err, "URL is unparseable")
 	}
 
-	logger.Debug("Verifying Mongo build version is supported")
+	s.logger.WithField("config", s.Config).Debug("Dialing Mongo database")
+	session, err := mgo.DialWithInfo(dialInfo)
+	if err != nil {
+		return errors.Wrap(err, "unable to dial database")
+	}
+
+	s.logger.Debug("Verifying Mongo build version is supported")
 
 	buildInfo, err := session.BuildInfo()
 	if err != nil {
 		session.Close()
-		return nil, errors.Wrap(err, "unable to determine build info")
+		return errors.Wrap(err, "unable to determine build info")
 	}
 
 	if !buildInfo.VersionAtLeast(3) {
 		session.Close()
-		return nil, errors.Newf("unsupported mongo build version %q", buildInfo.Version)
+		return errors.Newf("unsupported mongo build version %q", buildInfo.Version)
 	}
 
-	logger.Debug("Setting Mongo consistency mode to Strong")
-
+	s.logger.Debug("Setting Mongo consistency mode to Strong")
 	session.SetMode(mgo.Strong, true)
-
-	// TODO: Do we need to set Safe so we get write > 1?
-
-	return &Store{
-		Config:  config,
-		Session: session,
-	}, nil
+	s.sessionMux.Lock()
+	s.session = session
+	s.sessionMux.Unlock()
+	return nil
 }
 
 //Store represents a live session to a Mongo database
 type Store struct {
-	Config  *Config
-	Session *mgo.Session
+	Config          *Config
+	logger          log.Logger
+	closingChannel  chan bool
+	initializeGroup sync.WaitGroup
+	session         *mgo.Session
+	sessionMux      sync.Mutex
+}
+
+func (s *Store) Session() *mgo.Session {
+	s.sessionMux.Lock()
+	defer s.sessionMux.Unlock()
+	return s.session
 }
 
 //IsClosed returns true if the session is closed
 func (s *Store) IsClosed() bool {
-	return s.Session == nil
+	return s.Session() == nil
 }
 
 //Close the session to the Mongo database
 func (s *Store) Close() error {
-	if s.Session != nil {
-		s.Session.Close()
-		s.Session = nil
+	if s.closingChannel != nil {
+		s.closingChannel <- true
+	}
+	s.initializeGroup.Wait()
+	if s.Session() != nil {
+		s.sessionMux.Lock()
+		s.session.Close()
+		s.session = nil
+		s.sessionMux.Unlock()
 	}
 	return nil
 }
@@ -116,13 +219,13 @@ func (s *Store) Status() interface{} {
 
 	if !s.IsClosed() {
 		status.State = "OPEN"
-		if buildInfo, err := s.Session.BuildInfo(); err == nil {
+		if buildInfo, err := s.Session().BuildInfo(); err == nil {
 			status.BuildInfo = &buildInfo
 		}
-		status.LiveServers = s.Session.LiveServers()
-		status.Mode = s.Session.Mode()
-		status.Safe = s.Session.Safe()
-		if s.Session.Ping() == nil {
+		status.LiveServers = s.Session().LiveServers()
+		status.Mode = s.Session().Mode()
+		status.Safe = s.Session().Safe()
+		if s.Session().Ping() == nil {
 			status.Ping = "OK"
 		}
 	}
@@ -132,7 +235,7 @@ func (s *Store) Status() interface{} {
 
 func (s *Store) NewSession(collection string) *Session {
 	return &Session{
-		sourceSession: s.Session,
+		sourceSession: s.Session(),
 		database:      s.Config.Database,
 		collection:    s.Config.CollectionPrefix + collection,
 	}

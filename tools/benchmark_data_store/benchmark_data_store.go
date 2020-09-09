@@ -125,7 +125,7 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 	}
 
 	if ctx.IsSet(AddressesFlag) {
-		t.config.Addresses = ctx.StringSlice(AddressesFlag)
+		t.config.SetAddresses(ctx.StringSlice(AddressesFlag))
 	}
 	if ctx.IsSet(DatabaseFlag) {
 		t.config.Database = ctx.String(DatabaseFlag)

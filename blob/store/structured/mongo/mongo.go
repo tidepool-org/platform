@@ -23,7 +23,21 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+var (
+	blobIndexes = map[string][]mgo.Index{
+		"blobs": {
+			{Key: []string{"id"}, Background: true, Unique: true},
+			{Key: []string{"userId"}, Background: true},
+			{Key: []string{"mediaType"}, Background: true},
+			{Key: []string{"status"}, Background: true},
+		},
+	}
+)
+
 func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
+	if config != nil {
+		config.Indexes = blobIndexes
+	}
 	store, err := storeStructuredMongo.NewStore(config, logger)
 	if err != nil {
 		return nil, err
@@ -32,12 +46,6 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 	return &Store{
 		Store: store,
 	}, nil
-}
-
-func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
 }
 
 func (s *Store) NewSession() blobStoreStructured.Session {
@@ -52,15 +60,6 @@ func (s *Store) newSession() *Session {
 
 type Session struct {
 	*storeStructuredMongo.Session
-}
-
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Background: true, Unique: true},
-		{Key: []string{"userId"}, Background: true},
-		{Key: []string{"mediaType"}, Background: true},
-		{Key: []string{"status"}, Background: true},
-	})
 }
 
 func (s *Session) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {

@@ -1,5 +1,8 @@
 # Platform 
 The Tidepool platform API
+## 0.10.0 2020-09-09
+### Changed 
+- PT-1435 Platform services should be able to start without MongoDb
 
 ## 0.9.1 2020-08-18
 ### Fixed 

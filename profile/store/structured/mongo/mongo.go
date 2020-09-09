@@ -207,6 +207,6 @@ func (s *Session) get(logger log.Logger, userID string, condition *request.Condi
 			}
 		}
 	}
-
+	logger.Debug("Get")
 	return result, nil
 }

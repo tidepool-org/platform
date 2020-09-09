@@ -66,7 +66,7 @@ var _ = Describe("Config", func() {
 		Context("with valid values", func() {
 			BeforeEach(func() {
 				config.Config = storeStructuredMongo.NewConfig()
-				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
+				config.SetAddresses([]string{"1.2.3.4", "5.6.7.8"})
 				config.TLS = false
 				config.Database = "database"
 				config.CollectionPrefix = "collection_prefix"
@@ -87,7 +87,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error if the base config is not valid", func() {
-					config.Addresses = nil
+					config.SetAddresses(nil)
 					Expect(config.Validate()).To(MatchError("addresses is missing"))
 				})
 

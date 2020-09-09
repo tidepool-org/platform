@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sync"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -11,6 +12,7 @@ import (
 
 type Serializer struct {
 	SerializedFields []log.Fields
+	mux              sync.Mutex
 }
 
 func NewSerializer() *Serializer {
@@ -21,9 +23,9 @@ func (s *Serializer) Serialize(fields log.Fields) error {
 	if fields == nil {
 		return errors.New("fields are missing")
 	}
-
+	s.mux.Lock()
 	s.SerializedFields = append(s.SerializedFields, fields)
-
+	s.mux.Unlock()
 	return nil
 }
 
@@ -76,6 +78,8 @@ func (s *Serializer) AssertErrorExpression(messageExpression *regexp.Regexp, con
 
 func (s *Serializer) assertContainsFields(containsFields []log.Fields, matcher func(serializedFields log.Fields) bool) {
 	joinedContainsFields := s.joinContainsFields(containsFields)
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	for _, serializedFields := range s.SerializedFields {
 		if s.serializedFieldsContainsFields(serializedFields, joinedContainsFields) && (matcher == nil || matcher(serializedFields)) {
 			return

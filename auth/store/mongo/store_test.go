@@ -49,8 +49,6 @@ var _ = Describe("Store", func() {
 			Expect(str).ToNot(BeNil())
 		})
 
-		// TODO: EnsureIndexes
-
 		Context("NewProviderSessionSession", func() {
 			var ssn store.ProviderSessionSession
 

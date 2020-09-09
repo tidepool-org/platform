@@ -17,6 +17,17 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+var (
+	confirmationIndexes = map[string][]mgo.Index{
+		"confirmations": {
+			{Key: []string{"email"}, Background: true},
+			{Key: []string{"status"}, Background: true},
+			{Key: []string{"type"}, Background: true},
+			{Key: []string{"userId"}, Background: true},
+		},
+	}
+)
+
 func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
 	str, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
@@ -26,12 +37,6 @@ func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) 
 	return &Store{
 		Store: str,
 	}, nil
-}
-
-func (s *Store) EnsureIndexes() error {
-	ssn := s.confirmationSession()
-	defer ssn.Close()
-	return ssn.EnsureIndexes()
 }
 
 func (s *Store) NewConfirmationSession() store.ConfirmationSession {
@@ -46,15 +51,6 @@ func (s *Store) confirmationSession() *ConfirmationSession {
 
 type ConfirmationSession struct {
 	*storeStructuredMongo.Session
-}
-
-func (c *ConfirmationSession) EnsureIndexes() error {
-	return c.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"email"}, Background: true},
-		{Key: []string{"status"}, Background: true},
-		{Key: []string{"type"}, Background: true},
-		{Key: []string{"userId"}, Background: true},
-	})
 }
 
 func (c *ConfirmationSession) DeleteUserConfirmations(ctx context.Context, userID string) error {

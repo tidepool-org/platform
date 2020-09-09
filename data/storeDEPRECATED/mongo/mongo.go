@@ -18,7 +18,22 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+var (
+	deviceDataIndexes = map[string][]mgo.Index{
+		"deviceData": {
+			{Key: []string{"_userId", "_active", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
+			{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
+			{Key: []string{"type", "uploadId"}, Background: true, Name: "typeUploadId"},
+			{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
+			{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
+		},
+	}
+)
+
 func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	if cfg != nil {
+		cfg.Indexes = deviceDataIndexes
+	}
 	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
@@ -33,12 +48,6 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func (s *Store) EnsureIndexes() error {
-	session := s.NewDataSession()
-	defer session.Close()
-	return session.EnsureIndexes()
-}
-
 func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 	return &DataSession{
 		Session: s.Store.NewSession("deviceData"),
@@ -47,16 +56,6 @@ func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
 
 type DataSession struct {
 	*storeStructuredMongo.Session
-}
-
-func (d *DataSession) EnsureIndexes() error {
-	return d.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"_userId", "_active", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
-		{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
-		{Key: []string{"type", "uploadId"}, Background: true, Name: "typeUploadId"},
-		{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
-		{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
-	})
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {

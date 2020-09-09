@@ -21,7 +21,23 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+var (
+	taskIndexes = map[string][]mgo.Index{
+		"tasks": {
+			{Key: []string{"id"}, Unique: true, Background: true},
+			{Key: []string{"name"}, Unique: true, Sparse: true, Background: true},
+			{Key: []string{"priority"}, Background: true},
+			{Key: []string{"availableTime"}, Background: true},
+			{Key: []string{"expirationTime"}, Background: true},
+			{Key: []string{"state"}, Background: true},
+		},
+	}
+)
+
 func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+	if cfg != nil {
+		cfg.Indexes = taskIndexes
+	}
 	str, err := storeStructuredMongo.NewStore(cfg, lgr)
 	if err != nil {
 		return nil, err
@@ -42,25 +58,8 @@ func (s *Store) taskSession() *TaskSession {
 	}
 }
 
-func (s *Store) EnsureIndexes() error {
-	ssn := s.taskSession()
-	defer ssn.Close()
-	return ssn.EnsureIndexes()
-}
-
 type TaskSession struct {
 	*storeStructuredMongo.Session
-}
-
-func (t *TaskSession) EnsureIndexes() error {
-	return t.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Unique: true, Background: true},
-		{Key: []string{"name"}, Unique: true, Sparse: true, Background: true},
-		{Key: []string{"priority"}, Background: true},
-		{Key: []string{"availableTime"}, Background: true},
-		{Key: []string{"expirationTime"}, Background: true},
-		{Key: []string{"state"}, Background: true},
-	})
 }
 
 func (t *TaskSession) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {

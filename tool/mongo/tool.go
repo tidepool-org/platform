@@ -64,7 +64,7 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 	}
 
 	if ctx.IsSet(AddressesFlag) {
-		t.mongoConfig.Addresses = storeStructuredMongo.SplitAddresses(ctx.String(AddressesFlag))
+		t.mongoConfig.SetAddresses(storeStructuredMongo.SplitAddresses(ctx.String(AddressesFlag)))
 	}
 	if ctx.IsSet(TLSFlag) {
 		t.mongoConfig.TLS = ctx.Bool(TLSFlag)
@@ -75,8 +75,8 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 
 func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
 	mongoConfig := storeStructuredMongo.NewConfig()
-	if t.mongoConfig.Addresses != nil {
-		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)
+	if t.mongoConfig.Addresses() != nil {
+		mongoConfig.SetAddresses(append([]string{}, t.mongoConfig.Addresses()...))
 	}
 	mongoConfig.TLS = t.mongoConfig.TLS
 	mongoConfig.Database = t.mongoConfig.Database

@@ -8,10 +8,12 @@ import (
 
 //NewConfig creates a test Mongo configuration
 func NewConfig() *storeStructuredMongo.Config {
-	return &storeStructuredMongo.Config{
-		Addresses:        []string{Address()},
+	conf := &storeStructuredMongo.Config{
 		Database:         Database(),
 		CollectionPrefix: NewCollectionPrefix(),
 		Timeout:          5 * time.Second,
 	}
+	conf.SetAddresses([]string{Address()})
+
+	return conf
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
@@ -150,6 +149,7 @@ var _ = Describe("Mongo", func() {
 		It("returns a new store and no error if successful", func() {
 			var err error
 			store, err = mongo.NewStore(config, logger)
+			store.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
@@ -162,6 +162,7 @@ var _ = Describe("Mongo", func() {
 		BeforeEach(func() {
 			var err error
 			store, err = mongo.NewStore(config, logger)
+			store.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			mgoSession = storeStructuredMongoTest.Session().Copy()
@@ -172,22 +173,6 @@ var _ = Describe("Mongo", func() {
 			if mgoSession != nil {
 				mgoSession.Close()
 			}
-		})
-
-		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
-				Expect(store.EnsureIndexes()).To(Succeed())
-				indexes, err := mgoCollection.Indexes()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(indexes).Should(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_userId", "_active", "_schemaVersion", "-time"), "Background": Equal(true), "Name": Equal("UserIdTypeWeighted")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("origin.id", "type", "-deletedTime", "_active"), "Background": Equal(true), "Name": Equal("OriginId")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("type", "uploadId"), "Background": Equal(true), "Name": Equal("typeUploadId")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId", "type", "-deletedTime", "_active"), "Background": Equal(true), "Name": Equal("UploadId")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("uploadId"), "Background": Equal(true), "Unique": Equal(true), "Name": Equal("UniqueUploadId"), "PartialFilter": HaveKeyWithValue("type", "upload")}),
-				))
-			})
 		})
 
 		Context("NewDataSession", func() {

@@ -8,7 +8,6 @@ import (
 	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/confirmation/store"
 	"github.com/tidepool-org/platform/confirmation/store/mongo"
@@ -99,6 +98,7 @@ var _ = Describe("Store", func() {
 		BeforeEach(func() {
 			var err error
 			str, err = mongo.NewStore(cfg, logNull.NewLogger())
+			str.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 			mgoSession = storeStructuredMongoTest.Session().Copy()
@@ -109,21 +109,6 @@ var _ = Describe("Store", func() {
 			if mgoSession != nil {
 				mgoSession.Close()
 			}
-		})
-
-		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
-				Expect(str.EnsureIndexes()).To(Succeed())
-				indexes, err := mgoCollection.Indexes()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("email")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("status")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("type")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("userId")}),
-				))
-			})
 		})
 
 		Context("NewConfirmationSession", func() {

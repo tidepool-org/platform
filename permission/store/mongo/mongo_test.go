@@ -83,7 +83,7 @@ var _ = Describe("Mongo", func() {
 
 		It("returns an error if base config is invalid", func() {
 			var err error
-			mongoConfig.Config.Addresses = nil
+			mongoConfig.Config.SetAddresses(nil)
 			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
 			Expect(err).To(MatchError("config is invalid; addresses is missing"))
 			Expect(mongoStore).To(BeNil())
@@ -107,6 +107,7 @@ var _ = Describe("Mongo", func() {
 		It("returns a new store and no error if successful", func() {
 			var err error
 			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
+			mongoStore.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})
@@ -116,6 +117,7 @@ var _ = Describe("Mongo", func() {
 		BeforeEach(func() {
 			var err error
 			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
+			mongoStore.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mongoStore).ToNot(BeNil())
 		})

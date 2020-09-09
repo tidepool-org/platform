@@ -103,6 +103,7 @@ var _ = Describe("Mongo", func() {
 		It("returns a new store and no error when successful", func() {
 			var err error
 			store, err = dataSourceStoreStructuredMongo.NewStore(config, logger)
+			store.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
@@ -115,6 +116,7 @@ var _ = Describe("Mongo", func() {
 		BeforeEach(func() {
 			var err error
 			store, err = dataSourceStoreStructuredMongo.NewStore(config, logger)
+			store.WaitUntilStarted()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			mgoSession = storeStructuredMongoTest.Session().Copy()
@@ -125,19 +127,6 @@ var _ = Describe("Mongo", func() {
 			if mgoSession != nil {
 				mgoSession.Close()
 			}
-		})
-
-		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
-				Expect(store.EnsureIndexes()).To(Succeed())
-				indexes, err := mgoCollection.Indexes()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("id"), "Background": Equal(true), "Unique": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("userId"), "Background": Equal(true)}),
-				))
-			})
 		})
 
 		Context("NewSession", func() {
@@ -151,7 +140,6 @@ var _ = Describe("Mongo", func() {
 			var ctx context.Context
 
 			BeforeEach(func() {
-				Expect(store.EnsureIndexes()).To(Succeed())
 				session = store.NewSession()
 				ctx = log.NewContextWithLogger(context.Background(), logger)
 			})

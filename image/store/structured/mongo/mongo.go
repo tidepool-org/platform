@@ -23,7 +23,19 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
+var (
+	imageIndexes = map[string][]mgo.Index{
+		"images": {
+			{Key: []string{"id"}, Background: true, Unique: true},
+			{Key: []string{"userId", "status"}, Background: true},
+		},
+	}
+)
+
 func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
+	if config != nil {
+		config.Indexes = imageIndexes
+	}
 	store, err := storeStructuredMongo.NewStore(config, logger)
 	if err != nil {
 		return nil, err
@@ -32,12 +44,6 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 	return &Store{
 		Store: store,
 	}, nil
-}
-
-func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
 }
 
 func (s *Store) NewSession() imageStoreStructured.Session {
@@ -52,13 +58,6 @@ func (s *Store) newSession() *Session {
 
 type Session struct {
 	*storeStructuredMongo.Session
-}
-
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Background: true, Unique: true},
-		{Key: []string{"userId", "status"}, Background: true},
-	})
 }
 
 func (s *Session) List(ctx context.Context, userID string, filter *image.Filter, pagination *page.Pagination) (image.ImageArray, error) {

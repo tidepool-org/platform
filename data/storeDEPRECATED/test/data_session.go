@@ -195,11 +195,6 @@ func NewDataSession() *DataSession {
 	}
 }
 
-// EnsureIndexes required in order to implement the DataSession interface
-func (d *DataSession) EnsureIndexes() error {
-	return nil
-}
-
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStoreDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
 	d.GetDataSetsForUserByIDInvocations++
 
