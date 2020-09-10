@@ -266,7 +266,7 @@ ifdef OPS_DOCKER_REPOSITORY
 	@echo "Login to Docker Ops registry..."
 	@echo $(OPS_DOCKER_PASSWORD) | docker login --username "$(OPS_DOCKER_USERNAME)" --password-stdin $(OPS_DOCKER_REGISTRY)
 endif
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
+	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; $(MAKE) docker-scan DOCKER_FILE="$${DOCKER_FILE}"; done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
 endif
 
@@ -293,6 +293,13 @@ endif
 endif
 endif
 endif
+
+docker-scan:
+	@echo "Security scan using Trivy container"
+	@echo "Scan Image $(DOCKER_REPOSITORY)"
+	@TRIVY_VERSION=$(shell curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/') && \
+		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:$${TRIVY_VERSION} image --exit-code 0 --severity MEDIUM,LOW,UNKNOWN $(DOCKER_REPOSITORY) && \
+		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:$${TRIVY_VERSION} image --exit-code 1 --severity CRITICAL,HIGH $(DOCKER_REPOSITORY)
 
 docker-push:
 ifdef DOCKER
@@ -361,6 +368,6 @@ gopath-implode:
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
-	docker docker-build docker-push ci-docker \
+	docker docker-build docker-push ci-docker docker-scan \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
 	gopath-implode
