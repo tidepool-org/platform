@@ -7,6 +7,7 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/image"
+	kafka "github.com/tidepool-org/platform/kafka/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -18,6 +19,10 @@ import (
 )
 
 type Provider struct {
+	CloudEventsClientInvocations   int
+	CloudEventsClientStub          func() kafka.CloudEventsClient
+	CloudEventsClientOutputs       []kafka.CloudEventsClient
+	CloudEventsClientOutput        *kafka.CloudEventsClient
 	AuthClientInvocations          int
 	AuthClientStub                 func() auth.Client
 	AuthClientOutputs              []auth.Client
@@ -78,6 +83,21 @@ type Provider struct {
 
 func NewProvider() *Provider {
 	return &Provider{}
+}
+func (p *Provider) CloudEventsClient() kafka.CloudEventsClient {
+	p.AuthClientInvocations++
+	if p.CloudEventsClientStub != nil {
+		return p.CloudEventsClientStub()
+	}
+	if len(p.CloudEventsClientOutputs) > 0 {
+		output := p.CloudEventsClientOutputs[0]
+		p.CloudEventsClientOutputs = p.CloudEventsClientOutputs[1:]
+		return output
+	}
+	if p.CloudEventsClientOutput != nil {
+		return *p.CloudEventsClientOutput
+	}
+	panic("CloudEventsClient has no output")
 }
 
 func (p *Provider) AuthClient() auth.Client {
@@ -305,6 +325,9 @@ func (p *Provider) PasswordHasher() userServiceClient.PasswordHasher {
 }
 
 func (p *Provider) AssertOutputsEmpty() {
+	if len(p.CloudEventsClientOutputs) > 0 {
+		panic("CloudEventsClientOutputs is not empty")
+	}
 	if len(p.AuthClientOutputs) > 0 {
 		panic("AuthClientOutputs is not empty")
 	}

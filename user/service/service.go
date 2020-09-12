@@ -34,6 +34,7 @@ import (
 	userServiceClient "github.com/tidepool-org/platform/user/service/client"
 	userStoreStructured "github.com/tidepool-org/platform/user/store/structured"
 	userStoreStructuredMongo "github.com/tidepool-org/platform/user/store/structured/mongo"
+	kafka "github.com/tidepool-org/platform/kafka/client"
 )
 
 // TODO: We really should not have direct access of these other stores, but short
@@ -57,6 +58,7 @@ type Service struct {
 	userStructuredStore *userStoreStructuredMongo.Store
 	passwordHasher      *PasswordHasher
 	userClient          *userServiceClient.Client
+	cloudEventsClient	kafka.CloudEventsClient
 }
 
 func New() *Service {
@@ -110,6 +112,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeUserClient(); err != nil {
+		return err
+	}
+	if err := s.initializeCloudEventsClient(); err != nil {
 		return err
 	}
 	return s.initializeRouter()
@@ -197,6 +202,14 @@ func (s *Service) PasswordHasher() userServiceClient.PasswordHasher {
 
 func (s *Service) UserClient() user.Client {
 	return s.userClient
+}
+func (s *Service) CloudEventsClient() kafka.CloudEventsClient {
+	return s.cloudEventsClient
+}
+
+func (s *Service) initializeCloudEventsClient() error {
+	s.cloudEventsClient = kafka.Initialize
+	return nil
 }
 
 func (s *Service) initializeBlobClient() error {

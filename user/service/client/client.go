@@ -10,6 +10,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/image"
+	kafka "github.com/tidepool-org/platform/kafka/client"
 	"github.com/tidepool-org/platform/log"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	"github.com/tidepool-org/platform/metric"
@@ -27,6 +28,7 @@ type PasswordHasher interface {
 }
 
 type Provider interface {
+	CloudEventsClient() kafka.CloudEventsClient
 	AuthClient() auth.Client
 	BlobClient() blob.Client
 	DataClient() dataClient.Client
@@ -173,7 +175,7 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	if err = c.ImageClient().DeleteAll(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all images")
 	}
-
+ 
 	messageUser := &messageStore.User{ID: id}
 
 	profileSession := c.ProfileStore().NewSession()
@@ -202,6 +204,9 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
 	}
+	
+	c.CloudEventsClient().KafkaMessage("user-delete", id)
+
 
 	return session.Destroy(ctx, id, nil)
 }
