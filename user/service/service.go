@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/image"
 	imageClient "github.com/tidepool-org/platform/image/client"
 	imageMultipart "github.com/tidepool-org/platform/image/multipart"
+	kafka "github.com/tidepool-org/platform/kafka/client"
 	messageStore "github.com/tidepool-org/platform/message/store"
 	messageStoreMongo "github.com/tidepool-org/platform/message/store/mongo"
 	"github.com/tidepool-org/platform/metric"
@@ -34,7 +35,6 @@ import (
 	userServiceClient "github.com/tidepool-org/platform/user/service/client"
 	userStoreStructured "github.com/tidepool-org/platform/user/store/structured"
 	userStoreStructuredMongo "github.com/tidepool-org/platform/user/store/structured/mongo"
-	kafka "github.com/tidepool-org/platform/kafka/client"
 )
 
 // TODO: We really should not have direct access of these other stores, but short
@@ -58,7 +58,7 @@ type Service struct {
 	userStructuredStore *userStoreStructuredMongo.Store
 	passwordHasher      *PasswordHasher
 	userClient          *userServiceClient.Client
-	cloudEventsClient	kafka.CloudEventsClient
+	cloudEventsClient   kafka.CloudEventsClient
 }
 
 func New() *Service {
