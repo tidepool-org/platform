@@ -11,15 +11,18 @@ import (
 	"github.com/google/uuid"
 )
 
+//CloudEventsClient is the method signature for Kafka message
 type CloudEventsClient interface {
 	KafkaMessage(event string, newUser string)
 }
 
+//Kafka struct containing the kafka topic and broker
 type Kafka struct {
 	topic  string
 	broker string
 }
 
+//NewKafka creates a kafka struct containing the kafka topic and broker
 func (k *Kafka) NewKafka() *Kafka {
 	prefix, _ := os.LookupEnv("KAFKA_PREFIX")
 	topic, _ := os.LookupEnv("KAFKA_TOPIC")
@@ -34,7 +37,7 @@ func (k *Kafka) NewKafka() *Kafka {
 	}
 }
 
-// COME BACK AND REVIEW THIS
+// Initialize COME BACK AND REVIEW THIS
 var Initialize CloudEventsClient = &Kafka{}
 
 // KafkaSender sends message to correct topic and broker
