@@ -175,7 +175,7 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	if err = c.ImageClient().DeleteAll(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all images")
 	}
- 
+
 	messageUser := &messageStore.User{ID: id}
 
 	profileSession := c.ProfileStore().NewSession()
@@ -204,9 +204,8 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
 	}
-	
-	c.CloudEventsClient().KafkaMessage("user-delete", id)
 
+	c.CloudEventsClient().KafkaMessage("user-delete", id)
 
 	return session.Destroy(ctx, id, nil)
 }
