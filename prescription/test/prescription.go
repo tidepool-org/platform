@@ -57,7 +57,17 @@ func RandomClaimedPrescription() *prescription.Prescription {
 }
 
 func RandomRevisionCreate() *prescription.RevisionCreate {
+	accountType := faker.RandomChoice(prescription.AccountTypes())
+	caregiverFirstName := ""
+	caregiverLastName := ""
+	if accountType == prescription.AccountTypeCaregiver {
+		caregiverFirstName = faker.Name().FirstName()
+		caregiverLastName = faker.Name().LastName()
+	}
 	return &prescription.RevisionCreate{
+		AccountType:             accountType,
+		CaregiverFirstName:      caregiverFirstName,
+		CaregiverLastName:       caregiverLastName,
 		FirstName:               faker.Name().FirstName(),
 		LastName:                faker.Name().LastName(),
 		Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
@@ -84,7 +94,17 @@ func RandomRevision() *prescription.Revision {
 }
 
 func RandomAttribtues() *prescription.Attributes {
+	accountType := faker.RandomChoice(prescription.AccountTypes())
+	caregiverFirstName := ""
+	caregiverLastName := ""
+	if accountType == prescription.AccountTypeCaregiver {
+		caregiverFirstName = faker.Name().FirstName()
+		caregiverLastName = faker.Name().LastName()
+	}
 	return &prescription.Attributes{
+		AccountType:             accountType,
+		CaregiverFirstName:      caregiverFirstName,
+		CaregiverLastName:       caregiverLastName,
 		FirstName:               faker.Name().FirstName(),
 		LastName:                faker.Name().LastName(),
 		Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
