@@ -72,7 +72,7 @@ func (k *Kafka) KafkaMessage(event string, userID string, email string, role []s
 	_ = e.SetData(cloudevents.ApplicationJSON, map[string]interface{}{
 		"user":  userID,
 		"email": email,
-		"role": role[0],
+		"role":  role[0],
 		"event": event,
 	})
 
