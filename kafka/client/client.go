@@ -13,7 +13,7 @@ import (
 
 //CloudEventsClient is the method signature for Kafka message
 type CloudEventsClient interface {
-	KafkaMessage(event string, userID string, email *string, role *[]string)
+	KafkaMessage(event string, userID string, email string, role []string)
 }
 
 //Kafka struct containing the kafka topic and broker
@@ -64,7 +64,7 @@ func (k *Kafka) KafkaClient(Sender *kafka_sarama.Sender) cloudevents.Client {
 }
 
 // KafkaMessage produces kafka message
-func (k *Kafka) KafkaMessage(event string, userID string, email *string, role *[]string) {
+func (k *Kafka) KafkaMessage(event string, userID string, email string, role []string) {
 	e := cloudevents.NewEvent()
 	e.SetID(uuid.New().String())
 	e.SetType(event)
@@ -87,6 +87,6 @@ func (k *Kafka) KafkaMessage(event string, userID string, email *string, role *[
 		log.Println("failed to send message")
 		k.KafkaClient(kafkaSender).Send(kafka_sarama.WithMessageKey(context.Background(), sarama.StringEncoder(e.ID())), e)
 	} else {
-		log.Printf("sent: %s %s %s %s, accepted: %t", event, userID, email, role, cloudevents.IsACK(result))
+		log.Printf("sent: %s %s %v %v, accepted: %t", event, userID, email, role, cloudevents.IsACK(result))
 	}
 }
