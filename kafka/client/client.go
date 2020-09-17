@@ -42,11 +42,12 @@ var Initialize CloudEventsClient = &Kafka{}
 
 // KafkaSender sends message to correct topic and broker
 func (k *Kafka) KafkaSender() *kafka_sarama.Sender {
-
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Version = sarama.V2_0_0_0
+	log.Printf("Broker: %v Topic: %v", k.broker, k.topic)
+	log.Printf("New Broker: %v New Topic: %v", k.NewKafka().broker, k.NewKafka().topic)
 
-	sender, err := kafka_sarama.NewSender([]string{k.broker}, saramaConfig, k.topic)
+	sender, err := kafka_sarama.NewSender([]string{k.NewKafka().broker}, saramaConfig, k.NewKafka().topic)
 	if err != nil {
 		log.Printf("failed to create protocol: %s", err.Error())
 	}
