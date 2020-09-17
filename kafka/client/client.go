@@ -13,7 +13,7 @@ import (
 
 //CloudEventsClient is the method signature for Kafka message
 type CloudEventsClient interface {
-	KafkaMessage(event string, newUser string)
+	KafkaMessage(event string, userID string, email string, role []string)
 }
 
 //Kafka struct containing the kafka topic and broker
@@ -64,13 +64,15 @@ func (k *Kafka) KafkaClient(Sender *kafka_sarama.Sender) cloudevents.Client {
 }
 
 // KafkaMessage produces kafka message
-func (k *Kafka) KafkaMessage(event string, newUser string) {
+func (k *Kafka) KafkaMessage(event string, userID string, email string, role []string) {
 	e := cloudevents.NewEvent()
 	e.SetID(uuid.New().String())
 	e.SetType(event)
 	e.SetSource("github.com/tidepool-org/platform/kafka/client")
 	_ = e.SetData(cloudevents.ApplicationJSON, map[string]interface{}{
-		"user":  newUser,
+		"user":  userID,
+		"email": email,
+		"role": role[0],
 		"event": event,
 	})
 
@@ -85,6 +87,6 @@ func (k *Kafka) KafkaMessage(event string, newUser string) {
 		log.Println("failed to send message")
 		k.KafkaClient(kafkaSender).Send(kafka_sarama.WithMessageKey(context.Background(), sarama.StringEncoder(e.ID())), e)
 	} else {
-		log.Printf("sent: %s %s, accepted: %t", event, newUser, cloudevents.IsACK(result))
+		log.Printf("sent: %s %s %s %s, accepted: %t", event, userID, email, role, cloudevents.IsACK(result))
 	}
 }
