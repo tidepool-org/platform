@@ -13,7 +13,7 @@ import (
 
 //CloudEventsClient is the method signature for Kafka message
 type CloudEventsClient interface {
-	KafkaMessage(event string, userID string, email string, role []string)
+	KafkaMessage(event string, userID string, email *string, role *[]string)
 }
 
 //Kafka struct containing the kafka topic and broker
@@ -64,7 +64,7 @@ func (k *Kafka) KafkaClient(Sender *kafka_sarama.Sender) cloudevents.Client {
 }
 
 // KafkaMessage produces kafka message
-func (k *Kafka) KafkaMessage(event string, userID string, email string, role []string) {
+func (k *Kafka) KafkaMessage(event string, userID string, email *string, role *[]string) {
 	e := cloudevents.NewEvent()
 	e.SetID(uuid.New().String())
 	e.SetType(event)
@@ -72,7 +72,7 @@ func (k *Kafka) KafkaMessage(event string, userID string, email string, role []s
 	_ = e.SetData(cloudevents.ApplicationJSON, map[string]interface{}{
 		"user":  userID,
 		"email": email,
-		"role":  role[0],
+		"role":  role,
 		"event": event,
 	})
 
