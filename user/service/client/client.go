@@ -203,6 +203,10 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
 	}
+	logger.Infof("PResult: %v", *result.Username)
+	logger.Infof("PResult: %v", result.Username)
+	logger.Infof("PResult: %v", *result.Roles)
+	logger.Infof("PResult: %v", result.Roles)
 	c.CloudEventsClient().KafkaMessage("delete-user", id, *result.Username, *result.Roles)
 
 	return session.Destroy(ctx, id, nil)
