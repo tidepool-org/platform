@@ -28,8 +28,6 @@ func (k *Kafka) NewKafka() *Kafka {
 	topic, _ := os.LookupEnv("KAFKA_TOPIC")
 	topicWithPrefix := prefix + topic
 	broker, _ := os.LookupEnv("KAFKA_BROKERS")
-	log.Println(broker)
-	log.Println(topic)
 
 	return &Kafka{
 		topicWithPrefix,
@@ -44,8 +42,7 @@ var Initialize CloudEventsClient = &Kafka{}
 func (k *Kafka) KafkaSender() *kafka_sarama.Sender {
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Version = sarama.V2_0_0_0
-	log.Printf("Broker: %v Topic: %v", k.broker, k.topic)
-	log.Printf("New Broker: %v New Topic: %v", k.NewKafka().broker, k.NewKafka().topic)
+	log.Printf("Broker: %v Topic: %v", k.NewKafka().broker, k.NewKafka().topic)
 
 	sender, err := kafka_sarama.NewSender([]string{k.NewKafka().broker}, saramaConfig, k.NewKafka().topic)
 	if err != nil {
