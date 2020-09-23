@@ -208,8 +208,9 @@ func (s *Service) CloudEventsClient() kafka.CloudEventsClient {
 }
 
 func (s *Service) initializeCloudEventsClient() error {
-	s.cloudEventsClient = kafka.Initialize
-	return nil
+	var err error
+	s.cloudEventsClient, err = kafka.NewServiceConfigFromEnv()
+	return err
 }
 
 func (s *Service) initializeBlobClient() error {
