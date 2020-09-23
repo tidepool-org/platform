@@ -18,17 +18,17 @@ type CloudEventsClient interface {
 
 //Kafka struct containing the kafka topic and broker
 type Kafka struct {
-	prefix     string `envconfig:"KAFKA_PREFIX" required:"false"`
-	baseTopic  string `envconfig:"KAFKA_TOPIC" required:"false"`
-	finalTopic string
-	broker     string `envconfig:"KAFKA_BROKERS" required:"false"`
+	Prefix     string `envconfig:"KAFKA_PREFIX" required:"false"`
+	BaseTopic  string `envconfig:"KAFKA_TOPIC" required:"false"`
+	FinalTopic string
+	Broker     string `envconfig:"KAFKA_BROKERS" required:"false"`
 }
 
 //NewServiceConfigFromEnv creates a kafka struct containing the kafka topic and broker
 func NewServiceConfigFromEnv() (*Kafka, error) {
 	var config Kafka
 	err := envconfig.Process("", &config)
-	config.finalTopic = config.prefix + config.baseTopic
+	config.FinalTopic = config.Prefix + config.BaseTopic
 	return &config, err
 }
 
@@ -36,9 +36,9 @@ func NewServiceConfigFromEnv() (*Kafka, error) {
 func (k *Kafka) KafkaSender() (*kafka_sarama.Sender, error) {
 	saramaConfig := sarama.NewConfig()
 	saramaConfig.Version = sarama.V2_0_0_0
-	log.Printf("Broker: %v Topic: %v", k.broker, k.finalTopic)
+	log.Printf("Broker: %v Topic: %v", k.Broker, k.FinalTopic)
 
-	sender, err := kafka_sarama.NewSender([]string{k.broker}, saramaConfig, k.finalTopic)
+	sender, err := kafka_sarama.NewSender([]string{k.Broker}, saramaConfig, k.FinalTopic)
 	return sender, err
 }
 
