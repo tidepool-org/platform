@@ -207,10 +207,15 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	var role []string
 	if result != nil && result.Roles != nil {
 		role = *result.Roles
-		logger.Infof("PResult: %v", *result.Roles)
 	}
-	logger.Infof("PResult: %v", *result)
-	c.CloudEventsClient().KafkaMessage("delete-user", id, *result.Username, role)
+	eventType := "delete-user"
+	userEventMessage := map[string]interface{}{
+		"event": eventType,
+		"user": id,
+		"email": *result.Username,
+		"role": role,
+	}
+	c.CloudEventsClient().KafkaMessage(userEventMessage)
 
 	return session.Destroy(ctx, id, nil)
 }
