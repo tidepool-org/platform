@@ -211,9 +211,9 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	eventType := "delete-user"
 	userEventMessage := map[string]interface{}{
 		"event": eventType,
-		"user": id,
+		"user":  id,
 		"email": *result.Username,
-		"role": role,
+		"role":  role,
 	}
 	c.CloudEventsClient().KafkaMessage(userEventMessage)
 
