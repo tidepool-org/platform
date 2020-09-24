@@ -205,7 +205,9 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		}
 	}
 	//Sending delete user event to kafka
-	if !strings.HasSuffix(*result.Username, "@tidepool.io") && !strings.HasSuffix(*result.Username, "@tidepool.org") {
+	userName := *result.Username
+	logger.Infof("preparing to send delete user kafka message for %v", userName)
+	if !strings.HasSuffix(userName, "@tidepool.io") && !strings.HasSuffix(userName, "@tidepool.org") {
 		var role []string
 		if result != nil && result.Roles != nil {
 			role = *result.Roles
