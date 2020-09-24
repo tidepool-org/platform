@@ -22,6 +22,9 @@ const (
 
 	UnitKg = "kg"
 
+	AccountTypePatient   = "patient"
+	AccountTypeCaregiver = "caregiver"
+
 	usPhoneNumberRegexString = "^\\d{10}|\\(\\d{3}\\) ?\\d{3}\\-\\d{4}$" // Matches 1234567890, (123)456-7890 or (123) 456-7890
 	usPhoneNumberCountryCode = 1
 )
@@ -31,6 +34,9 @@ var (
 )
 
 type RevisionCreate struct {
+	AccountType             string           `json:"accountType,omitempty"`
+	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty"`
+	CaregiverLastName       string           `json:"caregiverLastName,omitempty"`
 	FirstName               string           `json:"firstName,omitempty"`
 	LastName                string           `json:"lastName,omitempty"`
 	Birthday                string           `json:"birthday,omitempty"`
@@ -52,6 +58,13 @@ func NewRevisionCreate() *RevisionCreate {
 }
 
 func (r *RevisionCreate) Validate(validator structure.Validator) {
+	if r.AccountType != "" {
+		validator.String("accountType", &r.AccountType).OneOf(AccountTypes()...)
+		if r.AccountType == AccountTypePatient {
+			validator.String("caregiverFirstName", &r.CaregiverFirstName).Empty()
+			validator.String("caregiverLastName", &r.CaregiverLastName).Empty()
+		}
+	}
 	if r.Birthday != "" {
 		validator.String("birthday", &r.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
 	}
@@ -86,6 +99,11 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 }
 
 func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
+	validator.String("accountType", &r.AccountType).NotEmpty()
+	if r.AccountType == AccountTypeCaregiver {
+		validator.String("caregiverFirstName", &r.CaregiverFirstName).NotEmpty()
+		validator.String("caregiverLastName", &r.CaregiverLastName).NotEmpty()
+	}
 	validator.String("firstName", &r.FirstName).NotEmpty()
 	validator.String("lastName", &r.LastName).NotEmpty()
 	validator.String("birthday", &r.Birthday).NotEmpty()
@@ -135,6 +153,9 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 	return &Revision{
 		RevisionID: revisionID,
 		Attributes: &Attributes{
+			AccountType:             create.AccountType,
+			CaregiverFirstName:      create.CaregiverFirstName,
+			CaregiverLastName:       create.CaregiverLastName,
 			FirstName:               create.FirstName,
 			LastName:                create.LastName,
 			Birthday:                create.Birthday,
@@ -183,6 +204,9 @@ func (r *Revision) GetPrescriberUserID() string {
 }
 
 type Attributes struct {
+	AccountType             string           `json:"accountType,omitempty" bson:"accountType,omitempty"`
+	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty" bson:"caregiverFirstName,omitempty"`
+	CaregiverLastName       string           `json:"caregiverLastName,omitempty" bson:"caregiverLastName,omitempty"`
 	FirstName               string           `json:"firstName,omitempty" bson:"firstName,omitempty"`
 	LastName                string           `json:"lastName,omitempty" bson:"lastName,omitempty"`
 	Birthday                string           `json:"birthday,omitempty" bson:"birthday,omitempty"`
@@ -202,6 +226,13 @@ type Attributes struct {
 }
 
 func (a *Attributes) Validate(validator structure.Validator) {
+	if a.AccountType != "" {
+		validator.String("accountType", &a.AccountType).OneOf(AccountTypes()...)
+		if a.AccountType == AccountTypePatient {
+			validator.String("caregiverFirstName", &a.CaregiverFirstName).Empty()
+			validator.String("caregiverLastName", &a.CaregiverLastName).Empty()
+		}
+	}
 	if a.Birthday != "" {
 		validator.String("birthday", &a.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
 	}
@@ -239,6 +270,11 @@ func (a *Attributes) Validate(validator structure.Validator) {
 }
 
 func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
+	validator.String("accountType", &a.AccountType).NotEmpty()
+	if a.AccountType == AccountTypeCaregiver {
+		validator.String("caregiverFirstName", &a.CaregiverFirstName).NotEmpty()
+		validator.String("caregiverLastName", &a.CaregiverLastName).NotEmpty()
+	}
 	validator.String("firstName", &a.FirstName).NotEmpty()
 	validator.String("lastName", &a.LastName).NotEmpty()
 	validator.String("birthday", &a.Birthday).NotEmpty()
@@ -326,5 +362,12 @@ func SexValues() []string {
 		SexMale,
 		SexFemale,
 		SexUndisclosed,
+	}
+}
+
+func AccountTypes() []string {
+	return []string{
+		AccountTypePatient,
+		AccountTypeCaregiver,
 	}
 }
