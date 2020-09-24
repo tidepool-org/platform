@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"strings"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/blob"
@@ -204,18 +205,20 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		}
 	}
 	//Sending delete user event to kafka
-	var role []string
-	if result != nil && result.Roles != nil {
-		role = *result.Roles
+	if !strings.HasSuffix(*result.Username, "@tidepool.io") && !strings.HasSuffix(*result.Username, "@tidepool.org") {
+		var role []string
+		if result != nil && result.Roles != nil {
+			role = *result.Roles
+		}
+		eventType := "delete-user"
+		userEventMessage := map[string]interface{}{
+			"event": eventType,
+			"user":  id,
+			"email": *result.Username,
+			"role":  role,
+		}
+		c.CloudEventsClient().KafkaMessage(userEventMessage)
 	}
-	eventType := "delete-user"
-	userEventMessage := map[string]interface{}{
-		"event": eventType,
-		"user":  id,
-		"email": *result.Username,
-		"role":  role,
-	}
-	c.CloudEventsClient().KafkaMessage(userEventMessage)
 
 	return session.Destroy(ctx, id, nil)
 }
