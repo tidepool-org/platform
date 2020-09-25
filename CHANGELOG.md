@@ -1,5 +1,9 @@
 # Platform 
 The Tidepool platform API
+## 0.10.1 2020-09-17
+### Fixed
+- PT-1516 Max connection attempts to MongoDb doesn't behave as expected
+
 ## 0.10.0 2020-09-09
 ### Changed 
 - PT-1435 Platform services should be able to start without MongoDb

@@ -102,11 +102,11 @@ func (s *Store) connectionRoutine() {
 					s.logger.Debug("Store session opened succesfully")
 					s.closingChannel <- true
 				} else {
-					if s.Config.MaxConnectionAttempts > 0 && s.Config.MaxConnectionAttempts > attempts {
+					if s.Config.MaxConnectionAttempts > 0 && s.Config.MaxConnectionAttempts < attempts {
 						s.logger.Errorf("Unable to open store session, maximum connection attempts reached : %v", err)
 						s.closingChannel <- true
 						panic(err)
-					} else if s.Config.MaxConnectionAttempts > 0 {
+					} else {
 						s.logger.Errorf("Unable to open store session : %v", err)
 						attempts++
 					}
