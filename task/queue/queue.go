@@ -8,13 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Config struct {

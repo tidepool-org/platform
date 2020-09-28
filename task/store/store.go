@@ -3,8 +3,9 @@ package store
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/task"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/task"
 )
 
 type Store interface {
