@@ -57,10 +57,10 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns an error if the addresses are not reachable", func() {
-				params.DatabaseConfig.Addresses = []string{"127.0.0.0", "127.0.0.0"}
+				params.DatabaseConfig.Addresses = []string{"127.0.0.2", "127.0.0.3"}
 				var err error
 				store, err = storeStructuredMongo.NewStore(params)
-				Expect(err).To(MatchError("server selection error: server selection timeout, current topology: { Type: Unknown, Servers: [{ Addr: 127.0.0.0:27017, Type: Unknown, State: Connected, Average RTT: 0 }, ] }"))
+				Expect(err).To(MatchError("server selection error: server selection timeout, current topology: { Type: Unknown, Servers: [{ Addr: 127.0.0.2:27017, Type: Unknown, State: Connected, Average RTT: 0 }, { Addr: 127.0.0.3:27017, Type: Unknown, State: Connected, Average RTT: 0 }, ] }"))
 			})
 
 			It("returns an error if the username or password is invalid", func() {
