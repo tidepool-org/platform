@@ -3,7 +3,7 @@ package deduplicator
 import (
 	"context"
 
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
@@ -66,7 +66,7 @@ func (t *DeviceTruncateDataSet) Get(dataSet *dataTypesUpload.Upload) (bool, erro
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.truncate"), nil // TODO: DEPRECATED
 }
 
-func (t *DeviceTruncateDataSet) Close(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (t *DeviceTruncateDataSet) Close(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

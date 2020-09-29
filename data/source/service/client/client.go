@@ -38,8 +38,8 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 		return nil, err
 	}
 
-	collection := c.DataSourceStructuredStore().NewDataRepository()
-	return collection.List(ctx, userID, filter, pagination)
+	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
+	return repository.List(ctx, userID, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
@@ -47,8 +47,8 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 		return nil, err
 	}
 
-	collection := c.DataSourceStructuredStore().NewDataRepository()
-	return collection.Create(ctx, userID, create)
+	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
+	return repository.Create(ctx, userID, create)
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
@@ -56,8 +56,8 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 		return err
 	}
 
-	collection := c.DataSourceStructuredStore().NewDataRepository()
-	_, err := collection.DestroyAll(ctx, userID)
+	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
+	_, err := repository.DestroyAll(ctx, userID)
 	return err
 }
 
@@ -66,8 +66,8 @@ func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error)
 		return nil, err
 	}
 
-	collection := c.DataSourceStructuredStore().NewDataRepository()
-	result, err := collection.Get(ctx, id)
+	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
+	result, err := repository.Get(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +84,8 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 		return nil, err
 	}
 
-	collection := c.DataSourceStructuredStore().NewDataRepository()
-	return collection.Update(ctx, id, condition, update)
+	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
+	return repository.Update(ctx, id, condition, update)
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
@@ -93,6 +93,6 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		return false, err
 	}
 
-	collection := c.DataSourceStructuredStore().NewDataRepository()
-	return collection.Destroy(ctx, id, condition)
+	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
+	return repository.Destroy(ctx, id, condition)
 }

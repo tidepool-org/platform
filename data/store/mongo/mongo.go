@@ -9,7 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/storeDEPRECATED"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -39,7 +39,7 @@ func (s *Store) EnsureIndexes() error {
 	return repository.EnsureIndexes()
 }
 
-func (s *Store) NewDataRepository() storeDEPRECATED.DataRepository {
+func (s *Store) NewDataRepository() store.DataRepository {
 	return &DataRepository{
 		s.Store.GetRepository("deviceData"),
 	}
@@ -98,7 +98,7 @@ func (d *DataRepository) EnsureIndexes() error {
 	})
 }
 
-func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -106,7 +106,7 @@ func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID stri
 		return nil, errors.New("user id is missing")
 	}
 	if filter == nil {
-		filter = storeDEPRECATED.NewFilter()
+		filter = store.NewFilter()
 	} else if err := structureValidator.New().Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}

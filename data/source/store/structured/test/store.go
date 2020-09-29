@@ -3,34 +3,34 @@ package test
 import dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 
 type Store struct {
-	NewSessionInvocations int
-	NewSessionStub        func() dataSourceStoreStructured.DataRepository
-	NewSessionOutputs     []dataSourceStoreStructured.DataRepository
-	NewSessionOutput      *dataSourceStoreStructured.DataRepository
+	NewDataSourcesInvocations int
+	NewDataSourcesStub        func() dataSourceStoreStructured.DataSourcesRepository
+	NewDataSourcesOutputs     []dataSourceStoreStructured.DataSourcesRepository
+	NewDataSourcesOutput      *dataSourceStoreStructured.DataSourcesRepository
 }
 
 func NewStore() *Store {
 	return &Store{}
 }
 
-func (s *Store) NewDataRepository() dataSourceStoreStructured.DataRepository {
-	s.NewSessionInvocations++
-	if s.NewSessionStub != nil {
-		return s.NewSessionStub()
+func (s *Store) NewDataSourcesRepository() dataSourceStoreStructured.DataSourcesRepository {
+	s.NewDataSourcesInvocations++
+	if s.NewDataSourcesStub != nil {
+		return s.NewDataSourcesStub()
 	}
-	if len(s.NewSessionOutputs) > 0 {
-		output := s.NewSessionOutputs[0]
-		s.NewSessionOutputs = s.NewSessionOutputs[1:]
+	if len(s.NewDataSourcesOutputs) > 0 {
+		output := s.NewDataSourcesOutputs[0]
+		s.NewDataSourcesOutputs = s.NewDataSourcesOutputs[1:]
 		return output
 	}
-	if s.NewSessionOutput != nil {
-		return *s.NewSessionOutput
+	if s.NewDataSourcesOutput != nil {
+		return *s.NewDataSourcesOutput
 	}
-	panic("NewDataRepository has no output")
+	panic("NewDataSourcesRepository has no output")
 }
 
 func (s *Store) AssertOutputsEmpty() {
-	if len(s.NewSessionOutputs) > 0 {
+	if len(s.NewDataSourcesOutputs) > 0 {
 		panic("NewSessionOutputs is not empty")
 	}
 }

@@ -5,7 +5,7 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
@@ -21,7 +21,7 @@ type Context interface {
 
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	DataRepository() dataStoreDEPRECATED.DataRepository
+	DataRepository() dataStore.DataRepository
 	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 
 	DataClient() dataClient.Client

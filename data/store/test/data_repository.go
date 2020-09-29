@@ -6,7 +6,7 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -15,7 +15,7 @@ import (
 type GetDataSetsForUserByIDInput struct {
 	Context    context.Context
 	UserID     string
-	Filter     *dataStoreDEPRECATED.Filter
+	Filter     *dataStore.Filter
 	Pagination *page.Pagination
 }
 
@@ -199,7 +199,7 @@ func (d *DataRepository) EnsureIndexes() error {
 	return nil
 }
 
-func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStoreDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStore.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
 	d.GetDataSetsForUserByIDInvocations++
 
 	d.GetDataSetsForUserByIDInputs = append(d.GetDataSetsForUserByIDInputs, GetDataSetsForUserByIDInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})

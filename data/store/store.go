@@ -1,4 +1,4 @@
-package storeDEPRECATED
+package store
 
 import (
 	"context"

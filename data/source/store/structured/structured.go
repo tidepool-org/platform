@@ -9,10 +9,10 @@ import (
 )
 
 type Store interface {
-	NewDataRepository() DataRepository
+	NewDataSourcesRepository() DataSourcesRepository
 }
 
-type DataRepository interface {
+type DataSourcesRepository interface {
 	List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
 	DestroyAll(ctx context.Context, userID string) (bool, error)

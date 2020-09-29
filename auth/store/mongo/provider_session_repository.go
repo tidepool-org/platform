@@ -146,28 +146,14 @@ func (p *ProviderSessionRepository) GetProviderSession(ctx context.Context, id s
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	providerSessions := auth.ProviderSessions{}
-	opts := options.Find().
-		SetLimit(2)
-	cursor, err := p.Find(ctx, bson.M{"id": id}, opts)
+	var providerSession *auth.ProviderSession
+	err := p.FindOne(ctx, bson.M{"id": id}).Decode(&providerSession)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetProviderSession")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get provider session")
-	}
-
-	if err = cursor.All(ctx, &providerSessions); err != nil {
-		return nil, errors.Wrap(err, "unable to decode provider sessions")
-	}
-
-	switch count := len(providerSessions); count {
-	case 0:
+	if err == mongo.ErrNoDocuments {
 		return nil, nil
-	case 1:
-		return providerSessions[0], nil
-	default:
-		logger.WithField("count", count).Warnf("Multiple provider sessions found for id %q", id)
-		return providerSessions[0], nil
 	}
+
+	return providerSession, err
 }
 
 func (p *ProviderSessionRepository) UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {

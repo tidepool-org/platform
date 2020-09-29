@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -24,8 +24,8 @@ type Standard struct {
 	metricClient            metric.Client
 	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
-	dataCollection          dataStoreDEPRECATED.DataRepository
+	dataStore               dataStore.Store
+	dataRepository          dataStore.DataRepository
 	syncTaskStore           syncTaskStore.Store
 	syncTasksSession        syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
@@ -34,10 +34,10 @@ type Standard struct {
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
-			dataDeduplicatorFactory, dataStoreDEPRECATED, syncTaskStore, dataClient, dataSourceClient)
+			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataSourceClient)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -55,7 +55,7 @@ func WithContext(authClient auth.Client, metricClient metric.Client, permissionC
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -68,7 +68,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
 	}
-	if dataStoreDEPRECATED == nil {
+	if store == nil {
 		return nil, errors.New("data store DEPRECATED is missing")
 	}
 	if syncTaskStore == nil {
@@ -92,7 +92,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		metricClient:            metricClient,
 		permissionClient:        permissionClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStoreDEPRECATED:     dataStoreDEPRECATED,
+		dataStore:               store,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
 		dataSourceClient:        dataSourceClient,
@@ -103,8 +103,8 @@ func (s *Standard) Close() {
 	if s.syncTasksSession != nil {
 		s.syncTasksSession = nil
 	}
-	if s.dataCollection != nil {
-		s.dataCollection = nil
+	if s.dataRepository != nil {
+		s.dataRepository = nil
 	}
 }
 
@@ -124,11 +124,11 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
-func (s *Standard) DataRepository() dataStoreDEPRECATED.DataRepository {
-	if s.dataCollection == nil {
-		s.dataCollection = s.dataStoreDEPRECATED.NewDataRepository()
+func (s *Standard) DataRepository() dataStore.DataRepository {
+	if s.dataRepository == nil {
+		s.dataRepository = s.dataStore.NewDataRepository()
 	}
-	return s.dataCollection
+	return s.dataRepository
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {

@@ -17,8 +17,8 @@ import (
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
-	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
+	dataStore "github.com/tidepool-org/platform/data/store"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
@@ -59,7 +59,7 @@ func main() {
 type Tool struct {
 	*tool.Tool
 	config          *storeStructuredMongo.Config
-	store           *dataStoreDEPRECATEDMongo.Store
+	store           *dataStoreMongo.Store
 	benchmarksFiles []string
 	benchmarks      Benchmarks
 }
@@ -174,7 +174,7 @@ func (t *Tool) initializeStore() error {
 	t.Logger().Debug("Creating store")
 
 	params := storeStructuredMongo.Params{DatabaseConfig: t.config}
-	store, err := dataStoreDEPRECATEDMongo.NewStore(params)
+	store, err := dataStoreMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create store")
 	}
@@ -247,70 +247,70 @@ func (t *Tool) executeBenchmark(ctx context.Context, benchmark *Benchmark) error
 	logger := t.Logger().WithField("benchmark", benchmark)
 	logger.Debug("Executing benchmark")
 
-	collection := t.store.NewDataRepository()
+	dataRepository := t.store.NewDataRepository()
 
 	var err error
 	switch *benchmark.Name {
 	case "JellyfishMetaFindByInternalID":
-		err = t.benchmarkJellyfishMetaFindByInternalID(ctx, collection, benchmark.Input)
+		err = t.benchmarkJellyfishMetaFindByInternalID(ctx, dataRepository, benchmark.Input)
 	case "JellyfishMetaFindBefore":
-		err = t.benchmarkJellyfishMetaFindBefore(ctx, collection, benchmark.Input)
+		err = t.benchmarkJellyfishMetaFindBefore(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaCreate":
-		err = t.benchmarkPlatformMetaCreate(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaCreate(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaDeleteDataWithOrigin":
-		err = t.benchmarkPlatformMetaDeleteDataWithOrigin(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaDeleteDataWithOrigin(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaActivate":
-		err = t.benchmarkPlatformMetaActivate(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaActivate(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaArchiveWithHashes":
-		err = t.benchmarkPlatformMetaArchiveWithHashes(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaArchiveWithHashes(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaDeleteOtherData":
-		err = t.benchmarkPlatformMetaDeleteOtherData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaDeleteOtherData(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaDeleteDataSet":
-		err = t.benchmarkPlatformMetaDeleteDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaDeleteDataSet(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaUnarchiveWithHashes":
-		err = t.benchmarkPlatformMetaUnarchiveWithHashes(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaUnarchiveWithHashes(ctx, dataRepository, benchmark.Input)
 	case "PlatformMetaDestroy":
-		err = t.benchmarkPlatformMetaDestroy(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformMetaDestroy(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBActivateDataSetData":
-		err = t.benchmarkPlatformDBActivateDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBActivateDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBArchiveDataSetData":
-		err = t.benchmarkPlatformDBArchiveDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBArchiveDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBArchiveDeviceDataUsingHashesFromDataSet":
-		err = t.benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBCreateDataSet":
-		err = t.benchmarkPlatformDBCreateDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBCreateDataSet(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBCreateDataSetData":
-		err = t.benchmarkPlatformDBCreateDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBCreateDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBDeleteDataSet":
-		err = t.benchmarkPlatformDBDeleteDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBDeleteDataSet(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBDeleteDataSetData":
-		err = t.benchmarkPlatformDBDeleteDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBDeleteDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBDeleteOtherDataSetData":
-		err = t.benchmarkPlatformDBDeleteOtherDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBDeleteOtherDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBDestroyDataForUserByID":
-		err = t.benchmarkPlatformDBDestroyDataForUserByID(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBDestroyDataForUserByID(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBDestroyDataSetData":
-		err = t.benchmarkPlatformDBDestroyDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBDestroyDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBDestroyDeletedDataSetData":
-		err = t.benchmarkPlatformDBDestroyDeletedDataSetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBDestroyDeletedDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBGetDataSet":
-		err = t.benchmarkPlatformDBGetDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBGetDataSet(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBGetDataSetByID":
-		err = t.benchmarkPlatformDBGetDataSetByID(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBGetDataSetByID(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBGetDataSetsForUserByID":
-		err = t.benchmarkPlatformDBGetDataSetsForUserByID(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBGetDataSetsForUserByID(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBListUserDataSets":
-		err = t.benchmarkPlatformDBListUserDataSets(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBListUserDataSets(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBUnarchiveDeviceDataUsingHashesFromDataSet":
-		err = t.benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBUpdateDataSet":
-		err = t.benchmarkPlatformDBUpdateDataSet(ctx, collection, benchmark.Input)
+		err = t.benchmarkPlatformDBUpdateDataSet(ctx, dataRepository, benchmark.Input)
 	case "TideWhispererAPIGetData":
-		err = t.benchmarkTideWhispererAPIGetData(ctx, collection, benchmark.Input)
+		err = t.benchmarkTideWhispererAPIGetData(ctx, dataRepository, benchmark.Input)
 	case "TideWhispererDBHasMedtronicDirectData":
-		err = t.benchmarkTideWhispererDBHasMedtronicDirectData(ctx, collection, benchmark.Input)
+		err = t.benchmarkTideWhispererDBHasMedtronicDirectData(ctx, dataRepository, benchmark.Input)
 	case "TideWhispererDBGetDeviceData":
-		err = t.benchmarkTideWhispererDBGetDeviceData(ctx, collection, benchmark.Input)
+		err = t.benchmarkTideWhispererDBGetDeviceData(ctx, dataRepository, benchmark.Input)
 	default:
 		err = errors.New("benchmark name invalid")
 	}
@@ -324,7 +324,7 @@ func (t *Tool) executeBenchmark(ctx context.Context, benchmark *Benchmark) error
 	return err
 }
 
-func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	var internalBytes [12]byte
 
 	binary.BigEndian.PutUint32(internalBytes[:], uint32(1470302050+rand.Int31n(65936775)))
@@ -336,14 +336,14 @@ func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, sessi
 	}
 
 	var results map[string]interface{}
-	if err := session.(*dataStoreDEPRECATEDMongo.DataRepository).FindOne(context.Background(), selector).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
+	if err := session.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
 	return nil
 }
 
-func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.DeviceID == nil {
 		return errors.New("benchmark input device id is missing")
 	}
@@ -366,7 +366,7 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dat
 
 	var results map[string]interface{}
 	opts := options.FindOne().SetSort(bson.M{"time": 1})
-	if err := session.(*dataStoreDEPRECATEDMongo.DataRepository).FindOne(context.Background(), selector, opts).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
+	if err := session.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector, opts).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
@@ -375,7 +375,7 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dat
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData
 
-func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 	if _, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData); err != nil {
 		return err
@@ -386,7 +386,7 @@ func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, session dataStor
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, DeleteDataSetData (selectors), DestroyDeletedDataSetData (selectors)
 
-func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -412,7 +412,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, se
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData
 
-func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -435,7 +435,7 @@ func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, session dataSt
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, ArchiveDeviceDataUsingHashesFromDataSet
 
-func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -462,7 +462,7 @@ func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, sessi
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, DeleteOtherDataSetData
 
-func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -489,7 +489,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, session
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet
 
-func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -512,7 +512,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, session d
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet, UnarchiveDeviceDataUsingHashesFromDataSet
 
-func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -539,7 +539,7 @@ func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, ses
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ArchiveDataSetData, DestroyDataSetData
 
-func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
 	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
@@ -564,21 +564,21 @@ func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, session dataSto
 	return nil
 }
 
-func (t *Tool) benchmarkPlatformDBActivateDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBActivateDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.ActivateDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBArchiveDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBArchiveDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.ArchiveDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
@@ -586,7 +586,7 @@ func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx co
 	return session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.CreatedUserID = pointer.CloneString(input.UserID)
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
@@ -596,28 +596,28 @@ func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, session dat
 	return session.CreateDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBCreateDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBCreateDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.CreateDataSetData(ctx, dataSet, t.generateRandomDataSetData(input.DeviceID))
 }
 
-func (t *Tool) benchmarkPlatformDBDeleteDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDeleteDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.DeleteDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBDeleteDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDeleteDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.DeleteDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBDeleteOtherDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDeleteOtherDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
@@ -625,7 +625,7 @@ func (t *Tool) benchmarkPlatformDBDeleteOtherDataSetData(ctx context.Context, se
 	return session.DeleteOtherDataSetData(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBDestroyDataForUserByID(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDestroyDataForUserByID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -633,21 +633,21 @@ func (t *Tool) benchmarkPlatformDBDestroyDataForUserByID(ctx context.Context, se
 	return session.DestroyDataForUserByID(ctx, *input.UserID)
 }
 
-func (t *Tool) benchmarkPlatformDBDestroyDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDestroyDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.DestroyDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBDestroyDeletedDataSetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDestroyDeletedDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return session.DestroyDeletedDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBGetDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBGetDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.DataSetID == nil {
 		return errors.New("benchmark input data set id is missing")
 	}
@@ -656,7 +656,7 @@ func (t *Tool) benchmarkPlatformDBGetDataSet(ctx context.Context, session dataSt
 	return err
 }
 
-func (t *Tool) benchmarkPlatformDBGetDataSetByID(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBGetDataSetByID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.DataSetID == nil {
 		return errors.New("benchmark input data set id is missing")
 	}
@@ -665,7 +665,7 @@ func (t *Tool) benchmarkPlatformDBGetDataSetByID(ctx context.Context, session da
 	return err
 }
 
-func (t *Tool) benchmarkPlatformDBGetDataSetsForUserByID(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBGetDataSetsForUserByID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -674,7 +674,7 @@ func (t *Tool) benchmarkPlatformDBGetDataSetsForUserByID(ctx context.Context, se
 	return err
 }
 
-func (t *Tool) benchmarkPlatformDBListUserDataSets(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBListUserDataSets(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -683,7 +683,7 @@ func (t *Tool) benchmarkPlatformDBListUserDataSets(ctx context.Context, session 
 	return err
 }
 
-func (t *Tool) benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
@@ -691,7 +691,7 @@ func (t *Tool) benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx 
 	return session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBUpdateDataSet(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBUpdateDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.DataSetID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -702,7 +702,7 @@ func (t *Tool) benchmarkPlatformDBUpdateDataSet(ctx context.Context, session dat
 	return err
 }
 
-func (t *Tool) benchmarkTideWhispererAPIGetData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkTideWhispererAPIGetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if err := t.benchmarkTideWhispererDBHasMedtronicDirectData(ctx, session, input); err != nil {
 		return err
 	}
@@ -712,7 +712,7 @@ func (t *Tool) benchmarkTideWhispererAPIGetData(ctx context.Context, session dat
 	return nil
 }
 
-func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -728,11 +728,11 @@ func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Contex
 		"deviceManufacturers": "Medtronic",
 	}
 	opts := options.Count().SetLimit(1)
-	_, err := session.(*dataStoreDEPRECATEDMongo.DataRepository).CountDocuments(context.Background(), selector, opts)
+	_, err := session.(*dataStoreMongo.DataRepository).CountDocuments(context.Background(), selector, opts)
 	return err
 }
 
-func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -788,9 +788,9 @@ func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, sessio
 	if input.Limit != nil {
 		opts = opts.SetLimit(int64(*input.Limit))
 	}
-	iter, err := session.(*dataStoreDEPRECATEDMongo.DataRepository).Find(context.Background(), selector, opts)
+	iter, err := session.(*dataStoreMongo.DataRepository).Find(context.Background(), selector, opts)
 	if err != nil {
-		return errors.New("cannot create query on data collection")
+		return errors.New("cannot create query on data repository")
 	}
 
 	var results bson.Raw
@@ -810,7 +810,7 @@ func (t *Tool) prepareDataSetWithData(input *BenchmarkInput) (*dataTypesUpload.U
 	return dataSet, t.generateRandomDataSetData(input.DeviceID)
 }
 
-func (t *Tool) createDataSetWithData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (*dataTypesUpload.Upload, error) {
+func (t *Tool) createDataSetWithData(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (*dataTypesUpload.Upload, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
 	}

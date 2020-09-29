@@ -1,10 +1,10 @@
-package storeDEPRECATED_test
+package store_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/storeDEPRECATED"
+	"github.com/tidepool-org/platform/data/store"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -14,15 +14,15 @@ var _ = Describe("Store", func() {
 	Context("Filter", func() {
 		Context("NewFilter", func() {
 			It("successfully returns a new filter", func() {
-				Expect(storeDEPRECATED.NewFilter()).ToNot(BeNil())
+				Expect(store.NewFilter()).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new filter", func() {
-			var filter *storeDEPRECATED.Filter
+			var filter *store.Filter
 
 			BeforeEach(func() {
-				filter = storeDEPRECATED.NewFilter()
+				filter = store.NewFilter()
 				Expect(filter).ToNot(BeNil())
 			})
 

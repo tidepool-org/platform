@@ -84,7 +84,7 @@ type Queue struct {
 	dispatchChannel   chan *task.Task
 	completionChannel chan *task.Task
 	timer             *time.Timer
-	collection        store.TaskRepository
+	taskRepository    store.TaskRepository
 	iterator          *mongo.Cursor
 }
 
@@ -313,12 +313,12 @@ func (q *Queue) stopTimer() {
 }
 
 func (q *Queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
-	if q.collection == nil {
-		q.collection = q.store.NewTaskRepository()
+	if q.taskRepository == nil {
+		q.taskRepository = q.store.NewTaskRepository()
 	}
 	if q.iterator == nil {
 		// TODO: What happens when an error is returned?
-		q.iterator, _ = q.collection.IteratePending(ctx)
+		q.iterator, _ = q.taskRepository.IteratePending(ctx)
 	}
 	return q.iterator
 }
@@ -327,7 +327,7 @@ func (q *Queue) stopPendingIterator() {
 	if q.iterator != nil {
 		q.iterator = nil
 	}
-	if q.collection != nil {
-		q.collection = nil
+	if q.taskRepository != nil {
+		q.taskRepository = nil
 	}
 }

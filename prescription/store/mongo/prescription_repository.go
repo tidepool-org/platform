@@ -118,7 +118,7 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	selector := newMongoSelectorFromFilter(filter)
 	selector["deletedTime"] = nil
 
-	opts := applyPagination(options.Find(), pagination)
+	opts := structuredMongo.FindWithPagination(pagination)
 	cursor, err := p.Find(ctx, selector, opts)
 
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListPrescriptions")
@@ -410,13 +410,6 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	}
 
 	return selector
-}
-
-func applyPagination(opts *options.FindOptions, pagination *page.Pagination) *options.FindOptions {
-	skip := int64(pagination.Size * pagination.Page)
-	limit := int64(pagination.Size)
-	// TODO: Replace with FindWithPagination when refactoring
-	return opts.SetSkip(skip).SetLimit(limit)
 }
 
 func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bson.M {

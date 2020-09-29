@@ -95,7 +95,7 @@ type DataRepository struct {
 	DestroyOutput         *DestroyOutput
 }
 
-func NewDataRepository() *DataRepository {
+func NewDataSourcesRepository() *DataRepository {
 	return &DataRepository{
 		Closer: test.NewCloser(),
 	}

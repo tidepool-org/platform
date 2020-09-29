@@ -9,7 +9,7 @@ import (
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
-	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
@@ -26,7 +26,7 @@ type Standard struct {
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
-	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
+	dataStore                 *dataStoreMongo.Store
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
 	dataClient                *Client
@@ -55,7 +55,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
 		return err
 	}
-	if err := s.initializeDataStoreDEPRECATED(); err != nil {
+	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataSourceStructuredStore(); err != nil {
@@ -88,9 +88,9 @@ func (s *Standard) Terminate() {
 		s.dataSourceStructuredStore.Terminate(nil)
 		s.dataSourceStructuredStore = nil
 	}
-	if s.dataStoreDEPRECATED != nil {
-		s.dataStoreDEPRECATED.Terminate(nil)
-		s.dataStoreDEPRECATED = nil
+	if s.dataStore != nil {
+		s.dataStore.Terminate(nil)
+		s.dataStore = nil
 	}
 	s.dataDeduplicatorFactory = nil
 	s.permissionClient = nil
@@ -202,7 +202,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	return nil
 }
 
-func (s *Standard) initializeDataStoreDEPRECATED() error {
+func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store DEPRECATED config")
 
 	cfg := storeStructuredMongo.NewConfig(nil)
@@ -213,15 +213,15 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	s.Logger().Debug("Creating data store")
 
 	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	str, err := dataStoreDEPRECATEDMongo.NewStore(params)
+	str, err := dataStoreMongo.NewStore(params)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}
-	s.dataStoreDEPRECATED = str
+	s.dataStore = str
 
 	s.Logger().Debug("Ensuring data store DEPRECATED indexes")
 
-	err = s.dataStoreDEPRECATED.EnsureIndexes()
+	err = s.dataStore.EnsureIndexes()
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure data store DEPRECATED indexes")
 	}
@@ -279,7 +279,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStoreDEPRECATED)
+	clnt, err := NewClient(s.dataStore)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -305,7 +305,7 @@ func (s *Standard) initializeAPI() error {
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
+		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}

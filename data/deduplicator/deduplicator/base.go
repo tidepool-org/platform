@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/net"
@@ -46,7 +46,7 @@ func (b *Base) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
 	return dataSet.HasDeduplicatorNameMatch(b.name), nil
 }
 
-func (b *Base) Open(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (b *Base) Open(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -65,7 +65,7 @@ func (b *Base) Open(ctx context.Context, session dataStoreDEPRECATED.DataReposit
 	return session.UpdateDataSet(ctx, *dataSet.UploadID, update)
 }
 
-func (b *Base) AddData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (b *Base) AddData(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -82,7 +82,7 @@ func (b *Base) AddData(ctx context.Context, session dataStoreDEPRECATED.DataRepo
 	return session.CreateDataSetData(ctx, dataSet, dataSetData)
 }
 
-func (b *Base) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (b *Base) DeleteData(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -99,7 +99,7 @@ func (b *Base) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataR
 	return session.DestroyDataSetData(ctx, dataSet, selectors)
 }
 
-func (b *Base) Close(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (b *Base) Close(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -119,7 +119,7 @@ func (b *Base) Close(ctx context.Context, session dataStoreDEPRECATED.DataReposi
 	return session.ActivateDataSetData(ctx, dataSet, nil)
 }
 
-func (b *Base) Delete(ctx context.Context, session dataStoreDEPRECATED.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (b *Base) Delete(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

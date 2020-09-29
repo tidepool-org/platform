@@ -36,25 +36,25 @@ func NewStore(params storeStructuredMongo.Params) (*Store, error) {
 }
 
 func (s *Store) EnsureIndexes() error {
-	collection := s.newRepository()
-	return collection.EnsureIndexes()
+	repository := s.newRepository()
+	return repository.EnsureIndexes()
 }
 
-func (s *Store) NewDataRepository() dataSourceStoreStructured.DataRepository {
+func (s *Store) NewDataSourcesRepository() dataSourceStoreStructured.DataSourcesRepository {
 	return s.newRepository()
 }
 
-func (s *Store) newRepository() *DataCollection {
-	return &DataCollection{
+func (s *Store) newRepository() *DataSourcesRepository {
+	return &DataSourcesRepository{
 		s.Store.GetRepository("data_sources"),
 	}
 }
 
-type DataCollection struct {
+type DataSourcesRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func (c *DataCollection) EnsureIndexes() error {
+func (c *DataSourcesRepository) EnsureIndexes() error {
 	return c.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
 			Keys: bson.D{{Key: "id", Value: 1}},
@@ -70,7 +70,7 @@ func (c *DataCollection) EnsureIndexes() error {
 	})
 }
 
-func (c *DataCollection) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -134,7 +134,7 @@ func (c *DataCollection) List(ctx context.Context, userID string, filter *dataSo
 	return result, nil
 }
 
-func (c *DataCollection) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
+func (c *DataSourcesRepository) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -189,7 +189,7 @@ func (c *DataCollection) Create(ctx context.Context, userID string, create *data
 	return result, nil
 }
 
-func (c *DataCollection) DestroyAll(ctx context.Context, userID string) (bool, error) {
+func (c *DataSourcesRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -215,7 +215,7 @@ func (c *DataCollection) DestroyAll(ctx context.Context, userID string) (bool, e
 	return changeInfo.DeletedCount > 0, nil
 }
 
-func (c *DataCollection) Get(ctx context.Context, id string) (*dataSource.Source, error) {
+func (c *DataSourcesRepository) Get(ctx context.Context, id string) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -237,7 +237,7 @@ func (c *DataCollection) Get(ctx context.Context, id string) (*dataSource.Source
 	return result, nil
 }
 
-func (c *DataCollection) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
+func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -326,7 +326,7 @@ func (c *DataCollection) Update(ctx context.Context, id string, condition *reque
 	return result, nil
 }
 
-func (c *DataCollection) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (c *DataSourcesRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -360,35 +360,20 @@ func (c *DataCollection) Destroy(ctx context.Context, id string, condition *requ
 	return changeInfo.DeletedCount > 0, nil
 }
 
-func (c *DataCollection) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
-	results := dataSource.SourceArray{}
+func (c *DataSourcesRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
+	var result *dataSource.Source
 	query := bson.M{
 		"id": id,
 	}
 	if condition != nil && condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	opts := options.Find().SetLimit(2)
-	cursor, err := c.Find(ctx, query, opts)
-	if err != nil {
-		logger.WithError(err).Error("Unable to get data source")
-		return nil, errors.Wrap(err, "unable to get data source")
-	}
-
-	if err = cursor.All(ctx, &results); err != nil {
-		logger.WithError(err).Error("Unable to decode data source")
-		return nil, errors.Wrap(err, "unable to decode data source")
-	}
-
-	var result *dataSource.Source
-	switch len(results) {
-	case 0:
+	err := c.FindOne(ctx, query).Decode(&result)
+	if err == mongo.ErrNoDocuments {
 		return nil, nil
-	case 1:
-		result = results[0]
-	default:
-		logger.Error("Multiple data sources found")
-		result = results[0]
+	} else if err != nil {
+		logger.WithError(err).Error("Unable to get data source")
+		return nil, errors.Wrap(err, "unable to decode data source")
 	}
 
 	if result.Revision == nil {

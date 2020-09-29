@@ -13,8 +13,8 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/storeDEPRECATED"
-	storeDeprecatedMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
+	dataStore "github.com/tidepool-org/platform/data/store"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -132,8 +132,8 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 var _ = Describe("Mongo", func() {
 	var logger *logTest.Logger
 	var config *storeStructuredMongo.Config
-	var store *storeDeprecatedMongo.Store
-	var repository storeDEPRECATED.DataRepository
+	var store *dataStoreMongo.Store
+	var repository dataStore.DataRepository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -150,7 +150,7 @@ var _ = Describe("Mongo", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
 			params := storeStructuredMongo.Params{DatabaseConfig: nil}
-			store, err = storeDeprecatedMongo.NewStore(params)
+			store, err = dataStoreMongo.NewStore(params)
 			Expect(err).To(HaveOccurred())
 			Expect(store).To(BeNil())
 		})
@@ -158,7 +158,7 @@ var _ = Describe("Mongo", func() {
 		It("returns a new store and no error if successful", func() {
 			var err error
 			params := storeStructuredMongo.Params{DatabaseConfig: config}
-			store, err = storeDeprecatedMongo.NewStore(params)
+			store, err = dataStoreMongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
@@ -170,7 +170,7 @@ var _ = Describe("Mongo", func() {
 		BeforeEach(func() {
 			var err error
 			params := storeStructuredMongo.Params{DatabaseConfig: config}
-			store, err = storeDeprecatedMongo.NewStore(params)
+			store, err = dataStoreMongo.NewStore(params)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			collection = store.GetCollection("deviceData")
@@ -274,12 +274,12 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("GetDataSetsForUserByID", func() {
-					var filter *storeDEPRECATED.Filter
+					var filter *dataStore.Filter
 					var pagination *page.Pagination
 
 					BeforeEach(func() {
 						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
-						filter = storeDEPRECATED.NewFilter()
+						filter = dataStore.NewFilter()
 						pagination = page.NewPagination()
 					})
 

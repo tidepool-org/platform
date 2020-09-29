@@ -8,7 +8,7 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataContext "github.com/tidepool-org/platform/data/service/context"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -22,7 +22,7 @@ type Standard struct {
 	metricClient            metric.Client
 	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
+	dataStore               dataStore.Store
 	syncTaskStore           syncTaskStore.Store
 	dataClient              dataClient.Client
 	dataSourceClient        dataSource.Client
@@ -30,7 +30,7 @@ type Standard struct {
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
@@ -40,7 +40,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
 	}
-	if dataStoreDEPRECATED == nil {
+	if store == nil {
 		return nil, errors.New("data store DEPRECATED is missing")
 	}
 	if syncTaskStore == nil {
@@ -63,7 +63,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		metricClient:            metricClient,
 		permissionClient:        permissionClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStoreDEPRECATED:     dataStoreDEPRECATED,
+		dataStore:               store,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
 		dataSourceClient:        dataSourceClient,
@@ -100,5 +100,5 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
+		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
 }

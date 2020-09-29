@@ -112,7 +112,7 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewMessageCollection", func() {
+		Context("NewMessageRepository", func() {
 			It("returns a new session", func() {
 				repository = mongoStore.NewMessageRepository()
 				Expect(repository).ToNot(BeNil())

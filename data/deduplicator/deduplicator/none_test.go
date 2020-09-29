@@ -8,7 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
-	dataStoreDEPRECATEDTest "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
+	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -110,11 +110,11 @@ var _ = Describe("None", func() {
 
 		Context("with context and session", func() {
 			var ctx context.Context
-			var session *dataStoreDEPRECATEDTest.DataRepository
+			var session *dataStoreTest.DataRepository
 
 			BeforeEach(func() {
 				ctx = context.Background()
-				session = dataStoreDEPRECATEDTest.NewDataRepository()
+				session = dataStoreTest.NewDataRepository()
 			})
 
 			AfterEach(func() {
@@ -152,7 +152,7 @@ var _ = Describe("None", func() {
 					})
 
 					AfterEach(func() {
-						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: update}}))
+						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: update}}))
 					})
 
 					updateAssertions := func() {
@@ -163,7 +163,7 @@ var _ = Describe("None", func() {
 
 							It("returns an error when update data set returns an error", func() {
 								responseErr := errorsTest.RandomError()
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
 								result, err := deduplicator.Open(ctx, session, dataSet)
 								Expect(err).To(Equal(responseErr))
 								Expect(result).To(BeNil())
@@ -171,7 +171,7 @@ var _ = Describe("None", func() {
 
 							It("returns successfully when update data set returns successfully", func() {
 								responseDataSet := dataTypesUploadTest.RandomUpload()
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
 								Expect(deduplicator.Open(ctx, session, dataSet)).To(Equal(responseDataSet))
 							})
 						})
@@ -183,7 +183,7 @@ var _ = Describe("None", func() {
 
 							It("returns an error when update data set returns an error", func() {
 								responseErr := errorsTest.RandomError()
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
 								result, err := deduplicator.Open(ctx, session, dataSet)
 								Expect(err).To(Equal(responseErr))
 								Expect(result).To(BeNil())
@@ -191,7 +191,7 @@ var _ = Describe("None", func() {
 
 							It("returns successfully when update data set returns successfully", func() {
 								responseDataSet := dataTypesUploadTest.RandomUpload()
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
 								Expect(deduplicator.Open(ctx, session, dataSet)).To(Equal(responseDataSet))
 							})
 						})
@@ -203,7 +203,7 @@ var _ = Describe("None", func() {
 
 							It("returns an error when update data set returns an error", func() {
 								responseErr := errorsTest.RandomError()
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
 								result, err := deduplicator.Open(ctx, session, dataSet)
 								Expect(err).To(Equal(responseErr))
 								Expect(result).To(BeNil())
@@ -211,7 +211,7 @@ var _ = Describe("None", func() {
 
 							It("returns successfully when update data set returns successfully", func() {
 								responseDataSet := dataTypesUploadTest.RandomUpload()
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
 								Expect(deduplicator.Open(ctx, session, dataSet)).To(Equal(responseDataSet))
 							})
 						})
@@ -286,7 +286,7 @@ var _ = Describe("None", func() {
 
 				When("create data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(session.CreateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: dataSetData}}))
+						Expect(session.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: dataSetData}}))
 					})
 
 					createAssertions := func() {
@@ -380,7 +380,7 @@ var _ = Describe("None", func() {
 
 				When("destroy data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(session.DestroyDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.DestroyDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
+						Expect(session.DestroyDataSetDataInputs).To(Equal([]dataStoreTest.DestroyDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 					})
 
 					It("returns an error when destroy data set data returns an error", func() {
@@ -421,23 +421,23 @@ var _ = Describe("None", func() {
 
 				When("update data set is invoked", func() {
 					AfterEach(func() {
-						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
+						Expect(session.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
 					})
 
 					updateAssertions := func() {
 						It("returns an error when update data set data returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+							session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
 							Expect(deduplicator.Close(ctx, session, dataSet)).To(Equal(responseErr))
 						})
 
 						When("activate data set data is invoked", func() {
 							BeforeEach(func() {
-								session.UpdateDataSetOutputs = []dataStoreDEPRECATEDTest.UpdateDataSetOutput{{DataSet: dataSet, Error: nil}}
+								session.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: dataSet, Error: nil}}
 							})
 
 							AfterEach(func() {
-								Expect(session.ActivateDataSetDataInputs).To(Equal([]dataStoreDEPRECATEDTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: nil}}))
+								Expect(session.ActivateDataSetDataInputs).To(Equal([]dataStoreTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: nil}}))
 							})
 
 							It("returns an error when active data set data returns an error", func() {
@@ -486,7 +486,7 @@ var _ = Describe("None", func() {
 
 				When("delete data set is invoked", func() {
 					AfterEach(func() {
-						Expect(session.DeleteDataSetInputs).To(Equal([]dataStoreDEPRECATEDTest.DeleteDataSetInput{{Context: ctx, DataSet: dataSet}}))
+						Expect(session.DeleteDataSetInputs).To(Equal([]dataStoreTest.DeleteDataSetInput{{Context: ctx, DataSet: dataSet}}))
 					})
 
 					It("returns an error when delete data set returns an error", func() {

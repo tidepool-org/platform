@@ -28,16 +28,16 @@ type Store struct {
 }
 
 func (s *Store) NewMessageRepository() store.MessageRepository {
-	return &MessageCollection{
+	return &MessageRepository{
 		s.Store.GetRepository("messages"),
 	}
 }
 
-type MessageCollection struct {
+type MessageRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func (m *MessageCollection) DeleteMessagesFromUser(ctx context.Context, user *store.User) error {
+func (m *MessageRepository) DeleteMessagesFromUser(ctx context.Context, user *store.User) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -75,7 +75,7 @@ func (m *MessageCollection) DeleteMessagesFromUser(ctx context.Context, user *st
 	return nil
 }
 
-func (m *MessageCollection) DestroyMessagesForUserByID(ctx context.Context, userID string) error {
+func (m *MessageRepository) DestroyMessagesForUserByID(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
