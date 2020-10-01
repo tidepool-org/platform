@@ -204,25 +204,25 @@ func (r *Revision) GetPrescriberUserID() string {
 }
 
 type Attributes struct {
-	AccountType             string           `json:"accountType,omitempty" bson:"accountType,omitempty"`
-	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty" bson:"caregiverFirstName,omitempty"`
-	CaregiverLastName       string           `json:"caregiverLastName,omitempty" bson:"caregiverLastName,omitempty"`
-	FirstName               string           `json:"firstName,omitempty" bson:"firstName,omitempty"`
-	LastName                string           `json:"lastName,omitempty" bson:"lastName,omitempty"`
-	Birthday                string           `json:"birthday,omitempty" bson:"birthday,omitempty"`
-	MRN                     string           `json:"mrn,omitempty" bson:"mrn,omitempty"`
-	Email                   string           `json:"email,omitempty" bson:"email,omitempty"`
-	Sex                     string           `json:"sex,omitempty" bson:"sex,omitempty"`
-	Weight                  *Weight          `json:"weight,omitempty" bson:"weight,omitempty"`
-	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis,omitempty"`
-	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber,omitempty"`
-	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings,omitempty"`
-	Training                string           `json:"training,omitempty" bson:"training,omitempty"`
-	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings,omitempty"`
-	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted,omitempty"`
+	AccountType             string           `json:"accountType,omitempty" bson:"accountType"`
+	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty" bson:"caregiverFirstName"`
+	CaregiverLastName       string           `json:"caregiverLastName,omitempty" bson:"caregiverLastName"`
+	FirstName               string           `json:"firstName,omitempty" bson:"firstName"`
+	LastName                string           `json:"lastName,omitempty" bson:"lastName"`
+	Birthday                string           `json:"birthday,omitempty" bson:"birthday"`
+	MRN                     string           `json:"mrn,omitempty" bson:"mrn"`
+	Email                   string           `json:"email,omitempty" bson:"email"`
+	Sex                     string           `json:"sex,omitempty" bson:"sex"`
+	Weight                  *Weight          `json:"weight,omitempty" bson:"weight"`
+	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis"`
+	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber"`
+	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings"`
+	Training                string           `json:"training,omitempty" bson:"training"`
+	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings"`
+	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted"`
 	State                   string           `json:"state" bson:"state"`
-	CreatedTime             time.Time        `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID           string           `json:"createdUserId,omitempty" bson:"cratedUserId,omitempty"`
+	CreatedTime             time.Time        `json:"createdTime,omitempty" bson:"createdTime"`
+	CreatedUserID           string           `json:"createdUserId,omitempty" bson:"cratedUserId"`
 }
 
 func (a *Attributes) Validate(validator structure.Validator) {

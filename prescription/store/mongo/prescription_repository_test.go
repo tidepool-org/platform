@@ -665,6 +665,35 @@ var _ = Describe("PrescriptionRepository", func() {
 						result.LatestRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
 					})
+
+					It("allows un-setting all revision attributes", func() {
+						create = &prescription.RevisionCreate{
+							AccountType:             "",
+							CaregiverFirstName:      "",
+							CaregiverLastName:       "",
+							FirstName:               "",
+							LastName:                "",
+							Birthday:                "",
+							MRN:                     "",
+							Email:                   "",
+							Sex:                     "",
+							Weight:                  nil,
+							YearOfDiagnosis:         0,
+							PhoneNumber:             nil,
+							InitialSettings:         nil,
+							Training:                "",
+							TherapySettings:         "",
+							PrescriberTermsAccepted: false,
+							State:                   prescription.StateDraft,
+						}
+						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+						result.LatestRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
+						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
+					})
 				})
 			})
 
