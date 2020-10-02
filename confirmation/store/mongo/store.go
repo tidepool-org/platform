@@ -30,8 +30,8 @@ func NewStore(params storeStructuredMongo.Params) (*Store, error) {
 }
 
 func (s *Store) EnsureIndexes() error {
-	coll := s.ConfirmationRepository()
-	return coll.EnsureIndexes()
+	repository := s.ConfirmationRepository()
+	return repository.EnsureIndexes()
 }
 
 func (s *Store) NewConfirmationRepository() store.ConfirmationRepository {

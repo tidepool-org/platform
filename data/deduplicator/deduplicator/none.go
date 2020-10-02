@@ -38,12 +38,12 @@ func (n *None) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous"), nil // TODO: DEPRECATED
 }
 
-func (n *None) Open(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (n *None) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if session == nil {
-		return nil, errors.New("session is missing")
+	if repository == nil {
+		return nil, errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
@@ -53,15 +53,15 @@ func (n *None) Open(ctx context.Context, session dataStore.DataRepository, dataS
 		dataSet.SetActive(true)
 	}
 
-	return n.Base.Open(ctx, session, dataSet)
+	return n.Base.Open(ctx, repository, dataSet)
 }
 
-func (n *None) AddData(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (n *None) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -74,15 +74,15 @@ func (n *None) AddData(ctx context.Context, session dataStore.DataRepository, da
 		dataSetData.SetActive(true)
 	}
 
-	return n.Base.AddData(ctx, session, dataSet, dataSetData)
+	return n.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (n *None) Close(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (n *None) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -92,5 +92,5 @@ func (n *None) Close(ctx context.Context, session dataStore.DataRepository, data
 		return nil
 	}
 
-	return n.Base.Close(ctx, session, dataSet)
+	return n.Base.Close(ctx, repository, dataSet)
 }

@@ -2,7 +2,7 @@ package session
 
 import "time"
 
-type SessionRepository struct {
+type Session struct {
 	ID        string    `json:"-" bson:"_id"`
 	IsServer  bool      `json:"isServer" bson:"isServer"`
 	ServerID  string    `json:"-" bson:"serverId,omitempty"`

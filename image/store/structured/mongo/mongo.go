@@ -36,8 +36,8 @@ func NewStore(params storeStructuredMongo.Params) (*Store, error) {
 }
 
 func (s *Store) EnsureIndexes() error {
-	session := s.newRepository()
-	return session.EnsureIndexes()
+	repository := s.newRepository()
+	return repository.EnsureIndexes()
 }
 
 func (s *Store) NewImageRepository() imageStoreStructured.ImageRepository {
@@ -457,7 +457,7 @@ func (s *ImageRepository) Destroy(ctx context.Context, id string, condition *req
 func (s *ImageRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*image.Image, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
-	results := image.ImageArray{}
+	var result *image.Image
 	query := bson.M{
 		"id": id,
 	}
@@ -465,26 +465,12 @@ func (s *ImageRepository) get(ctx context.Context, logger log.Logger, id string,
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	opts := options.Find().SetLimit(2)
-	cursor, err := s.Find(ctx, query, opts)
-	if err != nil {
+	err := s.FindOne(ctx, query).Decode(&result)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		logger.WithError(err).Error("Unable to get image")
 		return nil, errors.Wrap(err, "unable to get image")
-	}
-
-	if err = cursor.All(ctx, &results); err != nil {
-		return nil, errors.Wrap(err, "unable to decode image")
-	}
-
-	var result *image.Image
-	switch len(results) {
-	case 0:
-		return nil, nil
-	case 1:
-		result = results[0]
-	default:
-		logger.Error("Multiple images found")
-		result = results[0]
 	}
 
 	if result.Revision == nil {

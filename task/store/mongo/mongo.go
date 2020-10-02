@@ -44,8 +44,8 @@ func (s *Store) TaskRepository() *TaskRepository {
 }
 
 func (s *Store) EnsureIndexes() error {
-	ssn := s.TaskRepository()
-	return ssn.EnsureIndexes()
+	repository := s.TaskRepository()
+	return repository.EnsureIndexes()
 }
 
 type TaskRepository struct {

@@ -69,7 +69,7 @@ func (m *Migration) execute() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
-	defer dataStore.Terminate(nil)
+	defer dataStore.Terminate(context.Background())
 
 	m.Logger().Debug("Creating data repository")
 

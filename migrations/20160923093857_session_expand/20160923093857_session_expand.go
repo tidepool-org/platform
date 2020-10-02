@@ -113,7 +113,7 @@ func (m *Migration) execute() error {
 	now := time.Now()
 	expiredSessionCount := 0
 	migratedSessionCount := 0
-	var repository session.SessionRepository
+	var repository session.Session
 	for cursor.Next(context.Background()) {
 		if err = cursor.Decode(&repository); err != nil {
 			return errors.Wrap(err, "unable to decode session")
@@ -193,11 +193,11 @@ func (m *Migration) execute() error {
 	return nil
 }
 
-func (m *Migration) isSessionExpanded(session *session.SessionRepository) bool {
+func (m *Migration) isSessionExpanded(session *session.Session) bool {
 	return session.Duration != 0
 }
 
-func (m *Migration) expandSession(session *session.SessionRepository, secret string) error {
+func (m *Migration) expandSession(session *session.Session, secret string) error {
 	parsedClaims := struct {
 		jwt.StandardClaims
 		IsServer string  `json:"svr"`

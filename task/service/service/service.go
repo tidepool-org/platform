@@ -125,7 +125,7 @@ func (s *Service) initializeTaskStore() error {
 func (s *Service) terminateTaskStore() {
 	if s.taskStore != nil {
 		s.Logger().Debug("Closing task store")
-		s.taskStore.Terminate(nil)
+		s.taskStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying task store")
 		s.taskStore = nil

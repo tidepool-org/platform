@@ -18,7 +18,7 @@ import (
 var _ = Describe("Mongo", func() {
 	var cfg *storeStructuredMongo.Config
 	var str *taskStoreMongo.Store
-	var ssn taskStore.TaskRepository
+	var repository taskStore.TaskRepository
 
 	BeforeEach(func() {
 		cfg = storeStructuredMongoTest.NewConfig()
@@ -26,7 +26,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if str != nil {
-			str.Terminate(nil)
+			str.Terminate(context.Background())
 		}
 	})
 
@@ -106,9 +106,9 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("NewTaskRepository", func() {
-			It("returns a new collection", func() {
-				ssn = str.NewTaskRepository()
-				Expect(ssn).ToNot(BeNil())
+			It("returns a new repository", func() {
+				repository = str.NewTaskRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 	})

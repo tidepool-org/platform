@@ -5,7 +5,7 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/tidepool-org/platform/store/structured/mongo"
+	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -14,7 +14,7 @@ import (
 )
 
 type PrescriptionStore struct {
-	*mongo.Store
+	*structuredMongo.Store
 
 	logger log.Logger
 }
@@ -23,7 +23,7 @@ type Params struct {
 	fx.In
 
 	Logger log.Logger
-	Store  *mongo.Store
+	Store  *structuredMongo.Store
 
 	Lifestyle fx.Lifecycle
 }

@@ -224,7 +224,7 @@ func (t *Tool) terminateUsersRepository() {
 	}
 	if t.usersStore != nil {
 		t.Logger().Debug("Destroying users store")
-		t.usersStore.Terminate(nil)
+		t.usersStore.Terminate(context.Background())
 		t.usersStore = nil
 	}
 }
@@ -254,7 +254,7 @@ func (t *Tool) terminateMetadataRepository() {
 	}
 	if t.metadataStore != nil {
 		t.Logger().Debug("Destroying metadata store")
-		t.metadataStore.Terminate(nil)
+		t.metadataStore.Terminate(context.Background())
 		t.metadataStore = nil
 	}
 }
@@ -284,7 +284,7 @@ func (t *Tool) terminateDataRepository() {
 	}
 	if t.dataStore != nil {
 		t.Logger().Debug("Destroying data store")
-		t.dataStore.Terminate(nil)
+		t.dataStore.Terminate(context.Background())
 		t.dataStore = nil
 	}
 }
@@ -314,7 +314,7 @@ func (t *Tool) terminateDataSourcesRepository() {
 	}
 	if t.dataSourcesStore != nil {
 		t.Logger().Debug("Destroying data sources store")
-		t.dataSourcesStore.Terminate(nil)
+		t.dataSourcesStore.Terminate(context.Background())
 		t.dataSourcesStore = nil
 	}
 }

@@ -109,7 +109,7 @@ func (s *Service) initializeBlobStructuredStore() error {
 func (s *Service) terminateBlobStructuredStore() {
 	if s.blobStructuredStore != nil {
 		s.Logger().Debug("Closing blob structured store")
-		s.blobStructuredStore.Terminate(nil)
+		s.blobStructuredStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying blob structured store")
 		s.blobStructuredStore = nil

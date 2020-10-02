@@ -74,7 +74,7 @@ func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context
 		selector["name"] = *filter.Name
 	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": 1})
+		SetSort(bson.M{"createdTime": -1})
 	cursor, err := p.Find(ctx, selector, opts)
 	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserProviderSessions")
 	if err != nil {

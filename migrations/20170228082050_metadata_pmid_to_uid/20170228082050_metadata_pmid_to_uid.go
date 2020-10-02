@@ -116,7 +116,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create users store")
 	}
-	defer usersStore.Terminate(nil)
+	defer usersStore.Terminate(context.Background())
 
 	m.Logger().Debug("Creating users repository")
 
@@ -190,7 +190,7 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 	if err != nil {
 		return errors.Wrap(err, "unable to create metadata store")
 	}
-	defer metadataStore.Terminate(nil)
+	defer metadataStore.Terminate(context.Background())
 
 	m.Logger().Debug("Creating metadata repository")
 

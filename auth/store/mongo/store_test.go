@@ -55,20 +55,20 @@ var _ = Describe("Store", func() {
 		// TODO: EnsureIndexes
 
 		Context("NewProviderSessionRepository", func() {
-			var coll store.ProviderSessionRepository
+			var repository store.ProviderSessionRepository
 
 			It("returns successfully", func() {
-				coll = str.NewProviderSessionRepository()
-				Expect(coll).ToNot(BeNil())
+				repository = str.NewProviderSessionRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 
 		Context("NewRestrictedTokenRepository", func() {
-			var coll store.RestrictedTokenRepository
+			var repository store.RestrictedTokenRepository
 
 			It("returns successfully", func() {
-				coll = str.NewRestrictedTokenRepository()
-				Expect(coll).ToNot(BeNil())
+				repository = str.NewRestrictedTokenRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 	})

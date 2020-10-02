@@ -86,7 +86,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if store != nil {
-			store.Terminate(nil)
+			store.Terminate(context.Background())
 		}
 	})
 
@@ -147,14 +147,14 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
-		Context("NewSession", func() {
-			It("returns a new session", func() {
+		Context("NewDataSourcesRepository", func() {
+			It("returns a new repository", func() {
 				repository = store.NewDataSourcesRepository()
 				Expect(repository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			var ctx context.Context
 
 			BeforeEach(func() {

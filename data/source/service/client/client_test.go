@@ -115,7 +115,7 @@ var _ = Describe("Client", func() {
 						Expect(dataSourceStructuredRepository.ListInputs).To(Equal([]dataSourceStoreStructuredTest.ListInput{{UserID: userID, Filter: filter, Pagination: pagination}}))
 					})
 
-					It("returns an error when the data source structured session list returns an error", func() {
+					It("returns an error when the data source structured repository list returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: nil, Error: responseErr}}
 						result, err := client.List(ctx, userID, filter, pagination)
@@ -123,7 +123,7 @@ var _ = Describe("Client", func() {
 						Expect(result).To(BeNil())
 					})
 
-					It("returns successfully when the data source structured session list returns successfully", func() {
+					It("returns successfully when the data source structured repository list returns successfully", func() {
 						responseResult := dataSourceTest.RandomSourceArray(1, 3)
 						dataSourceStructuredRepository.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: responseResult, Error: nil}}
 						result, err := client.List(ctx, userID, filter, pagination)
@@ -161,7 +161,7 @@ var _ = Describe("Client", func() {
 						Expect(dataSourceStructuredRepository.CreateInputs).To(Equal([]dataSourceStoreStructuredTest.CreateInput{{UserID: userID, Create: create}}))
 					})
 
-					It("returns an error when the data source structured session create returns an error", func() {
+					It("returns an error when the data source structured repository create returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.CreateOutputs = []dataSourceStoreStructuredTest.CreateOutput{{Source: nil, Error: responseErr}}
 						result, err := client.Create(ctx, userID, create)
@@ -169,7 +169,7 @@ var _ = Describe("Client", func() {
 						Expect(result).To(BeNil())
 					})
 
-					It("returns successfully when the data source structured session create returns successfully", func() {
+					It("returns successfully when the data source structured repository create returns successfully", func() {
 						responseResult := dataSourceTest.RandomSource()
 						dataSourceStructuredRepository.CreateOutputs = []dataSourceStoreStructuredTest.CreateOutput{{Source: responseResult, Error: nil}}
 						result, err := client.Create(ctx, userID, create)
@@ -199,18 +199,18 @@ var _ = Describe("Client", func() {
 						Expect(dataSourceStructuredRepository.DestroyAllInputs).To(Equal([]string{userID}))
 					})
 
-					It("returns an error when the data source structured session destroy returns an error", func() {
+					It("returns an error when the data source structured repository destroy returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: responseErr}}
 						errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
 					})
 
-					It("returns successfully when the data source structured session destroy returns false", func() {
+					It("returns successfully when the data source structured repository destroy returns false", func() {
 						dataSourceStructuredRepository.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: nil}}
 						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 					})
 
-					It("returns successfully when the data source structured session destroy returns true", func() {
+					It("returns successfully when the data source structured repository destroy returns true", func() {
 						dataSourceStructuredRepository.DestroyAllOutputs = []dataSourceStoreStructuredTest.DestroyAllOutput{{Destroyed: true, Error: nil}}
 						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 					})
@@ -247,7 +247,7 @@ var _ = Describe("Client", func() {
 						Expect(dataSourceStructuredRepository.GetInputs).To(Equal([]string{id}))
 					})
 
-					It("returns an error when the data source structured session get returns an error", func() {
+					It("returns an error when the data source structured repository get returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.GetOutputs = []dataSourceStoreStructuredTest.GetOutput{{Source: nil, Error: responseErr}}
 						result, err := client.Get(ctx, id)
@@ -255,7 +255,7 @@ var _ = Describe("Client", func() {
 						Expect(result).To(BeNil())
 					})
 
-					When("data source structured session get returns successfully", func() {
+					When("data source structured repository get returns successfully", func() {
 						var responseResult *dataSource.Source
 
 						BeforeEach(func() {
@@ -315,7 +315,7 @@ var _ = Describe("Client", func() {
 						Expect(dataSourceStructuredRepository.UpdateInputs).To(Equal([]dataSourceStoreStructuredTest.UpdateInput{{ID: id, Condition: condition, Update: update}}))
 					})
 
-					It("returns an error when the data source structured session update returns an error", func() {
+					It("returns an error when the data source structured repository update returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.UpdateOutputs = []dataSourceStoreStructuredTest.UpdateOutput{{Source: nil, Error: responseErr}}
 						result, err := client.Update(ctx, id, condition, update)
@@ -323,7 +323,7 @@ var _ = Describe("Client", func() {
 						Expect(result).To(BeNil())
 					})
 
-					It("returns successfully when the data source structured session update returns successfully", func() {
+					It("returns successfully when the data source structured repository update returns successfully", func() {
 						responseResult := dataSourceTest.RandomSource()
 						dataSourceStructuredRepository.UpdateOutputs = []dataSourceStoreStructuredTest.UpdateOutput{{Source: responseResult, Error: nil}}
 						result, err := client.Update(ctx, id, condition, update)
@@ -361,7 +361,7 @@ var _ = Describe("Client", func() {
 						Expect(dataSourceStructuredRepository.DestroyInputs).To(Equal([]dataSourceStoreStructuredTest.DestroyInput{{ID: id, Condition: condition}}))
 					})
 
-					It("returns an error when the data source structured session delete returns an error", func() {
+					It("returns an error when the data source structured repository delete returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.DestroyOutputs = []dataSourceStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
 						deleted, err := client.Delete(ctx, id, condition)
@@ -369,14 +369,14 @@ var _ = Describe("Client", func() {
 						Expect(deleted).To(BeFalse())
 					})
 
-					It("returns successfully when the data source structured session delete returns successfully without destroyed", func() {
+					It("returns successfully when the data source structured repository delete returns successfully without destroyed", func() {
 						dataSourceStructuredRepository.DestroyOutputs = []dataSourceStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: nil}}
 						deleted, err := client.Delete(ctx, id, condition)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(deleted).To(BeFalse())
 					})
 
-					It("returns successfully when the data source structured session delete returns successfully with destroyed", func() {
+					It("returns successfully when the data source structured repository delete returns successfully with destroyed", func() {
 						dataSourceStructuredRepository.DestroyOutputs = []dataSourceStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 						deleted, err := client.Delete(ctx, id, condition)
 						Expect(err).ToNot(HaveOccurred())

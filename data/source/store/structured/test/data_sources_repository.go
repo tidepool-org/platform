@@ -101,126 +101,126 @@ func NewDataSourcesRepository() *DataRepository {
 	}
 }
 
-func (s *DataRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	s.ListInvocations++
-	s.ListInputs = append(s.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
-	if s.ListStub != nil {
-		return s.ListStub(ctx, userID, filter, pagination)
+func (d *DataRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+	d.ListInvocations++
+	d.ListInputs = append(d.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
+	if d.ListStub != nil {
+		return d.ListStub(ctx, userID, filter, pagination)
 	}
-	if len(s.ListOutputs) > 0 {
-		output := s.ListOutputs[0]
-		s.ListOutputs = s.ListOutputs[1:]
+	if len(d.ListOutputs) > 0 {
+		output := d.ListOutputs[0]
+		d.ListOutputs = d.ListOutputs[1:]
 		return output.SourceArray, output.Error
 	}
-	if s.ListOutput != nil {
-		return s.ListOutput.SourceArray, s.ListOutput.Error
+	if d.ListOutput != nil {
+		return d.ListOutput.SourceArray, d.ListOutput.Error
 	}
 	panic("List has no output")
 }
 
-func (s *DataRepository) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
-	s.CreateInvocations++
-	s.CreateInputs = append(s.CreateInputs, CreateInput{UserID: userID, Create: create})
-	if s.CreateStub != nil {
-		return s.CreateStub(ctx, userID, create)
+func (d *DataRepository) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
+	d.CreateInvocations++
+	d.CreateInputs = append(d.CreateInputs, CreateInput{UserID: userID, Create: create})
+	if d.CreateStub != nil {
+		return d.CreateStub(ctx, userID, create)
 	}
-	if len(s.CreateOutputs) > 0 {
-		output := s.CreateOutputs[0]
-		s.CreateOutputs = s.CreateOutputs[1:]
+	if len(d.CreateOutputs) > 0 {
+		output := d.CreateOutputs[0]
+		d.CreateOutputs = d.CreateOutputs[1:]
 		return output.Source, output.Error
 	}
-	if s.CreateOutput != nil {
-		return s.CreateOutput.Source, s.CreateOutput.Error
+	if d.CreateOutput != nil {
+		return d.CreateOutput.Source, d.CreateOutput.Error
 	}
 	panic("Create has no output")
 }
 
-func (s *DataRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
-	s.DestroyAllInvocations++
-	s.DestroyAllInputs = append(s.DestroyAllInputs, userID)
-	if s.DestroyAllStub != nil {
-		return s.DestroyAllStub(ctx, userID)
+func (d *DataRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	d.DestroyAllInvocations++
+	d.DestroyAllInputs = append(d.DestroyAllInputs, userID)
+	if d.DestroyAllStub != nil {
+		return d.DestroyAllStub(ctx, userID)
 	}
-	if len(s.DestroyAllOutputs) > 0 {
-		output := s.DestroyAllOutputs[0]
-		s.DestroyAllOutputs = s.DestroyAllOutputs[1:]
+	if len(d.DestroyAllOutputs) > 0 {
+		output := d.DestroyAllOutputs[0]
+		d.DestroyAllOutputs = d.DestroyAllOutputs[1:]
 		return output.Destroyed, output.Error
 	}
-	if s.DestroyAllOutput != nil {
-		return s.DestroyAllOutput.Destroyed, s.DestroyAllOutput.Error
+	if d.DestroyAllOutput != nil {
+		return d.DestroyAllOutput.Destroyed, d.DestroyAllOutput.Error
 	}
 	panic("DestroyAll has no output")
 }
 
-func (s *DataRepository) Get(ctx context.Context, id string) (*dataSource.Source, error) {
-	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, id)
-	if s.GetStub != nil {
-		return s.GetStub(ctx, id)
+func (d *DataRepository) Get(ctx context.Context, id string) (*dataSource.Source, error) {
+	d.GetInvocations++
+	d.GetInputs = append(d.GetInputs, id)
+	if d.GetStub != nil {
+		return d.GetStub(ctx, id)
 	}
-	if len(s.GetOutputs) > 0 {
-		output := s.GetOutputs[0]
-		s.GetOutputs = s.GetOutputs[1:]
+	if len(d.GetOutputs) > 0 {
+		output := d.GetOutputs[0]
+		d.GetOutputs = d.GetOutputs[1:]
 		return output.Source, output.Error
 	}
-	if s.GetOutput != nil {
-		return s.GetOutput.Source, s.GetOutput.Error
+	if d.GetOutput != nil {
+		return d.GetOutput.Source, d.GetOutput.Error
 	}
 	panic("Get has no output")
 }
 
-func (s *DataRepository) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
-	s.UpdateInvocations++
-	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
-	if s.UpdateStub != nil {
-		return s.UpdateStub(ctx, id, condition, update)
+func (d *DataRepository) Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
+	d.UpdateInvocations++
+	d.UpdateInputs = append(d.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
+	if d.UpdateStub != nil {
+		return d.UpdateStub(ctx, id, condition, update)
 	}
-	if len(s.UpdateOutputs) > 0 {
-		output := s.UpdateOutputs[0]
-		s.UpdateOutputs = s.UpdateOutputs[1:]
+	if len(d.UpdateOutputs) > 0 {
+		output := d.UpdateOutputs[0]
+		d.UpdateOutputs = d.UpdateOutputs[1:]
 		return output.Source, output.Error
 	}
-	if s.UpdateOutput != nil {
-		return s.UpdateOutput.Source, s.UpdateOutput.Error
+	if d.UpdateOutput != nil {
+		return d.UpdateOutput.Source, d.UpdateOutput.Error
 	}
 	panic("Update has no output")
 }
 
-func (s *DataRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	s.DestroyInvocations++
-	s.DestroyInputs = append(s.DestroyInputs, DestroyInput{ID: id, Condition: condition})
-	if s.DestroyStub != nil {
-		return s.DestroyStub(ctx, id, condition)
+func (d *DataRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	d.DestroyInvocations++
+	d.DestroyInputs = append(d.DestroyInputs, DestroyInput{ID: id, Condition: condition})
+	if d.DestroyStub != nil {
+		return d.DestroyStub(ctx, id, condition)
 	}
-	if len(s.DestroyOutputs) > 0 {
-		output := s.DestroyOutputs[0]
-		s.DestroyOutputs = s.DestroyOutputs[1:]
+	if len(d.DestroyOutputs) > 0 {
+		output := d.DestroyOutputs[0]
+		d.DestroyOutputs = d.DestroyOutputs[1:]
 		return output.Destroyed, output.Error
 	}
-	if s.DestroyOutput != nil {
-		return s.DestroyOutput.Destroyed, s.DestroyOutput.Error
+	if d.DestroyOutput != nil {
+		return d.DestroyOutput.Destroyed, d.DestroyOutput.Error
 	}
 	panic("Destroy has no output")
 }
 
-func (s *DataRepository) AssertOutputsEmpty() {
-	s.Closer.AssertOutputsEmpty()
-	if len(s.ListOutputs) > 0 {
+func (d *DataRepository) AssertOutputsEmpty() {
+	d.Closer.AssertOutputsEmpty()
+	if len(d.ListOutputs) > 0 {
 		panic("ListOutputs is not empty")
 	}
-	if len(s.CreateOutputs) > 0 {
+	if len(d.CreateOutputs) > 0 {
 		panic("CreateOutputs is not empty")
 	}
-	if len(s.DestroyAllOutputs) > 0 {
+	if len(d.DestroyAllOutputs) > 0 {
 		panic("DestroyAllOutputs is not empty")
 	}
-	if len(s.GetOutputs) > 0 {
+	if len(d.GetOutputs) > 0 {
 		panic("GetOutputs is not empty")
 	}
-	if len(s.UpdateOutputs) > 0 {
+	if len(d.UpdateOutputs) > 0 {
 		panic("UpdateOutputs is not empty")
 	}
-	if len(s.DestroyOutputs) > 0 {
+	if len(d.DestroyOutputs) > 0 {
 		panic("DestroyOutputs is not empty")
 	}
 }

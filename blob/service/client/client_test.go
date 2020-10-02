@@ -565,7 +565,7 @@ var _ = Describe("Client", func() {
 						Expect(result).To(BeNil())
 					})
 
-					When("the blob structure session get returns a blob", func() {
+					When("the blob structure repository get returns a blob", func() {
 						var responseResult *blob.Blob
 
 						BeforeEach(func() {
@@ -645,7 +645,7 @@ var _ = Describe("Client", func() {
 						Expect(deleted).To(BeFalse())
 					})
 
-					When("the blob structure session get returns a blob", func() {
+					When("the blob structure repository get returns a blob", func() {
 						var responseResult *blob.Blob
 
 						BeforeEach(func() {

@@ -89,7 +89,7 @@ var _ = Describe("Context", func() {
 			})
 		})
 
-		Context("with store session", func() {
+		Context("with store repository", func() {
 			var repository *notificationStoreTest.NotificationsRepository
 
 			BeforeEach(func() {

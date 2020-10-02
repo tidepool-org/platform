@@ -132,166 +132,166 @@ func NewImageRepository() *ImageRepository {
 	}
 }
 
-func (s *ImageRepository) List(ctx context.Context, userID string, filter *image.Filter, pagination *page.Pagination) (image.ImageArray, error) {
-	s.ListInvocations++
-	s.ListInputs = append(s.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
-	if s.ListStub != nil {
-		return s.ListStub(ctx, userID, filter, pagination)
+func (i *ImageRepository) List(ctx context.Context, userID string, filter *image.Filter, pagination *page.Pagination) (image.ImageArray, error) {
+	i.ListInvocations++
+	i.ListInputs = append(i.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
+	if i.ListStub != nil {
+		return i.ListStub(ctx, userID, filter, pagination)
 	}
-	if len(s.ListOutputs) > 0 {
-		output := s.ListOutputs[0]
-		s.ListOutputs = s.ListOutputs[1:]
+	if len(i.ListOutputs) > 0 {
+		output := i.ListOutputs[0]
+		i.ListOutputs = i.ListOutputs[1:]
 		return output.ImageArray, output.Error
 	}
-	if s.ListOutput != nil {
-		return s.ListOutput.ImageArray, s.ListOutput.Error
+	if i.ListOutput != nil {
+		return i.ListOutput.ImageArray, i.ListOutput.Error
 	}
 	panic("List has no output")
 }
 
-func (s *ImageRepository) Create(ctx context.Context, userID string, metadata *image.Metadata) (*image.Image, error) {
-	s.CreateInvocations++
-	s.CreateInputs = append(s.CreateInputs, CreateInput{UserID: userID, Metadata: metadata})
-	if s.CreateStub != nil {
-		return s.CreateStub(ctx, userID, metadata)
+func (i *ImageRepository) Create(ctx context.Context, userID string, metadata *image.Metadata) (*image.Image, error) {
+	i.CreateInvocations++
+	i.CreateInputs = append(i.CreateInputs, CreateInput{UserID: userID, Metadata: metadata})
+	if i.CreateStub != nil {
+		return i.CreateStub(ctx, userID, metadata)
 	}
-	if len(s.CreateOutputs) > 0 {
-		output := s.CreateOutputs[0]
-		s.CreateOutputs = s.CreateOutputs[1:]
+	if len(i.CreateOutputs) > 0 {
+		output := i.CreateOutputs[0]
+		i.CreateOutputs = i.CreateOutputs[1:]
 		return output.Image, output.Error
 	}
-	if s.CreateOutput != nil {
-		return s.CreateOutput.Image, s.CreateOutput.Error
+	if i.CreateOutput != nil {
+		return i.CreateOutput.Image, i.CreateOutput.Error
 	}
 	panic("Create has no output")
 }
 
-func (s *ImageRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
-	s.DeleteAllInvocations++
-	s.DeleteAllInputs = append(s.DeleteAllInputs, userID)
-	if s.DeleteAllStub != nil {
-		return s.DeleteAllStub(ctx, userID)
+func (i *ImageRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
+	i.DeleteAllInvocations++
+	i.DeleteAllInputs = append(i.DeleteAllInputs, userID)
+	if i.DeleteAllStub != nil {
+		return i.DeleteAllStub(ctx, userID)
 	}
-	if len(s.DeleteAllOutputs) > 0 {
-		output := s.DeleteAllOutputs[0]
-		s.DeleteAllOutputs = s.DeleteAllOutputs[1:]
+	if len(i.DeleteAllOutputs) > 0 {
+		output := i.DeleteAllOutputs[0]
+		i.DeleteAllOutputs = i.DeleteAllOutputs[1:]
 		return output.Deleted, output.Error
 	}
-	if s.DeleteAllOutput != nil {
-		return s.DeleteAllOutput.Deleted, s.DeleteAllOutput.Error
+	if i.DeleteAllOutput != nil {
+		return i.DeleteAllOutput.Deleted, i.DeleteAllOutput.Error
 	}
 	panic("DeleteAll has no output")
 }
 
-func (s *ImageRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
-	s.DestroyAllInvocations++
-	s.DestroyAllInputs = append(s.DestroyAllInputs, userID)
-	if s.DestroyAllStub != nil {
-		return s.DestroyAllStub(ctx, userID)
+func (i *ImageRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	i.DestroyAllInvocations++
+	i.DestroyAllInputs = append(i.DestroyAllInputs, userID)
+	if i.DestroyAllStub != nil {
+		return i.DestroyAllStub(ctx, userID)
 	}
-	if len(s.DestroyAllOutputs) > 0 {
-		output := s.DestroyAllOutputs[0]
-		s.DestroyAllOutputs = s.DestroyAllOutputs[1:]
+	if len(i.DestroyAllOutputs) > 0 {
+		output := i.DestroyAllOutputs[0]
+		i.DestroyAllOutputs = i.DestroyAllOutputs[1:]
 		return output.Destroyed, output.Error
 	}
-	if s.DestroyAllOutput != nil {
-		return s.DestroyAllOutput.Destroyed, s.DestroyAllOutput.Error
+	if i.DestroyAllOutput != nil {
+		return i.DestroyAllOutput.Destroyed, i.DestroyAllOutput.Error
 	}
 	panic("DestroyAll has no output")
 }
 
-func (s *ImageRepository) Get(ctx context.Context, id string, condition *request.Condition) (*image.Image, error) {
-	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, GetInput{ID: id, Condition: condition})
-	if s.GetStub != nil {
-		return s.GetStub(ctx, id, condition)
+func (i *ImageRepository) Get(ctx context.Context, id string, condition *request.Condition) (*image.Image, error) {
+	i.GetInvocations++
+	i.GetInputs = append(i.GetInputs, GetInput{ID: id, Condition: condition})
+	if i.GetStub != nil {
+		return i.GetStub(ctx, id, condition)
 	}
-	if len(s.GetOutputs) > 0 {
-		output := s.GetOutputs[0]
-		s.GetOutputs = s.GetOutputs[1:]
+	if len(i.GetOutputs) > 0 {
+		output := i.GetOutputs[0]
+		i.GetOutputs = i.GetOutputs[1:]
 		return output.Image, output.Error
 	}
-	if s.GetOutput != nil {
-		return s.GetOutput.Image, s.GetOutput.Error
+	if i.GetOutput != nil {
+		return i.GetOutput.Image, i.GetOutput.Error
 	}
 	panic("Get has no output")
 }
 
-func (s *ImageRepository) Update(ctx context.Context, id string, condition *request.Condition, update *imageStoreStructured.Update) (*image.Image, error) {
-	s.UpdateInvocations++
-	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
-	if s.UpdateStub != nil {
-		return s.UpdateStub(ctx, id, condition, update)
+func (i *ImageRepository) Update(ctx context.Context, id string, condition *request.Condition, update *imageStoreStructured.Update) (*image.Image, error) {
+	i.UpdateInvocations++
+	i.UpdateInputs = append(i.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
+	if i.UpdateStub != nil {
+		return i.UpdateStub(ctx, id, condition, update)
 	}
-	if len(s.UpdateOutputs) > 0 {
-		output := s.UpdateOutputs[0]
-		s.UpdateOutputs = s.UpdateOutputs[1:]
+	if len(i.UpdateOutputs) > 0 {
+		output := i.UpdateOutputs[0]
+		i.UpdateOutputs = i.UpdateOutputs[1:]
 		return output.Image, output.Error
 	}
-	if s.UpdateOutput != nil {
-		return s.UpdateOutput.Image, s.UpdateOutput.Error
+	if i.UpdateOutput != nil {
+		return i.UpdateOutput.Image, i.UpdateOutput.Error
 	}
 	panic("Update has no output")
 }
 
-func (s *ImageRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{ID: id, Condition: condition})
-	if s.DeleteStub != nil {
-		return s.DeleteStub(ctx, id, condition)
+func (i *ImageRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	i.DeleteInvocations++
+	i.DeleteInputs = append(i.DeleteInputs, DeleteInput{ID: id, Condition: condition})
+	if i.DeleteStub != nil {
+		return i.DeleteStub(ctx, id, condition)
 	}
-	if len(s.DeleteOutputs) > 0 {
-		output := s.DeleteOutputs[0]
-		s.DeleteOutputs = s.DeleteOutputs[1:]
+	if len(i.DeleteOutputs) > 0 {
+		output := i.DeleteOutputs[0]
+		i.DeleteOutputs = i.DeleteOutputs[1:]
 		return output.Deleted, output.Error
 	}
-	if s.DeleteOutput != nil {
-		return s.DeleteOutput.Deleted, s.DeleteOutput.Error
+	if i.DeleteOutput != nil {
+		return i.DeleteOutput.Deleted, i.DeleteOutput.Error
 	}
 	panic("Delete has no output")
 }
 
-func (s *ImageRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	s.DestroyInvocations++
-	s.DestroyInputs = append(s.DestroyInputs, DestroyInput{ID: id, Condition: condition})
-	if s.DestroyStub != nil {
-		return s.DestroyStub(ctx, id, condition)
+func (i *ImageRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	i.DestroyInvocations++
+	i.DestroyInputs = append(i.DestroyInputs, DestroyInput{ID: id, Condition: condition})
+	if i.DestroyStub != nil {
+		return i.DestroyStub(ctx, id, condition)
 	}
-	if len(s.DestroyOutputs) > 0 {
-		output := s.DestroyOutputs[0]
-		s.DestroyOutputs = s.DestroyOutputs[1:]
+	if len(i.DestroyOutputs) > 0 {
+		output := i.DestroyOutputs[0]
+		i.DestroyOutputs = i.DestroyOutputs[1:]
 		return output.Destroyed, output.Error
 	}
-	if s.DestroyOutput != nil {
-		return s.DestroyOutput.Destroyed, s.DestroyOutput.Error
+	if i.DestroyOutput != nil {
+		return i.DestroyOutput.Destroyed, i.DestroyOutput.Error
 	}
 	panic("Destroy has no output")
 }
 
-func (s *ImageRepository) AssertOutputsEmpty() {
-	s.Closer.AssertOutputsEmpty()
-	if len(s.ListOutputs) > 0 {
+func (i *ImageRepository) AssertOutputsEmpty() {
+	i.Closer.AssertOutputsEmpty()
+	if len(i.ListOutputs) > 0 {
 		panic("ListOutputs is not empty")
 	}
-	if len(s.CreateOutputs) > 0 {
+	if len(i.CreateOutputs) > 0 {
 		panic("CreateOutputs is not empty")
 	}
-	if len(s.DeleteAllOutputs) > 0 {
+	if len(i.DeleteAllOutputs) > 0 {
 		panic("DeleteAllOutputs is not empty")
 	}
-	if len(s.DestroyAllOutputs) > 0 {
+	if len(i.DestroyAllOutputs) > 0 {
 		panic("DestroyAllOutputs is not empty")
 	}
-	if len(s.GetOutputs) > 0 {
+	if len(i.GetOutputs) > 0 {
 		panic("GetOutputs is not empty")
 	}
-	if len(s.UpdateOutputs) > 0 {
+	if len(i.UpdateOutputs) > 0 {
 		panic("UpdateOutputs is not empty")
 	}
-	if len(s.DeleteOutputs) > 0 {
+	if len(i.DeleteOutputs) > 0 {
 		panic("DeleteOutputs is not empty")
 	}
-	if len(s.DestroyOutputs) > 0 {
+	if len(i.DestroyOutputs) > 0 {
 		panic("DestroyOutputs is not empty")
 	}
 }

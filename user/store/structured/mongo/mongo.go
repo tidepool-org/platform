@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -33,8 +33,8 @@ func NewStore(params storeStructuredMongo.Params) (*Store, error) {
 }
 
 func (s *Store) EnsureIndexes() error {
-	session := s.newUserRepository()
-	return session.EnsureIndexes()
+	repository := s.newUserRepository()
+	return repository.EnsureIndexes()
 }
 
 func (s *Store) NewUserRepository() userStoreStructured.UserRepository {
@@ -51,12 +51,12 @@ type UserRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func (s *UserRepository) EnsureIndexes() error {
+func (u *UserRepository) EnsureIndexes() error {
 	// Indexes are created in `shoreline`
 	return nil
 }
 
-func (s *UserRepository) Get(ctx context.Context, id string, condition *request.Condition) (*user.User, error) {
+func (u *UserRepository) Get(ctx context.Context, id string, condition *request.Condition) (*user.User, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -75,7 +75,7 @@ func (s *UserRepository) Get(ctx context.Context, id string, condition *request.
 
 	now := time.Now()
 
-	result, err := s.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
+	result, err := u.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (s *UserRepository) Get(ctx context.Context, id string, condition *request.
 	return result, nil
 }
 
-func (s *UserRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (u *UserRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -114,7 +114,7 @@ func (s *UserRepository) Delete(ctx context.Context, id string, condition *reque
 		"deletedTime":  now.Truncate(time.Second),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.UpdateMany(ctx, query, s.ConstructUpdate(set, unset))
+	changeInfo, err := u.UpdateMany(ctx, query, u.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete user")
 		return false, errors.Wrap(err, "unable to delete user")
@@ -124,7 +124,7 @@ func (s *UserRepository) Delete(ctx context.Context, id string, condition *reque
 	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *UserRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (u *UserRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -149,7 +149,7 @@ func (s *UserRepository) Destroy(ctx context.Context, id string, condition *requ
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := s.DeleteMany(ctx, query)
+	changeInfo, err := u.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy user")
 		return false, errors.Wrap(err, "unable to destroy user")
@@ -159,10 +159,10 @@ func (s *UserRepository) Destroy(ctx context.Context, id string, condition *requ
 	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *UserRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*user.User, error) {
+func (u *UserRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*user.User, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
-	results := user.UserArray{}
+	var result *user.User
 	query := bson.M{
 		"userid": id,
 	}
@@ -170,26 +170,12 @@ func (s *UserRepository) get(ctx context.Context, logger log.Logger, id string, 
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	opts := options.Find().SetLimit(2)
-	cursor, err := s.Find(ctx, query, opts)
-	if err != nil {
+	err := u.FindOne(ctx, query).Decode(&result)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		logger.WithError(err).Error("Unable to get user")
 		return nil, errors.Wrap(err, "unable to get user")
-	}
-
-	if err = cursor.All(ctx, &results); err != nil {
-		return nil, errors.Wrap(err, "unable to decode user")
-	}
-
-	var result *user.User
-	switch len(results) {
-	case 0:
-		return nil, nil
-	case 1:
-		result = results[0]
-	default:
-		logger.Error("Multiple users found")
-		result = results[0]
 	}
 
 	if result.Revision == nil {

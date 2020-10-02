@@ -95,9 +95,9 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		return false, err
 	}
 
-	session := c.UserStructuredStore().NewUserRepository()
+	repository := c.UserStructuredStore().NewUserRepository()
 
-	result, err := session.Get(ctx, id, condition)
+	result, err := repository.Get(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if result == nil {
@@ -116,7 +116,7 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		return false, request.ErrorUnauthorized()
 	}
 
-	deleted, err := session.Delete(ctx, id, condition)
+	deleted, err := repository.Delete(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if !deleted {
@@ -196,5 +196,5 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		}
 	}
 
-	return session.Destroy(ctx, id, nil)
+	return repository.Destroy(ctx, id, nil)
 }

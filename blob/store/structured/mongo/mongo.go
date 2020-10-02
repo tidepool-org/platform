@@ -36,8 +36,8 @@ func NewStore(params storeStructuredMongo.Params) (*Store, error) {
 }
 
 func (s *Store) EnsureIndexes() error {
-	coll := s.newRepository()
-	return coll.EnsureIndexes()
+	repository := s.newRepository()
+	return repository.EnsureIndexes()
 }
 
 func (s *Store) NewBlobRepository() blobStoreStructured.BlobRepository {
@@ -54,8 +54,8 @@ type BlobRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func (c *BlobRepository) EnsureIndexes() error {
-	return c.CreateAllIndexes(context.Background(),
+func (b *BlobRepository) EnsureIndexes() error {
+	return b.CreateAllIndexes(context.Background(),
 		[]mongo.IndexModel{
 			{
 				Keys: bson.D{{Key: "id", Value: 1}},
@@ -81,7 +81,7 @@ func (c *BlobRepository) EnsureIndexes() error {
 		})
 }
 
-func (c *BlobRepository) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
+func (b *BlobRepository) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
 	if ctx == nil {
@@ -129,7 +129,7 @@ func (c *BlobRepository) List(ctx context.Context, userID string, filter *blob.F
 	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
-	cursor, err := c.Find(ctx, query, opts)
+	cursor, err := b.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to list blobs")
 		return nil, errors.Wrap(err, "unable to list blobs")
@@ -143,7 +143,7 @@ func (c *BlobRepository) List(ctx context.Context, userID string, filter *blob.F
 	return result, nil
 }
 
-func (c *BlobRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
+func (b *BlobRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "create": create})
 
 	if ctx == nil {
@@ -177,7 +177,7 @@ func (c *BlobRepository) Create(ctx context.Context, userID string, create *blob
 		logger = logger.WithField("id", id)
 
 		doc.ID = pointer.FromString(id)
-		if _, err = c.InsertOne(ctx, doc); storeStructuredMongo.IsDup(err) {
+		if _, err = b.InsertOne(ctx, doc); storeStructuredMongo.IsDup(err) {
 			logger.WithError(err).Error("Duplicate blob id")
 		} else {
 			break
@@ -188,7 +188,7 @@ func (c *BlobRepository) Create(ctx context.Context, userID string, create *blob
 		return nil, errors.Wrap(err, "unable to create blob")
 	}
 
-	result, err := c.get(ctx, logger, id, nil)
+	result, err := b.get(ctx, logger, id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (c *BlobRepository) Create(ctx context.Context, userID string, create *blob
 	return result, nil
 }
 
-func (c *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
+func (b *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	if ctx == nil {
@@ -219,7 +219,7 @@ func (c *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, er
 		"deletedTime":  now.Truncate(time.Millisecond),
 	}
 	unset := bson.M{}
-	changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
+	changeInfo, err := b.UpdateMany(ctx, query, b.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete all blobs")
 		return false, errors.Wrap(err, "unable to delete all blobs")
@@ -229,7 +229,7 @@ func (c *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, er
 	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (c *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
+func (b *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	if ctx == nil {
@@ -246,7 +246,7 @@ func (c *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, e
 	query := bson.M{
 		"userId": userID,
 	}
-	changeInfo, err := c.DeleteMany(ctx, query)
+	changeInfo, err := b.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy all blobs")
 		return false, errors.Wrap(err, "unable to destroy all blobs")
@@ -256,7 +256,7 @@ func (c *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, e
 	return changeInfo.DeletedCount > 0, nil
 }
 
-func (c *BlobRepository) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
+func (b *BlobRepository) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -275,7 +275,7 @@ func (c *BlobRepository) Get(ctx context.Context, id string, condition *request.
 
 	now := time.Now()
 
-	result, err := c.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
+	result, err := b.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func (c *BlobRepository) Get(ctx context.Context, id string, condition *request.
 	return result, nil
 }
 
-func (c *BlobRepository) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
+func (b *BlobRepository) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition, "update": update})
 
 	if ctx == nil {
@@ -334,7 +334,7 @@ func (c *BlobRepository) Update(ctx context.Context, id string, condition *reque
 		if update.Status != nil {
 			set["status"] = *update.Status
 		}
-		changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
+		changeInfo, err := b.UpdateMany(ctx, query, b.ConstructUpdate(set, unset))
 		if err != nil {
 			logger.WithError(err).Error("Unable to update blob")
 			return nil, errors.Wrap(err, "unable to update blob")
@@ -350,7 +350,7 @@ func (c *BlobRepository) Update(ctx context.Context, id string, condition *reque
 	var result *blob.Blob
 	if update != nil {
 		var err error
-		if result, err = c.get(ctx, logger, id, condition); err != nil {
+		if result, err = b.get(ctx, logger, id, condition); err != nil {
 			return nil, err
 		}
 	}
@@ -359,7 +359,7 @@ func (c *BlobRepository) Update(ctx context.Context, id string, condition *reque
 	return result, nil
 }
 
-func (c *BlobRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (b *BlobRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -389,7 +389,7 @@ func (c *BlobRepository) Delete(ctx context.Context, id string, condition *reque
 		"deletedTime":  now.Truncate(time.Millisecond),
 	}
 	unset := bson.M{}
-	changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
+	changeInfo, err := b.UpdateMany(ctx, query, b.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete blob")
 		return false, errors.Wrap(err, "unable to delete blob")
@@ -399,7 +399,7 @@ func (c *BlobRepository) Delete(ctx context.Context, id string, condition *reque
 	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (c *BlobRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (b *BlobRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -424,7 +424,7 @@ func (c *BlobRepository) Destroy(ctx context.Context, id string, condition *requ
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := c.DeleteMany(ctx, query)
+	changeInfo, err := b.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy blob")
 		return false, errors.Wrap(err, "unable to destroy blob")
@@ -437,7 +437,7 @@ func (c *BlobRepository) Destroy(ctx context.Context, id string, condition *requ
 func (c *BlobRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*blob.Blob, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
-	results := blob.BlobArray{}
+	var result *blob.Blob
 	query := bson.M{
 		"id": id,
 	}
@@ -445,26 +445,12 @@ func (c *BlobRepository) get(ctx context.Context, logger log.Logger, id string, 
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	opts := options.Find().SetLimit(2)
-	cursor, err := c.Find(ctx, query, opts)
-	if err != nil {
+	err := c.FindOne(ctx, query).Decode(&result)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		logger.WithError(err).Error("Unable to get blob")
 		return nil, errors.Wrap(err, "unable to get blob")
-	}
-
-	if err = cursor.All(ctx, &results); err != nil {
-		return nil, errors.Wrap(err, "unable to decode blob")
-	}
-
-	var result *blob.Blob
-	switch len(results) {
-	case 0:
-		return nil, nil
-	case 1:
-		result = results[0]
-	default:
-		logger.Error("Multiple blobs found")
-		result = results[0]
 	}
 
 	if result.Revision == nil {

@@ -125,7 +125,7 @@ var _ = Describe("Mongo", func() {
 			})
 
 			Context("GetRepository", func() {
-				It("returns a new collection if no collection specified", func() {
+				It("returns a new repository if no repository specified", func() {
 					repository = store.GetRepository("")
 					Expect(repository).ToNot(BeNil())
 				})
@@ -136,7 +136,7 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
-			Context("with a new collection", func() {
+			Context("with a new repository", func() {
 				BeforeEach(func() {
 					repository = store.GetRepository("test")
 					Expect(repository).ToNot(BeNil())

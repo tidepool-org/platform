@@ -93,14 +93,14 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
-		Context("NewSession", func() {
-			It("returns a new session", func() {
+		Context("NewUserRepository", func() {
+			It("returns a new repository", func() {
 				repository = store.NewUserRepository()
 				Expect(repository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			var ctx context.Context
 
 			BeforeEach(func() {

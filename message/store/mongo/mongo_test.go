@@ -113,13 +113,13 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("NewMessageRepository", func() {
-			It("returns a new session", func() {
+			It("returns a new repository", func() {
 				repository = mongoStore.NewMessageRepository()
 				Expect(repository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			BeforeEach(func() {
 				repository = mongoStore.NewMessageRepository()
 				Expect(repository).ToNot(BeNil())

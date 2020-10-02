@@ -42,7 +42,7 @@ import (
 var _ = Describe("Client", func() {
 	var authClient *authTest.Client
 	var imageStructuredStore *imageStoreStructuredTest.Store
-	var imageStructuredSession *imageStoreStructuredTest.ImageRepository
+	var imageStructuredRepository *imageStoreStructuredTest.ImageRepository
 	var imageUnstructuredStore *imageStoreUnstructuredTest.Store
 	var imageTransformer *imageTransformTest.Transformer
 	var provider *imageServiceClientTest.Provider
@@ -50,9 +50,9 @@ var _ = Describe("Client", func() {
 	BeforeEach(func() {
 		authClient = authTest.NewClient()
 		imageStructuredStore = imageStoreStructuredTest.NewStore()
-		imageStructuredSession = imageStoreStructuredTest.NewImageRepository()
-		imageStructuredSession.CloseOutput = func(err error) *error { return &err }(nil)
-		imageStructuredStore.NewImageRepositoryOutput = func(s imageStoreStructured.ImageRepository) *imageStoreStructured.ImageRepository { return &s }(imageStructuredSession)
+		imageStructuredRepository = imageStoreStructuredTest.NewImageRepository()
+		imageStructuredRepository.CloseOutput = func(err error) *error { return &err }(nil)
+		imageStructuredStore.NewImageRepositoryOutput = func(s imageStoreStructured.ImageRepository) *imageStoreStructured.ImageRepository { return &s }(imageStructuredRepository)
 		imageUnstructuredStore = imageStoreUnstructuredTest.NewStore()
 		imageTransformer = imageTransformTest.NewTransformer()
 		provider = imageServiceClientTest.NewProvider()
@@ -129,20 +129,20 @@ var _ = Describe("Client", func() {
 					})
 
 					AfterEach(func() {
-						Expect(imageStructuredSession.ListInputs).To(Equal([]imageStoreStructuredTest.ListInput{{UserID: userID, Filter: filter, Pagination: pagination}}))
+						Expect(imageStructuredRepository.ListInputs).To(Equal([]imageStoreStructuredTest.ListInput{{UserID: userID, Filter: filter, Pagination: pagination}}))
 					})
 
-					It("returns an error when the image structured session list returns an error", func() {
+					It("returns an error when the image structured repository list returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						imageStructuredSession.ListOutputs = []imageStoreStructuredTest.ListOutput{{ImageArray: nil, Error: responseErr}}
+						imageStructuredRepository.ListOutputs = []imageStoreStructuredTest.ListOutput{{ImageArray: nil, Error: responseErr}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
 
-					It("returns successfully when the image structured session list returns successfully", func() {
+					It("returns successfully when the image structured repository list returns successfully", func() {
 						responseResult := imageTest.RandomImageArray(1, 3)
-						imageStructuredSession.ListOutputs = []imageStoreStructuredTest.ListOutput{{ImageArray: responseResult, Error: nil}}
+						imageStructuredRepository.ListOutputs = []imageStoreStructuredTest.ListOutput{{ImageArray: responseResult, Error: nil}}
 						result, err := client.List(ctx, userID, filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(Equal(responseResult))
@@ -226,18 +226,18 @@ var _ = Describe("Client", func() {
 
 					When("the image is created", func() {
 						AfterEach(func() {
-							Expect(imageStructuredSession.CreateInputs).To(Equal([]imageStoreStructuredTest.CreateInput{{UserID: userID, Metadata: metadata}}))
+							Expect(imageStructuredRepository.CreateInputs).To(Equal([]imageStoreStructuredTest.CreateInput{{UserID: userID, Metadata: metadata}}))
 						})
 
-						It("returns an error when the image structured session create returns an error", func() {
+						It("returns an error when the image structured repository create returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							imageStructuredSession.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: nil, Error: responseErr}}
+							imageStructuredRepository.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: nil, Error: responseErr}}
 							result, err := client.Create(ctx, userID, metadata, contentIntent, content)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(result).To(BeNil())
 						})
 
-						When("the image structured session create returns successfully", func() {
+						When("the image structured repository create returns successfully", func() {
 							var createImage *image.Image
 							var destroyImageErr error
 
@@ -246,19 +246,19 @@ var _ = Describe("Client", func() {
 								createImage.UserID = pointer.FromString(userID)
 								createImage.Status = pointer.FromString(image.StatusCreated)
 								createImage.ModifiedTime = nil
-								imageStructuredSession.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: createImage, Error: nil}}
+								imageStructuredRepository.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: createImage, Error: nil}}
 								destroyImageErr = errorsTest.RandomError()
 							})
 
 							JustBeforeEach(func() {
 								if destroyImageErr != nil {
-									imageStructuredSession.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: destroyImageErr}}
+									imageStructuredRepository.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: destroyImageErr}}
 								}
 							})
 
 							AfterEach(func() {
 								if destroyImageErr != nil {
-									Expect(imageStructuredSession.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: *createImage.ID, Condition: nil}}))
+									Expect(imageStructuredRepository.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: *createImage.ID, Condition: nil}}))
 									logger.AssertError("Unable to destroy image after failure to put image content", log.Fields{"userId": userID, "id": *createImage.ID, "error": errors.NewSerializable(destroyImageErr)})
 								}
 							})
@@ -324,7 +324,7 @@ var _ = Describe("Client", func() {
 
 										AfterEach(func() {
 											Expect(imageUnstructuredStore.DeleteContentInputs).To(Equal([]imageStoreUnstructuredTest.DeleteContentInput{{UserID: userID, ImageID: *createImage.ID, ContentID: putContentID}}))
-											Expect(imageStructuredSession.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: *createImage.ID}}))
+											Expect(imageStructuredRepository.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: *createImage.ID}}))
 										})
 
 										It("returns an error", func() {
@@ -388,12 +388,12 @@ var _ = Describe("Client", func() {
 											update.ContentAttributes.Width = pointer.FromInt(width)
 											update.ContentAttributes.Height = pointer.FromInt(height)
 											update.ContentAttributes.Size = pointer.FromInt(int(size))
-											Expect(imageStructuredSession.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: *createImage.ID, Condition: &request.Condition{Revision: createImage.Revision}, Update: update}}))
+											Expect(imageStructuredRepository.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: *createImage.ID, Condition: &request.Condition{Revision: createImage.Revision}, Update: update}}))
 										})
 
-										It("returns an error when image structured session update returns an error", func() {
+										It("returns an error when image structured repository update returns an error", func() {
 											responseErr := errorsTest.RandomError()
-											imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+											imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 											imageUnstructuredStore.DeleteContentOutputs = []error{nil}
 											result, err := client.Create(ctx, userID, metadata, contentIntent, content)
 											errorsTest.ExpectEqual(err, responseErr)
@@ -401,7 +401,7 @@ var _ = Describe("Client", func() {
 											imageUnstructuredStore.DeleteContentInputs = []imageStoreUnstructuredTest.DeleteContentInput{{UserID: *createImage.UserID, ImageID: *createImage.ID, ContentID: putContentID}}
 										})
 
-										When("the image structured session update returns successfully", func() {
+										When("the image structured repository update returns successfully", func() {
 											var updateImage *image.Image
 
 											BeforeEach(func() {
@@ -416,7 +416,7 @@ var _ = Describe("Client", func() {
 												updateImage.ContentAttributes.Height = pointer.FromInt(height)
 												updateImage.ContentAttributes.Size = pointer.FromInt(int(size))
 												updateImage.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*createImage.CreatedTime, time.Now()).Truncate(time.Second))
-												imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
+												imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
 											})
 
 											When("the content intent is alternate", func() {
@@ -485,20 +485,20 @@ var _ = Describe("Client", func() {
 					})
 
 					AfterEach(func() {
-						Expect(imageStructuredSession.CreateInputs).To(Equal([]imageStoreStructuredTest.CreateInput{{UserID: userID, Metadata: metadata}}))
+						Expect(imageStructuredRepository.CreateInputs).To(Equal([]imageStoreStructuredTest.CreateInput{{UserID: userID, Metadata: metadata}}))
 					})
 
-					It("returns an error when the image structured session create returns an error", func() {
+					It("returns an error when the image structured repository create returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						imageStructuredSession.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: nil, Error: responseErr}}
+						imageStructuredRepository.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: nil, Error: responseErr}}
 						result, err := client.CreateWithMetadata(ctx, userID, metadata)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
 
-					It("returns successfully when the image structured session create returns successfully", func() {
+					It("returns successfully when the image structured repository create returns successfully", func() {
 						responseResult := imageTest.RandomImage()
-						imageStructuredSession.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: responseResult, Error: nil}}
 						result, err := client.CreateWithMetadata(ctx, userID, metadata)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(Equal(responseResult))
@@ -566,18 +566,18 @@ var _ = Describe("Client", func() {
 
 					When("the image is created", func() {
 						AfterEach(func() {
-							Expect(imageStructuredSession.CreateInputs).To(Equal([]imageStoreStructuredTest.CreateInput{{UserID: userID, Metadata: image.NewMetadata()}}))
+							Expect(imageStructuredRepository.CreateInputs).To(Equal([]imageStoreStructuredTest.CreateInput{{UserID: userID, Metadata: image.NewMetadata()}}))
 						})
 
-						It("returns an error when the image structured session create returns an error", func() {
+						It("returns an error when the image structured repository create returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							imageStructuredSession.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: nil, Error: responseErr}}
+							imageStructuredRepository.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: nil, Error: responseErr}}
 							result, err := client.CreateWithContent(ctx, userID, contentIntent, content)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(result).To(BeNil())
 						})
 
-						When("the image structured session create returns successfully", func() {
+						When("the image structured repository create returns successfully", func() {
 							var createImage *image.Image
 							var destroyImageErr error
 
@@ -586,19 +586,19 @@ var _ = Describe("Client", func() {
 								createImage.UserID = pointer.FromString(userID)
 								createImage.Status = pointer.FromString(image.StatusCreated)
 								createImage.ModifiedTime = nil
-								imageStructuredSession.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: createImage, Error: nil}}
+								imageStructuredRepository.CreateOutputs = []imageStoreStructuredTest.CreateOutput{{Image: createImage, Error: nil}}
 								destroyImageErr = errorsTest.RandomError()
 							})
 
 							JustBeforeEach(func() {
 								if destroyImageErr != nil {
-									imageStructuredSession.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: destroyImageErr}}
+									imageStructuredRepository.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: destroyImageErr}}
 								}
 							})
 
 							AfterEach(func() {
 								if destroyImageErr != nil {
-									Expect(imageStructuredSession.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: *createImage.ID, Condition: nil}}))
+									Expect(imageStructuredRepository.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: *createImage.ID, Condition: nil}}))
 									logger.AssertError("Unable to destroy image after failure to put image content", log.Fields{"userId": userID, "id": *createImage.ID, "error": errors.NewSerializable(destroyImageErr)})
 								}
 							})
@@ -727,12 +727,12 @@ var _ = Describe("Client", func() {
 											update.ContentAttributes.Width = pointer.FromInt(width)
 											update.ContentAttributes.Height = pointer.FromInt(height)
 											update.ContentAttributes.Size = pointer.FromInt(int(size))
-											Expect(imageStructuredSession.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: *createImage.ID, Condition: &request.Condition{Revision: createImage.Revision}, Update: update}}))
+											Expect(imageStructuredRepository.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: *createImage.ID, Condition: &request.Condition{Revision: createImage.Revision}, Update: update}}))
 										})
 
-										It("returns an error when image structured session update returns an error", func() {
+										It("returns an error when image structured repository update returns an error", func() {
 											responseErr := errorsTest.RandomError()
-											imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+											imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 											imageUnstructuredStore.DeleteContentOutputs = []error{nil}
 											result, err := client.CreateWithContent(ctx, userID, contentIntent, content)
 											errorsTest.ExpectEqual(err, responseErr)
@@ -740,7 +740,7 @@ var _ = Describe("Client", func() {
 											imageUnstructuredStore.DeleteContentInputs = []imageStoreUnstructuredTest.DeleteContentInput{{UserID: *createImage.UserID, ImageID: *createImage.ID, ContentID: putContentID}}
 										})
 
-										When("the image structured session update returns successfully", func() {
+										When("the image structured repository update returns successfully", func() {
 											var updateImage *image.Image
 
 											BeforeEach(func() {
@@ -755,7 +755,7 @@ var _ = Describe("Client", func() {
 												updateImage.ContentAttributes.Height = pointer.FromInt(height)
 												updateImage.ContentAttributes.Size = pointer.FromInt(int(size))
 												updateImage.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*createImage.CreatedTime, time.Now()).Truncate(time.Second))
-												imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
+												imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
 											})
 
 											When("the content intent is alternate", func() {
@@ -816,23 +816,23 @@ var _ = Describe("Client", func() {
 					})
 
 					AfterEach(func() {
-						Expect(imageStructuredSession.DeleteAllInputs).To(Equal([]string{userID}))
+						Expect(imageStructuredRepository.DeleteAllInputs).To(Equal([]string{userID}))
 					})
 
-					It("returns an error when the image structured session delete returns an error", func() {
+					It("returns an error when the image structured repository delete returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						imageStructuredSession.DeleteAllOutputs = []imageStoreStructuredTest.DeleteAllOutput{{Deleted: false, Error: responseErr}}
+						imageStructuredRepository.DeleteAllOutputs = []imageStoreStructuredTest.DeleteAllOutput{{Deleted: false, Error: responseErr}}
 						errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
 					})
 
-					It("returns successfully when the image structured session delete returns successfully without deleted", func() {
-						imageStructuredSession.DeleteAllOutputs = []imageStoreStructuredTest.DeleteAllOutput{{Deleted: false, Error: nil}}
+					It("returns successfully when the image structured repository delete returns successfully without deleted", func() {
+						imageStructuredRepository.DeleteAllOutputs = []imageStoreStructuredTest.DeleteAllOutput{{Deleted: false, Error: nil}}
 						Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 					})
 
-					When("the image structured session delete returns successfully with deleted", func() {
+					When("the image structured repository delete returns successfully with deleted", func() {
 						BeforeEach(func() {
-							imageStructuredSession.DeleteAllOutputs = []imageStoreStructuredTest.DeleteAllOutput{{Deleted: true, Error: nil}}
+							imageStructuredRepository.DeleteAllOutputs = []imageStoreStructuredTest.DeleteAllOutput{{Deleted: true, Error: nil}}
 						})
 
 						AfterEach(func() {
@@ -851,22 +851,22 @@ var _ = Describe("Client", func() {
 							})
 
 							AfterEach(func() {
-								Expect(imageStructuredSession.DestroyAllInputs).To(Equal([]string{userID}))
+								Expect(imageStructuredRepository.DestroyAllInputs).To(Equal([]string{userID}))
 							})
 
-							It("returns an error when the image structured session destroy returns an error", func() {
+							It("returns an error when the image structured repository destroy returns an error", func() {
 								responseErr := errorsTest.RandomError()
-								imageStructuredSession.DestroyAllOutputs = []imageStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: responseErr}}
+								imageStructuredRepository.DestroyAllOutputs = []imageStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: responseErr}}
 								errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
 							})
 
-							It("returns successfully when the image structured session destroy returns false", func() {
-								imageStructuredSession.DestroyAllOutputs = []imageStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: nil}}
+							It("returns successfully when the image structured repository destroy returns false", func() {
+								imageStructuredRepository.DestroyAllOutputs = []imageStoreStructuredTest.DestroyAllOutput{{Destroyed: false, Error: nil}}
 								Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 							})
 
-							It("returns successfully when the image structured session destroy returns true", func() {
-								imageStructuredSession.DestroyAllOutputs = []imageStoreStructuredTest.DestroyAllOutput{{Destroyed: true, Error: nil}}
+							It("returns successfully when the image structured repository destroy returns true", func() {
+								imageStructuredRepository.DestroyAllOutputs = []imageStoreStructuredTest.DestroyAllOutput{{Destroyed: true, Error: nil}}
 								Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 							})
 						})
@@ -884,30 +884,30 @@ var _ = Describe("Client", func() {
 
 			Context("Get", func() {
 				AfterEach(func() {
-					Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
+					Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
 				})
 
-				It("returns an error when the image structured session get returns an error", func() {
+				It("returns an error when the image structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 					result, err := client.Get(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
 				})
 
-				It("returns successfully when the image structured session get returns nil", func() {
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+				It("returns successfully when the image structured repository get returns nil", func() {
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 					deleted, err := client.Get(ctx, id)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeNil())
 				})
 
-				When("the image structure session get returns an image", func() {
+				When("the image structure repository get returns an image", func() {
 					var responseResult *image.Image
 
 					BeforeEach(func() {
 						responseResult = imageTest.RandomImage()
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -938,30 +938,30 @@ var _ = Describe("Client", func() {
 
 			Context("GetMetadata", func() {
 				AfterEach(func() {
-					Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
+					Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
 				})
 
-				It("returns an error when the image structured session get returns an error", func() {
+				It("returns an error when the image structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 					result, err := client.GetMetadata(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
 				})
 
-				It("returns successfully when the image structured session get returns nil", func() {
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+				It("returns successfully when the image structured repository get returns nil", func() {
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 					deleted, err := client.GetMetadata(ctx, id)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeNil())
 				})
 
-				When("the image structure session get returns an image", func() {
+				When("the image structure repository get returns an image", func() {
 					var responseResult *image.Image
 
 					BeforeEach(func() {
 						responseResult = imageTest.RandomImage()
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -1013,25 +1013,25 @@ var _ = Describe("Client", func() {
 
 				mediaTypeAssertions := func() {
 					AfterEach(func() {
-						Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
+						Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
 					})
 
-					It("returns an error when the image structured session get returns an error", func() {
+					It("returns an error when the image structured repository get returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 						result, err := client.GetContent(ctx, id, mediaType)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
 
-					It("returns successfully when the image structured session get returns nil", func() {
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+					It("returns successfully when the image structured repository get returns nil", func() {
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 						deleted, err := client.GetContent(ctx, id, mediaType)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(deleted).To(BeNil())
 					})
 
-					When("the image structure session get returns an image", func() {
+					When("the image structure repository get returns an image", func() {
 						var responseResult *image.Image
 
 						BeforeEach(func() {
@@ -1046,7 +1046,7 @@ var _ = Describe("Client", func() {
 							} else {
 								responseResult.ContentAttributes.MediaType = pointer.FromString(imageTest.RandomMediaType())
 							}
-							imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+							imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 						})
 
 						AfterEach(func() {
@@ -1156,25 +1156,25 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
+					Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: nil}}))
 				})
 
-				It("returns an error when the image structured session get returns an error", func() {
+				It("returns an error when the image structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 					result, err := client.GetRenditionContent(ctx, id, rendition)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
 				})
 
-				It("returns successfully when the image structured session get returns nil", func() {
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+				It("returns successfully when the image structured repository get returns nil", func() {
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 					deleted, err := client.GetRenditionContent(ctx, id, rendition)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeNil())
 				})
 
-				When("the image structure session get returns an image", func() {
+				When("the image structure repository get returns an image", func() {
 					var responseResult *image.Image
 
 					BeforeEach(func() {
@@ -1184,7 +1184,7 @@ var _ = Describe("Client", func() {
 						responseResult.ContentID = pointer.FromString(imageTest.RandomContentID())
 						responseResult.ContentIntent = pointer.FromString(image.ContentIntentOriginal)
 						responseResult.ContentAttributes = imageTest.RandomContentAttributes()
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -1299,15 +1299,15 @@ var _ = Describe("Client", func() {
 											When("the image unstructured store put rendition content returns successfully", func() {
 												AfterEach(func() {
 													if responseResult.RenditionsID != nil && *responseResult.RenditionsID == putRenditionContentRenditionsID {
-														Expect(imageStructuredSession.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: id, Condition: &request.Condition{Revision: responseResult.Revision}, Update: &imageStoreStructured.Update{Rendition: pointer.FromString(transform.Rendition.String())}}}))
+														Expect(imageStructuredRepository.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: id, Condition: &request.Condition{Revision: responseResult.Revision}, Update: &imageStoreStructured.Update{Rendition: pointer.FromString(transform.Rendition.String())}}}))
 													} else {
-														Expect(imageStructuredSession.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: id, Condition: &request.Condition{Revision: responseResult.Revision}, Update: &imageStoreStructured.Update{RenditionsID: pointer.FromString(putRenditionContentRenditionsID), Rendition: pointer.FromString(transform.Rendition.String())}}}))
+														Expect(imageStructuredRepository.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: id, Condition: &request.Condition{Revision: responseResult.Revision}, Update: &imageStoreStructured.Update{RenditionsID: pointer.FromString(putRenditionContentRenditionsID), Rendition: pointer.FromString(transform.Rendition.String())}}}))
 													}
 												})
 
 												When("the image structured store update returns successfully", func() {
 													BeforeEach(func() {
-														imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: imageTest.RandomImage(), Error: nil}}
+														imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: imageTest.RandomImage(), Error: nil}}
 													})
 
 													When("an old renditions id did not exist", func() {
@@ -1341,7 +1341,7 @@ var _ = Describe("Client", func() {
 
 														It("returns successfully when the image unstructured store get rendition content returns successfully and logs an error if the image structured store update returns an error", func() {
 															responseErr := errorsTest.RandomError()
-															imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+															imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 															contentRenditionReader := ioutil.NopCloser(bytes.NewReader(imageTest.RandomContentBytes()))
 															imageUnstructuredStore.GetRenditionContentOutputs = append(imageUnstructuredStore.GetRenditionContentOutputs, imageStoreUnstructuredTest.GetRenditionContentOutput{Reader: contentRenditionReader, Error: nil})
 															result, err := client.GetRenditionContent(ctx, id, rendition)
@@ -1389,7 +1389,7 @@ var _ = Describe("Client", func() {
 
 														It("returns successfully when the image unstructured store get rendition content returns successfully and logs an error if the image structured store update returns an error", func() {
 															responseErr := errorsTest.RandomError()
-															imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+															imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 															contentRenditionReader := ioutil.NopCloser(bytes.NewReader(imageTest.RandomContentBytes()))
 															imageUnstructuredStore.GetRenditionContentOutputs = append(imageUnstructuredStore.GetRenditionContentOutputs, imageStoreUnstructuredTest.GetRenditionContentOutput{Reader: contentRenditionReader, Error: nil})
 															result, err := client.GetRenditionContent(ctx, id, rendition)
@@ -1461,7 +1461,7 @@ var _ = Describe("Client", func() {
 
 														It("returns successfully when the image unstructured store get rendition content returns successfully and logs an error if the image structured store update returns an error", func() {
 															responseErr := errorsTest.RandomError()
-															imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+															imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 															contentRenditionReader := ioutil.NopCloser(bytes.NewReader(imageTest.RandomContentBytes()))
 															imageUnstructuredStore.GetRenditionContentOutputs = append(imageUnstructuredStore.GetRenditionContentOutputs, imageStoreUnstructuredTest.GetRenditionContentOutput{Reader: contentRenditionReader, Error: nil})
 															result, err := client.GetRenditionContent(ctx, id, rendition)
@@ -1524,31 +1524,31 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: condition}}))
+					Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: condition}}))
 				})
 
-				It("returns an error when the image structured session get returns an error", func() {
+				It("returns an error when the image structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 					result, err := client.PutMetadata(ctx, id, condition, metadata)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
 				})
 
-				It("returns successfully when the image structured session get returns nil", func() {
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+				It("returns successfully when the image structured repository get returns nil", func() {
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 					result, err := client.PutMetadata(ctx, id, condition, metadata)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(BeNil())
 				})
 
-				When("the image structure session get returns an image", func() {
+				When("the image structure repository get returns an image", func() {
 					var responseResult *image.Image
 
 					BeforeEach(func() {
 						responseResult = imageTest.RandomImage()
 						responseResult.ID = pointer.FromString(id)
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -1586,21 +1586,21 @@ var _ = Describe("Client", func() {
 							AfterEach(func() {
 								update := imageStoreStructured.NewUpdate()
 								update.Metadata = metadata
-								Expect(imageStructuredSession.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: id, Condition: condition, Update: update}}))
+								Expect(imageStructuredRepository.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: id, Condition: condition, Update: update}}))
 							})
 
-							It("returns an error when the image structured session create returns an error", func() {
+							It("returns an error when the image structured repository create returns an error", func() {
 								responseErr := errorsTest.RandomError()
-								imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+								imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 								result, err := client.PutMetadata(ctx, id, condition, metadata)
 								errorsTest.ExpectEqual(err, responseErr)
 								Expect(result).To(BeNil())
 							})
 
-							It("returns successfully when the image structured session create returns successfully", func() {
+							It("returns successfully when the image structured repository create returns successfully", func() {
 								updateImage := imageTest.CloneImage(responseResult)
 								updateImage.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*responseResult.CreatedTime, time.Now()).Truncate(time.Second))
-								imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
+								imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
 								result, err := client.PutMetadata(ctx, id, condition, metadata)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).To(Equal(updateImage))
@@ -1626,25 +1626,25 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: condition}}))
+					Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: condition}}))
 				})
 
-				It("returns an error when the image structured session get returns an error", func() {
+				It("returns an error when the image structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 					result, err := client.PutContent(ctx, id, condition, contentIntent, content)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
 				})
 
-				It("returns successfully when the image structured session get returns nil", func() {
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+				It("returns successfully when the image structured repository get returns nil", func() {
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 					result, err := client.PutContent(ctx, id, condition, contentIntent, content)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(BeNil())
 				})
 
-				When("the image structure session get returns an image", func() {
+				When("the image structure repository get returns an image", func() {
 					var responseResult *image.Image
 
 					JustBeforeEach(func() {
@@ -1665,7 +1665,7 @@ var _ = Describe("Client", func() {
 							responseResult.RenditionsID = pointer.FromString(imageTest.RandomRenditionsID())
 							responseResult.Renditions = pointer.FromStringArray(imageTest.RandomRenditionStrings())
 						}
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -1870,12 +1870,12 @@ var _ = Describe("Client", func() {
 										update.ContentAttributes.Width = pointer.FromInt(width)
 										update.ContentAttributes.Height = pointer.FromInt(height)
 										update.ContentAttributes.Size = pointer.FromInt(int(size))
-										Expect(imageStructuredSession.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: *responseResult.ID, Condition: &request.Condition{Revision: responseResult.Revision}, Update: update}}))
+										Expect(imageStructuredRepository.UpdateInputs).To(Equal([]imageStoreStructuredTest.UpdateInput{{ID: *responseResult.ID, Condition: &request.Condition{Revision: responseResult.Revision}, Update: update}}))
 									})
 
-									It("returns an error when image structured session update returns an error", func() {
+									It("returns an error when image structured repository update returns an error", func() {
 										responseErr := errorsTest.RandomError()
-										imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+										imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 										imageUnstructuredStore.DeleteContentOutputs = []error{nil}
 										result, err := client.PutContent(ctx, id, condition, contentIntent, content)
 										errorsTest.ExpectEqual(err, responseErr)
@@ -1883,10 +1883,10 @@ var _ = Describe("Client", func() {
 										imageUnstructuredStore.DeleteContentInputs = []imageStoreUnstructuredTest.DeleteContentInput{{UserID: *responseResult.UserID, ImageID: *responseResult.ID, ContentID: putContentID}}
 									})
 
-									It("returns an error when image structured session update returns an error and logs an error if image unstructured delete content returns an err", func() {
+									It("returns an error when image structured repository update returns an error and logs an error if image unstructured delete content returns an err", func() {
 										responseErr := errorsTest.RandomError()
 										deleteErr := errorsTest.RandomError()
-										imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
+										imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: nil, Error: responseErr}}
 										imageUnstructuredStore.DeleteContentOutputs = []error{deleteErr}
 										result, err := client.PutContent(ctx, id, condition, contentIntent, content)
 										errorsTest.ExpectEqual(err, responseErr)
@@ -1895,7 +1895,7 @@ var _ = Describe("Client", func() {
 										imageUnstructuredStore.DeleteContentInputs = []imageStoreUnstructuredTest.DeleteContentInput{{UserID: *responseResult.UserID, ImageID: *responseResult.ID, ContentID: putContentID}}
 									})
 
-									When("the image structured session update returns successfully", func() {
+									When("the image structured repository update returns successfully", func() {
 										var updateImage *image.Image
 
 										JustBeforeEach(func() {
@@ -1909,7 +1909,7 @@ var _ = Describe("Client", func() {
 											updateImage.ContentAttributes.Height = pointer.FromInt(height)
 											updateImage.ContentAttributes.Size = pointer.FromInt(int(size))
 											updateImage.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*responseResult.CreatedTime, time.Now()).Truncate(time.Second))
-											imageStructuredSession.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
+											imageStructuredRepository.UpdateOutputs = []imageStoreStructuredTest.UpdateOutput{{Image: updateImage, Error: nil}}
 										})
 
 										When("the content intent is alternate", func() {
@@ -1971,31 +1971,31 @@ var _ = Describe("Client", func() {
 				})
 
 				AfterEach(func() {
-					Expect(imageStructuredSession.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: condition}}))
+					Expect(imageStructuredRepository.GetInputs).To(Equal([]imageStoreStructuredTest.GetInput{{ID: id, Condition: condition}}))
 				})
 
-				It("returns an error when the image structured session get returns an error", func() {
+				It("returns an error when the image structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: responseErr}}
 					deleted, err := client.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(deleted).To(BeFalse())
 				})
 
-				It("returns successfully when the image structured session get returns nil", func() {
-					imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
+				It("returns successfully when the image structured repository get returns nil", func() {
+					imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: nil, Error: nil}}
 					deleted, err := client.Delete(ctx, id, condition)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeFalse())
 				})
 
-				When("the image structure session get returns an image", func() {
+				When("the image structure repository get returns an image", func() {
 					var responseResult *image.Image
 
 					BeforeEach(func() {
 						responseResult = imageTest.RandomImage()
 						responseResult.ID = pointer.FromString(id)
-						imageStructuredSession.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
+						imageStructuredRepository.GetOutputs = []imageStoreStructuredTest.GetOutput{{Image: responseResult, Error: nil}}
 					})
 
 					AfterEach(func() {
@@ -2016,27 +2016,27 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(imageStructuredSession.DeleteInputs).To(Equal([]imageStoreStructuredTest.DeleteInput{{ID: id, Condition: condition}}))
+							Expect(imageStructuredRepository.DeleteInputs).To(Equal([]imageStoreStructuredTest.DeleteInput{{ID: id, Condition: condition}}))
 						})
 
-						It("returns an error when the image structured session delete returns an error", func() {
+						It("returns an error when the image structured repository delete returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							imageStructuredSession.DeleteOutputs = []imageStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+							imageStructuredRepository.DeleteOutputs = []imageStoreStructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
 							deleted, err := client.Delete(ctx, id, condition)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(deleted).To(BeFalse())
 						})
 
-						It("returns successfully when the image structured session delete returns false", func() {
-							imageStructuredSession.DeleteOutputs = []imageStoreStructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
+						It("returns successfully when the image structured repository delete returns false", func() {
+							imageStructuredRepository.DeleteOutputs = []imageStoreStructuredTest.DeleteOutput{{Deleted: false, Error: nil}}
 							deleted, err := client.Delete(ctx, id, condition)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(deleted).To(BeFalse())
 						})
 
-						When("the image structured session delete returns successfully", func() {
+						When("the image structured repository delete returns successfully", func() {
 							BeforeEach(func() {
-								imageStructuredSession.DeleteOutputs = []imageStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+								imageStructuredRepository.DeleteOutputs = []imageStoreStructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
 							})
 
 							AfterEach(func() {
@@ -2057,26 +2057,26 @@ var _ = Describe("Client", func() {
 								})
 
 								AfterEach(func() {
-									Expect(imageStructuredSession.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: id}}))
+									Expect(imageStructuredRepository.DestroyInputs).To(Equal([]imageStoreStructuredTest.DestroyInput{{ID: id}}))
 								})
 
-								It("returns an error when the image structured session destroy returns an error", func() {
+								It("returns an error when the image structured repository destroy returns an error", func() {
 									responseErr := errorsTest.RandomError()
-									imageStructuredSession.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
+									imageStructuredRepository.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
 									deleted, err := client.Delete(ctx, id, condition)
 									errorsTest.ExpectEqual(err, responseErr)
 									Expect(deleted).To(BeFalse())
 								})
 
-								It("returns false when the image structured session destroy returns false", func() {
-									imageStructuredSession.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: nil}}
+								It("returns false when the image structured repository destroy returns false", func() {
+									imageStructuredRepository.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: nil}}
 									deleted, err := client.Delete(ctx, id, condition)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(deleted).To(BeFalse())
 								})
 
-								It("returns true when the image structured session destroy returns true", func() {
-									imageStructuredSession.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
+								It("returns true when the image structured repository destroy returns true", func() {
+									imageStructuredRepository.DestroyOutputs = []imageStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
 									deleted, err := client.Delete(ctx, id, condition)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(deleted).To(BeTrue())

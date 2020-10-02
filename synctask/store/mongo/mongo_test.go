@@ -60,7 +60,7 @@ func ValidateSyncTasks(testMongoCollection *mongo.Collection, selector bson.M, e
 var _ = Describe("Mongo", func() {
 	var mongoConfig *storeStructuredMongo.Config
 	var mongoStore *synctaskStoreMongo.Store
-	var mongoSession synctaskStore.SyncTaskRepository
+	var mongoRepository synctaskStore.SyncTaskRepository
 
 	BeforeEach(func() {
 		mongoConfig = storeStructuredMongoTest.NewConfig()
@@ -68,7 +68,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if mongoStore != nil {
-			mongoStore.Terminate(nil)
+			mongoStore.Terminate(context.Background())
 		}
 	})
 
@@ -100,16 +100,16 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("NewSyncTaskRepository", func() {
-			It("returns a new session", func() {
-				mongoSession = mongoStore.NewSyncTaskRepository()
-				Expect(mongoSession).ToNot(BeNil())
+			It("returns a new repository", func() {
+				mongoRepository = mongoStore.NewSyncTaskRepository()
+				Expect(mongoRepository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewSyncTaskRepository()
-				Expect(mongoSession).ToNot(BeNil())
+				mongoRepository = mongoStore.NewSyncTaskRepository()
+				Expect(mongoRepository).ToNot(BeNil())
 			})
 
 			Context("with persisted data", func() {
@@ -143,20 +143,20 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully removes sync tasks", func() {
-						Expect(mongoSession.DestroySyncTasksForUserByID(ctx, destroyUserID)).To(Succeed())
+						Expect(mongoRepository.DestroySyncTasksForUserByID(ctx, destroyUserID)).To(Succeed())
 					})
 
 					It("returns an error if the context is missing", func() {
-						Expect(mongoSession.DestroySyncTasksForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
+						Expect(mongoRepository.DestroySyncTasksForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroySyncTasksForUserByID(ctx, "")).To(MatchError("user id is missing"))
+						Expect(mongoRepository.DestroySyncTasksForUserByID(ctx, "")).To(MatchError("user id is missing"))
 					})
 
 					It("has the correct stored sync tasks", func() {
 						ValidateSyncTasks(testMongoCollection, bson.M{}, append(syncTasks, destroySyncTasks...))
-						Expect(mongoSession.DestroySyncTasksForUserByID(ctx, destroyUserID)).To(Succeed())
+						Expect(mongoRepository.DestroySyncTasksForUserByID(ctx, destroyUserID)).To(Succeed())
 						ValidateSyncTasks(testMongoCollection, bson.M{}, syncTasks)
 					})
 				})

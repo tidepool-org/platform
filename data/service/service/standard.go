@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/application"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
@@ -81,15 +83,15 @@ func (s *Standard) Terminate() {
 	s.api = nil
 	s.dataClient = nil
 	if s.syncTaskStore != nil {
-		s.syncTaskStore.Terminate(nil)
+		s.syncTaskStore.Terminate(context.Background())
 		s.syncTaskStore = nil
 	}
 	if s.dataSourceStructuredStore != nil {
-		s.dataSourceStructuredStore.Terminate(nil)
+		s.dataSourceStructuredStore.Terminate(context.Background())
 		s.dataSourceStructuredStore = nil
 	}
 	if s.dataStore != nil {
-		s.dataStore.Terminate(nil)
+		s.dataStore.Terminate(context.Background())
 		s.dataStore = nil
 	}
 	s.dataDeduplicatorFactory = nil

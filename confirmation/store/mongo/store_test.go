@@ -66,7 +66,7 @@ var _ = Describe("Store", func() {
 	var ctx context.Context
 	var cfg *storeStructuredMongo.Config
 	var str *storeMongo.Store
-	var coll store.ConfirmationRepository
+	var repository store.ConfirmationRepository
 
 	BeforeEach(func() {
 		ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
@@ -75,7 +75,7 @@ var _ = Describe("Store", func() {
 
 	AfterEach(func() {
 		if str != nil {
-			str.Terminate(nil)
+			str.Terminate(context.Background())
 		}
 	})
 
@@ -145,15 +145,15 @@ var _ = Describe("Store", func() {
 
 		Context("NewConfirmationSession", func() {
 			It("returns a new confirmation session", func() {
-				coll = str.NewConfirmationRepository()
-				Expect(coll).ToNot(BeNil())
+				repository = str.NewConfirmationRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new confirmation session", func() {
 			BeforeEach(func() {
-				coll = str.NewConfirmationRepository()
-				Expect(coll).ToNot(BeNil())
+				repository = str.NewConfirmationRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 
 			Context("with persisted data", func() {
@@ -177,20 +177,20 @@ var _ = Describe("Store", func() {
 					})
 
 					It("returns an error if the context is missing", func() {
-						Expect(coll.DeleteUserConfirmations(nil, userID)).To(MatchError("context is missing"))
+						Expect(repository.DeleteUserConfirmations(nil, userID)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
-						Expect(coll.DeleteUserConfirmations(ctx, "")).To(MatchError("user id is missing"))
+						Expect(repository.DeleteUserConfirmations(ctx, "")).To(MatchError("user id is missing"))
 					})
 
 					It("succeeds if it successfully removes confirmations", func() {
-						Expect(coll.DeleteUserConfirmations(ctx, userID)).To(Succeed())
+						Expect(repository.DeleteUserConfirmations(ctx, userID)).To(Succeed())
 					})
 
 					It("has the correct stored confirmations", func() {
 						ValidateConfirmations(collection, bson.M{}, append(confirmations, userConfirmations...))
-						Expect(coll.DeleteUserConfirmations(ctx, userID)).To(Succeed())
+						Expect(repository.DeleteUserConfirmations(ctx, userID)).To(Succeed())
 						ValidateConfirmations(collection, bson.M{}, confirmations)
 					})
 				})

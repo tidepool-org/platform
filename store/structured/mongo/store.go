@@ -20,10 +20,6 @@ var StoreModule = fx.Provide(
 type Store struct {
 	client *mongoDriver.Client
 	config *Config
-	// TODO: Discuss with TK. Do we event need context? It's not used in the Store, since
-	// it's passed into every function. Maybe on if we have the passed in context as optional,
-	// then use o.ctx?
-	ctx context.Context
 }
 
 type Status struct {
@@ -45,7 +41,6 @@ func NewStore(p Params) (*Store, error) {
 
 	store := &Store{
 		config: p.DatabaseConfig,
-		ctx:    context.Background(),
 	}
 
 	var err error

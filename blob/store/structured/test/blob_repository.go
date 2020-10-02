@@ -128,165 +128,165 @@ func NewBlobRepository() *BlobRepository {
 	return &BlobRepository{}
 }
 
-func (s *BlobRepository) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
-	s.ListInvocations++
-	s.ListInputs = append(s.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
-	if s.ListStub != nil {
-		return s.ListStub(ctx, userID, filter, pagination)
+func (b *BlobRepository) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
+	b.ListInvocations++
+	b.ListInputs = append(b.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
+	if b.ListStub != nil {
+		return b.ListStub(ctx, userID, filter, pagination)
 	}
-	if len(s.ListOutputs) > 0 {
-		output := s.ListOutputs[0]
-		s.ListOutputs = s.ListOutputs[1:]
+	if len(b.ListOutputs) > 0 {
+		output := b.ListOutputs[0]
+		b.ListOutputs = b.ListOutputs[1:]
 		return output.BlobArray, output.Error
 	}
-	if s.ListOutput != nil {
-		return s.ListOutput.BlobArray, s.ListOutput.Error
+	if b.ListOutput != nil {
+		return b.ListOutput.BlobArray, b.ListOutput.Error
 	}
 	panic("List has no output")
 }
 
-func (s *BlobRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
-	s.CreateInvocations++
-	s.CreateInputs = append(s.CreateInputs, CreateInput{UserID: userID, Create: create})
-	if s.CreateStub != nil {
-		return s.CreateStub(ctx, userID, create)
+func (b *BlobRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.Blob, error) {
+	b.CreateInvocations++
+	b.CreateInputs = append(b.CreateInputs, CreateInput{UserID: userID, Create: create})
+	if b.CreateStub != nil {
+		return b.CreateStub(ctx, userID, create)
 	}
-	if len(s.CreateOutputs) > 0 {
-		output := s.CreateOutputs[0]
-		s.CreateOutputs = s.CreateOutputs[1:]
+	if len(b.CreateOutputs) > 0 {
+		output := b.CreateOutputs[0]
+		b.CreateOutputs = b.CreateOutputs[1:]
 		return output.Blob, output.Error
 	}
-	if s.CreateOutput != nil {
-		return s.CreateOutput.Blob, s.CreateOutput.Error
+	if b.CreateOutput != nil {
+		return b.CreateOutput.Blob, b.CreateOutput.Error
 	}
 	panic("Create has no output")
 }
 
-func (s *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
-	s.DeleteAllInvocations++
-	s.DeleteAllInputs = append(s.DeleteAllInputs, userID)
-	if s.DeleteAllStub != nil {
-		return s.DeleteAllStub(ctx, userID)
+func (b *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
+	b.DeleteAllInvocations++
+	b.DeleteAllInputs = append(b.DeleteAllInputs, userID)
+	if b.DeleteAllStub != nil {
+		return b.DeleteAllStub(ctx, userID)
 	}
-	if len(s.DeleteAllOutputs) > 0 {
-		output := s.DeleteAllOutputs[0]
-		s.DeleteAllOutputs = s.DeleteAllOutputs[1:]
+	if len(b.DeleteAllOutputs) > 0 {
+		output := b.DeleteAllOutputs[0]
+		b.DeleteAllOutputs = b.DeleteAllOutputs[1:]
 		return output.Deleted, output.Error
 	}
-	if s.DeleteAllOutput != nil {
-		return s.DeleteAllOutput.Deleted, s.DeleteAllOutput.Error
+	if b.DeleteAllOutput != nil {
+		return b.DeleteAllOutput.Deleted, b.DeleteAllOutput.Error
 	}
 	panic("DeleteAll has no output")
 }
 
-func (s *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
-	s.DestroyAllInvocations++
-	s.DestroyAllInputs = append(s.DestroyAllInputs, userID)
-	if s.DestroyAllStub != nil {
-		return s.DestroyAllStub(ctx, userID)
+func (b *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
+	b.DestroyAllInvocations++
+	b.DestroyAllInputs = append(b.DestroyAllInputs, userID)
+	if b.DestroyAllStub != nil {
+		return b.DestroyAllStub(ctx, userID)
 	}
-	if len(s.DestroyAllOutputs) > 0 {
-		output := s.DestroyAllOutputs[0]
-		s.DestroyAllOutputs = s.DestroyAllOutputs[1:]
+	if len(b.DestroyAllOutputs) > 0 {
+		output := b.DestroyAllOutputs[0]
+		b.DestroyAllOutputs = b.DestroyAllOutputs[1:]
 		return output.Destroyed, output.Error
 	}
-	if s.DestroyAllOutput != nil {
-		return s.DestroyAllOutput.Destroyed, s.DestroyAllOutput.Error
+	if b.DestroyAllOutput != nil {
+		return b.DestroyAllOutput.Destroyed, b.DestroyAllOutput.Error
 	}
 	panic("DestroyAll has no output")
 }
 
-func (s *BlobRepository) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
-	s.GetInvocations++
-	s.GetInputs = append(s.GetInputs, GetInput{ID: id, Condition: condition})
-	if s.GetStub != nil {
-		return s.GetStub(ctx, id, condition)
+func (b *BlobRepository) Get(ctx context.Context, id string, condition *request.Condition) (*blob.Blob, error) {
+	b.GetInvocations++
+	b.GetInputs = append(b.GetInputs, GetInput{ID: id, Condition: condition})
+	if b.GetStub != nil {
+		return b.GetStub(ctx, id, condition)
 	}
-	if len(s.GetOutputs) > 0 {
-		output := s.GetOutputs[0]
-		s.GetOutputs = s.GetOutputs[1:]
+	if len(b.GetOutputs) > 0 {
+		output := b.GetOutputs[0]
+		b.GetOutputs = b.GetOutputs[1:]
 		return output.Blob, output.Error
 	}
-	if s.GetOutput != nil {
-		return s.GetOutput.Blob, s.GetOutput.Error
+	if b.GetOutput != nil {
+		return b.GetOutput.Blob, b.GetOutput.Error
 	}
 	panic("Get has no output")
 }
 
-func (s *BlobRepository) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
-	s.UpdateInvocations++
-	s.UpdateInputs = append(s.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
-	if s.UpdateStub != nil {
-		return s.UpdateStub(ctx, id, condition, update)
+func (b *BlobRepository) Update(ctx context.Context, id string, condition *request.Condition, update *blobStoreStructured.Update) (*blob.Blob, error) {
+	b.UpdateInvocations++
+	b.UpdateInputs = append(b.UpdateInputs, UpdateInput{ID: id, Condition: condition, Update: update})
+	if b.UpdateStub != nil {
+		return b.UpdateStub(ctx, id, condition, update)
 	}
-	if len(s.UpdateOutputs) > 0 {
-		output := s.UpdateOutputs[0]
-		s.UpdateOutputs = s.UpdateOutputs[1:]
+	if len(b.UpdateOutputs) > 0 {
+		output := b.UpdateOutputs[0]
+		b.UpdateOutputs = b.UpdateOutputs[1:]
 		return output.Blob, output.Error
 	}
-	if s.UpdateOutput != nil {
-		return s.UpdateOutput.Blob, s.UpdateOutput.Error
+	if b.UpdateOutput != nil {
+		return b.UpdateOutput.Blob, b.UpdateOutput.Error
 	}
 	panic("Update has no output")
 }
 
-func (s *BlobRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	s.DeleteInvocations++
-	s.DeleteInputs = append(s.DeleteInputs, DeleteInput{ID: id, Condition: condition})
-	if s.DeleteStub != nil {
-		return s.DeleteStub(ctx, id, condition)
+func (b *BlobRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	b.DeleteInvocations++
+	b.DeleteInputs = append(b.DeleteInputs, DeleteInput{ID: id, Condition: condition})
+	if b.DeleteStub != nil {
+		return b.DeleteStub(ctx, id, condition)
 	}
-	if len(s.DeleteOutputs) > 0 {
-		output := s.DeleteOutputs[0]
-		s.DeleteOutputs = s.DeleteOutputs[1:]
+	if len(b.DeleteOutputs) > 0 {
+		output := b.DeleteOutputs[0]
+		b.DeleteOutputs = b.DeleteOutputs[1:]
 		return output.Deleted, output.Error
 	}
-	if s.DeleteOutput != nil {
-		return s.DeleteOutput.Deleted, s.DeleteOutput.Error
+	if b.DeleteOutput != nil {
+		return b.DeleteOutput.Deleted, b.DeleteOutput.Error
 	}
 	panic("Delete has no output")
 }
 
-func (s *BlobRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	s.DestroyInvocations++
-	s.DestroyInputs = append(s.DestroyInputs, DestroyInput{ID: id, Condition: condition})
-	if s.DestroyStub != nil {
-		return s.DestroyStub(ctx, id, condition)
+func (b *BlobRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+	b.DestroyInvocations++
+	b.DestroyInputs = append(b.DestroyInputs, DestroyInput{ID: id, Condition: condition})
+	if b.DestroyStub != nil {
+		return b.DestroyStub(ctx, id, condition)
 	}
-	if len(s.DestroyOutputs) > 0 {
-		output := s.DestroyOutputs[0]
-		s.DestroyOutputs = s.DestroyOutputs[1:]
+	if len(b.DestroyOutputs) > 0 {
+		output := b.DestroyOutputs[0]
+		b.DestroyOutputs = b.DestroyOutputs[1:]
 		return output.Destroyed, output.Error
 	}
-	if s.DestroyOutput != nil {
-		return s.DestroyOutput.Destroyed, s.DestroyOutput.Error
+	if b.DestroyOutput != nil {
+		return b.DestroyOutput.Destroyed, b.DestroyOutput.Error
 	}
 	panic("Destroy has no output")
 }
 
-func (s *BlobRepository) AssertOutputsEmpty() {
-	if len(s.ListOutputs) > 0 {
+func (b *BlobRepository) AssertOutputsEmpty() {
+	if len(b.ListOutputs) > 0 {
 		panic("ListOutputs is not empty")
 	}
-	if len(s.CreateOutputs) > 0 {
+	if len(b.CreateOutputs) > 0 {
 		panic("CreateOutputs is not empty")
 	}
-	if len(s.DeleteAllOutputs) > 0 {
+	if len(b.DeleteAllOutputs) > 0 {
 		panic("DeleteAllOutputs is not empty")
 	}
-	if len(s.DestroyAllOutputs) > 0 {
+	if len(b.DestroyAllOutputs) > 0 {
 		panic("DestroyAllOutputs is not empty")
 	}
-	if len(s.GetOutputs) > 0 {
+	if len(b.GetOutputs) > 0 {
 		panic("GetOutputs is not empty")
 	}
-	if len(s.UpdateOutputs) > 0 {
+	if len(b.UpdateOutputs) > 0 {
 		panic("UpdateOutputs is not empty")
 	}
-	if len(s.DeleteOutputs) > 0 {
+	if len(b.DeleteOutputs) > 0 {
 		panic("DeleteOutputs is not empty")
 	}
-	if len(s.DestroyOutputs) > 0 {
+	if len(b.DestroyOutputs) > 0 {
 		panic("DestroyOutputs is not empty")
 	}
 }

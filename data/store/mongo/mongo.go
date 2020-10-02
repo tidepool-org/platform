@@ -158,32 +158,23 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 
 	now := time.Now()
 
-	dataSets := []*upload.Upload{}
+	var dataSet *upload.Upload
 	selector := bson.M{
 		"uploadId": dataSetID,
 		"type":     "upload",
 	}
-	opts := options.Find().SetLimit(2)
-	cursor, err := d.Find(ctx, selector, opts)
+	err := d.FindOne(ctx, selector).Decode(&dataSet)
 
 	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetByID")
 
-	if err != nil {
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set by id")
 	}
 
-	if err = cursor.All(ctx, &dataSets); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data set by id")
-	}
-
-	if dataSetsCount := len(dataSets); dataSetsCount == 0 {
-		return nil, nil
-	} else if dataSetsCount > 1 {
-		log.LoggerFromContext(ctx).WithField("dataSetId", dataSetID).Warn("Multiple data sets found for data set id")
-	}
-
-	return dataSets[0], nil
+	return dataSet, nil
 }
 
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
@@ -620,7 +611,6 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 			},
 		},
 	}
-	// TODO: Do we _really_ want an Aggregate here?
 	cursor, _ := d.Aggregate(ctx, pipeline)
 
 	var overallUpdateInfo mongo.UpdateResult
@@ -833,31 +823,20 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	dataSets := data.DataSets{}
+	var dataSet *data.DataSet
 	selector := bson.M{
 		"uploadId": id,
 		"type":     "upload",
 	}
-	opts := options.Find().SetLimit(2)
-	cursor, err := d.Find(ctx, selector, opts)
+	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetDataSet")
-	if err != nil {
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set")
 	}
 
-	if err = cursor.All(ctx, &dataSets); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data set")
-	}
-
-	switch count := len(dataSets); count {
-	case 0:
-		return nil, nil
-	case 1:
-		return dataSets[0], nil
-	default:
-		logger.WithField("count", count).Warnf("Multiple data sets found for id %q", id)
-		return dataSets[0], nil
-	}
+	return dataSet, nil
 }
 
 func validateDataSet(dataSet *upload.Upload) error {

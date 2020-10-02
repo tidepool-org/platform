@@ -105,7 +105,7 @@ func (s *Service) initializeNotificationStore() error {
 func (s *Service) terminateNotificationStore() {
 	if s.notificationStore != nil {
 		s.Logger().Debug("Closing notification store")
-		s.notificationStore.Terminate(nil)
+		s.notificationStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying notification store")
 		s.notificationStore = nil

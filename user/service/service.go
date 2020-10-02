@@ -393,7 +393,7 @@ func (s *Service) initializeConfirmationStore() error {
 func (s *Service) terminateConfirmationStore() {
 	if s.confirmationStore != nil {
 		s.Logger().Debug("Closing confirmation store")
-		s.confirmationStore.Terminate(nil)
+		s.confirmationStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying confirmation store")
 		s.confirmationStore = nil
@@ -423,7 +423,7 @@ func (s *Service) initializeMessageStore() error {
 func (s *Service) terminateMessageStore() {
 	if s.messageStore != nil {
 		s.Logger().Debug("Closing message store")
-		s.messageStore.Terminate(nil)
+		s.messageStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying message store")
 		s.messageStore = nil
@@ -452,7 +452,7 @@ func (s *Service) initializePermissionStore() error {
 func (s *Service) terminatePermissionStore() {
 	if s.permissionStore != nil {
 		s.Logger().Debug("Closing permission store")
-		s.permissionStore.Terminate(nil)
+		s.permissionStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying permission store")
 		s.permissionStore = nil
@@ -482,7 +482,7 @@ func (s *Service) initializeProfileStore() error {
 func (s *Service) terminateProfileStore() {
 	if s.profileStore != nil {
 		s.Logger().Debug("Closing profile store")
-		s.profileStore.Terminate(nil)
+		s.profileStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying profile store")
 		s.profileStore = nil
@@ -512,7 +512,7 @@ func (s *Service) initializeSessionStore() error {
 func (s *Service) terminateSessionStore() {
 	if s.sessionStore != nil {
 		s.Logger().Debug("Closing session store")
-		s.sessionStore.Terminate(nil)
+		s.sessionStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying session store")
 		s.sessionStore = nil
@@ -549,7 +549,7 @@ func (s *Service) initializeUserStructuredStore() error {
 func (s *Service) terminateUserStructuredStore() {
 	if s.userStructuredStore != nil {
 		s.Logger().Debug("Closing user structured store")
-		s.userStructuredStore.Terminate(nil)
+		s.userStructuredStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying user structured store")
 		s.userStructuredStore = nil

@@ -31,6 +31,6 @@ func (s *Store) NewDataSourcesRepository() dataSourceStoreStructured.DataSources
 
 func (s *Store) AssertOutputsEmpty() {
 	if len(s.NewDataSourcesOutputs) > 0 {
-		panic("NewSessionOutputs is not empty")
+		panic("NewDataSourcesOutputs is not empty")
 	}
 }

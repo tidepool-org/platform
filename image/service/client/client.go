@@ -111,17 +111,17 @@ func (c *Client) createWithMetadataAndContent(ctx context.Context, userID string
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
-	collecton := c.ImageStructuredStore().NewImageRepository()
-	original, err := collecton.Create(ctx, userID, metadata)
+	repository := c.ImageStructuredStore().NewImageRepository()
+	original, err := repository.Create(ctx, userID, metadata)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "id", *original.ID)
 
-	updated, err := c.putContent(ctx, collecton, original, contentIntent, content)
+	updated, err := c.putContent(ctx, repository, original, contentIntent, content)
 	if err != nil {
-		if _, destroyErr := collecton.Destroy(ctx, *original.ID, nil); destroyErr != nil {
+		if _, destroyErr := repository.Destroy(ctx, *original.ID, nil); destroyErr != nil {
 			logger.WithError(destroyErr).Error("Unable to destroy image after failure to put image content")
 		}
 		return nil, err

@@ -71,7 +71,7 @@ func ValidateSessions(testMongoCollection *mongo.Collection, selector bson.M, ex
 var _ = Describe("Mongo", func() {
 	var mongoConfig *storeStructuredMongo.Config
 	var mongoStore *sessionStoreMongo.Store
-	var mongoSession sessionStore.TokenRepository
+	var mongoRepository sessionStore.TokenRepository
 
 	BeforeEach(func() {
 		mongoConfig = storeStructuredMongoTest.NewConfig()
@@ -79,7 +79,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if mongoStore != nil {
-			mongoStore.Terminate(nil)
+			mongoStore.Terminate(context.Background())
 		}
 	})
 
@@ -112,15 +112,15 @@ var _ = Describe("Mongo", func() {
 
 		Context("NewSessionsSession", func() {
 			It("returns a new session", func() {
-				mongoSession = mongoStore.NewTokenRepository()
-				Expect(mongoSession).ToNot(BeNil())
+				mongoRepository = mongoStore.NewTokenRepository()
+				Expect(mongoRepository).ToNot(BeNil())
 			})
 		})
 
 		Context("with a new session", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewTokenRepository()
-				Expect(mongoSession).ToNot(BeNil())
+				mongoRepository = mongoStore.NewTokenRepository()
+				Expect(mongoRepository).ToNot(BeNil())
 			})
 
 			Context("with persisted data", func() {
@@ -154,20 +154,20 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("succeeds if it successfully removes sessions", func() {
-						Expect(mongoSession.DestroySessionsForUserByID(ctx, destroyUserID)).To(Succeed())
+						Expect(mongoRepository.DestroySessionsForUserByID(ctx, destroyUserID)).To(Succeed())
 					})
 
 					It("returns an error if the context is missing", func() {
-						Expect(mongoSession.DestroySessionsForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
+						Expect(mongoRepository.DestroySessionsForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroySessionsForUserByID(ctx, "")).To(MatchError("user id is missing"))
+						Expect(mongoRepository.DestroySessionsForUserByID(ctx, "")).To(MatchError("user id is missing"))
 					})
 
 					It("has the correct stored sessions", func() {
 						ValidateSessions(collection, bson.M{}, append(sessions, destroySessions...))
-						Expect(mongoSession.DestroySessionsForUserByID(ctx, destroyUserID)).To(Succeed())
+						Expect(mongoRepository.DestroySessionsForUserByID(ctx, destroyUserID)).To(Succeed())
 						ValidateSessions(collection, bson.M{}, sessions)
 					})
 				})

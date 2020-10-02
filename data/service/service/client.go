@@ -28,13 +28,13 @@ func (c *Client) CreateUserDataSet(ctx context.Context, userID string, create *d
 }
 
 func (c *Client) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
-	ssn := c.dataStore.NewDataRepository()
-	return ssn.ListUserDataSets(ctx, userID, filter, pagination)
+	repository := c.dataStore.NewDataRepository()
+	return repository.ListUserDataSets(ctx, userID, filter, pagination)
 }
 
 func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	ssn := c.dataStore.NewDataRepository()
-	return ssn.GetDataSet(ctx, id)
+	repository := c.dataStore.NewDataRepository()
+	return repository.GetDataSet(ctx, id)
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

@@ -62,7 +62,7 @@ func (r *RestrictedTokenRepository) ListUserRestrictedTokens(ctx context.Context
 		"userId": userID,
 	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": 1})
+		SetSort(bson.M{"createdTime": -1})
 	cursor, err := r.Find(ctx, selector, opts)
 	logger.WithFields(log.Fields{"count": len(restrictedTokens), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserRestrictedTokens")
 	if err != nil {

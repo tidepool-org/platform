@@ -27,7 +27,7 @@ type Standard struct {
 	dataStore               dataStore.Store
 	dataRepository          dataStore.DataRepository
 	syncTaskStore           syncTaskStore.Store
-	syncTasksSession        syncTaskStore.SyncTaskRepository
+	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
 	dataSourceClient        dataSource.Client
 }
@@ -100,8 +100,8 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 }
 
 func (s *Standard) Close() {
-	if s.syncTasksSession != nil {
-		s.syncTasksSession = nil
+	if s.syncTasksRepository != nil {
+		s.syncTasksRepository = nil
 	}
 	if s.dataRepository != nil {
 		s.dataRepository = nil
@@ -132,10 +132,10 @@ func (s *Standard) DataRepository() dataStore.DataRepository {
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
-	if s.syncTasksSession == nil {
-		s.syncTasksSession = s.syncTaskStore.NewSyncTaskRepository()
+	if s.syncTasksRepository == nil {
+		s.syncTasksRepository = s.syncTaskStore.NewSyncTaskRepository()
 	}
-	return s.syncTasksSession
+	return s.syncTasksRepository
 }
 
 func (s *Standard) DataClient() dataClient.Client {

@@ -64,7 +64,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if mongoStore != nil {
-			mongoStore.Terminate(nil)
+			mongoStore.Terminate(context.Background())
 		}
 	})
 
@@ -116,14 +116,14 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewPermissionsCollection", func() {
-			It("returns a new session", func() {
+		Context("NewPermissionsRepository", func() {
+			It("returns a new repository", func() {
 				permissionRepository = mongoStore.NewPermissionsRepository()
 				Expect(permissionRepository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			BeforeEach(func() {
 				permissionRepository = mongoStore.NewPermissionsRepository()
 				Expect(permissionRepository).ToNot(BeNil())

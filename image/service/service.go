@@ -129,7 +129,7 @@ func (s *Service) initializeImageStructuredStore() error {
 func (s *Service) terminateImageStructuredStore() {
 	if s.imageStructuredStore != nil {
 		s.Logger().Debug("Closing image structured store")
-		s.imageStructuredStore.Terminate(nil)
+		s.imageStructuredStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying image structured store")
 		s.imageStructuredStore = nil

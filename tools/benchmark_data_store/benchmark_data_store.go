@@ -186,7 +186,7 @@ func (t *Tool) initializeStore() error {
 func (t *Tool) terminateStore() {
 	if t.store != nil {
 		t.Logger().Debug("Destroying store")
-		t.store.Terminate(nil)
+		t.store.Terminate(context.Background())
 		t.store = nil
 	}
 }
@@ -324,7 +324,7 @@ func (t *Tool) executeBenchmark(ctx context.Context, benchmark *Benchmark) error
 	return err
 }
 
-func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	var internalBytes [12]byte
 
 	binary.BigEndian.PutUint32(internalBytes[:], uint32(1470302050+rand.Int31n(65936775)))
@@ -336,14 +336,14 @@ func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, sessi
 	}
 
 	var results map[string]interface{}
-	if err := session.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
+	if err := repository.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
 	return nil
 }
 
-func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.DeviceID == nil {
 		return errors.New("benchmark input device id is missing")
 	}
@@ -366,7 +366,7 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dat
 
 	var results map[string]interface{}
 	opts := options.FindOne().SetSort(bson.M{"time": 1})
-	if err := session.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector, opts).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
+	if err := repository.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector, opts).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
@@ -375,9 +375,9 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, session dat
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData
 
-func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
-	if _, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData); err != nil {
+	if _, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData); err != nil {
 		return err
 	}
 
@@ -386,10 +386,10 @@ func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, session dataStor
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, DeleteDataSetData (selectors), DestroyDeletedDataSetData (selectors)
 
-func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
@@ -399,11 +399,11 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, se
 		*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(dataSetDatum.GetOrigin().ID)}})
 	}
 
-	if err = session.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
+	if err = repository.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
 		return err
 	}
 
-	if err = session.DestroyDeletedDataSetData(ctx, dataSet, selectors); err != nil {
+	if err = repository.DestroyDeletedDataSetData(ctx, dataSet, selectors); err != nil {
 		return err
 	}
 
@@ -412,21 +412,21 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, se
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData
 
-func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.State = pointer.FromString("closed")
-	if _, err = session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err = repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	if err = session.ActivateDataSetData(ctx, dataSet, nil); err != nil {
+	if err = repository.ActivateDataSetData(ctx, dataSet, nil); err != nil {
 		return err
 	}
 
@@ -435,25 +435,25 @@ func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, session dataSt
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, ArchiveDeviceDataUsingHashesFromDataSet
 
-func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.State = pointer.FromString("closed")
-	if _, err = session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err = repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	if err = session.ActivateDataSetData(ctx, dataSet, nil); err != nil {
+	if err = repository.ActivateDataSetData(ctx, dataSet, nil); err != nil {
 		return err
 	}
 
-	if err = session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err = repository.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
@@ -462,25 +462,25 @@ func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, sessi
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, DeleteOtherDataSetData
 
-func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.State = pointer.FromString("closed")
-	if _, err = session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err = repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	if err = session.ActivateDataSetData(ctx, dataSet, nil); err != nil {
+	if err = repository.ActivateDataSetData(ctx, dataSet, nil); err != nil {
 		return err
 	}
 
-	if err = session.DeleteOtherDataSetData(ctx, dataSet); err != nil {
+	if err = repository.DeleteOtherDataSetData(ctx, dataSet); err != nil {
 		return err
 	}
 
@@ -489,21 +489,21 @@ func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, session
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet
 
-func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.State = pointer.FromString("closed")
-	if _, err = session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err = repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	if err = session.DeleteDataSet(ctx, dataSet); err != nil {
+	if err = repository.DeleteDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
@@ -512,25 +512,25 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, session d
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet, UnarchiveDeviceDataUsingHashesFromDataSet
 
-func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.State = pointer.FromString("closed")
-	if _, err = session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err = repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	if err = session.DeleteDataSet(ctx, dataSet); err != nil {
+	if err = repository.DeleteDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	if err = session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err = repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
@@ -539,180 +539,180 @@ func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, ses
 
 // CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ArchiveDataSetData, DestroyDataSetData
 
-func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
 
-	dataSet, err := t.createDataSetWithData(ctx, session, preparedDataSet, preparedDataSetData)
+	dataSet, err := t.createDataSetWithData(ctx, repository, preparedDataSet, preparedDataSetData)
 	if err != nil {
 		return err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.State = pointer.FromString("closed")
-	if _, err = session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err = repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	if err = session.ArchiveDataSetData(ctx, dataSet, nil); err != nil {
+	if err = repository.ArchiveDataSetData(ctx, dataSet, nil); err != nil {
 		return err
 	}
 
-	if err = session.DestroyDataSetData(ctx, dataSet, nil); err != nil {
+	if err = repository.DestroyDataSetData(ctx, dataSet, nil); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (t *Tool) benchmarkPlatformDBActivateDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBActivateDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.ActivateDataSetData(ctx, dataSet, input.Selectors)
+	return repository.ActivateDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBArchiveDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBArchiveDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.ArchiveDataSetData(ctx, dataSet, input.Selectors)
+	return repository.ArchiveDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)
+	return repository.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.CreatedUserID = pointer.CloneString(input.UserID)
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.ID = pointer.FromString(data.NewID())
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.CreateDataSet(ctx, dataSet)
+	return repository.CreateDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBCreateDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBCreateDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.CreateDataSetData(ctx, dataSet, t.generateRandomDataSetData(input.DeviceID))
+	return repository.CreateDataSetData(ctx, dataSet, t.generateRandomDataSetData(input.DeviceID))
 }
 
-func (t *Tool) benchmarkPlatformDBDeleteDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDeleteDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.DeleteDataSet(ctx, dataSet)
+	return repository.DeleteDataSet(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBDeleteDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDeleteDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.DeleteDataSetData(ctx, dataSet, input.Selectors)
+	return repository.DeleteDataSetData(ctx, dataSet, input.Selectors)
 }
 
-func (t *Tool) benchmarkPlatformDBDeleteOtherDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
-	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
-	dataSet.UserID = pointer.CloneString(input.UserID)
-	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.DeleteOtherDataSetData(ctx, dataSet)
-}
-
-func (t *Tool) benchmarkPlatformDBDestroyDataForUserByID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	if input.UserID == nil {
-		return errors.New("benchmark input user id is missing")
-	}
-
-	return session.DestroyDataForUserByID(ctx, *input.UserID)
-}
-
-func (t *Tool) benchmarkPlatformDBDestroyDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
-	dataSet.UserID = pointer.CloneString(input.UserID)
-	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.DestroyDataSetData(ctx, dataSet, input.Selectors)
-}
-
-func (t *Tool) benchmarkPlatformDBDestroyDeletedDataSetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
-	dataSet.UserID = pointer.CloneString(input.UserID)
-	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.DestroyDeletedDataSetData(ctx, dataSet, input.Selectors)
-}
-
-func (t *Tool) benchmarkPlatformDBGetDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	if input.DataSetID == nil {
-		return errors.New("benchmark input data set id is missing")
-	}
-
-	_, err := session.GetDataSet(ctx, *input.DataSetID)
-	return err
-}
-
-func (t *Tool) benchmarkPlatformDBGetDataSetByID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	if input.DataSetID == nil {
-		return errors.New("benchmark input data set id is missing")
-	}
-
-	_, err := session.GetDataSetByID(ctx, *input.DataSetID)
-	return err
-}
-
-func (t *Tool) benchmarkPlatformDBGetDataSetsForUserByID(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	if input.UserID == nil {
-		return errors.New("benchmark input user id is missing")
-	}
-
-	_, err := session.GetDataSetsForUserByID(ctx, *input.UserID, nil, nil)
-	return err
-}
-
-func (t *Tool) benchmarkPlatformDBListUserDataSets(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	if input.UserID == nil {
-		return errors.New("benchmark input user id is missing")
-	}
-
-	_, err := session.ListUserDataSets(ctx, *input.UserID, nil, nil)
-	return err
-}
-
-func (t *Tool) benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDeleteOtherDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	dataSet := dataTypesUpload.New()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
-	return session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)
+	return repository.DeleteOtherDataSetData(ctx, dataSet)
 }
 
-func (t *Tool) benchmarkPlatformDBUpdateDataSet(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkPlatformDBDestroyDataForUserByID(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	if input.UserID == nil {
+		return errors.New("benchmark input user id is missing")
+	}
+
+	return repository.DestroyDataForUserByID(ctx, *input.UserID)
+}
+
+func (t *Tool) benchmarkPlatformDBDestroyDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	dataSet := dataTypesUpload.New()
+	dataSet.UserID = pointer.CloneString(input.UserID)
+	dataSet.UploadID = pointer.CloneString(input.DataSetID)
+	return repository.DestroyDataSetData(ctx, dataSet, input.Selectors)
+}
+
+func (t *Tool) benchmarkPlatformDBDestroyDeletedDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	dataSet := dataTypesUpload.New()
+	dataSet.UserID = pointer.CloneString(input.UserID)
+	dataSet.UploadID = pointer.CloneString(input.DataSetID)
+	return repository.DestroyDeletedDataSetData(ctx, dataSet, input.Selectors)
+}
+
+func (t *Tool) benchmarkPlatformDBGetDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	if input.DataSetID == nil {
+		return errors.New("benchmark input data set id is missing")
+	}
+
+	_, err := repository.GetDataSet(ctx, *input.DataSetID)
+	return err
+}
+
+func (t *Tool) benchmarkPlatformDBGetDataSetByID(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	if input.DataSetID == nil {
+		return errors.New("benchmark input data set id is missing")
+	}
+
+	_, err := repository.GetDataSetByID(ctx, *input.DataSetID)
+	return err
+}
+
+func (t *Tool) benchmarkPlatformDBGetDataSetsForUserByID(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	if input.UserID == nil {
+		return errors.New("benchmark input user id is missing")
+	}
+
+	_, err := repository.GetDataSetsForUserByID(ctx, *input.UserID, nil, nil)
+	return err
+}
+
+func (t *Tool) benchmarkPlatformDBListUserDataSets(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	if input.UserID == nil {
+		return errors.New("benchmark input user id is missing")
+	}
+
+	_, err := repository.ListUserDataSets(ctx, *input.UserID, nil, nil)
+	return err
+}
+
+func (t *Tool) benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	dataSet := dataTypesUpload.New()
+	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
+	dataSet.UserID = pointer.CloneString(input.UserID)
+	dataSet.UploadID = pointer.CloneString(input.DataSetID)
+	return repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)
+}
+
+func (t *Tool) benchmarkPlatformDBUpdateDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.DataSetID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
 
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(true)
-	_, err := session.UpdateDataSet(ctx, *input.DataSetID, update)
+	_, err := repository.UpdateDataSet(ctx, *input.DataSetID, update)
 	return err
 }
 
-func (t *Tool) benchmarkTideWhispererAPIGetData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
-	if err := t.benchmarkTideWhispererDBHasMedtronicDirectData(ctx, session, input); err != nil {
+func (t *Tool) benchmarkTideWhispererAPIGetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
+	if err := t.benchmarkTideWhispererDBHasMedtronicDirectData(ctx, repository, input); err != nil {
 		return err
 	}
-	if err := t.benchmarkTideWhispererDBGetDeviceData(ctx, session, input); err != nil {
+	if err := t.benchmarkTideWhispererDBGetDeviceData(ctx, repository, input); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -728,11 +728,11 @@ func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Contex
 		"deviceManufacturers": "Medtronic",
 	}
 	opts := options.Count().SetLimit(1)
-	_, err := session.(*dataStoreMongo.DataRepository).CountDocuments(context.Background(), selector, opts)
+	_, err := repository.(*dataStoreMongo.DataRepository).CountDocuments(context.Background(), selector, opts)
 	return err
 }
 
-func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, session dataStore.DataRepository, input *BenchmarkInput) error {
+func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	if input.UserID == nil {
 		return errors.New("benchmark input user id is missing")
 	}
@@ -788,7 +788,7 @@ func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, sessio
 	if input.Limit != nil {
 		opts = opts.SetLimit(int64(*input.Limit))
 	}
-	iter, err := session.(*dataStoreMongo.DataRepository).Find(context.Background(), selector, opts)
+	iter, err := repository.(*dataStoreMongo.DataRepository).Find(context.Background(), selector, opts)
 	if err != nil {
 		return errors.New("cannot create query on data repository")
 	}
@@ -810,7 +810,7 @@ func (t *Tool) prepareDataSetWithData(input *BenchmarkInput) (*dataTypesUpload.U
 	return dataSet, t.generateRandomDataSetData(input.DeviceID)
 }
 
-func (t *Tool) createDataSetWithData(ctx context.Context, session dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (*dataTypesUpload.Upload, error) {
+func (t *Tool) createDataSetWithData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (*dataTypesUpload.Upload, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
 	}
@@ -818,26 +818,26 @@ func (t *Tool) createDataSetWithData(ctx context.Context, session dataStore.Data
 		return nil, errors.New("data set data is missing")
 	}
 
-	if err := session.CreateDataSet(ctx, dataSet); err != nil {
+	if err := repository.CreateDataSet(ctx, dataSet); err != nil {
 		return nil, err
 	}
 
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(true)
 	update.Deduplicator = dataSet.Deduplicator
-	if _, err := session.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err := repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return nil, err
 	}
 
-	if _, err := session.GetDataSetByID(ctx, *dataSet.UploadID); err != nil {
+	if _, err := repository.GetDataSetByID(ctx, *dataSet.UploadID); err != nil {
 		return nil, err
 	}
 
-	if err := session.CreateDataSetData(ctx, dataSet, dataSetData); err != nil {
+	if err := repository.CreateDataSetData(ctx, dataSet, dataSetData); err != nil {
 		return nil, err
 	}
 
-	return session.GetDataSetByID(ctx, *dataSet.UploadID)
+	return repository.GetDataSetByID(ctx, *dataSet.UploadID)
 }
 
 func (t *Tool) generateRandomDataSetData(deviceID *string) data.Data {

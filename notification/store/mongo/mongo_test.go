@@ -1,6 +1,8 @@
 package mongo_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -13,7 +15,7 @@ import (
 var _ = Describe("Mongo", func() {
 	var cfg *storeStructuredMongo.Config
 	var str *mongo.Store
-	var ssn store.NotificationsRepository
+	var repository store.NotificationsRepository
 
 	BeforeEach(func() {
 		cfg = storeStructuredMongoTest.NewConfig()
@@ -21,7 +23,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if str != nil {
-			str.Terminate(nil)
+			str.Terminate(context.Background())
 		}
 	})
 
@@ -53,9 +55,9 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("NewNotificationsRepository", func() {
-			It("returns a new session", func() {
-				ssn = str.NewNotificationsRepository()
-				Expect(ssn).ToNot(BeNil())
+			It("returns a new repository", func() {
+				repository = str.NewNotificationsRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 	})

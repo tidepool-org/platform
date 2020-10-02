@@ -53,6 +53,6 @@ func (p *PrescriptionService) ClaimPrescription(ctx context.Context, usr *user.U
 }
 
 func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
-	ssn := p.prescriptionStore.GetPrescriptionRepository()
-	return ssn.UpdatePrescriptionState(ctx, usr, id, update)
+	repository := p.prescriptionStore.GetPrescriptionRepository()
+	return repository.UpdatePrescriptionState(ctx, usr, id, update)
 }
