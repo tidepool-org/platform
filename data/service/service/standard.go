@@ -1,9 +1,13 @@
 package service
 
 import (
+	"context"
+	"github.com/Shopify/sarama"
+	eventsCommon "github.com/tidepool-org/go-common/events"
 	"github.com/tidepool-org/platform/application"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
+	dataEvents "github.com/tidepool-org/platform/data/events"
 	"github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
@@ -11,6 +15,8 @@ import (
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/events"
+	logInternal "github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
@@ -19,6 +25,8 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	"log"
+	"os"
 )
 
 type Standard struct {
@@ -31,6 +39,7 @@ type Standard struct {
 	syncTaskStore             *syncTaskMongo.Store
 	dataClient                *Client
 	dataSourceClient          *dataSourceServiceClient.Client
+	userEventsHandler         events.Runner
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -70,6 +79,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
@@ -83,6 +95,10 @@ func (s *Standard) Terminate() {
 	if s.syncTaskStore != nil {
 		s.syncTaskStore.Close()
 		s.syncTaskStore = nil
+	}
+	if s.userEventsHandler != nil {
+		s.userEventsHandler.Terminate()
+		s.userEventsHandler = nil
 	}
 	if s.dataSourceStructuredStore != nil {
 		s.dataSourceStructuredStore.Close()
@@ -104,7 +120,15 @@ func (s *Standard) Run() error {
 		return errors.New("service not initialized")
 	}
 
-	return s.server.Serve()
+	errs := make(chan error, 0)
+	go func() {
+		errs <- s.userEventsHandler.Run(context.Background())
+	}()
+	go func() {
+		errs <- s.server.Serve()
+	}()
+
+	return <-errs
 }
 
 func (s *Standard) PermissionClient() permission.Client {
@@ -338,6 +362,22 @@ func (s *Standard) initializeServer() error {
 		return errors.Wrap(err, "unable to create server")
 	}
 	s.server = newServer
+
+	return nil
+}
+
+func (s *Standard) initializeUserEventsHandler() error {
+	s.Logger().Debug("Initializing user events handler")
+	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
+
+	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStoreDEPRECATED, s.dataSourceStructuredStore)
+	handlers := []eventsCommon.EventHandler{handler}
+	runner := events.NewRunner(handlers)
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "unable to initialize user events handler runner")
+	}
+	s.userEventsHandler = runner
 
 	return nil
 }
