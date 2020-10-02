@@ -1,11 +1,8 @@
 package service
 
 import (
-	"context"
-	eventsCommon "github.com/tidepool-org/go-common/events"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
-	authEvents "github.com/tidepool-org/platform/auth/events"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
@@ -15,8 +12,6 @@ import (
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -28,31 +23,18 @@ import (
 
 type Service struct {
 	*serviceService.Service
-	domain            string
-	authStore         *authMongo.Store
-	dataSourceClient  *dataSourceClient.Client
-	taskClient        task.Client
-	providerFactory   provider.Factory
-	authClient        *Client
-	userEventsHandler events.Runner
+	domain           string
+	authStore        *authMongo.Store
+	dataSourceClient *dataSourceClient.Client
+	taskClient       task.Client
+	providerFactory  provider.Factory
+	authClient       *Client
 }
 
 func New() *Service {
 	return &Service{
 		Service: serviceService.New(),
 	}
-}
-
-func (s *Service) Run() error {
-	errs := make(chan error, 0)
-	go func() {
-		errs <- s.userEventsHandler.Run(context.Background())
-	}()
-	go func() {
-		errs <- s.Service.Run()
-	}()
-
-	return <-errs
 }
 
 func (s *Service) Initialize(provider application.Provider) error {
@@ -67,9 +49,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeAuthStore(); err != nil {
-		return err
-	}
-	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
 	if err := s.initializeDataSourceClient(); err != nil {
@@ -89,7 +68,6 @@ func (s *Service) Terminate() {
 	s.terminateProviderFactory()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
-	s.terminateUserEventsHandler()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
@@ -324,27 +302,5 @@ func (s *Service) terminateAuthClient() {
 		s.authClient = nil
 
 		s.SetAuthClient(nil)
-	}
-}
-
-func (s *Service) initializeUserEventsHandler() error {
-	s.Logger().Debug("Initializing user events handler")
-
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
-	handler := authEvents.NewUserDataDeletionHandler(ctx, s.authStore)
-	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
-
-	if err := runner.Initialize(); err != nil {
-		return errors.Wrap(err, "unable to initialize events runner")
-	}
-	s.userEventsHandler = runner
-
-	return nil
-}
-
-func (s *Service) terminateUserEventsHandler() {
-	if s.userEventsHandler != nil {
-		s.userEventsHandler.Terminate()
 	}
 }

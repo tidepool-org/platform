@@ -1,5 +1,5 @@
 # Development
-FROM golang:1.14-alpine AS development
+FROM golang:1.11.4-alpine AS development
 WORKDIR /go/src/github.com/tidepool-org/platform
 RUN apk --no-cache add git make tzdata && \
     apk add --no-cache ca-certificates tzdata && \

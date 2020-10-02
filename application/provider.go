@@ -101,7 +101,7 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 
 	level := configReporter.WithScopes("logger").GetWithDefault("level", "warn")
 
-	logger, err := logJson.NewLogger(writer, log.DefaultLevelRanks(), log.Level("debug"))
+	logger, err := logJson.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create logger")
 	}

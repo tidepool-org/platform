@@ -136,6 +136,14 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		logger.WithError(err).Error("Unable to destroy all sessions")
 	}
 
+	if err = c.AuthClient().DeleteAllRestrictedTokens(ctx, id); err != nil {
+		logger.WithError(err).Error("Unable to destroy all restricted tokens")
+	}
+
+	if err = c.AuthClient().DeleteAllProviderSessions(ctx, id); err != nil {
+		logger.WithError(err).Error("Unable to destroy all provider sessions")
+	}
+
 	permissionSession := c.PermissionStore().NewPermissionsSession()
 	defer permissionSession.Close()
 
@@ -152,6 +160,14 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 
 	if err = c.BlobClient().DeleteAll(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all blobs")
+	}
+
+	if err = c.DataClient().DestroyDataForUserByID(ctx, id); err != nil {
+		logger.WithError(err).Error("Unable to destroy all data")
+	}
+
+	if err = c.DataSourceClient().DeleteAll(ctx, id); err != nil {
+		logger.WithError(err).Error("Unable to destroy all data sources")
 	}
 
 	if err = c.ImageClient().DeleteAll(ctx, id); err != nil {
