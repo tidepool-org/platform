@@ -12,9 +12,10 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-var StoreModule = fx.Provide(
-	NewConfig,
-	NewStore,
+var StoreModule = fx.Options(
+	fx.Provide(LoadConfig),
+	fx.Provide(NewStore),
+	fx.Invoke(AppendLifecycleHooksToStore),
 )
 
 type Store struct {
@@ -26,72 +27,45 @@ type Status struct {
 	Ping string
 }
 
-type Params struct {
-	fx.In
-
-	DatabaseConfig *Config
-
-	Lifecycle fx.Lifecycle
-}
-
-func NewStore(p Params) (*Store, error) {
-	if p.DatabaseConfig == nil {
+func NewStore(c *Config) (*Store, error) {
+	if c == nil {
 		return nil, errors.New("database config is empty")
 	}
 
 	store := &Store{
-		config: p.DatabaseConfig,
+		config: c,
 	}
 
 	var err error
-
-	if p.Lifecycle != nil {
-		p.Lifecycle.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				return store.Initialize(ctx)
-			},
-			OnStop: func(ctx context.Context) error {
-				return store.Terminate(ctx)
-			},
-		})
-	} else {
-		// If we're not using `fx`, then do the Initialization as part of `NewStore`
-		err = store.Initialize(context.Background())
-	}
-
-	return store, err
-}
-
-func (o *Store) Initialize(ctx context.Context) error {
-	cs := o.config.AsConnectionString()
+	cs := c.AsConnectionString()
 	clientOptions := options.Client().
 		ApplyURI(cs).
-		SetConnectTimeout(o.config.Timeout).
-		SetServerSelectionTimeout(o.config.Timeout)
-	mongoClient, err := mongoDriver.Connect(context.Background(), clientOptions)
+		SetConnectTimeout(store.config.Timeout).
+		SetServerSelectionTimeout(store.config.Timeout)
+	store.client, err = mongoDriver.Connect(context.Background(), clientOptions)
 	if err != nil {
-		return errors.Wrap(err, "connection options are invalid")
+		return nil, errors.Wrap(err, "connection options are invalid")
 	}
 
-	o.client = mongoClient
-	return o.Ping(ctx)
+	return store, nil
+}
+
+func AppendLifecycleHooksToStore(store *Store, lifecycle fx.Lifecycle) {
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return store.Ping(ctx)
+		},
+		OnStop: func(ctx context.Context) error {
+			return store.Terminate(ctx)
+		},
+	})
 }
 
 func (o *Store) GetRepository(collection string) *Repository {
-	if o.client == nil {
-		// TODO: TK - should this return an error instead?
-		return nil
-	}
-
 	return NewRepository(o.GetCollection(collection))
 }
 
 func (o *Store) GetCollection(collection string) *mongoDriver.Collection {
-	if o.client == nil {
-		// TODO: TK - should this return an error instead?
-		return nil
-	}
-
 	db := o.client.Database(o.config.Database)
 	prefixed := fmt.Sprintf("%s%s", o.config.CollectionPrefix, collection)
 	return db.Collection(prefixed)

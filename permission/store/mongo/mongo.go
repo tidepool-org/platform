@@ -18,8 +18,7 @@ func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 		return nil, errors.New("config is missing")
 	}
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg.Config}
-	baseStore, err := storeStructuredMongo.NewStore(params)
+	baseStore, err := storeStructuredMongo.NewStore(cfg.Config)
 	if err != nil {
 		return nil, err
 	}

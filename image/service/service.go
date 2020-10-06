@@ -102,15 +102,14 @@ func (s *Service) ImageClient() image.Client {
 func (s *Service) initializeImageStructuredStore() error {
 	s.Logger().Debug("Loading image structured store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load image structured store config")
 	}
 
 	s.Logger().Debug("Creating image structured store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	imageStructuredStore, err := imageStoreStructuredMongo.NewStore(params)
+	imageStructuredStore, err := imageStoreStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create image structured store")
 	}

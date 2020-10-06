@@ -98,15 +98,14 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 func (s *Service) initializeTaskStore() error {
 	s.Logger().Debug("Loading task store config")
 
-	cfg := storeStructuredMongo.NewConfig(nil)
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load task store config")
 	}
 
 	s.Logger().Debug("Creating task store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	taskStore, err := taskMongo.NewStore(params)
+	taskStore, err := taskMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task store")
 	}

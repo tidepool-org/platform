@@ -13,13 +13,11 @@ import (
 )
 
 var _ = Describe("Store", func() {
-	var params storeStructuredMongo.Params
+	var config *storeStructuredMongo.Config
 	var str *mongo.Store
 
 	BeforeEach(func() {
-		params = storeStructuredMongo.Params{
-			DatabaseConfig: storeStructuredMongoTest.NewConfig(),
-		}
+		config = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
@@ -31,14 +29,14 @@ var _ = Describe("Store", func() {
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			str, err = mongo.NewStore(storeStructuredMongo.Params{})
+			str, err = mongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
 			Expect(str).To(BeNil())
 		})
 
 		It("returns successfully", func() {
 			var err error
-			str, err = mongo.NewStore(params)
+			str, err = mongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
@@ -47,7 +45,7 @@ var _ = Describe("Store", func() {
 	Context("with a new store", func() {
 		BeforeEach(func() {
 			var err error
-			str, err = mongo.NewStore(params)
+			str, err = mongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})

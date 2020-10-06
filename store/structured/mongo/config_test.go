@@ -26,7 +26,7 @@ var _ = Describe("Config", func() {
 
 	Context("NewConfig", func() {
 		It("returns a new config with default values", func() {
-			datum := mongo.NewConfig(nil)
+			datum := mongo.NewConfig()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Scheme).To(BeEmpty())
 			Expect(datum.Addresses).To(BeNil())

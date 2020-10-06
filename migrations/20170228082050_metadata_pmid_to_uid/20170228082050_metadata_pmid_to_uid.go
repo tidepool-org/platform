@@ -111,8 +111,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
-	usersStore, err := storeStructuredMongo.NewStore(params)
+	usersStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create users store")
 	}
@@ -185,8 +184,7 @@ func (m *Migration) migrateMetaIDToUserIDForMetadata(metaIDToUserIDMap map[strin
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
-	metadataStore, err := storeStructuredMongo.NewStore(params)
+	metadataStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create metadata store")
 	}

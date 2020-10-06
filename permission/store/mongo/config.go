@@ -13,7 +13,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		Config: storeStructuredMongo.NewConfig(nil),
+		Config: storeStructuredMongo.NewConfig(),
 	}
 }
 

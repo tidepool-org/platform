@@ -26,7 +26,7 @@ type Tool struct {
 func NewTool() *Tool {
 	return &Tool{
 		Tool:        tool.New(),
-		mongoConfig: storeStructuredMongo.NewConfig(nil),
+		mongoConfig: storeStructuredMongo.NewConfig(),
 	}
 }
 
@@ -75,7 +75,7 @@ func (t *Tool) ParseContext(ctx *cli.Context) bool {
 }
 
 func (t *Tool) NewMongoConfig() *storeStructuredMongo.Config {
-	mongoConfig := storeStructuredMongo.NewConfig(nil)
+	mongoConfig := storeStructuredMongo.NewConfig()
 	mongoConfig.Scheme = t.mongoConfig.Scheme
 	if t.mongoConfig.Addresses != nil {
 		mongoConfig.Addresses = append([]string{}, t.mongoConfig.Addresses...)

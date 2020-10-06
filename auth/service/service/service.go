@@ -154,15 +154,14 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeAuthStore() error {
 	s.Logger().Debug("Loading auth store config")
 
-	cfg := storeStructuredMongo.NewConfig(nil)
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load auth store config")
 	}
 
 	s.Logger().Debug("Creating auth store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	str, err := authMongo.NewStore(params)
+	str, err := authMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth store")
 	}

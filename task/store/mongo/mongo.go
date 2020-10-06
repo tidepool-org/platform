@@ -22,8 +22,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(params storeStructuredMongo.Params) (*Store, error) {
-	str, err := storeStructuredMongo.NewStore(params)
+func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
+	str, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return nil, err
 	}

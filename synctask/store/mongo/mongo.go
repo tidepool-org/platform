@@ -12,8 +12,8 @@ import (
 	"github.com/tidepool-org/platform/synctask/store"
 )
 
-func NewStore(params storeStructuredMongo.Params) (*Store, error) {
-	baseStore, err := storeStructuredMongo.NewStore(params)
+func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return nil, err
 	}

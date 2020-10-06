@@ -82,16 +82,14 @@ var _ = Describe("Store", func() {
 	Context("NewStore", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: nil}
-			str, err = storeMongo.NewStore(params)
+			str, err = storeMongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
 			Expect(str).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-			str, err = storeMongo.NewStore(params)
+			str, err = storeMongo.NewStore(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
@@ -102,8 +100,7 @@ var _ = Describe("Store", func() {
 
 		BeforeEach(func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-			str, err = storeMongo.NewStore(params)
+			str, err = storeMongo.NewStore(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 			collection = str.GetCollection("confirmations")

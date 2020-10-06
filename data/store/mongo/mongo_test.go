@@ -149,16 +149,14 @@ var _ = Describe("Mongo", func() {
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: nil}
-			store, err = dataStoreMongo.NewStore(params)
+			store, err = dataStoreMongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: config}
-			store, err = dataStoreMongo.NewStore(params)
+			store, err = dataStoreMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
@@ -169,8 +167,7 @@ var _ = Describe("Mongo", func() {
 
 		BeforeEach(func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: config}
-			store, err = dataStoreMongo.NewStore(params)
+			store, err = dataStoreMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			collection = store.GetCollection("deviceData")

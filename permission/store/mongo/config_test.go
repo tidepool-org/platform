@@ -68,7 +68,7 @@ var _ = Describe("Config", func() {
 
 		Context("with valid values", func() {
 			BeforeEach(func() {
-				config.Config = storeStructuredMongo.NewConfig(nil)
+				config.Config = storeStructuredMongo.NewConfig()
 				config.Addresses = []string{"1.2.3.4", "5.6.7.8"}
 				config.TLS = false
 				config.Database = "database"

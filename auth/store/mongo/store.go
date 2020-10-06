@@ -10,12 +10,12 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(p storeStructuredMongo.Params) (*Store, error) {
-	if p.DatabaseConfig == nil {
+func NewStore(c *storeStructuredMongo.Config) (*Store, error) {
+	if c == nil {
 		return nil, errors.New("config is missing")
 	}
 
-	str, err := storeStructuredMongo.NewStore(p)
+	str, err := storeStructuredMongo.NewStore(c)
 	return &Store{
 		str,
 	}, err

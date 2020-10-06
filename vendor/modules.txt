@@ -4,7 +4,7 @@ github.com/BurntSushi/toml
 ## explicit
 github.com/ant0ine/go-json-rest/rest
 github.com/ant0ine/go-json-rest/rest/trie
-# github.com/aws/aws-sdk-go v1.35.1
+# github.com/aws/aws-sdk-go v1.35.3
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -229,7 +229,7 @@ go.uber.org/fx/internal/lifecycle
 go.uber.org/multierr
 # go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee
 go.uber.org/tools/update-license
-# golang.org/x/crypto v0.0.0-20201001193750-eb9a90e9f9cb
+# golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 ## explicit
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
@@ -291,7 +291,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.0.0-20201001230009-b5b87423c93b
+# golang.org/x/tools v0.0.0-20201005185003-576e169c3de7
 ## explicit
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/go/analysis

@@ -60,16 +60,14 @@ var _ = Describe("Mongo", func() {
 	Context("NewStore", func() {
 		It("returns an error when unsuccessful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: nil}
-			store, err = profileStoreStructuredMongo.NewStore(params)
+			store, err = profileStoreStructuredMongo.NewStore(nil)
 			errorsTest.ExpectEqual(err, errors.New("database config is empty"))
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error when successful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: config}
-			store, err = profileStoreStructuredMongo.NewStore(params)
+			store, err = profileStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
@@ -80,8 +78,7 @@ var _ = Describe("Mongo", func() {
 
 		BeforeEach(func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: config}
-			store, err = profileStoreStructuredMongo.NewStore(params)
+			store, err = profileStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			collection = store.GetCollection("seagull")

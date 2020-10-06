@@ -9,27 +9,20 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/fx"
 
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
-type ProtoLifecycle struct{}
-
-func (t ProtoLifecycle) Append(x fx.Hook) {}
-
 var _ = Describe("Mongo", func() {
 	Context("Store", func() {
-		var params storeStructuredMongo.Params
+		var config *storeStructuredMongo.Config
 		var store *storeStructuredMongo.Store
 		var repository *storeStructuredMongo.Repository
 
 		BeforeEach(func() {
-			params = storeStructuredMongo.Params{
-				DatabaseConfig: storeStructuredMongoTest.NewConfig(),
-			}
+			config = storeStructuredMongoTest.NewConfig()
 		})
 
 		AfterEach(func() {
@@ -42,76 +35,74 @@ var _ = Describe("Mongo", func() {
 		Context("NewStore", func() {
 			It("returns an error if the config is missing", func() {
 				var err error
-				store, err = storeStructuredMongo.NewStore(storeStructuredMongo.Params{})
+				store, err = storeStructuredMongo.NewStore(nil)
 				Expect(err).To(MatchError("database config is empty"))
 				Expect(store).To(BeNil())
 			})
-		})
 
-		Context("Initialize", func() {
 			It("returns an error if the config is invalid", func() {
-				params.DatabaseConfig.Addresses = nil
+				config.Addresses = nil
 				var err error
-				store, err = storeStructuredMongo.NewStore(params)
+				store, err = storeStructuredMongo.NewStore(config)
 				Expect(err).To(MatchError("connection options are invalid; error parsing uri: must have at least 1 host"))
+				Expect(store).To(BeNil())
 			})
 
 			It("returns an error if the addresses are not reachable", func() {
-				params.DatabaseConfig.Addresses = []string{"127.0.0.2", "127.0.0.3"}
+				config.Addresses = []string{"127.0.0.2", "127.0.0.3"}
 				var err error
-				store, err = storeStructuredMongo.NewStore(params)
+				store, err = storeStructuredMongo.NewStore(config)
+				Expect(store).ToNot(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				// We can't compare the exact error here, since different OSes display slightly different errors
+				err = store.Ping(context.Background())
 				Expect(err).To(HaveOccurred())
 			})
 
-			It("returns an error if the username or password is invalid", func() {
-				params.DatabaseConfig.Username = pointer.FromString("username")
-				params.DatabaseConfig.Password = pointer.FromString("password")
+			It("returns the correct status if the addresses are not reachable", func() {
+				config.Addresses = []string{"127.0.0.2", "127.0.0.3"}
 				var err error
-				store, err = storeStructuredMongo.NewStore(params)
-				Expect(err).To(MatchError("connection() : auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed."))
-			})
-
-			It("returns an error if TLS is specified on a server that does not support it", func() {
-				params.DatabaseConfig.TLS = true
-				var err error
-				store, err = storeStructuredMongo.NewStore(params)
-				Expect(err).To(MatchError("server selection error: server selection timeout, current topology: { Type: Unknown, Servers: [{ Addr: localhost:27017, Type: Unknown, State: Connected, Average RTT: 0, Last error: connection() : EOF }, ] }"))
-			})
-
-			It("returns no error if successful", func() {
-				var err error
-				store, err = storeStructuredMongo.NewStore(params)
-				Expect(err).ToNot(HaveOccurred())
+				store, err = storeStructuredMongo.NewStore(config)
 				Expect(store).ToNot(BeNil())
-			})
-		})
-
-		Context("with an uninitialized store", func() {
-			BeforeEach(func() {
-				var err error
-				params.Lifecycle = ProtoLifecycle{}
-				store, err = storeStructuredMongo.NewStore(params)
 				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("returns the appropriate status when uninitialized", func() {
 				status := store.Status(context.Background())
 				Expect(status).ToNot(BeNil())
 				Expect(status.Ping).To(Equal("FAILED"))
 			})
 
-			It("returns a nil collection", func() {
-				repository = store.GetRepository("")
-				Expect(repository).To(BeNil())
+			It("returns an error if the username or password is invalid", func() {
+				config.Username = pointer.FromString("username")
+				config.Password = pointer.FromString("password")
+				var err error
+				store, err = storeStructuredMongo.NewStore(config)
+				Expect(store).ToNot(BeNil())
+				Expect(err).ToNot(HaveOccurred())
+				err = store.Ping(context.Background())
+				Expect(err).To(MatchError("connection() : auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed."))
 			})
 
+			It("returns an error if TLS is specified on a server that does not support it", func() {
+				config.TLS = true
+				var err error
+				store, err = storeStructuredMongo.NewStore(config)
+				Expect(store).ToNot(BeNil())
+				Expect(err).ToNot(HaveOccurred())
+				err = store.Ping(context.Background())
+				Expect(err).To(MatchError("server selection error: server selection timeout, current topology: { Type: Unknown, Servers: [{ Addr: localhost:27017, Type: Unknown, State: Connected, Average RTT: 0, Last error: connection() : EOF }, ] }"))
+			})
+
+			It("returns no error if successful", func() {
+				var err error
+				store, err = storeStructuredMongo.NewStore(config)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(store).ToNot(BeNil())
+			})
 		})
 
-		Context("with an initialized store", func() {
+		Context("with a new store", func() {
 			BeforeEach(func() {
 				var err error
-				store, err = storeStructuredMongo.NewStore(params)
+				store, err = storeStructuredMongo.NewStore(config)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(store).ToNot(BeNil())
 			})
@@ -172,12 +163,6 @@ var _ = Describe("Mongo", func() {
 								Keys: bson.D{{Key: "three", Value: 1}},
 							},
 						})).To(Succeed())
-					})
-				})
-
-				Context("C", func() {
-					It("returns successfully", func() {
-						Expect(repository).ToNot(BeNil())
 					})
 				})
 

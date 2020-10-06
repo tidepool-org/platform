@@ -85,15 +85,14 @@ func (s *Service) terminateRouter() {
 func (s *Service) initializeNotificationStore() error {
 	s.Logger().Debug("Loading notification store config")
 
-	cfg := storeStructuredMongo.NewConfig(nil)
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load notification store config")
 	}
 
 	s.Logger().Debug("Creating notification store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	str, err := notificationMongo.NewStore(params)
+	str, err := notificationMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create notification store")
 	}

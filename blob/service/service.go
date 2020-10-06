@@ -82,15 +82,14 @@ func (s *Service) BlobClient() blob.Client {
 func (s *Service) initializeBlobStructuredStore() error {
 	s.Logger().Debug("Loading blob structured store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load blob structured store config")
 	}
 
 	s.Logger().Debug("Creating blob structured store")
 
-	blobStructuredStore, err := blobStoreStructuredMongo.NewStore(params)
+	blobStructuredStore, err := blobStoreStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create blob structured store")
 	}

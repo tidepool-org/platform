@@ -158,7 +158,7 @@ func (t *Tool) execute() error {
 func (t *Tool) initializeConfig() error {
 	t.Logger().Debug("Loading config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load config")
 	}
@@ -173,8 +173,7 @@ func (t *Tool) terminateConfig() {
 func (t *Tool) initializeStore() error {
 	t.Logger().Debug("Creating store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: t.config}
-	store, err := dataStoreMongo.NewStore(params)
+	store, err := dataStoreMongo.NewStore(t.config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create store")
 	}

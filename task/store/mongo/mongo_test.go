@@ -33,16 +33,14 @@ var _ = Describe("Mongo", func() {
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: nil}
-			str, err = taskStoreMongo.NewStore(params)
+			str, err = taskStoreMongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
 			Expect(str).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-			str, err = taskStoreMongo.NewStore(params)
+			str, err = taskStoreMongo.NewStore(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
@@ -53,8 +51,7 @@ var _ = Describe("Mongo", func() {
 
 		BeforeEach(func() {
 			var err error
-			params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-			str, err = taskStoreMongo.NewStore(params)
+			str, err = taskStoreMongo.NewStore(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 			collection = str.GetCollection("tasks")

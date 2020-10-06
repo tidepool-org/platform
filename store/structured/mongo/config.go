@@ -1,7 +1,6 @@
 package mongo
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -11,29 +10,19 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 	"github.com/tidepool-org/platform/errors"
-
-	"go.uber.org/fx"
 )
 
-func NewConfig(lifecycle fx.Lifecycle) *Config {
-	cfg := &Config{
+func NewConfig() *Config {
+	return &Config{
 		TLS:     true,
 		Timeout: 30 * time.Second,
 	}
+}
 
-	if lifecycle != nil {
-		lifecycle.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				if err := cfg.Load(); err != nil {
-					return err
-				}
-
-				return cfg.Validate()
-			},
-		})
-	}
-
-	return cfg
+func LoadConfig() (*Config, error) {
+	cfg := NewConfig()
+	err := cfg.Load()
+	return cfg, err
 }
 
 //Config describe parameters need to make a connection to a Mongo database

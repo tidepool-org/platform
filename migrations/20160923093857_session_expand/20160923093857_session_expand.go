@@ -93,8 +93,7 @@ func (m *Migration) execute() error {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
-	sessionsStore, err := storeStructuredMongo.NewStore(params)
+	sessionsStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sessions store")
 	}

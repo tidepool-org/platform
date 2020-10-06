@@ -207,15 +207,14 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store DEPRECATED config")
 
-	cfg := storeStructuredMongo.NewConfig(nil)
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data store DEPRECATED config")
 	}
 
 	s.Logger().Debug("Creating data store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	str, err := dataStoreMongo.NewStore(params)
+	str, err := dataStoreMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}
@@ -234,15 +233,14 @@ func (s *Standard) initializeDataStore() error {
 func (s *Standard) initializeDataSourceStructuredStore() error {
 	s.Logger().Debug("Loading data source structured store config")
 
-	cfg := storeStructuredMongo.NewConfig(nil)
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
 	s.Logger().Debug("Creating data source structured store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	str, err := dataSourceStoreStructuredMongo.NewStore(params)
+	str, err := dataSourceStoreStructuredMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data source structured store")
 	}
@@ -261,15 +259,14 @@ func (s *Standard) initializeDataSourceStructuredStore() error {
 func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
-	cfg := storeStructuredMongo.NewConfig(nil)
+	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load sync task store config")
 	}
 
 	s.Logger().Debug("Creating sync task store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: cfg}
-	str, err := syncTaskMongo.NewStore(params)
+	str, err := syncTaskMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sync task store")
 	}

@@ -86,8 +86,7 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
-	usersStore, err := storeStructuredMongo.NewStore(params)
+	usersStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create users store")
 	}
@@ -163,8 +162,7 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
-	metaStore, err := storeStructuredMongo.NewStore(params)
+	metaStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create meta store")
 	}
@@ -257,8 +255,7 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
-	params := storeStructuredMongo.Params{DatabaseConfig: mongoConfig}
-	deviceDataStore, err := storeStructuredMongo.NewStore(params)
+	deviceDataStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create device data store")
 	}

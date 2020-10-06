@@ -204,8 +204,7 @@ func (t *Tool) initializeUsersRepository() error {
 
 	config := t.NewMongoConfig()
 	config.Database = "user"
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := storeStructuredMongo.NewStore(params)
+	store, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create users store")
 	}
@@ -234,8 +233,7 @@ func (t *Tool) initializeMetadataRepository() error {
 
 	config := t.NewMongoConfig()
 	config.Database = "seagull"
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := storeStructuredMongo.NewStore(params)
+	store, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create metadata store")
 	}
@@ -264,8 +262,7 @@ func (t *Tool) initializeDataRepository() error {
 
 	config := t.NewMongoConfig()
 	config.Database = "data"
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := storeStructuredMongo.NewStore(params)
+	store, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
@@ -294,8 +291,7 @@ func (t *Tool) initializeDataSourcesRepository() error {
 
 	config := t.NewMongoConfig()
 	config.Database = "tidepool"
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := storeStructuredMongo.NewStore(params)
+	store, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data sources store")
 	}

@@ -366,15 +366,14 @@ func (s *Service) terminatePermissionClient() {
 func (s *Service) initializeConfirmationStore() error {
 	s.Logger().Debug("Loading confirmation store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load confirmation store config")
 	}
 
 	s.Logger().Debug("Creating confirmation store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := confirmationStoreMongo.NewStore(params)
+	store, err := confirmationStoreMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create confirmation store")
 	}
@@ -403,15 +402,14 @@ func (s *Service) terminateConfirmationStore() {
 func (s *Service) initializeMessageStore() error {
 	s.Logger().Debug("Loading message store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load message store config")
 	}
 
 	s.Logger().Debug("Creating message store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := messageStoreMongo.NewStore(params)
+	store, err := messageStoreMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create message store")
 	}
@@ -462,15 +460,14 @@ func (s *Service) terminatePermissionStore() {
 func (s *Service) initializeProfileStore() error {
 	s.Logger().Debug("Loading profile store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load profile store config")
 	}
 
 	s.Logger().Debug("Creating profile store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := profileStoreStructuredMongo.NewStore(params)
+	store, err := profileStoreStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create profile store")
 	}
@@ -492,15 +489,14 @@ func (s *Service) terminateProfileStore() {
 func (s *Service) initializeSessionStore() error {
 	s.Logger().Debug("Loading session store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load session store config")
 	}
 
 	s.Logger().Debug("Creating session store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	store, err := sessionStoreMongo.NewStore(params)
+	store, err := sessionStoreMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create session store")
 	}
@@ -522,15 +518,14 @@ func (s *Service) terminateSessionStore() {
 func (s *Service) initializeUserStructuredStore() error {
 	s.Logger().Debug("Loading user structured store config")
 
-	config := storeStructuredMongo.NewConfig(nil)
+	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load user structured store config")
 	}
 
 	s.Logger().Debug("Creating user structured store")
 
-	params := storeStructuredMongo.Params{DatabaseConfig: config}
-	userStructuredStore, err := userStoreStructuredMongo.NewStore(params)
+	userStructuredStore, err := userStoreStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create user structured store")
 	}
