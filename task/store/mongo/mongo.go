@@ -173,27 +173,16 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	tasks := task.Tasks{}
-	opts := options.Find().SetLimit(2)
-	cursor, err := t.Find(ctx, bson.M{"id": id}, opts)
+	var task *task.Task
+	err := t.FindOne(ctx, bson.M{"id": id}).Decode(task)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
-	if err != nil {
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get task")
 	}
 
-	if err = cursor.All(ctx, &tasks); err != nil {
-		return nil, errors.Wrap(err, "unable to decode task")
-	}
-
-	switch count := len(tasks); count {
-	case 0:
-		return nil, nil
-	case 1:
-		return tasks[0], nil
-	default:
-		logger.WithField("count", count).Warnf("Multiple tasks found for id %q", id)
-		return tasks[0], nil
-	}
+	return task, nil
 }
 
 func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
