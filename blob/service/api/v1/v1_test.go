@@ -11,6 +11,10 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/permission"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -206,27 +210,38 @@ var _ = Describe("V1", func() {
 							})
 						})
 
-						Context("with client", func() {
+						Context("with clients", func() {
+							var authClient *authTest.Client
 							var client *blobTest.Client
 
 							BeforeEach(func() {
+								authClient = authTest.NewClient()
 								client = blobTest.NewClient()
 								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
+							})
+
+							BeforeEach(func() {
+								authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
+								authClient.AssertOutputsEmpty()
 								client.AssertOutputsEmpty()
 							})
 
-							parameterAssertions := func() {
-								It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-									client.ListOutputs = []blobTest.ListOutput{{BlobArray: nil, Error: request.ErrorUnauthorized()}}
+							When("the client returns an unauthorized error", func() {
+								It("responds with an unauthorized error", func() {
+									provider.BlobClientOutputs = nil
+									authClient.EnsureAuthorizedServiceOutputs = []error{request.ErrorUnauthorized()}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 									Expect(res.WriteInputs).To(HaveLen(1))
 									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
 								})
+							})
 
+							parameterAssertions := func() {
 								It("responds with an internal server error when the client returns an unknown error", func() {
 									client.ListOutputs = []blobTest.ListOutput{{BlobArray: nil, Error: errorsTest.RandomError()}}
 									handlerFunc(res, req)
@@ -436,16 +451,43 @@ var _ = Describe("V1", func() {
 								})
 							})
 
-							Context("with client", func() {
+							Context("with clients", func() {
+								var authClient *authTest.Client
 								var client *blobTest.Client
 
 								BeforeEach(func() {
+									authClient = authTest.NewClient()
 									client = blobTest.NewClient()
 									provider.BlobClientOutputs = []blob.Client{client}
+									provider.AuthClientOutputs = []auth.Client{authClient}
+								})
+
+								BeforeEach(func() {
+									authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{
+										AuthorizedUserID: userID,
+										Error:            nil,
+									}}
 								})
 
 								AfterEach(func() {
+									Expect(authClient.EnsureAuthorizedUserInputs[0].TargetUserID).To(Equal(userID))
+									Expect(authClient.EnsureAuthorizedUserInputs[0].AuthorizedPermission).To(Equal(permission.Write))
+									authClient.AssertOutputsEmpty()
 									client.AssertOutputsEmpty()
+								})
+
+								When("the client returns an unauthorized error", func() {
+									It("responds with an unauthorized error", func() {
+										provider.BlobClientOutputs = nil
+										authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{
+											AuthorizedUserID: "",
+											Error:            request.ErrorUnauthorized(),
+										}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+									})
 								})
 
 								digestAssertions := func() {
@@ -456,14 +498,6 @@ var _ = Describe("V1", func() {
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 										Expect(res.WriteInputs).To(HaveLen(1))
 										errorsTest.ExpectErrorJSON(err, res.WriteInputs[0])
-									})
-
-									It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: request.ErrorUnauthorized()}}
-										handlerFunc(res, req)
-										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-										Expect(res.WriteInputs).To(HaveLen(1))
-										errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
 									})
 
 									It("responds with an internal server error when the client returns an unknown error", func() {
@@ -569,25 +603,35 @@ var _ = Describe("V1", func() {
 							})
 						})
 
-						Context("with client", func() {
+						Context("with clients", func() {
+							var authClient *authTest.Client
 							var client *blobTest.Client
 
 							BeforeEach(func() {
+								authClient = authTest.NewClient()
 								client = blobTest.NewClient()
 								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
+							})
+
+							BeforeEach(func() {
+								authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
+								authClient.AssertOutputsEmpty()
 								client.AssertOutputsEmpty()
 							})
 
-							It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-								client.DeleteAllOutputs = []error{request.ErrorUnauthorized()}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+							When("the client returns an unauthorized error", func() {
+								It("responds with an unauthorized error", func() {
+									provider.BlobClientOutputs = nil
+									authClient.EnsureAuthorizedServiceOutputs = []error{request.ErrorUnauthorized()}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+								})
 							})
 
 							It("responds with an internal server error when the client returns an unknown error", func() {
@@ -654,50 +698,66 @@ var _ = Describe("V1", func() {
 							})
 						})
 
-						Context("with client", func() {
+						Context("with clients", func() {
+							var authClient *authTest.Client
 							var client *blobTest.Client
 
 							BeforeEach(func() {
+								authClient = authTest.NewClient()
 								client = blobTest.NewClient()
 								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
 							})
 
-							AfterEach(func() {
-								Expect(client.GetInputs).To(Equal([]string{id}))
-								client.AssertOutputsEmpty()
+							BeforeEach(func() {
+								authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 							})
 
-							It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: request.ErrorUnauthorized()}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+							When("the client returns an unauthorized error", func() {
+								AfterEach(func() {
+									authClient.AssertOutputsEmpty()
+									client.AssertOutputsEmpty()
+								})
+
+								It("responds with an unauthorized error", func() {
+									provider.BlobClientOutputs = nil
+									authClient.EnsureAuthorizedServiceOutputs = []error{request.ErrorUnauthorized()}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+								})
 							})
 
-							It("responds with an internal server error when the client returns an unknown error", func() {
-								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: errorsTest.RandomError()}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
-							})
+							When("the user is authorized", func() {
+								AfterEach(func() {
+									Expect(client.GetInputs).To(Equal([]string{id}))
+								})
 
-							It("responds with not found error when the client does not return a blob", func() {
-								client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: nil}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
-							})
+								It("responds with an internal server error when the client returns an unknown error", func() {
+									client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: errorsTest.RandomError()}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+								})
 
-							It("responds successfully", func() {
-								responseResult := blobTest.RandomBlob()
-								client.GetOutputs = []blobTest.GetOutput{{Blob: responseResult, Error: nil}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
+								It("responds with not found error when the client does not return a blob", func() {
+									client.GetOutputs = []blobTest.GetOutput{{Blob: nil, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
+								})
+
+								It("responds successfully", func() {
+									responseResult := blobTest.RandomBlob()
+									client.GetOutputs = []blobTest.GetOutput{{Blob: responseResult, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
+								})
 							})
 						})
 					})
@@ -750,72 +810,87 @@ var _ = Describe("V1", func() {
 							})
 						})
 
-						Context("with client", func() {
+						Context("with clients", func() {
+							var authClient *authTest.Client
 							var client *blobTest.Client
 
 							BeforeEach(func() {
+								authClient = authTest.NewClient()
 								client = blobTest.NewClient()
 								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
+							})
+
+							BeforeEach(func() {
+								authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
-								Expect(client.GetContentInputs).To(Equal([]string{id}))
+								authClient.AssertOutputsEmpty()
 								client.AssertOutputsEmpty()
 							})
 
-							It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: request.ErrorUnauthorized()}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+							When("the client returns an unauthorized error", func() {
+								It("responds with an unauthorized error", func() {
+									provider.BlobClientOutputs = nil
+									authClient.EnsureAuthorizedServiceOutputs = []error{request.ErrorUnauthorized()}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+								})
 							})
 
-							It("responds with an internal server error when the client returns an unknown error", func() {
-								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: errorsTest.RandomError()}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
-								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
-							})
+							When("the user is authorized", func() {
+								AfterEach(func() {
+									Expect(client.GetContentInputs).To(Equal([]string{id}))
+								})
 
-							It("responds with not found error when the client does not return a blob", func() {
-								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: nil}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
-								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
-							})
+								It("responds with an internal server error when the client returns an unknown error", func() {
+									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: errorsTest.RandomError()}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+								})
 
-							It("responds successfully without headers", func() {
-								body := test.RandomBytes()
-								content := blob.NewContent()
-								content.Body = ioutil.NopCloser(bytes.NewReader(body))
-								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-								Expect(res.WriteInputs).To(Equal([][]byte{body}))
-								Expect(res.HeaderOutput).To(Equal(&http.Header{}))
-							})
+								It("responds with not found error when the client does not return a blob", func() {
+									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: nil, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
+								})
 
-							It("responds successfully with headers", func() {
-								body := test.RandomBytes()
-								content := blob.NewContent()
-								content.Body = ioutil.NopCloser(bytes.NewReader(body))
-								content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-								content.MediaType = pointer.FromString(netTest.RandomMediaType())
-								client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
-								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-								Expect(res.WriteInputs).To(Equal([][]byte{body}))
-								Expect(res.HeaderOutput).To(Equal(&http.Header{
-									"Content-Type": []string{*content.MediaType},
-									"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
-								}))
+								It("responds successfully without headers", func() {
+									body := test.RandomBytes()
+									content := blob.NewContent()
+									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{}))
+								})
+
+								It("responds successfully with headers", func() {
+									body := test.RandomBytes()
+									content := blob.NewContent()
+									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.MediaType = pointer.FromString(netTest.RandomMediaType())
+									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{
+										"Content-Type": []string{*content.MediaType},
+										"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+									}))
+								})
 							})
 						})
 					})
@@ -879,28 +954,38 @@ var _ = Describe("V1", func() {
 						})
 
 						Context("with client", func() {
+							var authClient *authTest.Client
 							var client *blobTest.Client
 
 							BeforeEach(func() {
+								authClient = authTest.NewClient()
 								client = blobTest.NewClient()
 								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
+							})
+
+							BeforeEach(func() {
+								authClient.EnsureAuthorizedServiceOutputs = []error{nil}
 							})
 
 							AfterEach(func() {
+								authClient.AssertOutputsEmpty()
 								client.AssertOutputsEmpty()
+							})
+
+							When("the client returns an unauthorized error", func() {
+								It("responds with an unauthorized error", func() {
+									provider.BlobClientOutputs = nil
+									authClient.EnsureAuthorizedServiceOutputs = []error{request.ErrorUnauthorized()}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+								})
 							})
 
 							revisionAssertions := func() {
 								Context("deletes", func() {
-									It("responds with an unauthorized error when the client returns an unauthorized error", func() {
-										client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: request.ErrorUnauthorized()}}
-										handlerFunc(res, req)
-										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
-										Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-										Expect(res.WriteInputs).To(HaveLen(1))
-										errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
-									})
-
 									It("responds with an internal server error when the client returns an unknown error", func() {
 										client.DeleteOutputs = []blobTest.DeleteOutput{{Deleted: false, Error: errorsTest.RandomError()}}
 										handlerFunc(res, req)

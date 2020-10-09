@@ -4,6 +4,11 @@ import (
 	"context"
 
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
+	eventsCommon "github.com/tidepool-org/go-common/events"
+
+	blobEvents "github.com/tidepool-org/platform/blob/events"
+	"github.com/tidepool-org/platform/events"
+	logInternal "github.com/tidepool-org/platform/log"
 
 	"github.com/tidepool-org/platform/application"
 	awsApi "github.com/tidepool-org/platform/aws/api"
@@ -25,12 +30,25 @@ type Service struct {
 	blobStructuredStore   *blobStoreStructuredMongo.Store
 	blobUnstructuredStore *blobStoreUnstructured.StoreImpl
 	blobClient            *blobServiceClient.Client
+	userEventsHandler     events.Runner
 }
 
 func New() *Service {
 	return &Service{
 		Authenticated: serviceService.NewAuthenticated(),
 	}
+}
+
+func (s *Service) Run() error {
+	errs := make(chan error, 0)
+	go func() {
+		errs <- s.userEventsHandler.Run(context.Background())
+	}()
+	go func() {
+		errs <- s.Service.Run()
+	}()
+
+	return <-errs
 }
 
 func (s *Service) Initialize(provider application.Provider) error {
@@ -47,11 +65,15 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeBlobClient(); err != nil {
 		return err
 	}
+	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
 	return s.initializeRouter()
 }
 
 func (s *Service) Terminate() {
 	s.terminateRouter()
+	s.terminateUserEventsHandler()
 	s.terminateBlobClient()
 	s.terminateBlobUnstructuredStore()
 	s.terminateBlobStructuredStore()
@@ -152,6 +174,28 @@ func (s *Service) terminateBlobUnstructuredStore() {
 	if s.blobUnstructuredStore != nil {
 		s.Logger().Debug("Destroying blob unstructured store")
 		s.blobUnstructuredStore = nil
+	}
+}
+
+func (s *Service) initializeUserEventsHandler() error {
+	s.Logger().Debug("Initializing user events handler")
+
+	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	handler := blobEvents.NewUserDataDeletionHandler(ctx, s.blobClient)
+	handlers := []eventsCommon.EventHandler{handler}
+	runner := events.NewRunner(handlers)
+
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "unable to initialize events runner")
+	}
+	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Service) terminateUserEventsHandler() {
+	if s.userEventsHandler != nil {
+		s.userEventsHandler.Terminate()
 	}
 }
 
