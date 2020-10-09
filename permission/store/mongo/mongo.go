@@ -8,7 +8,6 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/permission/store"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -59,15 +58,9 @@ func (p *PermissionsRepository) DestroyPermissionsForUserByID(ctx context.Contex
 	}
 
 	now := time.Now()
-
-	groupID, err := permission.GroupIDFromUserID(userID, p.config.Secret)
-	if err != nil {
-		return errors.Wrap(err, "unable to determine group id from user id")
-	}
-
 	selector := bson.M{
 		"$or": []bson.M{
-			{"groupId": groupID},
+			{"sharerId": userID},
 			{"userId": userID},
 		},
 	}

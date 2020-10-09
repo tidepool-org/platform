@@ -2,7 +2,6 @@ package mongo_test
 
 import (
 	"context"
-	"encoding/base64"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
@@ -20,13 +18,10 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-func NewPermission(groupID string, userID string) bson.M {
-	encryptedGroupID, err := crypto.EncryptWithAES256UsingPassphrase([]byte(groupID), []byte("secret"))
-	Expect(err).ToNot(HaveOccurred())
-
+func NewPermission(sharerID string, userID string) bson.M {
 	return bson.M{
-		"groupId": base64.StdEncoding.EncodeToString(encryptedGroupID),
-		"userId":  userID,
+		"sharerId": sharerID,
+		"userId":   userID,
 		"permissions": bson.M{
 			"upload": bson.M{},
 			"view":   bson.M{},
