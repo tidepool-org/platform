@@ -186,16 +186,6 @@ ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
 
-snyk-test:
-	@echo "snyk test --dev --org=tidepool"
-	@cd $(ROOT_DIRECTORY) && snyk test --dev --org=tidepool
-
-snyk-monitor:
-	@echo "snyk monitor --org=tidepool"
-	@cd $(ROOT_DIRECTORY) && snyk monitor --org=tidepool
-
-ci-snyk: snyk-test snyk-monitor
-
 ci-test-until-failure: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)
