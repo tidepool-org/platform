@@ -237,6 +237,9 @@ func (s *Standard) initializeDataSourceStructuredStore() error {
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data source structured store config")
 	}
+	if err := cfg.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data source structured store config")
+	}
 
 	s.Logger().Debug("Creating data source structured store")
 
@@ -261,6 +264,9 @@ func (s *Standard) initializeSyncTaskStore() error {
 
 	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load sync task store config")
+	}
+	if err := cfg.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
 		return errors.Wrap(err, "unable to load sync task store config")
 	}
 

@@ -24,6 +24,9 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	if err := c.Config.Load(); err != nil {
 		return err
 	}
+	if err := c.Config.SetDatabaseFromReporter(configReporter); err != nil {
+		return err
+	}
 
 	c.Secret = configReporter.GetWithDefault("secret", "")
 

@@ -9,6 +9,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	platformConfig "github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -18,6 +20,7 @@ var _ = Describe("Config", func() {
 	addresses := []string{"https://1.2.3.4:5678", "http://a.b.c.d:9999"}
 	tls := true
 	database := "tp_database"
+	altDatabase := "tp_alt_database"
 	collectionPrefix := "tp_collection_prefix"
 	username := "tp_username"
 	password := "tp_password"
@@ -142,6 +145,31 @@ var _ = Describe("Config", func() {
 		It("loads optional params from environment", func() {
 			Expect(config.OptParams).ToNot(BeNil())
 			Expect(*config.OptParams).To(Equal(optParams))
+		})
+	})
+
+	Context("SetDatabaseFromReporter", func() {
+		var config *mongo.Config
+		var reporter platformConfig.Reporter
+
+		BeforeEach(func() {
+			config = &mongo.Config{}
+			var err error
+			reporter, err = env.NewDefaultReporter()
+			reporter = reporter.WithScopes("alt", "store")
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("loads database from environment", func() {
+			Expect(os.Setenv("TIDEPOOL_ALT_STORE_DATABASE", altDatabase)).To(Succeed())
+			Expect(config.SetDatabaseFromReporter(reporter)).To(Succeed())
+			Expect(config.Database).To(Equal(altDatabase))
+			_ = os.Unsetenv("TIDEPOOL_ALT_STORE_DATABASE")
+		})
+
+		It("errors if database not set in environment", func() {
+			Expect(config.SetDatabaseFromReporter(reporter)).To(MatchError("key \"TIDEPOOL_ALT_STORE_DATABASE\" not found"))
+			Expect(config.Database).To(Equal(""))
 		})
 	})
 

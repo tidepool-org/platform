@@ -35,6 +35,7 @@ var _ = Describe("Config", func() {
 
 			BeforeEach(func() {
 				configReporter = test.NewReporter()
+				configReporter.Config["database"] = "tidepool_test"
 				configReporter.Config["secret"] = "super"
 			})
 

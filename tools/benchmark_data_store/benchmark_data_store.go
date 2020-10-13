@@ -162,6 +162,9 @@ func (t *Tool) initializeConfig() error {
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load config")
 	}
+	if err := config.SetDatabaseFromReporter(t.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+		return errors.Wrap(err, "unable to load config")
+	}
 	t.config = config
 
 	return nil

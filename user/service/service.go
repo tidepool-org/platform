@@ -370,6 +370,9 @@ func (s *Service) initializeConfirmationStore() error {
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load confirmation store config")
 	}
+	if err := config.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("confirmation", "store")); err != nil {
+		return errors.Wrap(err, "unable to load confirmation store config")
+	}
 
 	s.Logger().Debug("Creating confirmation store")
 
@@ -404,6 +407,9 @@ func (s *Service) initializeMessageStore() error {
 
 	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
+		return errors.Wrap(err, "unable to load message store config")
+	}
+	if err := config.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("message", "store")); err != nil {
 		return errors.Wrap(err, "unable to load message store config")
 	}
 
@@ -464,6 +470,9 @@ func (s *Service) initializeProfileStore() error {
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load profile store config")
 	}
+	if err := config.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("profile", "store")); err != nil {
+		return errors.Wrap(err, "unable to load profile store config")
+	}
 
 	s.Logger().Debug("Creating profile store")
 
@@ -493,6 +502,9 @@ func (s *Service) initializeSessionStore() error {
 	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load session store config")
 	}
+	if err := config.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("session", "store")); err != nil {
+		return errors.Wrap(err, "unable to load session store config")
+	}
 
 	s.Logger().Debug("Creating session store")
 
@@ -520,6 +532,9 @@ func (s *Service) initializeUserStructuredStore() error {
 
 	config := storeStructuredMongo.NewConfig()
 	if err := config.Load(); err != nil {
+		return errors.Wrap(err, "unable to load user structured store config")
+	}
+	if err := config.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("user", "store")); err != nil {
 		return errors.Wrap(err, "unable to load user structured store config")
 	}
 
