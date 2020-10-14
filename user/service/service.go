@@ -61,7 +61,7 @@ type Service struct {
 	userStructuredStore *userStoreStructuredMongo.Store
 	passwordHasher      *PasswordHasher
 	userClient          *userServiceClient.Client
-	userEventsNotifier   kafka.EventsNotifier
+	userEventsNotifier  kafka.EventsNotifier
 }
 
 func New() *Service {

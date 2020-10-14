@@ -59,4 +59,3 @@ func toUserData(user user.User) shoreline.UserData {
 		TermsAccepted:  *user.TermsAccepted,
 	}
 }
-

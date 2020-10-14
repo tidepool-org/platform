@@ -19,10 +19,10 @@ import (
 )
 
 type Provider struct {
-	UserEventsNotifierInvocations   int
-	UserEventsNotifierStub          func() kafka.EventsNotifier
-	UserEventsNotifierOutputs       []kafka.EventsNotifier
-	UserEventsNotifierOutput        *kafka.EventsNotifier
+	UserEventsNotifierInvocations  int
+	UserEventsNotifierStub         func() kafka.EventsNotifier
+	UserEventsNotifierOutputs      []kafka.EventsNotifier
+	UserEventsNotifierOutput       *kafka.EventsNotifier
 	AuthClientInvocations          int
 	AuthClientStub                 func() auth.Client
 	AuthClientOutputs              []auth.Client
