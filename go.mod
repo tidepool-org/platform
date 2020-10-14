@@ -3,12 +3,9 @@ module github.com/tidepool-org/platform
 go 1.14
 
 require (
-	github.com/Shopify/sarama v1.27.0
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.29.23
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.2.0
-	github.com/cloudevents/sdk-go/v2 v2.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.5.0
 	github.com/fatih/color v1.7.0 // indirect
@@ -23,7 +20,9 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.10.2
 	github.com/onsi/gomega v1.9.0
+	github.com/prometheus/client_golang v1.7.1
 	github.com/tidepool-org/devices v0.0.0-20200709151222-3d1edbd4a58e
+	github.com/tidepool-org/go-common v0.6.3-0.20201014125142-0883b62ba70a
 	github.com/urfave/cli v1.20.0
 	go.mongodb.org/mongo-driver v1.3.2
 	go.uber.org/fx v1.12.0

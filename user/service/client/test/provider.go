@@ -19,10 +19,10 @@ import (
 )
 
 type Provider struct {
-	CloudEventsClientInvocations   int
-	CloudEventsClientStub          func() kafka.CloudEventsClient
-	CloudEventsClientOutputs       []kafka.CloudEventsClient
-	CloudEventsClientOutput        *kafka.CloudEventsClient
+	UserEventsNotifierInvocations   int
+	UserEventsNotifierStub          func() kafka.EventsNotifier
+	UserEventsNotifierOutputs       []kafka.EventsNotifier
+	UserEventsNotifierOutput        *kafka.EventsNotifier
 	AuthClientInvocations          int
 	AuthClientStub                 func() auth.Client
 	AuthClientOutputs              []auth.Client
@@ -84,18 +84,18 @@ type Provider struct {
 func NewProvider() *Provider {
 	return &Provider{}
 }
-func (p *Provider) CloudEventsClient() kafka.CloudEventsClient {
+func (p *Provider) UserEventsNotifier() kafka.EventsNotifier {
 	p.AuthClientInvocations++
-	if p.CloudEventsClientStub != nil {
-		return p.CloudEventsClientStub()
+	if p.UserEventsNotifierStub != nil {
+		return p.UserEventsNotifierStub()
 	}
-	if len(p.CloudEventsClientOutputs) > 0 {
-		output := p.CloudEventsClientOutputs[0]
-		p.CloudEventsClientOutputs = p.CloudEventsClientOutputs[1:]
+	if len(p.UserEventsNotifierOutputs) > 0 {
+		output := p.UserEventsNotifierOutputs[0]
+		p.UserEventsNotifierOutputs = p.UserEventsNotifierOutputs[1:]
 		return output
 	}
-	if p.CloudEventsClientOutput != nil {
-		return *p.CloudEventsClientOutput
+	if p.UserEventsNotifierOutput != nil {
+		return *p.UserEventsNotifierOutput
 	}
 	panic("CloudEventsClient has no output")
 }
@@ -325,7 +325,7 @@ func (p *Provider) PasswordHasher() userServiceClient.PasswordHasher {
 }
 
 func (p *Provider) AssertOutputsEmpty() {
-	if len(p.CloudEventsClientOutputs) > 0 {
+	if len(p.UserEventsNotifierOutputs) > 0 {
 		panic("CloudEventsClientOutputs is not empty")
 	}
 	if len(p.AuthClientOutputs) > 0 {

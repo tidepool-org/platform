@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"strings"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/blob"
@@ -29,7 +28,7 @@ type PasswordHasher interface {
 }
 
 type Provider interface {
-	CloudEventsClient() kafka.CloudEventsClient
+	UserEventsNotifier() kafka.EventsNotifier
 	AuthClient() auth.Client
 	BlobClient() blob.Client
 	DataClient() dataClient.Client
@@ -200,26 +199,13 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	}
 
 	if profile != nil {
+		//Sending delete user event to kafka
+		if err := c.UserEventsNotifier().NotifyUserDeleted(ctx, *result); err != nil {
+			logger.WithError(err).Error("Unable to send delete user notification")
+		}
 		if _, err = profileSession.Destroy(ctx, id, nil); err != nil {
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
-	}
-	//Sending delete user event to kafka
-	userName := *result.Username
-	logger.Infof("preparing to send delete user kafka message for %v", userName)
-	if !strings.HasSuffix(userName, "@tidepool.io") && !strings.HasSuffix(userName, "@tidepool.org") {
-		var role []string
-		if result != nil && result.Roles != nil {
-			role = *result.Roles
-		}
-		eventType := "delete-user"
-		userEventMessage := map[string]interface{}{
-			"event": eventType,
-			"user":  id,
-			"email": *result.Username,
-			"role":  role,
-		}
-		c.CloudEventsClient().KafkaMessage(userEventMessage)
 	}
 
 	return session.Destroy(ctx, id, nil)

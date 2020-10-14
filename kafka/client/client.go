@@ -2,80 +2,61 @@ package kafkasender
 
 import (
 	"context"
-	"log"
 
-	"github.com/Shopify/sarama"
-	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/google/uuid"
-	"github.com/kelseyhightower/envconfig"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/tidepool-org/go-common/clients/shoreline"
+	"github.com/tidepool-org/go-common/events"
+	"github.com/tidepool-org/platform/user"
 )
 
-//CloudEventsClient is the method signature for Kafka message
-type CloudEventsClient interface {
-	KafkaMessage(data map[string]interface{})
+const (
+	ShorelineUserEventHandlerName = "shoreline"
+	RemoveUserOperationName       = "remove_mongo_user"
+	RemoveUserTokensOperationName = "remove_mongo_user_tokens"
+)
+
+var failedEvents = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_shoreline_failed_events",
+	Help: "The number of failures during even handling",
+}, []string{"event_type", "handler_name", "operation_name"})
+
+type EventsNotifier interface {
+	NotifyUserDeleted(ctx context.Context, user user.User) error
 }
 
-//Kafka struct containing the kafka topic and broker
-type Kafka struct {
-	Prefix     string `envconfig:"KAFKA_PREFIX" required:"false"`
-	BaseTopic  string `envconfig:"KAFKA_TOPIC" required:"false"`
-	FinalTopic string
-	Broker     string `envconfig:"KAFKA_BROKERS" required:"false"`
+var _ EventsNotifier = &userEventsNotifier{}
+
+type userEventsNotifier struct {
+	events.EventProducer
 }
 
-//NewServiceConfigFromEnv creates a kafka struct containing the kafka topic and broker
-func NewServiceConfigFromEnv() (*Kafka, error) {
-	var config Kafka
-	err := envconfig.Process("", &config)
-	config.FinalTopic = config.Prefix + config.BaseTopic
-	return &config, err
-}
-
-// KafkaSender sends message to correct topic and broker
-func (k *Kafka) KafkaSender() (*kafka_sarama.Sender, error) {
-	saramaConfig := sarama.NewConfig()
-	saramaConfig.Version = sarama.V2_0_0_0
-	log.Printf("Broker: %v Topic: %v", k.Broker, k.FinalTopic)
-
-	sender, err := kafka_sarama.NewSender([]string{k.Broker}, saramaConfig, k.FinalTopic)
-	return sender, err
-}
-
-// KafkaClient builds kafka client
-func (k *Kafka) KafkaClient(Sender *kafka_sarama.Sender) (cloudevents.Client, error) {
-	c, err := cloudevents.NewClient(Sender, cloudevents.WithTimeNow(), cloudevents.WithUUIDs())
-	return c, err
-}
-
-// KafkaMessage produces kafka message
-func (k *Kafka) KafkaMessage(data map[string]interface{}) {
-	event := data["event"].(string)
-	e := cloudevents.NewEvent()
-	e.SetID(uuid.New().String())
-	e.SetType(event)
-	e.SetSource("github.com/tidepool-org/platform/kafka/client")
-	_ = e.SetData(cloudevents.ApplicationJSON, data)
-
-	kafkaSender, err := k.KafkaSender()
+func NewUserEventsNotifier(config *events.CloudEventsConfig) (EventsNotifier, error) {
+	producer, err := events.NewKafkaCloudEventsProducer(config)
 	if err != nil {
-		log.Printf("failed to create client, %v", err)
-	}
-	defer kafkaSender.Close(context.Background())
-
-	kafkaClient, err := k.KafkaClient(kafkaSender)
-	if err != nil {
-		log.Printf("failed to create protocol: %s", err.Error())
+		return nil, err
 	}
 
-	if result := kafkaClient.Send(
-		// Set the producer message key
-		kafka_sarama.WithMessageKey(context.Background(), sarama.StringEncoder(e.ID())),
-		e,
-	); cloudevents.IsUndelivered(result) {
-		log.Println("failed to send message")
-		kafkaClient.Send(kafka_sarama.WithMessageKey(context.Background(), sarama.StringEncoder(e.ID())), e)
-	} else {
-		log.Printf("sent: %s %v, accepted: %t", event, data, cloudevents.IsACK(result))
+	return &userEventsNotifier{
+		EventProducer: producer,
+	}, nil
+}
+
+func (u *userEventsNotifier) NotifyUserDeleted(ctx context.Context, user user.User) error {
+	return u.Send(ctx, &events.DeleteUserEvent{
+		UserData: toUserData(user),
+	})
+}
+
+func toUserData(user user.User) shoreline.UserData {
+	return shoreline.UserData{
+		UserID:         *user.UserID,
+		Username:       *user.Username,
+		Emails:         []string{*user.Username},
+		PasswordExists: *user.PasswordHash != "",
+		Roles:          *user.Roles,
+		EmailVerified:  *user.Authenticated,
+		TermsAccepted:  *user.TermsAccepted,
 	}
 }
+

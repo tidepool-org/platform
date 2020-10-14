@@ -1,6 +1,9 @@
 package service
 
 import (
+	"log"
+
+	"github.com/tidepool-org/go-common/events"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/blob"
 	blobClient "github.com/tidepool-org/platform/blob/client"
@@ -58,7 +61,7 @@ type Service struct {
 	userStructuredStore *userStoreStructuredMongo.Store
 	passwordHasher      *PasswordHasher
 	userClient          *userServiceClient.Client
-	cloudEventsClient   kafka.CloudEventsClient
+	userEventsNotifier   kafka.EventsNotifier
 }
 
 func New() *Service {
@@ -114,7 +117,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeUserClient(); err != nil {
 		return err
 	}
-	if err := s.initializeCloudEventsClient(); err != nil {
+	if err := s.initializeUserEventsNotifier(); err != nil {
 		return err
 	}
 	return s.initializeRouter()
@@ -136,6 +139,7 @@ func (s *Service) Terminate() {
 	s.terminateDataSourceClient()
 	s.terminateDataClient()
 	s.terminateBlobClient()
+	s.terminateUserEventsNotifier()
 
 	s.Authenticated.Terminate()
 }
@@ -203,14 +207,28 @@ func (s *Service) PasswordHasher() userServiceClient.PasswordHasher {
 func (s *Service) UserClient() user.Client {
 	return s.userClient
 }
-func (s *Service) CloudEventsClient() kafka.CloudEventsClient {
-	return s.cloudEventsClient
+func (s *Service) UserEventsNotifier() kafka.EventsNotifier {
+	return s.userEventsNotifier
 }
 
-func (s *Service) initializeCloudEventsClient() error {
-	var err error
-	s.cloudEventsClient, err = kafka.NewServiceConfigFromEnv()
-	return err
+func (s *Service) initializeUserEventsNotifier() error {
+	kafkaConfig := events.NewConfig()
+	if err := kafkaConfig.LoadFromEnv(); err != nil {
+		log.Fatalln(err)
+	}
+	notifier, err := kafka.NewUserEventsNotifier(kafkaConfig)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	s.userEventsNotifier = notifier
+	return nil
+}
+
+func (s *Service) terminateUserEventsNotifier() {
+	if s.userEventsNotifier != nil {
+		s.Logger().Debug("Destroying UserEventsNotifier")
+		s.userEventsNotifier = nil
+	}
 }
 
 func (s *Service) initializeBlobClient() error {
