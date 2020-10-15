@@ -98,7 +98,8 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	repository := c.UserStructuredStore().NewUserRepository()
 
 	// Use a Background context for deletions, so that they still occur even if the DELETE API request times out.
-	result, err := repository.Get(context.Background(), id, condition)
+	ctxBackgroundWithLogger := log.NewContextWithLogger(context.Background(), logger)
+	result, err := repository.Get(ctxBackgroundWithLogger, id, condition)
 	if err != nil {
 		return false, err
 	} else if result == nil {
@@ -117,56 +118,56 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		return false, request.ErrorUnauthorized()
 	}
 
-	deleted, err := repository.Delete(context.Background(), id, condition)
+	deleted, err := repository.Delete(ctxBackgroundWithLogger, id, condition)
 	if err != nil {
 		return false, err
 	} else if !deleted {
 		return false, nil
 	}
 
-	if err = c.MetricClient().RecordMetric(context.Background(), "users_delete", map[string]string{"userId": id}); err != nil {
+	if err = c.MetricClient().RecordMetric(ctxBackgroundWithLogger, "users_delete", map[string]string{"userId": id}); err != nil {
 		logger.WithError(err).Error("Unable to record metric for delete")
 	}
 
 	tokenRepository := c.SessionStore().NewTokenRepository()
 
-	if err = tokenRepository.DestroySessionsForUserByID(context.Background(), id); err != nil {
+	if err = tokenRepository.DestroySessionsForUserByID(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all sessions")
 	}
 
-	if err = c.AuthClient().DeleteAllRestrictedTokens(context.Background(), id); err != nil {
+	if err = c.AuthClient().DeleteAllRestrictedTokens(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all restricted tokens")
 	}
 
-	if err = c.AuthClient().DeleteAllProviderSessions(context.Background(), id); err != nil {
+	if err = c.AuthClient().DeleteAllProviderSessions(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all provider sessions")
 	}
 
 	permissionsRepository := c.PermissionStore().NewPermissionsRepository()
 
-	if err = permissionsRepository.DestroyPermissionsForUserByID(context.Background(), id); err != nil {
+	if err = permissionsRepository.DestroyPermissionsForUserByID(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all permissions")
 	}
 
 	confirmationRepository := c.ConfirmationStore().NewConfirmationRepository()
 
-	if err = confirmationRepository.DeleteUserConfirmations(context.Background(), id); err != nil {
+	if err = confirmationRepository.DeleteUserConfirmations(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all confirmations")
 	}
 
-	if err = c.BlobClient().DeleteAll(context.Background(), id); err != nil {
+	if err = c.BlobClient().DeleteAll(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all blobs")
 	}
 
-	if err = c.DataClient().DestroyDataForUserByID(context.Background(), id); err != nil {
+	if err = c.DataClient().DestroyDataForUserByID(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all data")
 	}
 
-	if err = c.DataSourceClient().DeleteAll(context.Background(), id); err != nil {
+	if err = c.DataSourceClient().DeleteAll(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all data sources")
 	}
 
-	if err = c.ImageClient().DeleteAll(context.Background(), id); err != nil {
+	if err = c.ImageClient().DeleteAll(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all images")
 	}
 
@@ -174,7 +175,7 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 
 	profileRepository := c.ProfileStore().NewMetaRepository()
 
-	profile, err := profileRepository.Get(context.Background(), id, nil)
+	profile, err := profileRepository.Get(ctxBackgroundWithLogger, id, nil)
 	if err != nil || profile == nil || profile.FullName == nil {
 		logger.WithError(err).Error("Unable to get profile name for deleted messages")
 	} else {
@@ -183,19 +184,19 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 
 	messageRepository := c.MessageStore().NewMessageRepository()
 
-	if err = messageRepository.DestroyMessagesForUserByID(context.Background(), id); err != nil {
+	if err = messageRepository.DestroyMessagesForUserByID(ctxBackgroundWithLogger, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all messages")
 	}
 
-	if err = messageRepository.DeleteMessagesFromUser(context.Background(), messageUser); err != nil {
+	if err = messageRepository.DeleteMessagesFromUser(ctxBackgroundWithLogger, messageUser); err != nil {
 		logger.WithError(err).Error("Unable to delete messages from user")
 	}
 
 	if profile != nil {
-		if _, err = profileRepository.Destroy(context.Background(), id, nil); err != nil {
+		if _, err = profileRepository.Destroy(ctxBackgroundWithLogger, id, nil); err != nil {
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
 	}
 
-	return repository.Destroy(context.Background(), id, nil)
+	return repository.Destroy(ctxBackgroundWithLogger, id, nil)
 }

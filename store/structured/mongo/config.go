@@ -28,15 +28,15 @@ func LoadConfig() (*Config, error) {
 
 //Config describe parameters need to make a connection to a Mongo database
 type Config struct {
-	Scheme           string        `json:"scheme" envconfig:"SCHEME"`
-	Addresses        []string      `json:"addresses" envconfig:"ADDRESSES" required:"true"`
-	TLS              bool          `json:"tls" envconfig:"TLS" default:"true"`
-	Database         string        `json:"database" envconfig:"DATABASE" required:"true"`
-	CollectionPrefix string        `json:"collectionPrefix" envconfig:"COLLECTION_PREFIX"`
-	Username         *string       `json:"-" envconfig:"USERNAME"`
-	Password         *string       `json:"-" envconfig:"PASSWORD"`
-	Timeout          time.Duration `json:"timeout" envconfig:"TIMEOUT" default:"60s"`
-	OptParams        *string       `json:"optParams" envconfig:"OPT_PARAMS"`
+	Scheme           string        `json:"scheme" envconfig:"TIDEPOOL_STORE_SCHEME"`
+	Addresses        []string      `json:"addresses" envconfig:"TIDEPOOL_STORE_ADDRESSES" required:"true"`
+	TLS              bool          `json:"tls" envconfig:"TIDEPOOL_STORE_TLS" default:"true"`
+	Database         string        `json:"database" envconfig:"TIDEPOOL_STORE_DATABASE" required:"true"`
+	CollectionPrefix string        `json:"collectionPrefix" envconfig:"TIDEPOOL_STORE_COLLECTION_PREFIX"`
+	Username         *string       `json:"-" envconfig:"TIDEPOOL_STORE_USERNAME"`
+	Password         *string       `json:"-" envconfig:"TIDEPOOL_STORE_PASSWORD"`
+	Timeout          time.Duration `json:"timeout" envconfig:"TIDEPOOL_STORE_TIMEOUT" default:"60s"`
+	OptParams        *string       `json:"optParams" envconfig:"TIDEPOOL_STORE_OPT_PARAMS"`
 }
 
 // AsConnectionString constructs a MongoDB connection string from a Config
@@ -72,7 +72,7 @@ func (c *Config) AsConnectionString() string {
 }
 
 func (c *Config) Load() error {
-	return envconfig.Process("TIDEPOOL_STORE", c)
+	return envconfig.Process("", c)
 }
 
 func (c *Config) SetDatabaseFromReporter(configReporter platformConfig.Reporter) error {
