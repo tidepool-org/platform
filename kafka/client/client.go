@@ -3,27 +3,15 @@ package kafkasender
 import (
 	"context"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/tidepool-org/go-common/clients/shoreline"
 	"github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/profile"
 	"github.com/tidepool-org/platform/user"
 )
 
-const (
-	ShorelineUserEventHandlerName = "shoreline"
-	RemoveUserOperationName       = "remove_mongo_user"
-	RemoveUserTokensOperationName = "remove_mongo_user_tokens"
-)
-
-var failedEvents = promauto.NewCounterVec(prometheus.CounterOpts{
-	Name: "tidepool_shoreline_failed_events",
-	Help: "The number of failures during even handling",
-}, []string{"event_type", "handler_name", "operation_name"})
-
 type EventsNotifier interface {
-	NotifyUserDeleted(ctx context.Context, user user.User) error
+	NotifyUserDeleted(ctx context.Context, user user.User, userProfile *profile.Profile) error
 }
 
 var _ EventsNotifier = &userEventsNotifier{}
@@ -43,9 +31,14 @@ func NewUserEventsNotifier(config *events.CloudEventsConfig) (EventsNotifier, er
 	}, nil
 }
 
-func (u *userEventsNotifier) NotifyUserDeleted(ctx context.Context, user user.User) error {
+func (u *userEventsNotifier) NotifyUserDeleted(ctx context.Context, user user.User, userProfile *profile.Profile) error {
+	var fullName = "Tidepool User"
+	if userProfile != nil || userProfile.FullName != nil {
+		fullName = *userProfile.FullName
+	}
 	return u.Send(ctx, &events.DeleteUserEvent{
-		UserData: toUserData(user),
+		UserData:        toUserData(user),
+		ProfileFullName: fullName,
 	})
 }
 

@@ -198,11 +198,11 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		logger.WithError(err).Error("Unable to delete messages from user")
 	}
 
+	if err := c.UserEventsNotifier().NotifyUserDeleted(ctx, *result, profile); err != nil {
+		logger.WithError(err).Error("Unable to send delete user notification")
+	}
+
 	if profile != nil {
-		//Sending delete user event to kafka
-		if err := c.UserEventsNotifier().NotifyUserDeleted(ctx, *result); err != nil {
-			logger.WithError(err).Error("Unable to send delete user notification")
-		}
 		if _, err = profileSession.Destroy(ctx, id, nil); err != nil {
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
