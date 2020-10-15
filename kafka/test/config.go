@@ -42,4 +42,3 @@ func RestoreOldEnvironmentVariables(old map[string]string) {
 		}
 	}
 }
-

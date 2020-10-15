@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/Shopify/sarama"
 	"testing"
+
+	"github.com/Shopify/sarama"
 )
 
 func NewMockBroker(t *testing.T) *sarama.MockBroker {
