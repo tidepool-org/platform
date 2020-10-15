@@ -1,8 +1,6 @@
 package service
 
 import (
-	"log"
-
 	"github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
@@ -215,11 +213,11 @@ func (s *Service) UserEventsNotifier() kafka.EventsNotifier {
 func (s *Service) initializeUserEventsNotifier() error {
 	kafkaConfig := events.NewConfig()
 	if err := kafkaConfig.LoadFromEnv(); err != nil {
-		log.Fatalln(err)
+		return errors.Wrap(err, "unable to load kafka config")
 	}
 	notifier, err := kafka.NewUserEventsNotifier(kafkaConfig)
 	if err != nil {
-		log.Fatalln(err)
+		return errors.Wrap(err, "unable to create user events notifier")
 	}
 	s.userEventsNotifier = notifier
 	return nil

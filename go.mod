@@ -3,6 +3,7 @@ module github.com/tidepool-org/platform
 go 1.14
 
 require (
+	github.com/Shopify/sarama v1.27.0
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.29.23
 	github.com/blang/semver v3.5.1+incompatible
@@ -20,7 +21,7 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.10.2
 	github.com/onsi/gomega v1.9.0
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.7.1 // indirect
 	github.com/tidepool-org/devices v0.0.0-20200709151222-3d1edbd4a58e
 	github.com/tidepool-org/go-common v0.6.3-0.20201014125142-0883b62ba70a
 	github.com/urfave/cli v1.20.0

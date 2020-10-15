@@ -11,6 +11,7 @@ import (
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	configTest "github.com/tidepool-org/platform/config/test"
+	kafkaTest "github.com/tidepool-org/platform/kafka/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/test"
@@ -168,6 +169,8 @@ var _ = Describe("Service", func() {
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = userServiceConfig
+			kafkaTest.SetTestEnvironmentVariables()
+
 
 			service = userService.New()
 			Expect(service).ToNot(BeNil())
@@ -178,6 +181,7 @@ var _ = Describe("Service", func() {
 				server.Close()
 			}
 			provider.AssertOutputsEmpty()
+			kafkaTest.RestoreOldEnvironmentVariables(map[string]string{})
 		})
 
 		Context("with Terminate after", func() {
