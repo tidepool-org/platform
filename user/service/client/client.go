@@ -197,7 +197,7 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	if err = messageSession.DeleteMessagesFromUser(ctx, messageUser); err != nil {
 		logger.WithError(err).Error("Unable to delete messages from user")
 	}
-
+	logger.Infof("USER: %v, PROFILE: %v", *result, profile)
 	if err := c.UserEventsNotifier().NotifyUserDeleted(ctx, *result, profile); err != nil {
 		logger.WithError(err).Error("Unable to send delete user notification")
 	}
