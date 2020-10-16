@@ -43,12 +43,16 @@ func (u *userEventsNotifier) NotifyUserDeleted(ctx context.Context, user user.Us
 }
 
 func toUserData(user user.User) shoreline.UserData {
+	var role []string
+	if user.Roles != nil {
+		role = *user.Roles
+	}
 	return shoreline.UserData{
 		UserID:         *user.UserID,
 		Username:       *user.Username,
 		Emails:         []string{*user.Username},
 		PasswordExists: *user.PasswordHash != "",
-		Roles:          *user.Roles,
+		Roles:          role,
 		EmailVerified:  *user.Authenticated,
 		TermsAccepted:  *user.TermsAccepted,
 	}
