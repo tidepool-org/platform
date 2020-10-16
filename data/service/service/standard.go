@@ -211,6 +211,9 @@ func (s *Standard) initializeDataStore() error {
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data store DEPRECATED config")
 	}
+	if err := cfg.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data source structured store config")
+	}
 
 	s.Logger().Debug("Creating data store")
 
@@ -235,9 +238,6 @@ func (s *Standard) initializeDataSourceStructuredStore() error {
 
 	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
-		return errors.Wrap(err, "unable to load data source structured store config")
-	}
-	if err := cfg.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
 		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
