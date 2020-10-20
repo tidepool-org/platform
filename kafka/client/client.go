@@ -33,7 +33,7 @@ func NewUserEventsNotifier(config *events.CloudEventsConfig) (EventsNotifier, er
 
 func (u *userEventsNotifier) NotifyUserDeleted(ctx context.Context, user user.User, userProfile *profile.Profile) error {
 	var fullName = "Tidepool User"
-	if userProfile != nil || userProfile.FullName != nil {
+	if userProfile != nil && userProfile.FullName != nil {
 		fullName = *userProfile.FullName
 	}
 	return u.Send(ctx, &events.DeleteUserEvent{
