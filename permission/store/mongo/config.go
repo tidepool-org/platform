@@ -21,7 +21,10 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	if c.Config == nil {
 		return errors.New("config is missing")
 	}
-	if err := c.Config.Load(configReporter); err != nil {
+	if err := c.Config.Load(); err != nil {
+		return err
+	}
+	if err := c.Config.SetDatabaseFromReporter(configReporter); err != nil {
 		return err
 	}
 

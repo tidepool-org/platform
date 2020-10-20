@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -225,66 +226,6 @@ var _ = Describe("Service", func() {
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create permission client"))
 				})
 
-				It("returns an error when the confirmation store config returns an error", func() {
-					confirmationStoreConfig["tls"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load confirmation store config"))
-				})
-
-				It("returns an error when the confirmation store returns an error", func() {
-					confirmationStoreConfig["addresses"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create confirmation store"))
-				})
-
-				It("returns an error when the message store config returns an error", func() {
-					messageStoreConfig["tls"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load message store config"))
-				})
-
-				It("returns an error when the message store returns an error", func() {
-					messageStoreConfig["addresses"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create message store"))
-				})
-
-				It("returns an error when the permission store config returns an error", func() {
-					permissionStoreConfig["tls"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load permission store config"))
-				})
-
-				It("returns an error when the permission store returns an error", func() {
-					permissionStoreConfig["addresses"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create permission store"))
-				})
-
-				It("returns an error when the profile store config returns an error", func() {
-					profileStoreConfig["tls"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load profile store config"))
-				})
-
-				It("returns an error when the profile store returns an error", func() {
-					profileStoreConfig["addresses"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create profile store"))
-				})
-
-				It("returns an error when the session store config returns an error", func() {
-					sessionStoreConfig["tls"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load session store config"))
-				})
-
-				It("returns an error when the session store returns an error", func() {
-					sessionStoreConfig["addresses"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create session store"))
-				})
-
-				It("returns an error when the user structured store config returns an error", func() {
-					userStructuredStoreConfig["tls"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load user structured store config"))
-				})
-
-				It("returns an error when the user structured store returns an error", func() {
-					userStructuredStoreConfig["addresses"] = ""
-					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create user structured store"))
-				})
-
 				It("returns an error when the password hasher returns an error", func() {
 					passwordConfig["salt"] = ""
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create password hasher"))
@@ -308,7 +249,7 @@ var _ = Describe("Service", func() {
 
 				Context("Status", func() {
 					It("returns successfully", func() {
-						Expect(service.Status()).ToNot(BeNil())
+						Expect(service.Status(context.Background())).ToNot(BeNil())
 					})
 				})
 

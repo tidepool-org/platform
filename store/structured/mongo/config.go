@@ -1,107 +1,86 @@
 package mongo
 
 import (
+	"fmt"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
+	"github.com/kelseyhightower/envconfig"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
-	"github.com/tidepool-org/platform/config"
+	platformConfig "github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/pointer"
 )
 
-//Config describe parameters need to make a connection to a Mongo database
-type Config struct {
-	Scheme           string        `json:"scheme"`
-	Addresses        []string      `json:"addresses"`
-	TLS              bool          `json:"tls"`
-	Database         string        `json:"database"`
-	CollectionPrefix string        `json:"collectionPrefix"`
-	Username         *string       `json:"-"`
-	Password         *string       `json:"-"`
-	Timeout          time.Duration `json:"timeout"`
-	OptParams        *string       `json:"optParams"`
-}
-
-//NewConfig creates and returns an incomplete Config object
 func NewConfig() *Config {
 	return &Config{
 		TLS:     true,
-		Timeout: 60 * time.Second,
+		Timeout: 30 * time.Second,
 	}
+}
+
+func LoadConfig() (*Config, error) {
+	cfg := NewConfig()
+	err := cfg.Load()
+	return cfg, err
+}
+
+//Config describe parameters need to make a connection to a Mongo database
+type Config struct {
+	Scheme           string        `json:"scheme" envconfig:"TIDEPOOL_STORE_SCHEME"`
+	Addresses        []string      `json:"addresses" envconfig:"TIDEPOOL_STORE_ADDRESSES" required:"true"`
+	TLS              bool          `json:"tls" envconfig:"TIDEPOOL_STORE_TLS" default:"true"`
+	Database         string        `json:"database" envconfig:"TIDEPOOL_STORE_DATABASE" required:"true"`
+	CollectionPrefix string        `json:"collectionPrefix" envconfig:"TIDEPOOL_STORE_COLLECTION_PREFIX"`
+	Username         *string       `json:"-" envconfig:"TIDEPOOL_STORE_USERNAME"`
+	Password         *string       `json:"-" envconfig:"TIDEPOOL_STORE_PASSWORD"`
+	Timeout          time.Duration `json:"timeout" envconfig:"TIDEPOOL_STORE_TIMEOUT" default:"60s"`
+	OptParams        *string       `json:"optParams" envconfig:"TIDEPOOL_STORE_OPT_PARAMS"`
 }
 
 // AsConnectionString constructs a MongoDB connection string from a Config
 func (c *Config) AsConnectionString() string {
-	var url string
+	var connectionString string
 	if c.Scheme != "" {
-		url += c.Scheme + "://"
+		connectionString += c.Scheme + "://"
 	} else {
-		url += "mongodb://"
+		connectionString += "mongodb://"
 	}
 
 	if c.Username != nil && *c.Username != "" {
-		url += *c.Username
+		connectionString += *c.Username
 		if c.Password != nil && *c.Password != "" {
-			url += ":"
-			url += *c.Password
+			connectionString += ":"
+			connectionString += *c.Password
 		}
-		url += "@"
+		connectionString += "@"
 	}
-	url += strings.Join(c.Addresses, ",")
-	url += "/"
-	url += c.Database
+	connectionString += strings.Join(c.Addresses, ",")
+	connectionString += "/"
+	connectionString += c.Database
 	if c.TLS {
-		url += "?ssl=true"
+		connectionString += "?ssl=true"
 	} else {
-		url += "?ssl=false"
+		connectionString += "?ssl=false"
 	}
 	if c.OptParams != nil && *c.OptParams != "" {
-		url += *c.OptParams
+		connectionString += fmt.Sprintf("&%s", *c.OptParams)
 	}
 
-	return url
+	return connectionString
 }
 
-// Load a Config with the values provided via a config.Reporter
-func (c *Config) Load(configReporter config.Reporter) error {
-	if configReporter == nil {
-		return errors.New("config reporter is missing")
-	}
+func (c *Config) Load() error {
+	return envconfig.Process("", c)
+}
 
-	c.Addresses = SplitAddresses(configReporter.GetWithDefault("addresses", strings.Join(c.Addresses, ",")))
-	if tlsString, err := configReporter.Get("tls"); err == nil {
-		var tls bool
-		tls, err = strconv.ParseBool(tlsString)
-		if err != nil {
-			return errors.New("tls is invalid")
-		}
-		c.TLS = tls
+func (c *Config) SetDatabaseFromReporter(configReporter platformConfig.Reporter) error {
+	var err error
+	c.Database, err = configReporter.Get("database")
+	if err != nil {
+		return err
 	}
-	c.Scheme = configReporter.GetWithDefault("scheme", c.Scheme)
-	c.Database = configReporter.GetWithDefault("database", c.Database)
-	c.CollectionPrefix = configReporter.GetWithDefault("collection_prefix", c.CollectionPrefix)
-	if username, err := configReporter.Get("username"); err == nil {
-		c.Username = pointer.FromString(username)
-	}
-	if password, err := configReporter.Get("password"); err == nil {
-		c.Password = pointer.FromString(password)
-	}
-	if optParams, err := configReporter.Get("opt_params"); err == nil {
-		c.OptParams = pointer.FromString(optParams)
-	}
-	if timeoutString, err := configReporter.Get("timeout"); err == nil {
-		var timeout int64
-		timeout, err = strconv.ParseInt(timeoutString, 10, 0)
-		if err != nil {
-			return errors.New("timeout is invalid")
-		}
-		c.Timeout = time.Duration(timeout) * time.Second
-	}
-
 	return nil
 }
 
@@ -125,13 +104,9 @@ func (c *Config) Validate() error {
 		return errors.New("timeout is invalid")
 	}
 
-	if _, err := mgo.ParseURL(c.AsConnectionString()); err != nil {
-		return errors.New("URL is unparseable by driver, check validity of optional parameters")
+	if _, err := connstring.Parse(c.AsConnectionString()); err != nil {
+		return errors.Wrap(err, "URL is unparseable by driver, check validity of optional parameters")
 	}
 
 	return nil
-}
-
-func SplitAddresses(addresses string) []string {
-	return config.SplitTrimCompact(addresses)
 }

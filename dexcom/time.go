@@ -27,7 +27,7 @@ func (t Time) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + t.format() + `"`), nil
 }
 
-func (t Time) GetBSON() (interface{}, error) {
+func (t Time) MarshalBSON() (interface{}, error) {
 	return t.format(), nil
 }
 

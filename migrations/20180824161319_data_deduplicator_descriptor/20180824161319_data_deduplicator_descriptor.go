@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/application"
@@ -67,34 +69,33 @@ func (m *Migration) execute() error {
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
 	mongoConfig.Timeout = 60 * time.Minute
-	dataStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	dataStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
-	defer dataStore.Close()
+	defer dataStore.Terminate(context.Background())
 
-	m.Logger().Debug("Creating data session")
+	m.Logger().Debug("Creating data repository")
 
-	dataSession := dataStore.NewSession("deviceData")
-	defer dataSession.Close()
+	deviceDataRepository := dataStore.GetRepository("deviceData")
 
-	var count int
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "org.tidepool.continuous.origin", "org.tidepool.deduplicator.dataset.delete.origin")
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "org.tidepool.hash-deactivate-old", "org.tidepool.deduplicator.device.deactivate.hash")
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "org.tidepool.truncate", "org.tidepool.deduplicator.device.truncate.dataset")
-	count += m.migrateUploadDataDeduplicatorDescriptor(dataSession, "org.tidepool.continuous", "org.tidepool.deduplicator.none")
+	var count int64
+	count += m.migrateUploadDataDeduplicatorDescriptor(deviceDataRepository, "org.tidepool.continuous.origin", "org.tidepool.deduplicator.dataset.delete.origin")
+	count += m.migrateUploadDataDeduplicatorDescriptor(deviceDataRepository, "org.tidepool.hash-deactivate-old", "org.tidepool.deduplicator.device.deactivate.hash")
+	count += m.migrateUploadDataDeduplicatorDescriptor(deviceDataRepository, "org.tidepool.truncate", "org.tidepool.deduplicator.device.truncate.dataset")
+	count += m.migrateUploadDataDeduplicatorDescriptor(deviceDataRepository, "org.tidepool.continuous", "org.tidepool.deduplicator.none")
 
 	m.Logger().Infof("Migrated %d data duplicator descriptors", count)
 
 	return nil
 }
 
-func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *storeStructuredMongo.Session, fromName string, toName string) int {
+func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataRepository *storeStructuredMongo.Repository, fromName string, toName string) int64 {
 	logger := m.Logger().WithFields(log.Fields{"fromName": fromName, "toName": toName})
 
 	logger.Debug("Migrating upload data deduplicator descriptors")
 
-	var count int
+	var count int64
 	var err error
 
 	selector := bson.M{
@@ -103,7 +104,7 @@ func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *storeSt
 	}
 
 	if m.DryRun() {
-		count, err = dataSession.C().Find(selector).Count()
+		count, err = dataRepository.CountDocuments(context.Background(), selector)
 	} else {
 		update := bson.M{
 			"$set": bson.M{
@@ -111,10 +112,10 @@ func (m *Migration) migrateUploadDataDeduplicatorDescriptor(dataSession *storeSt
 			},
 		}
 
-		var changeInfo *mgo.ChangeInfo
-		changeInfo, err = dataSession.C().UpdateAll(selector, update)
+		var changeInfo *mongo.UpdateResult
+		changeInfo, err = dataRepository.UpdateMany(context.Background(), selector, update)
 		if changeInfo != nil {
-			count = changeInfo.Updated
+			count = changeInfo.ModifiedCount
 		}
 	}
 

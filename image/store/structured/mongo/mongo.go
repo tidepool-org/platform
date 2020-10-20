@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/image"
@@ -23,8 +24,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, error) {
-	store, err := storeStructuredMongo.NewStore(config, logger)
+func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
+	store, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return nil, err
 	}
@@ -35,33 +36,42 @@ func NewStore(config *storeStructuredMongo.Config, logger log.Logger) (*Store, e
 }
 
 func (s *Store) EnsureIndexes() error {
-	session := s.newSession()
-	defer session.Close()
-	return session.EnsureIndexes()
+	repository := s.newRepository()
+	return repository.EnsureIndexes()
 }
 
-func (s *Store) NewSession() imageStoreStructured.Session {
-	return s.newSession()
+func (s *Store) NewImageRepository() imageStoreStructured.ImageRepository {
+	return s.newRepository()
 }
 
-func (s *Store) newSession() *Session {
-	return &Session{
-		Session: s.Store.NewSession("images"),
+func (s *Store) newRepository() *ImageRepository {
+	return &ImageRepository{
+		s.Store.GetRepository("images"),
 	}
 }
 
-type Session struct {
-	*storeStructuredMongo.Session
+type ImageRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *Session) EnsureIndexes() error {
-	return s.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Background: true, Unique: true},
-		{Key: []string{"userId", "status"}, Background: true},
-	})
+func (s *ImageRepository) EnsureIndexes() error {
+	return s.CreateAllIndexes(context.Background(),
+		[]mongo.IndexModel{
+			{
+				Keys: bson.D{{Key: "id", Value: 1}},
+				Options: options.Index().
+					SetUnique(true).
+					SetBackground(true),
+			},
+			{
+				Keys: bson.D{{Key: "userId", Value: 1}, {Key: "status", Value: 1}},
+				Options: options.Index().
+					SetBackground(true),
+			},
+		})
 }
 
-func (s *Session) List(ctx context.Context, userID string, filter *image.Filter, pagination *page.Pagination) (image.ImageArray, error) {
+func (s *ImageRepository) List(ctx context.Context, userID string, filter *image.Filter, pagination *page.Pagination) (image.ImageArray, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
 	if ctx == nil {
@@ -81,10 +91,6 @@ func (s *Session) List(ctx context.Context, userID string, filter *image.Filter,
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -111,17 +117,23 @@ func (s *Session) List(ctx context.Context, userID string, filter *image.Filter,
 			"$in": *filter.ContentIntent,
 		}
 	}
-	err := s.C().Find(query).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&result)
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := s.Find(ctx, query, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to list images")
 		return nil, errors.Wrap(err, "unable to list images")
+	}
+
+	if err = cursor.All(ctx, &result); err != nil {
+		return nil, errors.Wrap(err, "unable to decode images list")
 	}
 
 	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
 	return result, nil
 }
 
-func (s *Session) Create(ctx context.Context, userID string, metadata *image.Metadata) (*image.Image, error) {
+func (s *ImageRepository) Create(ctx context.Context, userID string, metadata *image.Metadata) (*image.Image, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "metadata": metadata})
 
 	if ctx == nil {
@@ -136,10 +148,6 @@ func (s *Session) Create(ctx context.Context, userID string, metadata *image.Met
 		return nil, errors.New("metadata is missing")
 	} else if err := structureValidator.New().Validate(metadata); err != nil {
 		return nil, errors.Wrap(err, "metadata is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -163,7 +171,7 @@ func (s *Session) Create(ctx context.Context, userID string, metadata *image.Met
 		logger = logger.WithField("id", id)
 
 		doc.ID = pointer.FromString(id)
-		if err = s.C().Insert(doc); mgo.IsDup(err) {
+		if _, err = s.InsertOne(ctx, doc); storeStructuredMongo.IsDup(err) {
 			logger.WithError(err).Error("Duplicate image id")
 		} else {
 			break
@@ -174,7 +182,7 @@ func (s *Session) Create(ctx context.Context, userID string, metadata *image.Met
 		return nil, errors.Wrap(err, "unable to create image")
 	}
 
-	result, err := s.get(logger, id, nil)
+	result, err := s.get(ctx, logger, id, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +191,7 @@ func (s *Session) Create(ctx context.Context, userID string, metadata *image.Met
 	return result, nil
 }
 
-func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
+func (s *ImageRepository) DeleteAll(ctx context.Context, userID string) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	if ctx == nil {
@@ -193,10 +201,6 @@ func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
 		return false, errors.New("user id is missing")
 	} else if !user.IsValidID(userID) {
 		return false, errors.New("user id is invalid")
-	}
-
-	if s.IsClosed() {
-		return false, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -209,17 +213,17 @@ func (s *Session) DeleteAll(ctx context.Context, userID string) (bool, error) {
 		"deletedTime":  now.Truncate(time.Millisecond),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+	changeInfo, err := s.UpdateMany(ctx, query, s.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete all images")
 		return false, errors.Wrap(err, "unable to delete all images")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DeleteAll")
-	return changeInfo.Updated > 0, nil
+	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
+func (s *ImageRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	if ctx == nil {
@@ -231,26 +235,22 @@ func (s *Session) DestroyAll(ctx context.Context, userID string) (bool, error) {
 		return false, errors.New("user id is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	query := bson.M{
 		"userId": userID,
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := s.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy all images")
 		return false, errors.Wrap(err, "unable to destroy all images")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyAll")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) Get(ctx context.Context, id string, condition *request.Condition) (*image.Image, error) {
+func (s *ImageRepository) Get(ctx context.Context, id string, condition *request.Condition) (*image.Image, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -267,13 +267,9 @@ func (s *Session) Get(ctx context.Context, id string, condition *request.Conditi
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 
-	result, err := s.get(logger, id, condition, storeStructuredMongo.NotDeleted)
+	result, err := s.get(ctx, logger, id, condition, storeStructuredMongo.NotDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +278,7 @@ func (s *Session) Get(ctx context.Context, id string, condition *request.Conditi
 	return result, nil
 }
 
-func (s *Session) Update(ctx context.Context, id string, condition *request.Condition, update *imageStoreStructured.Update) (*image.Image, error) {
+func (s *ImageRepository) Update(ctx context.Context, id string, condition *request.Condition, update *imageStoreStructured.Update) (*image.Image, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition, "update": update})
 
 	if ctx == nil {
@@ -302,10 +298,6 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	if s.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -362,11 +354,11 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 		} else if update.Rendition != nil {
 			addToSet["renditions"] = *update.Rendition
 		}
-		changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset, map[string]bson.M{"$min": min, "$addToSet": addToSet}))
+		changeInfo, err := s.UpdateMany(ctx, query, s.ConstructUpdate(set, unset, map[string]bson.M{"$min": min, "$addToSet": addToSet}))
 		if err != nil {
 			logger.WithError(err).Error("Unable to update image")
 			return nil, errors.Wrap(err, "unable to update image")
-		} else if changeInfo.Updated > 0 {
+		} else if changeInfo.ModifiedCount > 0 {
 			condition = nil
 		} else {
 			update = nil
@@ -378,7 +370,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	var result *image.Image
 	if update != nil {
 		var err error
-		if result, err = s.get(logger, id, condition); err != nil {
+		if result, err = s.get(ctx, logger, id, condition); err != nil {
 			return nil, err
 		}
 	}
@@ -387,7 +379,7 @@ func (s *Session) Update(ctx context.Context, id string, condition *request.Cond
 	return result, nil
 }
 
-func (s *Session) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *ImageRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -402,10 +394,6 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		condition = request.NewCondition()
 	} else if err := structureValidator.New().Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
-	}
-
-	if s.IsClosed() {
-		return false, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -421,17 +409,17 @@ func (s *Session) Delete(ctx context.Context, id string, condition *request.Cond
 		"deletedTime":  now.Truncate(time.Millisecond),
 	}
 	unset := bson.M{}
-	changeInfo, err := s.C().UpdateAll(query, s.ConstructUpdate(set, unset))
+	changeInfo, err := s.UpdateMany(ctx, query, s.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete image")
 		return false, errors.Wrap(err, "unable to delete image")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
-	return changeInfo.Updated > 0, nil
+	return changeInfo.ModifiedCount > 0, nil
 }
 
-func (s *Session) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (s *ImageRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	if ctx == nil {
@@ -448,10 +436,6 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 
-	if s.IsClosed() {
-		return false, errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	query := bson.M{
@@ -460,20 +444,20 @@ func (s *Session) Destroy(ctx context.Context, id string, condition *request.Con
 	if condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
-	changeInfo, err := s.C().RemoveAll(query)
+	changeInfo, err := s.DeleteMany(ctx, query)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy image")
 		return false, errors.Wrap(err, "unable to destroy image")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
-	return changeInfo.Removed > 0, nil
+	return changeInfo.DeletedCount > 0, nil
 }
 
-func (s *Session) get(logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*image.Image, error) {
+func (s *ImageRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*image.Image, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
-	results := image.ImageArray{}
+	var result *image.Image
 	query := bson.M{
 		"id": id,
 	}
@@ -481,21 +465,12 @@ func (s *Session) get(logger log.Logger, id string, condition *request.Condition
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	err := s.C().Find(query).Limit(2).All(&results)
-	if err != nil {
+	err := s.FindOne(ctx, query).Decode(&result)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		logger.WithError(err).Error("Unable to get image")
 		return nil, errors.Wrap(err, "unable to get image")
-	}
-
-	var result *image.Image
-	switch len(results) {
-	case 0:
-		return nil, nil
-	case 1:
-		result = results[0]
-	default:
-		logger.Error("Multiple images found")
-		result = results[0]
 	}
 
 	if result.Revision == nil {

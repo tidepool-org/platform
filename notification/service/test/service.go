@@ -1,6 +1,8 @@
 package test
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/notification/service"
 	"github.com/tidepool-org/platform/notification/store"
 	notificationStoreTest "github.com/tidepool-org/platform/notification/store/test"
@@ -28,7 +30,7 @@ func (s *Service) NotificationStore() store.Store {
 	return s.NotificationStoreImpl
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) Status(ctx context.Context) *service.Status {
 	s.StatusInvocations++
 
 	if len(s.StatusOutputs) == 0 {

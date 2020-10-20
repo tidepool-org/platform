@@ -1,6 +1,7 @@
 package mongo_test
 
 import (
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -34,11 +35,8 @@ var _ = Describe("Config", func() {
 
 			BeforeEach(func() {
 				configReporter = test.NewReporter()
+				configReporter.Config["database"] = "tidepool_test"
 				configReporter.Config["secret"] = "super"
-			})
-
-			It("returns an error if config reporter is missing", func() {
-				Expect(config.Load(nil)).To(MatchError("config reporter is missing"))
 			})
 
 			It("returns an error if base config is missing", func() {
@@ -47,8 +45,14 @@ var _ = Describe("Config", func() {
 			})
 
 			It("returns an error if base config returns an error", func() {
-				configReporter.Config["tls"] = "abc"
-				Expect(config.Load(configReporter)).To(MatchError("tls is invalid"))
+				tls, tlsSet := os.LookupEnv("TIDEPOOL_STORE_TLS")
+				os.Setenv("TIDEPOOL_STORE_TLS", "abc")
+				Expect(config.Load(configReporter)).To(MatchError("envconfig.Process: assigning TIDEPOOL_STORE_TLS to TLS: converting 'abc' to type bool. details: strconv.ParseBool: parsing \"abc\": invalid syntax"))
+				if tlsSet {
+					os.Setenv("TIDEPOOL_STORE_TLS", tls)
+				} else {
+					os.Unsetenv("TIDEPOOL_STORE_TLS")
+				}
 			})
 
 			It("uses default secret if not set", func() {

@@ -3,7 +3,7 @@ package deduplicator
 import (
 	"context"
 
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
@@ -66,12 +66,12 @@ func (t *DeviceTruncateDataSet) Get(dataSet *dataTypesUpload.Upload) (bool, erro
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.truncate"), nil // TODO: DEPRECATED
 }
 
-func (t *DeviceTruncateDataSet) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (t *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -80,9 +80,9 @@ func (t *DeviceTruncateDataSet) Close(ctx context.Context, session dataStoreDEPR
 	// TODO: Technically, DeleteOtherDataSetData could succeed, but Close fail. This would
 	// temporarily result in missing data, which is better than the opposite (duplicate data).
 	// If this fails, a subsequent successful upload will resolve.
-	if err := session.DeleteOtherDataSetData(ctx, dataSet); err != nil {
+	if err := repository.DeleteOtherDataSetData(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return t.Base.Close(ctx, session, dataSet)
+	return t.Base.Close(ctx, repository, dataSet)
 }

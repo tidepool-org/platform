@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	"github.com/urfave/cli"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
@@ -84,20 +86,23 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "user"
-	usersStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	usersStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create users store")
 	}
-	defer usersStore.Close()
+	defer usersStore.Terminate(context.Background())
 
-	m.Logger().Debug("Creating users session")
+	m.Logger().Debug("Creating users repository")
 
-	usersSession := usersStore.NewSession("users")
-	defer usersSession.Close()
+	userRepository := usersStore.GetRepository("users")
 
 	m.Logger().Debug("Iterating users")
 
-	iter := usersSession.C().Find(bson.M{}).Select(bson.M{"_id": 0, "userid": 1, "private.meta.id": 1}).Iter()
+	opts := options.Find().SetProjection(bson.M{"_id": 0, "userid": 1, "private.meta.id": 1})
+	cursor, err := userRepository.Find(context.Background(), bson.M{}, opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to find users")
+	}
 
 	var result struct {
 		UserID  string `bson:"userid"`
@@ -107,7 +112,10 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 			} `bson:"meta"`
 		} `bson:"private"`
 	}
-	for iter.Next(&result) {
+	for cursor.Next(context.Background()) {
+		if err = cursor.Decode(&result); err != nil {
+			return nil, errors.Wrap(err, "unable to decode user")
+		}
 		userLogger := m.Logger()
 
 		userID := result.UserID
@@ -138,9 +146,6 @@ func (m *Migration) buildMetaIDToUserIDMap() (map[string]string, error) {
 		}
 		metaIDToUserIDMap[metaID] = userID
 	}
-	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "unable to iterate users")
-	}
 
 	m.Logger().Debugf("Found %d users with meta", len(metaIDToUserIDMap))
 
@@ -157,26 +162,28 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "seagull"
-	metaStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	metaStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create meta store")
 	}
-	defer metaStore.Close()
+	defer metaStore.Terminate(context.Background())
 
-	m.Logger().Debug("Creating meta session")
+	m.Logger().Debug("Creating meta repository")
 
-	metaSession := metaStore.NewSession("seagull")
-	defer metaSession.Close()
+	seagullRepository := metaStore.GetRepository("seagull")
 
 	m.Logger().Debug("Iterating meta")
 
-	iter := metaSession.C().Find(bson.M{}).Iter()
+	cursor, err := seagullRepository.Find(context.Background(), bson.M{})
 
 	var result struct {
 		MetaID string `bson:"_id"`
 		Value  string `bson:"value"`
 	}
-	for iter.Next(&result) {
+	for cursor.Next(context.Background()) {
+		if err = cursor.Decode(&result); err != nil {
+			return nil, errors.Wrap(err, "unable to iterate meta")
+		}
 		metaLogger := m.Logger()
 
 		metaID := result.MetaID
@@ -232,9 +239,6 @@ func (m *Migration) buildGroupIDToUserIDMap(metaIDToUserIDMap map[string]string)
 		}
 		groupIDToUserIDMap[groupID] = userID
 	}
-	if err = iter.Close(); err != nil {
-		return nil, errors.Wrap(err, "unable to iterate meta")
-	}
 
 	m.Logger().Debugf("Found %d groups with user", len(groupIDToUserIDMap))
 
@@ -245,26 +249,25 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 	m.Logger().Debug("Migrating group id to user id for device data")
 
 	var migrateGroupCount int
-	var migrateDeviceDataCount int
+	var migrateDeviceDataCount int64
 
 	m.Logger().Debug("Creating device data store")
 
 	mongoConfig := m.NewMongoConfig()
 	mongoConfig.Database = "data"
-	deviceDataStore, err := storeStructuredMongo.NewStore(mongoConfig, m.Logger())
+	deviceDataStore, err := storeStructuredMongo.NewStore(mongoConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create device data store")
 	}
-	defer deviceDataStore.Close()
+	defer deviceDataStore.Terminate(context.Background())
 
-	m.Logger().Debug("Creating device data session")
+	m.Logger().Debug("Creating device data repository")
 
-	deviceDataSession := deviceDataStore.NewSession("deviceData")
-	defer deviceDataSession.Close()
+	deviceDataRepository := deviceDataStore.GetRepository("deviceData")
 
 	m.Logger().Debug("Walking group id to user id map")
 
-	var count int
+	var count int64
 	for groupID, userID := range groupIDToUserIDMap {
 		dataLogger := m.Logger().WithFields(log.Fields{"groupId": groupID, "userId": userID})
 
@@ -277,7 +280,7 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 				{"_userId": bson.M{"$ne": userID}},
 			},
 		}
-		count, err = deviceDataSession.C().Find(selector).Count()
+		count, err = deviceDataRepository.CountDocuments(context.Background(), selector)
 		if err != nil {
 			dataLogger.WithError(err).Error("Unable to find incorrect device data")
 			continue
@@ -296,16 +299,16 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 		}
 
 		if m.DryRun() {
-			count, err = deviceDataSession.C().Find(selector).Count()
+			count, err = deviceDataRepository.CountDocuments(context.Background(), selector)
 		} else {
 			update := bson.M{
 				"$set": bson.M{"_userId": userID},
 			}
 
-			var changeInfo *mgo.ChangeInfo
-			changeInfo, err = deviceDataSession.C().UpdateAll(selector, update)
+			var changeInfo *mongo.UpdateResult
+			changeInfo, err = deviceDataRepository.UpdateMany(context.Background(), selector, update)
 			if changeInfo != nil {
-				count = changeInfo.Updated
+				count = changeInfo.ModifiedCount
 			}
 		}
 
@@ -322,7 +325,7 @@ func (m *Migration) migrateGroupIDToUserIDForDeviceData(groupIDToUserIDMap map[s
 	}
 
 	if !m.DryRun() {
-		if count, err = deviceDataSession.C().Find(bson.M{"_userId": bson.M{"$exists": false}}).Count(); err != nil {
+		if count, err = deviceDataRepository.CountDocuments(context.Background(), bson.M{"_userId": bson.M{"$exists": false}}); err != nil {
 			m.Logger().WithError(err).Error("Unable to query for device data without user id")
 		} else if count != 0 {
 			m.Logger().WithField("count", count).Error("Found device data without user id")

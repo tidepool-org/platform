@@ -3,34 +3,34 @@ package test
 import blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 
 type Store struct {
-	NewSessionInvocations int
-	NewSessionStub        func() blobStoreStructured.Session
-	NewSessionOutputs     []blobStoreStructured.Session
-	NewSessionOutput      *blobStoreStructured.Session
+	NewRepositoryInvocations int
+	NewRepositoryStub        func() blobStoreStructured.BlobRepository
+	NewRepositoryOutputs     []blobStoreStructured.BlobRepository
+	NewRepositoryOutput      *blobStoreStructured.BlobRepository
 }
 
 func NewStore() *Store {
 	return &Store{}
 }
 
-func (s *Store) NewSession() blobStoreStructured.Session {
-	s.NewSessionInvocations++
-	if s.NewSessionStub != nil {
-		return s.NewSessionStub()
+func (s *Store) NewBlobRepository() blobStoreStructured.BlobRepository {
+	s.NewRepositoryInvocations++
+	if s.NewRepositoryStub != nil {
+		return s.NewRepositoryStub()
 	}
-	if len(s.NewSessionOutputs) > 0 {
-		output := s.NewSessionOutputs[0]
-		s.NewSessionOutputs = s.NewSessionOutputs[1:]
+	if len(s.NewRepositoryOutputs) > 0 {
+		output := s.NewRepositoryOutputs[0]
+		s.NewRepositoryOutputs = s.NewRepositoryOutputs[1:]
 		return output
 	}
-	if s.NewSessionOutput != nil {
-		return *s.NewSessionOutput
+	if s.NewRepositoryOutput != nil {
+		return *s.NewRepositoryOutput
 	}
-	panic("NewSession has no output")
+	panic("NewBlobRepository has no output")
 }
 
 func (s *Store) AssertOutputsEmpty() {
-	if len(s.NewSessionOutputs) > 0 {
-		panic("NewSessionOutputs is not empty")
+	if len(s.NewRepositoryOutputs) > 0 {
+		panic("NewRepositoryOutputs is not empty")
 	}
 }

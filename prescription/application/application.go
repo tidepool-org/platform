@@ -5,7 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/devices"
 
-	"github.com/tidepool-org/platform/store/structured/mongoofficial"
+	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 
 	"github.com/tidepool-org/platform/prescription/api"
 	"github.com/tidepool-org/platform/prescription/service"
@@ -17,7 +17,7 @@ import (
 var Prescription = fx.Options(
 	devices.ClientModule,
 	user.ClientModule,
-	mongoofficial.StoreModule,
+	structuredMongo.StoreModule,
 	fx.Provide(
 		prescriptionMongo.NewStore,
 		prescriptionMongo.NewStatusReporter,

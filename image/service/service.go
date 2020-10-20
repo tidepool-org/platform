@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/tidepool-org/platform/application"
@@ -69,11 +71,11 @@ func (s *Service) Terminate() {
 	s.Authenticated.Terminate()
 }
 
-func (s *Service) Status() interface{} {
+func (s *Service) Status(ctx context.Context) interface{} {
 	return &status{
 		Version: s.VersionReporter().Long(),
 		Server:  s.API().Status(),
-		Store:   s.imageStructuredStore.Status(),
+		Store:   s.imageStructuredStore.Status(ctx),
 	}
 }
 
@@ -101,13 +103,13 @@ func (s *Service) initializeImageStructuredStore() error {
 	s.Logger().Debug("Loading image structured store config")
 
 	config := storeStructuredMongo.NewConfig()
-	if err := config.Load(s.ConfigReporter().WithScopes("structured", "store")); err != nil {
+	if err := config.Load(); err != nil {
 		return errors.Wrap(err, "unable to load image structured store config")
 	}
 
 	s.Logger().Debug("Creating image structured store")
 
-	imageStructuredStore, err := imageStoreStructuredMongo.NewStore(config, s.Logger())
+	imageStructuredStore, err := imageStoreStructuredMongo.NewStore(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create image structured store")
 	}
@@ -126,7 +128,7 @@ func (s *Service) initializeImageStructuredStore() error {
 func (s *Service) terminateImageStructuredStore() {
 	if s.imageStructuredStore != nil {
 		s.Logger().Debug("Closing image structured store")
-		s.imageStructuredStore.Close()
+		s.imageStructuredStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying image structured store")
 		s.imageStructuredStore = nil

@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -38,16 +40,20 @@ func NewPermissions(userID string) []interface{} {
 	return permissions
 }
 
-func ValidatePermissions(testMongoCollection *mgo.Collection, selector bson.M, expectedPermissions []interface{}) {
-	var actualPermissions []interface{}
-	Expect(testMongoCollection.Find(selector).Select(bson.M{"_id": 0}).All(&actualPermissions)).To(Succeed())
+func ValidatePermissions(testMongoCollection *mongo.Collection, selector bson.M, expectedPermissions []interface{}) {
+	var actualPermissions []bson.M
+	opts := options.Find().SetProjection(bson.M{"_id": 0})
+	cursor, err := testMongoCollection.Find(context.Background(), selector, opts)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cursor).ToNot(BeNil())
+	Expect(cursor.All(context.Background(), &actualPermissions)).To(Succeed())
 	Expect(actualPermissions).To(ConsistOf(expectedPermissions...))
 }
 
 var _ = Describe("Mongo", func() {
 	var mongoConfig *permissionStoreMongo.Config
 	var mongoStore *permissionStoreMongo.Store
-	var mongoSession permissionStore.PermissionsSession
+	var permissionRepository permissionStore.PermissionsRepository
 
 	BeforeEach(func() {
 		mongoConfig = &permissionStoreMongo.Config{
@@ -57,11 +63,8 @@ var _ = Describe("Mongo", func() {
 	})
 
 	AfterEach(func() {
-		if mongoSession != nil {
-			mongoSession.Close()
-		}
 		if mongoStore != nil {
-			mongoStore.Close()
+			mongoStore.Terminate(context.Background())
 		}
 	})
 
@@ -77,7 +80,7 @@ var _ = Describe("Mongo", func() {
 			var err error
 			mongoConfig.Config = nil
 			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
-			Expect(err).To(MatchError("config is missing"))
+			Expect(err).To(MatchError("database config is empty"))
 			Expect(mongoStore).To(BeNil())
 		})
 
@@ -85,7 +88,7 @@ var _ = Describe("Mongo", func() {
 			var err error
 			mongoConfig.Config.Addresses = nil
 			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
-			Expect(err).To(MatchError("config is invalid; addresses is missing"))
+			Expect(err).To(MatchError("connection options are invalid; error parsing uri: must have at least 1 host"))
 			Expect(mongoStore).To(BeNil())
 		})
 
@@ -94,13 +97,6 @@ var _ = Describe("Mongo", func() {
 			mongoConfig.Secret = ""
 			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, logTest.NewLogger())
 			Expect(err).To(MatchError("config is invalid; secret is missing"))
-			Expect(mongoStore).To(BeNil())
-		})
-
-		It("returns an error if logger is missing", func() {
-			var err error
-			mongoStore, err = permissionStoreMongo.NewStore(mongoConfig, nil)
-			Expect(err).To(MatchError("logger is missing"))
 			Expect(mongoStore).To(BeNil())
 		})
 
@@ -120,40 +116,33 @@ var _ = Describe("Mongo", func() {
 			Expect(mongoStore).ToNot(BeNil())
 		})
 
-		Context("NewPermissionsSession", func() {
-			It("returns a new session", func() {
-				mongoSession = mongoStore.NewPermissionsSession()
-				Expect(mongoSession).ToNot(BeNil())
+		Context("NewPermissionsRepository", func() {
+			It("returns a new repository", func() {
+				permissionRepository = mongoStore.NewPermissionsRepository()
+				Expect(permissionRepository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			BeforeEach(func() {
-				mongoSession = mongoStore.NewPermissionsSession()
-				Expect(mongoSession).ToNot(BeNil())
+				permissionRepository = mongoStore.NewPermissionsRepository()
+				Expect(permissionRepository).ToNot(BeNil())
 			})
 
 			Context("with persisted data", func() {
-				var testMongoSession *mgo.Session
-				var testMongoCollection *mgo.Collection
+				var testMongoCollection *mongo.Collection
 				var permissions []interface{}
 				var ctx context.Context
 
 				BeforeEach(func() {
-					testMongoSession = storeStructuredMongoTest.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "perms")
+					testMongoCollection = mongoStore.GetCollection("perms")
 					permissions = NewPermissions(user.NewID())
 					ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 				})
 
 				JustBeforeEach(func() {
-					Expect(testMongoCollection.Insert(permissions...)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					if testMongoSession != nil {
-						testMongoSession.Close()
-					}
+					_, err := testMongoCollection.InsertMany(context.Background(), permissions)
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				Context("DestroyPermissionsForUserByID", func() {
@@ -166,29 +155,25 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(testMongoCollection.Insert(destroyPermissions...)).To(Succeed())
+						_, err := testMongoCollection.InsertMany(context.Background(), destroyPermissions)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("succeeds if it successfully removes permissions", func() {
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(Succeed())
+						Expect(permissionRepository.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(Succeed())
 					})
 
 					It("returns an error if the context is missing", func() {
-						Expect(mongoSession.DestroyPermissionsForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
+						Expect(permissionRepository.DestroyPermissionsForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, "")).To(MatchError("user id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(MatchError("session closed"))
+						Expect(permissionRepository.DestroyPermissionsForUserByID(ctx, "")).To(MatchError("user id is missing"))
 					})
 
 					It("has the correct stored permissions", func() {
 						ValidatePermissions(testMongoCollection, bson.M{}, append(permissions, destroyPermissions...))
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(Succeed())
+						Expect(permissionRepository.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(Succeed())
 						ValidatePermissions(testMongoCollection, bson.M{}, permissions)
 					})
 				})

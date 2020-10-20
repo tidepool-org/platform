@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -18,7 +18,7 @@ func NewStore(cfg *Config, lgr log.Logger) (*Store, error) {
 		return nil, errors.New("config is missing")
 	}
 
-	baseStore, err := storeStructuredMongo.NewStore(cfg.Config, lgr)
+	baseStore, err := storeStructuredMongo.NewStore(cfg.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -38,28 +38,24 @@ type Store struct {
 	config *Config
 }
 
-func (s *Store) NewPermissionsSession() store.PermissionsSession {
-	return &PermissionsSession{
-		Session: s.Store.NewSession("perms"),
-		config:  s.config,
+func (s *Store) NewPermissionsRepository() store.PermissionsRepository {
+	return &PermissionsRepository{
+		Repository: s.Store.GetRepository("perms"),
+		config:     s.config,
 	}
 }
 
-type PermissionsSession struct {
-	*storeStructuredMongo.Session
+type PermissionsRepository struct {
+	*storeStructuredMongo.Repository
 	config *Config
 }
 
-func (p *PermissionsSession) DestroyPermissionsForUserByID(ctx context.Context, userID string) error {
+func (p *PermissionsRepository) DestroyPermissionsForUserByID(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if userID == "" {
 		return errors.New("user id is missing")
-	}
-
-	if p.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -75,7 +71,7 @@ func (p *PermissionsSession) DestroyPermissionsForUserByID(ctx context.Context, 
 			{"userId": userID},
 		},
 	}
-	removeInfo, err := p.C().RemoveAll(selector)
+	removeInfo, err := p.DeleteMany(ctx, selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyPermissionsForUserByID")

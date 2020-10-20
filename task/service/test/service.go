@@ -1,6 +1,8 @@
 package test
 
 import (
+	"context"
+
 	serviceTest "github.com/tidepool-org/platform/service/test"
 	"github.com/tidepool-org/platform/task"
 	taskService "github.com/tidepool-org/platform/task/service"
@@ -39,7 +41,7 @@ func (s *Service) TaskClient() task.Client {
 	return s.TaskClientImpl
 }
 
-func (s *Service) Status() *taskService.Status {
+func (s *Service) Status(ctx context.Context) *taskService.Status {
 	s.StatusInvocations++
 
 	if len(s.StatusOutputs) == 0 {

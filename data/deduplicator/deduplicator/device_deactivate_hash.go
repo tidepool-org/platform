@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
@@ -74,12 +74,12 @@ func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED
 }
 
-func (d *DeviceDeactivateHash) AddData(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -92,41 +92,41 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, session storeDEPRECA
 		return err
 	}
 
-	return d.Base.AddData(ctx, session, dataSet, dataSetData)
+	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (d *DeviceDeactivateHash) Close(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	if err := session.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err := repository.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Close(ctx, session, dataSet)
+	return d.Base.Close(ctx, repository, dataSet)
 }
 
-func (d *DeviceDeactivateHash) Delete(ctx context.Context, session storeDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	if err := session.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err := repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Delete(ctx, session, dataSet)
+	return d.Base.Delete(ctx, repository, dataSet)
 }

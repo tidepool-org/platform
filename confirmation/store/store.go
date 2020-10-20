@@ -1,16 +1,13 @@
 package store
 
 import (
-	"io"
-
 	"github.com/tidepool-org/platform/confirmation"
 )
 
 type Store interface {
-	NewConfirmationSession() ConfirmationSession
+	NewConfirmationRepository() ConfirmationRepository
 }
 
-type ConfirmationSession interface {
-	io.Closer
+type ConfirmationRepository interface {
 	confirmation.ConfirmationAccessor
 }
