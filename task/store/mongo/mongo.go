@@ -264,7 +264,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		"id":    tsk.ID,
 		"state": state,
 	}
-	_, err := t.UpdateOne(ctx, selector, tsk)
+	_, err := t.ReplaceOne(ctx, selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update from state")
