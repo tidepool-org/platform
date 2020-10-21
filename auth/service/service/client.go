@@ -53,10 +53,8 @@ func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, nam
 }
 
 func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
-	ssn := c.authStore.NewProviderSessionSession()
-	defer ssn.Close()
-
-	return ssn.ListUserProviderSessions(ctx, userID, filter, pagination)
+	repository := c.authStore.NewProviderSessionRepository()
+	return repository.ListUserProviderSessions(ctx, userID, filter, pagination)
 }
 
 func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
@@ -65,17 +63,16 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, err
 	}
 
-	ssn := c.authStore.NewProviderSessionSession()
-	defer ssn.Close()
+	repository := c.authStore.NewProviderSessionRepository()
 
-	providerSession, err := ssn.CreateUserProviderSession(ctx, userID, create)
+	providerSession, err := repository.CreateUserProviderSession(ctx, userID, create)
 	if err != nil {
 		return nil, err
 	}
 
 	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession.ID); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).WithField("providerSessionId", providerSession.ID).Error("unable to finalize creation of provider session")
-		ssn.DeleteProviderSession(ctx, providerSession.ID)
+		repository.DeleteProviderSession(ctx, providerSession.ID)
 		return nil, err
 	}
 
@@ -85,22 +82,21 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) error {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
-	ssn := c.authStore.NewProviderSessionSession()
-	defer ssn.Close()
+	repository := c.authStore.NewProviderSessionRepository()
 
 	// TODO: Add pagination if/when we ever get over one page of provider sessions
-	if providerSessions, err := ssn.ListUserProviderSessions(ctx, userID, nil, nil); err != nil {
+	if providerSessions, err := repository.ListUserProviderSessions(ctx, userID, nil, nil); err != nil {
 		logger.WithError(err).Warn("Unable to list user provider sessions")
 	} else {
 		for _, providerSession := range providerSessions {
-			c.deleteProviderSession(ctx, ssn, providerSession)
+			c.deleteProviderSession(ctx, repository, providerSession)
 		}
 	}
 
-	return ssn.DeleteAllProviderSessions(ctx, userID)
+	return repository.DeleteAllProviderSessions(ctx, userID)
 }
 
-func (c *Client) deleteProviderSession(ctx context.Context, ssn authStore.ProviderSessionSession, providerSession *auth.ProviderSession) {
+func (c *Client) deleteProviderSession(ctx context.Context, repository authStore.ProviderSessionRepository, providerSession *auth.ProviderSession) {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSession", providerSession)
 
 	var prvdr provider.Provider
@@ -109,7 +105,7 @@ func (c *Client) deleteProviderSession(ctx context.Context, ssn authStore.Provid
 		logger.WithError(err).Warn("Unable to get provider")
 	}
 
-	if err = ssn.DeleteProviderSession(ctx, providerSession.ID); err != nil {
+	if err = repository.DeleteProviderSession(ctx, providerSession.ID); err != nil {
 		logger.WithError(err).Warn("Unable to delete provider session")
 	}
 
@@ -121,24 +117,20 @@ func (c *Client) deleteProviderSession(ctx context.Context, ssn authStore.Provid
 }
 
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
-	ssn := c.authStore.NewProviderSessionSession()
-	defer ssn.Close()
-
-	return ssn.GetProviderSession(ctx, id)
+	repository := c.authStore.NewProviderSessionRepository()
+	return repository.GetProviderSession(ctx, id)
 }
 
 func (c *Client) UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
-	ssn := c.authStore.NewProviderSessionSession()
-	defer ssn.Close()
+	repository := c.authStore.NewProviderSessionRepository()
 
-	return ssn.UpdateProviderSession(ctx, id, update)
+	return repository.UpdateProviderSession(ctx, id, update)
 }
 
 func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
-	ssn := c.authStore.NewProviderSessionSession()
-	defer ssn.Close()
+	repository := c.authStore.NewProviderSessionRepository()
 
-	providerSession, err := ssn.GetProviderSession(ctx, id)
+	providerSession, err := repository.GetProviderSession(ctx, id)
 	if err != nil {
 		return err
 	} else if providerSession == nil {
@@ -150,7 +142,7 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err = ssn.DeleteProviderSession(ctx, id); err != nil {
+	if err = repository.DeleteProviderSession(ctx, id); err != nil {
 		return err
 	}
 
@@ -158,43 +150,32 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 }
 
 func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {
-	ssn := c.authStore.NewRestrictedTokenSession()
-	defer ssn.Close()
-
-	return ssn.ListUserRestrictedTokens(ctx, userID, filter, pagination)
+	repository := c.authStore.NewRestrictedTokenRepository()
+	return repository.ListUserRestrictedTokens(ctx, userID, filter, pagination)
 }
 
 func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, create *auth.RestrictedTokenCreate) (*auth.RestrictedToken, error) {
-	ssn := c.authStore.NewRestrictedTokenSession()
-	defer ssn.Close()
-
-	return ssn.CreateUserRestrictedToken(ctx, userID, create)
+	repository := c.authStore.NewRestrictedTokenRepository()
+	return repository.CreateUserRestrictedToken(ctx, userID, create)
 }
 
 func (c *Client) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
-	ssn := c.authStore.NewRestrictedTokenSession()
-	defer ssn.Close()
-
-	return ssn.DeleteAllRestrictedTokens(ctx, userID)
+	repository := c.authStore.NewRestrictedTokenRepository()
+	return repository.DeleteAllRestrictedTokens(ctx, userID)
 }
 
 func (c *Client) GetRestrictedToken(ctx context.Context, id string) (*auth.RestrictedToken, error) {
-	ssn := c.authStore.NewRestrictedTokenSession()
-	defer ssn.Close()
-
-	return ssn.GetRestrictedToken(ctx, id)
+	repository := c.authStore.NewRestrictedTokenRepository()
+	return repository.GetRestrictedToken(ctx, id)
 }
 
 func (c *Client) UpdateRestrictedToken(ctx context.Context, id string, update *auth.RestrictedTokenUpdate) (*auth.RestrictedToken, error) {
-	ssn := c.authStore.NewRestrictedTokenSession()
-	defer ssn.Close()
-
-	return ssn.UpdateRestrictedToken(ctx, id, update)
+	repository := c.authStore.NewRestrictedTokenRepository()
+	return repository.UpdateRestrictedToken(ctx, id, update)
 }
 
 func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
-	ssn := c.authStore.NewRestrictedTokenSession()
-	defer ssn.Close()
+	repository := c.authStore.NewRestrictedTokenRepository()
 
-	return ssn.DeleteRestrictedToken(ctx, id)
+	return repository.DeleteRestrictedToken(ctx, id)
 }

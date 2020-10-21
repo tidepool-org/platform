@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -85,10 +87,10 @@ func (s *Service) TaskClient() task.Client {
 	return s.taskClient
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
 		Version:   s.VersionReporter().Long(),
-		TaskStore: s.taskStore.Status(),
+		TaskStore: s.taskStore.Status(ctx),
 		Server:    s.API().Status(),
 	}
 }
@@ -97,13 +99,13 @@ func (s *Service) initializeTaskStore() error {
 	s.Logger().Debug("Loading task store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "store")); err != nil {
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load task store config")
 	}
 
 	s.Logger().Debug("Creating task store")
 
-	taskStore, err := taskMongo.NewStore(cfg, s.Logger())
+	taskStore, err := taskMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task store")
 	}
@@ -122,7 +124,7 @@ func (s *Service) initializeTaskStore() error {
 func (s *Service) terminateTaskStore() {
 	if s.taskStore != nil {
 		s.Logger().Debug("Closing task store")
-		s.taskStore.Close()
+		s.taskStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying task store")
 		s.taskStore = nil

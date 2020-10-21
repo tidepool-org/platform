@@ -68,10 +68,9 @@ func (c *Client) Get(ctx context.Context, id string) (*user.User, error) {
 		return nil, request.ErrorUnauthorized()
 	}
 
-	session := c.UserStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.UserStructuredStore().NewUserRepository()
 
-	return session.Get(ctx, id, nil)
+	return repository.Get(ctx, id, nil)
 }
 
 func (c *Client) canAccessUserAccount(ctx context.Context, id string) bool {
@@ -98,10 +97,9 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		return false, err
 	}
 
-	session := c.UserStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.UserStructuredStore().NewUserRepository()
 
-	result, err := session.Get(ctx, id, condition)
+	result, err := repository.Get(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if result == nil {
@@ -120,7 +118,7 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		return false, request.ErrorUnauthorized()
 	}
 
-	deleted, err := session.Delete(ctx, id, condition)
+	deleted, err := repository.Delete(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if !deleted {
@@ -131,10 +129,9 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		logger.WithError(err).Error("Unable to record metric for delete")
 	}
 
-	sessionSession := c.SessionStore().NewSessionsSession()
-	defer sessionSession.Close()
+	tokenRepository := c.SessionStore().NewTokenRepository()
 
-	if err = sessionSession.DestroySessionsForUserByID(ctx, id); err != nil {
+	if err = tokenRepository.DestroySessionsForUserByID(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all sessions")
 	}
 
@@ -146,17 +143,15 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 		logger.WithError(err).Error("Unable to destroy all provider sessions")
 	}
 
-	permissionSession := c.PermissionStore().NewPermissionsSession()
-	defer permissionSession.Close()
+	permissionsRepository := c.PermissionStore().NewPermissionsRepository()
 
-	if err = permissionSession.DestroyPermissionsForUserByID(ctx, id); err != nil {
+	if err = permissionsRepository.DestroyPermissionsForUserByID(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all permissions")
 	}
 
-	confirmationSession := c.ConfirmationStore().NewConfirmationSession()
-	defer confirmationSession.Close()
+	confirmationRepository := c.ConfirmationStore().NewConfirmationRepository()
 
-	if err = confirmationSession.DeleteUserConfirmations(ctx, id); err != nil {
+	if err = confirmationRepository.DeleteUserConfirmations(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all confirmations")
 	}
 
@@ -177,24 +172,22 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	}
 	messageUser := &messageStore.User{ID: id}
 
-	profileSession := c.ProfileStore().NewSession()
-	defer profileSession.Close()
+	profileRepository := c.ProfileStore().NewMetaRepository()
 
-	profile, err := profileSession.Get(ctx, id, nil)
+	profile, err := profileRepository.Get(ctx, id, nil)
 	if err != nil || profile == nil || profile.FullName == nil {
 		logger.WithError(err).Error("Unable to get profile name for deleted messages")
 	} else {
 		messageUser.FullName = *profile.FullName
 	}
 
-	messageSession := c.MessageStore().NewMessagesSession()
-	defer messageSession.Close()
+	messageRepository := c.MessageStore().NewMessageRepository()
 
-	if err = messageSession.DestroyMessagesForUserByID(ctx, id); err != nil {
+	if err = messageRepository.DestroyMessagesForUserByID(ctx, id); err != nil {
 		logger.WithError(err).Error("Unable to destroy all messages")
 	}
 
-	if err = messageSession.DeleteMessagesFromUser(ctx, messageUser); err != nil {
+	if err = messageRepository.DeleteMessagesFromUser(ctx, messageUser); err != nil {
 		logger.WithError(err).Error("Unable to delete messages from user")
 	}
 
@@ -203,10 +196,10 @@ func (c *Client) Delete(ctx context.Context, id string, deleet *user.Delete, con
 	}
 
 	if profile != nil {
-		if _, err = profileSession.Destroy(ctx, id, nil); err != nil {
+		if _, err = profileRepository.Destroy(ctx, id, nil); err != nil {
 			logger.WithError(err).Error("Unable to destroy profile")
 		}
 	}
 
-	return session.Destroy(ctx, id, nil)
+	return repository.Destroy(ctx, id, nil)
 }

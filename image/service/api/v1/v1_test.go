@@ -329,7 +329,7 @@ var _ = Describe("V1", func() {
 
 						When("the path does not contain a user id", func() {
 							BeforeEach(func() {
-								req.URL.Path = fmt.Sprintf("/v1/users//images")
+								req.URL.Path = "/v1/users//images"
 							})
 
 							It("responds with bad request and expected error in body", func() {
@@ -342,7 +342,7 @@ var _ = Describe("V1", func() {
 
 						When("the path contains an invalid user id", func() {
 							BeforeEach(func() {
-								req.URL.Path = fmt.Sprintf("/v1/users/invalid/images")
+								req.URL.Path = "/v1/users/invalid/images"
 							})
 
 							It("responds with bad request and expected error in body", func() {

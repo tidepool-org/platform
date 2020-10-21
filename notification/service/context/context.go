@@ -12,7 +12,7 @@ import (
 type Context struct {
 	service.Service
 	*serviceContext.Responder
-	notificationsSession store.NotificationsSession
+	notificationsRepository store.NotificationsRepository
 }
 
 func MustNew(svc service.Service, response rest.ResponseWriter, request *rest.Request) *Context {
@@ -41,15 +41,14 @@ func New(svc service.Service, response rest.ResponseWriter, request *rest.Reques
 }
 
 func (c *Context) Close() {
-	if c.notificationsSession != nil {
-		c.notificationsSession.Close()
-		c.notificationsSession = nil
+	if c.notificationsRepository != nil {
+		c.notificationsRepository = nil
 	}
 }
 
-func (c *Context) NotificationsSession() store.NotificationsSession {
-	if c.notificationsSession == nil {
-		c.notificationsSession = c.NotificationStore().NewNotificationsSession()
+func (c *Context) NotificationsRepository() store.NotificationsRepository {
+	if c.notificationsRepository == nil {
+		c.notificationsRepository = c.NotificationStore().NewNotificationsRepository()
 	}
-	return c.notificationsSession
+	return c.notificationsRepository
 }

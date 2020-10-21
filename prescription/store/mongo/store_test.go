@@ -5,16 +5,14 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/tidepool-org/platform/store/structured/mongoofficial"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	logNull "github.com/tidepool-org/platform/log/null"
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongoofficial"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongoofficial/test"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Store", func() {
@@ -46,7 +44,7 @@ var _ = Describe("Store", func() {
 				fx.NopLogger,
 				fx.Supply(mongoConfig),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(mongoofficial.NewStore),
+				fx.Provide(storeStructuredMongo.NewStore),
 				fx.Provide(prescriptionStoreMongo.NewStore),
 				fx.Invoke(func(str prescriptionStore.Store) {
 					store = str.(*prescriptionStoreMongo.PrescriptionStore)
@@ -63,7 +61,7 @@ var _ = Describe("Store", func() {
 				fx.NopLogger,
 				fx.Supply(mongoConfig),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(mongoofficial.NewStore),
+				fx.Provide(storeStructuredMongo.NewStore),
 				fx.Provide(prescriptionStoreMongo.NewStore),
 				fx.Invoke(func(str prescriptionStore.Store) {
 					store = str.(*prescriptionStoreMongo.PrescriptionStore)

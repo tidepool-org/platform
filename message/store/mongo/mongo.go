@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -12,8 +12,8 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
+func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return nil, err
 	}
@@ -27,17 +27,17 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func (s *Store) NewMessagesSession() store.MessagesSession {
-	return &MessagesSession{
-		Session: s.Store.NewSession("messages"),
+func (s *Store) NewMessageRepository() store.MessageRepository {
+	return &MessageRepository{
+		s.Store.GetRepository("messages"),
 	}
 }
 
-type MessagesSession struct {
-	*storeStructuredMongo.Session
+type MessageRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *store.User) error {
+func (m *MessageRepository) DeleteMessagesFromUser(ctx context.Context, user *store.User) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -46,10 +46,6 @@ func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *stor
 	}
 	if user.ID == "" {
 		return errors.New("user id is missing")
-	}
-
-	if m.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -67,7 +63,7 @@ func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *stor
 			},
 		},
 	}
-	changeInfo, err := m.C().UpdateAll(selector, update)
+	changeInfo, err := m.UpdateMany(ctx, selector, update)
 
 	loggerFields := log.Fields{"userId": user.ID, "changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DeleteMessagesFromUser")
@@ -79,7 +75,7 @@ func (m *MessagesSession) DeleteMessagesFromUser(ctx context.Context, user *stor
 	return nil
 }
 
-func (m *MessagesSession) DestroyMessagesForUserByID(ctx context.Context, userID string) error {
+func (m *MessageRepository) DestroyMessagesForUserByID(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -87,16 +83,12 @@ func (m *MessagesSession) DestroyMessagesForUserByID(ctx context.Context, userID
 		return errors.New("user id is missing")
 	}
 
-	if m.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	selector := bson.M{
 		"groupid": userID,
 	}
-	removeInfo, err := m.C().RemoveAll(selector)
+	removeInfo, err := m.DeleteMany(ctx, selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyMessagesForUserByID")

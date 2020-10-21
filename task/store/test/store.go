@@ -5,26 +5,26 @@ import (
 )
 
 type Store struct {
-	NewTaskSessionInvocations int
-	NewTaskSessionOutputs     []store.TaskSession
+	NewTaskRepositoryInvocations int
+	NewTaskRepositoryOutputs     []store.TaskRepository
 }
 
 func NewStore() *Store {
 	return &Store{}
 }
 
-func (s *Store) NewTaskSession() store.TaskSession {
-	s.NewTaskSessionInvocations++
+func (s *Store) NewTaskRepository() store.TaskRepository {
+	s.NewTaskRepositoryInvocations++
 
-	if len(s.NewTaskSessionOutputs) == 0 {
-		panic("Unexpected invocation of NewTaskSession on Store")
+	if len(s.NewTaskRepositoryOutputs) == 0 {
+		panic("Unexpected invocation of NewTaskRepository on Store")
 	}
 
-	output := s.NewTaskSessionOutputs[0]
-	s.NewTaskSessionOutputs = s.NewTaskSessionOutputs[1:]
+	output := s.NewTaskRepositoryOutputs[0]
+	s.NewTaskRepositoryOutputs = s.NewTaskRepositoryOutputs[1:]
 	return output
 }
 
 func (s *Store) UnusedOutputsCount() int {
-	return len(s.NewTaskSessionOutputs)
+	return len(s.NewTaskRepositoryOutputs)
 }

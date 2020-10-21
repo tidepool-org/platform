@@ -1,11 +1,8 @@
 package store
 
-import "io"
-
 type Store interface {
-	NewNotificationsSession() NotificationsSession
+	NewNotificationsRepository() NotificationsRepository
 }
 
-type NotificationsSession interface {
-	io.Closer
+type NotificationsRepository interface {
 }

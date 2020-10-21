@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func JellyfishIDHash(bsonData bson.M) string {

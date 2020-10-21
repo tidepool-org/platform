@@ -5,8 +5,9 @@ import (
 	"math/rand"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -43,7 +44,7 @@ var _ = Describe("Mongo", func() {
 	var config *storeStructuredMongo.Config
 	var logger *logTest.Logger
 	var store *profileStoreStructuredMongo.Store
-	var session profileStoreStructured.Session
+	var repository profileStoreStructured.MetaRepository
 
 	BeforeEach(func() {
 		config = storeStructuredMongoTest.NewConfig()
@@ -51,61 +52,50 @@ var _ = Describe("Mongo", func() {
 	})
 
 	AfterEach(func() {
-		if session != nil {
-			session.Close()
-		}
 		if store != nil {
-			store.Close()
+			store.Terminate(context.Background())
 		}
 	})
 
 	Context("NewStore", func() {
 		It("returns an error when unsuccessful", func() {
 			var err error
-			store, err = profileStoreStructuredMongo.NewStore(nil, logger)
-			errorsTest.ExpectEqual(err, errors.New("config is missing"))
+			store, err = profileStoreStructuredMongo.NewStore(nil)
+			errorsTest.ExpectEqual(err, errors.New("database config is empty"))
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error when successful", func() {
 			var err error
-			store, err = profileStoreStructuredMongo.NewStore(config, logger)
+			store, err = profileStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
-		var mgoSession *mgo.Session
-		var mgoCollection *mgo.Collection
+		var collection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
-			store, err = profileStoreStructuredMongo.NewStore(config, logger)
+			store, err = profileStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
-			mgoSession = storeStructuredMongoTest.Session().Copy()
-			mgoCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "seagull")
+			collection = store.GetCollection("seagull")
 		})
 
-		AfterEach(func() {
-			if mgoSession != nil {
-				mgoSession.Close()
-			}
-		})
-
-		Context("NewSession", func() {
-			It("returns a new session", func() {
-				session = store.NewSession()
-				Expect(session).ToNot(BeNil())
+		Context("NewMetaRepository", func() {
+			It("returns a new repository", func() {
+				repository = store.NewMetaRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			var ctx context.Context
 
 			BeforeEach(func() {
-				session = store.NewSession()
+				repository = store.NewMetaRepository()
 				ctx = log.NewContextWithLogger(context.Background(), logger)
 			})
 
@@ -120,36 +110,29 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := session.Get(ctx, userID, condition)
+					result, err := repository.Get(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the user id is missing", func() {
 					userID = ""
-					result, err := session.Get(ctx, userID, condition)
+					result, err := repository.Get(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the user id is invalid", func() {
 					userID = "invalid"
-					result, err := session.Get(ctx, userID, condition)
+					result, err := repository.Get(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					result, err := session.Get(ctx, userID, condition)
+					result, err := repository.Get(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					result, err := session.Get(ctx, userID, condition)
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(result).To(BeNil())
 				})
 
@@ -165,7 +148,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(mgoCollection.Insert(AsInterfaceArray(allResult)...)).To(Succeed())
+						_, err := collection.InsertMany(context.Background(), AsInterfaceArray(allResult))
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					AfterEach(func() {
@@ -174,7 +158,7 @@ var _ = Describe("Mongo", func() {
 
 					It("returns nil when the id does not exist", func() {
 						userID = userTest.RandomID()
-						Expect(session.Get(ctx, userID, condition)).To(BeNil())
+						Expect(repository.Get(ctx, userID, condition)).To(BeNil())
 					})
 
 					When("the condition revision does not match", func() {
@@ -183,13 +167,13 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns nil", func() {
-							Expect(session.Get(ctx, userID, condition)).To(BeNil())
+							Expect(repository.Get(ctx, userID, condition)).To(BeNil())
 						})
 					})
 
 					conditionAssertions := func() {
 						It("returns the result when the user id exists", func() {
-							Expect(session.Get(ctx, userID, condition)).To(Equal(result))
+							Expect(repository.Get(ctx, userID, condition)).To(Equal(result))
 						})
 
 						Context("when the result is marked as deleted", func() {
@@ -199,7 +183,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil", func() {
-								Expect(session.Get(ctx, userID, condition)).To(BeNil())
+								Expect(repository.Get(ctx, userID, condition)).To(BeNil())
 							})
 						})
 					}
@@ -218,7 +202,7 @@ var _ = Describe("Mongo", func() {
 
 							It("returns the result with revision 0", func() {
 								result.Revision = pointer.FromInt(0)
-								Expect(session.Get(ctx, userID, condition)).To(Equal(result))
+								Expect(repository.Get(ctx, userID, condition)).To(Equal(result))
 							})
 						})
 					})
@@ -237,7 +221,7 @@ var _ = Describe("Mongo", func() {
 
 							It("returns the result with revision 0", func() {
 								result.Revision = pointer.FromInt(0)
-								Expect(session.Get(ctx, userID, condition)).To(Equal(result))
+								Expect(repository.Get(ctx, userID, condition)).To(Equal(result))
 							})
 						})
 					})
@@ -255,7 +239,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil", func() {
-								Expect(session.Get(ctx, userID, condition)).To(BeNil())
+								Expect(repository.Get(ctx, userID, condition)).To(BeNil())
 							})
 						})
 					})
@@ -273,36 +257,29 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := session.Delete(ctx, userID, condition)
+					result, err := repository.Delete(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeFalse())
 				})
 
 				It("returns an error when the user id is missing", func() {
 					userID = ""
-					result, err := session.Delete(ctx, userID, condition)
+					result, err := repository.Delete(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 					Expect(result).To(BeFalse())
 				})
 
 				It("returns an error when the user id is invalid", func() {
 					userID = "invalid"
-					result, err := session.Delete(ctx, userID, condition)
+					result, err := repository.Delete(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 					Expect(result).To(BeFalse())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					result, err := session.Delete(ctx, userID, condition)
+					result, err := repository.Delete(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
-					Expect(result).To(BeFalse())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					result, err := session.Delete(ctx, userID, condition)
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(result).To(BeFalse())
 				})
 
@@ -315,7 +292,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(mgoCollection.Insert(original)).To(Succeed())
+						_, err := collection.InsertOne(context.Background(), original)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					AfterEach(func() {
@@ -333,7 +311,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns false", func() {
-							Expect(session.Delete(ctx, userID, condition)).To(BeFalse())
+							Expect(repository.Delete(ctx, userID, condition)).To(BeFalse())
 						})
 					})
 
@@ -343,7 +321,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns false", func() {
-							Expect(session.Delete(ctx, userID, condition)).To(BeFalse())
+							Expect(repository.Delete(ctx, userID, condition)).To(BeFalse())
 						})
 					})
 
@@ -359,16 +337,19 @@ var _ = Describe("Mongo", func() {
 									"Revision":     PointTo(Equal(*original.Revision + 1)),
 									"FullName":     BeNil(),
 								})
-								Expect(session.Delete(ctx, userID, condition)).To(BeTrue())
+								Expect(repository.Delete(ctx, userID, condition)).To(BeTrue())
 								storeResult := profile.ProfileArray{}
-								Expect(mgoCollection.Find(bson.M{"userId": userID}).All(&storeResult)).To(Succeed())
+								cursor, err := collection.Find(context.Background(), bson.M{"userId": userID})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+								Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
 							})
 
 							It("returns false when the user id does not exist", func() {
 								userID = userTest.RandomID()
-								Expect(session.Delete(ctx, userID, condition)).To(BeFalse())
+								Expect(repository.Delete(ctx, userID, condition)).To(BeFalse())
 							})
 						})
 					}
@@ -410,36 +391,29 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					destroyed, err := session.Destroy(ctx, userID, condition)
+					destroyed, err := repository.Destroy(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(destroyed).To(BeFalse())
 				})
 
 				It("returns an error when the user id is missing", func() {
 					userID = ""
-					destroyed, err := session.Destroy(ctx, userID, condition)
+					destroyed, err := repository.Destroy(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 					Expect(destroyed).To(BeFalse())
 				})
 
 				It("returns an error when the user id is invalid", func() {
 					userID = "invalid"
-					destroyed, err := session.Destroy(ctx, userID, condition)
+					destroyed, err := repository.Destroy(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 					Expect(destroyed).To(BeFalse())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					destroyed, err := session.Destroy(ctx, userID, condition)
+					destroyed, err := repository.Destroy(ctx, userID, condition)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
-					Expect(destroyed).To(BeFalse())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					destroyed, err := session.Destroy(ctx, userID, condition)
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(destroyed).To(BeFalse())
 				})
 
@@ -452,7 +426,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(mgoCollection.Insert(original)).To(Succeed())
+						_, err := collection.InsertOne(context.Background(), original)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					AfterEach(func() {
@@ -466,32 +441,32 @@ var _ = Describe("Mongo", func() {
 					deletedAssertions := func() {
 						It("returns false and does not destroy the original when the user id does not exist", func() {
 							userID = userTest.RandomID()
-							Expect(session.Destroy(ctx, userID, condition)).To(BeFalse())
-							Expect(mgoCollection.Find(bson.M{"userId": original.UserID}).Count()).To(Equal(1))
+							Expect(repository.Destroy(ctx, userID, condition)).To(BeFalse())
+							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": original.UserID})).To(Equal(int64(1)))
 						})
 
 						It("returns false and does not destroy the original when the user id exists, but the condition revision does not match", func() {
 							condition.Revision = pointer.FromInt(*original.Revision + 1)
-							Expect(session.Destroy(ctx, userID, condition)).To(BeFalse())
-							Expect(mgoCollection.Find(bson.M{"userId": original.UserID}).Count()).To(Equal(1))
+							Expect(repository.Destroy(ctx, userID, condition)).To(BeFalse())
+							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": original.UserID})).To(Equal(int64(1)))
 						})
 
 						It("returns true and destroys the original when the user id exists and the condition is missing", func() {
 							condition = nil
-							Expect(session.Destroy(ctx, userID, condition)).To(BeTrue())
-							Expect(mgoCollection.Find(bson.M{"userId": original.UserID}).Count()).To(Equal(0))
+							Expect(repository.Destroy(ctx, userID, condition)).To(BeTrue())
+							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": original.UserID})).To(Equal(int64(0)))
 						})
 
 						It("returns true and destroys the original when the user id exists and the condition revision is missing", func() {
 							condition.Revision = nil
-							Expect(session.Destroy(ctx, userID, condition)).To(BeTrue())
-							Expect(mgoCollection.Find(bson.M{"userId": original.UserID}).Count()).To(Equal(0))
+							Expect(repository.Destroy(ctx, userID, condition)).To(BeTrue())
+							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": original.UserID})).To(Equal(int64(0)))
 						})
 
 						It("returns true and destroys the original when the user id exists and the condition revision matches", func() {
 							condition.Revision = pointer.CloneInt(original.Revision)
-							Expect(session.Destroy(ctx, userID, condition)).To(BeTrue())
-							Expect(mgoCollection.Find(bson.M{"userId": original.UserID}).Count()).To(Equal(0))
+							Expect(repository.Destroy(ctx, userID, condition)).To(BeTrue())
+							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": original.UserID})).To(Equal(int64(0)))
 						})
 					}
 

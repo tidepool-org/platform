@@ -5,26 +5,26 @@ import (
 )
 
 type Store struct {
-	NewNotificationsSessionInvocations int
-	NewNotificationsSessionOutputs     []store.NotificationsSession
+	NewNotificationsRepositoryInvocations int
+	NewNotificationsRepositoryOutputs     []store.NotificationsRepository
 }
 
 func NewStore() *Store {
 	return &Store{}
 }
 
-func (s *Store) NewNotificationsSession() store.NotificationsSession {
-	s.NewNotificationsSessionInvocations++
+func (s *Store) NewNotificationsRepository() store.NotificationsRepository {
+	s.NewNotificationsRepositoryInvocations++
 
-	if len(s.NewNotificationsSessionOutputs) == 0 {
-		panic("Unexpected invocation of NewNotificationsSession on Store")
+	if len(s.NewNotificationsRepositoryOutputs) == 0 {
+		panic("Unexpected invocation of NewNotificationsRepository on Store")
 	}
 
-	output := s.NewNotificationsSessionOutputs[0]
-	s.NewNotificationsSessionOutputs = s.NewNotificationsSessionOutputs[1:]
+	output := s.NewNotificationsRepositoryOutputs[0]
+	s.NewNotificationsRepositoryOutputs = s.NewNotificationsRepositoryOutputs[1:]
 	return output
 }
 
 func (s *Store) UnusedOutputsCount() int {
-	return len(s.NewNotificationsSessionOutputs)
+	return len(s.NewNotificationsRepositoryOutputs)
 }

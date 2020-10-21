@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 
@@ -116,13 +117,21 @@ var _ = Describe("Service", func() {
 				})
 
 				It("returns an error when the blob structured store config load returns an error", func() {
-					blobStructuredStoreConfig["timeout"] = "invalid"
+					timeout, timeoutSet := os.LookupEnv("TIDEPOOL_STORE_TIMEOUT")
+					os.Setenv("TIDEPOOL_STORE_TIMEOUT", "invalid")
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load blob structured store config"))
+					if timeoutSet {
+						os.Setenv("TIDEPOOL_STORE_TIMEOUT", timeout)
+					} else {
+						os.Unsetenv("TIDEPOOL_STORE_TIMEOUT")
+					}
 				})
 
 				It("returns an error when the blob structured store returns an error", func() {
-					blobStructuredStoreConfig["addresses"] = ""
+					addresses := os.Getenv("TIDEPOOL_STORE_ADDRESSES")
+					os.Setenv("TIDEPOOL_STORE_ADDRESSES", "")
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create blob structured store"))
+					os.Setenv("TIDEPOOL_STORE_ADDRESSES", addresses)
 				})
 
 				It("returns an error when the blob unstructured store returns an error", func() {
@@ -148,7 +157,7 @@ var _ = Describe("Service", func() {
 
 				Context("Status", func() {
 					It("returns successfully", func() {
-						Expect(service.Status()).ToNot(BeNil())
+						Expect(service.Status(context.Background())).ToNot(BeNil())
 					})
 				})
 

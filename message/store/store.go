@@ -2,16 +2,13 @@ package store
 
 import (
 	"context"
-	"io"
 )
 
 type Store interface {
-	NewMessagesSession() MessagesSession
+	NewMessageRepository() MessageRepository
 }
 
-type MessagesSession interface {
-	io.Closer
-
+type MessageRepository interface {
 	DeleteMessagesFromUser(ctx context.Context, user *User) error
 	DestroyMessagesForUserByID(ctx context.Context, userID string) error
 }

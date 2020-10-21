@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -21,8 +22,8 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := storeStructuredMongo.NewStore(cfg, lgr)
+func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
+	str, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return nil, err
 	}
@@ -32,38 +33,64 @@ func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) 
 	}, nil
 }
 
-func (s *Store) NewTaskSession() store.TaskSession {
-	return s.taskSession()
+func (s *Store) NewTaskRepository() store.TaskRepository {
+	return s.TaskRepository()
 }
 
-func (s *Store) taskSession() *TaskSession {
-	return &TaskSession{
-		Session: s.Store.NewSession("tasks"),
+func (s *Store) TaskRepository() *TaskRepository {
+	return &TaskRepository{
+		s.Store.GetRepository("tasks"),
 	}
 }
 
 func (s *Store) EnsureIndexes() error {
-	ssn := s.taskSession()
-	defer ssn.Close()
-	return ssn.EnsureIndexes()
+	repository := s.TaskRepository()
+	return repository.EnsureIndexes()
 }
 
-type TaskSession struct {
-	*storeStructuredMongo.Session
+type TaskRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (t *TaskSession) EnsureIndexes() error {
-	return t.EnsureAllIndexes([]mgo.Index{
-		{Key: []string{"id"}, Unique: true, Background: true},
-		{Key: []string{"name"}, Unique: true, Sparse: true, Background: true},
-		{Key: []string{"priority"}, Background: true},
-		{Key: []string{"availableTime"}, Background: true},
-		{Key: []string{"expirationTime"}, Background: true},
-		{Key: []string{"state"}, Background: true},
+func (t *TaskRepository) EnsureIndexes() error {
+	return t.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+		{
+			Keys: bson.D{{Key: "id", Value: 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "name", Value: 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetSparse(true).
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "priority", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "availableTime", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "expirationTime", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
+		{
+			Keys: bson.D{{Key: "state", Value: 1}},
+			Options: options.Index().
+				SetBackground(true),
+		},
 	})
 }
 
-func (t *TaskSession) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
+func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -78,14 +105,10 @@ func (t *TaskSession) ListTasks(ctx context.Context, filter *task.TaskFilter, pa
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	if t.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
 
-	tsks := task.Tasks{}
+	tasks := task.Tasks{}
 	selector := bson.M{}
 	if filter.Name != nil {
 		selector["name"] = *filter.Name
@@ -96,20 +119,26 @@ func (t *TaskSession) ListTasks(ctx context.Context, filter *task.TaskFilter, pa
 	if filter.State != nil {
 		selector["state"] = *filter.State
 	}
-	err := t.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&tsks)
-	logger.WithFields(log.Fields{"count": len(tsks), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListTasks")
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := t.Find(ctx, selector, opts)
+	logger.WithFields(log.Fields{"count": len(tasks), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListTasks")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list tasks")
 	}
 
-	if tsks == nil {
-		tsks = task.Tasks{}
+	if err = cursor.All(ctx, &tasks); err != nil {
+		return nil, errors.Wrap(err, "unable to decode tasks")
 	}
 
-	return tsks, nil
+	if tasks == nil {
+		tasks = task.Tasks{}
+	}
+
+	return tasks, nil
 }
 
-func (t *TaskSession) CreateTask(ctx context.Context, create *task.TaskCreate) (*task.Task, error) {
+func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -121,14 +150,10 @@ func (t *TaskSession) CreateTask(ctx context.Context, create *task.TaskCreate) (
 		return nil, errors.Wrap(err, "task is invalid")
 	}
 
-	if t.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"create": create})
 
-	err = t.C().Insert(tsk)
+	_, err = t.InsertOne(ctx, tsk)
 	logger.WithFields(log.Fields{"id": tsk.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateTask")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create task")
@@ -137,7 +162,7 @@ func (t *TaskSession) CreateTask(ctx context.Context, create *task.TaskCreate) (
 	return tsk, nil
 }
 
-func (t *TaskSession) GetTask(ctx context.Context, id string) (*task.Task, error) {
+func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -145,32 +170,22 @@ func (t *TaskSession) GetTask(ctx context.Context, id string) (*task.Task, error
 		return nil, errors.New("id is missing")
 	}
 
-	if t.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	tsks := task.Tasks{}
-	err := t.C().Find(bson.M{"id": id}).Limit(2).All(&tsks)
+	var task *task.Task
+	err := t.FindOne(ctx, bson.M{"id": id}).Decode(task)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
-	if err != nil {
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get task")
 	}
 
-	switch count := len(tsks); count {
-	case 0:
-		return nil, nil
-	case 1:
-		return tsks[0], nil
-	default:
-		logger.WithField("count", count).Warnf("Multiple tasks found for id %q", id)
-		return tsks[0], nil
-	}
+	return task, nil
 }
 
-func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
+func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -181,10 +196,6 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	if t.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -205,7 +216,7 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 	if update.ExpirationTime != nil {
 		set["expirationTime"] = *update.ExpirationTime
 	}
-	changeInfo, err := t.C().UpdateAll(bson.M{"id": id}, t.ConstructUpdate(set, bson.M{}))
+	changeInfo, err := t.UpdateMany(ctx, bson.M{"id": id}, t.ConstructUpdate(set, bson.M{}))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update task")
@@ -214,7 +225,7 @@ func (t *TaskSession) UpdateTask(ctx context.Context, id string, update *task.Ta
 	return t.GetTask(ctx, id)
 }
 
-func (t *TaskSession) DeleteTask(ctx context.Context, id string) error {
+func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -222,14 +233,10 @@ func (t *TaskSession) DeleteTask(ctx context.Context, id string) error {
 		return errors.New("id is missing")
 	}
 
-	if t.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	changeInfo, err := t.C().RemoveAll(bson.M{"id": id})
+	changeInfo, err := t.DeleteMany(ctx, bson.M{"id": id})
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteTask")
 	if err != nil {
 		return errors.Wrap(err, "unable to delete task")
@@ -240,16 +247,12 @@ func (t *TaskSession) DeleteTask(ctx context.Context, id string) error {
 
 // TODO: Consider using an "update only specific fields" approach, as above
 
-func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error) {
+func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 	if tsk == nil {
 		return nil, errors.New("task is missing")
-	}
-
-	if t.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -261,7 +264,7 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 		"id":    tsk.ID,
 		"state": state,
 	}
-	err := t.C().Update(selector, tsk)
+	_, err := t.ReplaceOne(ctx, selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update from state")
@@ -270,15 +273,7 @@ func (t *TaskSession) UpdateFromState(ctx context.Context, tsk *task.Task, state
 	return tsk, nil
 }
 
-func (t *TaskSession) IteratePending(ctx context.Context) store.TaskIterator {
-	if ctx == nil {
-		return &TaskIterator{err: errors.New("context is missing")}
-	}
-
-	if t.IsClosed() {
-		return &TaskIterator{err: errors.New("session closed")}
-	}
-
+func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, error) {
 	now := time.Now()
 
 	selector := bson.M{
@@ -315,54 +310,6 @@ func (t *TaskSession) IteratePending(ctx context.Context) store.TaskIterator {
 		},
 	}
 
-	iterator := t.C().Find(selector).Sort("-priority").Iter()
-	err := iterator.Err()
-
-	return &TaskIterator{
-		iterator: iterator,
-		err:      err,
-	}
-}
-
-type TaskIterator struct {
-	iterator *mgo.Iter
-	err      error
-}
-
-func (t *TaskIterator) Next(tsk *task.Task) bool {
-	if tsk == nil {
-		t.setError(errors.New("task is missing"))
-	}
-
-	if t.err != nil {
-		return false
-	}
-
-	return t.iterator.Next(tsk)
-}
-
-func (t *TaskIterator) Close() error {
-	if t.iterator != nil {
-		if err := t.iterator.Close(); err != nil {
-			t.setError(errors.Wrap(err, "unable to close iterator"))
-		}
-	}
-
-	return t.Error()
-}
-
-func (t *TaskIterator) Error() error {
-	if t.iterator != nil && t.err == nil {
-		if err := t.iterator.Err(); err != nil {
-			t.setError(errors.Wrap(err, "iterator failure"))
-		}
-	}
-
-	return t.err
-}
-
-func (t *TaskIterator) setError(err error) {
-	if t.err == nil {
-		t.err = err
-	}
+	opts := options.Find().SetSort(bson.M{"priority": -1})
+	return t.Find(ctx, selector, opts)
 }

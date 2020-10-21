@@ -1,12 +1,14 @@
 package mongo_test
 
 import (
-	mgo "github.com/globalsign/mgo"
+	"context"
+
+	"go.mongodb.org/mongo-driver/mongo"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
-	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	taskStore "github.com/tidepool-org/platform/task/store"
@@ -16,77 +18,94 @@ import (
 var _ = Describe("Mongo", func() {
 	var cfg *storeStructuredMongo.Config
 	var str *taskStoreMongo.Store
-	var ssn taskStore.TaskSession
+	var repository taskStore.TaskRepository
 
 	BeforeEach(func() {
 		cfg = storeStructuredMongoTest.NewConfig()
 	})
 
 	AfterEach(func() {
-		if ssn != nil {
-			ssn.Close()
-		}
 		if str != nil {
-			str.Close()
+			str.Terminate(context.Background())
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			str, err = taskStoreMongo.NewStore(nil, nil)
+			str, err = taskStoreMongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
 			Expect(str).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			str, err = taskStoreMongo.NewStore(cfg, logTest.NewLogger())
+			str, err = taskStoreMongo.NewStore(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
-		var mgoSession *mgo.Session
-		var mgoCollection *mgo.Collection
+		var collection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
-			str, err = taskStoreMongo.NewStore(cfg, logTest.NewLogger())
+			str, err = taskStoreMongo.NewStore(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(str).ToNot(BeNil())
-			mgoSession = storeStructuredMongoTest.Session().Copy()
-			mgoCollection = mgoSession.DB(cfg.Database).C(cfg.CollectionPrefix + "tasks")
-		})
-
-		AfterEach(func() {
-			if mgoSession != nil {
-				mgoSession.Close()
-			}
+			collection = str.GetCollection("tasks")
 		})
 
 		Context("EnsureIndexes", func() {
 			It("returns successfully", func() {
 				Expect(str.EnsureIndexes()).To(Succeed())
-				indexes, err := mgoCollection.Indexes()
+				cursor, err := collection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
 				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("id"), "Background": Equal(true), "Unique": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("name"), "Background": Equal(true), "Unique": Equal(true), "Sparse": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("priority"), "Background": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("availableTime"), "Background": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("expirationTime"), "Background": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("state"), "Background": Equal(true)}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("id")),
+						"Background": Equal(true),
+						"Unique":     Equal(true),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("name")),
+						"Background": Equal(true),
+						"Unique":     Equal(true),
+						"Sparse":     Equal(true),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("priority")),
+						"Background": Equal(true),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("availableTime")),
+						"Background": Equal(true),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("expirationTime")),
+						"Background": Equal(true),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("state")),
+						"Background": Equal(true),
+					}),
 				))
 			})
 		})
 
-		Context("NewTaskSession", func() {
-			It("returns a new session", func() {
-				ssn = str.NewTaskSession()
-				Expect(ssn).ToNot(BeNil())
+		Context("NewTaskRepository", func() {
+			It("returns a new repository", func() {
+				repository = str.NewTaskRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 	})

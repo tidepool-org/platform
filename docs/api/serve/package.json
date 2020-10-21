@@ -9,7 +9,7 @@
     "ngrok": "ngrok http localhost:11001 --bind-tls true --subdomain tidepool-docs"
   },
   "dependencies": {
-    "http-server": "0.11.1",
-    "redoc-cli": "0.8.5"
+    "http-server": "0.12.3",
+    "redoc-cli": "0.9.12"
   }
 }

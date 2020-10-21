@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"syreclabs.com/go/faker"
 
 	"github.com/tidepool-org/platform/structure"
@@ -319,14 +319,14 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("doesn't fail with a valid id", func() {
-					filter.ID = bson.NewObjectId().Hex()
+					filter.ID = primitive.NewObjectID().Hex()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
 				It("fails when the id is 13 hex characters", func() {
-					filter.ID = fmt.Sprintf("%sa", bson.NewObjectId().Hex())
+					filter.ID = fmt.Sprintf("%sa", primitive.NewObjectID().Hex())
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
@@ -449,14 +449,14 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("doesn't fail with a valid id", func() {
-					filter.ID = bson.NewObjectId().Hex()
+					filter.ID = primitive.NewObjectID().Hex()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
 				It("fails when the id is 13 hex characters", func() {
-					filter.ID = fmt.Sprintf("%sa", bson.NewObjectId().Hex())
+					filter.ID = fmt.Sprintf("%sa", primitive.NewObjectID().Hex())
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notification/service"
@@ -45,10 +47,10 @@ func (s *Service) NotificationStore() store.Store {
 	return s.notificationStore
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
 		Version:           s.VersionReporter().Long(),
-		NotificationStore: s.notificationStore.Status(),
+		NotificationStore: s.notificationStore.Status(ctx),
 		Server:            s.API().Status(),
 	}
 }
@@ -84,13 +86,13 @@ func (s *Service) initializeNotificationStore() error {
 	s.Logger().Debug("Loading notification store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("notification", "store")); err != nil {
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load notification store config")
 	}
 
 	s.Logger().Debug("Creating notification store")
 
-	str, err := notificationMongo.NewStore(cfg, s.Logger())
+	str, err := notificationMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create notification store")
 	}
@@ -102,7 +104,7 @@ func (s *Service) initializeNotificationStore() error {
 func (s *Service) terminateNotificationStore() {
 	if s.notificationStore != nil {
 		s.Logger().Debug("Closing notification store")
-		s.notificationStore.Close()
+		s.notificationStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying notification store")
 		s.notificationStore = nil

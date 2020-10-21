@@ -46,6 +46,18 @@ var _ = Describe("Revision", func() {
 				Expect(revision.Attributes).ToNot(BeNil())
 			})
 
+			It("sets account type correctly", func() {
+				Expect(revision.Attributes.AccountType).To(Equal(create.AccountType))
+			})
+
+			It("sets caregiver first name correctly", func() {
+				Expect(revision.Attributes.CaregiverFirstName).To(Equal(create.CaregiverFirstName))
+			})
+
+			It("sets caregiver last name correctly", func() {
+				Expect(revision.Attributes.CaregiverLastName).To(Equal(create.CaregiverLastName))
+			})
+
 			It("sets the first name correctly", func() {
 				Expect(revision.Attributes.FirstName).To(Equal(create.FirstName))
 			})
@@ -156,6 +168,39 @@ var _ = Describe("Revision", func() {
 				BeforeEach(func() {
 					validate = validator.New()
 					attr.State = prescription.StateSubmitted
+				})
+
+				It("fails with empty account type", func() {
+					attr.AccountType = ""
+					Expect(validate.Validate(attr)).To(HaveOccurred())
+				})
+
+				It("fails with empty caregiver first name when account type is 'caregiver'", func() {
+					attr.AccountType = prescription.AccountTypeCaregiver
+					attr.CaregiverFirstName = ""
+					attr.CaregiverLastName = "Doe"
+					Expect(validate.Validate(attr)).To(HaveOccurred())
+				})
+
+				It("fails with empty caregiver last name when account type is 'caregiver'", func() {
+					attr.AccountType = prescription.AccountTypeCaregiver
+					attr.CaregiverFirstName = "Jane"
+					attr.CaregiverLastName = ""
+					Expect(validate.Validate(attr)).To(HaveOccurred())
+				})
+
+				It("doesn't fail with empty caregiver names when account type is patient", func() {
+					attr.AccountType = prescription.AccountTypePatient
+					attr.CaregiverFirstName = ""
+					attr.CaregiverLastName = ""
+					Expect(validate.Validate(attr)).To(Not(HaveOccurred()))
+				})
+
+				It("fails with non-empty caregiver names when account type is patient", func() {
+					attr.AccountType = prescription.AccountTypePatient
+					attr.CaregiverFirstName = "Jane"
+					attr.CaregiverLastName = "Doe"
+					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty first name", func() {
@@ -320,9 +365,12 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
-				It("doesn't fail empty attributes and when state is draft or expired", func() {
+				It("doesn't fail with empty attributes when state is 'draft' or 'expired'", func() {
 					now := time.Now()
 					attr = &prescription.Attributes{
+						AccountType:             "",
+						CaregiverFirstName:      "",
+						CaregiverLastName:       "",
 						FirstName:               "",
 						LastName:                "",
 						Birthday:                "",

@@ -2,7 +2,6 @@ package structured
 
 import (
 	"context"
-	"io"
 
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/image"
@@ -13,12 +12,10 @@ import (
 )
 
 type Store interface {
-	NewSession() Session
+	NewImageRepository() ImageRepository
 }
 
-type Session interface {
-	io.Closer
-
+type ImageRepository interface {
 	List(ctx context.Context, userID string, filter *image.Filter, pagination *page.Pagination) (image.ImageArray, error)
 	Create(ctx context.Context, userID string, metadata *image.Metadata) (*image.Image, error)
 	DeleteAll(ctx context.Context, userID string) (bool, error)
