@@ -11,10 +11,6 @@ go:
 
 go_import_path: github.com/tidepool-org/platform
 
-env:
-  global:
-    - BUILD_OPENAPI_DOC=true
-
 before_install:
   # MongoDb 4.2 docker container
   - docker container run -d -p 27017:27017 mongo:4.2 
@@ -63,8 +59,7 @@ services:
   - docker
 
 script:
-  - make ci-generate ci-build ci-test ci-deploy ci-docker
-  - GO111MODULE="on" make ci-soups
+  - ./artifact.sh
 cache:
   directories:
     - $HOME/.cache/go-build

@@ -1,5 +1,10 @@
 # Platform 
 The Tidepool platform API
+
+## Unreleased
+### Engineering
+- YLP-198 Review Platform project security scan
+ 
 ## 0.10.1 2020-09-17
 ### Fixed
 - PT-1516 Max connection attempts to MongoDb doesn't behave as expected

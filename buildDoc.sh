@@ -2,6 +2,7 @@
 # Generate OpenAPI documentation
 GOPATH=${GOPATH:-~/go}
 echo "Using GOPATH: ${GOPATH}"
+export GO111MODULE="on"
 
 if [ ! -x "$GOPATH/bin/swag" ]; then
   echo "Getting swag..."

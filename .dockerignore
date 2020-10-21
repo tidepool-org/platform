@@ -3,3 +3,4 @@ _bin/
 _tmp/
 debug
 deploy/
+local/
