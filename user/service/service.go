@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/go-common/events"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/blob"
 	blobClient "github.com/tidepool-org/platform/blob/client"
