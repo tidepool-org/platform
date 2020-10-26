@@ -11,7 +11,7 @@ import (
 )
 
 type SaramaConsumer struct {
-	config *CloudEventsConfig
+	config             *CloudEventsConfig
 	consumerGroup      sarama.ConsumerGroup
 	ready              chan bool
 	topic              string
@@ -25,12 +25,12 @@ func NewSaramaCloudEventsConsumer(config *CloudEventsConfig) (EventConsumer, err
 	}
 
 	return &SaramaConsumer{
-		ready:              make(chan bool),
-		topic:              config.GetPrefixedTopic(),
-		handlers:           make([]EventHandler, 0),
+		config:   config,
+		ready:    make(chan bool),
+		topic:    config.GetPrefixedTopic(),
+		handlers: make([]EventHandler, 0),
 	}, nil
 }
-
 
 func (s *SaramaConsumer) Setup(session sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready

@@ -217,7 +217,7 @@ github.com/shurcooL/sanitized_anchor_name
 # github.com/tidepool-org/devices v0.0.0-20200724070023-40bf0e6ef236
 ## explicit
 github.com/tidepool-org/devices/api
-# github.com/tidepool-org/go-common v0.6.3-0.20201009124912-d238a51d0260
+# github.com/tidepool-org/go-common v0.7.1
 ## explicit
 github.com/tidepool-org/go-common/clients/disc
 github.com/tidepool-org/go-common/clients/shoreline

@@ -11,7 +11,7 @@ import (
 
 const (
 	producerRetryPeriod = 5 * time.Second
-	producerMaxRetries = 5
+	producerMaxRetries  = 5
 )
 
 type EventProducer interface {
@@ -19,6 +19,7 @@ type EventProducer interface {
 }
 
 var _ EventProducer = &KafkaCloudEventsProducer{}
+
 type KafkaCloudEventsProducer struct {
 	client cloudevents.Client
 	source string
@@ -66,7 +67,7 @@ func (c *KafkaCloudEventsProducer) Send(ctx context.Context, event Event) error 
 
 func (c *KafkaCloudEventsProducer) SendCloudEvent(ctx context.Context, event cloudevents.Event) error {
 	return c.client.Send(
-		cloudevents.ContextWithRetriesExponentialBackoff(ctx, producerRetryPeriod,producerMaxRetries),
+		cloudevents.ContextWithRetriesExponentialBackoff(ctx, producerRetryPeriod, producerMaxRetries),
 		event,
 	)
 }
