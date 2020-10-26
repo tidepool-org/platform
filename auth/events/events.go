@@ -41,7 +41,7 @@ func (u *userDeletionEventsHandler) HandleDeleteUserEvent(payload ev.DeleteUserE
 	}
 
 	if len(errs) != 0 {
-		return errors.New("Unable to auth data for user")
+		return errors.New("Unable to delete auth data for user")
 	}
 	return nil
 }
