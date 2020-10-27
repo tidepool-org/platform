@@ -8,17 +8,19 @@ import (
 )
 
 type InitialSettings struct {
-	BloodGlucoseUnits            string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
-	BasalRateSchedule            *pump.BasalRateStartArray          `json:"basalRateSchedule,omitempty" bson:"basalRateSchedule,omitempty"`
-	BloodGlucoseSuspendThreshold *float64                           `json:"bloodGlucoseSuspendThreshold,omitempty" bson:"bloodGlucoseSuspendThreshold,omitempty"`
-	BloodGlucoseTargetSchedule   *pump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
-	CarbohydrateRatioSchedule    *pump.CarbohydrateRatioStartArray  `json:"carbohydrateRatioSchedule,omitempty" bson:"carbohydrateRatioSchedule,omitempty"`
-	InsulinModel                 *string                            `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
-	InsulinSensitivitySchedule   *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
-	BasalRateMaximum             *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
-	BolusAmountMaximum           *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
-	PumpID                       string                             `json:"pumpId,omitempty" bson:"pumpId,omitempty"`
-	CgmID                        string                             `json:"cgmId,omitempty" bson:"cgmId,omitempty"`
+	BloodGlucoseUnits                  string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
+	BasalRateSchedule                  *pump.BasalRateStartArray          `json:"basalRateSchedule,omitempty" bson:"basalRateSchedule,omitempty"`
+	BloodGlucoseSuspendThreshold       *float64                           `json:"bloodGlucoseSuspendThreshold,omitempty" bson:"bloodGlucoseSuspendThreshold,omitempty"`
+	BloodGlucoseTargetPhysicalActivity *glucose.Target                    `json:"bloodGlucoseTargetPhysicalActivity,omitempty" bson:"bloodGlucoseTargetPhysicalActivity,omitempty"`
+	BloodGlucoseTargetPreprandial      *glucose.Target                    `json:"bloodGlucoseTargetPreprandial,omitempty" bson:"bloodGlucoseTargetPreprandial,omitempty"`
+	BloodGlucoseTargetSchedule         *pump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
+	CarbohydrateRatioSchedule          *pump.CarbohydrateRatioStartArray  `json:"carbohydrateRatioSchedule,omitempty" bson:"carbohydrateRatioSchedule,omitempty"`
+	InsulinModel                       *string                            `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
+	InsulinSensitivitySchedule         *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
+	BasalRateMaximum                   *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
+	BolusAmountMaximum                 *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
+	PumpID                             string                             `json:"pumpId,omitempty" bson:"pumpId,omitempty"`
+	CgmID                              string                             `json:"cgmId,omitempty" bson:"cgmId,omitempty"`
 }
 
 func AllowedInsulinModels() []string {
@@ -35,6 +37,28 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	}
 	if i.BloodGlucoseSuspendThreshold != nil {
 		pump.ValidateBloodGlucoseSuspendThreshold(i.BloodGlucoseSuspendThreshold, &i.BloodGlucoseUnits, "bloodGlucoseSuspendThreshold", validator)
+	}
+	if i.BloodGlucoseTargetPhysicalActivity != nil {
+		v := validator.WithReference("bloodGlucoseTargetPhysicalActivity")
+		i.BloodGlucoseTargetPhysicalActivity.Validate(v, &i.BloodGlucoseUnits)
+		if i.BloodGlucoseTargetSchedule != nil {
+			scheduleBounds := i.BloodGlucoseTargetSchedule.GetBounds()
+			physicalActivityBounds := i.BloodGlucoseTargetPhysicalActivity.GetBounds()
+			if scheduleBounds != nil && physicalActivityBounds != nil {
+				validatePhysicalActivityBgTarget(*scheduleBounds, *physicalActivityBounds, v)
+			}
+		}
+	}
+	if i.BloodGlucoseTargetPreprandial != nil {
+		v := validator.WithReference("bloodGlucoseTargetPreprandial")
+		i.BloodGlucoseTargetPreprandial.Validate(v, &i.BloodGlucoseUnits)
+		if i.BloodGlucoseTargetSchedule != nil {
+			scheduleBounds := i.BloodGlucoseTargetSchedule.GetBounds()
+			preprandialBounds := i.BloodGlucoseTargetPreprandial.GetBounds()
+			if scheduleBounds != nil && preprandialBounds != nil {
+				validatePreprandialBgTarget(*scheduleBounds, *preprandialBounds, v)
+			}
+		}
 	}
 	if i.BloodGlucoseTargetSchedule != nil {
 		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bloodGlucoseTargetSchedule"), &i.BloodGlucoseUnits)
@@ -87,4 +111,12 @@ func (i *InitialSettings) ValidateAllRequired(validator structure.Validator) {
 	if i.CgmID == "" {
 		validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueEmpty())
 	}
+}
+
+func validatePreprandialBgTarget(scheduleBounds glucose.Bounds, preprandialBounds glucose.Bounds, validator structure.Validator) {
+	validator.Float64("high", &preprandialBounds.Upper).LessThanOrEqualTo(scheduleBounds.Upper)
+}
+
+func validatePhysicalActivityBgTarget(scheduleBounds glucose.Bounds, physicalActivityBounds glucose.Bounds, validator structure.Validator) {
+	validator.Float64("low", &physicalActivityBounds.Lower).GreaterThanOrEqualTo(scheduleBounds.Upper)
 }

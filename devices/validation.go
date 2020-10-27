@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/tidepool-org/platform/data/blood/glucose"
+
 	"github.com/tidepool-org/devices/api"
 
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -27,13 +29,17 @@ func ValidateBloodGlucoseSuspendThreshold(bloodGlucoseSuspendThreshold *float64,
 }
 
 func ValidateBloodGlucoseTargetSchedule(bloodGlucoseTargetSchedule pump.BloodGlucoseTargetStartArray, guardRail *api.CorrectionRangeGuardRail, validator structure.Validator) {
-	validValues := generateValidValues(guardRail.AbsoluteBounds)
-	for i, bloodGlucoseTarget := range bloodGlucoseTargetSchedule {
-		ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Target.High, validValues, validator.WithReference(strconv.Itoa(i)).WithReference("high"))
-		ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Target.Low, validValues, validator.WithReference(strconv.Itoa(i)).WithReference("low"))
-		ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Target.Range, validValues, validator.WithReference(strconv.Itoa(i)).WithReference("range"))
-		ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Target.Target, validValues, validator.WithReference(strconv.Itoa(i)).WithReference("target"))
+	for i, bloodGlucoseTargetStart := range bloodGlucoseTargetSchedule {
+		ValidateBloodGlucoseTarget(bloodGlucoseTargetStart.Target, guardRail, validator.WithReference(strconv.Itoa(i)))
 	}
+}
+
+func ValidateBloodGlucoseTarget(bloodGlucoseTarget glucose.Target, guardRail *api.CorrectionRangeGuardRail, validator structure.Validator) {
+	validValues := generateValidValues(guardRail.AbsoluteBounds)
+	ValidateIncrementIfValueNotNil(bloodGlucoseTarget.High, validValues, validator.WithReference("high"))
+	ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Low, validValues, validator.WithReference("low"))
+	ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Range, validValues, validator.WithReference("range"))
+	ValidateIncrementIfValueNotNil(bloodGlucoseTarget.Target, validValues, validator.WithReference("target"))
 }
 
 func ValidateCarbohydrateRatioSchedule(carbohydrateRatioSchedule pump.CarbohydrateRatioStartArray, guardRail *api.CarbohydrateRatioGuardRail, validator structure.Validator) {

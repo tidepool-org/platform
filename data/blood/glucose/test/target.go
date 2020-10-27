@@ -28,6 +28,13 @@ func NewTarget(units *string) *dataBloodGlucose.Target {
 	return datum
 }
 
+func NewLowHighTarget(min float64, max float64) *dataBloodGlucose.Target {
+	datum := dataBloodGlucose.NewTarget()
+	datum.Low = pointer.FromFloat64(test.RandomFloat64FromRange(min, max))
+	datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Low, max))
+	return datum
+}
+
 func CloneTarget(datum *dataBloodGlucose.Target) *dataBloodGlucose.Target {
 	clone := dataBloodGlucose.NewTarget()
 	clone.High = pointer.CloneFloat64(datum.High)

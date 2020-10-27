@@ -4,6 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/pointer"
+
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 
@@ -22,6 +24,26 @@ var _ = Describe("Initial Settings", func() {
 	})
 
 	Describe("Validate", func() {
+		BeforeEach(func() {
+			validate = validator.New()
+		})
+
+		It("fails when pre-meal correction range upper bound is higher than upper bound of the correction range schedule", func() {
+			bounds := settings.BloodGlucoseTargetSchedule.GetBounds()
+			settings.BloodGlucoseTargetPreprandial.High = pointer.FromFloat64(bounds.Upper + 1)
+			settings.Validate(validate)
+			Expect(validate.Error()).To(HaveOccurred())
+		})
+
+		It("fails when workout correction range lower bound is lower than upper bound of the correction range schedule", func() {
+			bounds := settings.BloodGlucoseTargetSchedule.GetBounds()
+			settings.BloodGlucoseTargetPhysicalActivity.High = pointer.FromFloat64(bounds.Upper - 1)
+			settings.Validate(validate)
+			Expect(validate.Error()).To(HaveOccurred())
+		})
+	})
+
+	Describe("ValidateAllRequired", func() {
 		BeforeEach(func() {
 			validate = validator.New()
 		})
