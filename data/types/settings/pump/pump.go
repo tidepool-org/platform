@@ -99,8 +99,6 @@ func (p *Pump) Validate(validator structure.Validator) {
 		}
 	} else if p.BasalRateSchedules != nil {
 		p.BasalRateSchedules.Validate(validator.WithReference("basalSchedules"))
-	} else {
-		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if p.BloodGlucoseTargetSchedule != nil {
 		p.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bgTarget"), unitsBloodGlucose)
@@ -109,8 +107,6 @@ func (p *Pump) Validate(validator structure.Validator) {
 		}
 	} else if p.BloodGlucoseTargetSchedules != nil {
 		p.BloodGlucoseTargetSchedules.Validate(validator.WithReference("bgTargets"), unitsBloodGlucose)
-	} else {
-		validator.WithReference("bgTarget").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if p.Bolus != nil {
 		p.Bolus.Validate(validator.WithReference("bolus"))
@@ -122,8 +118,6 @@ func (p *Pump) Validate(validator structure.Validator) {
 		}
 	} else if p.CarbohydrateRatioSchedules != nil {
 		p.CarbohydrateRatioSchedules.Validate(validator.WithReference("carbRatios"))
-	} else {
-		validator.WithReference("carbRatio").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if p.Display != nil {
 		p.Display.Validate(validator.WithReference("display"))
@@ -135,8 +129,6 @@ func (p *Pump) Validate(validator structure.Validator) {
 		}
 	} else if p.InsulinSensitivitySchedules != nil {
 		p.InsulinSensitivitySchedules.Validate(validator.WithReference("insulinSensitivities"), unitsBloodGlucose)
-	} else {
-		validator.WithReference("insulinSensitivity").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	validator.StringArray("manufacturers", p.Manufacturers).NotEmpty().LengthLessThanOrEqualTo(ManufacturersLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(ManufacturerLengthMaximum)

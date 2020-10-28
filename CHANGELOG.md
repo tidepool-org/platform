@@ -1,23 +1,25 @@
 # Platform 
 The Tidepool platform API
 
-## Unreleased
+## 0.10.2 - 2020-10-28
+### Fixed 
+- YLP-233 Parameters are not uploaded correctly for DBLHU systems
 ### Engineering
 - YLP-198 Review Platform project security scan
  
-## 0.10.1 2020-09-17
+## 0.10.1 - 2020-09-17
 ### Fixed
 - PT-1516 Max connection attempts to MongoDb doesn't behave as expected
 
-## 0.10.0 2020-09-09
+## 0.10.0 - 2020-09-09
 ### Changed 
 - PT-1435 Platform services should be able to start without MongoDb
 
-## 0.9.1 2020-08-18
+## 0.9.1 - 2020-08-18
 ### Fixed 
 - PT-1457 Add inputTime and make it mandatory in ZenMode and ConfidentialMode objects
 
-## 0.9.0 2020-08-12
+## 0.9.0 - 2020-08-12
 ### Changed 
 - PT-1332 Remove external gateway calls in platform
 
@@ -25,15 +27,15 @@ The Tidepool platform API
 - YLP-130 Remove "mdblp" from docker image name
 - YLP-131 Update pipeline to push image on Pictime gitlab
 
-## 0.8.4 2020-08-04 
+## 0.8.4 - 2020-08-04 
 ### Changed
 - PT-1455 Fix soup list generation in CI
 
-## 0.8.3 2020-07-13 
+## 0.8.3 - 2020-07-13 
 ### Changed
 - PT-1403 Add a timezone based on timezoneOffset on data upload.
 
-## 0.8.2 2020-07-09 
+## 0.8.2 - 2020-07-09 
 ### Fixed 
 - PT-1413 Biphasic Bolus: normal and exepctedNormal fields are not stored in DB
 

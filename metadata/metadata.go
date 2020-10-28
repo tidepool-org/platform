@@ -9,7 +9,7 @@ import (
 )
 
 const MetadataArrayLengthMaximum = 100
-const MetadataSizeMaximum = 6 * 1024
+const MetadataSizeMaximum = 8 * 1024
 
 type Metadata map[string]interface{}
 

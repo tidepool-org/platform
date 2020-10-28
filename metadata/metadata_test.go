@@ -19,7 +19,7 @@ var _ = Describe("Metadata", func() {
 	})
 
 	It("MetadataSizeMaximum is expected", func() {
-		Expect(metadata.MetadataSizeMaximum).To(Equal(6 * 1024))
+		Expect(metadata.MetadataSizeMaximum).To(Equal(8 * 1024))
 	})
 
 	Context("Metadata", func() {
@@ -116,9 +116,9 @@ var _ = Describe("Metadata", func() {
 				Entry("size out of range (upper)",
 					func(datum *metadata.Metadata) {
 						*datum = *metadata.NewMetadata()
-						(*datum)["size"] = test.RandomStringFromRangeAndCharset(6134, 6134, test.CharsetAlphaNumeric)
+						(*datum)["size"] = test.RandomStringFromRangeAndCharset(8182, 8182, test.CharsetAlphaNumeric)
 					},
-					structureValidator.ErrorSizeNotLessThanOrEqualTo(6145, 6144),
+					structureValidator.ErrorSizeNotLessThanOrEqualTo(8193, 8192),
 				),
 				Entry("multiple errors",
 					func(datum *metadata.Metadata) {

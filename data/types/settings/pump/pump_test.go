@@ -182,7 +182,6 @@ var _ = Describe("Pump", func() {
 						datum.BasalRateSchedule = nil
 						datum.BasalRateSchedules = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basalSchedule", NewMeta()),
 				),
 				Entry("basal rate schedule invalid",
 					pointer.FromString("mmol/L"),
@@ -222,7 +221,6 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTargetSchedule = nil
 						datum.BloodGlucoseTargetSchedules = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget", NewMeta()),
 				),
 				Entry("blood glucose target schedule invalid",
 					pointer.FromString("mmol/L"),
@@ -275,7 +273,6 @@ var _ = Describe("Pump", func() {
 						datum.CarbohydrateRatioSchedule = nil
 						datum.CarbohydrateRatioSchedules = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio", NewMeta()),
 				),
 				Entry("carbohydrate ratio schedule invalid",
 					pointer.FromString("mmol/L"),
@@ -328,7 +325,6 @@ var _ = Describe("Pump", func() {
 						datum.InsulinSensitivitySchedule = nil
 						datum.InsulinSensitivitySchedules = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity", NewMeta()),
 				),
 				Entry("insulin sensitivity schedule invalid",
 					pointer.FromString("mmol/L"),
@@ -488,12 +484,8 @@ var _ = Describe("Pump", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "pumpSettings"), "/type", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/activeSchedule", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basal/temporary/type", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basalSchedule", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &types.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &types.Meta{Type: "invalidType"}),
