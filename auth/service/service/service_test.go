@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"os"
 
+	eventsTest "github.com/tidepool-org/platform/events/test"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
@@ -36,6 +38,7 @@ var _ = Describe("Service", func() {
 		var taskClientConfig map[string]interface{}
 		var authServiceConfig map[string]interface{}
 		var service *authServiceService.Service
+		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -92,6 +95,7 @@ var _ = Describe("Service", func() {
 			}
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = authServiceConfig
+			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 
 			service = authServiceService.New()
 			Expect(service).ToNot(BeNil())
@@ -101,6 +105,7 @@ var _ = Describe("Service", func() {
 			if server != nil {
 				server.Close()
 			}
+			eventsTest.RestoreOldEnvironmentVariables(oldKafkaConfig)
 		})
 
 		Context("Initialize", func() {

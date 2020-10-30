@@ -6,14 +6,12 @@ import (
 	"encoding/base64"
 	"io"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
@@ -22,7 +20,6 @@ import (
 )
 
 type Provider interface {
-	AuthClient() auth.Client
 	BlobStructuredStore() blobStoreStructured.Store
 	BlobUnstructuredStore() blobStoreUnstructured.Store
 }
@@ -44,20 +41,11 @@ func New(provider Provider) (*Client, error) {
 // FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
 
 func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
-
 	repository := c.BlobStructuredStore().NewBlobRepository()
-
 	return repository.List(ctx, userID, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
-	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Write); err != nil {
-		return nil, err
-	}
-
 	if content == nil {
 		return nil, errors.New("content is missing")
 	} else if err := structureValidator.New().Validate(content); err != nil {
@@ -118,11 +106,6 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	ctx = log.ContextWithField(ctx, "userId", userID)
-
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return err
-	}
-
 	repository := c.BlobStructuredStore().NewBlobRepository()
 
 	if deleted, err := repository.DeleteAll(ctx, userID); err != nil {
@@ -140,20 +123,11 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
-
 	repository := c.BlobStructuredStore().NewBlobRepository()
-
 	return repository.Get(ctx, id, nil)
 }
 
 func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
-
 	repository := c.BlobStructuredStore().NewBlobRepository()
 
 	result, err := repository.Get(ctx, id, nil)
@@ -176,10 +150,6 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return false, err
-	}
-
 	repository := c.BlobStructuredStore().NewBlobRepository()
 
 	result, err := repository.Get(ctx, id, condition)

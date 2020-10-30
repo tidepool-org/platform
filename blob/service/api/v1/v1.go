@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/tidepool-org/platform/permission"
+
 	"github.com/ant0ine/go-json-rest/rest"
+
+	"github.com/tidepool-org/platform/auth"
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/errors"
@@ -14,11 +18,12 @@ import (
 )
 
 type Provider interface {
+	AuthClient() auth.Client
 	BlobClient() blob.Client
 }
 
 type Router struct {
-	provider Provider
+	Provider
 }
 
 func NewRouter(provider Provider) (*Router, error) {
@@ -27,7 +32,7 @@ func NewRouter(provider Provider) (*Router, error) {
 	}
 
 	return &Router{
-		provider: provider,
+		Provider: provider,
 	}, nil
 }
 
@@ -58,7 +63,12 @@ func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	result, err := r.provider.BlobClient().List(req.Context(), userID, filter, pagination)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().List(req.Context(), userID, filter, pagination)
 	if responder.RespondIfError(err) {
 		return
 	}
@@ -94,7 +104,12 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	content.DigestMD5 = digestMD5
 	content.MediaType = mediaType
 
-	result, err := r.provider.BlobClient().Create(req.Context(), userID, content)
+	_, err = r.AuthClient().EnsureAuthorizedUser(req.Context(), userID, permission.Write)
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().Create(req.Context(), userID, content)
 	if err != nil {
 		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)
@@ -116,7 +131,12 @@ func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	if responder.RespondIfError(r.provider.BlobClient().DeleteAll(req.Context(), userID)) {
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	if responder.RespondIfError(r.Provider.BlobClient().DeleteAll(req.Context(), userID)) {
 		return
 	}
 
@@ -132,7 +152,12 @@ func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	result, err := r.provider.BlobClient().Get(req.Context(), id)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().Get(req.Context(), id)
 	if responder.RespondIfError(err) {
 		return
 	} else if result == nil {
@@ -153,7 +178,12 @@ func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	content, err := r.provider.BlobClient().GetContent(req.Context(), id)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	content, err := r.Provider.BlobClient().GetContent(req.Context(), id)
 	if responder.RespondIfError(err) {
 		return
 	} else if content == nil {
@@ -189,7 +219,12 @@ func (r *Router) Delete(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	deleted, err := r.provider.BlobClient().Delete(req.Context(), id, condition)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	deleted, err := r.Provider.BlobClient().Delete(req.Context(), id, condition)
 	if responder.RespondIfError(err) {
 		return
 	} else if !deleted {

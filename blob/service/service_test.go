@@ -15,6 +15,7 @@ import (
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	eventsTest "github.com/tidepool-org/platform/events/test"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -36,6 +37,7 @@ var _ = Describe("Service", func() {
 		var blobUnstructuredStoreConfig map[string]interface{}
 		var blobServiceConfig map[string]interface{}
 		var service *blobService.Service
+		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -90,6 +92,7 @@ var _ = Describe("Service", func() {
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = blobServiceConfig
 
+			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 			service = blobService.New()
 			Expect(service).ToNot(BeNil())
 		})
@@ -98,6 +101,7 @@ var _ = Describe("Service", func() {
 			if server != nil {
 				server.Close()
 			}
+			eventsTest.RestoreOldEnvironmentVariables(oldKafkaConfig)
 			provider.AssertOutputsEmpty()
 		})
 

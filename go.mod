@@ -3,6 +3,7 @@ module github.com/tidepool-org/platform
 go 1.15
 
 require (
+	github.com/Shopify/sarama v1.27.0
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.35.3
 	github.com/blang/semver v3.5.1+incompatible
@@ -17,6 +18,7 @@ require (
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/tidepool-org/devices v0.0.0-20200724070023-40bf0e6ef236
+	github.com/tidepool-org/go-common v0.7.1
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.4.1
 	go.uber.org/fx v1.13.1
