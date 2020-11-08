@@ -55,22 +55,22 @@ endif
 
 esc:
 ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install .
+	go get github.com/mjibson/esc
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
+	go get github.com/onsi/ginkgo/ginkgo
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install .
+	go get golang.org/x/tools/cmd/goimports
 endif
 
 golint:
 ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && go install .
+	go get golang.org/x/lint/golint
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}

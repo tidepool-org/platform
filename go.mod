@@ -15,12 +15,13 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mjibson/esc v0.2.0
-	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.2
 	github.com/tidepool-org/devices v0.0.0-20200724070023-40bf0e6ef236
 	github.com/tidepool-org/go-common v0.7.1
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.4.1
+	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.13.0
 	go.uber.org/fx v1.13.1
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b

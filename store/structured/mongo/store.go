@@ -10,6 +10,8 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/tidepool-org/platform/errors"
+
+	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 )
 
 var StoreModule = fx.Options(
@@ -42,6 +44,8 @@ func NewStore(c *Config) (*Store, error) {
 		ApplyURI(cs).
 		SetConnectTimeout(store.config.Timeout).
 		SetServerSelectionTimeout(store.config.Timeout)
+
+	clientOptions.Monitor = otelmongo.NewMonitor("test-service")
 	store.client, err = mongoDriver.Connect(context.Background(), clientOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "connection options are invalid")
