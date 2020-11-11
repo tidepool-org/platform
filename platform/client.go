@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type AuthorizeAs int
@@ -49,7 +50,8 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 	// }
 
 	httpClient := &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout:   60 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	return &Client{

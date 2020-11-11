@@ -14,6 +14,7 @@ const (
 	HTTPHeaderTraceSession = "X-Tidepool-Trace-Session"
 )
 
+//CopyTrace is equivalent to opentracing Inject
 func CopyTrace(ctx context.Context, req *http.Request) error {
 	if ctx == nil {
 		return errors.New("context is missing")

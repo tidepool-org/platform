@@ -45,7 +45,7 @@ func NewStore(c *Config) (*Store, error) {
 		SetConnectTimeout(store.config.Timeout).
 		SetServerSelectionTimeout(store.config.Timeout)
 
-	clientOptions.Monitor = otelmongo.NewMonitor("test-service")
+	clientOptions.Monitor = otelmongo.NewMonitor("platform")
 	store.client, err = mongoDriver.Connect(context.Background(), clientOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "connection options are invalid")
