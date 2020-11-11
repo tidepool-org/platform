@@ -15,6 +15,8 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/user"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Provider interface {

@@ -23,7 +23,6 @@ require (
 	go.mongodb.org/mongo-driver v1.4.1
 	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.13.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.13.0
-	go.opentelemetry.io/otel v0.13.0
 	go.uber.org/fx v1.13.1
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
