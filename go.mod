@@ -28,7 +28,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/tools v0.0.0-20201005185003-576e169c3de7
+	golang.org/x/tools v0.0.0-20201110201400-7099162a900a
 	google.golang.org/grpc v1.32.0
 	gopkg.in/tylerb/graceful.v1 v1.2.15
 	gopkg.in/yaml.v2 v2.3.0
