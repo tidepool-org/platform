@@ -38,12 +38,12 @@ func NewRouter(provider Provider) (*Router, error) {
 
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
-		rest.Get("/v1/users/:userId/blobs", r.List),
-		rest.Post("/v1/users/:userId/blobs", r.Create),
-		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
-		rest.Get("/v1/blobs/:id", r.Get),
-		rest.Get("/v1/blobs/:id/content", r.GetContent),
-		rest.Delete("/v1/blobs/:id", r.Delete),
+		rest.Get("/v1/users/:userId/blobs", otelhttp.NewHandler(http.HandlerFunc(r.List, "List"))),
+		rest.Post("/v1/users/:userId/blobs", otelhttp.NewHandler(http.HandlerFunc(r.Create, "Create"))),
+		rest.Delete("/v1/users/:userId/blobs", otelhttp.NewHandler(http.HandlerFunc(r.DeleteAll, "DeleteAll"))),
+		rest.Get("/v1/blobs/:id", otelhttp.NewHandler(http.HandlerFunc(r.Get, "Get"))),
+		rest.Get("/v1/blobs/:id/content", otelhttp.NewHandler(http.HandlerFunc(r.GetContent, "GetContent"))),
+		rest.Delete("/v1/blobs/:id", otelhttp.NewHandler(http.HandlerFunc(r.Delete, "Delete"))),
 	}
 }
 

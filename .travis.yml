@@ -14,16 +14,6 @@ before_install:
   sudo apt-get install --allow-unauthenticated -y mongodb-org=3.6.12 mongodb-org-server=3.6.12 mongodb-org-shell=3.6.12 mongodb-org-mongos=3.6.12 mongodb-org-tools=3.6.12;
   sudo service mongod start;
 
-addons:
-  artifacts:
-    s3_region: us-west-2
-    paths:
-      - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
-    target_paths:
-      - /
-  code_climate:
-    repo_token: 91ded9b66924acbe830541ab3593daf535f05f7c6db91b5cbd2d26dcf37da0b8
-
 services:
   - docker
 

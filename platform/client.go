@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type AuthorizeAs int
