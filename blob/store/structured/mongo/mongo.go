@@ -434,7 +434,7 @@ func (b *BlobRepository) Destroy(ctx context.Context, id string, condition *requ
 	return changeInfo.DeletedCount > 0, nil
 }
 
-func (c *BlobRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*blob.Blob, error) {
+func (b *BlobRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition, queryModifiers ...storeStructuredMongo.QueryModifier) (*blob.Blob, error) {
 	logger = logger.WithFields(log.Fields{"id": id, "condition": condition})
 
 	var result *blob.Blob
@@ -445,7 +445,7 @@ func (c *BlobRepository) get(ctx context.Context, logger log.Logger, id string, 
 		query["revision"] = *condition.Revision
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
-	err := c.FindOne(ctx, query).Decode(&result)
+	err := b.FindOne(ctx, query).Decode(&result)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
