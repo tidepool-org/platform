@@ -18,15 +18,16 @@ require (
 	github.com/mjibson/esc v0.1.0
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
-	github.com/swaggo/swag v1.6.5
+	github.com/swaggo/swag v1.6.9
 	github.com/urfave/cli v1.22.2
-	golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/image v0.0.0-20181116024801-cd38e8056d9b // indirect
 	golang.org/x/lint v0.0.0-20181217174547-8f45f776aaf1
 	golang.org/x/oauth2 v0.0.0-20190115181402-5dab4167f31c
-	golang.org/x/tools v0.0.0-20190614205625-5aca471b1d59
+	golang.org/x/tools v0.0.0-20200820010801-b793a1359eac
 	gopkg.in/tylerb/graceful.v1 v1.2.15
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 )
 
 replace gopkg.in/fsnotify.v1 v1.4.7 => gopkg.in/fsnotify/fsnotify.v1 v1.4.7
+replace github.com/ugorji/go v1.1.5-pre => github.com/ugorji/go v1.1.7

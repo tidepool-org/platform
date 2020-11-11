@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.10.3 - 2020-11-02
+### Fixed 
+- YLP-261 Timezone processing issue in Docker image
+
 ## 0.10.2 - 2020-10-28
 ### Fixed 
 - YLP-233 Parameters are not uploaded correctly for DBLHU systems
