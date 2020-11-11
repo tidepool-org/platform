@@ -25,7 +25,7 @@ func NewAPI() *API {
 	return &API{}
 }
 
-func (a *API) InitializeMiddleware() error {
+func (a *API) InitializeMiddleware(name string) error {
 	a.InitializeMiddlewareInvocations++
 
 	gomega.Expect(a.InitializeMiddlewareOutputs).ToNot(gomega.BeEmpty())

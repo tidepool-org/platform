@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 
@@ -50,7 +51,7 @@ type OtelTracing struct {
 }
 
 // NewOtelTracing creates middleware for go-json-rest that supports OpenTelemetry
-func NewOtelTracing(service string, opts ...Option) *OtelTracing {
+func NewOtelTracing(service string, opts ...Option) (*OtelTracing, error) {
 
 	cfg := config{}
 	for _, opt := range opts {
@@ -58,6 +59,9 @@ func NewOtelTracing(service string, opts ...Option) *OtelTracing {
 	}
 	if cfg.TracerProvider == nil {
 		cfg.TracerProvider = otelglobal.TracerProvider()
+	}
+	if cfg.TracerProvider == nil {
+		return nil, fmt.Errorf("no tracer provider configured")
 	}
 	tracer := cfg.TracerProvider.Tracer(
 		tracerName,
@@ -71,7 +75,7 @@ func NewOtelTracing(service string, opts ...Option) *OtelTracing {
 		service,
 		tracer,
 		cfg.Propagators,
-	}
+	}, nil
 }
 
 //MiddlewareFunc adds tracing to incoming requests

@@ -7,7 +7,7 @@ import (
 )
 
 type API interface {
-	InitializeMiddleware() error
+	InitializeMiddleware(name string) error
 	InitializeRouters(routers ...Router) error
 
 	Status() *rest.Status

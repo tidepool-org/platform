@@ -342,7 +342,7 @@ func (s *Standard) initializeAPI() error {
 
 	s.Logger().Debug("Initializing api middleware")
 
-	if err = s.api.InitializeMiddleware(); err != nil {
+	if err = s.api.InitializeMiddleware(s.Name()); err != nil {
 		return errors.Wrap(err, "unable to initialize api middleware")
 	}
 

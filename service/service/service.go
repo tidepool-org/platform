@@ -52,7 +52,7 @@ func (s *Service) Run() error {
 
 	s.Logger().Debug("Finalizing middleware")
 
-	if err := s.api.InitializeMiddleware(); err != nil {
+	if err := s.api.InitializeMiddleware(s.Name()); err != nil {
 		return errors.Wrap(err, "unable to initialize middleware")
 	}
 

@@ -42,7 +42,7 @@ func (a *API) Handler() http.Handler {
 	return a.api.MakeHandler()
 }
 
-func (a *API) InitializeMiddleware() error {
+func (a *API) InitializeMiddleware(name string) error {
 	loggerMiddleware, err := middleware.NewLogger(a.Logger())
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	traceMiddleware, err := middleware.NewTrace()
+	otelMiddleware, err := middleware.NewOtelTracing(name)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (a *API) InitializeMiddleware() error {
 	middlewareStack := []rest.Middleware{
 		loggerMiddleware,
 		errorMiddleware,
-		traceMiddleware,
+		otelMiddleware,
 		statusMiddleware,
 		timerMiddleware,
 		recorderMiddleware,
