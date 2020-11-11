@@ -16,7 +16,6 @@ func main() {
 		provider.ProviderModule,
 		application.Prescription,
 		service.APIServiceModule,
-		fx.Invoke(service.Start),
-		fx.Invoke(tracing.StartTracer),
+		fx.Invoke(tracing.StartTracer, service.Start),
 	).Run()
 }
