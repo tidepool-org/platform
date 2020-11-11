@@ -18,7 +18,7 @@ require (
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.10.2
 	github.com/tidepool-org/devices v0.0.0-20200724070023-40bf0e6ef236
-	github.com/tidepool-org/go-common v0.7.1
+	github.com/tidepool-org/go-common v0.7.2-0.20201111030152-2fc26e22fbd5
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.4.1
 	go.opentelemetry.io/contrib v0.13.0
