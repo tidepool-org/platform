@@ -13,6 +13,7 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	dataTypesBolusBiphasicTest "github.com/tidepool-org/platform/data/types/bolus/biphasic/test"
 	"github.com/tidepool-org/platform/data/types/bolus/combination"
 	dataTypesBolusCombinationTest "github.com/tidepool-org/platform/data/types/bolus/combination/test"
 	"github.com/tidepool-org/platform/data/types/bolus/extended"
@@ -73,6 +74,14 @@ func NewCalculatorWithBolusExtended(units *string) *calculator.Calculator {
 func NewCalculatorWithBolusNormal(units *string) *calculator.Calculator {
 	var bolus data.Datum
 	bolus = dataTypesBolusNormalTest.NewNormal()
+	datum := NewCalculator(units)
+	datum.Bolus = &bolus
+	return datum
+}
+
+func NewCalculatorWithBolusBiphasic(units *string) *calculator.Calculator {
+	var bolus data.Datum
+	bolus = dataTypesBolusBiphasicTest.NewBiphasic()
 	datum := NewCalculator(units)
 	datum.Bolus = &bolus
 	return datum
@@ -1950,6 +1959,72 @@ var _ = Describe("Calculator", func() {
 				),
 			)
 
+			DescribeTable("Bolus ID is filled with Normal Bolus",
+				func(units *string, mutator func(datum *calculator.Calculator, units *string), expectator func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string)) {
+					datum := NewCalculatorWithBolusNormal(units)
+					mutator(datum, units)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					Expect(normalizer.Error()).To(BeNil())
+					Expect(datum.BolusID).ToNot(BeNil())
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.FromString("mmol/L"),
+					func(datum *calculator.Calculator, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dL",
+					pointer.FromString("mg/dL"),
+					func(datum *calculator.Calculator, units *string) {},
+					nil,
+				),
+			)
+
+			DescribeTable("Bolus ID is filled with Extended Bolus",
+				func(units *string, mutator func(datum *calculator.Calculator, units *string), expectator func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string)) {
+					datum := NewCalculatorWithBolusExtended(units)
+					mutator(datum, units)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					Expect(normalizer.Error()).To(BeNil())
+					Expect(datum.BolusID).ToNot(BeNil())
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.FromString("mmol/L"),
+					func(datum *calculator.Calculator, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dL",
+					pointer.FromString("mg/dL"),
+					func(datum *calculator.Calculator, units *string) {},
+					nil,
+				),
+			)
+
+			DescribeTable("Bolus ID is filled with Biphasic Bolus",
+				func(units *string, mutator func(datum *calculator.Calculator, units *string), expectator func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string)) {
+					datum := NewCalculatorWithBolusBiphasic(units)
+					mutator(datum, units)
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					Expect(normalizer.Error()).To(BeNil())
+					Expect(datum.BolusID).ToNot(BeNil())
+				},
+				Entry("does not modify the datum; units mmol/L",
+					pointer.FromString("mmol/L"),
+					func(datum *calculator.Calculator, units *string) {},
+					nil,
+				),
+				Entry("does not modify the datum; units mg/dL",
+					pointer.FromString("mg/dL"),
+					func(datum *calculator.Calculator, units *string) {},
+					nil,
+				),
+			)
+
 			DescribeTable("normalizes the datum with origin external",
 				func(units *string, mutator func(datum *calculator.Calculator, units *string), expectator func(datum *calculator.Calculator, expectedDatum *calculator.Calculator, units *string)) {
 					datum := NewCalculator(units)
@@ -2021,18 +2096,8 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {},
 					nil,
 				),
-				Entry("does not modify the datum; units mmol/l",
-					pointer.FromString("mmol/l"),
-					func(datum *calculator.Calculator, units *string) {},
-					nil,
-				),
 				Entry("does not modify the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
-					func(datum *calculator.Calculator, units *string) {},
-					nil,
-				),
-				Entry("does not modify the datum; units mg/dl",
-					pointer.FromString("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {},
 					nil,
 				),

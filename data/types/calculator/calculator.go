@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types"
+	dataTypesBolusBiphasic "github.com/tidepool-org/platform/data/types/bolus/biphasic"
 	dataTypesBolusCombination "github.com/tidepool-org/platform/data/types/bolus/combination"
 	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
 	dataTypesBolusFactory "github.com/tidepool-org/platform/data/types/bolus/factory"
@@ -162,6 +163,8 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 			case *dataTypesBolusExtended.Extended:
 				c.BolusID = bolus.ID
 			case *dataTypesBolusNormal.Normal:
+				c.BolusID = bolus.ID
+			case *dataTypesBolusBiphasic.Biphasic:
 				c.BolusID = bolus.ID
 			}
 			c.Bolus = nil

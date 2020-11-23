@@ -1,6 +1,11 @@
 # Platform 
 The Tidepool platform API
 
+## 0.10.4
+### Fixed
+- YLP-289 Biphasic bolus not linked to meal
+### Engineering
+- Change S3 bucket to com.diabeloop.backloops.docs
 ## 0.10.3 - 2020-11-02
 ### Fixed 
 - YLP-261 Timezone processing issue in Docker image

@@ -49,7 +49,7 @@ deploy:
     access_key_id: $AWS_ACCESS_KEY_ID
     secret_access_key: $AWS_SECRET_ACCESS_KEY
     region: $AWS_DEFAULT_REGION
-    bucket: com.diabeloop.yourloops.doc
+    bucket: com.diabeloop.backloops.docs
     skip_cleanup: true
     local_dir: soup
     upload-dir: soup
