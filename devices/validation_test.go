@@ -53,32 +53,32 @@ var _ = Describe("Validation", func() {
 		})
 	})
 
-	Context("ValidateBloodGlucoseSuspendThreshold", func() {
-		var guardRail *api.SuspendThresholdGuardRail
+	Context("ValidateGlucoseSafetyLimit", func() {
+		var guardRail *api.GlucoseSafetyLimitGuardRail
 		var validator *structureValidator.Validator
 
 		BeforeEach(func() {
-			guardRail = test.NewSuspendThresholdGuardRail()
+			guardRail = test.NewGlucoseSafetyLimitGuardRail()
 			validator = structureValidator.New()
 		})
 
 		It("doesn't return error with a valid value", func() {
 			suspendThreshold := pointer.FromFloat64(70)
-			devices.ValidateBloodGlucoseSuspendThreshold(suspendThreshold, guardRail, validator)
+			devices.ValidateGlucoseSafetyLimit(suspendThreshold, guardRail, validator)
 			Expect(validator.Error()).To(BeNil())
 		})
 
 		It("returns an error with a value outside of the range", func() {
 			suspendThreshold := pointer.FromFloat64(190)
 			expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "")
-			devices.ValidateBloodGlucoseSuspendThreshold(suspendThreshold, guardRail, validator)
+			devices.ValidateGlucoseSafetyLimit(suspendThreshold, guardRail, validator)
 			errorsTest.ExpectEqual(validator.Error(), expected)
 		})
 
 		It("returns an error with a fractional value", func() {
 			suspendThreshold := pointer.FromFloat64(70.5)
 			expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "")
-			devices.ValidateBloodGlucoseSuspendThreshold(suspendThreshold, guardRail, validator)
+			devices.ValidateGlucoseSafetyLimit(suspendThreshold, guardRail, validator)
 			errorsTest.ExpectEqual(validator.Error(), expected)
 		})
 	})

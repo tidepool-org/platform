@@ -56,8 +56,8 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 	if settings.BasalRateSchedule != nil {
 		devices.ValidateBasalRateSchedule(*settings.BasalRateSchedule, guardRails.GetBasalRates(), validator.WithReference("basalRateSchedule"))
 	}
-	if settings.BloodGlucoseSuspendThreshold != nil {
-		devices.ValidateBloodGlucoseSuspendThreshold(settings.BloodGlucoseSuspendThreshold, guardRails.GetSuspendThreshold(), validator.WithReference("bloodGlucoseSuspendThreshold"))
+	if settings.GlucoseSafetyLimit != nil {
+		devices.ValidateGlucoseSafetyLimit(settings.GlucoseSafetyLimit, guardRails.GetGlucoseSafetyLimit(), validator.WithReference("glucoseSafetyLimit"))
 	}
 	if settings.BloodGlucoseTargetPhysicalActivity != nil {
 		devices.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPhysicalActivity, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPhysicalActivity"))
@@ -95,7 +95,7 @@ func canValidatePrescriptionSettings(settings *prescription.InitialSettings, gua
 	if guardRails.GetCorrectionRange().Units != devicesApi.BloodGlucoseUnits_MilligramsPerDeciliter {
 		return false
 	}
-	if guardRails.GetSuspendThreshold().Units != devicesApi.BloodGlucoseUnits_MilligramsPerDeciliter {
+	if guardRails.GetGlucoseSafetyLimit().Units != devicesApi.BloodGlucoseUnits_MilligramsPerDeciliter {
 		return false
 	}
 	if guardRails.GetInsulinSensitivity().Units != devicesApi.BloodGlucoseUnits_MilligramsPerDeciliter {

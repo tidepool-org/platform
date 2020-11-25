@@ -26,8 +26,8 @@ func NewInsulinSensitivityGuardRail() *api.InsulinSensitivityGuardRail {
 	}
 }
 
-func NewSuspendThresholdGuardRail() *api.SuspendThresholdGuardRail {
-	return &api.SuspendThresholdGuardRail{
+func NewGlucoseSafetyLimitGuardRail() *api.GlucoseSafetyLimitGuardRail {
+	return &api.GlucoseSafetyLimitGuardRail{
 		AbsoluteBounds: newAbsoluteBoundsFromUnits(60, 180, 1),
 	}
 }

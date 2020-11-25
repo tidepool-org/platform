@@ -12,12 +12,13 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/githubnemo/CompileDaemon v1.2.1
 	github.com/google/uuid v1.1.2
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mjibson/esc v0.2.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
-	github.com/tidepool-org/devices v0.0.0-20200724070023-40bf0e6ef236
+	github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
 	github.com/tidepool-org/go-common v0.7.1
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.4.1
@@ -26,7 +27,7 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/tools v0.0.0-20201005185003-576e169c3de7
-	google.golang.org/grpc v1.32.0
+	google.golang.org/grpc v1.33.1
 	gopkg.in/tylerb/graceful.v1 v1.2.15
 	gopkg.in/yaml.v2 v2.3.0
 	syreclabs.com/go/faker v1.2.2
