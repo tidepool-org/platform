@@ -1,4 +1,4 @@
-package devices_test
+package guardrails_test
 
 import (
 	"testing"
