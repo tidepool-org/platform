@@ -28,7 +28,7 @@ type Client interface {
 type User struct {
 	UserID        *string   `json:"userid,omitempty" bson:"userid,omitempty"`
 	Username      *string   `json:"username,omitempty" bson:"username,omitempty"`
-	EmailVerified *bool      `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
+	EmailVerified *bool     `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
 	TermsAccepted *string   `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
 	Roles         *[]string `json:"roles,omitempty" bson:"roles,omitempty"`
 }
