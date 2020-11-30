@@ -1,13 +1,14 @@
 package guardrails
 
 import (
+	"math"
+	"strconv"
+
 	devices "github.com/tidepool-org/devices/api"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/structure"
-	"math"
-	"strconv"
 )
 
 func ValidateBloodGlucoseTargetSchedule(bloodGlucoseTargetSchedule pump.BloodGlucoseTargetStartArray, glucoseSafetyLimit *float64, guardRail *devices.CorrectionRangeGuardRail, validator structure.Validator) {
@@ -28,41 +29,28 @@ func ValidateBloodGlucoseTarget(bloodGlucoseTarget glucose.Target, glucoseSafety
 }
 
 type CorrectionRanges struct {
-	schedule *pump.BloodGlucoseTargetStartArray
-	premeal  *glucose.Target
-	workout  *glucose.Target
+	Schedule         *pump.BloodGlucoseTargetStartArray
+	Preprandial      *glucose.Target
+	PhysicalActivity *glucose.Target
 }
 
-func (c *CorrectionRanges) GetBounds() *glucose.Bounds {
-	allBounds := c.getNonEmptyBounds()
-	if len(allBounds) == 0 {
-		return nil
+func (c CorrectionRanges) GetBounds() *glucose.Bounds {
+	targets := make(pump.BloodGlucoseTargetStartArray, 0)
+	if c.Schedule != nil {
+		for _, target := range *c.Schedule {
+			targets = append(targets, target)
+		}
+	}
+	if c.Preprandial != nil {
+		targets = append(targets, &pump.BloodGlucoseTargetStart{
+			Target: *c.Preprandial,
+		})
+	}
+	if c.PhysicalActivity != nil {
+		targets = append(targets, &pump.BloodGlucoseTargetStart{
+			Target: *c.PhysicalActivity,
+		})
 	}
 
-	bounds := &allBounds[0]
-	for _, b := range allBounds {
-		if b.Lower < bounds.Lower {
-			bounds.Lower = b.Lower
-		}
-		if b.Upper > bounds.Upper {
-			bounds.Upper = b.Upper
-		}
-	}
-	return bounds
-}
-
-func (c *CorrectionRanges) getNonEmptyBounds() []glucose.Bounds {
-	bounds := make([]glucose.Bounds, 0)
-	if c.schedule != nil {
-		if b := c.schedule.GetBounds(); b != nil {
-			bounds = append(bounds, *b)
-		}
-	}
-	if c.premeal != nil && c.premeal.GetBounds() != nil{
-		bounds = append(bounds, *c.premeal.GetBounds())
-	}
-	if c.premeal != nil && c.premeal.GetBounds() != nil{
-		bounds = append(bounds, *c.premeal.GetBounds())
-	}
-	return bounds
+	return targets.GetBounds()
 }

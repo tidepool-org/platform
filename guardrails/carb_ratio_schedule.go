@@ -3,9 +3,10 @@ package guardrails
 import (
 	devices "github.com/tidepool-org/devices/api"
 
+	"strconv"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/structure"
-	"strconv"
 )
 
 func ValidateCarbohydrateRatioSchedule(carbohydrateRatioSchedule pump.CarbohydrateRatioStartArray, guardRail *devices.CarbohydrateRatioGuardRail, validator structure.Validator) {

@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tidepool-org/devices/api"
+
 	"github.com/tidepool-org/platform/guardrails"
 
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -39,10 +40,32 @@ var _ = Describe("ValidateBasalRateSchedule", func() {
 		Expect(validator.Error()).To(BeNil())
 	})
 
-	It("returns an error with an invalid value", func() {
+	It("returns an error with an invalid increment", func() {
 		var schedule pump.BasalRateStartArray = []*pump.BasalRateStart{
 			{Rate: pointer.FromFloat64(0.55)},
 			{Rate: pointer.FromFloat64(0.56)},
+			{Rate: pointer.FromFloat64(15.55)},
+		}
+		expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/1/rate")
+		guardrails.ValidateBasalRateSchedule(schedule, guardRail, validator)
+		errorsTest.ExpectEqual(validator.Error(), expected)
+	})
+
+	It("returns an error with a value higher than the pump max supported value", func() {
+		var schedule pump.BasalRateStartArray = []*pump.BasalRateStart{
+			{Rate: pointer.FromFloat64(0.55)},
+			{Rate: pointer.FromFloat64(30.05)},
+			{Rate: pointer.FromFloat64(15.55)},
+		}
+		expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/1/rate")
+		guardrails.ValidateBasalRateSchedule(schedule, guardRail, validator)
+		errorsTest.ExpectEqual(validator.Error(), expected)
+	})
+
+	It("returns an error with a value low than the pump min supported value", func() {
+		var schedule pump.BasalRateStartArray = []*pump.BasalRateStart{
+			{Rate: pointer.FromFloat64(0.55)},
+			{Rate: pointer.FromFloat64(0.0)},
 			{Rate: pointer.FromFloat64(15.55)},
 		}
 		expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/1/rate")

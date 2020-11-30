@@ -78,7 +78,7 @@ func discardValuesSmallerThan(values []float64, minimum float64) []float64 {
 func discardValuesLargerThan(values []float64, maximum float64) []float64 {
 	valid := make([]float64, 0)
 	for _, v := range values {
-		if v >= maximum {
+		if v <= maximum {
 			valid = append(valid, v)
 		}
 	}

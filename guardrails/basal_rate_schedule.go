@@ -3,9 +3,10 @@ package guardrails
 import (
 	devices "github.com/tidepool-org/devices/api"
 
+	"strconv"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/structure"
-	"strconv"
 )
 
 func ValidateBasalRateSchedule(basalRateSchedule pump.BasalRateStartArray, guardRail *devices.BasalRatesGuardRail, validator structure.Validator) {
