@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/tidepool-org/platform/guardrails"
 
 	devicesApi "github.com/tidepool-org/devices/api"
@@ -57,16 +58,21 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 		guardrails.ValidateBasalRateSchedule(*settings.BasalRateSchedule, guardRails.GetBasalRates(), validator.WithReference("basalRateSchedule"))
 	}
 	if settings.GlucoseSafetyLimit != nil {
-		guardrails.ValidateGlucoseSafetyLimit(settings.GlucoseSafetyLimit, guardRails.GetGlucoseSafetyLimit(), validator.WithReference("glucoseSafetyLimit"))
+		correctionRanges := guardrails.CorrectionRanges{
+			Schedule:         settings.BloodGlucoseTargetSchedule,
+			Preprandial:      settings.BloodGlucoseTargetPreprandial,
+			PhysicalActivity: settings.BloodGlucoseTargetPhysicalActivity,
+		}
+		guardrails.ValidateGlucoseSafetyLimit(settings.GlucoseSafetyLimit, correctionRanges, guardRails.GetGlucoseSafetyLimit(), validator.WithReference("glucoseSafetyLimit"))
 	}
 	if settings.BloodGlucoseTargetPhysicalActivity != nil {
-		guardrails.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPhysicalActivity, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPhysicalActivity"))
+		guardrails.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPhysicalActivity, settings.GlucoseSafetyLimit, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPhysicalActivity"))
 	}
 	if settings.BloodGlucoseTargetPreprandial != nil {
-		guardrails.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPreprandial, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPreprandial"))
+		guardrails.ValidateBloodGlucoseTarget(*settings.BloodGlucoseTargetPreprandial, settings.GlucoseSafetyLimit, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetPreprandial"))
 	}
 	if settings.BloodGlucoseTargetSchedule != nil {
-		guardrails.ValidateBloodGlucoseTargetSchedule(*settings.BloodGlucoseTargetSchedule, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetSchedule"))
+		guardrails.ValidateBloodGlucoseTargetSchedule(*settings.BloodGlucoseTargetSchedule, settings.GlucoseSafetyLimit, guardRails.GetCorrectionRange(), validator.WithReference("bloodGlucoseTargetSchedule"))
 	}
 	if settings.CarbohydrateRatioSchedule != nil {
 		guardrails.ValidateCarbohydrateRatioSchedule(*settings.CarbohydrateRatioSchedule, guardRails.GetCarbohydrateRatio(), validator.WithReference("carbohydrateRatio"))
@@ -75,7 +81,7 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 		guardrails.ValidateInsulinSensitivitySchedule(*settings.InsulinSensitivitySchedule, guardRails.GetInsulinSensitivity(), validator.WithReference("insulinSensitivitySchedule"))
 	}
 	if settings.BasalRateMaximum != nil {
-		guardrails.ValidateBasalRateMaximum(*settings.BasalRateMaximum, guardRails.GetBasalRateMaximum(), validator.WithReference("basalRateMaximum"))
+		guardrails.ValidateBasalRateMaximum(*settings.BasalRateMaximum, settings.BasalRateSchedule, settings.CarbohydrateRatioSchedule, guardRails.GetBasalRateMaximum(), validator.WithReference("basalRateMaximum"))
 	}
 	if settings.BolusAmountMaximum != nil {
 		guardrails.ValidateBolusAmountMaximum(*settings.BolusAmountMaximum, guardRails.GetBolusAmountMaximum(), validator.WithReference("bolusAmountMaximum"))
