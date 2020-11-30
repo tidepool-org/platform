@@ -28,94 +28,6 @@ var _ = Describe("User", func() {
 		Expect(user.Roles()).To(Equal([]string{"clinic"}))
 	})
 
-	Context("Delete", func() {
-		DescribeTable("serializes the datum as expected",
-			func(mutator func(datum *user.Delete)) {
-				datum := userTest.RandomDelete()
-				mutator(datum)
-				test.ExpectSerializedObjectJSON(datum, userTest.NewObjectFromDelete(datum, test.ObjectFormatJSON))
-			},
-			Entry("succeeds",
-				func(datum *user.Delete) {},
-			),
-			Entry("empty",
-				func(datum *user.Delete) { *datum = user.Delete{} },
-			),
-		)
-
-		Context("NewDelete", func() {
-			It("returns successfully with default values", func() {
-				Expect(user.NewDelete()).To(Equal(&user.Delete{}))
-			})
-		})
-
-		Context("Parse", func() {
-			DescribeTable("parses the datum",
-				func(mutator func(object map[string]interface{}, expectedDatum *user.Delete), expectedErrors ...error) {
-					expectedDatum := userTest.RandomDelete()
-					object := userTest.NewObjectFromDelete(expectedDatum, test.ObjectFormatJSON)
-					mutator(object, expectedDatum)
-					datum := &user.Delete{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("succeeds",
-					func(object map[string]interface{}, expectedDatum *user.Delete) {},
-				),
-				Entry("password invalid type",
-					func(object map[string]interface{}, expectedDatum *user.Delete) {
-						object["password"] = true
-						expectedDatum.Password = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/password"),
-				),
-				Entry("password valid",
-					func(object map[string]interface{}, expectedDatum *user.Delete) {
-						valid := userTest.RandomPassword()
-						object["password"] = valid
-						expectedDatum.Password = pointer.FromString(valid)
-					},
-				),
-				Entry("multiple errors",
-					func(object map[string]interface{}, expectedDatum *user.Delete) {
-						object["password"] = true
-						expectedDatum.Password = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/password"),
-				),
-			)
-		})
-
-		Context("Validate", func() {
-			DescribeTable("validates the datum",
-				func(mutator func(datum *user.Delete), expectedErrors ...error) {
-					datum := userTest.RandomDelete()
-					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
-				},
-				Entry("succeeds",
-					func(datum *user.Delete) {},
-				),
-				Entry("password missing",
-					func(datum *user.Delete) { datum.Password = nil },
-				),
-				Entry("password empty",
-					func(datum *user.Delete) { datum.Password = pointer.FromString("") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/password"),
-				),
-				Entry("password valid",
-					func(datum *user.Delete) { datum.Password = pointer.FromString(userTest.RandomPassword()) },
-				),
-				Entry("multiple errors",
-					func(datum *user.Delete) {
-						datum.Password = pointer.FromString("")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/password"),
-				),
-			)
-		})
-	})
-
 	Context("User", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *user.User)) {
@@ -129,17 +41,6 @@ var _ = Describe("User", func() {
 			),
 			Entry("empty",
 				func(datum *user.User) { *datum = user.User{} },
-			),
-			Entry("with modified time",
-				func(datum *user.User) {
-					datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
-				},
-			),
-			Entry("with deleted time",
-				func(datum *user.User) {
-					datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
-					datum.DeletedTime = pointer.CloneTime(datum.ModifiedTime)
-				},
 			),
 		)
 
@@ -226,69 +127,6 @@ var _ = Describe("User", func() {
 						expectedDatum.Roles = pointer.FromStringArray(valid)
 					},
 				),
-				Entry("created time invalid type",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["createdTime"] = true
-						expectedDatum.CreatedTime = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
-				),
-				Entry("created time invalid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["createdTime"] = "invalid"
-						expectedDatum.CreatedTime = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/createdTime"),
-				),
-				Entry("created time valid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["createdTime"] = valid.Format(time.RFC3339Nano)
-						expectedDatum.CreatedTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("modified time invalid type",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["modifiedTime"] = true
-						expectedDatum.ModifiedTime = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
-				),
-				Entry("modified time invalid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["modifiedTime"] = "invalid"
-						expectedDatum.ModifiedTime = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/modifiedTime"),
-				),
-				Entry("modified time valid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
-						expectedDatum.ModifiedTime = pointer.FromTime(valid)
-					},
-				),
-				Entry("deleted time invalid type",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["deletedTime"] = true
-						expectedDatum.DeletedTime = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
-				),
-				Entry("deleted time invalid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["deletedTime"] = "invalid"
-						expectedDatum.DeletedTime = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/deletedTime"),
-				),
-				Entry("deleted time valid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
-						object["deletedTime"] = valid.Format(time.RFC3339Nano)
-						expectedDatum.DeletedTime = pointer.FromTime(valid)
-					},
-				),
 				Entry("multiple errors",
 					func(object map[string]interface{}, expectedDatum *user.User) {
 						object["userid"] = true
@@ -296,26 +134,17 @@ var _ = Describe("User", func() {
 						object["emailVerified"] = "invalid"
 						object["termsAccepted"] = true
 						object["roles"] = true
-						object["createdTime"] = true
-						object["modifiedTime"] = true
-						object["deletedTime"] = true
 						expectedDatum.UserID = nil
 						expectedDatum.Username = nil
 						expectedDatum.EmailVerified = nil
 						expectedDatum.TermsAccepted = nil
 						expectedDatum.Roles = nil
-						expectedDatum.CreatedTime = nil
-						expectedDatum.ModifiedTime = nil
-						expectedDatum.DeletedTime = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userid"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/username"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/emailVerified"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/termsAccepted"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/roles"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
 				),
 			)
 		})
@@ -391,56 +220,17 @@ var _ = Describe("User", func() {
 				Entry("roles valid",
 					func(datum *user.User) { datum.Roles = pointer.FromStringArray(user.Roles()) },
 				),
-				Entry("created time zero",
-					func(datum *user.User) { datum.CreatedTime = pointer.FromTime(time.Time{}) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/createdTime"),
-				),
-				Entry("created time after now",
-					func(datum *user.User) {
-						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
-						datum.ModifiedTime = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/createdTime"),
-				),
-				Entry("created time valid",
-					func(datum *user.User) {
-						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second))
-						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
-					},
-				),
-				Entry("modified time after now",
-					func(datum *user.User) { datum.ModifiedTime = pointer.FromTime(test.FutureFarTime()) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
-				),
-				Entry("modified time valid",
-					func(datum *user.User) {
-						datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
-					},
-				),
-				Entry("deleted time after now",
-					func(datum *user.User) { datum.DeletedTime = pointer.FromTime(test.FutureFarTime()) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
-				),
-				Entry("deleted time valid",
-					func(datum *user.User) {
-						datum.DeletedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
-					},
-				),
 				Entry("multiple errors",
 					func(datum *user.User) {
 						datum.UserID = nil
 						datum.Username = nil
 						datum.TermsAccepted = pointer.FromString("")
 						datum.Roles = pointer.FromStringArray([]string{user.RoleClinic, "invalid"})
-						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
-						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userid"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/username"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("", time.RFC3339Nano), "/termsAccepted"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", user.Roles()), "/roles/1"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
 				),
 			)
 		})
