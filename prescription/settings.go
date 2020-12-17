@@ -10,11 +10,11 @@ import (
 type InitialSettings struct {
 	BloodGlucoseUnits                  string                             `json:"bloodGlucoseUnits,omitempty" bson:"bloodGlucoseUnits,omitempty"`
 	BasalRateSchedule                  *pump.BasalRateStartArray          `json:"basalRateSchedule,omitempty" bson:"basalRateSchedule,omitempty"`
-	BloodGlucoseSuspendThreshold       *float64                           `json:"bloodGlucoseSuspendThreshold,omitempty" bson:"bloodGlucoseSuspendThreshold,omitempty"`
 	BloodGlucoseTargetPhysicalActivity *glucose.Target                    `json:"bloodGlucoseTargetPhysicalActivity,omitempty" bson:"bloodGlucoseTargetPhysicalActivity,omitempty"`
 	BloodGlucoseTargetPreprandial      *glucose.Target                    `json:"bloodGlucoseTargetPreprandial,omitempty" bson:"bloodGlucoseTargetPreprandial,omitempty"`
 	BloodGlucoseTargetSchedule         *pump.BloodGlucoseTargetStartArray `json:"bloodGlucoseTargetSchedule,omitempty" bson:"bloodGlucoseTargetSchedule,omitempty"`
 	CarbohydrateRatioSchedule          *pump.CarbohydrateRatioStartArray  `json:"carbohydrateRatioSchedule,omitempty" bson:"carbohydrateRatioSchedule,omitempty"`
+	GlucoseSafetyLimit                 *float64                           `json:"glucoseSafetyLimit,omitempty" bson:"glucoseSafetyLimit,omitempty"`
 	InsulinModel                       *string                            `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
 	InsulinSensitivitySchedule         *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
 	BasalRateMaximum                   *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
@@ -31,12 +31,15 @@ func AllowedInsulinModels() []string {
 }
 
 func (i *InitialSettings) Validate(validator structure.Validator) {
+	if i.BasalRateMaximum != nil {
+		i.BasalRateMaximum.Validate(validator.WithReference("basalRateMaximum"))
+	}
+	if i.BolusAmountMaximum != nil {
+		i.BolusAmountMaximum.Validate(validator.WithReference("bolusAmountMaximum"))
+	}
 	validator.String("bloodGlucoseUnits", &i.BloodGlucoseUnits).EqualTo(glucose.MgdL)
 	if i.BasalRateSchedule != nil {
 		i.BasalRateSchedule.Validate(validator.WithReference("basalSchedule"))
-	}
-	if i.BloodGlucoseSuspendThreshold != nil {
-		pump.ValidateBloodGlucoseSuspendThreshold(i.BloodGlucoseSuspendThreshold, &i.BloodGlucoseUnits, "bloodGlucoseSuspendThreshold", validator)
 	}
 	if i.BloodGlucoseTargetPhysicalActivity != nil {
 		v := validator.WithReference("bloodGlucoseTargetPhysicalActivity")
@@ -66,17 +69,14 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	if i.CarbohydrateRatioSchedule != nil {
 		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbohydrateRatioSchedule"))
 	}
+	if i.GlucoseSafetyLimit != nil {
+		pump.ValidateBloodGlucoseSuspendThreshold(i.GlucoseSafetyLimit, &i.BloodGlucoseUnits, "glucoseSafetyLimit", validator)
+	}
 	if i.InsulinModel != nil {
 		validator.String("insulinModel", i.InsulinModel).OneOf(AllowedInsulinModels()...)
 	}
 	if i.InsulinSensitivitySchedule != nil {
 		i.InsulinSensitivitySchedule.Validate(validator.WithReference("insulinSensitivitySchedule"), &i.BloodGlucoseUnits)
-	}
-	if i.BasalRateMaximum != nil {
-		i.BasalRateMaximum.Validate(validator.WithReference("basalRateMaximum"))
-	}
-	if i.BolusAmountMaximum != nil {
-		i.BolusAmountMaximum.Validate(validator.WithReference("bolusAmountMaximum"))
 	}
 }
 
@@ -84,14 +84,14 @@ func (i *InitialSettings) ValidateAllRequired(validator structure.Validator) {
 	if i.BasalRateSchedule == nil {
 		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
-	if i.BloodGlucoseSuspendThreshold == nil {
-		validator.WithReference("bloodGlucoseSuspendThreshold").ReportError(structureValidator.ErrorValueEmpty())
-	}
 	if i.BloodGlucoseTargetSchedule == nil {
 		validator.WithReference("bloodGlucoseTargetSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	if i.CarbohydrateRatioSchedule == nil {
 		validator.WithReference("carbohydrateRatioSchedule").ReportError(structureValidator.ErrorValueEmpty())
+	}
+	if i.GlucoseSafetyLimit == nil {
+		validator.WithReference("glucoseSafetyLimit").ReportError(structureValidator.ErrorValueEmpty())
 	}
 	if i.InsulinModel == nil {
 		validator.WithReference("insulinModel").ReportError(structureValidator.ErrorValueEmpty())

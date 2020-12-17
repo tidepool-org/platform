@@ -2,21 +2,33 @@ package test
 
 import "github.com/tidepool-org/devices/api"
 
-func NewBasalRateGuardRail() *api.BasalRatesGuardRail {
+func NewBasalRatesGuardRail() *api.BasalRatesGuardRail {
 	return &api.BasalRatesGuardRail{AbsoluteBounds: []*api.AbsoluteBounds{
-		newAbsoluteBoundsFromNanos(0, 30, 50000000),
+		newAbsoluteBoundsFromNanos(0, 50000000, 30, 0, 50000000),
 	}}
 }
 
 func NewCorrectionRangeGuardRail() *api.CorrectionRangeGuardRail {
 	return &api.CorrectionRangeGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromUnits(60, 180, 1),
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(87, 180, 1),
+	}
+}
+
+func NewPremealCorrectionRangeGuardRail() *api.CorrectionRangeGuardRail {
+	return &api.CorrectionRangeGuardRail{
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(67, 130, 1),
+	}
+}
+
+func NewWorkoutCorrectionRangeGuardRail() *api.CorrectionRangeGuardRail {
+	return &api.CorrectionRangeGuardRail{
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(87, 250, 1),
 	}
 }
 
 func NewCarbohydrateRatioGuardRail() *api.CarbohydrateRatioGuardRail {
 	return &api.CarbohydrateRatioGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromNanos(1, 150, 10000000),
+		AbsoluteBounds: newAbsoluteBoundsFromNanos(2, 0, 150, 0, 10000000),
 	}
 }
 
@@ -26,31 +38,33 @@ func NewInsulinSensitivityGuardRail() *api.InsulinSensitivityGuardRail {
 	}
 }
 
-func NewSuspendThresholdGuardRail() *api.SuspendThresholdGuardRail {
-	return &api.SuspendThresholdGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromUnits(60, 180, 1),
+func NewGlucoseSafetyLimitGuardRail() *api.GlucoseSafetyLimitGuardRail {
+	return &api.GlucoseSafetyLimitGuardRail{
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(67, 110, 1),
 	}
 }
 
 func NewBasalRateMaximumGuardRail() *api.BasalRateMaximumGuardRail {
 	return &api.BasalRateMaximumGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromNanos(0, 30, 50000000),
+		AbsoluteBounds: newAbsoluteBoundsFromNanos(0, 50000000, 30, 0, 50000000),
 	}
 }
 
 func NewBolusAmountMaximumGuardRail() *api.BolusAmountMaximumGuardRail {
 	return &api.BolusAmountMaximumGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromNanos(0, 30, 50000000),
+		AbsoluteBounds: newAbsoluteBoundsFromNanos(0, 50000000, 30, 0, 50000000),
 	}
 }
 
-func newAbsoluteBoundsFromNanos(from, to int32, incrementNanos int32) *api.AbsoluteBounds {
+func newAbsoluteBoundsFromNanos(from, fromNanos, to, toNanos int32, incrementNanos int32) *api.AbsoluteBounds {
 	return &api.AbsoluteBounds{
 		Minimum: &api.FixedDecimal{
 			Units: from,
+			Nanos: fromNanos,
 		},
 		Maximum: &api.FixedDecimal{
 			Units: to,
+			Nanos: toNanos,
 		},
 		Increment: &api.FixedDecimal{
 			Nanos: incrementNanos,

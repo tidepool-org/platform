@@ -60,8 +60,8 @@ var _ = Describe("Initial Settings", func() {
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
-		It("fails with empty blood glucose suspend threshold", func() {
-			settings.BloodGlucoseSuspendThreshold = nil
+		It("fails with empty glucose safety limit", func() {
+			settings.GlucoseSafetyLimit = nil
 			settings.ValidateAllRequired(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})

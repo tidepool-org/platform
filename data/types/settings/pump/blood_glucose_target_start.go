@@ -131,7 +131,10 @@ func (b *BloodGlucoseTargetStartArray) GetBounds() *dataBloodGlucose.Bounds {
 		return nil
 	}
 
-	bounds := &dataBloodGlucose.Bounds{}
+	bounds := dataBloodGlucose.Bounds{
+		Lower: allBounds[0].Lower,
+		Upper: allBounds[0].Upper,
+	}
 	for _, b := range allBounds {
 		if b.Lower < bounds.Lower {
 			bounds.Lower = b.Lower
@@ -141,7 +144,7 @@ func (b *BloodGlucoseTargetStartArray) GetBounds() *dataBloodGlucose.Bounds {
 		}
 	}
 
-	return bounds
+	return &bounds
 }
 
 type BloodGlucoseTargetStartArrayMap map[string]*BloodGlucoseTargetStartArray

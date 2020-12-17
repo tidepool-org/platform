@@ -165,7 +165,7 @@ func RandomInitialSettings() *prescription.InitialSettings {
 	return &prescription.InitialSettings{
 		BloodGlucoseUnits:                  units,
 		BasalRateSchedule:                  randomPump.BasalRateSchedules.Get(scheduleName),
-		BloodGlucoseSuspendThreshold:       randomPump.BloodGlucoseSuspendThreshold,
+		GlucoseSafetyLimit:                 randomPump.BloodGlucoseSuspendThreshold,
 		BloodGlucoseTargetSchedule:         bloodGlucoseSchedule,
 		BloodGlucoseTargetPreprandial:      PreprandialBloodGlucoseTarget(bloodGlucoseSchedule),
 		BloodGlucoseTargetPhysicalActivity: PhysicalActivityBloodGlucoseTarget(bloodGlucoseSchedule),
