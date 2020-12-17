@@ -343,7 +343,7 @@ var _ = Describe("Correction Range", func() {
 
 				It("returns an error with a value that's below the minimum absolute bounds", func() {
 					var schedule pump.BloodGlucoseTargetStartArray = []*pump.BloodGlucoseTargetStart{
-						{Target: glucose.Target{Low: pointer.FromFloat64(86), High: pointer.FromFloat64(91)}},
+						{Target: glucose.Target{Low: pointer.FromFloat64(66), High: pointer.FromFloat64(91)}},
 						{Target: glucose.Target{Low: pointer.FromFloat64(100), High: pointer.FromFloat64(105)}},
 					}
 					expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/0/low")
@@ -389,7 +389,7 @@ var _ = Describe("Correction Range", func() {
 
 				It("doesn't return error with a single valid value", func() {
 					var schedule pump.BloodGlucoseTargetStartArray = []*pump.BloodGlucoseTargetStart{
-						{Target: glucose.Target{Low: pointer.FromFloat64(85), High: pointer.FromFloat64(250)}},
+						{Target: glucose.Target{Low: pointer.FromFloat64(87), High: pointer.FromFloat64(250)}},
 					}
 					guardrails.ValidateBloodGlucoseTargetSchedule(schedule, glucoseSafetyLimit, guardRail, validator)
 					Expect(validator.Error()).To(BeNil())
@@ -417,7 +417,7 @@ var _ = Describe("Correction Range", func() {
 
 				It("returns an error with a value that's below the minimum absolute bounds", func() {
 					var schedule pump.BloodGlucoseTargetStartArray = []*pump.BloodGlucoseTargetStart{
-						{Target: glucose.Target{Low: pointer.FromFloat64(84), High: pointer.FromFloat64(91)}},
+						{Target: glucose.Target{Low: pointer.FromFloat64(86), High: pointer.FromFloat64(91)}},
 						{Target: glucose.Target{Low: pointer.FromFloat64(100), High: pointer.FromFloat64(105)}},
 					}
 					expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/0/low")

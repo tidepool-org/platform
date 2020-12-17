@@ -16,13 +16,13 @@ func NewCorrectionRangeGuardRail() *api.CorrectionRangeGuardRail {
 
 func NewPremealCorrectionRangeGuardRail() *api.CorrectionRangeGuardRail {
 	return &api.CorrectionRangeGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromUnits(87, 130, 1),
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(67, 130, 1),
 	}
 }
 
 func NewWorkoutCorrectionRangeGuardRail() *api.CorrectionRangeGuardRail {
 	return &api.CorrectionRangeGuardRail{
-		AbsoluteBounds: newAbsoluteBoundsFromUnits(85, 250, 1),
+		AbsoluteBounds: newAbsoluteBoundsFromUnits(87, 250, 1),
 	}
 }
 
