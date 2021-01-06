@@ -168,16 +168,6 @@ var _ = Describe("Mongo", func() {
 						Expect(repository.Get(ctx, id, condition)).To(BeNil())
 					})
 
-					When("the condition revision does not match", func() {
-						BeforeEach(func() {
-							condition.Revision = pointer.FromInt(*result.Revision + 1)
-						})
-
-						It("returns nil", func() {
-							Expect(repository.Get(ctx, id, condition)).To(BeNil())
-						})
-					})
-
 					conditionAssertions := func() {
 						It("returns the result when the id exists", func() {
 							Expect(repository.Get(ctx, id, condition)).To(Equal(result))
@@ -201,17 +191,6 @@ var _ = Describe("Mongo", func() {
 						})
 
 						conditionAssertions()
-
-						Context("when the revision is missing", func() {
-							BeforeEach(func() {
-								result.Revision = nil
-							})
-
-							It("returns the result with revision 0", func() {
-								result.Revision = pointer.FromInt(0)
-								Expect(repository.Get(ctx, id, condition)).To(Equal(result))
-							})
-						})
 					})
 
 					When("the condition revision is missing", func() {
@@ -220,35 +199,6 @@ var _ = Describe("Mongo", func() {
 						})
 
 						conditionAssertions()
-
-						Context("when the revision is missing", func() {
-							BeforeEach(func() {
-								result.Revision = nil
-							})
-
-							It("returns the result with revision 0", func() {
-								result.Revision = pointer.FromInt(0)
-								Expect(repository.Get(ctx, id, condition)).To(Equal(result))
-							})
-						})
-					})
-
-					When("the condition revision matches", func() {
-						BeforeEach(func() {
-							condition.Revision = pointer.CloneInt(result.Revision)
-						})
-
-						conditionAssertions()
-
-						Context("when the revision is missing", func() {
-							BeforeEach(func() {
-								result.Revision = nil
-							})
-
-							It("returns nil", func() {
-								Expect(repository.Get(ctx, id, condition)).To(BeNil())
-							})
-						})
 					})
 				})
 			})
@@ -322,16 +272,6 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
-					When("the condition revision does not match", func() {
-						BeforeEach(func() {
-							condition.Revision = pointer.FromInt(*original.Revision + 1)
-						})
-
-						It("returns false", func() {
-							Expect(repository.Delete(ctx, id, condition)).To(BeFalse())
-						})
-					})
-
 					conditionAssertions := func() {
 						Context("with updates", func() {
 							It("returns true when the id exists", func() {
@@ -339,13 +279,12 @@ var _ = Describe("Mongo", func() {
 									"UserID":        PointTo(Equal(id)),
 									"Username":      Equal(original.Username),
 									"PasswordHash":  Equal(original.PasswordHash),
-									"Authenticated": Equal(original.Authenticated),
+									"EmailVerified": Equal(original.EmailVerified),
 									"TermsAccepted": Equal(original.TermsAccepted),
 									"Roles":         Equal(original.Roles),
 									"CreatedTime":   Equal(original.CreatedTime),
 									"ModifiedTime":  PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"DeletedTime":   PointTo(BeTemporally("~", time.Now(), time.Second)),
-									"Revision":      PointTo(Equal(*original.Revision + 1)),
 								})
 								Expect(repository.Delete(ctx, id, condition)).To(BeTrue())
 								storeResult := user.UserArray{}
@@ -375,14 +314,6 @@ var _ = Describe("Mongo", func() {
 					When("the condition revision is missing", func() {
 						BeforeEach(func() {
 							condition.Revision = nil
-						})
-
-						conditionAssertions()
-					})
-
-					When("the condition revision matches", func() {
-						BeforeEach(func() {
-							condition.Revision = pointer.CloneInt(original.Revision)
 						})
 
 						conditionAssertions()
@@ -455,12 +386,6 @@ var _ = Describe("Mongo", func() {
 							Expect(mongoCollection.CountDocuments(ctx, bson.M{"userid": original.UserID})).To(Equal(int64(1)))
 						})
 
-						It("returns false and does not destroy the original when the id exists, but the condition revision does not match", func() {
-							condition.Revision = pointer.FromInt(*original.Revision + 1)
-							Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
-							Expect(mongoCollection.CountDocuments(ctx, bson.M{"userid": original.UserID})).To(Equal(int64(1)))
-						})
-
 						It("returns true and destroys the original when the id exists and the condition is missing", func() {
 							condition = nil
 							Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
@@ -469,12 +394,6 @@ var _ = Describe("Mongo", func() {
 
 						It("returns true and destroys the original when the id exists and the condition revision is missing", func() {
 							condition.Revision = nil
-							Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
-							Expect(mongoCollection.CountDocuments(ctx, bson.M{"userid": original.UserID})).To(Equal(int64(0)))
-						})
-
-						It("returns true and destroys the original when the id exists and the condition revision matches", func() {
-							condition.Revision = pointer.CloneInt(original.Revision)
 							Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
 							Expect(mongoCollection.CountDocuments(ctx, bson.M{"userid": original.UserID})).To(Equal(int64(0)))
 						})

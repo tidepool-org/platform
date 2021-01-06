@@ -11,7 +11,6 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
-	requestTest "github.com/tidepool-org/platform/request/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -185,18 +184,18 @@ var _ = Describe("User", func() {
 						expectedDatum.Username = pointer.FromString(valid)
 					},
 				),
-				Entry("authenticated invalid type",
+				Entry("emailVerified invalid type",
 					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["authenticated"] = "invalid"
-						expectedDatum.Authenticated = nil
+						object["emailVerified"] = "invalid"
+						expectedDatum.EmailVerified = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/authenticated"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/emailVerified"),
 				),
-				Entry("authenticated valid",
+				Entry("emailVerified valid",
 					func(object map[string]interface{}, expectedDatum *user.User) {
 						valid := test.RandomBool()
-						object["authenticated"] = valid
-						expectedDatum.Authenticated = pointer.FromBool(valid)
+						object["emailVerified"] = valid
+						expectedDatum.EmailVerified = pointer.FromBool(valid)
 					},
 				),
 				Entry("terms accepted invalid type",
@@ -290,50 +289,33 @@ var _ = Describe("User", func() {
 						expectedDatum.DeletedTime = pointer.FromTime(valid)
 					},
 				),
-				Entry("revision invalid type",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						object["revision"] = true
-						expectedDatum.Revision = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
-				),
-				Entry("revision valid",
-					func(object map[string]interface{}, expectedDatum *user.User) {
-						valid := requestTest.RandomRevision()
-						object["revision"] = valid
-						expectedDatum.Revision = pointer.FromInt(valid)
-					},
-				),
 				Entry("multiple errors",
 					func(object map[string]interface{}, expectedDatum *user.User) {
 						object["userid"] = true
 						object["username"] = true
-						object["authenticated"] = "invalid"
+						object["emailVerified"] = "invalid"
 						object["termsAccepted"] = true
 						object["roles"] = true
 						object["createdTime"] = true
 						object["modifiedTime"] = true
 						object["deletedTime"] = true
-						object["revision"] = true
 						expectedDatum.UserID = nil
 						expectedDatum.Username = nil
-						expectedDatum.Authenticated = nil
+						expectedDatum.EmailVerified = nil
 						expectedDatum.TermsAccepted = nil
 						expectedDatum.Roles = nil
 						expectedDatum.CreatedTime = nil
 						expectedDatum.ModifiedTime = nil
 						expectedDatum.DeletedTime = nil
-						expectedDatum.Revision = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userid"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/username"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/authenticated"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("invalid"), "/emailVerified"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/termsAccepted"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/roles"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/modifiedTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/deletedTime"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/revision"),
 				),
 			)
 		})
@@ -444,23 +426,6 @@ var _ = Describe("User", func() {
 						datum.DeletedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()).Truncate(time.Second))
 					},
 				),
-				Entry("revision missing",
-					func(datum *user.User) {
-						datum.Revision = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/revision"),
-				),
-				Entry("revision out of range (lower)",
-					func(datum *user.User) {
-						datum.Revision = pointer.FromInt(-1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
-				),
-				Entry("revision in range (lower)",
-					func(datum *user.User) {
-						datum.Revision = pointer.FromInt(0)
-					},
-				),
 				Entry("multiple errors",
 					func(datum *user.User) {
 						datum.UserID = nil
@@ -469,7 +434,6 @@ var _ = Describe("User", func() {
 						datum.Roles = pointer.FromStringArray([]string{user.RoleClinic, "invalid"})
 						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
-						datum.Revision = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userid"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/username"),
@@ -477,7 +441,6 @@ var _ = Describe("User", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", user.Roles()), "/roles/1"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/modifiedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/revision"),
 				),
 			)
 		})
@@ -520,7 +483,7 @@ var _ = Describe("User", func() {
 
 				It("does sanitize renditions if details is missing", func() {
 					original.Username = nil
-					original.Authenticated = nil
+					original.EmailVerified = nil
 					original.TermsAccepted = nil
 					original.Roles = nil
 					datum.Sanitize(nil)
@@ -529,7 +492,7 @@ var _ = Describe("User", func() {
 
 				It("does sanitize renditions if details is not service and not matching user", func() {
 					original.Username = nil
-					original.Authenticated = nil
+					original.EmailVerified = nil
 					original.TermsAccepted = nil
 					original.Roles = nil
 					datum.Sanitize(request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
@@ -562,7 +525,7 @@ var _ = Describe("User", func() {
 			It("does sanitize renditions if details is missing", func() {
 				for index := range original {
 					original[index].Username = nil
-					original[index].Authenticated = nil
+					original[index].EmailVerified = nil
 					original[index].TermsAccepted = nil
 					original[index].Roles = nil
 				}
@@ -573,7 +536,7 @@ var _ = Describe("User", func() {
 			It("does sanitize renditions if details is not service", func() {
 				for index := range original {
 					original[index].Username = nil
-					original[index].Authenticated = nil
+					original[index].EmailVerified = nil
 					original[index].TermsAccepted = nil
 					original[index].Roles = nil
 				}
