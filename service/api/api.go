@@ -55,6 +55,10 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
+	accessLogMiddleware, err := middleware.NewAccessLog(middleware.AccessLogConfig{LogOnlyErrors: true})
+	if err != nil {
+		return err
+	}
 	recoverMiddleware, err := middleware.NewRecover()
 	if err != nil {
 		return err
@@ -73,6 +77,7 @@ func (a *API) InitializeMiddleware() error {
 		loggerMiddleware,
 		errorMiddleware,
 		traceMiddleware,
+		accessLogMiddleware,
 		statusMiddleware,
 		timerMiddleware,
 		recorderMiddleware,
