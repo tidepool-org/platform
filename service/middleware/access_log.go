@@ -11,7 +11,13 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-type AccessLog struct{}
+type AccessLog struct {
+	config AccessLogConfig
+}
+
+type AccessLogConfig struct {
+	LogOnlyErrors bool
+}
 
 const (
 	_LogErrors           = "errors"
@@ -34,11 +40,19 @@ const (
 	_RequestEnvStatusCode   = "STATUS_CODE"
 )
 
-func NewAccessLog() (*AccessLog, error) {
-	return &AccessLog{}, nil
+func NewAccessLog(config AccessLogConfig) (*AccessLog, error) {
+	return &AccessLog{
+		config: config,
+	}, nil
 }
 
 func (a *AccessLog) ignore(req *rest.Request) bool {
+	if a.config.LogOnlyErrors {
+		if err := request.GetErrorFromContext(req.Context()); err == nil {
+			return true
+		}
+	}
+
 	// ignore liveness and readiness probes
 	if req.URL.RequestURI() == "/status" {
 		return true
