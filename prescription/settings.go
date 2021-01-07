@@ -44,24 +44,10 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	if i.BloodGlucoseTargetPhysicalActivity != nil {
 		v := validator.WithReference("bloodGlucoseTargetPhysicalActivity")
 		i.BloodGlucoseTargetPhysicalActivity.Validate(v, &i.BloodGlucoseUnits)
-		if i.BloodGlucoseTargetSchedule != nil {
-			scheduleBounds := i.BloodGlucoseTargetSchedule.GetBounds()
-			physicalActivityBounds := i.BloodGlucoseTargetPhysicalActivity.GetBounds()
-			if scheduleBounds != nil && physicalActivityBounds != nil {
-				validatePhysicalActivityBgTarget(*scheduleBounds, *physicalActivityBounds, v)
-			}
-		}
 	}
 	if i.BloodGlucoseTargetPreprandial != nil {
 		v := validator.WithReference("bloodGlucoseTargetPreprandial")
 		i.BloodGlucoseTargetPreprandial.Validate(v, &i.BloodGlucoseUnits)
-		if i.BloodGlucoseTargetSchedule != nil {
-			scheduleBounds := i.BloodGlucoseTargetSchedule.GetBounds()
-			preprandialBounds := i.BloodGlucoseTargetPreprandial.GetBounds()
-			if scheduleBounds != nil && preprandialBounds != nil {
-				validatePreprandialBgTarget(*scheduleBounds, *preprandialBounds, v)
-			}
-		}
 	}
 	if i.BloodGlucoseTargetSchedule != nil {
 		i.BloodGlucoseTargetSchedule.Validate(validator.WithReference("bloodGlucoseTargetSchedule"), &i.BloodGlucoseUnits)
@@ -111,12 +97,4 @@ func (i *InitialSettings) ValidateAllRequired(validator structure.Validator) {
 	if i.CgmID == "" {
 		validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueEmpty())
 	}
-}
-
-func validatePreprandialBgTarget(scheduleBounds glucose.Bounds, preprandialBounds glucose.Bounds, validator structure.Validator) {
-	validator.Float64("high", &preprandialBounds.Upper).LessThanOrEqualTo(scheduleBounds.Upper)
-}
-
-func validatePhysicalActivityBgTarget(scheduleBounds glucose.Bounds, physicalActivityBounds glucose.Bounds, validator structure.Validator) {
-	validator.Float64("low", &physicalActivityBounds.Lower).GreaterThanOrEqualTo(scheduleBounds.Upper)
 }
