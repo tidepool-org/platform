@@ -34,4 +34,4 @@ func ErrorValueStringAsUserIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as user id", value)
 }
 
-var idExpression = regexp.MustCompile("^[0-9a-f]{10}$")
+var idExpression = regexp.MustCompile("(^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$)|(^[0-9a-f]{10}$)")
