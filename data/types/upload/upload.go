@@ -1,7 +1,10 @@
 package upload
 
 import (
+	"context"
 	"sort"
+
+	"github.com/go-pg/pg/v10"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
@@ -63,18 +66,20 @@ func TimeProcessings() []string {
 type Upload struct {
 	types.Base `bson:",inline"`
 
-	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
-	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
-	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
-	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
-	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
-	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
-	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
-	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
-	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
-	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
+	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty" pg:"-"` // TODO: Deprecate in favor of CreatedUserID
+	Client              *Client   `json:"client,omitempty" bson:"client,omitempty" pg:"-"`
+	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty" pg:"-"` // TODO: Do we really need this? CreatedTime should suffice.
+	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty" pg:"data_set_type"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
+	DataState           *string   `json:"-" bson:"_dataState,omitempty" pg:"data_state"`                        // TODO: Deprecated! (remove after data migration)
+	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty" pg:"-"`  // XXX figure out array
+	DeviceManufacturersArray []string `json:"-" bson:"-" pg:"device_manufacturers,array"`  // XXX figure out array
+	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty" pg:"device_model"`
+	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty" pg:device_serial_number`
+	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty" pg:"device_tags,array"`
+	DeviceTagsArray     []string  `json:"-" bson:"-" pg:"device_tags,array"`
+	State               *string   `json:"-" bson:"_state,omitempty" pg:state` // TODO: Should this be returned in JSON? I think so.
+	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty" pg:"-"`
+	Version             *string   `json:"version,omitempty" bson:"version,omitempty" pg:"version"` // TODO: Deprecate in favor of Client.Version
 }
 
 func NewUpload(parser structure.ObjectParser) *Upload {
@@ -214,4 +219,16 @@ func (u *Upload) HasDeduplicatorName() bool {
 
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
+}
+
+var _ pg.BeforeInsertHook = (*Upload)(nil)
+
+func (b *Upload) BeforeInsert(ctx context.Context) (context.Context, error) {
+	if b.DeviceManufacturers != nil {
+		b.DeviceManufacturersArray = *b.DeviceManufacturers
+	}
+	if b.DeviceTags != nil {
+		b.DeviceTagsArray = *b.DeviceTags
+	}
+	return ctx, nil
 }

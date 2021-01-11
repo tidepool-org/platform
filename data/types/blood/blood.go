@@ -11,8 +11,8 @@ import (
 type Blood struct {
 	types.Base `bson:",inline"`
 
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units *string  `json:"units,omitempty" bson:"units,omitempty" pg:"units"`
+	Value *float64 `json:"value,omitempty" bson:"value,omitempty" pg:"value"`
 }
 
 func New(typ string) Blood {

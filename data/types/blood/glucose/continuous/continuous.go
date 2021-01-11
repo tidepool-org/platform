@@ -26,8 +26,10 @@ func Trends() []string {
 }
 
 type Continuous struct {
-	Trend           *string  `json:"trend,omitempty" bson:"trend,omitempty"`
-	TrendRate       *float64 `json:"trendRate,omitempty" bson:"trendRate,omitempty"`
+	tableName struct{} `pg:"cbg,alias:c"`
+
+	Trend           *string  `json:"trend,omitempty" bson:"trend,omitempty" pg:"-"`
+	TrendRate       *float64 `json:"trendRate,omitempty" bson:"trendRate,omitempty" pg:"-"`
 	glucose.Glucose `bson:",inline"`
 }
 

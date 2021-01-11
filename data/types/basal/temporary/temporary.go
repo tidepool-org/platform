@@ -29,14 +29,16 @@ type Suppressed interface {
 }
 
 type Temporary struct {
+	tableName struct{} `pg:"basal,alias:b"`
+
 	basal.Basal `bson:",inline"`
 
-	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty"`
-	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
+	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty" pg:"duration"`
+	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty" pg:"-"`
+	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty" pg:"-"`
+	Percent            *float64             `json:"percent,omitempty" bson:"percent,omitempty" pg:"-"`
+	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty" pg:"rate"`
+	Suppressed         Suppressed           `json:"suppressed,omitempty" bson:"suppressed,omitempty" pg:"-"`
 }
 
 func New() *Temporary {
