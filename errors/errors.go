@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"github.com/tidepool-org/platform/structure"
 )
@@ -342,39 +344,63 @@ func (s *Serializable) UnmarshalJSON(bites []byte) error {
 	return nil
 }
 
-func (s Serializable) MarshalBSON() ([]byte, error) {
+func (s Serializable) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if arrayErr, arrayOK := s.Error.(*array); arrayOK {
-		return bson.Marshal(arrayErr.Errors)
+		return bson.MarshalValue(arrayErr.Errors)
 	} else if objectErr, objectOK := s.Error.(*object); objectOK {
-		return bson.Marshal(objectErr)
+		return bson.MarshalValue(objectErr)
 	} else if s.Error != nil {
-		return bson.Marshal(s.Error.Error())
+		return bsontype.String, bsoncore.AppendString(nil, s.Error.Error()), nil
 	}
-	return nil, nil
+	return bsontype.Null, nil, nil
 }
 
-func (s *Serializable) UnmarshalBSON(b []byte) error {
-	errObject := &object{}
-	if err := bson.Unmarshal(b, &errObject); err != nil {
-		errObjects := []*object{}
-		if err = bson.Unmarshal(b, &errObjects); err != nil {
-			var errString string
-			if err = bson.Unmarshal(b, &errString); err != nil {
-				return err
-			}
-			s.Error = errors.New(errString)
-		} else {
-			var errors []error
-			for _, errObject := range errObjects {
-				errors = append(errors, errObject)
-			}
-			if len(errors) > 0 {
-				s.Error = &array{Errors: errors}
+func (s *Serializable) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
+	switch t {
+	case bsontype.String:
+		v, _, success := bsoncore.ReadString(data)
+		if !success {
+			return errors.New("couldn't parse error string")
+		}
+		s.Error = errors.New(v)
+	case bsontype.Array:
+		var errs []error
+		elements, err := bsoncore.Document(data).Elements()
+		if err != nil {
+			return err
+		}
+		for _, elem := range elements {
+			rawval := elem.Value()
+			switch rawval.Type {
+			case bsontype.EmbeddedDocument:
+				e := &object{}
+				if err := bson.Unmarshal(rawval.Document(), e); err != nil {
+					return err
+				}
+				errs = append(errs, e)
+			case bsontype.String:
+				v, _, success := bsoncore.ReadString(data)
+				if !success {
+					return errors.New("couldn't parse error string")
+				}
+				errs = append(errs, errors.New(v))
+			default:
+				return errors.New("invalid error type: " + rawval.Type.String())
 			}
 		}
-	} else {
+		if len(errs) > 0 {
+			s.Error = &array{Errors: errs}
+		}
+	case bsontype.EmbeddedDocument:
+		errObject := &object{}
+		if err := bson.Unmarshal(data, errObject); err != nil {
+			return err
+		}
 		s.Error = errObject
+	default:
+		return errors.New(fmt.Sprintf("invalid bson type %v", t))
 	}
+
 	return nil
 }
 
