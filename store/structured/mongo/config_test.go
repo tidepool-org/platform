@@ -156,6 +156,7 @@ var _ = Describe("Config", func() {
 			config = &mongo.Config{}
 			var err error
 			reporter, err = env.NewDefaultReporter()
+			Expect(err).ToNot(HaveOccurred())
 			reporter = reporter.WithScopes("alt", "store")
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -168,7 +169,8 @@ var _ = Describe("Config", func() {
 		})
 
 		It("errors if database not set in environment", func() {
-			Expect(config.SetDatabaseFromReporter(reporter)).To(MatchError("key \"TIDEPOOL_ALT_STORE_DATABASE\" not found"))
+			reporter := reporter.WithScopes("empty")
+			Expect(config.SetDatabaseFromReporter(reporter)).To(MatchError("key \"TIDEPOOL_ALT_STORE_EMPTY_DATABASE\" not found"))
 			Expect(config.Database).To(Equal(""))
 		})
 	})
