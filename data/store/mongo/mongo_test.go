@@ -215,6 +215,16 @@ var _ = Describe("Mongo", func() {
 						"Background": Equal(true),
 						"Name":       Equal("UploadId"),
 					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
+						"Background": Equal(true),
+						"Name":       Equal("DeduplicatorHash"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
+							{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
+					}),
 				))
 			})
 		})

@@ -95,6 +95,23 @@ func (d *DataRepository) EnsureIndexes() error {
 				SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
 				SetName("UniqueUploadId"),
 		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "deviceId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "_deduplicator.hash", Value: 1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetPartialFilterExpression(bson.D{
+					{Key: "_active", Value: true},
+					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
+					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
+				}).
+				SetName("DeduplicatorHash"),
+		},
 	})
 }
 
@@ -551,6 +568,7 @@ func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Con
 		"uploadId": dataSet.UploadID,
 		"type":     bson.M{"$ne": "upload"},
 	}
+
 	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
 	if err == nil && len(hashes) > 0 {
 		selector = bson.M{
