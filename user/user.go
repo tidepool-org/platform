@@ -46,25 +46,25 @@ type User struct {
 	UserID        *string    `json:"userid,omitempty" bson:"userid,omitempty"`     // TODO: Rename ID/id
 	Username      *string    `json:"username,omitempty" bson:"username,omitempty"` // TODO: Rename Email/email
 	PasswordHash  *string    `json:"-" bson:"pwhash,omitempty"`
-	Authenticated *bool      `json:"authenticated,omitempty" bson:"authenticated,omitempty"` // TODO: Rename EmaiLVerified/emailVerified
+	EmailVerified *bool      `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"` // TODO: Rename EmaiLVerified/emailVerified
 	TermsAccepted *string    `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
 	Roles         *[]string  `json:"roles,omitempty" bson:"roles,omitempty"`
 	CreatedTime   *time.Time `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	ModifiedTime  *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	DeletedTime   *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	Revision      *int       `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
 	u.UserID = parser.String("userid")
 	u.Username = parser.String("username")
-	u.Authenticated = parser.Bool("authenticated")
+	u.EmailVerified = parser.Bool("emailVerified")
 	u.TermsAccepted = parser.String("termsAccepted")
 	u.Roles = parser.StringArray("roles")
 	u.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
 	u.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
 	u.DeletedTime = parser.Time("deletedTime", time.RFC3339Nano)
-	u.Revision = parser.Int("revision")
+	parser.Bool("passwordExists")
+	parser.StringArray("emails")
 }
 
 func (u *User) Validate(validator structure.Validator) {
@@ -81,7 +81,6 @@ func (u *User) Validate(validator structure.Validator) {
 	if u.DeletedTime != nil {
 		validator.Time("deletedTime", u.DeletedTime).NotZero().BeforeNow(time.Second)
 	}
-	validator.Int("revision", u.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
 func (u *User) HasRole(role string) bool {
@@ -105,7 +104,7 @@ func (u *User) IsPatient() bool {
 func (u *User) Sanitize(details request.Details) error {
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
 		u.Username = nil
-		u.Authenticated = nil
+		u.EmailVerified = nil
 		u.TermsAccepted = nil
 		u.Roles = nil
 	}

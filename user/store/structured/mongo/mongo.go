@@ -9,7 +9,6 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -176,10 +175,6 @@ func (u *UserRepository) get(ctx context.Context, logger log.Logger, id string, 
 	} else if err != nil {
 		logger.WithError(err).Error("Unable to get user")
 		return nil, errors.Wrap(err, "unable to get user")
-	}
-
-	if result.Revision == nil {
-		result.Revision = pointer.FromInt(0)
 	}
 
 	return result, nil
