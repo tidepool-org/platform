@@ -22,7 +22,7 @@ const (
 	StateDraft     = "draft"
 	StatePending   = "pending"
 	StateSubmitted = "submitted"
-	StateReviewed  = "reviewed"
+	StateClaimed   = "claimed"
 	StateExpired   = "expired"
 	StateActive    = "active"
 	StateInactive  = "inactive"
@@ -129,7 +129,7 @@ func States() []string {
 		StateDraft,
 		StatePending,
 		StateSubmitted,
-		StateReviewed,
+		StateClaimed,
 		StateExpired,
 		StateActive,
 		StateInactive,
@@ -139,7 +139,7 @@ func States() []string {
 func StatesVisibleToPatients() []string {
 	return []string{
 		StateSubmitted,
-		StateReviewed,
+		StateClaimed,
 		StateActive,
 		StateInactive,
 	}
@@ -147,8 +147,8 @@ func StatesVisibleToPatients() []string {
 
 func validPatientStateTransitions() map[string][]string {
 	return map[string][]string{
-		StateSubmitted: {StateReviewed},
-		StateReviewed:  {StateActive},
+		StateSubmitted: {StateClaimed},
+		StateClaimed:   {StateActive},
 	}
 }
 
@@ -298,7 +298,7 @@ func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Upd
 	return &Update{
 		usr:            usr,
 		prescription:   prescription,
-		State:          StateReviewed,
+		State:          StateClaimed,
 		PatientUserID:  *usr.UserID,
 		ModifiedUserID: *usr.UserID,
 		ModifiedTime:   time.Now(),
@@ -316,7 +316,7 @@ func NewPrescriptionStateUpdate(usr *user.User, prescription *Prescription, upda
 }
 
 func (u *Update) GetUpdatedAccessCode() *string {
-	if u.State != StateReviewed {
+	if u.State != StateClaimed {
 		return nil
 	}
 
