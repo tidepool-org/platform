@@ -55,7 +55,7 @@ func NewObjectFromSerializable(serializable *errors.Serializable, objectFormat t
 
 	switch objectFormat {
 	case test.ObjectFormatBSON:
-		if bites, err := bson.Marshal(serializable); err != nil {
+		if t, bites, err := serializable.MarshalBSONValue(); err != nil || t != bson.TypeEmbeddedDocument {
 			return nil
 		} else if err = bson.Unmarshal(bites, &object); err != nil {
 			return nil

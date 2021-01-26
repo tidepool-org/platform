@@ -3,12 +3,25 @@ package errors_test
 import (
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/bson"
+
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	e "errors"
+
 	"github.com/tidepool-org/platform/errors"
+
+	//errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/test"
 )
+
+type SerializableWrapper struct {
+	Value *errors.Serializable `bson:"value"`
+}
 
 var _ = Describe("Errors", func() {
 	Context("with package and message", func() {
@@ -53,6 +66,29 @@ var _ = Describe("Errors", func() {
 				Expect(errors.Wrapf(nil, "%d %s", 333, msg)).To(MatchError("333 " + msg))
 			})
 		})
+	})
+
+	Context("Marshal / Unmarshal", func() {
+		DescribeTable("works correctly",
+			func(err error) {
+				wrapped := SerializableWrapper{
+					Value: errors.NewSerializable(err),
+				}
+
+				serialized, err := bson.Marshal(wrapped)
+				Expect(err).ToNot(HaveOccurred())
+
+				deserialized := SerializableWrapper{}
+				err = bson.Unmarshal(serialized, &deserialized)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(deserialized).To(Equal(deserialized))
+			},
+			Entry("with std lib error", e.New("std lib err")),
+			Entry("with a single error object", errorsTest.RandomError()),
+			Entry("with an array of object errors", errors.Append(errorsTest.RandomError(), errorsTest.RandomError())),
+			Entry("with a mixed type errors", errors.Append(errorsTest.RandomError(), e.New("std lib err"))),
+			Entry("with nested errors", errors.Append(errorsTest.RandomError(), errorsTest.RandomError())),
+		)
 	})
 
 	// Context("NewSource", func() {

@@ -2,6 +2,16 @@ package mongo_test
 
 import (
 	"context"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/task"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -17,11 +27,13 @@ import (
 
 var _ = Describe("Mongo", func() {
 	var cfg *storeStructuredMongo.Config
+	var logger *logTest.Logger
 	var str *taskStoreMongo.Store
 	var repository taskStore.TaskRepository
 
 	BeforeEach(func() {
 		cfg = storeStructuredMongoTest.NewConfig()
+		logger = logTest.NewLogger()
 	})
 
 	AfterEach(func() {
@@ -106,6 +118,82 @@ var _ = Describe("Mongo", func() {
 			It("returns a new repository", func() {
 				repository = str.NewTaskRepository()
 				Expect(repository).ToNot(BeNil())
+			})
+		})
+
+		Context("with a new repository", func() {
+			var ctx context.Context
+
+			BeforeEach(func() {
+				repository = str.NewTaskRepository()
+				Expect(repository).ToNot(BeNil())
+				ctx = log.NewContextWithLogger(context.Background(), logger)
+			})
+
+			Context("with an existing task", func() {
+				var tsk *task.Task
+
+				BeforeEach(func() {
+					var err error
+					tsk, err = task.NewTask(&task.TaskCreate{
+						Name:           pointer.FromString("test"),
+						Type:           "fetch",
+						Priority:       0,
+						Data:           nil,
+						AvailableTime:  pointer.FromTime(time.Now()),
+						ExpirationTime: pointer.FromTime(time.Now().Add(5 * time.Minute)),
+					})
+					Expect(err).ToNot(HaveOccurred())
+					tsk.State = task.TaskStateRunning
+					_, err = collection.InsertOne(ctx, tsk)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				Context("UpdateFromState", func() {
+					var updated *task.Task
+
+					BeforeEach(func() {
+						var err error
+						updated, err = task.NewTask(&task.TaskCreate{
+							Name:           pointer.FromString("updated"),
+							Type:           "fetch",
+							Priority:       0,
+							Data:           nil,
+							AvailableTime:  pointer.FromTime(time.Now()),
+							ExpirationTime: pointer.FromTime(time.Now().Add(5 * time.Minute)),
+						})
+						Expect(err).ToNot(HaveOccurred())
+						updated.ID = tsk.ID
+					})
+
+					It("returns an error when the context is missing", func() {
+						ctx = nil
+						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error when the updated task is missing", func() {
+						updated = nil
+						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
+						errorsTest.ExpectEqual(err, errors.New("task is missing"))
+						Expect(result).To(BeNil())
+					})
+
+					It("successfully fails the task with multiple errors", func() {
+						updated.State = task.TaskStateFailed
+						updated.AppendError(errors.New("first error"))
+						updated.AppendError(errors.New("second error"))
+						_, err := repository.UpdateFromState(ctx, updated, tsk.State)
+						Expect(err).ToNot(HaveOccurred())
+
+						result := task.Task{}
+						err = collection.FindOne(ctx, bson.M{"id": tsk.ID}).Decode(&result)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result.State).To(Equal(updated.State))
+						Expect(result.Error).To(Equal(updated.Error))
+					})
+				})
 			})
 		})
 	})
