@@ -105,10 +105,10 @@ func (d *DataRepository) EnsureIndexes() error {
 			},
 			Options: options.Index().
 				SetBackground(true).
-				SetPartialFilterExpression(bson.D{
-					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
-					{Key: "_active", Value: true},
-					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
+				SetPartialFilterExpression(bson.M{
+					"_active":            true,
+					"_deduplicator.hash": bson.D{{Key: "$exists", Value: true}},
+					"deviceId":           bson.D{{Key: "$exists", Value: true}},
 				}).
 				SetName("DeduplicatorHash"),
 		},

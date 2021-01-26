@@ -129,6 +129,8 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 	return dataSetDatumAsInterface
 }
 
+func BSONEKey(el interface{}) string { return el.(bson.E).Key }
+
 var _ = Describe("Mongo", func() {
 	var logger *logTest.Logger
 	var config *storeStructuredMongo.Config
@@ -219,10 +221,11 @@ var _ = Describe("Mongo", func() {
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
 						"Background": Equal(true),
 						"Name":       Equal("DeduplicatorHash"),
-						"PartialFilterExpression": Equal(bson.D{
-							{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
-							{Key: "_active", Value: true},
-							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
+						// Order independent comparison of "PartialFilterExpression"
+						"PartialFilterExpression": MatchElements(BSONEKey, IgnoreExtras, Elements{
+							"deviceId":           BeEquivalentTo(bson.E{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}}),
+							"_active":            BeEquivalentTo(bson.E{Key: "_active", Value: true}),
+							"_deduplicator.hash": BeEquivalentTo(bson.E{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}}),
 						}),
 					}),
 				))
