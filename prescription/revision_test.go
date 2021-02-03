@@ -340,8 +340,8 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
-				It("fails when state is 'reviewed'", func() {
-					attr.State = prescription.StateReviewed
+				It("fails when state is 'claimed'", func() {
+					attr.State = prescription.StateClaimed
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 

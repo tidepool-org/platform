@@ -540,8 +540,8 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(success).To(BeFalse())
 					})
 
-					It("does not delete a prescription which is reviewed", func() {
-						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateReviewed}})
+					It("does not delete a prescription which is claimed", func() {
+						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateClaimed}})
 						Expect(err).ToNot(HaveOccurred())
 
 						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
@@ -762,11 +762,11 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(result.AccessCode).To(BeEmpty())
 					})
 
-					It("sets the state of the prescription to reviewed", func() {
+					It("sets the state of the prescription to claimed", func() {
 						result, err := repository.ClaimPrescription(ctx, usr, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
-						Expect(result.State).To(Equal(prescription.StateReviewed))
+						Expect(result.State).To(Equal(prescription.StateClaimed))
 					})
 
 					It("sets the patient id", func() {

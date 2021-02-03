@@ -160,8 +160,8 @@ var _ = Describe("Prescription", func() {
 				update = prescription.NewPrescriptionClaimUpdate(usr, prescr)
 			})
 
-			It("sets the state to reviewed", func() {
-				Expect(update.State).To(Equal(prescription.StateReviewed))
+			It("sets the state to claimed", func() {
+				Expect(update.State).To(Equal(prescription.StateClaimed))
 			})
 
 			It("sets the patient id correctly", func() {
@@ -190,7 +190,7 @@ var _ = Describe("Prescription", func() {
 			var update *prescription.Update
 
 			BeforeEach(func() {
-				revisionCreate.State = prescription.StateReviewed
+				revisionCreate.State = prescription.StateClaimed
 				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
 				stateUpdate := prescription.NewStateUpdate()
 				stateUpdate.State = prescription.StateActive
@@ -201,7 +201,7 @@ var _ = Describe("Prescription", func() {
 				Expect(update.Revision).To(BeNil())
 			})
 
-			It("sets the state to reviewed", func() {
+			It("sets the state to claimed", func() {
 				Expect(update.State).To(Equal(prescription.StateActive))
 			})
 
@@ -297,8 +297,8 @@ var _ = Describe("Prescription", func() {
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
-				It("doesn't fail when the state is reviewed", func() {
-					filter.State = prescription.StateReviewed
+				It("doesn't fail when the state is claimed", func() {
+					filter.State = prescription.StateClaimed
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
@@ -413,8 +413,8 @@ var _ = Describe("Prescription", func() {
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
-				It("doesn't fail when the state is reviewed", func() {
-					filter.State = prescription.StateReviewed
+				It("doesn't fail when the state is claimed", func() {
+					filter.State = prescription.StateClaimed
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
