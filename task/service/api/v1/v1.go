@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/service"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -41,8 +42,9 @@ func (r *Router) Routes() []*rest.Route {
 }
 
 func (r *Router) PrometheusMetrics(res rest.ResponseWriter, req *rest.Request) {
-	res.Header().Set("Content-Type", "text/plain")
-	promhttp.Handler().ServeHTTP(res.(http.ResponseWriter), req.Request)
+	// The default go-json-rest middleware gzips the content
+	promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{DisableCompression: true}).
+		ServeHTTP(res.(http.ResponseWriter), req.Request)
 }
 
 func (r *Router) ListTasks(res rest.ResponseWriter, req *rest.Request) {
