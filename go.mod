@@ -19,6 +19,7 @@ require (
 	github.com/mjibson/esc v0.2.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
+	github.com/prometheus/client_golang v1.9.0
 	github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
 	github.com/tidepool-org/go-common v0.7.1
 	github.com/urfave/cli v1.22.4
