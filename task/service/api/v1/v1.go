@@ -12,8 +12,6 @@ import (
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/service"
 
-	// "github.com/prometheus/client_golang/prometheus"
-	// "github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -38,7 +36,7 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Get("/v1/tasks/:id", api.RequireServer(r.GetTask)),
 		rest.Put("/v1/tasks/:id", api.RequireServer(r.UpdateTask)),
 		rest.Delete("/v1/tasks/:id", api.RequireServer(r.DeleteTask)),
-		rest.Get("/v1/metrics", api.RequireServer(r.PrometheusMetrics)),
+		rest.Get("/v1/metrics", r.PrometheusMetrics),
 	}
 }
 
