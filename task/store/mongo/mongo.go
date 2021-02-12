@@ -22,18 +22,10 @@ import (
 )
 
 var (
-	TasksFailedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_failed_total",
-		Help: "The total number of failed tasks",
-	}, []string{"task_type"})
-	TasksCompletedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_completed_total",
-		Help: "The total number of completed tasks",
-	}, []string{"task_type"})
-	TasksCreatedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_created_total",
-		Help: "The total number of created tasks",
-	}, []string{"task_type"})
+	TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_tasks_state_total",
+		Help: "The total number of tasks sorted by state and type",
+	}, []string{"state", "type"})
 )
 
 type Store struct {
@@ -177,7 +169,7 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 		return nil, errors.Wrap(err, "unable to create task")
 	}
 
-	TasksCreatedTotal.WithLabelValues(create.Type).Inc()
+	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
 	return tsk, nil
 }
 
@@ -289,11 +281,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		return nil, errors.Wrap(err, "unable to update from state")
 	}
 
-	if state == task.TaskStateFailed {
-		TasksFailedTotal.WithLabelValues(tsk.Type).Inc()
-	} else if state == task.TaskStateCompleted {
-		TasksCompletedTotal.WithLabelValues(tsk.Type).Inc()
-	}
+	TasksStateTotal.WithLabelValues(state, tsk.Type).Inc()
 	return tsk, nil
 }
 

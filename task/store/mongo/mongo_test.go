@@ -155,12 +155,14 @@ var _ = Describe("Mongo", func() {
 					var updated *task.Task
 
 					const defaultPrometheusOutput = `
-							# HELP tidepool_task_tasks_<state>_total The total number of <state> tasks
-							# TYPE tidepool_task_tasks_<state>_total counter
-							tidepool_task_tasks_<state>_total{ task_type = "<task_type>" } 1
+							# HELP tidepool_task_tasks_state_total The total number of tasks sorted by state and type
+							# TYPE tidepool_task_tasks_state_total counter
+							tidepool_task_tasks_state_total{ state = "<state>", type = "<type>" } 1
 						`
+					const metricName = "tidepool_task_tasks_state_total"
 
 					BeforeEach(func() {
+						taskStoreMongo.TasksStateTotal.Reset()
 						var err error
 						updated, err = task.NewTask(&task.TaskCreate{
 							Name:           pointer.FromString("updated"),
@@ -208,10 +210,10 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateCompleted)
-						expectedOutput := strings.ReplaceAll(prometheusState, "<task_type>", completedTask.Type)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", completedTask.Type)
 
 						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksCompletedTotal, strings.NewReader(expectedOutput), "tidepool_task_tasks_completed_total")
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
 						Expect(prometheusErr).ToNot(HaveOccurred())
 					})
 
@@ -221,15 +223,27 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateFailed)
-						expectedOutput := strings.ReplaceAll(prometheusState, "<task_type>", failedTask.Type)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", failedTask.Type)
 
 						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksFailedTotal, strings.NewReader(expectedOutput), "tidepool_task_tasks_failed_total")
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
 						Expect(prometheusErr).ToNot(HaveOccurred())
 					})
 
-					It("records metrics of created tasks", func() {
-						taskStoreMongo.TasksCreatedTotal.Reset()
+					It("records metrics of running tasks", func() {
+						runningTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateRunning)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateRunning)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", runningTask.Type)
+
+						prometheusErr := testutil.
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
+						Expect(prometheusErr).ToNot(HaveOccurred())
+					})
+
+					It("records metrics of pending tasks", func() {
 						tskCreate := &task.TaskCreate{
 							Name:           pointer.FromString("test"),
 							Type:           "fetch",
@@ -241,11 +255,11 @@ var _ = Describe("Mongo", func() {
 						_, err := repository.CreateTask(ctx, tskCreate)
 						Expect(err).ToNot(HaveOccurred())
 
-						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", "created")
-						expectedOutput := strings.ReplaceAll(prometheusState, "<task_type>", tsk.Type)
+						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStatePending)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", tsk.Type)
 
 						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksCreatedTotal, strings.NewReader(expectedOutput), "tidepool_task_tasks_created_total")
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
 						Expect(prometheusErr).ToNot(HaveOccurred())
 					})
 
