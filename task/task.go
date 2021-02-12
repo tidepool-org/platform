@@ -13,9 +13,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Client interface {
@@ -35,21 +32,6 @@ const (
 	TaskStateRunning   = "running"
 	TaskStateFailed    = "failed"
 	TaskStateCompleted = "completed"
-)
-
-var (
-	TasksFailedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_failed_total",
-		Help: "The total number of failed tasks",
-	}, []string{"task_type"})
-	TasksCompletedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_completed_total",
-		Help: "The total number of completed tasks",
-	}, []string{"task_type"})
-	TasksCreatedTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_created_total",
-		Help: "The total number of created tasks",
-	}, []string{"task_type"})
 )
 
 func TaskStates() []string {
@@ -215,7 +197,6 @@ func NewTask(create *TaskCreate) (*Task, error) {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
-	TasksCreatedTotal.WithLabelValues(create.Type).Inc()
 	return &Task{
 		ID:             NewID(),
 		Name:           create.Name,
@@ -306,7 +287,6 @@ func (t *Task) IsFailed() bool {
 }
 
 func (t *Task) SetFailed() {
-	TasksFailedTotal.WithLabelValues(t.Type).Inc()
 	t.State = TaskStateFailed
 }
 
@@ -315,7 +295,6 @@ func (t *Task) IsCompleted() bool {
 }
 
 func (t *Task) SetCompleted() {
-	TasksCompletedTotal.WithLabelValues(t.Type).Inc()
 	t.State = TaskStateCompleted
 }
 
