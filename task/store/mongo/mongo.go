@@ -8,6 +8,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -16,6 +19,13 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
+)
+
+var (
+	TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_tasks_state_total",
+		Help: "The total number of tasks sorted by state and type",
+	}, []string{"state", "type"})
 )
 
 type Store struct {
@@ -159,6 +169,7 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 		return nil, errors.Wrap(err, "unable to create task")
 	}
 
+	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
 	return tsk, nil
 }
 
@@ -270,6 +281,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		return nil, errors.Wrap(err, "unable to update from state")
 	}
 
+	TasksStateTotal.WithLabelValues(state, tsk.Type).Inc()
 	return tsk, nil
 }
 

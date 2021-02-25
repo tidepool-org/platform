@@ -2,8 +2,10 @@ package mongo_test
 
 import (
 	"context"
+	"strings"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
@@ -152,7 +154,15 @@ var _ = Describe("Mongo", func() {
 				Context("UpdateFromState", func() {
 					var updated *task.Task
 
+					const defaultPrometheusOutput = `
+							# HELP tidepool_task_tasks_state_total The total number of tasks sorted by state and type
+							# TYPE tidepool_task_tasks_state_total counter
+							tidepool_task_tasks_state_total{ state = "<state>", type = "<type>" } 1
+						`
+					const metricName = "tidepool_task_tasks_state_total"
+
 					BeforeEach(func() {
+						taskStoreMongo.TasksStateTotal.Reset()
 						var err error
 						updated, err = task.NewTask(&task.TaskCreate{
 							Name:           pointer.FromString("updated"),
@@ -193,6 +203,66 @@ var _ = Describe("Mongo", func() {
 						Expect(result.State).To(Equal(updated.State))
 						Expect(result.Error).To(Equal(updated.Error))
 					})
+
+					It("records metrics of completed tasks", func() {
+						completedTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateCompleted)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateCompleted)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", completedTask.Type)
+
+						prometheusErr := testutil.
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
+						Expect(prometheusErr).ToNot(HaveOccurred())
+					})
+
+					It("records metrics of failed tasks", func() {
+						failedTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateFailed)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateFailed)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", failedTask.Type)
+
+						prometheusErr := testutil.
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
+						Expect(prometheusErr).ToNot(HaveOccurred())
+					})
+
+					It("records metrics of running tasks", func() {
+						runningTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateRunning)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateRunning)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", runningTask.Type)
+
+						prometheusErr := testutil.
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
+						Expect(prometheusErr).ToNot(HaveOccurred())
+					})
+
+					It("records metrics of pending tasks", func() {
+						tskCreate := &task.TaskCreate{
+							Name:           pointer.FromString("test"),
+							Type:           "fetch",
+							Priority:       0,
+							Data:           nil,
+							AvailableTime:  pointer.FromTime(time.Now()),
+							ExpirationTime: pointer.FromTime(time.Now().Add(5 * time.Minute)),
+						}
+						_, err := repository.CreateTask(ctx, tskCreate)
+						Expect(err).ToNot(HaveOccurred())
+
+						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStatePending)
+						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", tsk.Type)
+
+						prometheusErr := testutil.
+							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
+						Expect(prometheusErr).ToNot(HaveOccurred())
+					})
+
 				})
 			})
 		})
