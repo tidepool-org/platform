@@ -307,7 +307,7 @@ func (s *Service) initializePermissionClient() error {
 
 	s.Logger().Debug("Creating permission client")
 
-	client, err := permissionClient.New(config, platform.AuthorizeAsService)
+	client, err := permissionClient.New(config)
 	if err != nil {
 		return errors.Wrap(err, "unable to create permission client")
 	}

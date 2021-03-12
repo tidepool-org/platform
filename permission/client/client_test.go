@@ -3,7 +3,9 @@ package client_test
 import (
 	"context"
 	"net/http"
+	"strings"
 
+	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
@@ -14,22 +16,20 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Client", func() {
 	var config *platform.Config
-	var authorizeAs platform.AuthorizeAs
 
 	BeforeEach(func() {
 		config = platform.NewConfig()
 		config.UserAgent = testHttp.NewUserAgent()
-		authorizeAs = platform.AuthorizeAsService
 	})
 
 	Context("New", func() {
@@ -39,32 +39,25 @@ var _ = Describe("Client", func() {
 
 		It("returns an error when the config is missing", func() {
 			config = nil
-			client, err := permissionClient.New(nil, authorizeAs)
+			client, err := permissionClient.New(nil)
 			errorsTest.ExpectEqual(err, errors.New("config is missing"))
 			Expect(client).To(BeNil())
 		})
 
-		It("returns an error when the authorize as is invalid", func() {
-			authorizeAs = platform.AuthorizeAs(-1)
-			client, err := permissionClient.New(config, authorizeAs)
-			errorsTest.ExpectEqual(err, errors.New("authorize as is invalid"))
-			Expect(client).To(BeNil())
-		})
-
-		It("returns success", func() {
-			Expect(permissionClient.New(config, authorizeAs)).ToNot(BeNil())
+		It("returns success when the config is present", func() {
+			Expect(permissionClient.New(config)).ToNot(BeNil())
 		})
 	})
 
-	Context("with server and new client", func() {
+	Context("with server and coastguard client", func() {
 		var server *Server
 		var requestHandlers []http.HandlerFunc
 		var responseHeaders http.Header
 		var logger *logTest.Logger
 		var sessionToken string
-		var details request.Details
 		var ctx context.Context
 		var client *permissionClient.Client
+		var req *rest.Request
 
 		BeforeEach(func() {
 			server = NewServer()
@@ -72,7 +65,6 @@ var _ = Describe("Client", func() {
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			logger = logTest.NewLogger()
 			sessionToken = authTest.NewSessionToken()
-			details = request.NewDetails(request.MethodSessionToken, "", sessionToken)
 			ctx = context.Background()
 			ctx = log.NewContextWithLogger(ctx, logger)
 			ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
@@ -82,10 +74,9 @@ var _ = Describe("Client", func() {
 			server.AppendHandlers(CombineHandlers(requestHandlers...))
 			var err error
 			config.Address = server.URL()
-			client, err = permissionClient.New(config, authorizeAs)
+			client, err = permissionClient.New(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())
-			ctx = request.NewContextWithDetails(ctx, details)
 		})
 
 		AfterEach(func() {
@@ -101,6 +92,13 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				requestUserID = userTest.RandomID()
 				targetUserID = userTest.RandomID()
+				data := request.NewDetails(request.MethodSessionToken, requestUserID, sessionToken)
+				ctx = request.NewContextWithDetails(ctx, data)
+				httpReq, _ := http.NewRequestWithContext(ctx, "GET", "http://test.fr", nil)
+				req = &rest.Request{
+					Request: httpReq,
+				}
+
 			})
 
 			Context("without server response", func() {
@@ -108,35 +106,55 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns an error when the context is missing", func() {
-					ctx = nil
-					permissions, err := client.GetUserPermissions(ctx, requestUserID, targetUserID)
-					errorsTest.ExpectEqual(err, errors.New("context is missing"))
-					Expect(permissions).To(BeNil())
-				})
-
-				It("returns an error when the request user id is missing", func() {
-					requestUserID = ""
-					permissions, err := client.GetUserPermissions(ctx, requestUserID, targetUserID)
-					errorsTest.ExpectEqual(err, errors.New("request user id is missing"))
-					Expect(permissions).To(BeNil())
-				})
-
 				It("returns an error when the target user id is missing", func() {
 					targetUserID = ""
-					permissions, err := client.GetUserPermissions(ctx, requestUserID, targetUserID)
+					permissions, err := client.GetUserPermissions(req, targetUserID)
 					errorsTest.ExpectEqual(err, errors.New("target user id is missing"))
-					Expect(permissions).To(BeNil())
+					Expect(permissions).To(Equal(false))
+				})
+
+				It("returns successfully when request is target with expected accepted authorization without calling authorization service", func() {
+					permissions, err := client.GetUserPermissions(req, requestUserID)
+					Expect(err).To(BeNil())
+					Expect(permissions).To(Equal(true))
+				})
+
+				It("returns successfully when the requester is a service", func() {
+					// Service don't have userId set
+					data := request.NewDetails(request.MethodSessionToken, "", sessionToken)
+					ctx = request.NewContextWithDetails(ctx, data)
+					httpReq, _ := http.NewRequestWithContext(ctx, "GET", "http://test.fr", nil)
+					req = &rest.Request{
+						Request: httpReq,
+					}
+					permissions, err := client.GetUserPermissions(req, targetUserID)
+					Expect(err).To(BeNil())
+					Expect(permissions).To(Equal(true))
 				})
 			})
 
 			Context("with server response", func() {
+
 				BeforeEach(func() {
+					var requestBody permissionClient.CoastguardRequestBody
+					url := *req.URL
+					headers := make(map[string]string)
+					for k := range req.Header {
+						headers[strings.ToLower(k)] = req.Header.Get(k)
+					}
+					requestBody.Input.Request.Headers = headers
+					requestBody.Input.Request.Method = req.Method
+					requestBody.Input.Request.Protocol = req.Proto
+					requestBody.Input.Request.Host = req.Host
+					requestBody.Input.Request.Path = url.Path
+					requestBody.Input.Request.Query = url.RawQuery
+					requestBody.Input.Request.Service = "platform"
+					requestBody.Input.Data.TargetUserID = targetUserID
 					requestHandlers = append(requestHandlers,
-						VerifyContentType(""),
+						VerifyContentType("application/json; charset=utf-8"),
 						VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
-						VerifyBody(nil),
-						VerifyRequest("GET", "/access/"+targetUserID+"/"+requestUserID),
+						VerifyBody(test.MarshalRequestBody(&requestBody)),
+						VerifyRequest("POST", "/v1/data/backloops/access"),
 					)
 				})
 
@@ -150,86 +168,57 @@ var _ = Describe("Client", func() {
 					})
 
 					It("returns an error", func() {
-						permissions, err := client.GetUserPermissions(ctx, requestUserID, targetUserID)
-						errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-						Expect(permissions).To(BeNil())
+						permissions, err := client.GetUserPermissions(req, targetUserID)
+						Expect(err).NotTo(BeNil())
+						Expect(permissions).To(Equal(false))
 					})
 				})
 
-				Context("with a not found response, which is the same as unauthorized", func() {
+				Context("with a not found response ", func() {
 					BeforeEach(func() {
 						requestHandlers = append(requestHandlers, RespondWith(http.StatusNotFound, nil, responseHeaders))
 					})
 
-					It("returns an unauthorized error", func() {
-						permissions, err := client.GetUserPermissions(ctx, requestUserID, targetUserID)
-						errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
-						Expect(permissions).To(BeNil())
+					It("returns an error", func() {
+						permissions, err := client.GetUserPermissions(req, targetUserID)
+						Expect(err).NotTo(BeNil())
+						Expect(permissions).To(Equal(false))
 					})
 				})
 
-				Context("with a successful response, but with no permissions", func() {
+				Context("with a successful response, but with empty response", func() {
 					BeforeEach(func() {
 						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, "{}", responseHeaders))
 					})
 
-					It("returns successfully with expected permissions", func() {
-						Expect(client.GetUserPermissions(ctx, requestUserID, targetUserID)).To(BeEmpty())
+					It("returns successfully with expected refused authorization", func() {
+						permissions, err := client.GetUserPermissions(req, targetUserID)
+						Expect(err).To(BeNil())
+						Expect(permissions).To(Equal(false))
 					})
 				})
 
-				Context("with a successful response with upload and view permissions", func() {
+				Context("with a successful response with authorization set to false", func() {
 					BeforeEach(func() {
-						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, `{"upload": {}, "view": {}}`, responseHeaders))
+						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, `{"result":{"authorized": false, "route": "test"}}`, responseHeaders))
 					})
 
-					It("returns successfully with expected permissions", func() {
-						Expect(client.GetUserPermissions(ctx, requestUserID, targetUserID)).To(Equal(permission.Permissions{
-							permission.Write: permission.Permission{},
-							permission.Read:  permission.Permission{},
-						}))
+					It("returns successfully with expected refused authorization", func() {
+						permissions, err := client.GetUserPermissions(req, targetUserID)
+						Expect(err).To(BeNil())
+						Expect(permissions).To(Equal(false))
 					})
 				})
 
-				Context("with a successful response with owner permissions that already includes upload permissions", func() {
+				Context("with a successful response with authorization set to true", func() {
 					BeforeEach(func() {
-						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}}`, responseHeaders))
+						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, `{"result":{"authorized": true, "route": "test"}}`, responseHeaders))
 					})
 
-					It("returns successfully with expected permissions", func() {
-						Expect(client.GetUserPermissions(ctx, requestUserID, targetUserID)).To(Equal(permission.Permissions{
-							permission.Owner: permission.Permission{"root-inner": "unused"},
-							permission.Write: permission.Permission{},
-							permission.Read:  permission.Permission{"root-inner": "unused"},
-						}))
-					})
-				})
-
-				Context("with a successful response with owner permissions that already includes view permissions", func() {
-					BeforeEach(func() {
-						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "view": {}}`, responseHeaders))
-					})
-
-					It("returns successfully with expected permissions", func() {
-						Expect(client.GetUserPermissions(ctx, requestUserID, targetUserID)).To(Equal(permission.Permissions{
-							permission.Owner: permission.Permission{"root-inner": "unused"},
-							permission.Write: permission.Permission{"root-inner": "unused"},
-							permission.Read:  permission.Permission{},
-						}))
-					})
-				})
-
-				Context("with a successful response with owner permissions that already includes upload and view permissions", func() {
-					BeforeEach(func() {
-						requestHandlers = append(requestHandlers, RespondWith(http.StatusOK, `{"root": {"root-inner": "unused"}, "upload": {}, "view": {}}`, responseHeaders))
-					})
-
-					It("returns successfully with expected permissions", func() {
-						Expect(client.GetUserPermissions(ctx, requestUserID, targetUserID)).To(Equal(permission.Permissions{
-							permission.Owner: permission.Permission{"root-inner": "unused"},
-							permission.Write: permission.Permission{},
-							permission.Read:  permission.Permission{},
-						}))
+					It("returns successfully with expected accepted authorization", func() {
+						permissions, err := client.GetUserPermissions(req, targetUserID)
+						Expect(err).To(BeNil())
+						Expect(permissions).To(Equal(true))
 					})
 				})
 			})

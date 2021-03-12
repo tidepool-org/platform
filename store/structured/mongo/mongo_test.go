@@ -1,6 +1,7 @@
 package mongo_test
 
 import (
+	"os"
 	"time"
 
 	mgo "github.com/globalsign/mgo"
@@ -71,8 +72,11 @@ var _ = Describe("Mongo", func() {
 				Expect(store.Session()).To(BeNil())
 				time.Sleep(3 * time.Second)
 				Expect(store.Session()).To(BeNil())
-
-				config.SetAddresses([]string{"127.0.0.1:27017"})
+				mongoAddress := "127.0.0.1:27017"
+				if os.Getenv("TIDEPOOL_STORE_ADDRESSES") != "" {
+					mongoAddress = os.Getenv("TIDEPOOL_STORE_ADDRESSES")
+				}
+				config.SetAddresses([]string{mongoAddress})
 				store.WaitUntilStarted()
 				Expect(store.Session()).ToNot(BeNil())
 			})

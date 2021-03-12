@@ -6,9 +6,6 @@ import (
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	"github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
-	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
-	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
-	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/permission"
@@ -22,15 +19,13 @@ import (
 
 type Standard struct {
 	*service.DEPRECATEDService
-	permissionClient          *permissionClient.Client
-	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
-	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
-	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
-	syncTaskStore             *syncTaskMongo.Store
-	dataClient                *Client
-	dataSourceClient          *dataSourceServiceClient.Client
-	api                       *api.Standard
-	server                    *server.Standard
+	permissionClient        *permissionClient.Client
+	dataDeduplicatorFactory *dataDeduplicatorFactory.Factory
+	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Store
+	syncTaskStore           *syncTaskMongo.Store
+	dataClient              *Client
+	api                     *api.Standard
+	server                  *server.Standard
 }
 
 func NewStandard() *Standard {
@@ -53,16 +48,10 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataStoreDEPRECATED(); err != nil {
 		return err
 	}
-	if err := s.initializeDataSourceStructuredStore(); err != nil {
-		return err
-	}
 	if err := s.initializeSyncTaskStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataClient(); err != nil {
-		return err
-	}
-	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -78,10 +67,6 @@ func (s *Standard) Terminate() {
 	if s.syncTaskStore != nil {
 		s.syncTaskStore.Close()
 		s.syncTaskStore = nil
-	}
-	if s.dataSourceStructuredStore != nil {
-		s.dataSourceStructuredStore.Close()
-		s.dataSourceStructuredStore = nil
 	}
 	if s.dataStoreDEPRECATED != nil {
 		s.dataStoreDEPRECATED.Close()
@@ -105,22 +90,18 @@ func (s *Standard) PermissionClient() permission.Client {
 	return s.permissionClient
 }
 
-func (s *Standard) DataSourceStructuredStore() dataSourceStoreStructured.Store {
-	return s.dataSourceStructuredStore
-}
-
 func (s *Standard) initializePermissionClient() error {
 	s.Logger().Debug("Loading permission client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	if err := cfg.Load(reporter); err != nil {
 		return errors.Wrap(err, "unable to load permission client config")
 	}
 
 	s.Logger().Debug("Creating permission client")
-
-	clnt, err := permissionClient.New(cfg, platform.AuthorizeAsService)
+	clnt, err := permissionClient.New(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create permission client")
 	}
@@ -195,25 +176,6 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	return nil
 }
 
-func (s *Standard) initializeDataSourceStructuredStore() error {
-	s.Logger().Debug("Loading data source structured store config")
-
-	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "store")); err != nil {
-		return errors.Wrap(err, "unable to load data source structured store config")
-	}
-
-	s.Logger().Debug("Creating data source structured store")
-
-	str, err := dataSourceStoreStructuredMongo.NewStore(cfg, s.Logger())
-	if err != nil {
-		return errors.Wrap(err, "unable to create data source structured store")
-	}
-	s.dataSourceStructuredStore = str
-
-	return nil
-}
-
 func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
@@ -245,24 +207,12 @@ func (s *Standard) initializeDataClient() error {
 	return nil
 }
 
-func (s *Standard) initializeDataSourceClient() error {
-	s.Logger().Debug("Creating data client")
-
-	clnt, err := dataSourceServiceClient.New(s)
-	if err != nil {
-		return errors.Wrap(err, "unable to create source data client")
-	}
-	s.dataSourceClient = clnt
-
-	return nil
-}
-
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}

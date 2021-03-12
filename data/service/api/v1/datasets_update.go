@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -51,22 +50,18 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	details := request.DetailsFromContext(ctx)
-	if !details.IsService() {
-		var permissions permission.Permissions
-		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
-		if err != nil {
-			if request.IsErrorUnauthorized(err) {
-				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			} else {
-				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
-			}
-			return
-		}
-		if _, ok := permissions[permission.Write]; !ok {
+	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, *dataSet.UserID)
+	if err != nil {
+		if request.IsErrorUnauthorized(err) {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			return
+		} else {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
+		return
+	}
+	if !permissions {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
 	}
 
 	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
@@ -76,6 +71,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 
 	update := data.NewDataSetUpdate()
 	if dataSet.DataSetType != nil && *dataSet.DataSetType == upload.DataSetTypeContinuous {
+		details := request.DetailsFromContext(ctx)
 		if !details.IsService() {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return

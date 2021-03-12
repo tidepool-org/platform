@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
@@ -21,7 +22,12 @@ func init() {
 
 func Test(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, getCallerPackage())
+	junitReporter := reporters.NewJUnitReporter("junit.xml")
+	if os.Getenv("JENKINS_TEST") == "on" {
+		ginkgo.RunSpecsWithCustomReporters(t, "Platform test suite", []ginkgo.Reporter{junitReporter})
+	} else {
+		ginkgo.RunSpecs(t, getCallerPackage())
+	}
 }
 
 func getFrameName(frame int) string {

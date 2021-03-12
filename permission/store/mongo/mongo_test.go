@@ -1,7 +1,6 @@
 package mongo_test
 
 import (
-	"context"
 	"encoding/base64"
 
 	mgo "github.com/globalsign/mgo"
@@ -10,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/crypto"
-	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	permissionStore "github.com/tidepool-org/platform/permission/store"
 	permissionStoreMongo "github.com/tidepool-org/platform/permission/store/mongo"
@@ -126,74 +124,6 @@ var _ = Describe("Mongo", func() {
 			It("returns a new session", func() {
 				mongoSession = mongoStore.NewPermissionsSession()
 				Expect(mongoSession).ToNot(BeNil())
-			})
-		})
-
-		Context("with a new session", func() {
-			BeforeEach(func() {
-				mongoSession = mongoStore.NewPermissionsSession()
-				Expect(mongoSession).ToNot(BeNil())
-			})
-
-			Context("with persisted data", func() {
-				var testMongoSession *mgo.Session
-				var testMongoCollection *mgo.Collection
-				var permissions []interface{}
-				var ctx context.Context
-
-				BeforeEach(func() {
-					testMongoSession = storeStructuredMongoTest.Session().Copy()
-					testMongoCollection = testMongoSession.DB(mongoConfig.Database).C(mongoConfig.CollectionPrefix + "perms")
-					permissions = NewPermissions(user.NewID())
-					ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
-				})
-
-				JustBeforeEach(func() {
-					Expect(testMongoCollection.Insert(permissions...)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					if testMongoSession != nil {
-						testMongoSession.Close()
-					}
-				})
-
-				Context("DestroyPermissionsForUserByID", func() {
-					var destroyUserID string
-					var destroyPermissions []interface{}
-
-					BeforeEach(func() {
-						destroyUserID = user.NewID()
-						destroyPermissions = NewPermissions(destroyUserID)
-					})
-
-					JustBeforeEach(func() {
-						Expect(testMongoCollection.Insert(destroyPermissions...)).To(Succeed())
-					})
-
-					It("succeeds if it successfully removes permissions", func() {
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(Succeed())
-					})
-
-					It("returns an error if the context is missing", func() {
-						Expect(mongoSession.DestroyPermissionsForUserByID(nil, destroyUserID)).To(MatchError("context is missing"))
-					})
-
-					It("returns an error if the user id is missing", func() {
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, "")).To(MatchError("user id is missing"))
-					})
-
-					It("returns an error if the session is closed", func() {
-						mongoSession.Close()
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(MatchError("session closed"))
-					})
-
-					It("has the correct stored permissions", func() {
-						ValidatePermissions(testMongoCollection, bson.M{}, append(permissions, destroyPermissions...))
-						Expect(mongoSession.DestroyPermissionsForUserByID(ctx, destroyUserID)).To(Succeed())
-						ValidatePermissions(testMongoCollection, bson.M{}, permissions)
-					})
-				})
 			})
 		})
 	})

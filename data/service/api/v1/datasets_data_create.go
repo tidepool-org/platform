@@ -8,12 +8,13 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+type EmptyBody struct{}
 
 // DataSetsDataCreate godoc
 // @Summary Add data to a DataSets
@@ -26,7 +27,7 @@ import (
 // @Security TidepoolServiceSecret
 // @Security TidepoolAuthorization
 // @Security TidepoolRestrictedToken
-// @Success 200 "Operation is a success"
+// @Success 200 {object} EmptyBody "Operation is a success"
 // @Failure 400 {object} service.Error "Data set id is missing"
 // @Failure 403 {object} service.Error "Auth token is not authorized for requested action"
 // @Failure 404 {object} service.Error "Data set with specified id not found"
@@ -34,9 +35,10 @@ import (
 // @Failure 500 {object} service.Error "Unable to perform the operation"
 // @Router /v1/datasets/:dataSetId/data [post]
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
-	ctx := dataServiceContext.Request().Context()
+	req := dataServiceContext.Request()
+	ctx := req.Context()
 
-	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
+	dataSetID := req.PathParam("dataSetId")
 	if dataSetID == "" {
 		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
 		return
@@ -52,21 +54,18 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
-		var permissions permission.Permissions
-		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
-		if err != nil {
-			if request.IsErrorUnauthorized(err) {
-				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			} else {
-				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
-			}
-			return
-		}
-		if _, ok := permissions[permission.Write]; !ok {
+	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, *dataSet.UserID)
+	if err != nil {
+		if request.IsErrorUnauthorized(err) {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			return
+		} else {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
+		return
+	}
+	if !permissions {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
 	}
 
 	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
@@ -75,7 +74,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	}
 
 	var rawDatumArray []interface{}
-	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+	if err = req.DecodeJsonPayload(&rawDatumArray); err != nil {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
 	}
@@ -100,15 +99,15 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	parser.NotParsed()
 
 	if err = parser.Error(); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		request.MustNewResponder(dataServiceContext.Response(), req).Error(http.StatusBadRequest, err)
 		return
 	}
 	if err = validator.Error(); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		request.MustNewResponder(dataServiceContext.Response(), req).Error(http.StatusBadRequest, err)
 		return
 	}
 	if err = normalizer.Error(); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+		request.MustNewResponder(dataServiceContext.Response(), req).Error(http.StatusBadRequest, err)
 		return
 	}
 

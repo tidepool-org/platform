@@ -50,6 +50,9 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 	}
 
 	name := filepath.Base(os.Args[0])
+	if strings.EqualFold(name, "__debug_bin") {
+		name = "debug"
+	}
 	if strings.EqualFold(name, "debug") {
 		name = configReporter.WithScopes(name).GetWithDefault("name", name)
 	}

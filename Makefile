@@ -55,27 +55,27 @@ bindir:
 
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
-	cd vendor/github.com/githubnemo/CompileDaemon && go install .
+	go install github.com/githubnemo/CompileDaemon
 endif
 
 esc:
 ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install .
+	go install github.com/mjibson/esc
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
+	go install github.com/onsi/ginkgo/ginkgo
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install .
-endif
+	go install golang.org/x/tools/cmd/goimports
+endif	
 
 golint:
 ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && go install .
+	go install golang.org/x/lint/golint
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
@@ -188,8 +188,8 @@ test-watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml --skipPackage=user,blob,image,task,tool,notification,oauth,dexcom,migration,aws $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml --skipPackage=user,blob,image,task,tool,notification,oauth,dexcom,migration,aws $(TEST)
 
 snyk-test:
 	@echo "snyk test --dev --org=tidepool"
@@ -231,11 +231,8 @@ ci-deploy: deploy
 ci-soups: clean-soup-doc generate-soups 
 
 generate-soups:
-ifdef TRAVIS_TAG
 	@cd $(ROOT_DIRECTORY) && \
-		for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) service-soup SERVICE_DIRECTORY=$${SERVICE} SERVICE=$${SERVICE} TARGET=soup VERSION=${VERSION_BASE}; done && \
 		$(MAKE) service-soup SERVICE_DIRECTORY=data SERVICE=platform TARGET=soup VERSION=${VERSION_BASE} 
-endif
 
 service-soup: 
 	@cd ${SERVICE_DIRECTORY} && \

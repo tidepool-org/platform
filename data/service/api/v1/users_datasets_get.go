@@ -6,7 +6,6 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
@@ -34,34 +33,33 @@ import (
 // @Failure 500 {object} service.Error "Unable to perform the operation"
 // @Router /v1/users/:userId/datasets [get]
 func UsersDataSetsGet(dataServiceContext dataService.Context) {
-	ctx := dataServiceContext.Request().Context()
+	req := dataServiceContext.Request()
+	ctx := req.Context()
 
-	targetUserID := dataServiceContext.Request().PathParam("userId")
+	targetUserID := req.PathParam("userId")
 	if targetUserID == "" {
 		dataServiceContext.RespondWithError(ErrorUserIDMissing())
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
-		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), targetUserID)
-		if err != nil {
-			if request.IsErrorUnauthorized(err) {
-				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			} else {
-				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
-			}
-			return
-		}
-		if _, ok := permissions[permission.Read]; !ok {
+	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, targetUserID)
+	if err != nil {
+		if request.IsErrorUnauthorized(err) {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			return
+		} else {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
+		return
+	}
+	if !permissions {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
 	}
 
 	filter := dataStoreDEPRECATED.NewFilter()
 	pagination := page.NewPagination()
-	if err := request.DecodeRequestQuery(dataServiceContext.Request().Request, filter, pagination); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
+	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+		request.MustNewResponder(dataServiceContext.Response(), req).Error(http.StatusBadRequest, err)
 		return
 	}
 

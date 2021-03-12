@@ -7,7 +7,6 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataContext "github.com/tidepool-org/platform/data/service/context"
-	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/permission"
@@ -23,12 +22,11 @@ type Standard struct {
 	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
 	syncTaskStore           syncTaskStore.Store
 	dataClient              dataClient.Client
-	dataSourceClient        dataSource.Client
 }
 
 func NewStandard(svc service.Service, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
 	if permissionClient == nil {
 		return nil, errors.New("permission client is missing")
 	}
@@ -44,9 +42,6 @@ func NewStandard(svc service.Service, permissionClient permission.Client,
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
-	if dataSourceClient == nil {
-		return nil, errors.New("data source client is missing")
-	}
 
 	a, err := api.New(svc)
 	if err != nil {
@@ -60,7 +55,6 @@ func NewStandard(svc service.Service, permissionClient permission.Client,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
-		dataSourceClient:        dataSourceClient,
 	}, nil
 }
 
@@ -94,5 +88,5 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
+		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, handler)
 }

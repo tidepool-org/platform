@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -36,7 +35,7 @@ func DataSetsRoutes() []dataService.Route {
 // @Param deleted query bool false "True to return the deleted datasets"
 // @Param deviceId  query string false "Filter on the deviceId"
 // @Param state query string false "Filter of the state: open or closed"
-// @Param dataSetType query string false "Filter of the type: continuous or normal
+// @Param dataSetType query string false "Filter of the type: continuous or normal"
 // @Security TidepoolSessionToken
 // @Security TidepoolServiceSecret
 // @Security TidepoolAuthorization
@@ -52,13 +51,6 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	details := request.DetailsFromContext(req.Context())
-	if details == nil {
-		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
-		return
-	}
-	// TODO: END: Update to new service paradigm
-
 	responder := request.MustNewResponder(res, req)
 
 	userID := req.PathParam("userId")
@@ -67,24 +59,18 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 		return
 	}
 
-	// FUTURE: Refactor for global usage
-	if !details.IsService() && details.UserID() != userID {
-		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req.Context(), details.UserID(), userID)
-		if err != nil {
-			if request.IsErrorUnauthorized(err) {
-				responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
-			} else {
-				responder.Error(http.StatusInternalServerError, err)
-			}
-			return
-		}
-		_, custodianPermission := permissions[permission.Custodian]
-		_, uploadPermission := permissions[permission.Write]
-		_, viewPermission := permissions[permission.Read]
-		if !custodianPermission && !uploadPermission && !viewPermission {
+	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, userID)
+	if err != nil {
+		if request.IsErrorUnauthorized(err) {
 			responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
-			return
+		} else {
+			responder.Error(http.StatusInternalServerError, err)
 		}
+		return
+	}
+	if !permissions {
+		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
 	}
 
 	filter := data.NewDataSetFilter()
@@ -125,13 +111,6 @@ func GetDataSet(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	details := request.DetailsFromContext(req.Context())
-	if details == nil {
-		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
-		return
-	}
-	// TODO: END: Update to new service paradigm
-
 	responder := request.MustNewResponder(res, req)
 
 	id := req.PathParam("dataSetId") // TODO: Use "id"
@@ -149,8 +128,17 @@ func GetDataSet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !details.IsService() && details.UserID() != *dataSet.UserID {
-		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, *dataSet.UserID)
+	if err != nil {
+		if request.IsErrorUnauthorized(err) {
+			responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
+		} else {
+			responder.Error(http.StatusInternalServerError, err)
+		}
+		return
+	}
+	if !permissions {
+		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
 

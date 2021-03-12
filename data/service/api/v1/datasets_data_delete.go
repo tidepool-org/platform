@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 )
@@ -18,16 +17,17 @@ import (
 // @Param dataSetId path string true "dataSet ID"
 // @Security TidepoolSessionToken
 // @Security TidepoolServiceSecret
-// @Success 200 "Operation is a success"
+// @Success 200 {object} EmptyBody "Operation is a success"
 // @Failure 400 {object} service.Error "dataSet ID is missing"
 // @Failure 403 {object} service.Error "Forbiden: caller is not a service"
 // @Failure 409 {object} service.Error "Data set with specified id is closed"
 // @Failure 500 {object} service.Error "Unable to perform the operation"
 // @Router /v1/data_sets/:dataSetId/data [delete]
 func DataSetsDataDelete(dataServiceContext dataService.Context) {
-	ctx := dataServiceContext.Request().Context()
+	req := dataServiceContext.Request()
+	ctx := req.Context()
 
-	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
+	dataSetID := req.PathParam("dataSetId")
 	if dataSetID == "" {
 		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
 		return
@@ -43,21 +43,18 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
-		var permissions permission.Permissions
-		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
-		if err != nil {
-			if request.IsErrorUnauthorized(err) {
-				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			} else {
-				dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
-			}
-			return
-		}
-		if _, ok := permissions[permission.Write]; !ok {
+	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, *dataSet.UserID)
+	if err != nil {
+		if request.IsErrorUnauthorized(err) {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
-			return
+		} else {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to get user permissions", err)
 		}
+		return
+	}
+	if !permissions {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
 	}
 
 	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
@@ -66,7 +63,7 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 	}
 
 	selectors := data.NewSelectors()
-	if err = request.DecodeRequestBody(dataServiceContext.Request().Request, selectors); err != nil {
+	if err = request.DecodeRequestBody(req.Request, selectors); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("unable to parse selectors", err)
 		return
 	}

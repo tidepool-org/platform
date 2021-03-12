@@ -1,6 +1,13 @@
 # Platform 
 The Tidepool platform API
 
+## 0.11.0 - 2021-03-11
+### Changed 
+- YLP-478 Remove gatekeeper in platform data
+### Engineering
+- Switching to Jenkins pipeline
+- Upgrade to Go 1.15
+
 ## 0.10.4
 ### Fixed
 - YLP-289 Biphasic bolus not linked to meal

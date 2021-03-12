@@ -9,7 +9,6 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
-	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/permission"
@@ -27,15 +26,14 @@ type Standard struct {
 	syncTaskStore           syncTaskStore.Store
 	syncTasksSession        syncTaskStore.SyncTaskSession
 	dataClient              dataClient.Client
-	dataSourceClient        dataSource.Client
 }
 
 func WithContext(authClient auth.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, permissionClient,
-			dataDeduplicatorFactory, dataStoreDEPRECATED, syncTaskStore, dataClient, dataSourceClient)
+			dataDeduplicatorFactory, dataStoreDEPRECATED, syncTaskStore, dataClient)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -53,7 +51,7 @@ func WithContext(authClient auth.Client, permissionClient permission.Client,
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -72,9 +70,6 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
-	if dataSourceClient == nil {
-		return nil, errors.New("data source client is missing")
-	}
 
 	responder, err := serviceContext.NewResponder(response, request)
 	if err != nil {
@@ -89,7 +84,6 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		dataStoreDEPRECATED:     dataStoreDEPRECATED,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
-		dataSourceClient:        dataSourceClient,
 	}, nil
 }
 
@@ -132,8 +126,4 @@ func (s *Standard) SyncTaskSession() syncTaskStore.SyncTaskSession {
 
 func (s *Standard) DataClient() dataClient.Client {
 	return s.dataClient
-}
-
-func (s *Standard) DataSourceClient() dataSource.Client {
-	return s.dataSourceClient
 }

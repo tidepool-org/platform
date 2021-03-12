@@ -8,7 +8,7 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.11.4 or later
+1. Install Go version 1.15 
 1. Install mongodb (if it is not already installed, or run it from Docker)
 1. Start mongodb (if it is not already running)
 1. Clone this repo
