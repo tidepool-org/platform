@@ -13,6 +13,12 @@ pipeline {
                     }
                     builderImage = docker.build('go-build-image','-f ./Dockerfile.build .')
                     env.RUN_ID = UUID.randomUUID().toString()
+                    docker.image('docker.ci.diabeloop.eu/ci-toolbox').inside() {
+                        env.version = sh (
+                            script: 'release-helper get-version',
+                            returnStdout: true
+                        ).trim().toUpperCase()
+                    }
                 }
             }
         }
@@ -69,10 +75,14 @@ pipeline {
                             SERVICE=data make ci-soups
                             ./buildDoc.sh
                             mkdir -p ./ci-doc
-                            mv ./soup/platform/*-soup.md ./ci-doc/
-                            mv ./docs/api/v1/data/* ./ci-doc/
-                        """              
-                        stash name: "doc", includes: "ci-doc/*"
+                            mv ./soup/platform/platform-0.0.0-soup.md ./ci-doc/platform-${version}-soup.md
+                            mv ./docs/api/v1/data/swagger.json ./ci-doc/platform-${version}-swagger.json
+
+                            cp ./ci-doc/platform-${version}-swagger.json ./ci-doc/platform-latest-swagger.json
+                        """
+                        dir("ci-doc") {
+                            stash name: "doc", includes: "*", allowEmtpy: true
+                        }
                     }
                 }
                 

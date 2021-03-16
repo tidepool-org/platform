@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.11.1 - 2021-03-12
+### Engineering
+- Fixing publish in Jenkins pipeline
+
 ## 0.11.0 - 2021-03-11
 ### Changed 
 - YLP-478 Remove gatekeeper in platform data

@@ -2,10 +2,10 @@ module: platform
 type: golang
 runTests: false
 docker: true
+dockerPushToProduction : true
 publishNpm: false
-publishOpenapiBucket: com.diabeloop.blp.docs
-publishSoup: true
-publishSoupBucket: com.diabeloop.blp.docs
+publishOpenapiBucket: com.diabeloop.backloops.docs
+publishSoupBucket: com.diabeloop.backloops.docs
 securityScan: true
 dockerBuildCommand: "docker build -f Dockerfile.data"
 dockerImageName: platform-data
