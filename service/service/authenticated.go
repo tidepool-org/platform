@@ -27,9 +27,8 @@ func (a *Authenticated) Initialize(provider application.Provider) error {
 }
 
 func (a *Authenticated) Terminate() {
-	a.terminateAuthClient()
-
 	a.Service.Terminate()
+	a.terminateAuthClient()
 }
 
 func (a *Authenticated) initializeAuthClient() error {

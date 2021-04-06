@@ -11,7 +11,6 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/githubnemo/CompileDaemon v1.2.1
-	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -21,7 +20,7 @@ require (
 	github.com/onsi/gomega v1.10.2
 	github.com/prometheus/client_golang v1.9.0
 	github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
-	github.com/tidepool-org/go-common v0.7.1
+	github.com/tidepool-org/go-common v0.8.2
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.4.1
 	go.uber.org/fx v1.13.1
@@ -30,7 +29,6 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/tools v0.0.0-20201005185003-576e169c3de7
 	google.golang.org/grpc v1.33.1
-	gopkg.in/tylerb/graceful.v1 v1.2.15
 	gopkg.in/yaml.v2 v2.3.0
 	syreclabs.com/go/faker v1.2.2
 )

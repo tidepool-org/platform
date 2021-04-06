@@ -7,6 +7,8 @@ github.com/Shopify/sarama
 ## explicit
 github.com/ant0ine/go-json-rest/rest
 github.com/ant0ine/go-json-rest/rest/trie
+# github.com/avast/retry-go v3.0.0+incompatible
+github.com/avast/retry-go
 # github.com/aws/aws-sdk-go v1.35.3
 ## explicit
 github.com/aws/aws-sdk-go/aws
@@ -109,7 +111,6 @@ github.com/githubnemo/CompileDaemon
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
-## explicit
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.4.3
 github.com/golang/protobuf/proto
@@ -244,7 +245,7 @@ github.com/shurcooL/sanitized_anchor_name
 # github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
 ## explicit
 github.com/tidepool-org/devices/api
-# github.com/tidepool-org/go-common v0.7.1
+# github.com/tidepool-org/go-common v0.8.2
 ## explicit
 github.com/tidepool-org/go-common/clients/disc
 github.com/tidepool-org/go-common/clients/shoreline
@@ -561,9 +562,6 @@ gopkg.in/jcmturner/rpc.v1/mstypes
 gopkg.in/jcmturner/rpc.v1/ndr
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
-# gopkg.in/tylerb/graceful.v1 v1.2.15
-## explicit
-gopkg.in/tylerb/graceful.v1
 # gopkg.in/yaml.v2 v2.3.0
 ## explicit
 gopkg.in/yaml.v2

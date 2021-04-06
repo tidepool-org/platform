@@ -40,9 +40,9 @@ func New() *Service {
 }
 
 func (s *Service) Run() error {
-	errs := make(chan error, 0)
+	errs := make(chan error)
 	go func() {
-		errs <- s.userEventsHandler.Run(context.Background())
+		errs <- s.userEventsHandler.Run()
 	}()
 	go func() {
 		errs <- s.Service.Run()
@@ -72,13 +72,12 @@ func (s *Service) Initialize(provider application.Provider) error {
 }
 
 func (s *Service) Terminate() {
-	s.terminateRouter()
+	s.Authenticated.Terminate()
 	s.terminateUserEventsHandler()
+	s.terminateRouter()
 	s.terminateBlobClient()
 	s.terminateBlobUnstructuredStore()
 	s.terminateBlobStructuredStore()
-
-	s.Authenticated.Terminate()
 }
 
 func (s *Service) Status(ctx context.Context) interface{} {
@@ -195,7 +194,11 @@ func (s *Service) initializeUserEventsHandler() error {
 
 func (s *Service) terminateUserEventsHandler() {
 	if s.userEventsHandler != nil {
-		s.userEventsHandler.Terminate()
+		s.Logger().Info("Terminating the userEventsHandler")
+		if err := s.userEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
+		}
+		s.userEventsHandler = nil
 	}
 }
 

@@ -1,21 +1,18 @@
 package events
 
 import (
-	"context"
-
 	"github.com/Shopify/sarama"
 	ev "github.com/tidepool-org/go-common/events"
 )
 
 type Runner interface {
 	Initialize() error
-	Run(context.Context) error
-	Terminate()
+	Run() error
+	Terminate() error
 }
 
 type runner struct {
-	cancel   context.CancelFunc
-	consumer ev.EventConsumer
+	consumer *ev.FaultTolerantConsumer
 	handlers []ev.EventHandler
 }
 
@@ -31,7 +28,7 @@ func (u *runner) Initialize() error {
 		return err
 	}
 	config.SaramaConfig.Version = sarama.V2_6_0_0
-	consumer, err := ev.NewSaramaCloudEventsConsumer(config)
+	consumer, err := ev.NewFaultTolerantCloudEventsConsumer(config)
 	if err != nil {
 		return err
 	}
@@ -42,16 +39,13 @@ func (u *runner) Initialize() error {
 	return nil
 }
 
-func (u *runner) Run(ctx context.Context) error {
-	var consumerCtx context.Context
-	consumerCtx, u.cancel = context.WithCancel(ctx)
-
-	// blocks until Terminate() is invoked
-	return u.consumer.Start(consumerCtx)
+func (u *runner) Run() error {
+	return u.consumer.Start()
 }
 
-func (u *runner) Terminate() {
-	if u.cancel != nil {
-		u.cancel()
+func (u *runner) Terminate() error {
+	if u.consumer != nil {
+		return u.consumer.Stop()
 	}
+	return nil
 }

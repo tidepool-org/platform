@@ -134,7 +134,9 @@ func (s *Service) initializeServer() error {
 
 func (s *Service) terminateServer() {
 	if s.server != nil {
-		s.Logger().Debug("Destroying server")
+		if err := s.server.Shutdown(); err != nil {
+			s.Logger().Errorf("Error while destroying the server: %v", err)
+		}
 		s.server = nil
 	}
 }

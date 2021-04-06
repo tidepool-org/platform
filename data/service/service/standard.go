@@ -91,16 +91,24 @@ func (s *Standard) Initialize(provider application.Provider) error {
 }
 
 func (s *Standard) Terminate() {
-	s.server = nil
+	if s.server != nil {
+		if err := s.server.Shutdown(); err != nil {
+			s.Logger().Errorf("Error while terminating the the server: %v", err)
+		}
+		s.server = nil
+	}
+	if s.userEventsHandler != nil {
+		s.Logger().Info("Terminating the userEventsHandler")
+		if err := s.userEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
+		}
+		s.userEventsHandler = nil
+	}
 	s.api = nil
 	s.dataClient = nil
 	if s.syncTaskStore != nil {
 		s.syncTaskStore.Terminate(context.Background())
 		s.syncTaskStore = nil
-	}
-	if s.userEventsHandler != nil {
-		s.userEventsHandler.Terminate()
-		s.userEventsHandler = nil
 	}
 	if s.dataSourceStructuredStore != nil {
 		s.dataSourceStructuredStore.Terminate(context.Background())
@@ -122,9 +130,9 @@ func (s *Standard) Run() error {
 		return errors.New("service not initialized")
 	}
 
-	errs := make(chan error, 0)
+	errs := make(chan error)
 	go func() {
-		errs <- s.userEventsHandler.Run(context.Background())
+		errs <- s.userEventsHandler.Run()
 	}()
 	go func() {
 		errs <- s.server.Serve()

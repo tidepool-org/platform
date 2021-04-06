@@ -46,9 +46,9 @@ func New() *Service {
 }
 
 func (s *Service) Run() error {
-	errs := make(chan error, 0)
+	errs := make(chan error)
 	go func() {
-		errs <- s.userEventsHandler.Run(context.Background())
+		errs <- s.userEventsHandler.Run()
 	}()
 	go func() {
 		errs <- s.Service.Run()
@@ -87,6 +87,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 }
 
 func (s *Service) Terminate() {
+	s.Service.Terminate()
 	s.terminateUserEventsHandler()
 	s.terminateAuthClient()
 	s.terminateProviderFactory()
@@ -95,8 +96,6 @@ func (s *Service) Terminate() {
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
-
-	s.Service.Terminate()
 }
 
 func (s *Service) Domain() string {
@@ -347,6 +346,10 @@ func (s *Service) initializeUserEventsHandler() error {
 
 func (s *Service) terminateUserEventsHandler() {
 	if s.userEventsHandler != nil {
-		s.userEventsHandler.Terminate()
+		s.Logger().Info("Terminating the userEventsHandler")
+		if err := s.userEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
+		}
+		s.userEventsHandler = nil
 	}
 }
