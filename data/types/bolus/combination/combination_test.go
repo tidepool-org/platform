@@ -991,15 +991,6 @@ var _ = Describe("Combination", func() {
 						datum.NormalExpected = nil
 					},
 				),
-				Entry("normal in range (lower); normal expected missing, extended out of range (lower)",
-					func(datum *combination.Combination) {
-						datum.Duration = pointer.FromInt(0)
-						datum.Normal = pointer.FromFloat64(0.0)
-						datum.Extended = pointer.FromFloat64(0.0)
-						datum.NormalExpected = nil
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThan(0.0, 0.0), "/extended", NewMeta()),
-				),
 				Entry("normal in range (lower); normal expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(0)
