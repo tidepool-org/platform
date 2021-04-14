@@ -867,7 +867,7 @@ var _ = Describe("Combination", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo(0.1, 0.0), "/extended", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedExtended", NewMeta()),
 				),
-				Entry("normal in range (lower); extended in range (lower); normal expected in range (lower); extended expected our of range (lower)",
+				Entry("normal in range (lower); extended in range (lower); normal expected in range (lower); extended expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(0)
 						datum.Extended = pointer.FromFloat64(0.0)
@@ -973,6 +973,25 @@ var _ = Describe("Combination", func() {
 						datum.NormalExpected = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/extended", NewMeta()),
+				),
+				Entry("normal in range (lower); extended in range (lower); extended expected missing, normal expected out of range (lower)",
+					func(datum *combination.Combination) {
+						datum.Duration = pointer.FromInt(0.0)
+						datum.Normal = pointer.FromFloat64(0.0)
+						datum.Extended = pointer.FromFloat64(0.0)
+						datum.NormalExpected = pointer.FromFloat64(0.0)
+						datum.ExtendedExpected = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThan(0.0, 0.0), "/expectedNormal", NewMeta()),
+				),
+				Entry("normal in range (lower); extended in range (lower); extended expected missing, extended expected out of range (lower)",
+					func(datum *combination.Combination) {
+						datum.Normal = pointer.FromFloat64(0.0)
+						datum.Extended = pointer.FromFloat64(0.0)
+						datum.NormalExpected = nil
+						datum.ExtendedExpected = pointer.FromFloat64(0.0)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThan(0.0, 0.0), "/expectedExtended", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected in range, extended missing",
 					func(datum *combination.Combination) {
