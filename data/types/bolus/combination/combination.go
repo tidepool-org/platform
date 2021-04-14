@@ -64,7 +64,12 @@ func (c *Combination) Validate(validator structure.Validator) {
 		validator.Int("duration", c.Duration).Exists().EqualTo(DurationMinimum)
 		validator.Int("expectedDuration", c.DurationExpected).Exists().InRange(DurationMinimum, DurationMaximum)
 		validator.Float64("extended", c.Extended).Exists().EqualTo(ExtendedMinimum)
-		validator.Float64("expectedExtended", c.ExtendedExpected).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
+		extendedExpectedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
+		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
+		if c.Normal != nil && *c.Normal != NormalMinimum {
+			extendedExpectedValidator.Exists()
+		}
+
 	} else {
 		validator.Int("duration", c.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
 		expectedDurationValidator := validator.Int("expectedDuration", c.DurationExpected)
@@ -96,7 +101,7 @@ func (c *Combination) Validate(validator structure.Validator) {
 			// If Normal is zero, then _either_:
 			if c.Extended != nil {
 				if c.NormalExpected == nil {
-					validator.Float64("extended", c.Extended).GreaterThan(ExtendedMinimum)
+					validator.Float64("extended", c.Extended).GreaterThanOrEqualTo(ExtendedMinimum)
 				} else {
 					validator.Float64("extended", c.Extended).Exists()
 				}
