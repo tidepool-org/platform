@@ -1119,6 +1119,31 @@ var _ = Describe("Combination", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
+				Entry("allow normal and extended to be 0 when extended expected is missing",
+					func(datum *combination.Combination) {
+						datum.Duration = pointer.FromInt(0)
+						datum.Extended = pointer.FromFloat64(0.0)
+						datum.Normal = pointer.FromFloat64(0.0)
+						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.ExtendedExpected = nil
+					},
+				),
+				Entry("allow normal and extended to be 0 when normal expected is missing",
+					func(datum *combination.Combination) {
+						datum.Duration = pointer.FromInt(0)
+						datum.Extended = pointer.FromFloat64(0.0)
+						datum.Normal = pointer.FromFloat64(0.0)
+						datum.NormalExpected = nil
+					},
+				),
+				Entry("allow normal and extended to be 0 when both normal expected and extended expected are in range",
+					func(datum *combination.Combination) {
+						datum.Duration = pointer.FromInt(0)
+						datum.Extended = pointer.FromFloat64(0.0)
+						datum.Normal = pointer.FromFloat64(0.0)
+						datum.NormalExpected = pointer.FromFloat64(100.0)
+					},
+				),
 				Entry("multiple errors",
 					func(datum *combination.Combination) {
 						datum.Type = "invalidType"
