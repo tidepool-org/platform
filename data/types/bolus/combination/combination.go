@@ -66,10 +66,13 @@ func (c *Combination) Validate(validator structure.Validator) {
 		validator.Float64("extended", c.Extended).Exists().EqualTo(ExtendedMinimum)
 		extendedExpectedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
 		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
-		if c.Normal != nil && *c.Normal != NormalMinimum {
-			extendedExpectedValidator.Exists()
+		if c.Normal != nil {
+			if *c.Normal != NormalMinimum {
+				extendedExpectedValidator.Exists()
+			} else {
+				extendedExpectedValidator.GreaterThan(ExtendedMinimum)
+			}
 		}
-
 	} else {
 		validator.Int("duration", c.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
 		expectedDurationValidator := validator.Int("expectedDuration", c.DurationExpected)
