@@ -1148,12 +1148,13 @@ var _ = Describe("Combination", func() {
 						datum.ExtendedExpected = nil
 					},
 				),
-				Entry("allow normal and extended to be 0 when normal expected is missing",
+				Entry("allow normal and extended to be 0 when normal expected is missing and extended expected is in range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(0)
 						datum.Extended = pointer.FromFloat64(0.0)
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = nil
+						datum.ExtendedExpected = pointer.FromFloat64(100.0)
 					},
 				),
 				Entry("allow normal and extended to be 0 when both normal expected and extended expected are in range",
