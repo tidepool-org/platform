@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.12.0 - 2021-04-13
+### Changed
+- YLP-694 Add warmup object
+
 ## 0.11.1 - 2021-03-12
 ### Engineering
 - Fixing publish in Jenkins pipeline

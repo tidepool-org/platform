@@ -24,6 +24,7 @@ var subTypes = []string{
 	dataTypesDeviceTimechange.SubType,
 	dataTypesDeviceMode.ConfidentialMode,
 	dataTypesDeviceMode.ZenMode,
+	dataTypesDeviceMode.Warmup,
 }
 
 func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
@@ -64,6 +65,8 @@ func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesDeviceMode.New(dataTypesDeviceMode.ConfidentialMode)
 	case dataTypesDeviceMode.ZenMode:
 		return dataTypesDeviceMode.New(dataTypesDeviceMode.ZenMode)
+	case dataTypesDeviceMode.Warmup:
+		return dataTypesDeviceMode.New(dataTypesDeviceMode.Warmup)
 	}
 	parser.WithReferenceErrorReporter("subType").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, subTypes))
 	return nil

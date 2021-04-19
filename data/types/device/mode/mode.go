@@ -11,12 +11,14 @@ import (
 const (
 	ConfidentialMode = "confidential"
 	ZenMode          = "zen"
+	Warmup           = "warmup"
 )
 
 func Modes() []string {
 	return []string{
 		ConfidentialMode,
 		ZenMode,
+		Warmup,
 	}
 }
 

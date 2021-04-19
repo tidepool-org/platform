@@ -53,6 +53,7 @@ var _ = Describe("Change", func() {
 	It("SubType is expected", func() {
 		Expect(mode.ConfidentialMode).To(Equal("confidential"))
 		Expect(mode.ZenMode).To(Equal("zen"))
+		Expect(mode.Warmup).To(Equal("warmup"))
 	})
 
 	Context("New", func() {
@@ -68,6 +69,13 @@ var _ = Describe("Change", func() {
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("confidential"))
+			Expect(datum.InputTime.InputTime).To(BeNil())
+		})
+		It("returns the expected datum with all warmup values initialized", func() {
+			datum := mode.New(mode.Warmup)
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Type).To(Equal("deviceEvent"))
+			Expect(datum.SubType).To(Equal("warmup"))
 			Expect(datum.InputTime.InputTime).To(BeNil())
 		})
 	})
@@ -101,11 +109,11 @@ var _ = Describe("Change", func() {
 				Entry("sub type missing",
 					func(datum *mode.Mode) { datum.SubType = "" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("", []string{"confidential", "zen"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: ""}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("", []string{"confidential", "zen", "warmup"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: ""}),
 				),
 				Entry("sub type invalid",
 					func(datum *mode.Mode) { datum.SubType = "invalidSubType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen", "warmup"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 				),
 				Entry("sub type zen",
 					func(datum *mode.Mode) { datum.SubType = "zen" },
@@ -116,7 +124,7 @@ var _ = Describe("Change", func() {
 						datum.SubType = "invalidSubType"
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen"}), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen", "warmup"}), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 				Entry("EventId is missing",
 					func(datum *mode.Mode) {
@@ -130,6 +138,13 @@ var _ = Describe("Change", func() {
 						datum.EventID = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventId", &device.Meta{Type: "deviceEvent", SubType: "confidential"}),
+				),
+				Entry("EventId is missing",
+					func(datum *mode.Mode) {
+						datum.SubType = "warmup"
+						datum.EventID = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventId", &device.Meta{Type: "deviceEvent", SubType: "warmup"}),
 				),
 				Entry("inputTime is missing",
 					func(datum *mode.Mode) {
