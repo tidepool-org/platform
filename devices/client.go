@@ -53,5 +53,8 @@ func (c *Client) Initialize(ctx context.Context) error {
 }
 
 func (c *Client) Stop() error {
-	return c.conn.Close()
+	if c.conn != nil {
+		return c.conn.Close()
+	}
+	return nil
 }

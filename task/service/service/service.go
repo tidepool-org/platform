@@ -68,6 +68,8 @@ func (s *Service) Initialize(provider application.Provider) error {
 }
 
 func (s *Service) Terminate() {
+	s.Authenticated.Terminate()
+
 	s.terminateRouter()
 	s.terminateTaskQueue()
 	s.terminateDexcomClient()
@@ -75,8 +77,6 @@ func (s *Service) Terminate() {
 	s.terminateDataClient()
 	s.terminateTaskClient()
 	s.terminateTaskStore()
-
-	s.Authenticated.Terminate()
 }
 
 func (s *Service) TaskStore() store.Store {

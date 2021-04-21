@@ -3,6 +3,8 @@ package application
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/tidepool-org/platform/errors"
 )
@@ -43,9 +45,24 @@ func Run(runner Runner, provider Provider) error {
 		return errors.Wrap(err, "unable to initialize runner")
 	}
 
-	if err := runner.Run(); err != nil {
-		return errors.Wrap(err, "unable to run runner")
-	}
+	errs := make(chan error)
 
-	return nil
+	go func() {
+		if err := runner.Run(); err != nil {
+			errs <- errors.Wrap(err, "unable to run runner")
+		}
+		errs <- nil
+	}()
+
+	fmt.Printf("listening for signals")
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case sig := <-signals:
+		fmt.Printf("Received signal %s", sig.String())
+		return nil
+	case runErr := <-errs:
+		return runErr
+	}
 }

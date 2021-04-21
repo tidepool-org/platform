@@ -12,6 +12,11 @@ const (
 	CreateUserEventType = "users:create"
 )
 
+type EventHandler interface {
+	CanHandle(ce cloudevents.Event) bool
+	Handle(ce cloudevents.Event) error
+}
+
 type Event interface {
 	GetEventType() string
 	GetEventKey() string
