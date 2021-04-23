@@ -183,6 +183,25 @@ var _ = Describe("V1", func() {
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
+
+							Context("with missing required attribute when state is 'submitted'", func() {
+								BeforeEach(func() {
+									create.PhoneNumber = nil
+									body, err := json.Marshal(create)
+									Expect(err).ToNot(HaveOccurred())
+
+									req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+								})
+
+								It("returns bad request with validation error", func() {
+									expectedErrorBody := "{\"code\":\"value-empty\",\"title\":\"value is empty\",\"detail\":\"value is empty\",\"source\":{\"pointer\":\"/phoneNumber\"}}\n"
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									Expect(string(res.WriteInputs[0])).To(Equal(expectedErrorBody))
+								})
+
+							})
 						})
 
 						Context("as service", func() {
