@@ -775,6 +775,25 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(result).ToNot(BeNil())
 						Expect(result.PatientUserID).To(Equal(*usr.UserID))
 					})
+
+					It("works with multiple prescriptions for the same user", func() {
+						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						second := test.RandomPrescription()
+						second.State = prescription.StateSubmitted
+						claim = prescription.NewPrescriptionClaim()
+						claim.AccessCode = second.AccessCode
+						claim.Birthday = second.LatestRevision.Attributes.Birthday
+
+						_, err = collection.InsertOne(nil, second)
+						Expect(err).ToNot(HaveOccurred())
+
+						result, err = repository.ClaimPrescription(ctx, usr, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+					})
 				})
 			})
 
