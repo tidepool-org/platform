@@ -320,7 +320,7 @@ func (u *Update) GetUpdatedAccessCode() *string {
 		return nil
 	}
 
-	// Remove the access code when the user reviews the prescription
+	// Remove the access code when the user claims the prescription
 	return pointer.FromString("")
 }
 

@@ -269,6 +269,7 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, usr *use
 		return nil, errors.Wrap(err, "could not get prescription to add revision to")
 	}
 
+	id := prescr.ID
 	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(usr, prescr)
 	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
@@ -278,14 +279,15 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, usr *use
 
 	now := time.Now()
 	res, err := p.UpdateOne(ctx, selector, update)
-	logger.WithFields(log.Fields{"id": prescr.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
+	logger.WithFields(log.Fields{"id": id, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update prescription")
 	} else if res.ModifiedCount == 0 {
 		return nil, errors.New("unable to find prescription to update")
 	}
 
-	err = p.FindOneByID(ctx, prescr.ID, prescr)
+	prescr = &prescription.Prescription{}
+	err = p.FindOneByID(ctx, id, prescr)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to find updated prescription")
 	}
@@ -433,7 +435,9 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 		if code != "" {
 			set["accessCode"] = code
 		} else {
-			set["accessCode"] = nil
+			update["$unset"] = bson.M{
+				"accessCode": "",
+			}
 		}
 	}
 
