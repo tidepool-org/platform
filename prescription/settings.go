@@ -66,7 +66,7 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 	}
 }
 
-func (i *InitialSettings) ValidateAllRequired(validator structure.Validator) {
+func (i *InitialSettings) ValidateSubmittedPrescription(validator structure.Validator) {
 	if i.BasalRateSchedule == nil {
 		validator.WithReference("basalSchedule").ReportError(structureValidator.ErrorValueEmpty())
 	}
