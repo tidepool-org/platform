@@ -368,25 +368,29 @@ var _ = Describe("Revision", func() {
 				It("doesn't fail with empty attributes when state is 'draft' or 'expired'", func() {
 					now := time.Now()
 					attr = &prescription.Attributes{
-						AccountType:             "",
-						CaregiverFirstName:      "",
-						CaregiverLastName:       "",
-						FirstName:               "",
-						LastName:                "",
-						Birthday:                "",
-						MRN:                     "",
-						Email:                   "",
-						Sex:                     "",
-						Weight:                  nil,
-						YearOfDiagnosis:         0,
-						PhoneNumber:             nil,
-						InitialSettings:         nil,
-						Training:                "",
-						TherapySettings:         "",
-						PrescriberTermsAccepted: false,
-						State:                   "",
-						CreatedTime:             now,
-						CreatedUserID:           userTest.RandomID(),
+						DataAttributes: prescription.DataAttributes{
+							AccountType:             "",
+							CaregiverFirstName:      "",
+							CaregiverLastName:       "",
+							FirstName:               "",
+							LastName:                "",
+							Birthday:                "",
+							MRN:                     "",
+							Email:                   "",
+							Sex:                     "",
+							Weight:                  nil,
+							YearOfDiagnosis:         0,
+							PhoneNumber:             nil,
+							InitialSettings:         nil,
+							Training:                "",
+							TherapySettings:         "",
+							PrescriberTermsAccepted: false,
+							State:                   "",
+						},
+						CreationAttributes: prescription.CreationAttributes{
+							CreatedTime:   now,
+							CreatedUserID: userTest.RandomID(),
+						},
 					}
 					attr.State = prescription.StateDraft
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())

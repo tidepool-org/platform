@@ -667,23 +667,25 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("allows un-setting all revision attributes", func() {
 						create = &prescription.RevisionCreate{
-							AccountType:             "",
-							CaregiverFirstName:      "",
-							CaregiverLastName:       "",
-							FirstName:               "",
-							LastName:                "",
-							Birthday:                "",
-							MRN:                     "",
-							Email:                   "",
-							Sex:                     "",
-							Weight:                  nil,
-							YearOfDiagnosis:         0,
-							PhoneNumber:             nil,
-							InitialSettings:         nil,
-							Training:                "",
-							TherapySettings:         "",
-							PrescriberTermsAccepted: false,
-							State:                   prescription.StateDraft,
+							DataAttributes: prescription.DataAttributes{
+								AccountType:             "",
+								CaregiverFirstName:      "",
+								CaregiverLastName:       "",
+								FirstName:               "",
+								LastName:                "",
+								Birthday:                "",
+								MRN:                     "",
+								Email:                   "",
+								Sex:                     "",
+								Weight:                  nil,
+								YearOfDiagnosis:         0,
+								PhoneNumber:             nil,
+								InitialSettings:         nil,
+								Training:                "",
+								TherapySettings:         "",
+								PrescriberTermsAccepted: false,
+								State:                   prescription.StateDraft,
+							},
 						}
 						result, err := repository.AddRevision(ctx, usr, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())

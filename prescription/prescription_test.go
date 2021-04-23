@@ -177,7 +177,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now(), time.Second))
 			})
 
 			It("sets the modified user id", func() {

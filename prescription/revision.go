@@ -34,23 +34,7 @@ var (
 )
 
 type RevisionCreate struct {
-	AccountType             string           `json:"accountType,omitempty"`
-	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty"`
-	CaregiverLastName       string           `json:"caregiverLastName,omitempty"`
-	FirstName               string           `json:"firstName,omitempty"`
-	LastName                string           `json:"lastName,omitempty"`
-	Birthday                string           `json:"birthday,omitempty"`
-	MRN                     string           `json:"mrn,omitempty"`
-	Email                   string           `json:"email,omitempty"`
-	Sex                     string           `json:"sex,omitempty"`
-	Weight                  *Weight          `json:"weight,omitempty"`
-	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty"`
-	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty"`
-	InitialSettings         *InitialSettings `json:"initialSettings,omitempty"`
-	Training                string           `json:"training,omitempty"`
-	TherapySettings         string           `json:"therapySettings,omitempty"`
-	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty"`
-	State                   string           `json:"state"`
+	DataAttributes `json:",inline"`
 }
 
 func NewRevisionCreate() *RevisionCreate {
@@ -58,80 +42,7 @@ func NewRevisionCreate() *RevisionCreate {
 }
 
 func (r *RevisionCreate) Validate(validator structure.Validator) {
-	if r.AccountType != "" {
-		validator.String("accountType", &r.AccountType).OneOf(AccountTypes()...)
-		if r.AccountType == AccountTypePatient {
-			validator.String("caregiverFirstName", &r.CaregiverFirstName).Empty()
-			validator.String("caregiverLastName", &r.CaregiverLastName).Empty()
-		}
-	}
-	if r.Birthday != "" {
-		validator.String("birthday", &r.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
-	}
-	if r.Email != "" {
-		validator.String("email", &r.Email).Email()
-	}
-	if r.Sex != "" {
-		validator.String("sex", &r.Sex).OneOf(SexValues()...)
-	}
-	if r.Weight != nil {
-		r.Weight.Validate(validator.WithReference("weight"))
-	}
-	if r.YearOfDiagnosis != 0 {
-		validator.Int("yearOfDiagnosis", &r.YearOfDiagnosis).GreaterThan(1900)
-	}
-	if r.PhoneNumber != nil {
-		r.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
-	}
-	if r.InitialSettings != nil {
-		r.InitialSettings.Validate(validator.WithReference("initialSettings"))
-	}
-	if r.Training != "" {
-		validator.String("training", &r.Training).OneOf(Trainings()...)
-	}
-	if r.TherapySettings != "" {
-		validator.String("therapySettings", &r.TherapySettings).OneOf(TherapySettings()...)
-	}
-	validator.String("state", &r.State).OneOf(RevisionStates()...)
-	if r.State == StateSubmitted {
-		r.ValidateAllRequired(validator)
-	}
-}
-
-func (r *RevisionCreate) ValidateAllRequired(validator structure.Validator) {
-	validator.String("accountType", &r.AccountType).NotEmpty()
-	if r.AccountType == AccountTypeCaregiver {
-		validator.String("caregiverFirstName", &r.CaregiverFirstName).NotEmpty()
-		validator.String("caregiverLastName", &r.CaregiverLastName).NotEmpty()
-	}
-	validator.String("firstName", &r.FirstName).NotEmpty()
-	validator.String("lastName", &r.LastName).NotEmpty()
-	validator.String("birthday", &r.Birthday).NotEmpty()
-	validator.String("email", &r.Email).NotEmpty()
-	validator.String("sex", &r.Sex).NotEmpty()
-	validator.Int("yearOfDiagnosis", &r.YearOfDiagnosis).GreaterThan(1900)
-	validator.String("training", &r.Training).NotEmpty()
-	validator.String("therapySettings", &r.TherapySettings).NotEmpty()
-	validator.Bool("prescriberTermsAccepted", &r.PrescriberTermsAccepted).True()
-
-	// if phoneNumber is nil validate will fail
-	phoneValidator := validator.WithReference("phoneNumber")
-	if r.PhoneNumber != nil {
-		r.PhoneNumber.Validate(phoneValidator)
-	}
-
-	// if weight is nil validate will fail
-	weightValidator := validator.WithReference("weight")
-	if r.Weight != nil {
-		r.Weight.ValidateAllRequired(weightValidator)
-	}
-
-	initialSettingsValidator := validator.WithReference("initialSettings")
-	if r.InitialSettings != nil {
-		r.InitialSettings.ValidateAllRequired(initialSettingsValidator)
-	} else {
-		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
-	}
+	r.DataAttributes.Validate(validator)
 }
 
 type Signature struct {
@@ -153,25 +64,29 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 	return &Revision{
 		RevisionID: revisionID,
 		Attributes: &Attributes{
-			AccountType:             create.AccountType,
-			CaregiverFirstName:      create.CaregiverFirstName,
-			CaregiverLastName:       create.CaregiverLastName,
-			FirstName:               create.FirstName,
-			LastName:                create.LastName,
-			Birthday:                create.Birthday,
-			MRN:                     create.MRN,
-			Email:                   create.Email,
-			Sex:                     create.Sex,
-			Weight:                  create.Weight,
-			YearOfDiagnosis:         create.YearOfDiagnosis,
-			PhoneNumber:             create.PhoneNumber,
-			InitialSettings:         create.InitialSettings,
-			Training:                create.Training,
-			TherapySettings:         create.TherapySettings,
-			PrescriberTermsAccepted: create.PrescriberTermsAccepted,
-			State:                   create.State,
-			CreatedTime:             now,
-			CreatedUserID:           userID,
+			DataAttributes: DataAttributes{
+				AccountType:             create.AccountType,
+				CaregiverFirstName:      create.CaregiverFirstName,
+				CaregiverLastName:       create.CaregiverLastName,
+				FirstName:               create.FirstName,
+				LastName:                create.LastName,
+				Birthday:                create.Birthday,
+				MRN:                     create.MRN,
+				Email:                   create.Email,
+				Sex:                     create.Sex,
+				Weight:                  create.Weight,
+				YearOfDiagnosis:         create.YearOfDiagnosis,
+				PhoneNumber:             create.PhoneNumber,
+				InitialSettings:         create.InitialSettings,
+				Training:                create.Training,
+				TherapySettings:         create.TherapySettings,
+				PrescriberTermsAccepted: create.PrescriberTermsAccepted,
+				State:                   create.State,
+			},
+			CreationAttributes: CreationAttributes{
+				CreatedTime:   now,
+				CreatedUserID: userID,
+			},
 		},
 	}
 }
@@ -204,6 +119,16 @@ func (r *Revision) GetPrescriberUserID() string {
 }
 
 type Attributes struct {
+	DataAttributes     `json:",inline" bson:",inline"`
+	CreationAttributes `json:",inline" bson:",inline"`
+}
+
+func (a *Attributes) Validate(validator structure.Validator) {
+	a.DataAttributes.Validate(validator)
+	a.CreationAttributes.Validate(validator)
+}
+
+type DataAttributes struct {
 	AccountType             string           `json:"accountType,omitempty" bson:"accountType"`
 	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty" bson:"caregiverFirstName"`
 	CaregiverLastName       string           `json:"caregiverLastName,omitempty" bson:"caregiverLastName"`
@@ -221,89 +146,95 @@ type Attributes struct {
 	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted"`
 	State                   string           `json:"state" bson:"state"`
-	CreatedTime             time.Time        `json:"createdTime,omitempty" bson:"createdTime"`
-	CreatedUserID           string           `json:"createdUserId,omitempty" bson:"cratedUserId"`
 }
 
-func (a *Attributes) Validate(validator structure.Validator) {
-	if a.AccountType != "" {
-		validator.String("accountType", &a.AccountType).OneOf(AccountTypes()...)
-		if a.AccountType == AccountTypePatient {
-			validator.String("caregiverFirstName", &a.CaregiverFirstName).Empty()
-			validator.String("caregiverLastName", &a.CaregiverLastName).Empty()
+func (d *DataAttributes) Validate(validator structure.Validator) {
+	if d.AccountType != "" {
+		validator.String("accountType", &d.AccountType).OneOf(AccountTypes()...)
+		if d.AccountType == AccountTypePatient {
+			validator.String("caregiverFirstName", &d.CaregiverFirstName).Empty()
+			validator.String("caregiverLastName", &d.CaregiverLastName).Empty()
 		}
 	}
-	if a.Birthday != "" {
-		validator.String("birthday", &a.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
+	if d.Birthday != "" {
+		validator.String("birthday", &d.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
 	}
-	if a.Email != "" {
-		validator.String("email", &a.Email).Email()
+	if d.Email != "" {
+		validator.String("email", &d.Email).Email()
 	}
-	if a.Sex != "" {
-		validator.String("sex", &a.Sex).OneOf(SexValues()...)
+	if d.Sex != "" {
+		validator.String("sex", &d.Sex).OneOf(SexValues()...)
 	}
-	if a.YearOfDiagnosis != 0 {
-		validator.Int("yearOfDiagnosis", &a.YearOfDiagnosis).GreaterThan(1900)
+	if d.YearOfDiagnosis != 0 {
+		validator.Int("yearOfDiagnosis", &d.YearOfDiagnosis).GreaterThan(1900)
 	}
-	if a.PhoneNumber != nil {
-		a.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
+	if d.PhoneNumber != nil {
+		d.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
 	}
-	if a.Training != "" {
-		validator.String("training", &a.Training).OneOf(Trainings()...)
+	if d.Training != "" {
+		validator.String("training", &d.Training).OneOf(Trainings()...)
 	}
-	if a.TherapySettings != "" {
-		validator.String("therapySettings", &a.TherapySettings).OneOf(TherapySettings()...)
+	if d.TherapySettings != "" {
+		validator.String("therapySettings", &d.TherapySettings).OneOf(TherapySettings()...)
 	}
-	if a.Weight != nil {
-		a.Weight.Validate(validator.WithReference("weight"))
+	if d.Weight != nil {
+		d.Weight.Validate(validator.WithReference("weight"))
 	}
-	if a.InitialSettings != nil {
-		a.InitialSettings.Validate(validator.WithReference("initialSettings"))
+	if d.InitialSettings != nil {
+		d.InitialSettings.Validate(validator.WithReference("initialSettings"))
 	}
-	validator.String("state", &a.State).OneOf(RevisionStates()...)
-	validator.Time("createdTime", &a.CreatedTime).BeforeNow(time.Second)
-	validator.String("createdUserId", &a.CreatedUserID).Using(user.IDValidator)
+	validator.String("state", &d.State).OneOf(RevisionStates()...)
 
-	if a.State == StateSubmitted {
-		a.ValidateAllRequired(validator)
+	if d.State == StateSubmitted {
+		d.ValidateSubmittedPrescription(validator)
 	}
 }
 
-func (a *Attributes) ValidateAllRequired(validator structure.Validator) {
-	validator.String("accountType", &a.AccountType).NotEmpty()
-	if a.AccountType == AccountTypeCaregiver {
-		validator.String("caregiverFirstName", &a.CaregiverFirstName).NotEmpty()
-		validator.String("caregiverLastName", &a.CaregiverLastName).NotEmpty()
+func (d *DataAttributes) ValidateSubmittedPrescription(validator structure.Validator) {
+	validator.String("accountType", &d.AccountType).NotEmpty()
+	if d.AccountType == AccountTypeCaregiver {
+		validator.String("caregiverFirstName", &d.CaregiverFirstName).NotEmpty()
+		validator.String("caregiverLastName", &d.CaregiverLastName).NotEmpty()
 	}
-	validator.String("firstName", &a.FirstName).NotEmpty()
-	validator.String("lastName", &a.LastName).NotEmpty()
-	validator.String("birthday", &a.Birthday).NotEmpty()
-	validator.String("email", &a.Email).NotEmpty()
-	validator.String("sex", &a.Sex).NotEmpty()
-	validator.Int("yearOfDiagnosis", &a.YearOfDiagnosis).GreaterThan(1900)
-	validator.String("training", &a.Training).NotEmpty()
-	validator.String("therapySettings", &a.TherapySettings).NotEmpty()
-	validator.Bool("prescriberTermsAccepted", &a.PrescriberTermsAccepted).True()
+	validator.String("firstName", &d.FirstName).NotEmpty()
+	validator.String("lastName", &d.LastName).NotEmpty()
+	validator.String("birthday", &d.Birthday).NotEmpty()
+	validator.String("email", &d.Email).NotEmpty()
+	validator.String("sex", &d.Sex).NotEmpty()
+	validator.Int("yearOfDiagnosis", &d.YearOfDiagnosis).GreaterThan(1900)
+	validator.String("training", &d.Training).NotEmpty()
+	validator.String("therapySettings", &d.TherapySettings).NotEmpty()
+	validator.Bool("prescriberTermsAccepted", &d.PrescriberTermsAccepted).True()
 
 	// if phoneNumber is nil validate will fail
 	phoneValidator := validator.WithReference("phoneNumber")
-	if a.PhoneNumber != nil {
-		a.PhoneNumber.Validate(phoneValidator)
+	if d.PhoneNumber != nil {
+		d.PhoneNumber.Validate(phoneValidator)
 	} else {
 		phoneValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
 
 	weightValidator := validator.WithReference("weight")
-	if a.Weight != nil {
-		a.Weight.ValidateAllRequired(weightValidator)
+	if d.Weight != nil {
+		d.Weight.ValidateSubmittedPrescription(weightValidator)
 	}
 
 	initialSettingsValidator := validator.WithReference("initialSettings")
-	if a.InitialSettings != nil {
-		a.InitialSettings.ValidateAllRequired(initialSettingsValidator)
+	if d.InitialSettings != nil {
+		d.InitialSettings.ValidateSubmittedPrescription(initialSettingsValidator)
 	} else {
 		initialSettingsValidator.ReportError(structureValidator.ErrorValueEmpty())
 	}
+}
+
+type CreationAttributes struct {
+	CreatedTime   time.Time `json:"createdTime,omitempty" bson:"createdTime"`
+	CreatedUserID string    `json:"createdUserId,omitempty" bson:"cratedUserId"`
+}
+
+func (c *CreationAttributes) Validate(validator structure.Validator) {
+	validator.Time("createdTime", &c.CreatedTime).NotZero().BeforeNow(time.Second)
+	validator.String("createdUserId", &c.CreatedUserID).Using(user.IDValidator)
 }
 
 type Weight struct {
@@ -320,7 +251,7 @@ func (w *Weight) Validate(validator structure.Validator) {
 	}
 }
 
-func (w *Weight) ValidateAllRequired(validator structure.Validator) {
+func (w *Weight) ValidateSubmittedPrescription(validator structure.Validator) {
 	validator.Float64("value", w.Value).GreaterThan(0)
 	validator.String("units", &w.Units).NotEmpty()
 }
