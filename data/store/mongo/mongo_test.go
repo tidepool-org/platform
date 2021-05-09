@@ -376,6 +376,8 @@ var _ = Describe("Mongo", func() {
 				Context("GetDataSetByID", func() {
 					BeforeEach(func() {
 						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						err := repository.EnsureIndexes()
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					It("returns an error if the data set id is missing", func() {

@@ -180,7 +180,8 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 		"uploadId": dataSetID,
 		"type":     "upload",
 	}
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
+	opts := options.FindOne().SetHint("UploadId")
+	err := d.FindOne(ctx, selector, opts).Decode(&dataSet)
 
 	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetByID")
@@ -846,7 +847,9 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 		"uploadId": id,
 		"type":     "upload",
 	}
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
+
+	opts := options.FindOne().SetHint("UploadId")
+	err := d.FindOne(ctx, selector, opts).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetDataSet")
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
