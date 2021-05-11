@@ -87,16 +87,6 @@ func (d *DataRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
-				{Key: "uploadId", Value: 1},
-			},
-			Options: options.Index().
-				SetUnique(true).
-				SetBackground(true).
-				SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
-				SetName("UniqueUploadId"),
-		},
-		{
-			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
 				{Key: "type", Value: 1},

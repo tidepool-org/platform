@@ -204,13 +204,6 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("OriginId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
-						"Background":              Equal(true),
-						"Unique":                  Equal(true),
-						"Name":                    Equal("UniqueUploadId"),
-						"PartialFilterExpression": Equal(bson.D{{Key: "type", Value: "upload"}}),
-					}),
-					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
 						"Background": Equal(true),
 						"Name":       Equal("UploadId"),
@@ -439,17 +432,17 @@ var _ = Describe("Mongo", func() {
 							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
 						})
 
-						It("returns an error if the data set with the same id already exists", func() {
-							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
-							Expect(repository.CreateDataSet(ctx, dataSet)).To(MatchError("unable to create data set; data set already exists"))
-						})
+						//It("returns an error if the data set with the same id already exists", func() {
+						//	Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
+						//	Expect(repository.CreateDataSet(ctx, dataSet)).To(MatchError("unable to create data set; data set already exists"))
+						//})
 
-						It("returns an error if the data set with the same uploadId (but different userId) already exists", func() {
-							dataSet.UserID = pointer.FromString("differentUser")
-							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
-							Expect(repository.CreateDataSet(ctx, dataSet)).To(MatchError("unable to create data set; data set already exists"))
-							dataSet.UserID = pointer.FromString("")
-						})
+						//It("returns an error if the data set with the same uploadId (but different userId) already exists", func() {
+						//	dataSet.UserID = pointer.FromString("differentUser")
+						//	Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
+						//	Expect(repository.CreateDataSet(ctx, dataSet)).To(MatchError("unable to create data set; data set already exists"))
+						//	dataSet.UserID = pointer.FromString("")
+						//})
 
 						It("sets the created time", func() {
 							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
