@@ -229,7 +229,7 @@ func (d *DataAttributes) ValidateSubmittedPrescription(validator structure.Valid
 
 type CreationAttributes struct {
 	CreatedTime   time.Time `json:"createdTime,omitempty" bson:"createdTime"`
-	CreatedUserID string    `json:"createdUserId,omitempty" bson:"cratedUserId"`
+	CreatedUserID string    `json:"createdUserId,omitempty" bson:"createdUserId"`
 }
 
 func (c *CreationAttributes) Validate(validator structure.Validator) {
