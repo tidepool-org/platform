@@ -95,6 +95,11 @@ var _ = Describe("Prescription", func() {
 			It("sets the modified time", func() {
 				Expect(prescr.ModifiedUserID).To(Equal(userID))
 			})
+
+			It("sets the submitted time", func() {
+				Expect(prescr.SubmittedTime).ToNot(BeNil())
+				Expect(*prescr.SubmittedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
+			})
 		})
 	})
 
@@ -116,6 +121,7 @@ var _ = Describe("Prescription", func() {
 			BeforeEach(func() {
 				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
 				newRevision = test.RandomRevisionCreate()
+				newRevision.State = prescription.StateSubmitted
 				update = prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, newRevision)
 			})
 
@@ -147,6 +153,11 @@ var _ = Describe("Prescription", func() {
 
 			It("sets the modified user id", func() {
 				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+			})
+
+			It("sets the submitted time", func() {
+				Expect(update.SubmittedTime).ToNot(BeNil())
+				Expect(*update.SubmittedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 		})
 
