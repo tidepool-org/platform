@@ -204,13 +204,6 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("OriginId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
-						"Background":              Equal(true),
-						"Unique":                  Equal(true),
-						"Name":                    Equal("UniqueUploadId"),
-						"PartialFilterExpression": Equal(bson.D{{Key: "type", Value: "upload"}}),
-					}),
-					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
 						"Background": Equal(true),
 						"Name":       Equal("UploadId"),
