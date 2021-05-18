@@ -5,9 +5,9 @@ import (
 )
 
 const (
-	MethodWeight                  = "weight"
-	MethodTotalDailyDose          = "totalDailyDose"
-	MethodTotalDailyDoseAndWeight = "totalDailyDoseAndWeight"
+	CalculatorMethodWeight                  = "weight"
+	CalculatorMethodTotalDailyDose          = "totalDailyDose"
+	CalculatorMethodTotalDailyDoseAndWeight = "totalDailyDoseAndWeight"
 
 	TotalDailyDoseScaleFactorMinimum = 0
 	TotalDailyDoseScaleFactorMaximum = 1
@@ -33,37 +33,37 @@ func AllowedCalculatorWeightUnits() []string {
 
 func AllowedCalculatorMethods() []string {
 	return []string{
-		MethodTotalDailyDose,
-		MethodTotalDailyDoseAndWeight,
-		MethodWeight,
+		CalculatorMethodTotalDailyDose,
+		CalculatorMethodTotalDailyDoseAndWeight,
+		CalculatorMethodWeight,
 	}
 }
 
 func (c *Calculator) ValidateWeightInputs(validator structure.Validator) {
-	validator.Float64("weight", c.Weight).GreaterThan(0)
-	validator.String("weightUnits", c.WeightUnits).OneOf(AllowedCalculatorWeightUnits()...)
+	validator.Float64("weight", c.Weight).Exists().GreaterThan(0)
+	validator.String("weightUnits", c.WeightUnits).Exists().OneOf(AllowedCalculatorWeightUnits()...)
 }
 
 func (c *Calculator) ValidateTotalDailyDoseInputs(validator structure.Validator) {
-	validator.Float64("totalDailyDose", c.TotalDailyDose).GreaterThan(0)
-	validator.Float64("totalDailyDoseScaleFactor", c.TotalDailyDoseScaleFactor).InRange(TotalDailyDoseScaleFactorMinimum, TotalDailyDoseScaleFactorMaximum)
+	validator.Float64("totalDailyDose", c.TotalDailyDose).Exists().GreaterThan(0)
+	validator.Float64("totalDailyDoseScaleFactor", c.TotalDailyDoseScaleFactor).Exists().InRange(TotalDailyDoseScaleFactorMinimum, TotalDailyDoseScaleFactorMaximum)
 }
 
 func (c *Calculator) Validate(validator structure.Validator) {
 	if c.Method != "" {
-		validator.String("method", &c.Method).OneOf(AllowedCalculatorMethods()...)
-		if c.Method == MethodTotalDailyDose {
+		validator.String("method", &c.Method).Exists().OneOf(AllowedCalculatorMethods()...)
+		if c.Method == CalculatorMethodTotalDailyDose {
 			c.ValidateTotalDailyDoseInputs(validator)
 		}
-		if c.Method == MethodWeight {
+		if c.Method == CalculatorMethodWeight {
 			c.ValidateWeightInputs(validator)
 		}
-		if c.Method == MethodTotalDailyDoseAndWeight {
+		if c.Method == CalculatorMethodTotalDailyDoseAndWeight {
 			c.ValidateTotalDailyDoseInputs(validator)
 			c.ValidateWeightInputs(validator)
 		}
-		validator.Float64("recommendedBasalRate", c.RecommendedBasalRate).GreaterThan(0)
-		validator.Float64("recommendedCarbohydrateRatio", c.RecommendedCarbohydrateRatio).GreaterThan(0)
-		validator.Float64("recommendedInsulinSensitivity", c.RecommendedInsulinSensitivity).GreaterThan(0)
+		validator.Float64("recommendedBasalRate", c.RecommendedBasalRate).Exists().GreaterThan(0)
+		validator.Float64("recommendedCarbohydrateRatio", c.RecommendedCarbohydrateRatio).Exists().GreaterThan(0)
+		validator.Float64("recommendedInsulinSensitivity", c.RecommendedInsulinSensitivity).Exists().GreaterThan(0)
 	}
 }
