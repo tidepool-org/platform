@@ -64,7 +64,18 @@ func (c *Combination) Validate(validator structure.Validator) {
 		validator.Int("duration", c.Duration).Exists().EqualTo(DurationMinimum)
 		validator.Int("expectedDuration", c.DurationExpected).Exists().InRange(DurationMinimum, DurationMaximum)
 		validator.Float64("extended", c.Extended).Exists().EqualTo(ExtendedMinimum)
-		validator.Float64("expectedExtended", c.ExtendedExpected).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
+		extendedExpectedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
+		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
+		if c.Normal != nil {
+			if *c.Normal == NormalMinimum {
+				if c.ExtendedExpected == nil {
+					validator.Float64("expectedNormal", c.NormalExpected).GreaterThan(NormalMinimum)
+				}
+				extendedExpectedValidator.GreaterThan(ExtendedMinimum)
+			} else {
+				extendedExpectedValidator.Exists()
+			}
+		}
 	} else {
 		validator.Int("duration", c.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
 		expectedDurationValidator := validator.Int("expectedDuration", c.DurationExpected)
@@ -82,6 +93,9 @@ func (c *Combination) Validate(validator structure.Validator) {
 		expectedExtendedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
 		if c.Extended != nil && *c.Extended >= ExtendedMinimum && *c.Extended <= ExtendedMaximum {
 			if *c.Extended == ExtendedMinimum {
+				if c.Normal != nil && *c.Normal == NormalMinimum {
+					expectedExtendedValidator.GreaterThan(ExtendedMinimum)
+				}
 				expectedExtendedValidator.Exists()
 			}
 			expectedExtendedValidator.InRange(*c.Extended, ExtendedMaximum)
@@ -96,7 +110,7 @@ func (c *Combination) Validate(validator structure.Validator) {
 			// If Normal is zero, then _either_:
 			if c.Extended != nil {
 				if c.NormalExpected == nil {
-					validator.Float64("extended", c.Extended).GreaterThan(ExtendedMinimum)
+					validator.Float64("extended", c.Extended).GreaterThanOrEqualTo(ExtendedMinimum)
 				} else {
 					validator.Float64("extended", c.Extended).Exists()
 				}
