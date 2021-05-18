@@ -88,6 +88,7 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 			YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 			PhoneNumber:             RandomPhoneNumber(),
 			InitialSettings:         RandomInitialSettings(),
+			Calculator:              RandomCalculator(),
 			Training:                RandomTraining(),
 			TherapySettings:         RandomTherapySettings(),
 			PrescriberTermsAccepted: true,
@@ -127,6 +128,7 @@ func RandomAttribtues() *prescription.Attributes {
 			YearOfDiagnosis:         faker.RandomInt(1940, 2020),
 			PhoneNumber:             RandomPhoneNumber(),
 			InitialSettings:         RandomInitialSettings(),
+			Calculator:              RandomCalculator(),
 			Training:                RandomTraining(),
 			TherapySettings:         RandomTherapySettings(),
 			PrescriberTermsAccepted: true,
@@ -182,6 +184,19 @@ func RandomInitialSettings() *prescription.InitialSettings {
 		BolusAmountMaximum:                 randomPump.Bolus.AmountMaximum,
 		PumpID:                             RandomDeviceID(),
 		CgmID:                              RandomDeviceID(),
+	}
+}
+
+func RandomCalculator() *prescription.Calculator {
+	return &prescription.Calculator{
+		Method:                        testUtils.RandomStringFromArray(prescription.AllowedCalculatorMethods()),
+		RecommendedBasalRate:          pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
+		RecommendedCarbohydrateRatio:  pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
+		RecommendedInsulinSensitivity: pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
+		TotalDailyDose:                pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
+		TotalDailyDoseScaleFactor:     pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+		Weight:                        pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
+		WeightUnits:                   pointer.FromString(test.RandomStringFromArray(prescription.AllowedCalculatorWeightUnits())),
 	}
 }
 

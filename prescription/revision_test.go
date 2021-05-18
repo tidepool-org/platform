@@ -100,6 +100,10 @@ var _ = Describe("Revision", func() {
 				Expect(revision.Attributes.InitialSettings).To(Equal(create.InitialSettings))
 			})
 
+			It("sets the calculator correctly", func() {
+				Expect(revision.Attributes.Calculator).To(Equal(create.Calculator))
+			})
+
 			It("sets the training correctly", func() {
 				Expect(revision.Attributes.Training).To(Equal(create.Training))
 			})
@@ -295,6 +299,17 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
+				It("doesn't fail with empty calculator", func() {
+					attr.Calculator = nil
+					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+				})
+
+				It("fails with invalid calculator values", func() {
+					attr.Calculator.Method = prescription.CalculatorMethodWeight
+					attr.Calculator.Weight = pointer.FromFloat64(-1.0)
+					Expect(validate.Validate(attr)).To(HaveOccurred())
+				})
+
 				It("doesn't fail with valid training", func() {
 					attr.Training = prescription.TrainingInModule
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
@@ -382,6 +397,7 @@ var _ = Describe("Revision", func() {
 							YearOfDiagnosis:         0,
 							PhoneNumber:             nil,
 							InitialSettings:         nil,
+							Calculator:              nil,
 							Training:                "",
 							TherapySettings:         "",
 							PrescriberTermsAccepted: false,
