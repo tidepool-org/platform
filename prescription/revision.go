@@ -20,7 +20,8 @@ const (
 	SexFemale      = "female"
 	SexUndisclosed = "undisclosed"
 
-	UnitKg = "kg"
+	UnitKg  = "kg"
+	UnitLbs = "lbs"
 
 	AccountTypePatient   = "patient"
 	AccountTypeCaregiver = "caregiver"
@@ -78,6 +79,7 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 				YearOfDiagnosis:         create.YearOfDiagnosis,
 				PhoneNumber:             create.PhoneNumber,
 				InitialSettings:         create.InitialSettings,
+				Calculator:              create.Calculator,
 				Training:                create.Training,
 				TherapySettings:         create.TherapySettings,
 				PrescriberTermsAccepted: create.PrescriberTermsAccepted,
@@ -142,6 +144,7 @@ type DataAttributes struct {
 	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis"`
 	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings"`
+	Calculator              *Calculator      `json:"calculator,omitempty" bson:"calculator"`
 	Training                string           `json:"training,omitempty" bson:"training"`
 	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings"`
 	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted"`
@@ -182,6 +185,9 @@ func (d *DataAttributes) Validate(validator structure.Validator) {
 	}
 	if d.InitialSettings != nil {
 		d.InitialSettings.Validate(validator.WithReference("initialSettings"))
+	}
+	if d.Calculator != nil {
+		d.Calculator.Validate(validator.WithReference("calculator"))
 	}
 	validator.String("state", &d.State).OneOf(RevisionStates()...)
 
