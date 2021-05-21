@@ -58,6 +58,7 @@ type Prescription struct {
 	DeletedUserID    string             `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 	ModifiedTime     time.Time          `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID   string             `json:"modifiedUserId" bson:"modifiedUserId"`
+	SubmittedTime    *time.Time         `json:"submittedTime,omitempty" bson:"submittedTime,omitempty"`
 }
 
 func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescription {
@@ -77,6 +78,7 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescriptio
 		PrescriberUserID: revision.GetPrescriberUserID(),
 		ModifiedTime:     now,
 		ModifiedUserID:   userID,
+		SubmittedTime:    revision.GetSubmittedTime(),
 	}
 
 	return prescription
@@ -275,6 +277,7 @@ type Update struct {
 	ExpirationTime   *time.Time
 	ModifiedTime     time.Time
 	ModifiedUserID   string
+	SubmittedTime    *time.Time
 }
 
 func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription, create *RevisionCreate) *Update {
@@ -289,6 +292,7 @@ func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription
 		ExpirationTime:   revision.CalculateExpirationTime(),
 		ModifiedUserID:   *usr.UserID,
 		ModifiedTime:     revision.Attributes.CreatedTime,
+		SubmittedTime:    revision.GetSubmittedTime(),
 	}
 
 	return update

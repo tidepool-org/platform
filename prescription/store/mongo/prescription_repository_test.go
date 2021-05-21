@@ -656,13 +656,26 @@ var _ = Describe("PrescriptionRepository", func() {
 					})
 
 					It("sets the revision attributes correctly", func() {
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
 						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+
+						result, err := repository.AddRevision(ctx, usr, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
 						result.LatestRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
+					})
+
+					It("sets date submitted when revision state is submitted", func() {
+						create.State = prescription.StateSubmitted
+						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+
+						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+
+						Expect(*result.SubmittedTime).ToNot(BeNil())
+						Expect(*result.SubmittedTime).To(BeTemporally("~", *update.SubmittedTime, 10*time.Millisecond))
 					})
 
 					It("allows un-setting all revision attributes", func() {

@@ -120,6 +120,15 @@ func (r *Revision) GetPrescriberUserID() string {
 	return r.Attributes.CreatedUserID
 }
 
+func (r *Revision) GetSubmittedTime() *time.Time {
+	if r.Attributes.State != StateSubmitted {
+		return nil
+	}
+
+	now := time.Now()
+	return &now
+}
+
 type Attributes struct {
 	DataAttributes     `json:",inline" bson:",inline"`
 	CreationAttributes `json:",inline" bson:",inline"`

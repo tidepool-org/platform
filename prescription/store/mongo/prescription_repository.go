@@ -449,5 +449,9 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 		set["patientUserId"] = prescrUpdate.PatientUserID
 	}
 
+	if prescrUpdate.SubmittedTime != nil {
+		set["submittedTime"] = prescrUpdate.SubmittedTime
+	}
+
 	return update
 }
