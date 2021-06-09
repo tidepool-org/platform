@@ -359,7 +359,7 @@ func (s *Service) initializeUserEventsHandler() error {
 func (s *Service) initializeDeviceCheck() error {
 	s.Logger().Debug("Initializing device check")
 
-	cfg := apple.NewConfig()
+	cfg := apple.NewDeviceCheckConfig()
 	if err := cfg.Load(); err != nil {
 		s.Logger().Errorf("error loading device check config: %v", err)
 		return err
@@ -368,7 +368,7 @@ func (s *Service) initializeDeviceCheck() error {
 	httpClient := &http.Client{
 		Timeout: 2 * time.Second,
 	}
-	s.deviceCheck = apple.New(cfg, httpClient)
+	s.deviceCheck = apple.NewDeviceCheck(cfg, httpClient)
 
 	return nil
 }

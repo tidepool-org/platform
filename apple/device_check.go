@@ -1,6 +1,7 @@
 package apple
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/kelseyhightower/envconfig"
@@ -16,22 +17,22 @@ type deviceChecker struct {
 	client  *devicecheck.Client
 }
 
-type Config struct {
+type DeviceCheckConfig struct {
 	PrivateKey                string `envconfig:"DEVICE_CHECK_PRIVATE_KEY"`
 	Issuer                    string `envconfig:"DEVICE_CHECK_KEY_ISSUER"`
 	KeyID                     string `envconfig:"DEVICE_CHECK_KEY_ID"`
 	UseDevelopmentEnvironment bool   `envconfig:"DEVICE_CHECK_USE_DEVELOPMENT" default:"true"`
 }
 
-func NewConfig() *Config {
-	return &Config{}
+func NewDeviceCheckConfig() *DeviceCheckConfig {
+	return &DeviceCheckConfig{}
 }
 
-func (c *Config) Load() error {
+func (c *DeviceCheckConfig) Load() error {
 	return envconfig.Process("", c)
 }
 
-func New(cfg *Config, httpClient *http.Client) DeviceCheck {
+func NewDeviceCheck(cfg *DeviceCheckConfig, httpClient *http.Client) DeviceCheck {
 	cred := devicecheck.NewCredentialString(cfg.PrivateKey)
 	env := devicecheck.Production
 	if cfg.UseDevelopmentEnvironment {
@@ -49,7 +50,7 @@ func (d *deviceChecker) IsTokenValid(token string) (bool, error) {
 	err := d.client.ValidateDeviceToken(token)
 	if err == nil {
 		return true, nil
-	} else if err == devicecheck.ErrUnauthorized {
+	} else if errors.Is(err, devicecheck.ErrUnauthorized) || errors.Is(err, devicecheck.ErrBadRequest) {
 		return false, nil
 	} else {
 		return false, err
