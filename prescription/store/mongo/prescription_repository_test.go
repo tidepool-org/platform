@@ -26,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
-	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -152,30 +151,21 @@ var _ = Describe("PrescriptionRepository", func() {
 			})
 
 			Context("CreatePrescription", func() {
-				var userID = ""
 				var revisionCreate *prescription.RevisionCreate = nil
 
 				BeforeEach(func() {
-					userID = authTest.RandomUserID()
 					revisionCreate = test.RandomRevisionCreate()
 				})
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := repository.CreatePrescription(ctx, userID, revisionCreate)
+					result, err := repository.CreatePrescription(ctx, revisionCreate)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
-				It("returns an error when the userID is missing", func() {
-					userID = ""
-					result, err := repository.CreatePrescription(ctx, userID, revisionCreate)
-					errorsTest.ExpectEqual(err, errors.New("userID is missing"))
-					Expect(result).To(BeNil())
-				})
-
 				It("returns the created prescription on success", func() {
-					result, err := repository.CreatePrescription(ctx, userID, revisionCreate)
+					result, err := repository.CreatePrescription(ctx, revisionCreate)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).ToNot(BeNil())
 				})
@@ -450,13 +440,19 @@ var _ = Describe("PrescriptionRepository", func() {
 			Context("DeletePrescription", func() {
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := repository.DeletePrescription(ctx, "", "")
+					result, err := repository.DeletePrescription(ctx, "", "", "")
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeFalse())
 				})
 
+				It("returns an error when the clinic id is empty", func() {
+					result, err := repository.DeletePrescription(ctx, "", "", "")
+					errorsTest.ExpectEqual(err, errors.New("clinician id is missing"))
+					Expect(result).To(BeFalse())
+				})
+
 				It("returns an error when the clinician id is empty", func() {
-					result, err := repository.DeletePrescription(ctx, "", "")
+					result, err := repository.DeletePrescription(ctx, "1234567890", "", "")
 					errorsTest.ExpectEqual(err, errors.New("clinician id is missing"))
 					Expect(result).To(BeFalse())
 				})
@@ -491,7 +487,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					})
 
 					It("deletes the correct prescriptions given a prescriber id", func() {
-						success, err := repository.DeletePrescription(ctx, prescr.PrescriberUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.PrescriberUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeTrue())
 
@@ -507,7 +503,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					})
 
 					It("deletes the correct prescriptions given a created user id", func() {
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeTrue())
 
@@ -522,11 +518,11 @@ var _ = Describe("PrescriptionRepository", func() {
 					})
 
 					It("does not delete a prescription which is already deleted", func() {
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeTrue())
 
-						success, err = repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err = repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
 					})
@@ -535,7 +531,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateSubmitted}})
 						Expect(err).ToNot(HaveOccurred())
 
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
 					})
@@ -544,7 +540,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateClaimed}})
 						Expect(err).ToNot(HaveOccurred())
 
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
 					})
@@ -553,7 +549,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateActive}})
 						Expect(err).ToNot(HaveOccurred())
 
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
 					})
@@ -562,7 +558,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateInactive}})
 						Expect(err).ToNot(HaveOccurred())
 
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
 					})
@@ -571,7 +567,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						_, err := collection.UpdateOne(nil, bson.M{"_id": prescr.ID}, bson.M{"$set": bson.M{"state": prescription.StateExpired}})
 						Expect(err).ToNot(HaveOccurred())
 
-						success, err := repository.DeletePrescription(ctx, prescr.CreatedUserID, prescr.ID.Hex())
+						success, err := repository.DeletePrescription(ctx, prescr.ClinicId, prescr.ID.Hex(), prescr.CreatedUserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(success).To(BeFalse())
 					})
@@ -597,20 +593,15 @@ var _ = Describe("PrescriptionRepository", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := repository.AddRevision(ctx, usr, prescrID, create)
+					result, err := repository.AddRevision(ctx, prescrID, create)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the user is nil", func() {
-					result, err := repository.AddRevision(ctx, nil, prescrID, create)
-					errorsTest.ExpectEqual(err, errors.New("user is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				Context("With pre-existing data", func() {
 					BeforeEach(func() {
 						prescr.ID = primitive.NewObjectID()
+						prescr.ClinicId = create.ClinicId
 						prescrID = prescr.ID.Hex()
 						_, err := collection.InsertOne(nil, prescr)
 						Expect(err).ToNot(HaveOccurred())
@@ -623,42 +614,42 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("returns nil if the prescription doesn't exist", func() {
 						randomID := primitive.NewObjectID().Hex()
-						result, err := repository.AddRevision(ctx, usr, randomID, create)
+						result, err := repository.AddRevision(ctx, randomID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(BeNil())
 					})
 
 					It("returns the result on success", func() {
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 					})
 
 					It("adds a revision to the list of revisions", func() {
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(result.RevisionHistory).To(HaveLen(2))
 					})
 
 					It("does not prepend the new revision to the revision history array", func() {
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(result.RevisionHistory[0].RevisionID).To(Equal(0))
 					})
 
 					It("appends the latest revision to the newly created revision", func() {
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(result.RevisionHistory[1].RevisionID).To(Equal(1))
 					})
 
 					It("sets the revision attributes correctly", func() {
-						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+						update := prescription.NewPrescriptionAddRevisionUpdate(prescr, create)
 
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
@@ -668,9 +659,9 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("sets date submitted when revision state is submitted", func() {
 						create.State = prescription.StateSubmitted
-						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+						update := prescription.NewPrescriptionAddRevisionUpdate(prescr, create)
 
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
@@ -680,6 +671,8 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("allows un-setting all revision attributes", func() {
 						create = &prescription.RevisionCreate{
+							ClinicId: prescr.ClinicId,
+							ClinicianId: prescr.CreatedUserID,
 							DataAttributes: prescription.DataAttributes{
 								AccountType:             "",
 								CaregiverFirstName:      "",
@@ -700,11 +693,11 @@ var _ = Describe("PrescriptionRepository", func() {
 								State:                   prescription.StateDraft,
 							},
 						}
-						result, err := repository.AddRevision(ctx, usr, prescrID, create)
+						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
-						update := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+						update := prescription.NewPrescriptionAddRevisionUpdate(prescr, create)
 						result.LatestRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 						Expect(*result.LatestRevision.Attributes).To(Equal(*update.Revision.Attributes))
 					})
@@ -720,21 +713,15 @@ var _ = Describe("PrescriptionRepository", func() {
 					usr = userTest.RandomUser()
 					prescr = test.RandomPrescription()
 					prescr.State = prescription.StateSubmitted
-					claim = prescription.NewPrescriptionClaim()
+					claim = prescription.NewPrescriptionClaim(*usr.UserID)
 					claim.AccessCode = prescr.AccessCode
 					claim.Birthday = prescr.LatestRevision.Attributes.Birthday
 				})
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := repository.ClaimPrescription(ctx, usr, claim)
+					result, err := repository.ClaimPrescription(ctx, claim)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the user is nil", func() {
-					result, err := repository.ClaimPrescription(ctx, nil, claim)
-					errorsTest.ExpectEqual(err, errors.New("user is missing"))
 					Expect(result).To(BeNil())
 				})
 
@@ -752,60 +739,60 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("returns nil if the access code is incorrect", func() {
 						claim.AccessCode = "XXXXXX"
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(BeNil())
 					})
 
 					It("returns nil if the birthday is incorrect", func() {
 						claim.Birthday = "1900-01-01"
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(BeNil())
 					})
 
 					It("returns the prescription on success", func() {
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 					})
 
 					It("resets the access code", func() {
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(result.AccessCode).To(BeEmpty())
 					})
 
 					It("sets the state of the prescription to claimed", func() {
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(result.State).To(Equal(prescription.StateClaimed))
 					})
 
 					It("sets the patient id", func() {
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(result.PatientUserID).To(Equal(*usr.UserID))
 					})
 
 					It("works with multiple prescriptions for the same user", func() {
-						result, err := repository.ClaimPrescription(ctx, usr, claim)
+						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
 						second := test.RandomPrescription()
 						second.State = prescription.StateSubmitted
-						claim = prescription.NewPrescriptionClaim()
+						claim = prescription.NewPrescriptionClaim(*usr.UserID)
 						claim.AccessCode = second.AccessCode
 						claim.Birthday = second.LatestRevision.Attributes.Birthday
 
 						_, err = collection.InsertOne(nil, second)
 						Expect(err).ToNot(HaveOccurred())
 
-						result, err = repository.ClaimPrescription(ctx, usr, claim)
+						result, err = repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 					})
@@ -823,20 +810,14 @@ var _ = Describe("PrescriptionRepository", func() {
 					prescr = test.RandomClaimedPrescription()
 					prescr.PatientUserID = *usr.UserID
 					prescrID = prescr.ID.Hex()
-					stateUpdate = prescription.NewStateUpdate()
+					stateUpdate = prescription.NewStateUpdate(*usr.UserID)
 					stateUpdate.State = prescription.StateActive
 				})
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := repository.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+					result, err := repository.UpdatePrescriptionState(ctx, prescrID, stateUpdate)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the user is nil", func() {
-					result, err := repository.UpdatePrescriptionState(ctx, nil, prescrID, stateUpdate)
-					errorsTest.ExpectEqual(err, errors.New("user is missing"))
 					Expect(result).To(BeNil())
 				})
 
@@ -854,17 +835,17 @@ var _ = Describe("PrescriptionRepository", func() {
 					})
 
 					It("returns the prescription on success", func() {
-						result, err := repository.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+						result, err := repository.UpdatePrescriptionState(ctx, prescrID, stateUpdate)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 					})
 
 					It("returns nil when trying to activate an already active prescription", func() {
-						result, err := repository.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+						result, err := repository.UpdatePrescriptionState(ctx, prescrID, stateUpdate)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 
-						result, err = repository.UpdatePrescriptionState(ctx, usr, prescrID, stateUpdate)
+						result, err = repository.UpdatePrescriptionState(ctx, prescrID, stateUpdate)
 						errorsTest.ExpectEqual(err, errors.New("the prescription update is invalid"))
 					})
 				})

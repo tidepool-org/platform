@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"syreclabs.com/go/faker"
 
 	prescriptionService "github.com/tidepool-org/platform/prescription/service"
 	serviceTest "github.com/tidepool-org/platform/prescription/service/test"
@@ -72,14 +73,14 @@ var _ = Describe("V1", func() {
 		Context("Routes", func() {
 			It("returns the expected routes", func() {
 				Expect(router.Routes()).To(ConsistOf(
-					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/prescriptions")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/clinics/:clinicId/prescriptions")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/clinics/:clinicId/prescriptions/:prescriptionId/revisions")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/prescriptions")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/prescriptions")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/prescriptions/claim")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/prescriptions/:prescriptionId")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPatch), "PathExp": Equal("/v1/prescriptions/:prescriptionId")})),
-					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/prescriptions/:prescriptionId")})),
-					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/prescriptions/:prescriptionId/revisions")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/clinics/:clinicId/prescriptions/:prescriptionId")})),
 				))
 			})
 		})
@@ -113,10 +114,12 @@ var _ = Describe("V1", func() {
 			Context("with patient and clinician", func() {
 				var patient *user.User
 				var clinician *user.User
+				var clinicId string
 
 				BeforeEach(func() {
 					patient = userTest.RandomUser()
 					clinician = userTest.RandomUser()
+					clinicId = faker.Number().Hexadecimal(24)
 
 					clinicianRoles := []string{user.RoleClinic}
 					clinician.Roles = &clinicianRoles
@@ -149,7 +152,7 @@ var _ = Describe("V1", func() {
 
 						BeforeEach(func() {
 							req.Method = http.MethodPost
-							req.URL.Path = "/v1/prescriptions"
+							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions", clinicId)
 
 							create = prescriptionTest.RandomRevisionCreate()
 							prescr = prescriptionTest.RandomPrescription()
@@ -499,7 +502,7 @@ var _ = Describe("V1", func() {
 							id = prescriptionTest.RandomPrescription().ID
 
 							req.Method = http.MethodDelete
-							req.URL.Path = fmt.Sprintf("/v1/prescriptions/%v", id)
+							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions/%v", clinicId, id)
 
 							prescriptionService.DeletePrescriptionOutputs = []prescriptionTest.DeletePrescriptionOutput{{Success: true, Err: nil}}
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
@@ -556,7 +559,7 @@ var _ = Describe("V1", func() {
 							Expect(err).ToNot(HaveOccurred())
 
 							req.Method = http.MethodPost
-							req.URL.Path = fmt.Sprintf("/v1/prescriptions/%v/revisions", prescr.ID.Hex())
+							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions/%v/revisions", clinicId, prescr.ID.Hex())
 
 							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}

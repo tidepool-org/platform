@@ -37,13 +37,27 @@ func NewRouter(p Params) router.Router {
 
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/prescriptions", api.Require(r.CreatePrescription)),
+		rest.Post("/v1/clinics/:clinicId/prescriptions", api.Require(r.CreatePrescription)),
+		rest.Post("/v1/clinics/:clinicId/prescriptions/:prescriptionId/revisions", api.Require(r.AddRevision)),
+		rest.Delete("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.Require(r.DeletePrescription)),
+
+
 		rest.Get("/v1/prescriptions", api.Require(r.ListCurrentUserPrescriptions)),
 		rest.Get("/v1/users/:userId/prescriptions", api.Require(r.ListUserPrescriptions)),
 		rest.Post("/v1/prescriptions/claim", api.Require(r.ClaimPrescription)),
 		rest.Get("/v1/prescriptions/:prescriptionId", api.Require(r.GetPrescription)),
 		rest.Patch("/v1/prescriptions/:prescriptionId", api.Require(r.UpdateState)),
-		rest.Delete("/v1/prescriptions/:prescriptionId", api.Require(r.DeletePrescription)),
-		rest.Post("/v1/prescriptions/:prescriptionId/revisions", api.Require(r.AddRevision)),
 	}
 }
+//
+//
+//Create         POST   /v1/clinics/:clinicId/prescriptions
+//List           GET    /v1/clinics/:clinicId/prescriptions
+//Get by Id      GET    /v1/clinics/:clinicId/prescriptions/:prescriptionId
+//Add Revision   POST   /v1/clinics/:clinicId/prescriptions/:prescriptionId/revisions
+//Delete         DELETE /v1/clinics/:clinicId/prescriptions/:prescriptionId
+//
+//Claim          POST   /v1/patients/:userId/prescriptions
+//List (patient) GET    /v1/patients/:userId/prescriptions
+//Get (patient)  GET    /v1/patients/:userId/prescriptions/:prescriptionId
+//Activate       PATCH  /v1/patients/:userId/prescriptions/:prescriptionId

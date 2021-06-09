@@ -26,7 +26,8 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	create := prescription.NewRevisionCreate()
+	clinicId := req.PathParam("clinicId")
+	create := prescription.NewRevisionCreate(clinicId, userID, true)
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
@@ -43,7 +44,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 	}
 
 	// TODO: check prescription permission
-	prescr, err := r.prescriptionService.CreatePrescription(ctx, *usr.UserID, create)
+	prescr, err := r.prescriptionService.CreatePrescription(ctx, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -115,6 +116,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 	details := request.DetailsFromContext(ctx)
 	responder := request.MustNewResponder(res, req)
 
+	clinicId := req.PathParam("clinicId")
 	prescriptionID := req.PathParam("prescriptionId")
 	userID := details.UserID()
 	usr := r.getUserOrRespondWithError(req, responder, userID, user.RoleClinic)
@@ -122,7 +124,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	success, err := r.prescriptionService.DeletePrescription(ctx, *usr.UserID, prescriptionID)
+	success, err := r.prescriptionService.DeletePrescription(ctx, clinicId, prescriptionID, *usr.UserID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -141,14 +143,16 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	details := request.DetailsFromContext(ctx)
 	responder := request.MustNewResponder(res, req)
 
+	clinicId := req.PathParam("clinicId")
 	prescriptionID := req.PathParam("prescriptionId")
 	userID := details.UserID()
+
 	usr := r.getUserOrRespondWithError(req, responder, userID, user.RoleClinic)
 	if usr == nil {
 		return
 	}
 
-	create := prescription.NewRevisionCreate()
+	create := prescription.NewRevisionCreate(clinicId, userID, true)
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
@@ -165,7 +169,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	// TODO: check prescription permission
-	prescr, err := r.prescriptionService.AddRevision(ctx, usr, prescriptionID, create)
+	prescr, err := r.prescriptionService.AddRevision(ctx, prescriptionID, create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -193,13 +197,13 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	claim := prescription.NewPrescriptionClaim()
+	claim := prescription.NewPrescriptionClaim(*usr.UserID)
 	if err := request.DecodeRequestBody(req.Request, claim); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	prescr, err := r.prescriptionService.ClaimPrescription(ctx, usr, claim)
+	prescr, err := r.prescriptionService.ClaimPrescription(ctx, claim)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -228,13 +232,13 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	update := prescription.NewStateUpdate()
+	update := prescription.NewStateUpdate(userID)
 	if err := request.DecodeRequestBody(req.Request, update); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	prescr, err := r.prescriptionService.UpdatePrescriptionState(ctx, usr, prescriptionID, update)
+	prescr, err := r.prescriptionService.UpdatePrescriptionState(ctx, prescriptionID, update)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

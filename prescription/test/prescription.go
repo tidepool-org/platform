@@ -52,12 +52,12 @@ func RandomPrescriptions(count int) prescription.Prescriptions {
 
 func RandomPrescription() *prescription.Prescription {
 	create := RandomRevisionCreate()
-	return prescription.NewPrescription(userTest.RandomID(), create)
+	return prescription.NewPrescription(create)
 }
 
 func RandomClaimedPrescription() *prescription.Prescription {
 	create := RandomRevisionCreate()
-	prescr := prescription.NewPrescription(userTest.RandomID(), create)
+	prescr := prescription.NewPrescription(create)
 	prescr.AccessCode = ""
 	prescr.PatientUserID = userTest.RandomID()
 	prescr.State = prescription.StateClaimed
@@ -74,6 +74,8 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		caregiverLastName = faker.Name().LastName()
 	}
 	return &prescription.RevisionCreate{
+		ClinicId: faker.Number().Hexadecimal(24),
+		ClinicianId: userTest.RandomID(),
 		DataAttributes: prescription.DataAttributes{
 			AccountType:             accountType,
 			CaregiverFirstName:      caregiverFirstName,
