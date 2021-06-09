@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/apple"
+
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth/service"
@@ -64,6 +66,10 @@ func (s *Service) TaskClient() task.Client {
 	s.TaskClientInvocations++
 
 	return s.TaskClientImpl
+}
+
+func (s *Service) DeviceCheck() apple.DeviceCheck {
+	return nil
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
