@@ -29,7 +29,7 @@ func (r *Router) VerifyToken(res rest.ResponseWriter, req *rest.Request) {
 
 	var verifyTokenRequest VerifyTokenRequest
 	err := json.NewDecoder(req.Body).Decode(&verifyTokenRequest)
-	if err != nil || verifyTokenRequest.Token == "" {
+	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
@@ -37,7 +37,7 @@ func (r *Router) VerifyToken(res rest.ResponseWriter, req *rest.Request) {
 	var verifyTokenResponse VerifyTokenResponse
 	verifyTokenResponse.Valid, err = r.DeviceCheck().IsTokenValid(verifyTokenRequest.Token)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

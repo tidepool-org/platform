@@ -13,15 +13,14 @@ type DeviceCheck interface {
 }
 
 type deviceChecker struct {
-	enabled bool
-	client  *devicecheck.Client
+	client *devicecheck.Client
 }
 
 type DeviceCheckConfig struct {
-	PrivateKey                string `envconfig:"DEVICE_CHECK_PRIVATE_KEY"`
-	Issuer                    string `envconfig:"DEVICE_CHECK_KEY_ISSUER"`
-	KeyID                     string `envconfig:"DEVICE_CHECK_KEY_ID"`
-	UseDevelopmentEnvironment bool   `envconfig:"DEVICE_CHECK_USE_DEVELOPMENT" default:"true"`
+	PrivateKey                string `envconfig:"TIDEPOOL_APPLE_DEVICE_CHECKER_PRIVATE_KEY"`
+	Issuer                    string `envconfig:"TIDEPOOL_APPLE_DEVICE_CHECKER_KEY_ISSUER"`
+	KeyID                     string `envconfig:"TIDEPOOL_APPLE_DEVICE_CHECKER_KEY_ID"`
+	UseDevelopmentEnvironment bool   `envconfig:"TIDEPOOL_APPLE_DEVICE_CHECKER_USE_DEVELOPMENT" default:"true"`
 }
 
 func NewDeviceCheckConfig() *DeviceCheckConfig {
