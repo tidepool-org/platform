@@ -9,10 +9,10 @@ import (
 )
 
 type Caller struct {
-	Package  string `json:"package,omitempty" bson:"package,omitempty"`
-	Function string `json:"function,omitempty" bson:"function,omitempty"`
-	File     string `json:"file,omitempty" bson:"file,omitempty"`
-	Line     int    `json:"line,omitempty" bson:"line,omitempty"`
+	Package  string `json:"dbl_package,omitempty" bson:"package,omitempty"`
+	Function string `json:"dbl_function,omitempty" bson:"function,omitempty"`
+	File     string `json:"dbl_file,omitempty" bson:"file,omitempty"`
+	Line     int    `json:"dbl_line,omitempty" bson:"line,omitempty"`
 }
 
 func GetCaller(frame int) *Caller {
@@ -45,16 +45,16 @@ func (c *Caller) FileName() string {
 }
 
 func (c *Caller) Parse(parser structure.ObjectParser) {
-	if ptr := parser.String("package"); ptr != nil {
+	if ptr := parser.String("dbl_package"); ptr != nil {
 		c.Package = *ptr
 	}
-	if ptr := parser.String("function"); ptr != nil {
+	if ptr := parser.String("dbl_function"); ptr != nil {
 		c.Function = *ptr
 	}
-	if ptr := parser.String("file"); ptr != nil {
+	if ptr := parser.String("dbl_file"); ptr != nil {
 		c.File = *ptr
 	}
-	if ptr := parser.Int("line"); ptr != nil {
+	if ptr := parser.Int("dbl_line"); ptr != nil {
 		c.Line = *ptr
 	}
 }

@@ -93,8 +93,9 @@ func (s *Serializer) joinContainsFields(containsFields []log.Fields) log.Fields 
 	for _, fields := range containsFields {
 		for key, value := range fields {
 			if value != nil {
-				if joinedValue, found := joinedFields[key]; !found {
-					joinedFields[key] = value
+				// FIXME temporary change: required to prefix key details at ylp-817
+				if joinedValue, found := joinedFields[log.PREFIX+key]; !found {
+					joinedFields[log.PREFIX+key] = value
 				} else if !reflect.DeepEqual(joinedValue, value) {
 					panic(fmt.Sprintf("duplicate log field found with key %q", key))
 				}

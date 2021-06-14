@@ -127,16 +127,16 @@ var _ = Describe("Logger", func() {
 				logger.Log(log.WarnLevel, "Expected Message")
 				Expect(serializer.SerializeInputs).To(HaveLen(1))
 				serializeInput := serializer.SerializeInputs[0]
-				Expect(serializeInput).To(HaveKey("caller"))
-				Expect(serializeInput).To(HaveKeyWithValue("level", log.WarnLevel))
-				Expect(serializeInput).To(HaveKey("time"))
-				Expect(serializeInput).To(HaveKeyWithValue("message", "Expected Message"))
-				serializedTime, ok := serializeInput["time"].(string)
+				Expect(serializeInput).To(HaveKey("dbl_caller"))
+				Expect(serializeInput).To(HaveKeyWithValue("dbl_level", log.WarnLevel))
+				Expect(serializeInput).To(HaveKey("dbl_time"))
+				Expect(serializeInput).To(HaveKeyWithValue("dbl_message", "Expected Message"))
+				serializedTime, ok := serializeInput["dbl_time"].(string)
 				Expect(ok).To(BeTrue())
-				parsedTime, err := time.Parse(time.RFC3339Nano, serializedTime)
+				parsedTime, err := time.Parse("2006-01-02T15:04:05.999999999", serializedTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(parsedTime).To(BeTemporally("~", time.Now(), time.Second))
-				serializedCaller, ok := serializeInput["caller"].(*errors.Caller)
+				serializedCaller, ok := serializeInput["dbl_caller"].(*errors.Caller)
 				Expect(ok).To(BeTrue())
 				Expect(serializedCaller.Line).To(BeNumerically(">", 0))
 				Expect(strings.HasSuffix(serializedCaller.File, "log/logger_test.go")).To(BeTrue())
@@ -146,7 +146,7 @@ var _ = Describe("Logger", func() {
 				serializer.SerializeOutputs = []error{nil}
 				logger.Log(log.WarnLevel, "")
 				Expect(serializer.SerializeInputs).To(HaveLen(1))
-				Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("message"))
+				Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_message"))
 			})
 		})
 
@@ -161,8 +161,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Debug("Amazonian")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Amazonian"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.DebugLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Amazonian"))
 				})
 			})
 
@@ -170,8 +170,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Info("Bostonian")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.InfoLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Bostonian"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.InfoLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Bostonian"))
 				})
 			})
 
@@ -179,8 +179,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Warn("Canadian")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Canadian"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.WarnLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Canadian"))
 				})
 			})
 
@@ -188,8 +188,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Error("Dutch")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.ErrorLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Dutch"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.ErrorLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Dutch"))
 				})
 			})
 
@@ -197,8 +197,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Debugf("Amazonian %s", "Warrior")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Amazonian Warrior"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.DebugLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Amazonian Warrior"))
 				})
 			})
 
@@ -206,8 +206,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Infof("Bostonian %s", "Cabbie")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.InfoLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Bostonian Cabbie"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.InfoLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Bostonian Cabbie"))
 				})
 			})
 
@@ -215,8 +215,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Warnf("Canadian %s", "Skater")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Canadian Skater"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.WarnLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Canadian Skater"))
 				})
 			})
 
@@ -224,8 +224,8 @@ var _ = Describe("Logger", func() {
 				It("logs with the expected level and message", func() {
 					logger.Errorf("Dutch %s", "Brothers")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.ErrorLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Dutch Brothers"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.ErrorLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "Dutch Brothers"))
 				})
 			})
 
@@ -233,19 +233,19 @@ var _ = Describe("Logger", func() {
 				It("does not include the error field if the error is missing", func() {
 					logger.WithError(nil).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_error"))
 				})
 
 				It("deletes the error field if the error is missing", func() {
 					logger.WithError(fmt.Errorf("euro error")).WithError(nil).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_error"))
 				})
 
 				It("does include the error field if the error is not missing", func() {
 					logger.WithError(fmt.Errorf("euro error")).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKey("error"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKey("dbl_error"))
 				})
 			})
 
@@ -259,19 +259,19 @@ var _ = Describe("Logger", func() {
 				It("does not include the field if the value is missing", func() {
 					logger.WithField("sword", nil).Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("sword"))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_sword"))
 				})
 
 				It("deletes the field if the value is missing", func() {
 					logger.WithField("sword", "fish").WithField("sword", nil).Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("sword"))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_sword"))
 				})
 
 				It("does include the field if the key and value are not missing", func() {
 					logger.WithField("sword", "fish").Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("sword", "fish"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_sword", "fish"))
 				})
 			})
 
@@ -280,14 +280,14 @@ var _ = Describe("Logger", func() {
 					logger.WithFields(log.Fields{"": "Nein", "nope": nil, "yep": "Ja"}).Warn("German")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey(""))
-					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("nope"))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("yep", "Ja"))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_nope"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_yep", "Ja"))
 				})
 
 				It("deletes the field if the value is missing", func() {
 					logger.WithFields(log.Fields{"nope": "Nein"}).WithFields(log.Fields{"nope": nil}).Warn("German")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("nope"))
+					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("dbl_nope"))
 				})
 			})
 
@@ -299,8 +299,8 @@ var _ = Describe("Logger", func() {
 					logger.Debug("Should Not Serialize")
 					logger.Log(level, "WithLevelRank Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", level))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevelRank Message"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", level))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "WithLevelRank Message"))
 				})
 			})
 
@@ -312,8 +312,8 @@ var _ = Describe("Logger", func() {
 					logger.Debug("Should Not Serialize")
 					logger.Log(level, "WithLevelRanks Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", level))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevelRanks Message"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", level))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "WithLevelRanks Message"))
 				})
 			})
 
@@ -324,8 +324,8 @@ var _ = Describe("Logger", func() {
 					Expect(logger.Level()).To(Equal(log.DebugLevel))
 					logger.Debug("WithLevel Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.DebugLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "WithLevel Message"))
 				})
 
 				It("adds the specified level", func() {
@@ -334,8 +334,8 @@ var _ = Describe("Logger", func() {
 					logger.Debug("Should Not Serialize")
 					logger.Warn("WithLevel Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
-					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_level", log.WarnLevel))
+					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("dbl_message", "WithLevel Message"))
 				})
 			})
 		})

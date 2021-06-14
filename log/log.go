@@ -7,6 +7,8 @@ type (
 	LevelRanks map[Level]Rank
 )
 
+const PREFIX = "dbl_"
+
 type Serializer interface {
 	Serialize(fields Fields) error
 }

@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.12.1 - 2021-06-14
+### Fixed
+- YLP-817 Make Service logs compatible with Coreye ELK filtering
+
 ## 0.12.0 - 2021-04-13
 ### Changed
 - YLP-694 Add warmup object
