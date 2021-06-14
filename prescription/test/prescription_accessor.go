@@ -33,7 +33,7 @@ type ListPrescriptionsOutput struct {
 
 type DeletePrescriptionInput struct {
 	Ctx         context.Context
-	ClinicId    string
+	ClinicID    string
 	ID          string
 	ClinicianID string
 }
@@ -124,10 +124,10 @@ func (p *PrescriptionAccessor) ListPrescriptions(ctx context.Context, filter *pr
 	return output.Prescriptions, output.Err
 }
 
-func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinicId, prescriptionId, clinicianID string) (bool, error) {
+func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error) {
 	p.DeletePrescriptionInvocations++
 
-	p.DeletePrescriptionInputs = append(p.DeletePrescriptionInputs, DeletePrescriptionInput{Ctx: ctx, ClinicId: clinicId, ClinicianID: clinicianID, ID: prescriptionId})
+	p.DeletePrescriptionInputs = append(p.DeletePrescriptionInputs, DeletePrescriptionInput{Ctx: ctx, ClinicID: clinicID, ClinicianID: clinicianID, ID: prescriptionID})
 
 	gomega.Expect(p.DeletePrescriptionOutputs).ToNot(gomega.BeEmpty())
 

@@ -120,7 +120,7 @@ var _ = Describe("Revision", func() {
 			})
 
 			It("sets the modified userID correctly", func() {
-				Expect(revision.Attributes.CreatedUserID).To(Equal(create.ClinicianId))
+				Expect(revision.Attributes.CreatedUserID).To(Equal(create.ClinicianID))
 			})
 		})
 	})

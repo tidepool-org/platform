@@ -36,22 +36,22 @@ var (
 
 type RevisionCreate struct {
 	DataAttributes `json:",inline"`
-	ClinicId       string `json:"-"`
-	ClinicianId    string `json:"-"`
+	ClinicID       string `json:"-"`
+	ClinicianID    string `json:"-"`
 	IsPrescriber   bool   `json:"-"`
 }
 
-func NewRevisionCreate(clinicId, clinicianId string, isPrescriber bool) *RevisionCreate {
+func NewRevisionCreate(clinicID, clinicianID string, isPrescriber bool) *RevisionCreate {
 	return &RevisionCreate{
-		ClinicId:     clinicId,
-		ClinicianId:  clinicianId,
+		ClinicID:     clinicID,
+		ClinicianID:  clinicianID,
 		IsPrescriber: isPrescriber,
 	}
 }
 
 func (r *RevisionCreate) Validate(validator structure.Validator) {
-	validator.String("clinicianId", &r.ClinicianId).Exists().NotEmpty().Using(user.IDValidator)
-	validator.String("clinicId", &r.ClinicId).Exists().NotEmpty()
+	validator.String("clinicianId", &r.ClinicianID).Exists().NotEmpty().Using(user.IDValidator)
+	validator.String("clinicId", &r.ClinicID).Exists().NotEmpty()
 	r.DataAttributes.Validate(validator)
 }
 
@@ -104,7 +104,7 @@ func NewRevision(revisionID int, create *RevisionCreate) *Revision {
 			},
 			CreationAttributes: CreationAttributes{
 				CreatedTime:   now,
-				CreatedUserID: create.ClinicianId,
+				CreatedUserID: create.ClinicianID,
 			},
 		},
 	}

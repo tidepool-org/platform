@@ -80,7 +80,7 @@ func (p *PrescriptionRepository) CreatePrescription(ctx context.Context, create 
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianId, "create": create})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianID, "create": create})
 
 	_, err := p.InsertOne(ctx, model)
 	logger.WithFields(log.Fields{"id": model.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreatePrescription")
@@ -130,18 +130,18 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	return prescriptions, nil
 }
 
-func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicId, prescriptionId, clinicianId string) (bool, error) {
+func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicID, prescriptionId, clinicianID string) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
-	if clinicianId == "" {
+	if clinicianID == "" {
 		return false, errors.New("clinician id is missing")
 	}
-	if clinicId == "" {
+	if clinicID == "" {
 		return false, errors.New("clinic id is missing")
 	}
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinic": clinicId, "id": prescriptionId})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicId": clinicID, "id": prescriptionId})
 
 	prescriptionID, err := primitive.ObjectIDFromHex(prescriptionId)
 	if err == primitive.ErrInvalidHex {
@@ -151,8 +151,8 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicI
 	}
 
 	selector := bson.M{
-		"_id": prescriptionID,
-		"clinicId": clinicId,
+		"_id":      prescriptionID,
+		"clinicId": clinicID,
 		"state": bson.M{
 			"$in": []string{prescription.StateDraft, prescription.StatePending},
 		},
@@ -160,7 +160,7 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicI
 	}
 	update := bson.M{
 		"$set": bson.M{
-			"deletedUserId": clinicianId,
+			"deletedUserId": clinicianID,
 			"deletedTime":   now,
 		},
 	}
@@ -175,14 +175,14 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicI
 	return success, nil
 }
 
-func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionId string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianId, "prescriptionId": prescriptionId, "create": create})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianID, "prescriptionId": prescriptionID, "create": create})
 
-	prescriptionID, err := primitive.ObjectIDFromHex(prescriptionId)
+	id, err := primitive.ObjectIDFromHex(prescriptionID)
 	if err == primitive.ErrInvalidHex {
 		return nil, nil
 	} else if err != nil {
@@ -190,8 +190,8 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionId
 	}
 
 	selector := bson.M{
-		"_id": prescriptionID,
-		"clinicId": create.ClinicId,
+		"_id":      id,
+		"clinicId": create.ClinicID,
 	}
 
 	prescr := &prescription.Prescription{}
@@ -218,7 +218,7 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionId
 
 	now := time.Now()
 	res, err := p.UpdateOne(ctx, updateSelector, update)
-	logger.WithFields(log.Fields{"id": prescriptionId, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
+	logger.WithFields(log.Fields{"id": prescriptionID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update prescription")
 	} else if res.ModifiedCount == 0 {
@@ -238,7 +238,7 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 		return nil, errors.New("context is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": claim.PatientId, "claim": claim})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": claim.PatientID, "claim": claim})
 
 	selector := bson.M{
 		"accessCode":                         claim.AccessCode,
@@ -256,7 +256,7 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 	}
 
 	id := prescr.ID
-	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(claim.PatientId, prescr)
+	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(claim.PatientID, prescr)
 	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
@@ -281,14 +281,14 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 	return prescr, nil
 }
 
-func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, prescriptionId string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": update.PatientId, "id": prescriptionId, "update": update})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": update.PatientID, "id": prescriptionID, "update": update})
 
-	prescriptionID, err := primitive.ObjectIDFromHex(prescriptionId)
+	id, err := primitive.ObjectIDFromHex(prescriptionID)
 	if err == primitive.ErrInvalidHex {
 		return nil, nil
 	} else if err != nil {
@@ -296,8 +296,8 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, pr
 	}
 
 	selector := bson.M{
-		"_id":           prescriptionID,
-		"patientUserId": update.PatientId,
+		"_id":           id,
+		"patientUserId": update.PatientID,
 	}
 
 	prescr := &prescription.Prescription{}
@@ -312,7 +312,7 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, pr
 	}
 	mongoUpdate := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
 
-	if err = p.deactiveActivePrescriptions(ctx, update.PatientId); err != nil {
+	if err = p.deactiveActivePrescriptions(ctx, update.PatientID); err != nil {
 		return nil, err
 	}
 
@@ -333,11 +333,11 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, pr
 	return prescr, nil
 }
 
-func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context, patientUserId string) error {
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": patientUserId})
+func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context, patientUserID string) error {
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": patientUserID})
 
 	selector := bson.M{
-		"patientUserId": patientUserId,
+		"patientUserId": patientUserID,
 		"state":         prescription.StateActive,
 	}
 	update := bson.M{
@@ -358,11 +358,8 @@ func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context
 
 func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	selector := bson.M{}
-	if filter.ClinicianID != "" {
-		selector["$or"] = []bson.M{
-			{"prescriberUserId": filter.ClinicianID},
-			{"createdUserId": filter.ClinicianID},
-		}
+	if filter.ClinicID != "" {
+		selector["clinicId"] = filter.ClinicID
 	}
 	if filter.PatientUserID != "" {
 		selector["patientUserId"] = filter.PatientUserID

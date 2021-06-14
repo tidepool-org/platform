@@ -74,8 +74,8 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 		caregiverLastName = faker.Name().LastName()
 	}
 	return &prescription.RevisionCreate{
-		ClinicId: faker.Number().Hexadecimal(24),
-		ClinicianId: userTest.RandomID(),
+		ClinicID:    faker.Number().Hexadecimal(24),
+		ClinicianID: userTest.RandomID(),
 		DataAttributes: prescription.DataAttributes{
 			AccountType:             accountType,
 			CaregiverFirstName:      caregiverFirstName,

@@ -35,14 +35,14 @@ func (p *PrescriptionService) ListPrescriptions(ctx context.Context, filter *pre
 	return repo.ListPrescriptions(ctx, filter, pagination)
 }
 
-func (p *PrescriptionService) DeletePrescription(ctx context.Context, clinicId, prescriptionId, clinicianId string) (bool, error) {
+func (p *PrescriptionService) DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error) {
 	repo := p.prescriptionStore.GetPrescriptionRepository()
-	return repo.DeletePrescription(ctx, clinicId, prescriptionId, clinicianId)
+	return repo.DeletePrescription(ctx, clinicID, prescriptionID, clinicianID)
 }
 
-func (p *PrescriptionService) AddRevision(ctx context.Context, prescriptionId string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionService) AddRevision(ctx context.Context, prescriptionID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	repo := p.prescriptionStore.GetPrescriptionRepository()
-	return repo.AddRevision(ctx, prescriptionId, create)
+	return repo.AddRevision(ctx, prescriptionID, create)
 }
 
 func (p *PrescriptionService) ClaimPrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
@@ -50,7 +50,7 @@ func (p *PrescriptionService) ClaimPrescription(ctx context.Context, claim *pres
 	return repo.ClaimPrescription(ctx, claim)
 }
 
-func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, prescriptionId string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
 	repository := p.prescriptionStore.GetPrescriptionRepository()
-	return repository.UpdatePrescriptionState(ctx, prescriptionId, update)
+	return repository.UpdatePrescriptionState(ctx, prescriptionID, update)
 }

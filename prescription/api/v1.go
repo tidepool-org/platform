@@ -26,8 +26,8 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	clinicId := req.PathParam("clinicId")
-	create := prescription.NewRevisionCreate(clinicId, userID, true)
+	clinicID := req.PathParam("clinicId")
+	create := prescription.NewRevisionCreate(clinicID, userID, true)
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
@@ -53,13 +53,37 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 	responder.Data(http.StatusCreated, prescr)
 }
 
-func (r *Router) ListCurrentUserPrescriptions(res rest.ResponseWriter, req *rest.Request) {
+func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	details := request.DetailsFromContext(ctx)
 	responder := request.MustNewResponder(res, req)
 
+	clinicID := req.PathParam("clinicId")
 	userID := details.UserID()
-	r.listPrescriptionsForUserID(req, responder, userID)
+	usr := r.getUserOrRespondWithError(req, responder, userID)
+	if usr == nil {
+		return
+	}
+
+	filter, err := prescription.NewClinicFilter(clinicID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr)
 }
 
 func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Request) {
@@ -72,16 +96,40 @@ func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Reques
 		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
 		return
 	}
+	usr := r.getUserOrRespondWithError(req, responder, userID)
+	if usr == nil {
+		return
+	}
 
-	r.listPrescriptionsForUserID(req, responder, userID)
+	filter, err := prescription.NewPatientFilter(userID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr)
 }
 
-func (r *Router) GetPrescription(res rest.ResponseWriter, req *rest.Request) {
+func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	details := request.DetailsFromContext(ctx)
 	responder := request.MustNewResponder(res, req)
 
+	clinicID := req.PathParam("clinicId")
 	prescriptionID := req.PathParam("prescriptionId")
+
 	userID := details.UserID()
 	usr := r.getUserOrRespondWithError(req, responder, userID)
 	if usr == nil {
@@ -89,7 +137,45 @@ func (r *Router) GetPrescription(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	// TODO: handle clinic access
-	filter, err := prescription.NewFilter(usr)
+	filter, err := prescription.NewClinicFilter(clinicID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	filter.ID = prescriptionID
+
+	pagination := &page.Pagination{Page: 0, Size: 1}
+	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	if prescr == nil || len(prescr) == 0 {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
+		return
+	}
+
+	responder.Data(http.StatusOK, prescr[0])
+}
+
+func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Request) {
+	ctx := req.Context()
+	details := request.DetailsFromContext(ctx)
+	responder := request.MustNewResponder(res, req)
+
+	prescriptionID := req.PathParam("prescriptionId")
+	userID := req.PathParam("userId")
+	if !r.canAccessPrescriptionsForRequestUserID(details, userID) {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+		return
+	}
+	usr := r.getUserOrRespondWithError(req, responder, userID)
+	if usr == nil {
+		return
+	}
+
+	filter, err := prescription.NewPatientFilter(userID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -116,7 +202,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 	details := request.DetailsFromContext(ctx)
 	responder := request.MustNewResponder(res, req)
 
-	clinicId := req.PathParam("clinicId")
+	clinicID := req.PathParam("clinicId")
 	prescriptionID := req.PathParam("prescriptionId")
 	userID := details.UserID()
 	usr := r.getUserOrRespondWithError(req, responder, userID, user.RoleClinic)
@@ -124,7 +210,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	success, err := r.prescriptionService.DeletePrescription(ctx, clinicId, prescriptionID, *usr.UserID)
+	success, err := r.prescriptionService.DeletePrescription(ctx, clinicID, prescriptionID, *usr.UserID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -143,7 +229,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	details := request.DetailsFromContext(ctx)
 	responder := request.MustNewResponder(res, req)
 
-	clinicId := req.PathParam("clinicId")
+	clinicID := req.PathParam("clinicId")
 	prescriptionID := req.PathParam("prescriptionId")
 	userID := details.UserID()
 
@@ -152,7 +238,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	create := prescription.NewRevisionCreate(clinicId, userID, true)
+	create := prescription.NewRevisionCreate(clinicID, userID, true)
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
@@ -187,13 +273,12 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
-	usr := r.getUserOrRespondWithError(req, responder, userID)
-	if usr == nil {
+	if userID != req.PathParam("userId") {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
 		return
 	}
-
-	if !usr.IsPatient() {
-		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
+	usr := r.getUserOrRespondWithError(req, responder, userID)
+	if usr == nil {
 		return
 	}
 
@@ -222,13 +307,12 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 
 	prescriptionID := req.PathParam("prescriptionId")
 	userID := details.UserID()
-	usr := r.getUserOrRespondWithError(req, responder, userID)
-	if usr == nil {
+	if userID != req.PathParam("userId") {
+		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
 		return
 	}
-
-	if !usr.IsPatient() {
-		responder.Error(http.StatusUnauthorized, request.ErrorUnauthorized())
+	usr := r.getUserOrRespondWithError(req, responder, userID)
+	if usr == nil {
 		return
 	}
 
@@ -244,34 +328,6 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 		return
 	} else if prescr == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
-		return
-	}
-
-	responder.Data(http.StatusOK, prescr)
-}
-
-func (r *Router) listPrescriptionsForUserID(req *rest.Request, responder *request.Responder, userID string) {
-	ctx := req.Context()
-	usr := r.getUserOrRespondWithError(req, responder, userID)
-	if usr == nil {
-		return
-	}
-
-	filter, err := prescription.NewFilter(usr)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
-		return
-	}
-
-	pagination := page.NewPagination()
-	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-
-	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
