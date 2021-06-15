@@ -13,12 +13,10 @@ import (
 	"github.com/tidepool-org/platform/prescription/service"
 	prescriptionMongo "github.com/tidepool-org/platform/prescription/store/mongo"
 	"github.com/tidepool-org/platform/status"
-	user "github.com/tidepool-org/platform/user/client"
 )
 
 var Prescription = fx.Options(
 	devices.ClientModule,
-	user.ClientModule,
 	structuredMongo.StoreModule,
 	clinics.ClientModule,
 	fx.Provide(

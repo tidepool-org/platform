@@ -18,7 +18,6 @@ import (
 type Router struct {
 	deviceSettingsValidator service.DeviceSettingsValidator
 	prescriptionService     prescription.Service
-	userClient              user.Client
 	clinicsClient           clinics.Client
 }
 
@@ -28,7 +27,6 @@ type Params struct {
 	ClinicsClient           clinics.Client
 	DeviceSettingsValidator service.DeviceSettingsValidator
 	PrescriptionService     prescription.Service
-	UserClient              user.Client
 }
 
 func NewRouter(p Params) router.Router {
