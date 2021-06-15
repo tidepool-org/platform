@@ -3,6 +3,8 @@ package application
 import (
 	"go.uber.org/fx"
 
+	"github.com/tidepool-org/platform/clinics"
+
 	"github.com/tidepool-org/platform/devices"
 
 	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -18,6 +20,7 @@ var Prescription = fx.Options(
 	devices.ClientModule,
 	user.ClientModule,
 	structuredMongo.StoreModule,
+	clinics.ClientModule,
 	fx.Provide(
 		prescriptionMongo.NewStore,
 		prescriptionMongo.NewStatusReporter,

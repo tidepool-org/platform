@@ -130,7 +130,7 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	return prescriptions, nil
 }
 
-func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicID, prescriptionId, clinicianID string) (bool, error) {
+func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -141,9 +141,9 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicI
 		return false, errors.New("clinic id is missing")
 	}
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicId": clinicID, "id": prescriptionId})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicId": clinicID, "id": prescriptionID})
 
-	prescriptionID, err := primitive.ObjectIDFromHex(prescriptionId)
+	id, err := primitive.ObjectIDFromHex(prescriptionID)
 	if err == primitive.ErrInvalidHex {
 		return false, nil
 	} else if err != nil {
@@ -151,7 +151,7 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicI
 	}
 
 	selector := bson.M{
-		"_id":      prescriptionID,
+		"_id":      id,
 		"clinicId": clinicID,
 		"state": bson.M{
 			"$in": []string{prescription.StateDraft, prescription.StatePending},

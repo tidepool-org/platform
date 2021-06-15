@@ -8,6 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/tidepool-org/platform/clinics"
+
 	"syreclabs.com/go/faker"
 
 	prescriptionService "github.com/tidepool-org/platform/prescription/service"
@@ -19,13 +23,14 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	clinic "github.com/tidepool-org/clinic/client"
+
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/api"
 	prescriptionTest "github.com/tidepool-org/platform/prescription/test"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -34,27 +39,29 @@ import (
 )
 
 var _ = Describe("V1", func() {
-	var userClient *userTest.Client
+	var ctrl *gomock.Controller
+	var clinicsClient *clinics.MockClient
 	var deviceSettingsValidator prescriptionService.DeviceSettingsValidator
 	var prescriptionService *prescriptionTest.PrescriptionAccessor
 
 	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		clinicsClient = clinics.NewMockClient(ctrl)
 		deviceSettingsValidator = serviceTest.NewNoopSettingsValidator()
 		prescriptionService = prescriptionTest.NewPrescriptionAccessor()
-		userClient = userTest.NewClient()
 	})
 
 	AfterEach(func() {
 		prescriptionService.Expectations()
-		userClient.AssertOutputsEmpty()
+		ctrl.Finish()
 	})
 
 	Context("NewRouter", func() {
 		It("returns successfully", func() {
 			Expect(api.NewRouter(api.Params{
+				ClinicsClient:           clinicsClient,
 				DeviceSettingsValidator: deviceSettingsValidator,
 				PrescriptionService:     prescriptionService,
-				UserClient:              userClient,
 			})).ToNot(BeNil())
 		})
 	})
@@ -64,9 +71,9 @@ var _ = Describe("V1", func() {
 
 		BeforeEach(func() {
 			router = api.NewRouter(api.Params{
+				ClinicsClient:           clinicsClient,
 				DeviceSettingsValidator: deviceSettingsValidator,
 				PrescriptionService:     prescriptionService,
-				UserClient:              userClient,
 			})
 			Expect(router).ToNot(BeNil())
 		})
@@ -114,37 +121,33 @@ var _ = Describe("V1", func() {
 			})
 
 			Context("with patient and clinician", func() {
-				var patient *user.User
-				var clinician *user.User
+				var userID string
 				var clinicID string
+				var clinician *clinic.Clinician
 
 				BeforeEach(func() {
-					patient = userTest.RandomUser()
-					clinician = userTest.RandomUser()
+					userID = userTest.RandomID()
+					clinicianID := clinic.TidepoolUserId(userID)
+					clinician = &clinic.Clinician{
+						Id:    &clinicianID,
+						Roles: clinic.ClinicianRoles{"PRESCRIBER"},
+					}
 					clinicID = faker.Number().Hexadecimal(24)
-
-					clinicianRoles := []string{user.RoleClinic}
-					clinician.Roles = &clinicianRoles
 				})
 
 				When("signed in", func() {
-					var currentUser *user.User
 					asService := false
 
 					JustBeforeEach(func() {
 						if asService {
 							details = request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret())
 						} else {
-							details = request.NewDetails(request.MethodSessionToken, *currentUser.UserID, "")
-						}
-						if currentUser != nil {
-							userClient.GetOutputs = []userTest.GetOutput{{User: currentUser, Error: nil}}
+							details = request.NewDetails(request.MethodSessionToken, userID, "")
 						}
 						req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
 					})
 
 					JustAfterEach(func() {
-						currentUser = nil
 						asService = false
 					})
 
@@ -167,7 +170,7 @@ var _ = Describe("V1", func() {
 
 						Context("as patient", func() {
 							BeforeEach(func() {
-								currentUser = patient
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(nil, nil)
 							})
 
 							It("returns forbidden status code", func() {
@@ -179,7 +182,7 @@ var _ = Describe("V1", func() {
 
 						Context("as clinician", func() {
 							BeforeEach(func() {
-								currentUser = clinician
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(clinician, nil)
 							})
 
 							It("returns created status code", func() {
@@ -216,7 +219,7 @@ var _ = Describe("V1", func() {
 
 							It("returns unauthorized status code", func() {
 								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
@@ -226,7 +229,6 @@ var _ = Describe("V1", func() {
 						var prescrs []*prescription.Prescription
 
 						BeforeEach(func() {
-							currentUser = clinician
 							req.Method = http.MethodGet
 							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions", clinicID)
 
@@ -234,58 +236,107 @@ var _ = Describe("V1", func() {
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						})
 
-						It("filters the prescriptions with the currently signed in clinician user id", func() {
-							prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
-							handlerFunc(res, req)
-							Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-							Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(BeEmpty())
-							Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicID).To(Equal(clinicID))
+						Context("as clinician", func() {
+							BeforeEach(func() {
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(clinician, nil)
+							})
+
+							It("filters the prescriptions for the current clinic", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(BeEmpty())
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicID).To(Equal(clinicID))
+							})
+
+							It("returns ok status code", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
 						})
 
-						It("returns ok status code", func() {
-							prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(res.WriteInputs).To(HaveLen(1))
+						Context("as patient", func() {
+							BeforeEach(func() {
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(nil, nil)
+							})
+
+							It("returns ok status code", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
+						})
+
+						Context("as service", func() {
+							BeforeEach(func() {
+								asService = true
+							})
+
+							It("returns ok status code", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
 						})
 					})
 
 					Context("list user prescriptions", func() {
 						var prescrs []*prescription.Prescription
 
-						BeforeEach(func() {
-							currentUser = patient
-							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", *currentUser.UserID)
-							req.Method = http.MethodGet
-							prescrs = []*prescription.Prescription{prescriptionTest.RandomPrescription()}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						Context("for currently authenticated user", func() {
+							BeforeEach(func() {
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userID)
+								req.Method = http.MethodGet
+								prescrs = []*prescription.Prescription{prescriptionTest.RandomPrescription()}
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+							})
+
+							It("filters the prescriptions with the currently signed in patient user id", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(userID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicID).To(BeEmpty())
+							})
+
+							It("returns ok status code", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
 						})
 
-						It("filters the prescriptions with the currently signed in patient user id", func() {
-							prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
-							handlerFunc(res, req)
-							Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-							Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(*currentUser.UserID))
-							Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicID).To(BeEmpty())
-						})
+						Context("for a different user", func() {
+							BeforeEach(func() {
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userTest.RandomID())
+								req.Method = http.MethodGet
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+							})
 
-						It("returns ok status code", func() {
-							prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(res.WriteInputs).To(HaveLen(1))
+							It("returns ok status code", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
 						})
 
 						Context("as service request patient prescriptions", func() {
 							BeforeEach(func() {
 								asService = true
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userID)
+								req.Method = http.MethodGet
+								prescrs = []*prescription.Prescription{prescriptionTest.RandomPrescription()}
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							})
 
 							It("filters the prescriptions with the given patient user id", func() {
 								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
 								Expect(prescriptionService.ListPrescriptionsInputs).To(HaveLen(1))
-								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(*currentUser.UserID))
+								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.PatientUserID).To(Equal(userID))
 								Expect(prescriptionService.ListPrescriptionsInputs[0].Filter.ClinicID).To(BeEmpty())
 							})
 
@@ -301,48 +352,75 @@ var _ = Describe("V1", func() {
 					Context("get patient prescription by id", func() {
 						var prescr *prescription.Prescription
 
-						BeforeEach(func() {
-							prescr = prescriptionTest.RandomPrescription()
-							prescrs := []*prescription.Prescription{prescr}
-							currentUser = patient
-
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", *patient.UserID, prescr.ID)
-
-							prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						})
-
-						It("returns ok status code", func() {
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-						})
-					})
-
-					Context("get clinic prescription by id", func() {
-						var prescr *prescription.Prescription
-
-						BeforeEach(func() {
-							prescr = prescriptionTest.RandomPrescription()
-							prescrs := []*prescription.Prescription{prescr}
-							currentUser = patient
-
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions/%v", clinicID, prescr.ID)
-
-							prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						})
-
-						Context("as clinician", func() {
+						Context("for the currently authenticated user", func() {
 							BeforeEach(func() {
-								currentUser = clinician
+								prescr = prescriptionTest.RandomPrescription()
+								prescrs := []*prescription.Prescription{prescr}
+
+								req.Method = http.MethodGet
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", userID, prescr.ID)
+
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							})
 
 							It("returns ok status code", func() {
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
+						})
+
+						Context("for a different user", func() {
+							BeforeEach(func() {
+								req.Method = http.MethodGet
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", userTest.RandomID(), prescr.ID)
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+							})
+
+							It("returns forbidden status code", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
+						})
+					})
+
+					Context("get clinic prescription by id", func() {
+						var prescr *prescription.Prescription
+						var prescrs []*prescription.Prescription
+
+						BeforeEach(func() {
+							prescr = prescriptionTest.RandomPrescription()
+							prescrs = []*prescription.Prescription{prescr}
+
+							req.Method = http.MethodGet
+							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions/%v", clinicID, prescr.ID)
+
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
+						Context("as clinician", func() {
+							BeforeEach(func() {
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(clinician, nil)
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
+							})
+
+							It("returns ok status code", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+							})
+						})
+
+						Context("as a regular user", func() {
+							BeforeEach(func() {
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(nil, nil)
+							})
+
+							It("returns forbidden status code", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
@@ -359,7 +437,7 @@ var _ = Describe("V1", func() {
 							Expect(err).ToNot(HaveOccurred())
 
 							req.Method = http.MethodPatch
-							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", *patient.UserID, prescr.ID)
+							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", userID, prescr.ID)
 							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 							prescriptionService.UpdatePrescriptionStateOutputs = []prescriptionTest.UpdatePrescriptionStateOutput{{Prescr: prescr, Err: nil}}
@@ -367,10 +445,6 @@ var _ = Describe("V1", func() {
 						})
 
 						Context("as patient", func() {
-							BeforeEach(func() {
-								currentUser = patient
-							})
-
 							It("returns ok status code", func() {
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -383,10 +457,10 @@ var _ = Describe("V1", func() {
 								asService = true
 							})
 
-							It("returns unauthorized status code", func() {
+							It("returns forbidden status code", func() {
 								prescriptionService.UpdatePrescriptionStateOutputs = []prescriptionTest.UpdatePrescriptionStateOutput{}
 								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
@@ -407,7 +481,7 @@ var _ = Describe("V1", func() {
 
 						Context("as patient", func() {
 							BeforeEach(func() {
-								currentUser = patient
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(nil, nil)
 							})
 
 							It("returns forbidden status code", func() {
@@ -420,7 +494,7 @@ var _ = Describe("V1", func() {
 
 						Context("as clinician", func() {
 							BeforeEach(func() {
-								currentUser = clinician
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(clinician, nil)
 							})
 
 							It("returns ok status code", func() {
@@ -436,10 +510,10 @@ var _ = Describe("V1", func() {
 								asService = true
 							})
 
-							It("returns unauthorized status code", func() {
+							It("returns forbidden status code", func() {
 								prescriptionService.DeletePrescriptionOutputs = []prescriptionTest.DeletePrescriptionOutput{}
 								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
@@ -464,7 +538,7 @@ var _ = Describe("V1", func() {
 
 						Context("as patient", func() {
 							BeforeEach(func() {
-								currentUser = patient
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(nil, nil)
 							})
 
 							It("returns forbidden status code", func() {
@@ -476,7 +550,7 @@ var _ = Describe("V1", func() {
 
 						Context("as clinician", func() {
 							BeforeEach(func() {
-								currentUser = clinician
+								clinicsClient.EXPECT().GetClinician(gomock.Any(), clinicID, userID).Return(clinician, nil)
 							})
 
 							It("returns ok status code", func() {
@@ -492,9 +566,9 @@ var _ = Describe("V1", func() {
 								asService = true
 							})
 
-							It("returns unauthorized status code", func() {
+							It("returns forbidden status code", func() {
 								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
@@ -514,7 +588,7 @@ var _ = Describe("V1", func() {
 							Expect(err).ToNot(HaveOccurred())
 
 							req.Method = http.MethodPost
-							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", *patient.UserID)
+							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userID)
 
 							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
@@ -522,10 +596,6 @@ var _ = Describe("V1", func() {
 						})
 
 						Context("as patient", func() {
-							BeforeEach(func() {
-								currentUser = patient
-							})
-
 							It("returns ok status code", func() {
 								prescriptionService.ClaimPrescriptionOutputs = []prescriptionTest.ClaimPrescriptionOutput{{Prescr: prescr, Err: nil}}
 								handlerFunc(res, req)
@@ -539,9 +609,9 @@ var _ = Describe("V1", func() {
 								asService = true
 							})
 
-							It("returns unauthorized status code", func() {
+							It("returns forbidden status code", func() {
 								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
