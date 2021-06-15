@@ -10,7 +10,6 @@ import (
 
 	"github.com/tidepool-org/platform/prescription"
 	router "github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/service/api"
 )

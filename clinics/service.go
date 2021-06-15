@@ -9,12 +9,14 @@ import (
 	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
 
+	_ "github.com/golang/mock/mockgen/model"
+
 	"github.com/tidepool-org/platform/auth"
 )
 
 var ClientModule = fx.Provide(NewClient)
 
-//go:generate mockgen -source=./service.go -destination=./mock.go -package clinics Client
+//go:generate mockgen --build_flags=--mod=mod -source=./service.go -destination=./mock.go -package clinics Client
 
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)

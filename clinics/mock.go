@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	client "github.com/tidepool-org/clinic/client"
+	api "github.com/tidepool-org/clinic/client"
 )
 
 // MockClient is a mock of Client interface.
@@ -36,16 +36,16 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // GetClinician mocks base method.
-func (m *MockClient) GetClinician(ctx context.Context, clinicId, clinicianId string) (*client.Clinician, error) {
+func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*api.Clinician, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClinician", ctx, clinicId, clinicianId)
-	ret0, _ := ret[0].(*client.Clinician)
+	ret := m.ctrl.Call(m, "GetClinician", ctx, clinicID, clinicianID)
+	ret0, _ := ret[0].(*api.Clinician)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetClinician indicates an expected call of GetClinician.
-func (mr *MockClientMockRecorder) GetClinician(ctx, clinicId, clinicianId interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinician", reflect.TypeOf((*MockClient)(nil).GetClinician), ctx, clinicId, clinicianId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinician", reflect.TypeOf((*MockClient)(nil).GetClinician), ctx, clinicID, clinicianID)
 }
