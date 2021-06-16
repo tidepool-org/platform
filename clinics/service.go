@@ -32,10 +32,10 @@ func (c *config) Load() error {
 
 type defaultClient struct {
 	httpClient clinic.ClientWithResponsesInterface
-	authClient auth.Client
+	authClient auth.ExternalAccessor
 }
 
-func NewClient(authClient auth.Client) (Client, error) {
+func NewClient(authClient auth.ExternalAccessor) (Client, error) {
 	cfg := &config{}
 	if err := cfg.Load(); err != nil {
 		return nil, err
