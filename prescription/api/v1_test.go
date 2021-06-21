@@ -352,9 +352,12 @@ var _ = Describe("V1", func() {
 					Context("get patient prescription by id", func() {
 						var prescr *prescription.Prescription
 
+						BeforeEach(func() {
+							prescr = prescriptionTest.RandomPrescription()
+						})
+
 						Context("for the currently authenticated user", func() {
 							BeforeEach(func() {
-								prescr = prescriptionTest.RandomPrescription()
 								prescrs := []*prescription.Prescription{prescr}
 
 								req.Method = http.MethodGet
