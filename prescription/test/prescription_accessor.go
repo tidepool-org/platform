@@ -3,8 +3,6 @@ package test
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/user"
-
 	"github.com/tidepool-org/platform/page"
 
 	"github.com/tidepool-org/platform/prescription"
@@ -14,7 +12,6 @@ import (
 
 type CreatePrescriptionInput struct {
 	Context        context.Context
-	UserID         string
 	RevisionCreate *prescription.RevisionCreate
 }
 
@@ -36,8 +33,9 @@ type ListPrescriptionsOutput struct {
 
 type DeletePrescriptionInput struct {
 	Ctx         context.Context
-	ClinicianID string
+	ClinicID    string
 	ID          string
+	ClinicianID string
 }
 
 type DeletePrescriptionOutput struct {
@@ -47,7 +45,6 @@ type DeletePrescriptionOutput struct {
 
 type AddRevisionInput struct {
 	Ctx    context.Context
-	User   *user.User
 	ID     string
 	Create *prescription.RevisionCreate
 }
@@ -59,7 +56,6 @@ type AddRevisionOutput struct {
 
 type ClaimPrescriptionInput struct {
 	Ctx   context.Context
-	User  *user.User
 	Claim *prescription.Claim
 }
 
@@ -70,7 +66,6 @@ type ClaimPrescriptionOutput struct {
 
 type UpdatePrescriptionStateInput struct {
 	Ctx    context.Context
-	User   *user.User
 	ID     string
 	Update *prescription.StateUpdate
 }
@@ -105,10 +100,10 @@ func NewPrescriptionAccessor() *PrescriptionAccessor {
 	return &PrescriptionAccessor{}
 }
 
-func (p *PrescriptionAccessor) CreatePrescription(ctx context.Context, userID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionAccessor) CreatePrescription(ctx context.Context, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	p.CreatePrescriptionInvocations++
 
-	p.CreatePrescriptionInputs = append(p.CreatePrescriptionInputs, CreatePrescriptionInput{Context: ctx, UserID: userID, RevisionCreate: create})
+	p.CreatePrescriptionInputs = append(p.CreatePrescriptionInputs, CreatePrescriptionInput{Context: ctx, RevisionCreate: create})
 
 	gomega.Expect(p.CreatePrescriptionOutputs).ToNot(gomega.BeEmpty())
 
@@ -129,10 +124,10 @@ func (p *PrescriptionAccessor) ListPrescriptions(ctx context.Context, filter *pr
 	return output.Prescriptions, output.Err
 }
 
-func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
+func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error) {
 	p.DeletePrescriptionInvocations++
 
-	p.DeletePrescriptionInputs = append(p.DeletePrescriptionInputs, DeletePrescriptionInput{Ctx: ctx, ClinicianID: clinicianID, ID: id})
+	p.DeletePrescriptionInputs = append(p.DeletePrescriptionInputs, DeletePrescriptionInput{Ctx: ctx, ClinicID: clinicID, ClinicianID: clinicianID, ID: prescriptionID})
 
 	gomega.Expect(p.DeletePrescriptionOutputs).ToNot(gomega.BeEmpty())
 
@@ -141,10 +136,10 @@ func (p *PrescriptionAccessor) DeletePrescription(ctx context.Context, clinician
 	return output.Success, output.Err
 }
 
-func (p *PrescriptionAccessor) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionAccessor) AddRevision(ctx context.Context, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	p.AddRevisionInvocations++
 
-	p.AddRevisionInputs = append(p.AddRevisionInputs, AddRevisionInput{Ctx: ctx, User: usr, ID: id, Create: create})
+	p.AddRevisionInputs = append(p.AddRevisionInputs, AddRevisionInput{Ctx: ctx, ID: id, Create: create})
 
 	gomega.Expect(p.AddRevisionOutputs).ToNot(gomega.BeEmpty())
 
@@ -153,10 +148,10 @@ func (p *PrescriptionAccessor) AddRevision(ctx context.Context, usr *user.User, 
 	return output.Prescr, output.Err
 }
 
-func (p *PrescriptionAccessor) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
+func (p *PrescriptionAccessor) ClaimPrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
 	p.ClaimPrescriptionInvocations++
 
-	p.ClaimPrescriptionInputs = append(p.ClaimPrescriptionInputs, ClaimPrescriptionInput{Ctx: ctx, User: usr, Claim: claim})
+	p.ClaimPrescriptionInputs = append(p.ClaimPrescriptionInputs, ClaimPrescriptionInput{Ctx: ctx, Claim: claim})
 
 	gomega.Expect(p.ClaimPrescriptionOutputs).ToNot(gomega.BeEmpty())
 
@@ -165,10 +160,10 @@ func (p *PrescriptionAccessor) ClaimPrescription(ctx context.Context, usr *user.
 	return output.Prescr, output.Err
 }
 
-func (p *PrescriptionAccessor) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+func (p *PrescriptionAccessor) UpdatePrescriptionState(ctx context.Context, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
 	p.UpdatePrescriptionStateInvocations++
 
-	p.UpdatePrescriptionStateInputs = append(p.UpdatePrescriptionStateInputs, UpdatePrescriptionStateInput{Ctx: ctx, User: usr, ID: id, Update: update})
+	p.UpdatePrescriptionStateInputs = append(p.UpdatePrescriptionStateInputs, UpdatePrescriptionStateInput{Ctx: ctx, ID: id, Update: update})
 
 	gomega.Expect(p.UpdatePrescriptionStateOutputs).ToNot(gomega.BeEmpty())
 

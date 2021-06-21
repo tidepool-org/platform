@@ -58,6 +58,11 @@ ifeq ($(shell which esc),)
 	cd vendor/github.com/mjibson/esc && go install .
 endif
 
+mockgen:
+ifeq ($(shell which mockgen),)
+	go get github.com/golang/mock/mockgen@v1.6.0
+endif
+
 ginkgo:
 ifeq ($(shell which ginkgo),)
 	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
@@ -76,7 +81,7 @@ endif
 buildable: export GOBIN = ${BIN_DIRECTORY}
 buildable: bindir CompileDaemon esc ginkgo goimports golint
 
-generate: esc
+generate: esc mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 

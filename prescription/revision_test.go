@@ -20,18 +20,13 @@ var _ = Describe("Revision", func() {
 	Describe("New revision", func() {
 		var revision *prescription.Revision
 		var create *prescription.RevisionCreate
-		var userID string
 		var revisionID int
-
-		BeforeEach(func() {
-			userID = userTest.RandomID()
-		})
 
 		Context("With random revision create", func() {
 			BeforeEach(func() {
 				create = test.RandomRevisionCreate()
 				revisionID = test2.RandomIntFromRange(0, 100)
-				revision = prescription.NewRevision(userID, revisionID, create)
+				revision = prescription.NewRevision(revisionID, create)
 			})
 
 			It("sets the revision id correctly", func() {
@@ -125,7 +120,7 @@ var _ = Describe("Revision", func() {
 			})
 
 			It("sets the modified userID correctly", func() {
-				Expect(revision.Attributes.CreatedUserID).To(Equal(userID))
+				Expect(revision.Attributes.CreatedUserID).To(Equal(create.ClinicianID))
 			})
 		})
 	})

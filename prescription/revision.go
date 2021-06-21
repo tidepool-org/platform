@@ -36,14 +36,31 @@ var (
 
 type RevisionCreate struct {
 	DataAttributes `json:",inline"`
+	ClinicID       string `json:"-"`
+	ClinicianID    string `json:"-"`
+	IsPrescriber   bool   `json:"-"`
 }
 
-func NewRevisionCreate() *RevisionCreate {
-	return &RevisionCreate{}
+func NewRevisionCreate(clinicID, clinicianID string, isPrescriber bool) *RevisionCreate {
+	return &RevisionCreate{
+		ClinicID:     clinicID,
+		ClinicianID:  clinicianID,
+		IsPrescriber: isPrescriber,
+	}
 }
 
 func (r *RevisionCreate) Validate(validator structure.Validator) {
+	validator.String("clinicianId", &r.ClinicianID).Exists().NotEmpty().Using(user.IDValidator)
+	validator.String("clinicId", &r.ClinicID).Exists().NotEmpty()
 	r.DataAttributes.Validate(validator)
+}
+
+func (r *RevisionCreate) IsClinicianAuthorized() bool {
+	if r.DataAttributes.State == StateSubmitted {
+		// Only prescribers are authorized to put prescriptions in submitted state
+		return r.IsPrescriber
+	}
+	return true
 }
 
 type Signature struct {
@@ -60,7 +77,7 @@ type Revision struct {
 
 type Revisions []*Revision
 
-func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revision {
+func NewRevision(revisionID int, create *RevisionCreate) *Revision {
 	now := time.Now()
 	return &Revision{
 		RevisionID: revisionID,
@@ -87,7 +104,7 @@ func NewRevision(userID string, revisionID int, create *RevisionCreate) *Revisio
 			},
 			CreationAttributes: CreationAttributes{
 				CreatedTime:   now,
-				CreatedUserID: userID,
+				CreatedUserID: create.ClinicianID,
 			},
 		},
 	}
