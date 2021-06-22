@@ -22,6 +22,9 @@ type Client interface {
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
+
+	GetSummary(ctx context.Context, id string) (*data.Summary, error)
+    UpdateSummary(ctx context.Context, id string) error
 }
 
 type ClientImpl struct {
@@ -110,6 +113,45 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	}
 
 	return dataSet, nil
+}
+
+func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*data.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summary", id)
+    summary := &data.Summary{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if id == "" {
+		return errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summary", id)
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, nil); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

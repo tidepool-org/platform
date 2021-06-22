@@ -14,6 +14,7 @@ type Store interface {
 	Status(ctx context.Context) *storeStructuredMongo.Status
 
 	NewDataRepository() DataRepository
+	NewSummaryRepository() SummaryRepository
 }
 
 type DataRepository interface {
@@ -39,6 +40,8 @@ type DataRepository interface {
 
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
+
+    //GetStats(ctx context.Context, id string) error
 }
 
 type Filter struct {
@@ -56,3 +59,11 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 }
 
 func (f *Filter) Validate(validator structure.Validator) {}
+
+
+type SummaryRepository interface {
+	EnsureIndexes() error
+
+    GetSummary(ctx context.Context, id string) (*data.Summary, error)
+    UpdateSummary(ctx context.Context, id string) error
+}

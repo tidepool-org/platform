@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"time"
+    "strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -912,4 +913,169 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	}
 
 	return selector, nil
+}
+// assumes all except freestyle is 5 minutes
+func getDuration(row *data.DataSet) int {
+    if strings.Contains(*row.DeviceID, "AbbottFreeStyleLibre") {
+        return 15
+    }
+    return 5
+}
+
+func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (time.Time, float64, float64, error) {
+	if ctx == nil {
+		return time.Time{}, 0, 0, errors.New("context is missing")
+	}
+	if id == "" {
+		return time.Time{}, 0, 0, errors.New("id is missing")
+	}
+
+	var dataSet *data.DataSet
+	selector := bson.M{
+		"_active": true,
+		"_userId": id,
+        "type": "upload",
+	}
+
+	findOneOptions := options.FindOne()
+	findOneOptions.SetSort(bson.D{{"time", -1}})
+
+	err := d.FindOne(ctx, selector, findOneOptions).Decode(&dataSet)
+
+    if err != nil {
+		return time.Time{}, 0, 0, errors.Wrap(err, "unable to get last upload date")
+	}
+
+    lastUpload, err := time.Parse(time.RFC3339Nano, *dataSet.CreatedTime)
+
+    endTime, err := time.Parse(time.RFC3339Nano, *dataSet.Time)
+
+    // remove 2 weeks for start time
+    startTime := endTime.AddDate(0, 0, -14)
+
+    var dataSets []*data.DataSet
+    selector = bson.M{
+		"_active": true,
+		"_userId": id,
+        "type": "cbg",
+        "value": bson.M{"$gt": 3.9, "$lt": 10},
+        "time": bson.M{"$gte": startTime},
+	}
+
+    cursor, err := d.Find(ctx, selector)
+
+    if err != nil {
+		return time.Time{}, 0, 0, errors.Wrap(err, "unable to get in-range values")
+	}
+
+    if err = cursor.All(ctx, &dataSets); err != nil {
+		return time.Time{}, 0, 0, errors.Wrap(err, "unable to decode data sets for user by id")
+	}
+
+    totalMinutes := endTime.Sub(startTime).Minutes()
+
+    inRangeMinutes := 0
+    for _, r := range dataSets {
+        inRangeMinutes += getDuration(r)
+    }
+
+    timeInRange := float64(inRangeMinutes) / totalMinutes
+
+    matchStage := bson.D{{"$match",
+        bson.M{
+            "_active": true,
+            "_userId": id,
+            "type": "cbg",
+            "time": bson.M{"$gte": startTime}}}}
+
+    groupStage := bson.D{{"$group",
+        bson.M{
+            "average": bson.M{"$avg": "$value"}}}}
+
+    avgGlucoseCursor, err := d.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
+
+    if err != nil {
+        return time.Time{}, 0, 0, errors.Wrap(err, "unable to get average glucose")
+    }
+
+    var averageRow bson.M
+    if err = avgGlucoseCursor.All(ctx, &averageRow); err != nil {
+        return time.Time{}, 0, 0, errors.Wrap(err, "unable to get average glucose")
+    }
+
+    averageGlucose := averageRow["average"]
+
+    return lastUpload, timeInRange, averageGlucose, nil
+}
+
+func (s *Store) NewSummaryRepository() store.SummaryRepository {
+	return &SummaryRepository{
+		s.Store.GetRepository("summary"),
+	}
+}
+
+type SummaryRepository struct {
+	*storeStructuredMongo.Repository
+}
+
+func (d *SummaryRepository) EnsureIndexes() error {
+	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetName("UserID"),
+		},
+	})
+}
+
+func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	//logger := log.LoggerFromContext(ctx).WithField("id", id)
+
+	var summary *data.Summary
+	selector := bson.M{
+		"_userId": id,
+	}
+
+	err := d.FindOne(ctx, selector).Decode(&summary)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get summary")
+	}
+
+	return summary, nil
+}
+
+func (d *SummaryRepository) UpdateSummary(ctx context.Context, id string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if id == "" {
+		return errors.New("id is missing")
+	}
+
+	//logger := log.LoggerFromContext(ctx).WithField("id", id)
+
+// 	var summary *data.Summary
+// 	selector := bson.M{
+// 		"_userId": id,
+// 	}
+    // TODO wut
+	lastUpload, timeInRange, averageGlucose, err := (*DataRepository).CalculateSummary(ctx, id)
+    if err != nil {
+		return errors.Wrap(err, "unable to calculate summary")
+	}
+
+	return nil
 }

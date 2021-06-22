@@ -37,6 +37,16 @@ func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, erro
 	return repository.GetDataSet(ctx, id)
 }
 
+func (c *Client) GetSummary(ctx context.Context, id string) (*data.Summary, error) {
+	repository := c.dataStore.NewSummaryRepository()
+	return repository.GetSummary(ctx, id)
+}
+
+func (c *Client) UpdateSummary(ctx context.Context, id string) error {
+	repository := c.dataStore.NewSummaryRepository()
+	return repository.UpdateSummary(ctx, id)
+}
+
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
 	panic("Not Implemented!")
 }
