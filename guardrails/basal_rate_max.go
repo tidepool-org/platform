@@ -8,6 +8,7 @@ import (
 )
 
 const maxBasalRateMaximumDividend = 70
+const maxScheduledBasalRateScaleFactor = 6.4
 
 func ValidateBasalRateMaximum(basalRateMaximum pump.BasalRateMaximum, basalRateSchedule *pump.BasalRateStartArray, carbohydrateRatioSchedule *pump.CarbohydrateRatioStartArray, guardRail *devices.BasalRateMaximumGuardRail, validator structure.Validator) {
 	validValues := generateBasalRateMaximumValidValues(carbohydrateRatioSchedule, basalRateSchedule, guardRail)
@@ -15,14 +16,27 @@ func ValidateBasalRateMaximum(basalRateMaximum pump.BasalRateMaximum, basalRateS
 }
 
 func generateBasalRateMaximumValidValues(carbohydrateRatioSchedule *pump.CarbohydrateRatioStartArray, basalRateSchedule *pump.BasalRateStartArray, guardRail *devices.BasalRateMaximumGuardRail) []float64 {
-	validValues := generateValidValuesFromAbsoluteBounds(guardRail.AbsoluteBounds)
+	var min *float64
+	var max *float64
 	if lowestScheduledCarbRatio := getLowestScheduledCarbRatio(carbohydrateRatioSchedule); lowestScheduledCarbRatio != nil {
-		max := maxBasalRateMaximumDividend / *lowestScheduledCarbRatio
-		validValues = discardValuesLargerThan(validValues, max)
+		value := maxBasalRateMaximumDividend / *lowestScheduledCarbRatio
+		max = &value
 	}
 	if highestScheduledBasalRate := getHighestScheduledBasalRate(basalRateSchedule); highestScheduledBasalRate != nil {
-		validValues = discardValuesSmallerThan(validValues, *highestScheduledBasalRate)
+		min = highestScheduledBasalRate
+		if newMax := *highestScheduledBasalRate * maxScheduledBasalRateScaleFactor; max == nil || newMax > *max {
+			max = &newMax
+		}
 	}
+
+	validValues := generateValidValuesFromAbsoluteBounds(guardRail.AbsoluteBounds)
+	if min != nil {
+		validValues = discardValuesSmallerThan(validValues, *min)
+	}
+	if max != nil {
+		validValues = discardValuesLargerThan(validValues, *max)
+	}
+
 	return validValues
 }
 
