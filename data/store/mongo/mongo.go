@@ -36,8 +36,17 @@ type Store struct {
 }
 
 func (s *Store) EnsureIndexes() error {
-	repository := s.NewDataRepository()
-	return repository.EnsureIndexes()
+	datarepository := s.NewDataRepository()
+    summaryrepository := s.NewSummaryRepository()
+
+    err := datarepository.EnsureIndexes()
+    if err != nil {
+		return err
+	}
+
+	err = summaryrepository.EnsureIndexes()
+
+    return err
 }
 
 func (s *Store) NewDataRepository() store.DataRepository {
@@ -914,6 +923,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 
 	return selector, nil
 }
+
 // assumes all except freestyle is 5 minutes
 func getDuration(row *data.DataSet) int {
     if strings.Contains(*row.DeviceID, "AbbottFreeStyleLibre") {
@@ -922,12 +932,14 @@ func getDuration(row *data.DataSet) int {
     return 5
 }
 
-func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (time.Time, float64, float64, error) {
+func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (*data.Summary, error) {
+    var summary data.Summary
+
 	if ctx == nil {
-		return time.Time{}, 0, 0, errors.New("context is missing")
+		return &summary, errors.New("context is missing")
 	}
 	if id == "" {
-		return time.Time{}, 0, 0, errors.New("id is missing")
+		return &summary, errors.New("id is missing")
 	}
 
 	var dataSet *data.DataSet
@@ -943,7 +955,7 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (time.
 	err := d.FindOne(ctx, selector, findOneOptions).Decode(&dataSet)
 
     if err != nil {
-		return time.Time{}, 0, 0, errors.Wrap(err, "unable to get last upload date")
+		return &summary, errors.Wrap(err, "unable to get last upload date")
 	}
 
     lastUpload, err := time.Parse(time.RFC3339Nano, *dataSet.CreatedTime)
@@ -959,17 +971,17 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (time.
 		"_userId": id,
         "type": "cbg",
         "value": bson.M{"$gt": 3.9, "$lt": 10},
-        "time": bson.M{"$gte": startTime},
+        "time": bson.M{"$gte": startTime.Format(time.RFC3339Nano)},
 	}
 
     cursor, err := d.Find(ctx, selector)
 
     if err != nil {
-		return time.Time{}, 0, 0, errors.Wrap(err, "unable to get in-range values")
+		return &summary, errors.Wrap(err, "unable to get in-range values")
 	}
 
     if err = cursor.All(ctx, &dataSets); err != nil {
-		return time.Time{}, 0, 0, errors.Wrap(err, "unable to decode data sets for user by id")
+		return &summary, errors.Wrap(err, "unable to decode data sets for user by id")
 	}
 
     totalMinutes := endTime.Sub(startTime).Minutes()
@@ -986,26 +998,38 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (time.
             "_active": true,
             "_userId": id,
             "type": "cbg",
-            "time": bson.M{"$gte": startTime}}}}
+            "time": bson.M{"$gte": startTime.Format(time.RFC3339Nano)}}}}
 
     groupStage := bson.D{{"$group",
         bson.M{
+            "_id": "$_userId",
             "average": bson.M{"$avg": "$value"}}}}
 
     avgGlucoseCursor, err := d.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
 
     if err != nil {
-        return time.Time{}, 0, 0, errors.Wrap(err, "unable to get average glucose")
+        return &summary, errors.Wrap(err, "unable to get average glucose")
     }
 
-    var averageRow bson.M
-    if err = avgGlucoseCursor.All(ctx, &averageRow); err != nil {
-        return time.Time{}, 0, 0, errors.Wrap(err, "unable to get average glucose")
+    type Result struct {
+        UserID  string  `bson:"_id"`
+        Average float64 `bson:"average"`
+    }
+    var result []*Result
+
+    if err = avgGlucoseCursor.All(ctx, &result); err != nil {
+        return &summary, errors.Wrap(err, "unable to get average glucose")
     }
 
-    averageGlucose := averageRow["average"]
+    averageGlucose := result[0].Average
 
-    return lastUpload, timeInRange, averageGlucose, nil
+    summary.UserID = id
+    summary.LastUpload = lastUpload
+    summary.LastUpdated = time.Now()
+    summary.TimeInRange = timeInRange
+    summary.AverageGlucose = averageGlucose
+
+    return &summary, nil
 }
 
 func (s *Store) NewSummaryRepository() store.SummaryRepository {
@@ -1020,7 +1044,6 @@ type SummaryRepository struct {
 
 func (d *SummaryRepository) EnsureIndexes() error {
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
-		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
@@ -1057,13 +1080,18 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 	return summary, nil
 }
 
-func (d *SummaryRepository) UpdateSummary(ctx context.Context, id string) error {
+func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Summary) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if id == "" {
-		return errors.New("id is missing")
+	if summary == nil {
+		return errors.New("summary object is missing")
 	}
+
+	opts := options.Replace().SetUpsert(true)
+    filter := bson.M{"_userId": summary.UserID}
+
+    _, err := d.ReplaceOne(ctx, filter, summary, opts)
 
 	//logger := log.LoggerFromContext(ctx).WithField("id", id)
 
@@ -1072,10 +1100,10 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, id string) error 
 // 		"_userId": id,
 // 	}
     // TODO wut
-	lastUpload, timeInRange, averageGlucose, err := (*DataRepository).CalculateSummary(ctx, id)
-    if err != nil {
-		return errors.Wrap(err, "unable to calculate summary")
-	}
+	//lastUpload, timeInRange, averageGlucose, err := Store.NewDataRepository().CalculateSummary(ctx, id)
+//     if err != nil {
+// 		return errors.Wrap(err, "unable to calculate summary")
+// 	}
 
-	return nil
+	return err
 }

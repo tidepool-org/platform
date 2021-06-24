@@ -43,8 +43,20 @@ func (c *Client) GetSummary(ctx context.Context, id string) (*data.Summary, erro
 }
 
 func (c *Client) UpdateSummary(ctx context.Context, id string) error {
-	repository := c.dataStore.NewSummaryRepository()
-	return repository.UpdateSummary(ctx, id)
+	summaryRepository := c.dataStore.NewSummaryRepository()
+	dataRepository := c.dataStore.NewDataRepository()
+
+    summary, err := dataRepository.CalculateSummary(ctx, id)
+    if err != nil {
+		return err
+	}
+
+    err = summaryRepository.UpdateSummary(ctx, summary)
+    if err != nil {
+		return err
+	}
+
+    return err
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

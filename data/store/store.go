@@ -41,7 +41,7 @@ type DataRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-    //GetStats(ctx context.Context, id string) error
+    CalculateSummary(ctx context.Context, id string) (*data.Summary, error)
 }
 
 type Filter struct {
@@ -65,5 +65,5 @@ type SummaryRepository interface {
 	EnsureIndexes() error
 
     GetSummary(ctx context.Context, id string) (*data.Summary, error)
-    UpdateSummary(ctx context.Context, id string) error
+    UpdateSummary(ctx context.Context, summary *data.Summary) error
 }

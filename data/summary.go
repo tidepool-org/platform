@@ -6,11 +6,11 @@ import (
 )
 
 type Summary struct {
-    ID                 primitive.ObjectID  `json:"_id" bson:"_id"`
-	UserID             string              `json:"_userId" bson:"_userId"`
+    ID                 primitive.ObjectID  `json:"-" bson:"_id,omitempty"`
+	UserID             string              `json:"UserID" bson:"_userId"`
 
 	LastUpdated        time.Time   `json:"lastUpdated" bson:"lastUpdated"`
 	LastUpload         time.Time   `json:"lastUpload" bson:"lastUpload"`
 	AverageGlucose     float64     `json:"avgGlucose" bson:"avgGlucose"`
-	TimeInRange        uint64      `json:"timeInRange" bson:"timeInRange"`
+	TimeInRange        float64     `json:"timeInRange" bson:"timeInRange"`
 }
