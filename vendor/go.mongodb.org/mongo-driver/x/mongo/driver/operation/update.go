@@ -15,10 +15,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -121,10 +121,17 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 // Result returns the result of executing this operation.
 func (u *Update) Result() UpdateResult { return u.result }
 
-func (u *Update) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
-	var err error
+func (u *Update) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
+	ur, err := buildUpdateResult(response, srvr)
 
-	u.result, err = buildUpdateResult(response, srvr)
+	u.result.N += ur.N
+	u.result.NModified += ur.NModified
+	if currIndex > 0 {
+		for ind := range ur.Upserted {
+			ur.Upserted[ind].Index += int64(currIndex)
+		}
+	}
+	u.result.Upserted = append(u.result.Upserted, ur.Upserted...)
 	return err
 
 }
