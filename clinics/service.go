@@ -20,6 +20,7 @@ var ClientModule = fx.Provide(NewClient)
 
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
+	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 }
 
 type config struct {
@@ -67,6 +68,39 @@ func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID 
 	}
 	if response.StatusCode() == http.StatusNotFound {
 		return nil, nil
+	}
+	if response.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+	}
+	return response.JSON200, nil
+}
+
+func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
+	permission := make(map[string]interface{}, 0)
+	body := clinic.CreatePatientFromUserJSONRequestBody{
+		Permissions: &clinic.PatientPermissions{
+			Note: &permission,
+			View: &permission,
+		},
+	}
+	response, err := d.httpClient.CreatePatientFromUserWithResponse(ctx, clinic.ClinicId(clinicID), clinic.PatientId(patientID), body)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode() == http.StatusConflict {
+		// User is already shared with the clinic
+		return d.getPatient(ctx, clinicID, patientID)
+	}
+	if response.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+	}
+	return response.JSON200, nil
+}
+
+func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
+	response, err := d.httpClient.GetPatientWithResponse(ctx, clinic.ClinicId(clinicID), clinic.PatientId(patientID))
+	if err != nil {
+		return nil, err
 	}
 	if response.StatusCode() != http.StatusOK {
 		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)

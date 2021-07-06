@@ -10,7 +10,7 @@ type PrescriptionRepository struct {
 	*prescriptionTest.PrescriptionAccessor
 }
 
-func NewPrescriptionSession() *PrescriptionRepository {
+func NewPrescriptionRepository() *PrescriptionRepository {
 	return &PrescriptionRepository{
 		PrescriptionAccessor: prescriptionTest.NewPrescriptionAccessor(),
 	}

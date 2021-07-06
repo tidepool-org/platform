@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/clinics"
+
 	"github.com/tidepool-org/platform/page"
 
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
@@ -13,14 +15,19 @@ import (
 
 type PrescriptionService struct {
 	prescriptionStore prescriptionStore.Store
+	clinicsClient     clinics.Client
 }
 
-func NewService(store prescriptionStore.Store) (prescription.Service, error) {
+func NewService(store prescriptionStore.Store, clinicsClient clinics.Client) (prescription.Service, error) {
 	if store == nil {
 		return nil, errors.New("prescription store is missing")
 	}
+	if clinicsClient == nil {
+		return nil, errors.New("clinics client is missing")
+	}
 
 	return &PrescriptionService{
+		clinicsClient:     clinicsClient,
 		prescriptionStore: store,
 	}, nil
 }
@@ -47,7 +54,15 @@ func (p *PrescriptionService) AddRevision(ctx context.Context, prescriptionID st
 
 func (p *PrescriptionService) ClaimPrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
 	repo := p.prescriptionStore.GetPrescriptionRepository()
-	return repo.ClaimPrescription(ctx, claim)
+	prescr, err := repo.ClaimPrescription(ctx, claim)
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.clinicsClient.SharePatientAccount(ctx, prescr.ClinicID, prescr.PatientUserID)
+	if err != nil {
+		return nil, err
+	}
+	return prescr, nil
 }
 
 func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
