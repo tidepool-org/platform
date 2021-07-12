@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+    "time"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -42,21 +43,56 @@ func (c *Client) GetSummary(ctx context.Context, id string) (*data.Summary, erro
 	return repository.GetSummary(ctx, id)
 }
 
-func (c *Client) UpdateSummary(ctx context.Context, id string) error {
+func (c *Client) UpdateSummary(ctx context.Context, id string) (*data.Summary, error) {
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
     summary, err := dataRepository.CalculateSummary(ctx, id)
     if err != nil {
-		return err
+		return nil, err
 	}
 
-    err = summaryRepository.UpdateSummary(ctx, summary)
+    summary, err = summaryRepository.UpdateSummary(ctx, summary)
     if err != nil {
-		return err
+		return nil, err
 	}
 
-    return err
+    return summary, err
+}
+
+func (c *Client) GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Summary, error) {
+    summaryRepository := c.dataStore.NewSummaryRepository()
+	dataRepository := c.dataStore.NewDataRepository()
+
+    // first get aged summaries
+    // then query latest upload of dataset
+    // if last upload newer than summary, add to list
+    summaries, err := summaryRepository.GetAgedSummaries(ctx, minutes)
+
+    if err != nil {
+		return nil, err
+	}
+
+	var lastUpdated time.Time
+	var freshTime time.Time
+	var agedSummaries []*data.Summary
+
+    for _, summary := range summaries {
+        lastUpdated, err = dataRepository.GetLastUpdated(ctx, summary.UserID)
+
+        if err != nil {
+            return nil, err
+        }
+
+        // accept half of interval difference as "fresh" to prevent noise
+        freshTime = summary.LastUpdated.Add(time.Minute * -time.Duration(minutes/2))
+
+        if lastUpdated.Before(freshTime) {
+            agedSummaries = append(agedSummaries, summary)
+        }
+    }
+
+    return agedSummaries, err
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

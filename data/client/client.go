@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"net/http"
+    "strconv"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
@@ -24,7 +25,8 @@ type Client interface {
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	GetSummary(ctx context.Context, id string) (*data.Summary, error)
-    UpdateSummary(ctx context.Context, id string) error
+    UpdateSummary(ctx context.Context, id string) (*data.Summary, error)
+    GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Summary, error)
 }
 
 type ClientImpl struct {
@@ -125,7 +127,7 @@ func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*data.Summary, 
 
 	url := c.client.ConstructURL("v1", "summary", id)
     summary := &data.Summary{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
@@ -135,23 +137,37 @@ func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*data.Summary, 
 	return summary, nil
 }
 
-func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) error {
+func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*data.Summary, error) {
 	if ctx == nil {
-		return errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 	if id == "" {
-		return errors.New("id is missing")
+		return nil, errors.New("id is missing")
 	}
 
 	url := c.client.ConstructURL("v1", "summary", id)
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, nil); err != nil {
+    summary := &data.Summary{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
-			return nil
+			return nil, nil
 		}
-		return err
+		return summary, err
 	}
 
-	return nil
+	return summary, nil
+}
+
+func (c *ClientImpl) GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Summary, error) {
+	url := c.client.ConstructURL("v1", "agedsummaries", strconv.FormatUint(uint64(minutes), 10))
+    summaries := []*data.Summary{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, &summaries); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return summaries, err
+	}
+
+	return summaries, nil
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

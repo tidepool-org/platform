@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	//"sort"
 	"time"
+    "sync"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
@@ -19,8 +20,8 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = 50 * time.Minute
-	AvailableAfterDurationMinimum = 30 * time.Minute
+	AvailableAfterDurationMaximum = 2 * time.Minute
+	AvailableAfterDurationMinimum = 2 * time.Minute
 	TaskDurationMaximum           = 30 * time.Minute
 )
 
@@ -122,32 +123,68 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	t.context = ctx
 	t.validator = structureValidator.New()
 
-	if err := t.update(); err != nil {
+    t.logger.Info("Starting User Summary Update")
+
+	if err := t.SpawnWorkers(); err != nil {
 		if request.IsErrorUnauthenticated(errors.Cause(err)) {
 			t.task.SetFailed()
 		}
 		return err
 	}
-	return nil
-}
-
-func (t *TaskRunner) update() error {
-	// find needed users
-
-	//for user in users
-    // somehow batch of 20 threads
-// 		if err := t.updateUser(id); err != nil {
-// 			return err
-// 		}
-	return nil
-}
-
-func (t *TaskRunner) updateUser(id string) error {
 
 	return nil
 }
 
-func (t *TaskRunner) getPendingUsers() error {
+func (t *TaskRunner) SpawnWorkers() error {
+    workerCount := 4
 
-    return nil
+	// find summaries requiring update
+    summaries, err := t.dataClient.GetAgedSummaries(t.context, 30)
+    if err != nil {
+        return err
+    }
+
+    wg := sync.WaitGroup{}
+    var errs chan error
+
+    for start := 0; start < len(summaries); start += workerCount {
+        errs = make(chan error, workerCount)
+        end := start + workerCount
+
+        if end > len(summaries) {
+            end = len(summaries)
+        }
+
+        for _, summary := range summaries[start:end] {
+            wg.Add(1)
+            go t.UpdateSummary(summary, errs, &wg)
+        }
+
+        wg.Wait()
+        close(errs)
+
+        if len(errs) > 0 {
+            err = errors.New("Failed to update user summaries")
+            for errSingle := range errs {
+                    err = errors.Wrap(err, errSingle.Error())
+            }
+            return err
+        }
+    }
+
+	return nil
+}
+
+func (t *TaskRunner) UpdateSummary(summary *data.Summary, errs chan error, wg *sync.WaitGroup) {
+    defer wg.Done()
+
+    t.logger.WithField("UserID", summary.UserID).Debug("Updating User Summary")
+
+    // update summary
+    _, err := t.dataClient.UpdateSummary(t.context, summary.UserID)
+    if err != nil {
+        errs <- err
+    }
+
+    t.logger.WithField("UserID", summary.UserID).Debug("Finished Updating User Summary")
 }

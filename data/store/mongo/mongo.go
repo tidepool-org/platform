@@ -1032,6 +1032,37 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (*data
     return &summary, nil
 }
 
+func (d *DataRepository) GetLastUpdated(ctx context.Context, id string) (time.Time, error) {
+    var lastUpdated time.Time
+	if ctx == nil {
+		return lastUpdated, errors.New("context is missing")
+	}
+
+	if id == "" {
+		return lastUpdated, errors.New("id is missing")
+	}
+
+	var dataSet *data.DataSet
+	selector := bson.M{
+		"_active": true,
+		"_userId": id,
+        "type": "cbg",
+	}
+
+	findOneOptions := options.FindOne()
+	findOneOptions.SetSort(bson.D{{"time", -1}})
+
+	err := d.FindOne(ctx, selector, findOneOptions).Decode(&dataSet)
+
+    if err != nil {
+		return lastUpdated, errors.Wrap(err, "unable to get last cbg date")
+	}
+
+    lastUpdated, err = time.Parse(time.RFC3339Nano, *dataSet.Time)
+
+	return lastUpdated, nil
+}
+
 func (s *Store) NewSummaryRepository() store.SummaryRepository {
 	return &SummaryRepository{
 		s.Store.GetRepository("summary"),
@@ -1051,6 +1082,14 @@ func (d *SummaryRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetBackground(true).
 				SetName("UserID"),
+		},
+        {
+			Keys: bson.D{
+				{Key: "lastUpdated", Value: 1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetName("LastUpdated"),
 		},
 	})
 }
@@ -1072,7 +1111,10 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 
 	err := d.FindOne(ctx, selector).Decode(&summary)
 	if err == mongo.ErrNoDocuments {
-		return nil, nil
+        // insert empty user summary to ensure updates soon.
+        summary.UserID = id
+        summary.LastUpdated = time.Time{}
+        _, err = d.InsertOne(ctx, summary)
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
@@ -1080,12 +1122,12 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 	return summary, nil
 }
 
-func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Summary) error {
+func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Summary) (*data.Summary, error) {
 	if ctx == nil {
-		return errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 	if summary == nil {
-		return errors.New("summary object is missing")
+		return nil, errors.New("summary object is missing")
 	}
 
 	opts := options.Replace().SetUpsert(true)
@@ -1095,15 +1137,36 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Sum
 
 	//logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-// 	var summary *data.Summary
-// 	selector := bson.M{
-// 		"_userId": id,
-// 	}
-    // TODO wut
-	//lastUpload, timeInRange, averageGlucose, err := Store.NewDataRepository().CalculateSummary(ctx, id)
-//     if err != nil {
-// 		return errors.Wrap(err, "unable to calculate summary")
-// 	}
+	return summary, err
+}
 
-	return err
+func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	//logger := log.LoggerFromContext(ctx).WithField("id", id)
+	startTime := time.Now().Add(time.Minute * -time.Duration(minutes))
+
+	var summaries []*data.Summary
+	selector := bson.M{
+		"lastUpdated": bson.M{"$lte": startTime},
+	}
+
+	cursor, err := d.Find(ctx, selector)
+
+    if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get aged summaries")
+	}
+
+	if err = cursor.All(ctx, &summaries); err != nil {
+		return nil, errors.Wrap(err, "unable to decode aged summaries")
+	}
+
+    if summaries == nil {
+		summaries = []*data.Summary{}
+	}
+	return summaries, nil
 }

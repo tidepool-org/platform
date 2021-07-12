@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+    "time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -42,6 +43,7 @@ type DataRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
     CalculateSummary(ctx context.Context, id string) (*data.Summary, error)
+    GetLastUpdated(ctx context.Context, id string) (time.Time, error)
 }
 
 type Filter struct {
@@ -60,10 +62,10 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 
 func (f *Filter) Validate(validator structure.Validator) {}
 
-
 type SummaryRepository interface {
 	EnsureIndexes() error
 
     GetSummary(ctx context.Context, id string) (*data.Summary, error)
-    UpdateSummary(ctx context.Context, summary *data.Summary) error
+    UpdateSummary(ctx context.Context, summary *data.Summary) (*data.Summary, error)
+    GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Summary, error)
 }
