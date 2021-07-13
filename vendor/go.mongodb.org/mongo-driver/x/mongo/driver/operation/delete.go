@@ -14,10 +14,10 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -73,9 +73,9 @@ func NewDelete(deletes ...bsoncore.Document) *Delete {
 // Result returns the result of executing this operation.
 func (d *Delete) Result() DeleteResult { return d.result }
 
-func (d *Delete) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
-	var err error
-	d.result, err = buildDeleteResult(response, srvr)
+func (d *Delete) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
+	dr, err := buildDeleteResult(response, srvr)
+	d.result.N += dr.N
 	return err
 }
 
