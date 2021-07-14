@@ -1105,17 +1105,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 
 	err := d.FindOne(ctx, selector).Decode(&summary)
 
-    if err == mongo.ErrNoDocuments {
-        // TODO add user check above here to ensure user is real
-        // insert empty user summary to ensure updates soon.
-        summary.UserID = id
-        summary.LastUpdated = time.Time{}
-        _, err = d.InsertOne(ctx, summary)
-	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get summary")
-	}
-
-	return &summary, nil
+	return &summary, err
 }
 
 func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Summary) (*data.Summary, error) {

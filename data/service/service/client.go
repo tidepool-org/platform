@@ -4,6 +4,7 @@ import (
 	"context"
     "time"
 
+    "go.mongodb.org/mongo-driver/mongo"
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
@@ -40,7 +41,24 @@ func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, erro
 
 func (c *Client) GetSummary(ctx context.Context, id string) (*data.Summary, error) {
 	repository := c.dataStore.NewSummaryRepository()
-	return repository.GetSummary(ctx, id)
+
+    summary, err := repository.GetSummary(ctx, id)
+
+    if err == mongo.ErrNoDocuments {
+        dataRepository := c.dataStore.NewDataRepository()
+
+        // check to ensure the user has data
+        _, err := dataRepository.GetLastUpdated(ctx, id)
+        if err != nil {
+            return nil, err
+        }
+
+        // create empty summary to ensure calc in the future
+        summary.UserID = id
+        summary.LastUpdated = time.Time{}
+        repository.UpdateSummary(ctx, summary)
+    }
+    return summary, nil
 }
 
 func (c *Client) UpdateSummary(ctx context.Context, id string) (*data.Summary, error) {
