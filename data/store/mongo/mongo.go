@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
     "strings"
+    "math"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
+    "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -925,28 +927,28 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 }
 
 // assumes all except freestyle is 5 minutes
-func getDuration(row *data.DataSet) int {
+func getDuration(row *continuous.Continuous) int64 {
     if strings.Contains(*row.DeviceID, "AbbottFreeStyleLibre") {
         return 15
     }
     return 5
 }
 
-func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (*data.Summary, error) {
-    var summary data.Summary
-
+func (d *DataRepository) CalculateSummary(ctx context.Context, summary *data.Summary) (*data.Summary, error) {
 	if ctx == nil {
-		return &summary, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
-	if id == "" {
-		return &summary, errors.New("id is missing")
+	if summary == nil {
+		return nil, errors.New("original summary is missing")
 	}
 
-	var dataSet *data.DataSet
+	id := summary.UserID
+
+	var dataSet *continuous.Continuous
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
-        "type": "upload",
+        "type": "cbg",
 	}
 
 	findOneOptions := options.FindOne()
@@ -955,7 +957,7 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (*data
 	err := d.FindOne(ctx, selector, findOneOptions).Decode(&dataSet)
 
     if err != nil {
-		return &summary, errors.Wrap(err, "unable to get last upload date")
+		return nil, errors.Wrap(err, "unable to get last upload date")
 	}
 
     lastUpload, err := time.Parse(time.RFC3339Nano, *dataSet.CreatedTime)
@@ -965,71 +967,63 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, id string) (*data
     // remove 2 weeks for start time
     startTime := endTime.AddDate(0, 0, -14)
 
-    var dataSets []*data.DataSet
+    // if last lastUpload date is more recent than 2 weeks, try rolling calc
+    var weight float64 = 1.0
+    if startTime.Before(summary.LastUpload) {
+        // get ratio between start time and actual start time for weights
+        existingSeconds := startTime.Sub(summary.LastUpload).Seconds()
+        newSeconds := endTime.Sub(summary.LastUpload).Seconds()
+        weight = newSeconds/existingSeconds
+
+        startTime = summary.LastUpload
+    }
+
+    var dataSets []*continuous.Continuous
     selector = bson.M{
 		"_active": true,
 		"_userId": id,
         "type": "cbg",
         "value": bson.M{"$gt": 3.9, "$lt": 10},
-        "time": bson.M{"$gte": startTime.Format(time.RFC3339Nano)},
+        "time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
+                       "$lte": endTime.Format(time.RFC3339Nano)},
 	}
 
     cursor, err := d.Find(ctx, selector)
 
     if err != nil {
-		return &summary, errors.Wrap(err, "unable to get in-range values")
+		return nil, errors.Wrap(err, "unable to get in-range values")
 	}
 
     if err = cursor.All(ctx, &dataSets); err != nil {
-		return &summary, errors.Wrap(err, "unable to decode data sets for user by id")
+		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
 	}
 
-    totalMinutes := endTime.Sub(startTime).Minutes()
+    totalMinutes := float64(math.Round(endTime.Sub(startTime).Minutes()))
 
-    inRangeMinutes := 0
+    var inRangeMinutes int64 = 0
+    var totalGlucose float64 = 0
+
     for _, r := range dataSets {
         inRangeMinutes += getDuration(r)
+        totalGlucose += *r.Value
     }
 
+    averageGlucose := totalGlucose / float64(len(dataSets))
     timeInRange := float64(inRangeMinutes) / totalMinutes
 
-    matchStage := bson.D{{"$match",
-        bson.M{
-            "_active": true,
-            "_userId": id,
-            "type": "cbg",
-            "time": bson.M{"$gte": startTime.Format(time.RFC3339Nano)}}}}
-
-    groupStage := bson.D{{"$group",
-        bson.M{
-            "_id": "$_userId",
-            "average": bson.M{"$avg": "$value"}}}}
-
-    avgGlucoseCursor, err := d.Aggregate(ctx, mongo.Pipeline{matchStage, groupStage})
-
-    if err != nil {
-        return &summary, errors.Wrap(err, "unable to get average glucose")
+    // if we are rolling in previous averages
+    if weight != 1 {
+        averageGlucose = averageGlucose*weight + summary.AverageGlucose*(1-weight)
+        timeInRange = timeInRange*weight + summary.TimeInRange*(1-weight)
     }
-
-    type Result struct {
-        UserID  string  `bson:"_id"`
-        Average float64 `bson:"average"`
-    }
-    var result []*Result
-
-    if err = avgGlucoseCursor.All(ctx, &result); err != nil {
-        return &summary, errors.Wrap(err, "unable to get average glucose")
-    }
-
-    averageGlucose := result[0].Average
 
     summary.UserID = id
     summary.LastUpload = lastUpload
     summary.LastUpdated = time.Now()
-    summary.TimeInRange = timeInRange
-    summary.AverageGlucose = averageGlucose
+    summary.TimeInRange = math.Round(timeInRange*100)/100
+    summary.AverageGlucose = math.Round(averageGlucose*100)/100
 
-    return &summary, nil
+    return summary, nil
 }
 
 func (d *DataRepository) GetLastUpdated(ctx context.Context, id string) (time.Time, error) {
@@ -1104,13 +1098,15 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 
 	//logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	var summary *data.Summary
+	var summary data.Summary
 	selector := bson.M{
 		"_userId": id,
 	}
 
 	err := d.FindOne(ctx, selector).Decode(&summary)
-	if err == mongo.ErrNoDocuments {
+
+    if err == mongo.ErrNoDocuments {
+        // TODO add user check above here to ensure user is real
         // insert empty user summary to ensure updates soon.
         summary.UserID = id
         summary.LastUpdated = time.Time{}
@@ -1119,7 +1115,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	return summary, nil
+	return &summary, nil
 }
 
 func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Summary) (*data.Summary, error) {

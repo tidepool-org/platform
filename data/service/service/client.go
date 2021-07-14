@@ -47,7 +47,13 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*data.Summary, e
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
-    summary, err := dataRepository.CalculateSummary(ctx, id)
+    // we need the original summary object to grab the original for rolling calc
+    summary, err := summaryRepository.GetSummary(ctx, id)
+    if err != nil {
+		return nil, err
+	}
+
+    summary, err = dataRepository.CalculateSummary(ctx, summary)
     if err != nil {
 		return nil, err
 	}
@@ -79,7 +85,6 @@ func (c *Client) GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Su
 
     for _, summary := range summaries {
         lastUpdated, err = dataRepository.GetLastUpdated(ctx, summary.UserID)
-
         if err != nil {
             return nil, err
         }
@@ -87,10 +92,14 @@ func (c *Client) GetAgedSummaries(ctx context.Context, minutes uint) ([]*data.Su
         // accept half of interval difference as "fresh" to prevent noise
         freshTime = summary.LastUpdated.Add(time.Minute * -time.Duration(minutes/2))
 
-        if lastUpdated.Before(freshTime) {
+        if freshTime.Before(lastUpdated) {
             agedSummaries = append(agedSummaries, summary)
         }
     }
+
+    if agedSummaries == nil {
+		agedSummaries = []*data.Summary{}
+	}
 
     return agedSummaries, err
 }

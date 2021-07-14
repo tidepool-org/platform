@@ -42,7 +42,7 @@ type DataRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-    CalculateSummary(ctx context.Context, id string) (*data.Summary, error)
+    CalculateSummary(ctx context.Context, summary *data.Summary) (*data.Summary, error)
     GetLastUpdated(ctx context.Context, id string) (time.Time, error)
 }
 
