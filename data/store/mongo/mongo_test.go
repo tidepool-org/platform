@@ -3,6 +3,7 @@ package mongo_test
 import (
 	"context"
 	"math/rand"
+    "fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -134,6 +135,7 @@ var _ = Describe("Mongo", func() {
 	var config *storeStructuredMongo.Config
 	var store *dataStoreMongo.Store
 	var repository dataStore.DataRepository
+	var summaryRepository dataStore.SummaryRepository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -164,6 +166,7 @@ var _ = Describe("Mongo", func() {
 
 	Context("with a new store", func() {
 		var collection *mongo.Collection
+		var summaryCollection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
@@ -171,6 +174,7 @@ var _ = Describe("Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			collection = store.GetCollection("deviceData")
+			summaryCollection = store.GetCollection("summary")
 			Expect(store.EnsureIndexes()).To(Succeed())
 		})
 
@@ -226,6 +230,31 @@ var _ = Describe("Mongo", func() {
 					}),
 				))
 			})
+
+            It("returns successfully", func() {
+				cursor, err := summaryCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+                Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId")),
+						"Background": Equal(true),
+						"Name":       Equal("UserID"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("lastUpdated")),
+						"Background": Equal(true),
+						"Name":       Equal("LastUpdated"),
+					}),
+				))
+            })
 		})
 
 		Context("NewDataRepository", func() {
@@ -235,15 +264,25 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
+        Context("NewSummaryRepository", func() {
+			It("returns a new repository", func() {
+				summaryRepository = store.NewSummaryRepository()
+				Expect(summaryRepository).ToNot(BeNil())
+			})
+		})
+
 		Context("with a new repository", func() {
 			BeforeEach(func() {
 				repository = store.NewDataRepository()
+				summaryRepository = store.NewSummaryRepository()
 				Expect(repository).ToNot(BeNil())
+				Expect(summaryRepository).ToNot(BeNil())
 			})
 
 			AfterEach(func() {
 				if repository != nil {
 					collection.DeleteMany(context.Background(), bson.D{})
+					summaryCollection.DeleteMany(context.Background(), bson.D{})
 				}
 			})
 
@@ -564,6 +603,7 @@ var _ = Describe("Mongo", func() {
 					var dataSetExistingOneData data.Data
 					var dataSetExistingTwoData data.Data
 					var dataSetData data.Data
+					var summary *data.Summary
 
 					preparePersistedDataSetsData := func() {
 						preparePersistedDataSets()
@@ -581,6 +621,28 @@ var _ = Describe("Mongo", func() {
 						dataSetExistingTwoData = NewDataSetData(deviceID)
 						dataSetData = NewDataSetData(deviceID)
 					})
+
+                    Context("CreateSummary", func() {
+                        // we need working datasets for summary tests
+                        BeforeEach(func() {
+                            preparePersistedDataSetsData()
+                            Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+                        })
+
+                        It("returns an error if summary cant be calculated", func() {
+                            var err error
+                            summary, err = summaryRepository.GetSummary(ctx, *dataSet.UserID)
+                            Expect(err).To(HaveOccurred())
+
+                            fmt.Println(*dataSet.UserID, summary)
+
+                            summary, err = summaryRepository.UpdateSummary(ctx, summary)
+                            Expect(err).ToNot(HaveOccurred())
+
+                            summary, err = repository.CalculateSummary(ctx, summary)
+                            Expect(err).ToNot(HaveOccurred())
+						})
+                    })
 
 					Context("DeleteDataSet", func() {
 						It("returns an error if the data set is missing", func() {
@@ -1737,3 +1799,4 @@ var _ = Describe("Mongo", func() {
 		})
 	})
 })
+
