@@ -938,9 +938,14 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, summary *data.Sum
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
+
 	if summary == nil {
 		return nil, errors.New("original summary is missing")
 	}
+
+	if summary.UserID == "" {
+        return nil, errors.New("summary missing UserID")
+    }
 
 	id := summary.UserID
 
@@ -961,21 +966,20 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, summary *data.Sum
 	}
 
     lastUpload, err := time.Parse(time.RFC3339Nano, *dataSet.CreatedTime)
-
     endTime, err := time.Parse(time.RFC3339Nano, *dataSet.Time)
 
     // remove 2 weeks for start time
     startTime := endTime.AddDate(0, 0, -14)
 
-    // if last lastUpload date is more recent than 2 weeks, try rolling calc
+    // if last LastData date is more recent than 2 weeks, try rolling calc
     var weight float64 = 1.0
-    if startTime.Before(summary.LastUpload) {
+    if startTime.Before(summary.LastData) {
         // get ratio between start time and actual start time for weights
-        existingSeconds := startTime.Sub(summary.LastUpload).Seconds()
-        newSeconds := endTime.Sub(summary.LastUpload).Seconds()
+        existingSeconds := startTime.Sub(summary.LastData).Seconds()
+        newSeconds := endTime.Sub(summary.LastData).Seconds()
         weight = newSeconds/existingSeconds
 
-        startTime = summary.LastUpload
+        startTime = summary.LastData
     }
 
     var dataSets []*continuous.Continuous
@@ -983,7 +987,8 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, summary *data.Sum
 		"_active": true,
 		"_userId": id,
         "type": "cbg",
-        "value": bson.M{"$gt": 3.9, "$lt": 10},
+        // we currently pull all so we can do in-range and avg in 1 pass, maybe bad idea
+        //"value": bson.M{"$gt": 3.9, "$lt": 10},
         "time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
                        "$lte": endTime.Format(time.RFC3339Nano)},
 	}
@@ -1004,7 +1009,10 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, summary *data.Sum
     var totalGlucose float64 = 0
 
     for _, r := range dataSets {
-        inRangeMinutes += getDuration(r)
+        if *r.Value > 3.9 && *r.Value < 10 {
+            inRangeMinutes += getDuration(r)
+        }
+
         totalGlucose += *r.Value
     }
 
@@ -1019,7 +1027,8 @@ func (d *DataRepository) CalculateSummary(ctx context.Context, summary *data.Sum
 
     summary.UserID = id
     summary.LastUpload = lastUpload
-    summary.LastUpdated = time.Now()
+    summary.LastData = endTime
+    summary.LastUpdated = time.Now().UTC()
     summary.TimeInRange = math.Round(timeInRange*100)/100
     summary.AverageGlucose = math.Round(averageGlucose*100)/100
 
@@ -1093,7 +1102,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 		return nil, errors.New("context is missing")
 	}
 	if id == "" {
-		return nil, errors.New("id is missing")
+		return nil, errors.New("summary UserID is missing")
 	}
 
 	//logger := log.LoggerFromContext(ctx).WithField("id", id)
@@ -1105,6 +1114,10 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*data.Su
 
 	err := d.FindOne(ctx, selector).Decode(&summary)
 
+    if err == mongo.ErrNoDocuments {
+		return nil, err
+	}
+
 	return &summary, err
 }
 
@@ -1115,6 +1128,10 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *data.Sum
 	if summary == nil {
 		return nil, errors.New("summary object is missing")
 	}
+
+    if summary.UserID == "" {
+        return nil, errors.New("summary missing UserID")
+    }
 
 	opts := options.Replace().SetUpsert(true)
     filter := bson.M{"_userId": summary.UserID}

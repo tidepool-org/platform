@@ -10,6 +10,7 @@ type Summary struct {
 	UserID             string              `json:"UserID" bson:"_userId"`
 
 	LastUpdated        time.Time   `json:"lastUpdated" bson:"lastUpdated"`
+	LastData           time.Time   `json:"lastData" bson:"lastData"`
 	LastUpload         time.Time   `json:"lastUpload" bson:"lastUpload"`
 	AverageGlucose     float64     `json:"avgGlucose" bson:"avgGlucose"`
 	TimeInRange        float64     `json:"timeInRange" bson:"timeInRange"`
