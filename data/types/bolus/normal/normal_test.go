@@ -159,13 +159,13 @@ var _ = Describe("Normal", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
 				),
-				// Entry("normal in range (lower); normal expected missing",
-				// 	func(datum *normal.Normal) {
-				// 		datum.Normal = pointer.FromFloat64(0.0)
-				// 		datum.NormalExpected = nil
-				// 	},
-				// 	errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedNormal", NewMeta()),
-				// ),
+				Entry("normal in range (lower); normal expected missing",
+					func(datum *normal.Normal) {
+						datum.Normal = pointer.FromFloat64(0.0)
+						datum.NormalExpected = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedNormal", NewMeta()),
+				),
 				Entry("normal in range (lower); normal expected out of range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(0.0)
@@ -198,13 +198,13 @@ var _ = Describe("Normal", func() {
 						datum.NormalExpected = nil
 					},
 				),
-				// Entry("normal in range (upper); normal expected out of range (lower)",
-				// 	func(datum *normal.Normal) {
-				// 		datum.Normal = pointer.FromFloat64(100.0)
-				// 		datum.NormalExpected = pointer.FromFloat64(99.9)
-				// 	},
-				// 	errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedNormal", NewMeta()),
-				// ),
+				Entry("normal in range (upper); normal expected out of range (lower)",
+					func(datum *normal.Normal) {
+						datum.Normal = pointer.FromFloat64(100.0)
+						datum.NormalExpected = pointer.FromFloat64(99.9)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedNormal", NewMeta()),
+				),
 				Entry("normal in range (upper); normal expected in range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(100.0)
@@ -217,13 +217,13 @@ var _ = Describe("Normal", func() {
 						datum.NormalExpected = pointer.FromFloat64(100.0)
 					},
 				),
-				// Entry("normal in range (upper); normal expected out of range (upper)",
-				// 	func(datum *normal.Normal) {
-				// 		datum.Normal = pointer.FromFloat64(100.0)
-				// 		datum.NormalExpected = pointer.FromFloat64(100.1)
-				// 	},
-				// 	errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedNormal", NewMeta()),
-				// ),
+				Entry("normal in range (upper); normal expected out of range (upper)",
+					func(datum *normal.Normal) {
+						datum.Normal = pointer.FromFloat64(100.0)
+						datum.NormalExpected = pointer.FromFloat64(100.1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedNormal", NewMeta()),
+				),
 				Entry("normal out of range (upper); normal expected missing",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(100.1)

@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.12.2 - 2021-08-16
+### Fixed
+- YLP-421 Revert workaround wrong bolus values sent by HU handsets
+
 ## 0.12.1 - 2021-06-14
 ### Fixed
 - YLP-817 Make Service logs compatible with Coreye ELK filtering

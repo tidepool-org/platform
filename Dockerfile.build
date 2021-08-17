@@ -4,10 +4,10 @@ ENV XDG_CACHE_HOME="/go/src/github.com/mdblp/.cache"
 WORKDIR /go/src/github.com/mdblp/
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
-    apk add --no-cache gcc musl-dev git rsync python3 py3-pip make tzdata && \
+    apk add --no-cache gcc musl-dev git rsync python3 python3-dev py3-pip make tzdata && \
     pip3 install openapi-spec-validator prance click && \
     adduser -D mdblp && \
     chown -R mdblp /go
-USER mdblp 
+USER mdblp
 COPY go.mod ./
 RUN go mod download

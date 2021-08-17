@@ -22,7 +22,7 @@ pipeline {
                 }
             }
         }
-        stage('Build ') {
+        stage('Build') {
             steps {
                 script {
                     builderImage.inside("") {
@@ -31,7 +31,7 @@ pipeline {
                 }
             }
         }
-        stage('Test ') {
+        stage('Test') {
             steps {
                 echo 'start mongo to serve as a testing db'
                 sh """
@@ -66,7 +66,7 @@ pipeline {
                 pack()
             }
         }
-        
+
         stage('Documentation') {
             steps {
                 script {
@@ -85,7 +85,7 @@ pipeline {
                         }
                     }
                 }
-                
+
             }
         }
         stage('Publish') {
