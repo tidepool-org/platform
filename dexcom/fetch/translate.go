@@ -59,8 +59,8 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
-	datum.Time = pointer.FromString(systemTime.Format(dataTypes.TimeFormat))
-	datum.DeviceTime = pointer.FromString(displayTime.Format(dataTypes.DeviceTimeFormat))
+	datum.Time = systemTime.Raw()
+	datum.DeviceTime = displayTime.Raw()
 	datum.TimeZoneOffset = pointer.FromInt(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
 		datum.ClockDriftOffset = pointer.FromInt(int(clockDriftOffsetDuration / time.Millisecond))
@@ -187,7 +187,7 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 		(*datum.Payload)["systemTimeOffset"] = *device.SystemTimeOffset
 	}
 
-	datum.Time = pointer.FromString(device.LastUploadDate.Format(dataTypes.TimeFormat))
+	datum.Time = pointer.FromTime(device.LastUploadDate.Time)
 	return datum
 }
 

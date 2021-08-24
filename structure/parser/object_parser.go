@@ -216,6 +216,39 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 	return &timeValue
 }
 
+// this handles time fields that may be strings, but also maybe time.Time
+func (o *Object) MultiTime(reference string, layout string) *time.Time {
+	var timeValue time.Time
+	var err error
+
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	switch rawValue.(type) {
+	case time.Time:
+		timeValue = rawValue.(time.Time)
+	case string:
+		stringValue, ok := rawValue.(string)
+		if !ok {
+			o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+			return nil
+		}
+
+		timeValue, err = time.Parse(layout, stringValue)
+		if err != nil {
+			o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
+			return nil
+		}
+	default:
+		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+		return nil
+	}
+
+	return &timeValue
+}
+
 // ForgivingTime is a parser added specifically to handle https://tidepool.atlassian.net/browse/BACK-1161
 // It should be deprecated once Dexcom fixes their API.
 func (o *Object) ForgivingTime(reference string, layout string) *time.Time {

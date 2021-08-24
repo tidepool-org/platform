@@ -287,33 +287,33 @@ type DataSet struct {
 	Active              bool                    `json:"-" bson:"_active"`
 	Annotations         *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ArchivedDataSetID   *string                 `json:"-" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime        *string                 `json:"-" bson:"archivedTime,omitempty"`
+	ArchivedTime        *time.Time                 `json:"-" bson:"archivedTime,omitempty"`
 	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
 	Client              *DataSetClient          `json:"client,omitempty" bson:"client,omitempty"`
 	ClockDriftOffset    *int                    `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
-	ComputerTime        *string                 `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
+	ComputerTime        *time.Time              `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
 	ConversionOffset    *int                    `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime         *string                 `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedTime         *time.Time              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	CreatedUserID       *string                 `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
 	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`
 	DataState           *string                 `json:"-" bson:"_dataState,omitempty"` // TODO: Deprecated DataState (after data migration)
 	Deduplicator        *DeduplicatorDescriptor `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
-	DeletedTime         *string                 `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedTime         *time.Time              `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID       *string                 `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 	DeviceID            *string                 `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
 	DeviceManufacturers *[]string               `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
 	DeviceModel         *string                 `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
 	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
 	DeviceTags          *[]string               `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	DeviceTime          *string                 `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	DeviceTime          *time.Time              `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	GUID                *string                 `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                  *string                 `json:"id,omitempty" bson:"id,omitempty"`
-	ModifiedTime        *string                 `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedTime        *time.Time              `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID      *string                 `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	Payload             *metadata.Metadata      `json:"payload,omitempty" bson:"payload,omitempty"`
 	Source              *string                 `json:"source,omitempty" bson:"source,omitempty"`
 	State               *string                 `json:"-" bson:"_state,omitempty"`
-	Time                *string                 `json:"time,omitempty" bson:"time,omitempty"`
+	Time                *time.Time              `json:"time,omitempty" bson:"time,omitempty"`
 	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	TimeZoneName        *string                 `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	TimeZoneOffset      *int                    `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`

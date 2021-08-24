@@ -202,9 +202,9 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Uplo
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 
-	dataSet.CreatedTime = pointer.FromString(timestamp)
+	dataSet.CreatedTime = pointer.FromTime(timestamp)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
@@ -238,7 +238,7 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
@@ -264,7 +264,7 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 		set["_state"] = *update.State
 	}
 	if update.Time != nil {
-		set["time"] = (*update.Time).Format(data.TimeFormat)
+		set["time"] = *update.Time
 	}
 	if update.TimeZoneName != nil {
 		set["timezone"] = *update.TimeZoneName
@@ -290,7 +290,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 
 	var err error
 	var removeInfo *mongo.DeleteResult
@@ -344,7 +344,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 
 	var insertData []mongo.WriteModel
 
@@ -381,7 +381,7 @@ func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *uploa
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -421,7 +421,7 @@ func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -461,7 +461,7 @@ func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -558,7 +558,7 @@ func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Con
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 
 	var updateInfo *mongo.UpdateResult
 
@@ -608,7 +608,7 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 
 	pipeline := []bson.M{
 		{
@@ -711,7 +711,7 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	timestamp := now.Truncate(time.Millisecond)
 
 	var err error
 	var removeInfo *mongo.DeleteResult

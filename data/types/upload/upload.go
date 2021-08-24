@@ -2,6 +2,7 @@ package upload
 
 import (
 	"sort"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
@@ -65,7 +66,7 @@ type Upload struct {
 
 	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
 	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
-	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
+	ComputerTime        *time.Time   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
 	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
 	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
 	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
@@ -125,7 +126,7 @@ func (u *Upload) Parse(parser structure.ObjectParser) {
 	u.Deduplicator = data.ParseDeduplicatorDescriptor(parser.WithReferenceObjectParser("deduplicator"))
 
 	u.Client = ParseClient(parser.WithReferenceObjectParser("client"))
-	u.ComputerTime = parser.String("computerTime")
+	u.ComputerTime = parser.MultiTime("computerTime", ComputerTimeFormat)
 	u.DataSetType = parser.String("dataSetType")
 	u.DeviceManufacturers = parser.StringArray("deviceManufacturers")
 	u.DeviceModel = parser.String("deviceModel")
@@ -150,7 +151,7 @@ func (u *Upload) Validate(validator structure.Validator) {
 		u.Client.Validate(validator.WithReference("client"))
 	}
 
-	validator.String("computerTime", u.ComputerTime).AsTime(ComputerTimeFormat)
+	validator.Time("computerTime", u.ComputerTime)
 	validator.String("dataSetType", u.DataSetType).OneOf(DataSetTypes()...) // TODO: New field; add .Exists(); requires fix & DB migration
 
 	if validator.Origin() <= structure.OriginInternal {

@@ -192,6 +192,22 @@ func (v *Values) Time(reference string, layout string) *time.Time {
 	return &timeValue
 }
 
+// the api side is always a string, handle this the same as Time
+func (v *Values) MultiTime(reference string, layout string) *time.Time {
+	rawValue, ok := v.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	timeValue, err := time.Parse(layout, rawValue)
+	if err != nil {
+		v.base.WithReference(reference).ReportError(structureParser.ErrorValueTimeNotParsable(rawValue, layout))
+		return nil
+	}
+
+	return &timeValue
+}
+
 // ForgivingTime is a parser added specifically to handle https://tidepool.atlassian.net/browse/BACK-1161
 // It should be deprecated once Dexcom fixes their API.
 func (v *Values) ForgivingTime(reference string, layout string) *time.Time {
