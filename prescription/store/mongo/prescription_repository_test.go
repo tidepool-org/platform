@@ -154,7 +154,7 @@ var _ = Describe("PrescriptionRepository", func() {
 				var revisionCreate *prescription.RevisionCreate = nil
 
 				BeforeEach(func() {
-					revisionCreate = test.RandomRevisionCreate()
+					revisionCreate = test.RandomRevisionCreate(userTest.RandomID())
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -576,7 +576,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					prescr.State = prescription.StateDraft
 					prescr.CreatedUserID = *usr.UserID
 					prescrID = prescr.ID.Hex()
-					create = test.RandomRevisionCreate()
+					create = test.RandomRevisionCreate(userTest.RandomID())
 					create.State = prescription.StatePending
 				})
 
@@ -682,6 +682,8 @@ var _ = Describe("PrescriptionRepository", func() {
 								State:                   prescription.StateDraft,
 							},
 						}
+						hash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevisionCreate(*create))
+						create.RevisionHash = hash.Hash
 						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())

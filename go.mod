@@ -13,6 +13,7 @@ require (
 	github.com/githubnemo/CompileDaemon v1.2.1
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.2.0
+	github.com/gowebpki/jcs v0.0.0-20210215032300-680d9436c864
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/go-homedir v1.1.0

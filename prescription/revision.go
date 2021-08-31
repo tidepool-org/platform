@@ -36,6 +36,8 @@ var (
 
 type RevisionCreate struct {
 	DataAttributes `json:",inline"`
+	CreatedUserId  string `json:"createdUserId"`
+	RevisionHash   string `json:"revisionHash"`
 	ClinicID       string `json:"-"`
 	ClinicianID    string `json:"-"`
 	IsPrescriber   bool   `json:"-"`
@@ -50,6 +52,10 @@ func NewRevisionCreate(clinicID, clinicianID string, isPrescriber bool) *Revisio
 }
 
 func (r *RevisionCreate) Validate(validator structure.Validator) {
+	integrityAttributes := NewIntegrityAttributesFromRevisionCreate(*r)
+	integrityHash := MustGenerateIntegrityHash(integrityAttributes)
+	validator.String("revisionHash", &r.RevisionHash).Exists().EqualTo(integrityHash.Hash)
+	validator.String("createdUserId", &r.CreatedUserId).Exists().EqualTo(r.ClinicianID)
 	validator.String("clinicianId", &r.ClinicianID).Exists().NotEmpty().Using(user.IDValidator)
 	validator.String("clinicId", &r.ClinicID).Exists().NotEmpty()
 	r.DataAttributes.Validate(validator)
@@ -63,16 +69,10 @@ func (r *RevisionCreate) IsClinicianAuthorized() bool {
 	return true
 }
 
-type Signature struct {
-	Value  string `json:"signature" bson:"signature"`
-	UserID string `json:"signatureUserId" bson:"signatureUserId"`
-	KeyID  string `json:"signatureKeyId" bson:"signatureKeyId"`
-}
-
 type Revision struct {
-	RevisionID int         `json:"revisionId" bson:"revisionId"`
-	Signature  *Signature  `json:"signature,omitempty" bson:"signature,omitempty"`
-	Attributes *Attributes `json:"attributes" bson:"attributes"`
+	RevisionID    int            `json:"revisionId" bson:"revisionId"`
+	IntegrityHash *IntegrityHash `json:"integrityHash" bson:"integrityHash"`
+	Attributes    *Attributes    `json:"attributes" bson:"attributes"`
 }
 
 type Revisions []*Revision
@@ -81,6 +81,12 @@ func NewRevision(revisionID int, create *RevisionCreate) *Revision {
 	now := time.Now()
 	return &Revision{
 		RevisionID: revisionID,
+		// Trust the integrity hash that's sent by the frontend, because it's already validated
+		// in RevisionCreate validation. Just set the algorithm field for completeness.
+		IntegrityHash: &IntegrityHash{
+			Algorithm: algorithmJCSSha512,
+			Hash:      create.RevisionHash,
+		},
 		Attributes: &Attributes{
 			DataAttributes: DataAttributes{
 				AccountType:             create.AccountType,
@@ -112,6 +118,13 @@ func NewRevision(revisionID int, create *RevisionCreate) *Revision {
 
 func (r *Revision) Validate(validator structure.Validator) {
 	validator.Int("revisionId", &r.RevisionID).GreaterThanOrEqualTo(0)
+	integrityHashValidator := validator.WithReference("integrityHash")
+	if r.IntegrityHash != nil {
+		integrityHashValidator.String("hash", &r.IntegrityHash.Hash).Exists().NotEmpty()
+		integrityHashValidator.String("algorithm", &r.IntegrityHash.Algorithm).Exists().EqualTo(algorithmJCSSha512)
+	} else {
+		integrityHashValidator.ReportError(structureValidator.ErrorValueEmpty())
+	}
 	attributesValidator := validator.WithReference("attributes")
 	if r.Attributes != nil {
 		r.Attributes.Validate(attributesValidator)

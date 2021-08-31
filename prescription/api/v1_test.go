@@ -159,7 +159,7 @@ var _ = Describe("V1", func() {
 							req.Method = http.MethodPost
 							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions", clinicID)
 
-							create = prescriptionTest.RandomRevisionCreate()
+							create = prescriptionTest.RandomRevisionCreate(userID)
 							prescr = prescriptionTest.RandomPrescription()
 							body, err := json.Marshal(create)
 							Expect(err).ToNot(HaveOccurred())
@@ -195,6 +195,8 @@ var _ = Describe("V1", func() {
 							Context("with missing required attribute when state is 'submitted'", func() {
 								BeforeEach(func() {
 									create.PhoneNumber = nil
+									integrityHash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevisionCreate(*create))
+									create.RevisionHash = integrityHash.Hash
 									body, err := json.Marshal(create)
 									Expect(err).ToNot(HaveOccurred())
 
@@ -527,7 +529,7 @@ var _ = Describe("V1", func() {
 						var prescr *prescription.Prescription
 
 						BeforeEach(func() {
-							create = prescriptionTest.RandomRevisionCreate()
+							create = prescriptionTest.RandomRevisionCreate(userID)
 							prescr = prescriptionTest.RandomPrescription()
 							body, err := json.Marshal(create)
 							Expect(err).ToNot(HaveOccurred())

@@ -24,7 +24,7 @@ var _ = Describe("Revision", func() {
 
 		Context("With random revision create", func() {
 			BeforeEach(func() {
-				create = test.RandomRevisionCreate()
+				create = test.RandomRevisionCreate(userTest.RandomID())
 				revisionID = test2.RandomIntFromRange(0, 100)
 				revision = prescription.NewRevision(revisionID, create)
 			})
@@ -33,8 +33,22 @@ var _ = Describe("Revision", func() {
 				Expect(revision.RevisionID).To(Equal(revisionID))
 			})
 
-			It("sets the signature to nil", func() {
-				Expect(revision.Signature).To(BeNil())
+			Context("integrity hash", func() {
+				It("is not nil", func() {
+					Expect(revision.IntegrityHash).ToNot(BeNil())
+				})
+
+				It("algorithm is set to JCSSHA512", func() {
+					Expect(revision.IntegrityHash.Algorithm).To(Equal("JCSSHA512"))
+				})
+
+				It("hash is not empty", func() {
+					Expect(revision.IntegrityHash.Hash).ToNot(BeEmpty())
+				})
+
+				It("hash equals to the create hash", func() {
+					Expect(revision.IntegrityHash.Hash).To(Equal(create.RevisionHash))
+				})
 			})
 
 			It("creates non-nil attributes", func() {
@@ -142,6 +156,21 @@ var _ = Describe("Revision", func() {
 
 			It("fails when revision id is negative", func() {
 				revision.RevisionID = -5
+				Expect(validate.Validate(revision)).To(HaveOccurred())
+			})
+
+			It("fails when the integrity hash is not set", func() {
+				revision.IntegrityHash = nil
+				Expect(validate.Validate(revision)).To(HaveOccurred())
+			})
+
+			It("fails when the integrity hash algorithm is invalid", func() {
+				revision.IntegrityHash.Algorithm = "invalid"
+				Expect(validate.Validate(revision)).To(HaveOccurred())
+			})
+
+			It("fails when the integrity hash value is empty", func() {
+				revision.IntegrityHash.Hash = ""
 				Expect(validate.Validate(revision)).To(HaveOccurred())
 			})
 

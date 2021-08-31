@@ -51,12 +51,12 @@ func RandomPrescriptions(count int) prescription.Prescriptions {
 }
 
 func RandomPrescription() *prescription.Prescription {
-	create := RandomRevisionCreate()
+	create := RandomRevisionCreate(userTest.RandomID())
 	return prescription.NewPrescription(create)
 }
 
 func RandomClaimedPrescription() *prescription.Prescription {
-	create := RandomRevisionCreate()
+	create := RandomRevisionCreate(userTest.RandomID())
 	prescr := prescription.NewPrescription(create)
 	prescr.AccessCode = ""
 	prescr.PatientUserID = userTest.RandomID()
@@ -65,46 +65,54 @@ func RandomClaimedPrescription() *prescription.Prescription {
 	return prescr
 }
 
-func RandomRevisionCreate() *prescription.RevisionCreate {
-	accountType := faker.RandomChoice(prescription.AccountTypes())
-	caregiverFirstName := ""
-	caregiverLastName := ""
-	if accountType == prescription.AccountTypeCaregiver {
-		caregiverFirstName = faker.Name().FirstName()
-		caregiverLastName = faker.Name().LastName()
+func RandomRevisionCreate(userID string) *prescription.RevisionCreate {
+	if userID == "" {
+		userID = userTest.RandomID()
 	}
+	accountType := faker.RandomChoice(prescription.AccountTypes())
+	dataAttributes := prescription.DataAttributes{
+		AccountType:             accountType,
+		FirstName:               faker.Name().FirstName(),
+		LastName:                faker.Name().LastName(),
+		Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
+		MRN:                     faker.Code().Rut(),
+		Email:                   faker.Internet().Email(),
+		Sex:                     RandomSex(),
+		Weight:                  RandomWeight(),
+		YearOfDiagnosis:         faker.RandomInt(1940, 2020),
+		PhoneNumber:             RandomPhoneNumber(),
+		InitialSettings:         RandomInitialSettings(),
+		Calculator:              RandomCalculator(),
+		Training:                RandomTraining(),
+		TherapySettings:         RandomTherapySettings(),
+		PrescriberTermsAccepted: true,
+		State:                   prescription.StateSubmitted,
+	}
+	if accountType == prescription.AccountTypeCaregiver {
+		dataAttributes.CaregiverFirstName = faker.Name().FirstName()
+		dataAttributes.CaregiverLastName = faker.Name().LastName()
+	}
+	hash := prescription.MustGenerateIntegrityHash(prescription.IntegrityAttributes{
+		DataAttributes: dataAttributes,
+		CreatedUserId:  userID,
+	})
 	return &prescription.RevisionCreate{
-		ClinicID:    faker.Number().Hexadecimal(24),
-		ClinicianID: userTest.RandomID(),
-		DataAttributes: prescription.DataAttributes{
-			AccountType:             accountType,
-			CaregiverFirstName:      caregiverFirstName,
-			CaregiverLastName:       caregiverLastName,
-			FirstName:               faker.Name().FirstName(),
-			LastName:                faker.Name().LastName(),
-			Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
-			MRN:                     faker.Code().Rut(),
-			Email:                   faker.Internet().Email(),
-			Sex:                     RandomSex(),
-			Weight:                  RandomWeight(),
-			YearOfDiagnosis:         faker.RandomInt(1940, 2020),
-			PhoneNumber:             RandomPhoneNumber(),
-			InitialSettings:         RandomInitialSettings(),
-			Calculator:              RandomCalculator(),
-			Training:                RandomTraining(),
-			TherapySettings:         RandomTherapySettings(),
-			PrescriberTermsAccepted: true,
-			State:                   prescription.StateSubmitted,
-		},
+		ClinicID:       faker.Number().Hexadecimal(24),
+		ClinicianID:    userID,
+		CreatedUserId:  userID,
+		DataAttributes: dataAttributes,
+		RevisionHash:   hash.Hash,
 	}
 }
 
 func RandomRevision() *prescription.Revision {
-	return &prescription.Revision{
+	revision := prescription.Revision{
 		RevisionID: faker.RandomInt(0, 10),
-		Signature:  nil,
 		Attributes: RandomAttribtues(),
 	}
+	hash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevision(revision))
+	revision.IntegrityHash = &hash
+	return &revision
 }
 
 func RandomAttribtues() *prescription.Attributes {

@@ -25,7 +25,7 @@ var _ = Describe("Prescription", func() {
 		var revisionCreate *prescription.RevisionCreate
 
 		BeforeEach(func() {
-			revisionCreate = test.RandomRevisionCreate()
+			revisionCreate = test.RandomRevisionCreate(userTest.RandomID())
 			revisionCreate.State = prescription.StateSubmitted
 		})
 
@@ -105,7 +105,7 @@ var _ = Describe("Prescription", func() {
 		var revisionCreate *prescription.RevisionCreate
 
 		BeforeEach(func() {
-			revisionCreate = test.RandomRevisionCreate()
+			revisionCreate = test.RandomRevisionCreate(userTest.RandomID())
 			revisionCreate.State = prescription.StatePending
 		})
 
@@ -116,7 +116,7 @@ var _ = Describe("Prescription", func() {
 
 			BeforeEach(func() {
 				prescr = prescription.NewPrescription(revisionCreate)
-				newRevision = test.RandomRevisionCreate()
+				newRevision = test.RandomRevisionCreate(userTest.RandomID())
 				newRevision.State = prescription.StateSubmitted
 				update = prescription.NewPrescriptionAddRevisionUpdate(prescr, newRevision)
 			})
