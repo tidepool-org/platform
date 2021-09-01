@@ -40,6 +40,7 @@ type Accessor interface {
 	DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error)
 	AddRevision(ctx context.Context, prescriptionID string, create *RevisionCreate) (*Prescription, error)
 	ClaimPrescription(ctx context.Context, claim *Claim) (*Prescription, error)
+	GetClaimablePrescription(ctx context.Context, claim *Claim) (*Prescription, error)
 	UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *StateUpdate) (*Prescription, error)
 }
 
@@ -364,9 +365,10 @@ func (u *Update) validateForPatient(validator structure.Validator) {
 }
 
 type Claim struct {
-	PatientID  string `json:"-"`
-	AccessCode string `json:"accessCode"`
-	Birthday   string `json:"birthday"`
+	PatientID    string `json:"-"`
+	RevisionHash string `json:"-"`
+	AccessCode   string `json:"accessCode"`
+	Birthday     string `json:"birthday"`
 }
 
 func NewPrescriptionClaim(patientID string) *Claim {

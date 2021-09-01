@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -240,19 +241,12 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": claim.PatientID, "claim": claim})
 
-	selector := bson.M{
-		"accessCode":                         claim.AccessCode,
-		"latestRevision.attributes.birthday": claim.Birthday,
-		"patientUserId":                      nil,
-		"state":                              prescription.StateSubmitted,
+	if claim.RevisionHash == "" {
+		return nil, fmt.Errorf("cannot claim prescription without integrity hash")
 	}
-
-	prescr := &prescription.Prescription{}
-	err := p.FindOne(ctx, selector).Decode(prescr)
-	if err == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if err != nil {
-		return nil, errors.Wrap(err, "could not get prescription to add revision to")
+	prescr, err := p.GetClaimablePrescription(ctx, claim)
+	if err != nil || prescr == nil {
+		return nil, err
 	}
 
 	id := prescr.ID
@@ -261,6 +255,7 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
 
+	selector := newClaimSelector(claim)
 	update := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
 
 	now := time.Now()
@@ -278,6 +273,22 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 		return nil, errors.Wrap(err, "unable to find updated prescription")
 	}
 
+	return prescr, nil
+}
+
+func (p *PrescriptionRepository) GetClaimablePrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	selector := newClaimSelector(claim)
+	prescr := &prescription.Prescription{}
+	err := p.FindOne(ctx, selector).Decode(prescr)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "could not get prescription to add revision to")
+	}
 	return prescr, nil
 }
 
@@ -434,4 +445,17 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 	}
 
 	return update
+}
+
+func newClaimSelector(claim *prescription.Claim) bson.M {
+	selector := bson.M{
+		"accessCode":                         claim.AccessCode,
+		"latestRevision.attributes.birthday": claim.Birthday,
+		"patientUserId":                      nil,
+		"state":                              prescription.StateSubmitted,
+	}
+	if claim.RevisionHash != "" {
+		selector["latestRevision.integrityHash.hash"] = claim.RevisionHash
+	}
+	return selector
 }

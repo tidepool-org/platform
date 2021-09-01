@@ -36,7 +36,7 @@ var (
 
 type RevisionCreate struct {
 	DataAttributes `json:",inline"`
-	CreatedUserId  string `json:"createdUserId"`
+	CreatedUserID  string `json:"createdUserId"`
 	RevisionHash   string `json:"revisionHash"`
 	ClinicID       string `json:"-"`
 	ClinicianID    string `json:"-"`
@@ -55,7 +55,7 @@ func (r *RevisionCreate) Validate(validator structure.Validator) {
 	integrityAttributes := NewIntegrityAttributesFromRevisionCreate(*r)
 	integrityHash := MustGenerateIntegrityHash(integrityAttributes)
 	validator.String("revisionHash", &r.RevisionHash).Exists().EqualTo(integrityHash.Hash)
-	validator.String("createdUserId", &r.CreatedUserId).Exists().EqualTo(r.ClinicianID)
+	validator.String("createdUserId", &r.CreatedUserID).Exists().EqualTo(r.ClinicianID)
 	validator.String("clinicianId", &r.ClinicianID).Exists().NotEmpty().Using(user.IDValidator)
 	validator.String("clinicId", &r.ClinicID).Exists().NotEmpty()
 	r.DataAttributes.Validate(validator)

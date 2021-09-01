@@ -160,7 +160,7 @@ var _ = Describe("V1", func() {
 							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions", clinicID)
 
 							create = prescriptionTest.RandomRevisionCreate()
-							create.CreatedUserId = userID
+							create.CreatedUserID = userID
 							create.ClinicianID = userID
 							prescriptionTest.ResetRevisionCreateHash(create)
 
@@ -534,7 +534,7 @@ var _ = Describe("V1", func() {
 
 						BeforeEach(func() {
 							create = prescriptionTest.RandomRevisionCreate()
-							create.CreatedUserId = userID
+							create.CreatedUserID = userID
 							create.ClinicianID = userID
 							prescriptionTest.ResetRevisionCreateHash(create)
 

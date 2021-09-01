@@ -93,7 +93,7 @@ func RandomRevisionCreate() *prescription.RevisionCreate {
 	create := &prescription.RevisionCreate{
 		ClinicID:       faker.Number().Hexadecimal(24),
 		ClinicianID:    userID,
-		CreatedUserId:  userID,
+		CreatedUserID:  userID,
 		DataAttributes: dataAttributes,
 	}
 	ResetRevisionCreateHash(create)

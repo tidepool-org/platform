@@ -14,7 +14,7 @@ const (
 
 type IntegrityAttributes struct {
 	DataAttributes
-	CreatedUserId string `json:"createdUserId,omitempty"`
+	CreatedUserID string `json:"createdUserId,omitempty"`
 }
 
 type IntegrityHash struct {
@@ -25,14 +25,14 @@ type IntegrityHash struct {
 func NewIntegrityAttributesFromRevisionCreate(create RevisionCreate) IntegrityAttributes {
 	return IntegrityAttributes{
 		DataAttributes: create.DataAttributes,
-		CreatedUserId:  create.CreatedUserId,
+		CreatedUserID:  create.CreatedUserID,
 	}
 }
 
 func NewIntegrityAttributesFromRevision(revision Revision) IntegrityAttributes {
 	return IntegrityAttributes{
 		DataAttributes: revision.Attributes.DataAttributes,
-		CreatedUserId:  revision.Attributes.CreatedUserID,
+		CreatedUserID:  revision.Attributes.CreatedUserID,
 	}
 }
 
@@ -68,4 +68,20 @@ func MustGenerateIntegrityHash(attributes IntegrityAttributes) IntegrityHash {
 		Hash:      hash,
 		Algorithm: algorithmJCSSha512,
 	}
+}
+
+func VerifyRevisionIntegrityHash(revision Revision) error {
+	attrs := NewIntegrityAttributesFromRevision(revision)
+	hash := MustGenerateIntegrityHash(attrs)
+	if revision.IntegrityHash == nil {
+		return fmt.Errorf("revision integrity hash missing")
+	}
+	if !hashesMatch(*revision.IntegrityHash, hash) {
+		return fmt.Errorf("revision attributes do not match integrity hash")
+	}
+	return nil
+}
+
+func hashesMatch(a, b IntegrityHash) bool {
+	return a.Algorithm == b.Algorithm && a.Hash == b.Hash
 }
