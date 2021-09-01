@@ -51,12 +51,12 @@ func RandomPrescriptions(count int) prescription.Prescriptions {
 }
 
 func RandomPrescription() *prescription.Prescription {
-	create := RandomRevisionCreate(userTest.RandomID())
+	create := RandomRevisionCreate()
 	return prescription.NewPrescription(create)
 }
 
 func RandomClaimedPrescription() *prescription.Prescription {
-	create := RandomRevisionCreate(userTest.RandomID())
+	create := RandomRevisionCreate()
 	prescr := prescription.NewPrescription(create)
 	prescr.AccessCode = ""
 	prescr.PatientUserID = userTest.RandomID()
@@ -65,10 +65,8 @@ func RandomClaimedPrescription() *prescription.Prescription {
 	return prescr
 }
 
-func RandomRevisionCreate(userID string) *prescription.RevisionCreate {
-	if userID == "" {
-		userID = userTest.RandomID()
-	}
+func RandomRevisionCreate() *prescription.RevisionCreate {
+	userID := userTest.RandomID()
 	accountType := faker.RandomChoice(prescription.AccountTypes())
 	dataAttributes := prescription.DataAttributes{
 		AccountType:             accountType,
@@ -92,27 +90,35 @@ func RandomRevisionCreate(userID string) *prescription.RevisionCreate {
 		dataAttributes.CaregiverFirstName = faker.Name().FirstName()
 		dataAttributes.CaregiverLastName = faker.Name().LastName()
 	}
-	hash := prescription.MustGenerateIntegrityHash(prescription.IntegrityAttributes{
-		DataAttributes: dataAttributes,
-		CreatedUserId:  userID,
-	})
-	return &prescription.RevisionCreate{
+	create := &prescription.RevisionCreate{
 		ClinicID:       faker.Number().Hexadecimal(24),
 		ClinicianID:    userID,
 		CreatedUserId:  userID,
 		DataAttributes: dataAttributes,
-		RevisionHash:   hash.Hash,
 	}
+	ResetRevisionCreateHash(create)
+	return create
+}
+
+func ResetRevisionCreateHash(create *prescription.RevisionCreate) {
+	attrs := prescription.NewIntegrityAttributesFromRevisionCreate(*create)
+	hash := prescription.MustGenerateIntegrityHash(attrs)
+	create.RevisionHash = hash.Hash
 }
 
 func RandomRevision() *prescription.Revision {
-	revision := prescription.Revision{
+	revision := &prescription.Revision{
 		RevisionID: faker.RandomInt(0, 10),
 		Attributes: RandomAttribtues(),
 	}
-	hash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevision(revision))
+	ResetRevisionHash(revision)
+	return revision
+}
+
+func ResetRevisionHash(revision *prescription.Revision) {
+	attrs := prescription.NewIntegrityAttributesFromRevision(*revision)
+	hash := prescription.MustGenerateIntegrityHash(attrs)
 	revision.IntegrityHash = &hash
-	return &revision
 }
 
 func RandomAttribtues() *prescription.Attributes {

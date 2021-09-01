@@ -24,7 +24,7 @@ var _ = Describe("Revision", func() {
 
 		Context("With random revision create", func() {
 			BeforeEach(func() {
-				create = test.RandomRevisionCreate(userTest.RandomID())
+				create = test.RandomRevisionCreate()
 				revisionID = test2.RandomIntFromRange(0, 100)
 				revision = prescription.NewRevision(revisionID, create)
 			})

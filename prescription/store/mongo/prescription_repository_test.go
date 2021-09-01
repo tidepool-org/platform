@@ -154,7 +154,7 @@ var _ = Describe("PrescriptionRepository", func() {
 				var revisionCreate *prescription.RevisionCreate = nil
 
 				BeforeEach(func() {
-					revisionCreate = test.RandomRevisionCreate(userTest.RandomID())
+					revisionCreate = test.RandomRevisionCreate()
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -576,7 +576,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					prescr.State = prescription.StateDraft
 					prescr.CreatedUserID = *usr.UserID
 					prescrID = prescr.ID.Hex()
-					create = test.RandomRevisionCreate(userTest.RandomID())
+					create = test.RandomRevisionCreate()
 					create.State = prescription.StatePending
 				})
 
