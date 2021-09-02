@@ -82,6 +82,71 @@ var _ = Describe("Integrity hash", func() {
 			Expect(hash.Algorithm).To(Equal("JCSSHA512"))
 			Expect(hash.Hash).To(Equal(test.ExpectedHash))
 		})
+
+		Context("Integrity Attributes", func() {
+			It("are up to date with the integrity test fixture", func() {
+				// If this test fails, the struct keys here must be updated,
+				// as well as the fixture and the expected hash in test/integrity.go
+				attrs = test.IntegrityAttributes
+				Expect(attrs).To(MatchAllFields(Fields{
+					"DataAttributes": Ignore(),
+					"CreatedUserID":  Ignore(),
+				}))
+				Expect(attrs.DataAttributes).To(MatchAllFields(Fields{
+					"AccountType":             Ignore(),
+					"CaregiverFirstName":      Ignore(),
+					"CaregiverLastName":       Ignore(),
+					"FirstName":               Ignore(),
+					"LastName":                Ignore(),
+					"Birthday":                Ignore(),
+					"MRN":                     Ignore(),
+					"Email":                   Ignore(),
+					"Sex":                     Ignore(),
+					"Weight":                  Ignore(),
+					"YearOfDiagnosis":         Ignore(),
+					"PhoneNumber":             Ignore(),
+					"InitialSettings":         Ignore(),
+					"Calculator":              Ignore(),
+					"Training":                Ignore(),
+					"TherapySettings":         Ignore(),
+					"PrescriberTermsAccepted": Ignore(),
+					"State":                   Ignore(),
+				}))
+				Expect(*attrs.DataAttributes.Weight).To(MatchAllFields(Fields{
+					"Value": Ignore(),
+					"Units": Ignore(),
+				}))
+				Expect(*attrs.DataAttributes.Calculator).To(MatchAllFields(Fields{
+					"Method":                        Ignore(),
+					"RecommendedBasalRate":          Ignore(),
+					"RecommendedCarbohydrateRatio":  Ignore(),
+					"RecommendedInsulinSensitivity": Ignore(),
+					"TotalDailyDose":                Ignore(),
+					"TotalDailyDoseScaleFactor":     Ignore(),
+					"Weight":                        Ignore(),
+					"WeightUnits":                   Ignore(),
+				}))
+				Expect(*attrs.DataAttributes.PhoneNumber).To(MatchAllFields(Fields{
+					"CountryCode": Ignore(),
+					"Number":      Ignore(),
+				}))
+				Expect(*attrs.DataAttributes.InitialSettings).To(MatchAllFields(Fields{
+					"BloodGlucoseUnits":                  Ignore(),
+					"BasalRateSchedule":                  Ignore(),
+					"BloodGlucoseTargetPhysicalActivity": Ignore(),
+					"BloodGlucoseTargetPreprandial":      Ignore(),
+					"BloodGlucoseTargetSchedule":         Ignore(),
+					"CarbohydrateRatioSchedule":          Ignore(),
+					"GlucoseSafetyLimit":                 Ignore(),
+					"InsulinModel":                       Ignore(),
+					"InsulinSensitivitySchedule":         Ignore(),
+					"BasalRateMaximum":                   Ignore(),
+					"BolusAmountMaximum":                 Ignore(),
+					"PumpID":                             Ignore(),
+					"CgmID":                              Ignore(),
+				}))
+			})
+		})
 	})
 
 	Context("Prescription settings constants", func() {
