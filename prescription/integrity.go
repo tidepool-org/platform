@@ -36,7 +36,7 @@ func NewIntegrityAttributesFromRevision(revision Revision) IntegrityAttributes {
 	}
 }
 
-// GenerateIntegrityHash computes the hex encoded sha512 hash of the canonicalized json of prescription attributes
+// generateJCSSha512 computes the hex encoded sha512 hash of the canonicalized json of prescription attributes
 func generateJCSSha512(attributes IntegrityAttributes) (string, error) {
 	// marshal the relevant attributes to json
 	payload, err := json.Marshal(attributes)
