@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	"encoding/json"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
@@ -32,6 +33,7 @@ type DataSetAccessor interface {
 const (
 	ComputerTimeFormat = "2006-01-02T15:04:05"
 	TimeFormat         = time.RFC3339Nano
+	DeviceTimeFormat   = "2006-01-02T15:04:05"
 
 	DataSetTypeContinuous = "continuous"
 	DataSetTypeNormal     = "normal" // TODO: Normal?
@@ -322,6 +324,26 @@ type DataSet struct {
 	UserID              *string                 `json:"-" bson:"_userId,omitempty"`
 	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"`
 	VersionInternal     int                     `json:"-" bson:"_version,omitempty"`
+}
+
+// custom marshalling for DeviceTime
+type DeviceTime time.Time
+
+func (t DeviceTime) MarshalJSON() ([]byte, error) {
+    b := make([]byte, 0, len(DeviceTimeFormat)+2)
+    b = append(b, '"')
+    b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
+    b = append(b, '"')
+    return b, nil
+}
+func (d *DataSet) MarshalJSON() ([]byte, error) {
+    type Alias DataSet
+    dataSet := &struct {
+        DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+        *Alias
+    }{DeviceTime(*d.DeviceTime), (*Alias)(d)}
+
+    return json.Marshal(dataSet)
 }
 
 type DataSets []*DataSet

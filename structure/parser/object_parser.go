@@ -196,28 +196,6 @@ func (o *Object) StringArray(reference string) *[]string {
 }
 
 func (o *Object) Time(reference string, layout string) *time.Time {
-	rawValue, ok := o.raw(reference)
-	if !ok {
-		return nil
-	}
-
-	stringValue, ok := rawValue.(string)
-	if !ok {
-		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
-		return nil
-	}
-
-	timeValue, err := time.Parse(layout, stringValue)
-	if err != nil {
-		o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
-		return nil
-	}
-
-	return &timeValue
-}
-
-// this handles time fields that may be strings, but also maybe time.Time
-func (o *Object) MultiTime(reference string, layout string) *time.Time {
 	var timeValue time.Time
 	var err error
 
@@ -229,7 +207,7 @@ func (o *Object) MultiTime(reference string, layout string) *time.Time {
 	switch rawValue.(type) {
 	case time.Time:
 		timeValue = rawValue.(time.Time)
-	case string:
+	default:
 		stringValue, ok := rawValue.(string)
 		if !ok {
 			o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
@@ -241,9 +219,6 @@ func (o *Object) MultiTime(reference string, layout string) *time.Time {
 			o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 			return nil
 		}
-	default:
-		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
-		return nil
 	}
 
 	return &timeValue

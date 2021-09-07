@@ -3,6 +3,7 @@ package types
 import (
 	"sort"
 	"time"
+	"encoding/json"
 
 	"github.com/tidepool-org/platform/association"
 	"github.com/tidepool-org/platform/data"
@@ -38,17 +39,17 @@ type Base struct {
 	Active            bool                          `json:"-" bson:"_active"`
 	Annotations       *metadata.MetadataArray       `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ArchivedDataSetID *string                       `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime      *time.Time                       `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	ArchivedTime      *time.Time                    `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
 	Associations      *association.AssociationArray `json:"associations,omitempty" bson:"associations,omitempty"`
 	ClockDriftOffset  *int                          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
 	ConversionOffset  *int                          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime       *time.Time                       `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedTime       *time.Time                    `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	CreatedUserID     *string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
 	Deduplicator      *data.DeduplicatorDescriptor  `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
-	DeletedTime       *time.Time                       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedTime       *time.Time                    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID     *string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 	DeviceID          *string                       `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
-	DeviceTime        *time.Time                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	DeviceTime        *time.Time                    `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
 	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
@@ -66,6 +67,26 @@ type Base struct {
 	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID            *string                       `json:"-" bson:"_userId,omitempty"`
 	VersionInternal   int                           `json:"-" bson:"_version,omitempty"`
+}
+
+// custom DeviceTime formatting
+type DeviceTime time.Time
+
+func (t DeviceTime) MarshalJSON() ([]byte, error) {
+    b := make([]byte, 0, len(DeviceTimeFormat)+2)
+    b = append(b, '"')
+    b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
+    b = append(b, '"')
+    return b, nil
+}
+func (b *Base) MarshalJSON() ([]byte, error) {
+    type Alias Base
+    base := &struct {
+        DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+        *Alias
+    }{DeviceTime(*b.DeviceTime), (*Alias)(b)}
+
+    return json.Marshal(base)
 }
 
 type Meta struct {
@@ -90,7 +111,7 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	b.ClockDriftOffset = parser.Int("clockDriftOffset")
 	b.ConversionOffset = parser.Int("conversionOffset")
 	b.DeviceID = parser.String("deviceId")
-	b.DeviceTime = parser.MultiTime("deviceTime", DeviceTimeFormat)
+	b.DeviceTime = parser.Time("deviceTime", DeviceTimeFormat)
 	b.ID = parser.String("id")
 	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
 	b.Notes = parser.StringArray("notes")
@@ -98,7 +119,7 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	b.Payload = metadata.ParseMetadata(parser.WithReferenceObjectParser("payload"))
 	b.Source = parser.String("source")
 	b.Tags = parser.StringArray("tags")
-	b.Time = parser.MultiTime("time", TimeFormat)
+	b.Time = parser.Time("time", TimeFormat)
 	b.TimeZoneName = parser.String("timezone")
 	b.TimeZoneOffset = parser.Int("timezoneOffset")
 }

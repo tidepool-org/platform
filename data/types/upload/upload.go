@@ -126,7 +126,7 @@ func (u *Upload) Parse(parser structure.ObjectParser) {
 	u.Deduplicator = data.ParseDeduplicatorDescriptor(parser.WithReferenceObjectParser("deduplicator"))
 
 	u.Client = ParseClient(parser.WithReferenceObjectParser("client"))
-	u.ComputerTime = parser.MultiTime("computerTime", ComputerTimeFormat)
+	u.ComputerTime = parser.Time("computerTime", ComputerTimeFormat)
 	u.DataSetType = parser.String("dataSetType")
 	u.DeviceManufacturers = parser.StringArray("deviceManufacturers")
 	u.DeviceModel = parser.String("deviceModel")
