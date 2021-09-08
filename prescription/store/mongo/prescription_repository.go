@@ -287,7 +287,7 @@ func (p *PrescriptionRepository) GetClaimablePrescription(ctx context.Context, c
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "could not get prescription to add revision to")
+		return nil, errors.Wrap(err, "could not get claimable prescription")
 	}
 	return prescr, nil
 }
