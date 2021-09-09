@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.13.0 - 2021-09-09
+### Changed
+- YLP-945 Update glycemia unit conversion in platform data
+
 ## 0.12.2 - 2021-08-16
 ### Fixed
 - YLP-421 Revert workaround wrong bolus values sent by HU handsets

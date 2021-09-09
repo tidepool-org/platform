@@ -45,11 +45,11 @@ var _ = Describe("Glucose", func() {
 	})
 
 	It("has MmolLToMgdLConversionFactor", func() {
-		Expect(glucose.MmolLToMgdLConversionFactor).To(Equal(18.01559))
+		Expect(glucose.MmolLToMgdLConversionFactor).To(Equal(18.01577))
 	})
 
 	It("has MmolLToMgdLPrecisionFactor", func() {
-		Expect(glucose.MmolLToMgdLPrecisionFactor).To(Equal(100000.0))
+		Expect(glucose.MmolLToMgdLPrecisionFactor).To(Equal(10.0))
 	})
 
 	Context("Units", func() {
@@ -106,8 +106,8 @@ var _ = Describe("Glucose", func() {
 			Entry("returns unchanged value for unknown units", pointer.FromFloat64(10.0), pointer.FromString("unknown"), pointer.FromFloat64(10.0)),
 			Entry("returns unchanged value for mmol/L units", pointer.FromFloat64(10.0), pointer.FromString("mmol/L"), pointer.FromFloat64(10.0)),
 			Entry("returns unchanged value for mmol/l units", pointer.FromFloat64(10.0), pointer.FromString("mmol/l"), pointer.FromFloat64(10.0)),
-			Entry("returns converted value for mg/dL units", pointer.FromFloat64(180.0), pointer.FromString("mg/dL"), pointer.FromFloat64(9.99135)),
-			Entry("returns converted value for mg/dl units", pointer.FromFloat64(180.0), pointer.FromString("mg/dl"), pointer.FromFloat64(9.99135)),
+			Entry("returns converted value for mg/dL units", pointer.FromFloat64(180.0), pointer.FromString("mg/dL"), pointer.FromFloat64(10.0)),
+			Entry("returns converted value for mg/dl units", pointer.FromFloat64(180.0), pointer.FromString("mg/dl"), pointer.FromFloat64(10.0)),
 		)
 
 		It("properly normalizes a range of mmol/L values", func() {
@@ -122,7 +122,9 @@ var _ = Describe("Glucose", func() {
 			for value := int(glucose.MgdLMinimum); value <= int(glucose.MgdLMaximum); value++ {
 				normalizedValue := glucose.NormalizeValueForUnits(pointer.FromFloat64(float64(value)), pointer.FromString("mg/dL"))
 				Expect(normalizedValue).ToNot(BeNil())
-				Expect(int(*normalizedValue*18.01559 + 0.5)).To(Equal(value))
+				convertedBack := *normalizedValue * 18.01577
+				Expect(convertedBack).Should(BeNumerically(">=", value-1))
+				Expect(convertedBack).Should(BeNumerically("<", value+1))
 			}
 		})
 	})

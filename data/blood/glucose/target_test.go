@@ -418,9 +418,9 @@ var _ = Describe("Target", func() {
 				Entry("normalizes a target with units of mmol/L and values are nil", NewTarget(nil, nil, nil, nil), "mmol/L", NewTarget(nil, nil, nil, nil)),
 				Entry("normalizes a target with units of mmol/l", NewTarget(7.6, 5.6, 1.0, 6.6), "mmol/l", NewTarget(7.6, 5.6, 1.0, 6.6)),
 				Entry("normalizes a target with units of mmol/l and values are nil", NewTarget(nil, nil, nil, nil), "mmol/l", NewTarget(nil, nil, nil, nil)),
-				Entry("normalizes a target with units of mg/dL", NewTarget(130.0, 110.0, 10.0, 120.0), "mg/dL", NewTarget(7.21597, 6.10582, 0.55507, 6.66090)),
+				Entry("normalizes a target with units of mg/dL", NewTarget(130.0, 110.0, 10.0, 120.0), "mg/dL", NewTarget(7.2, 6.1, 0.6, 6.7)),
 				Entry("normalizes a target with units of mg/dL and values are nil", NewTarget(nil, nil, nil, nil), "mg/dL", NewTarget(nil, nil, nil, nil)),
-				Entry("normalizes a target with units of mg/dl", NewTarget(130.0, 110.0, 10.0, 120.0), "mg/dl", NewTarget(7.21597, 6.10582, 0.55507, 6.66090)),
+				Entry("normalizes a target with units of mg/dl", NewTarget(130.0, 110.0, 10.0, 120.0), "mg/dl", NewTarget(7.2, 6.1, 0.6, 6.7)),
 				Entry("normalizes a target with units of mg/dl and values are nil", NewTarget(nil, nil, nil, nil), "mg/dl", NewTarget(nil, nil, nil, nil)),
 			)
 		})

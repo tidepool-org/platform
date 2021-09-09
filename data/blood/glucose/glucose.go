@@ -19,8 +19,8 @@ const (
 	MgdLMinimum float64 = 0.0
 	MgdLMaximum float64 = 1000.0
 
-	MmolLToMgdLConversionFactor float64 = 18.01559
-	MmolLToMgdLPrecisionFactor  float64 = 100000.0
+	MmolLToMgdLConversionFactor float64 = 18.01577
+	MmolLToMgdLPrecisionFactor  float64 = 10.0
 )
 
 func Units() []string {
@@ -53,8 +53,8 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 	if value != nil && units != nil {
 		switch *units {
 		case MgdL, Mgdl:
-			intValue := int(*value/MmolLToMgdLConversionFactor*MmolLToMgdLPrecisionFactor + 0.5)
-			floatValue := float64(intValue) / MmolLToMgdLPrecisionFactor
+			roundedValue := math.Round(*value / MmolLToMgdLConversionFactor * MmolLToMgdLPrecisionFactor)
+			floatValue := roundedValue / MmolLToMgdLPrecisionFactor
 			return &floatValue
 		}
 	}
