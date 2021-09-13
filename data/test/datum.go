@@ -1,6 +1,7 @@
 package test
 
 import (
+	"time"
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -38,15 +39,15 @@ type Datum struct {
 	SetDeviceIDInvocations               int
 	SetDeviceIDInputs                    []*string
 	SetCreatedTimeInvocations            int
-	SetCreatedTimeInputs                 []*string
+	SetCreatedTimeInputs                 []*time.Time
 	SetCreatedUserIDInvocations          int
 	SetCreatedUserIDInputs               []*string
 	SetModifiedTimeInvocations           int
-	SetModifiedTimeInputs                []*string
+	SetModifiedTimeInputs                []*time.Time
 	SetModifiedUserIDInvocations         int
 	SetModifiedUserIDInputs              []*string
 	SetDeletedTimeInvocations            int
-	SetDeletedTimeInputs                 []*string
+	SetDeletedTimeInputs                 []*time.Time
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
@@ -140,7 +141,7 @@ func (d *Datum) SetDeviceID(deviceID *string) {
 	d.SetDeviceIDInputs = append(d.SetDeviceIDInputs, deviceID)
 }
 
-func (d *Datum) SetCreatedTime(createdTime *string) {
+func (d *Datum) SetCreatedTime(createdTime *time.Time) {
 	d.SetCreatedTimeInvocations++
 
 	d.SetCreatedTimeInputs = append(d.SetCreatedTimeInputs, createdTime)
@@ -152,7 +153,7 @@ func (d *Datum) SetCreatedUserID(createdUserID *string) {
 	d.SetCreatedUserIDInputs = append(d.SetCreatedUserIDInputs, createdUserID)
 }
 
-func (d *Datum) SetModifiedTime(modifiedTime *string) {
+func (d *Datum) SetModifiedTime(modifiedTime *time.Time) {
 	d.SetModifiedTimeInvocations++
 
 	d.SetModifiedTimeInputs = append(d.SetModifiedTimeInputs, modifiedTime)
@@ -164,7 +165,7 @@ func (d *Datum) SetModifiedUserID(modifiedUserID *string) {
 	d.SetModifiedUserIDInputs = append(d.SetModifiedUserIDInputs, modifiedUserID)
 }
 
-func (d *Datum) SetDeletedTime(deletedTime *string) {
+func (d *Datum) SetDeletedTime(deletedTime *time.Time) {
 	d.SetDeletedTimeInvocations++
 
 	d.SetDeletedTimeInputs = append(d.SetDeletedTimeInputs, deletedTime)

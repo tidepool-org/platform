@@ -1,6 +1,7 @@
 package mongo_test
 
 import (
+	"time"
 	"context"
 	"math/rand"
 
@@ -257,17 +258,20 @@ var _ = Describe("Mongo", func() {
 				var dataSetExistingTwo *upload.Upload
 
 				preparePersistedDataSets := func() {
+					createdTimeOther, _ := time.Parse(time.RFC3339, "2016-09-01T12:00:00Z")
 					collection = store.GetCollection("deviceData")
 					dataSetExistingOther = NewDataSet(userTest.RandomID(), dataTest.NewDeviceID())
-					dataSetExistingOther.CreatedTime = pointer.FromString("2016-09-01T12:00:00Z")
+					dataSetExistingOther.CreatedTime = pointer.FromTime(createdTimeOther)
 					_, err := collection.InsertOne(context.Background(), dataSetExistingOther)
 					Expect(err).ToNot(HaveOccurred())
 					dataSetExistingOne = NewDataSet(userID, deviceID)
-					dataSetExistingOne.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
+					createdTimeOne, _ := time.Parse(time.RFC3339, "2016-09-01T12:30:00Z")
+					dataSetExistingOne.CreatedTime = pointer.FromTime(createdTimeOne)
 					_, err = collection.InsertOne(context.Background(), dataSetExistingOne)
 					Expect(err).ToNot(HaveOccurred())
 					dataSetExistingTwo = NewDataSet(userID, deviceID)
-					dataSetExistingTwo.CreatedTime = pointer.FromString("2016-09-01T10:00:00Z")
+					createdTimeTwo, _ := time.Parse(time.RFC3339, "2016-09-01T10:00:00Z")
+					dataSetExistingTwo.CreatedTime = pointer.FromTime(createdTimeTwo)
 					_, err = collection.InsertOne(context.Background(), dataSetExistingTwo)
 					Expect(err).ToNot(HaveOccurred())
 				}
@@ -284,7 +288,8 @@ var _ = Describe("Mongo", func() {
 					var pagination *page.Pagination
 
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						dataSet.CreatedTime = pointer.FromTime(createdTime)
 						filter = dataStore.NewFilter()
 						pagination = page.NewPagination()
 					})
@@ -355,7 +360,8 @@ var _ = Describe("Mongo", func() {
 
 						Context("with deleted data set", func() {
 							BeforeEach(func() {
-								dataSet.DeletedTime = pointer.FromString("2016-09-01T13:00:00Z")
+								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T13:00:00Z")
+								dataSet.DeletedTime = pointer.FromTime(createdTime)
 								result := collection.FindOneAndReplace(context.Background(), bson.M{"id": dataSet.ID}, dataSet)
 								Expect(result.Err()).ToNot(HaveOccurred())
 							})
@@ -374,7 +380,8 @@ var _ = Describe("Mongo", func() {
 
 				Context("GetDataSetByID", func() {
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						dataSet.CreatedTime = pointer.FromTime(createdTime)
 						err := repository.EnsureIndexes()
 						Expect(err).ToNot(HaveOccurred())
 					})
@@ -453,7 +460,6 @@ var _ = Describe("Mongo", func() {
 						It("sets the created time", func() {
 							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
 							Expect(dataSet.CreatedTime).ToNot(BeNil())
-							Expect(*dataSet.CreatedTime).ToNot(BeEmpty())
 							Expect(dataSet.CreatedUserID).To(BeNil())
 							Expect(dataSet.ByUser).To(BeNil())
 						})
@@ -575,7 +581,8 @@ var _ = Describe("Mongo", func() {
 					}
 
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						dataSet.CreatedTime = pointer.FromTime(createdTime)
 						dataSetExistingOtherData = NewDataSetData(dataTest.NewDeviceID())
 						dataSetExistingOneData = NewDataSetData(deviceID)
 						dataSetExistingTwoData = NewDataSetData(deviceID)
@@ -620,7 +627,6 @@ var _ = Describe("Mongo", func() {
 							It("sets the deleted time on the data set", func() {
 								Expect(repository.DeleteDataSet(ctx, dataSet)).To(Succeed())
 								Expect(dataSet.DeletedTime).ToNot(BeNil())
-								Expect(*dataSet.DeletedTime).ToNot(BeEmpty())
 								Expect(dataSet.DeletedUserID).To(BeNil())
 							})
 
@@ -709,7 +715,6 @@ var _ = Describe("Mongo", func() {
 									Expect(ok).To(BeTrue())
 									Expect(baseDatum).ToNot(BeNil())
 									Expect(baseDatum.CreatedTime).ToNot(BeNil())
-									Expect(*baseDatum.CreatedTime).ToNot(BeEmpty())
 									Expect(baseDatum.CreatedUserID).To(BeNil())
 								}
 							})
@@ -1706,7 +1711,8 @@ var _ = Describe("Mongo", func() {
 								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 								destroyDeviceID = dataTest.NewDeviceID()
 								destroyDataSet = NewDataSet(destroyUserID, destroyDeviceID)
-								destroyDataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+								destroyDataSet.CreatedTime = pointer.FromTime(createdTime)
 								_, err := collection.InsertOne(context.Background(), destroyDataSet)
 								Expect(err).ToNot(HaveOccurred())
 								destroyDataSetData = NewDataSetData(destroyDeviceID)

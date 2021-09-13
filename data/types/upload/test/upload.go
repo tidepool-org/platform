@@ -16,7 +16,7 @@ func RandomUpload() *dataTypesUpload.Upload {
 	datum.Type = "upload"
 	datum.ByUser = pointer.FromString(userTest.RandomID())
 	datum.Client = NewClient()
-	datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+	datum.ComputerTime = pointer.FromTime(test.RandomTime())
 	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.DataSetTypes()))
 	datum.DataState = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
 	datum.Deduplicator = dataTest.RandomDeduplicatorDescriptor()
@@ -38,7 +38,7 @@ func CloneUpload(datum *dataTypesUpload.Upload) *dataTypesUpload.Upload {
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.ByUser = pointer.CloneString(datum.ByUser)
 	clone.Client = CloneClient(datum.Client)
-	clone.ComputerTime = pointer.CloneString(datum.ComputerTime)
+	clone.ComputerTime = pointer.CloneTime(datum.ComputerTime)
 	clone.DataSetType = pointer.CloneString(datum.DataSetType)
 	clone.DataState = pointer.CloneString(datum.DataState)
 	clone.Deduplicator = dataTest.CloneDeduplicatorDescriptor(datum.Deduplicator)
