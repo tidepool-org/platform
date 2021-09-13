@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/onsi/gomega"
 	"time"
+
+	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/metadata"

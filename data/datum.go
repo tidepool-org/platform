@@ -1,10 +1,11 @@
 package data
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
-	"time"
 )
 
 type Datum interface {
