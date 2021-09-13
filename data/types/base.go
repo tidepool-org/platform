@@ -1,9 +1,9 @@
 package types
 
 import (
+	"encoding/json"
 	"sort"
 	"time"
-	"encoding/json"
 
 	"github.com/tidepool-org/platform/association"
 	"github.com/tidepool-org/platform/data"
@@ -73,20 +73,20 @@ type Base struct {
 type DeviceTime time.Time
 
 func (t DeviceTime) MarshalJSON() ([]byte, error) {
-    b := make([]byte, 0, len(DeviceTimeFormat)+2)
-    b = append(b, '"')
-    b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
-    b = append(b, '"')
-    return b, nil
+	b := make([]byte, 0, len(DeviceTimeFormat)+2)
+	b = append(b, '"')
+	b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
+	b = append(b, '"')
+	return b, nil
 }
 func (b *Base) MarshalJSON() ([]byte, error) {
-    type Alias Base
-    base := &struct {
-        DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-        *Alias
-    }{DeviceTime(*b.DeviceTime), (*Alias)(b)}
+	type Alias Base
+	base := &struct {
+		DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+		*Alias
+	}{DeviceTime(*b.DeviceTime), (*Alias)(b)}
 
-    return json.Marshal(base)
+	return json.Marshal(base)
 }
 
 type Meta struct {

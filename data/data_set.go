@@ -2,12 +2,12 @@ package data
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
 	"time"
-	"encoding/json"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
@@ -289,7 +289,7 @@ type DataSet struct {
 	Active              bool                    `json:"-" bson:"_active"`
 	Annotations         *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
 	ArchivedDataSetID   *string                 `json:"-" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime        *time.Time                 `json:"-" bson:"archivedTime,omitempty"`
+	ArchivedTime        *time.Time              `json:"-" bson:"archivedTime,omitempty"`
 	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
 	Client              *DataSetClient          `json:"client,omitempty" bson:"client,omitempty"`
 	ClockDriftOffset    *int                    `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
@@ -330,20 +330,20 @@ type DataSet struct {
 type DeviceTime time.Time
 
 func (t DeviceTime) MarshalJSON() ([]byte, error) {
-    b := make([]byte, 0, len(DeviceTimeFormat)+2)
-    b = append(b, '"')
-    b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
-    b = append(b, '"')
-    return b, nil
+	b := make([]byte, 0, len(DeviceTimeFormat)+2)
+	b = append(b, '"')
+	b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
+	b = append(b, '"')
+	return b, nil
 }
 func (d *DataSet) MarshalJSON() ([]byte, error) {
-    type Alias DataSet
-    dataSet := &struct {
-        DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-        *Alias
-    }{DeviceTime(*d.DeviceTime), (*Alias)(d)}
+	type Alias DataSet
+	dataSet := &struct {
+		DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+		*Alias
+	}{DeviceTime(*d.DeviceTime), (*Alias)(d)}
 
-    return json.Marshal(dataSet)
+	return json.Marshal(dataSet)
 }
 
 type DataSets []*DataSet

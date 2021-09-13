@@ -1,9 +1,9 @@
 package mongo_test
 
 import (
-	"time"
 	"context"
 	"math/rand"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
