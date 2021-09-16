@@ -74,14 +74,14 @@ var _ = Describe("Initial Settings", func() {
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
-		It("fails with empty pump id", func() {
-			settings.PumpID = ""
+		It("fails with nil pump id", func() {
+			settings.PumpID = nil
 			settings.ValidateSubmittedPrescription(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})
 
-		It("fails with empty cgm type", func() {
-			settings.CgmID = ""
+		It("fails with nil cgm id", func() {
+			settings.CgmID = nil
 			settings.ValidateSubmittedPrescription(validate)
 			Expect(validate.Error()).To(HaveOccurred())
 		})

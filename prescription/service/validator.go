@@ -37,9 +37,9 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 		return nil
 	}
 
-	if settings.CgmID != "" {
+	if settings.CgmID != nil {
 		// Make sure the referenced CGM exists
-		_, err := d.devicesClient.GetCgmById(ctx, &devicesApi.GetCgmByIdRequest{Id: settings.CgmID})
+		_, err := d.devicesClient.GetCgmById(ctx, &devicesApi.GetCgmByIdRequest{Id: *settings.CgmID})
 		if isNotFoundError(err) {
 			validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueNotValid())
 			return nil
@@ -49,11 +49,11 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 	}
 
 	// Only verify the settings if a pump has been selected.
-	if settings.PumpID == "" {
+	if settings.PumpID == nil {
 		return nil
 	}
 
-	response, err := d.devicesClient.GetPumpById(ctx, &devicesApi.GetPumpByIdRequest{Id: settings.PumpID})
+	response, err := d.devicesClient.GetPumpById(ctx, &devicesApi.GetPumpByIdRequest{Id: *settings.PumpID})
 	if isNotFoundError(err) {
 		validator.WithReference("pumpId").ReportError(structureValidator.ErrorValueNotValid())
 		return nil

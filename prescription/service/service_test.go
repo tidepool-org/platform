@@ -44,7 +44,7 @@ var _ = Describe("PrescriptionService", func() {
 			claim := &prescription.Claim{
 				PatientID:  prescr.PatientUserID,
 				AccessCode: prescr.AccessCode,
-				Birthday:   prescr.LatestRevision.Attributes.Birthday,
+				Birthday:   *prescr.LatestRevision.Attributes.Birthday,
 			}
 			str.GetPrescriptionRepositoryImpl.GetClaimablePrescriptionOutputs = []prescriptionTest.GetClaimablePrescriptionOutput{{
 				Prescr: prescr,

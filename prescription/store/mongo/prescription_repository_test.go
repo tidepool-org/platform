@@ -663,22 +663,22 @@ var _ = Describe("PrescriptionRepository", func() {
 							ClinicID:    prescr.ClinicID,
 							ClinicianID: prescr.CreatedUserID,
 							DataAttributes: prescription.DataAttributes{
-								AccountType:             "",
-								CaregiverFirstName:      "",
-								CaregiverLastName:       "",
-								FirstName:               "",
-								LastName:                "",
-								Birthday:                "",
-								MRN:                     "",
-								Email:                   "",
-								Sex:                     "",
+								AccountType:             nil,
+								CaregiverFirstName:      nil,
+								CaregiverLastName:       nil,
+								FirstName:               nil,
+								LastName:                nil,
+								Birthday:                nil,
+								MRN:                     nil,
+								Email:                   nil,
+								Sex:                     nil,
 								Weight:                  nil,
-								YearOfDiagnosis:         0,
+								YearOfDiagnosis:         nil,
 								PhoneNumber:             nil,
 								InitialSettings:         nil,
-								Training:                "",
-								TherapySettings:         "",
-								PrescriberTermsAccepted: false,
+								Training:                nil,
+								TherapySettings:         nil,
+								PrescriberTermsAccepted: nil,
 								State:                   prescription.StateDraft,
 							},
 						}
@@ -706,7 +706,7 @@ var _ = Describe("PrescriptionRepository", func() {
 					prescr.State = prescription.StateSubmitted
 					claim = prescription.NewPrescriptionClaim(*usr.UserID)
 					claim.AccessCode = prescr.AccessCode
-					claim.Birthday = prescr.LatestRevision.Attributes.Birthday
+					claim.Birthday = *prescr.LatestRevision.Attributes.Birthday
 					claim.RevisionHash = prescr.LatestRevision.IntegrityHash.Hash
 				})
 
@@ -793,7 +793,7 @@ var _ = Describe("PrescriptionRepository", func() {
 						second.State = prescription.StateSubmitted
 						claim = prescription.NewPrescriptionClaim(*usr.UserID)
 						claim.AccessCode = second.AccessCode
-						claim.Birthday = second.LatestRevision.Attributes.Birthday
+						claim.Birthday = *second.LatestRevision.Attributes.Birthday
 						claim.RevisionHash = second.LatestRevision.IntegrityHash.Hash
 
 						_, err = collection.InsertOne(nil, second)
