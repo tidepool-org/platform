@@ -164,17 +164,12 @@ var _ = Describe("Base", func() {
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/archivedDatasetId"),
 				),
-				Entry("archived time invalid",
-					func(datum *types.Base) { datum.ArchivedTime = pointer.FromString("invalid") },
-					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/archivedTime"),
-				),
 				Entry("archived time not after created time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.PastFarTime().Format(time.RFC3339Nano))
-						datum.CreatedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.PastFarTime())
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.FutureFarTime()), "/archivedTime"),
@@ -184,9 +179,9 @@ var _ = Describe("Base", func() {
 				),
 				Entry("archived time not before now",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/archivedTime"),
@@ -258,17 +253,12 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/createdUserId"),
 				),
-				Entry("created time invalid",
-					func(datum *types.Base) { datum.CreatedTime = pointer.FromString("invalid") },
-					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/createdTime"),
-				),
 				Entry("created time not before now",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.CreatedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.FutureFarTime())
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/archivedTime"),
@@ -309,16 +299,11 @@ var _ = Describe("Base", func() {
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/deletedUserId"),
 				),
-				Entry("deleted time invalid",
-					func(datum *types.Base) { datum.DeletedTime = pointer.FromString("invalid") },
-					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/deletedTime"),
-				),
 				Entry("deleted time not after archived time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.PastFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.PastFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/archivedTime"),
@@ -327,10 +312,10 @@ var _ = Describe("Base", func() {
 				),
 				Entry("deleted time not after created time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.CreatedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.PastFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.FutureFarTime())
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.PastFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/archivedTime"),
@@ -340,8 +325,8 @@ var _ = Describe("Base", func() {
 				),
 				Entry("deleted time not after modified time",
 					func(datum *types.Base) {
-						datum.DeletedTime = pointer.FromString(test.PastFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.DeletedTime = pointer.FromTime(test.PastFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.FutureFarTime()), "/deletedTime"),
@@ -349,7 +334,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("deleted time not before now",
 					func(datum *types.Base) {
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
@@ -384,14 +369,9 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.DeviceTime = nil },
 					structure.Origins(),
 				),
-				Entry("device time invalid",
-					func(datum *types.Base) { datum.DeviceTime = pointer.FromString("invalid") },
-					structure.Origins(),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
-				),
 				Entry("device time valid",
 					func(datum *types.Base) {
-						datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+						datum.DeviceTime = pointer.FromTime(test.RandomTime())
 					},
 					structure.Origins(),
 				),
@@ -486,18 +466,11 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/modifiedTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/modifiedUserId"),
 				),
-				Entry("modified time invalid",
-					func(datum *types.Base) {
-						datum.ModifiedTime = pointer.FromString("invalid")
-					},
-					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/modifiedTime"),
-				),
 				Entry("modified time not after archived time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.PastFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.PastFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/archivedTime"),
@@ -506,10 +479,10 @@ var _ = Describe("Base", func() {
 				),
 				Entry("modified time not after created time",
 					func(datum *types.Base) {
-						datum.ArchivedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.CreatedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.PastFarTime().Format(time.RFC3339Nano))
+						datum.ArchivedTime = pointer.FromTime(test.FutureFarTime())
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.PastFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/archivedTime"),
@@ -519,8 +492,8 @@ var _ = Describe("Base", func() {
 				),
 				Entry("modified time not before now",
 					func(datum *types.Base) {
-						datum.DeletedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
-						datum.ModifiedTime = pointer.FromString(test.FutureFarTime().Format(time.RFC3339Nano))
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime())
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/deletedTime"),
@@ -656,13 +629,8 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
-				Entry("time invalid",
-					func(datum *types.Base) { datum.Time = pointer.FromString("invalid") },
-					structure.Origins(),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/time"),
-				),
 				Entry("time valid",
-					func(datum *types.Base) { datum.Time = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano)) },
+					func(datum *types.Base) { datum.Time = pointer.FromTime(test.RandomTime()) },
 					structure.Origins(),
 				),
 				Entry("time zone name missing",
@@ -775,25 +743,26 @@ var _ = Describe("Base", func() {
 				Entry("multiple errors with internal origin",
 					func(datum *types.Base) {
 						datum.ArchivedDataSetID = pointer.FromString("invalid")
-						datum.ArchivedTime = pointer.FromString("invalid")
-						datum.CreatedTime = pointer.FromString("invalid")
+						datum.ArchivedTime = pointer.FromTime(test.PastFarTime())
+						datum.CreatedTime = pointer.FromTime(test.FutureFarTime())
 						datum.CreatedUserID = pointer.FromString("invalid")
-						datum.DeletedTime = pointer.FromString("invalid")
+						datum.DeletedTime = pointer.FromTime(test.FutureFarTime().Add(24 * time.Hour))
 						datum.DeletedUserID = pointer.FromString("invalid")
 						datum.ID = nil
-						datum.ModifiedTime = pointer.FromString("invalid")
+						datum.ModifiedTime = pointer.FromTime(test.FutureFarTime().Add(-24 * time.Hour))
 						datum.ModifiedUserID = pointer.FromString("invalid")
 						datum.UploadID = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/archivedTime"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/createdTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.FutureFarTime()), "/archivedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime()), "/createdTime"),
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/deletedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime().Add(24*time.Hour)), "/deletedTime"),
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", time.RFC3339Nano), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.FutureFarTime().Add(-24*time.Hour), test.FutureFarTime()), "/modifiedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotBeforeNow(test.FutureFarTime().Add(-24*time.Hour)), "/modifiedTime"),
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/uploadId"),
 				),
@@ -802,7 +771,7 @@ var _ = Describe("Base", func() {
 						datum.ClockDriftOffset = pointer.FromInt(-86400001)
 						datum.Deduplicator.Name = pointer.FromString("invalid")
 						datum.DeviceID = pointer.FromString("")
-						datum.DeviceTime = pointer.FromString("invalid")
+						datum.DeviceTime = nil
 						datum.ID = pointer.FromString("")
 						datum.Location.GPS = nil
 						datum.Location.Name = nil
@@ -819,7 +788,6 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-86400001, -86400000, 86400000), "/clockDriftOffset"),
 					errorsTest.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/deduplicator/name"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("gps", "name"), "/location"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
@@ -972,13 +940,6 @@ var _ = Describe("Base", func() {
 				Expect(identityFields).To(BeEmpty())
 			})
 
-			It("returns error if time is empty", func() {
-				datum.Time = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("time is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
 			It("returns error if type is empty", func() {
 				datum.Type = ""
 				identityFields, err := datum.IdentityFields()
@@ -989,7 +950,7 @@ var _ = Describe("Base", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(types.TimeFormat), datum.Type}))
 			})
 		})
 
@@ -1037,7 +998,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetCreatedTime", func() {
 			It("sets the created time", func() {
-				createdTime := pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+				createdTime := pointer.FromTime(test.RandomTime())
 				datum.SetCreatedTime(createdTime)
 				Expect(datum.CreatedTime).To(Equal(createdTime))
 			})
@@ -1053,7 +1014,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetModifiedTime", func() {
 			It("sets the modified time", func() {
-				modifiedTime := pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+				modifiedTime := pointer.FromTime(test.RandomTime())
 				datum.SetModifiedTime(modifiedTime)
 				Expect(datum.ModifiedTime).To(Equal(modifiedTime))
 			})
@@ -1069,7 +1030,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeletedTime", func() {
 			It("sets the deleted time", func() {
-				deletedTime := pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+				deletedTime := pointer.FromTime(test.RandomTime())
 				datum.SetDeletedTime(deletedTime)
 				Expect(datum.DeletedTime).To(Equal(deletedTime))
 			})

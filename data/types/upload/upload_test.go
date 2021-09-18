@@ -179,14 +179,9 @@ var _ = Describe("Upload", func() {
 					func(datum *dataTypesUpload.Upload) { datum.ComputerTime = nil },
 					structure.Origins(),
 				),
-				Entry("computer time invalid",
-					func(datum *dataTypesUpload.Upload) { datum.ComputerTime = pointer.FromString("invalid") },
-					structure.Origins(),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/computerTime", NewMeta()),
-				),
 				Entry("computer time valid",
 					func(datum *dataTypesUpload.Upload) {
-						datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+						datum.ComputerTime = pointer.FromTime(test.RandomTime())
 					},
 					structure.Origins(),
 				),
@@ -412,7 +407,7 @@ var _ = Describe("Upload", func() {
 						datum.Type = "invalidType"
 						datum.Client.Name = nil
 						datum.Client.Version = nil
-						datum.ComputerTime = pointer.FromString("invalid")
+						datum.ComputerTime = nil
 						datum.DataSetType = pointer.FromString("invalid")
 						datum.DeviceManufacturers = pointer.FromStringArray([]string{})
 						datum.DeviceModel = pointer.FromString("")
@@ -425,7 +420,7 @@ var _ = Describe("Upload", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "upload"), "/type", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/client/name", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/client/version", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/computerTime", &dataTypes.Meta{Type: "invalidType"}),
+					//errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/computerTime", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"continuous", "normal"}), "/dataSetType", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceManufacturers", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/deviceModel", &dataTypes.Meta{Type: "invalidType"}),

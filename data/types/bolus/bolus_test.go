@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
@@ -170,7 +171,7 @@ var _ = Describe("Bolus", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, datum.SubType}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(types.TimeFormat), datum.Type, datum.SubType}))
 			})
 		})
 	})

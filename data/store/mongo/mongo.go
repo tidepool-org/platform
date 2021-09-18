@@ -201,7 +201,7 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Uplo
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
 	dataSet.CreatedTime = pointer.FromTime(timestamp)
@@ -237,7 +237,7 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
@@ -289,7 +289,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
 	var err error
@@ -343,7 +343,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		return nil
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
 	var insertData []mongo.WriteModel
@@ -380,7 +380,7 @@ func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *uploa
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
@@ -420,7 +420,7 @@ func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
@@ -460,7 +460,7 @@ func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
@@ -557,7 +557,7 @@ func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Con
 		return errors.New("data set device id is missing")
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
 	var updateInfo *mongo.UpdateResult
@@ -607,7 +607,7 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 		return errors.New("data set device id is missing")
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
 	pipeline := []bson.M{
@@ -710,7 +710,7 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 		return errors.New("data set device id is missing")
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
 	var err error
