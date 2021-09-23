@@ -1,11 +1,11 @@
 package basal_test
 
 import (
+	"time"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -120,7 +120,7 @@ var _ = Describe("Basal", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(types.TimeFormat), datum.Type, datum.DeliveryType}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(time.RFC3339Nano), datum.Type, datum.DeliveryType}))
 			})
 		})
 	})

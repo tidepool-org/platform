@@ -72,21 +72,18 @@ type Base struct {
 // custom DeviceTime formatting
 type DeviceTime time.Time
 
-func (t DeviceTime) MarshalJSON() ([]byte, error) {
-	b := make([]byte, 0, len(DeviceTimeFormat)+2)
-	b = append(b, '"')
-	b = time.Time(t).AppendFormat(b, DeviceTimeFormat)
-	b = append(b, '"')
-	return b, nil
+func (t DeviceTime) MarshalJSON() (text []byte, err error) {
+	return []byte(`"` + time.Time(t).Format(DeviceTimeFormat) + `"`), nil
 }
-func (b *Base) MarshalJSON() ([]byte, error) {
-	type Alias Base
-	base := &struct {
-		DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-		*Alias
-	}{DeviceTime(*b.DeviceTime), (*Alias)(b)}
 
-	return json.Marshal(base)
+func (d Base) MarshalJSON() ([]byte, error) {
+	type Alias Base
+	dataSet := &struct {
+		DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+		Alias
+	}{DeviceTime(*d.DeviceTime), (Alias)(d)}
+
+	return json.Marshal(dataSet)
 }
 
 type Meta struct {

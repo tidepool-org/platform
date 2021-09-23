@@ -3,6 +3,7 @@ package types_test
 import (
 	"sort"
 	"time"
+	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -82,6 +83,15 @@ var _ = Describe("Base", func() {
 			It("returns the meta with type", func() {
 				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
 			})
+		})
+
+		It("returns error if DeviceTime not correctly marshalled", func() {
+			deviceTimeString := "2021-10-10T00:00:00"
+			deviceTime, _ := time.Parse("2006-01-02T15:04:05", deviceTimeString)
+			datum.DeviceTime = pointer.FromTime(deviceTime)
+			marshalled, err := json.Marshal(datum)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(marshalled)).To(Equal(`{"deviceTime":"`+ deviceTimeString + `","type":"` + typ + `"}`))
 		})
 	})
 
@@ -940,6 +950,13 @@ var _ = Describe("Base", func() {
 				Expect(identityFields).To(BeEmpty())
 			})
 
+			It("returns error if time is empty", func() {
+				datum.Time = pointer.FromTime(time.Time{})
+				identityFields, err := datum.IdentityFields()
+				Expect(err).To(MatchError("time is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
 			It("returns error if type is empty", func() {
 				datum.Type = ""
 				identityFields, err := datum.IdentityFields()
@@ -950,7 +967,7 @@ var _ = Describe("Base", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(types.TimeFormat), datum.Type}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(time.RFC3339Nano), datum.Type}))
 			})
 		})
 
