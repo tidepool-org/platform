@@ -533,10 +533,10 @@ var _ = Describe("Object", func() {
 		BeforeEach(func() {
 			now = time.Now()
 			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
-				"zero":   false,
-				"one":    "abc",
-				"two":    now.Format(time.RFC3339Nano),
-				"three":  now,
+				"zero":  false,
+				"one":   "abc",
+				"two":   now.Format(time.RFC3339Nano),
+				"three": now,
 			})
 			Expect(parser).ToNot(BeNil())
 		})

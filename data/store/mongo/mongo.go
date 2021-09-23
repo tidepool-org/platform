@@ -635,7 +635,7 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 
 	result := struct {
 		ID struct {
-			Active            bool      `bson:"_active"`
+			Active            bool       `bson:"_active"`
 			ArchivedDataSetID *string    `bson:"archivedDatasetId"`
 			ArchivedTime      *time.Time `bson:"archivedTime"`
 		} `bson:"_id"`

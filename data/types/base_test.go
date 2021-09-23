@@ -1,9 +1,9 @@
 package types_test
 
 import (
+	"encoding/json"
 	"sort"
 	"time"
-	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -91,7 +91,7 @@ var _ = Describe("Base", func() {
 			datum.DeviceTime = pointer.FromTime(deviceTime)
 			marshalled, err := json.Marshal(datum)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(marshalled)).To(Equal(`{"deviceTime":"`+ deviceTimeString + `","type":"` + typ + `"}`))
+			Expect(string(marshalled)).To(Equal(`{"deviceTime":"` + deviceTimeString + `","type":"` + typ + `"}`))
 		})
 	})
 
