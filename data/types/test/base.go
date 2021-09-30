@@ -3,6 +3,12 @@ package test
 import (
 	"time"
 
+	"github.com/tidepool-org/platform/association"
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/location"
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/origin"
+
 	associationTest "github.com/tidepool-org/platform/association/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
@@ -96,13 +102,53 @@ func CloneBase(datum *types.Base) *types.Base {
 	return clone
 }
 
-func NewLegacyBase() *types.LegacyBase {
+type LegacyBase struct {
+	Active            bool                          `json:"-" bson:"_active"`
+	Annotations       *metadata.MetadataArray       `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	ArchivedDataSetID *string                       `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
+	ArchivedTime      *string                       `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	Associations      *association.AssociationArray `json:"associations,omitempty" bson:"associations,omitempty"`
+	ClockDriftOffset  *int                          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
+	ConversionOffset  *int                          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
+	CreatedTime       *string                       `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID     *string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	Deduplicator      *data.DeduplicatorDescriptor  `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
+	DeletedTime       *string                       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID     *string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	DeviceID          *string                       `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
+	DeviceTime        *string                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
+	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
+	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
+	ModifiedTime      *string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
+	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
+	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
+	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
+	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
+	Time              *string                       `json:"time,omitempty" bson:"time,omitempty"`
+	TimeZoneName      *string                       `json:"timezone,omitempty" bson:"timezone,omitempty"`             // TODO: Rename to timeZoneName
+	TimeZoneOffset    *int                          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"` // TODO: Rename to timeZoneOffset
+	Type              string                        `json:"type,omitempty" bson:"type,omitempty"`
+	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
+	UserID            *string                       `json:"-" bson:"_userId,omitempty"`
+	VersionInternal   int                           `json:"-" bson:"_version,omitempty"`
+}
+
+func NewLegacy(typ string) LegacyBase {
+	return LegacyBase{
+		Type: typ,
+	}
+}
+
+func NewLegacyBase() *LegacyBase {
 	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now().Add(-30*24*time.Hour))
 	archivedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-7*24*time.Hour))
 	modifiedTime := test.RandomTimeFromRange(archivedTime, time.Now().Add(-24*time.Hour))
 	deletedTime := test.RandomTimeFromRange(modifiedTime, time.Now())
 
-	datum := &types.LegacyBase{}
+	datum := &LegacyBase{}
 	datum.Active = false
 	datum.Annotations = metadataTest.RandomMetadataArray()
 	datum.Associations = associationTest.RandomAssociationArray()

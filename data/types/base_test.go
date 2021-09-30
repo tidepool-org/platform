@@ -30,6 +30,8 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
+const ExpectedTimeFormat = time.RFC3339Nano
+
 var _ = Describe("Base", func() {
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
@@ -943,7 +945,7 @@ var _ = Describe("Base", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(time.RFC3339Nano), datum.Type}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type}))
 			})
 		})
 

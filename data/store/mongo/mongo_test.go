@@ -51,7 +51,7 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 	return dataSet
 }
 
-func NewLegacyDataSet(userID string, deviceID string) *upload.LegacyUpload {
+func NewLegacyDataSet(userID string, deviceID string) *dataTypesUploadTest.LegacyUpload {
 	dataSet := dataTypesUploadTest.RandomLegacyUpload()
 	dataSet.Active = true
 	dataSet.ArchivedDataSetID = nil
@@ -302,7 +302,7 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("DateUnMarshal", func() {
-					var legacyUpload *upload.LegacyUpload
+					var legacyUpload *dataTypesUploadTest.LegacyUpload
 					var result *upload.Upload
 					var createdTime time.Time
 					var modifiedTime time.Time

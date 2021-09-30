@@ -215,27 +215,3 @@ func (u *Upload) HasDeduplicatorName() bool {
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
 }
-
-// this is an upload struct, with all time.Time fields replaced with string as they once were
-type LegacyUpload struct {
-	types.LegacyBase `bson:",inline"`
-
-	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
-	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
-	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
-	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
-	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
-	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
-	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
-	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
-	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
-	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
-}
-
-func NewLegacy() *LegacyUpload {
-	return &LegacyUpload{
-		LegacyBase: types.NewLegacy(Type),
-	}
-}

@@ -18,6 +18,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const ExpectedTimeFormat = time.RFC3339Nano
+
 var _ = Describe("Bolus", func() {
 	It("Type is expected", func() {
 		Expect(bolus.Type).To(Equal("bolus"))
@@ -172,7 +174,7 @@ var _ = Describe("Bolus", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(time.RFC3339Nano), datum.Type, datum.SubType}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
 			})
 		})
 	})
