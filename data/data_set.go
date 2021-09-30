@@ -293,7 +293,7 @@ type DataSet struct {
 	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"`
 	Client              *DataSetClient          `json:"client,omitempty" bson:"client,omitempty"`
 	ClockDriftOffset    *int                    `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
-	ComputerTime        *time.Time              `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
+	ComputerTime        *string                 `json:"computerTime,omitempty" bson:"computerTime,omitempty"`
 	ConversionOffset    *int                    `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
 	CreatedTime         *time.Time              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	CreatedUserID       *string                 `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
@@ -307,7 +307,7 @@ type DataSet struct {
 	DeviceModel         *string                 `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
 	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
 	DeviceTags          *[]string               `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	DeviceTime          *time.Time              `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
+	DeviceTime          *string                 `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	GUID                *string                 `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                  *string                 `json:"id,omitempty" bson:"id,omitempty"`
 	ModifiedTime        *time.Time              `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
@@ -324,23 +324,6 @@ type DataSet struct {
 	UserID              *string                 `json:"-" bson:"_userId,omitempty"`
 	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"`
 	VersionInternal     int                     `json:"-" bson:"_version,omitempty"`
-}
-
-// custom marshalling for DeviceTime
-type DeviceTime time.Time
-
-func (t DeviceTime) MarshalJSON() (text []byte, err error) {
-	return []byte(`"` + time.Time(t).Format(DeviceTimeFormat) + `"`), nil
-}
-
-func (d DataSet) MarshalJSON() ([]byte, error) {
-	type Alias DataSet
-	dataSet := &struct {
-		DeviceTime DeviceTime `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-		Alias
-	}{DeviceTime(*d.DeviceTime), (Alias)(d)}
-
-	return json.Marshal(dataSet)
 }
 
 type DataSets []*DataSet
