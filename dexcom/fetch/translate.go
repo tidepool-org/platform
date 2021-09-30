@@ -60,7 +60,7 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 	}
 
 	datum.Time = systemTime.Raw()
-	datum.DeviceTime = displayTime.Raw()
+	datum.DeviceTime = pointer.FromString(displayTime.Format(dataTypes.DeviceTimeFormat))
 	datum.TimeZoneOffset = pointer.FromInt(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
 		datum.ClockDriftOffset = pointer.FromInt(int(clockDriftOffsetDuration / time.Millisecond))

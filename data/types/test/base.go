@@ -35,7 +35,7 @@ func NewBase() *types.Base {
 	datum.DeletedTime = pointer.FromTime(deletedTime)
 	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
 	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
-	datum.DeviceTime = pointer.FromTime(test.RandomTime())
+	datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 	datum.GUID = pointer.FromString(dataTest.RandomID())
 	datum.ID = pointer.FromString(dataTest.RandomID())
 	datum.Location = locationTest.RandomLocation()
@@ -60,6 +60,7 @@ func CloneBase(datum *types.Base) *types.Base {
 	if datum == nil {
 		return nil
 	}
+
 	clone := &types.Base{}
 	clone.Active = datum.Active
 	clone.Annotations = metadataTest.CloneMetadataArray(datum.Annotations)
@@ -74,7 +75,7 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.DeletedTime = pointer.CloneTime(datum.DeletedTime)
 	clone.DeletedUserID = pointer.CloneString(datum.DeletedUserID)
 	clone.DeviceID = pointer.CloneString(datum.DeviceID)
-	clone.DeviceTime = pointer.CloneTime(datum.DeviceTime)
+	clone.DeviceTime = pointer.CloneString(datum.DeviceTime)
 	clone.GUID = pointer.CloneString(datum.GUID)
 	clone.ID = pointer.CloneString(datum.ID)
 	clone.Location = locationTest.CloneLocation(datum.Location)
@@ -93,4 +94,45 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.UserID = pointer.CloneString(datum.UserID)
 	clone.VersionInternal = datum.VersionInternal
 	return clone
+}
+
+func NewLegacyBase() *types.LegacyBase {
+	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now().Add(-30*24*time.Hour))
+	archivedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-7*24*time.Hour))
+	modifiedTime := test.RandomTimeFromRange(archivedTime, time.Now().Add(-24*time.Hour))
+	deletedTime := test.RandomTimeFromRange(modifiedTime, time.Now())
+
+	datum := &types.LegacyBase{}
+	datum.Active = false
+	datum.Annotations = metadataTest.RandomMetadataArray()
+	datum.Associations = associationTest.RandomAssociationArray()
+	datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID())
+	datum.ArchivedTime = pointer.FromString(archivedTime.Format(time.RFC3339Nano))
+	datum.ClockDriftOffset = pointer.FromInt(NewClockDriftOffset())
+	datum.ConversionOffset = pointer.FromInt(NewConversionOffset())
+	datum.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339Nano))
+	datum.CreatedUserID = pointer.FromString(userTest.RandomID())
+	datum.Deduplicator = dataTest.RandomDeduplicatorDescriptor()
+	datum.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339Nano))
+	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
+	datum.DeviceID = pointer.FromString(dataTest.NewDeviceID())
+	datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+	datum.GUID = pointer.FromString(dataTest.RandomID())
+	datum.ID = pointer.FromString(dataTest.RandomID())
+	datum.Location = locationTest.RandomLocation()
+	datum.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
+	datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
+	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
+	datum.Origin = originTest.RandomOrigin()
+	datum.Payload = metadataTest.RandomMetadata()
+	datum.Source = pointer.FromString("carelink")
+	datum.Tags = pointer.FromStringArray([]string{NewTag(1, 10)})
+	datum.Time = pointer.FromString(test.RandomTime().Format(time.RFC3339Nano))
+	datum.TimeZoneName = pointer.FromString(timeZoneTest.RandomName())
+	datum.TimeZoneOffset = pointer.FromInt(NewTimeZoneOffset())
+	datum.Type = NewType()
+	datum.UploadID = pointer.FromString(dataTest.RandomSetID())
+	datum.UserID = pointer.FromString(userTest.RandomID())
+	datum.VersionInternal = NewVersionInternal()
+	return datum
 }

@@ -1,7 +1,6 @@
 package types_test
 
 import (
-	"encoding/json"
 	"sort"
 	"time"
 
@@ -67,31 +66,6 @@ var _ = Describe("Base", func() {
 			Expect(datum.UploadID).To(BeNil())
 			Expect(datum.UserID).To(BeNil())
 			Expect(datum.VersionInternal).To(Equal(0))
-		})
-	})
-
-	Context("with new datum", func() {
-		var typ string
-		var datum types.Base
-
-		BeforeEach(func() {
-			typ = dataTypesTest.NewType()
-			datum = types.New(typ)
-		})
-
-		Context("Meta", func() {
-			It("returns the meta with type", func() {
-				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
-			})
-		})
-
-		It("returns error if DeviceTime not correctly marshalled", func() {
-			deviceTimeString := "2021-10-10T00:00:00"
-			deviceTime, _ := time.Parse("2006-01-02T15:04:05", deviceTimeString)
-			datum.DeviceTime = pointer.FromTime(deviceTime)
-			marshalled, err := json.Marshal(datum)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(marshalled)).To(Equal(`{"deviceTime":"` + deviceTimeString + `","type":"` + typ + `"}`))
 		})
 	})
 
@@ -375,13 +349,14 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.DeviceID = pointer.FromString(dataTest.NewDeviceID()) },
 					structure.Origins(),
 				),
-				Entry("device time missing",
-					func(datum *types.Base) { datum.DeviceTime = nil },
+				Entry("device time invalid",
+					func(datum *types.Base) { datum.DeviceTime = pointer.FromString("invalid") },
 					structure.Origins(),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 				),
 				Entry("device time valid",
 					func(datum *types.Base) {
-						datum.DeviceTime = pointer.FromTime(test.RandomTime())
+						datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 					},
 					structure.Origins(),
 				),
@@ -781,7 +756,7 @@ var _ = Describe("Base", func() {
 						datum.ClockDriftOffset = pointer.FromInt(-86400001)
 						datum.Deduplicator.Name = pointer.FromString("invalid")
 						datum.DeviceID = pointer.FromString("")
-						datum.DeviceTime = nil
+						datum.DeviceTime = pointer.FromString("invalid")
 						datum.ID = pointer.FromString("")
 						datum.Location.GPS = nil
 						datum.Location.Name = nil
@@ -798,6 +773,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-86400001, -86400000, 86400000), "/clockDriftOffset"),
 					errorsTest.WithPointerSource(net.ErrorValueStringAsReverseDomainNotValid("invalid"), "/deduplicator/name"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("gps", "name"), "/location"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),

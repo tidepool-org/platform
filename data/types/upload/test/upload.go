@@ -16,7 +16,27 @@ func RandomUpload() *dataTypesUpload.Upload {
 	datum.Type = "upload"
 	datum.ByUser = pointer.FromString(userTest.RandomID())
 	datum.Client = NewClient()
-	datum.ComputerTime = pointer.FromTime(test.RandomTime())
+	datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.DataSetTypes()))
+	datum.DataState = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
+	datum.Deduplicator = dataTest.RandomDeduplicatorDescriptor()
+	datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16), test.RandomStringFromRange(1, 16)})
+	datum.DeviceModel = pointer.FromString(test.RandomStringFromRange(1, 32))
+	datum.DeviceSerialNumber = pointer.FromString(test.RandomStringFromRange(1, 16))
+	datum.DeviceTags = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesUpload.DeviceTags()), dataTypesUpload.DeviceTags()))
+	datum.State = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
+	datum.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingUTCBootstrapping)
+	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
+	return datum
+}
+
+func RandomLegacyUpload() *dataTypesUpload.LegacyUpload {
+	datum := dataTypesUpload.NewLegacy()
+	datum.LegacyBase = *dataTypesTest.NewLegacyBase()
+	datum.Type = "upload"
+	datum.ByUser = pointer.FromString(userTest.RandomID())
+	datum.Client = NewClient()
+	datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.DataSetTypes()))
 	datum.DataState = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
 	datum.Deduplicator = dataTest.RandomDeduplicatorDescriptor()
@@ -38,7 +58,7 @@ func CloneUpload(datum *dataTypesUpload.Upload) *dataTypesUpload.Upload {
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.ByUser = pointer.CloneString(datum.ByUser)
 	clone.Client = CloneClient(datum.Client)
-	clone.ComputerTime = pointer.CloneTime(datum.ComputerTime)
+	clone.ComputerTime = pointer.CloneString(datum.ComputerTime)
 	clone.DataSetType = pointer.CloneString(datum.DataSetType)
 	clone.DataState = pointer.CloneString(datum.DataState)
 	clone.Deduplicator = dataTest.CloneDeduplicatorDescriptor(datum.Deduplicator)

@@ -51,6 +51,24 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 	return dataSet
 }
 
+func NewLegacyDataSet(userID string, deviceID string) *upload.LegacyUpload {
+	dataSet := dataTypesUploadTest.RandomLegacyUpload()
+	dataSet.Active = true
+	dataSet.ArchivedDataSetID = nil
+	dataSet.ArchivedTime = nil
+	dataSet.CreatedTime = nil
+	dataSet.CreatedUserID = nil
+	dataSet.DeletedTime = nil
+	dataSet.DeletedUserID = nil
+	dataSet.DeviceID = pointer.FromString(deviceID)
+	dataSet.Location.GPS.Origin.Time = nil
+	dataSet.ModifiedTime = nil
+	dataSet.ModifiedUserID = nil
+	dataSet.Origin.Time = nil
+	dataSet.UserID = pointer.FromString(userID)
+	return dataSet
+}
+
 func NewDataSetData(deviceID string) data.Data {
 	dataSetData := data.Data{}
 	for count := 0; count < test.RandomIntFromRange(4, 6); count++ {
@@ -281,6 +299,41 @@ var _ = Describe("Mongo", func() {
 					userID = userTest.RandomID()
 					deviceID = dataTest.NewDeviceID()
 					dataSet = NewDataSet(userID, deviceID)
+				})
+
+				Context("DateUnMarshal", func() {
+					var legacyUpload *upload.LegacyUpload
+					var result *upload.Upload
+					var createdTime time.Time
+					var modifiedTime time.Time
+					var deletedTime time.Time
+					var recordTime time.Time
+
+					BeforeEach(func() {
+						legacyUpload = NewLegacyDataSet(userID, deviceID)
+						createdTime, _ = time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						modifiedTime, _ = time.Parse(time.RFC3339, "2016-10-01T11:00:00Z")
+						deletedTime, _ = time.Parse(time.RFC3339, "2016-07-01T11:00:00Z")
+						recordTime, _ = time.Parse(time.RFC3339, "2016-06-01T11:00:00Z")
+					})
+
+					It("ensure string legacy dates are unmarshalled correctly", func() {
+						legacyUpload.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339Nano))
+						legacyUpload.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
+						legacyUpload.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339Nano))
+						legacyUpload.Time = pointer.FromString(recordTime.Format(time.RFC3339Nano))
+
+						_, err := collection.InsertOne(context.Background(), legacyUpload)
+						Expect(err).ToNot(HaveOccurred())
+
+						err = collection.FindOne(context.Background(), bson.M{"_userId": userID}).Decode(&result)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(*result.CreatedTime).To(Equal(createdTime))
+						Expect(*result.ModifiedTime).To(Equal(modifiedTime))
+						Expect(*result.DeletedTime).To(Equal(deletedTime))
+						Expect(*result.Time).To(Equal(recordTime))
+					})
 				})
 
 				Context("GetDataSetsForUserByID", func() {

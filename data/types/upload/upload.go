@@ -2,7 +2,6 @@ package upload
 
 import (
 	"sort"
-	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
@@ -64,18 +63,18 @@ func TimeProcessings() []string {
 type Upload struct {
 	types.Base `bson:",inline"`
 
-	ByUser              *string    `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
-	Client              *Client    `json:"client,omitempty" bson:"client,omitempty"`
-	ComputerTime        *time.Time `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
-	DataSetType         *string    `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
-	DataState           *string    `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
-	DeviceManufacturers *[]string  `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
-	DeviceModel         *string    `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
-	DeviceSerialNumber  *string    `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
-	DeviceTags          *[]string  `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
-	State               *string    `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
-	TimeProcessing      *string    `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
-	Version             *string    `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
+	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
+	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
+	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
+	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
+	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
+	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
+	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
+	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
+	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
+	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
 }
 
 func NewUpload(parser structure.ObjectParser) *Upload {
@@ -126,7 +125,7 @@ func (u *Upload) Parse(parser structure.ObjectParser) {
 	u.Deduplicator = data.ParseDeduplicatorDescriptor(parser.WithReferenceObjectParser("deduplicator"))
 
 	u.Client = ParseClient(parser.WithReferenceObjectParser("client"))
-	u.ComputerTime = parser.Time("computerTime", ComputerTimeFormat)
+	u.ComputerTime = parser.String("computerTime")
 	u.DataSetType = parser.String("dataSetType")
 	u.DeviceManufacturers = parser.StringArray("deviceManufacturers")
 	u.DeviceModel = parser.String("deviceModel")
@@ -151,7 +150,7 @@ func (u *Upload) Validate(validator structure.Validator) {
 		u.Client.Validate(validator.WithReference("client"))
 	}
 
-	validator.Time("computerTime", u.ComputerTime)
+	validator.String("computerTime", u.ComputerTime).AsTime(ComputerTimeFormat)
 	validator.String("dataSetType", u.DataSetType).OneOf(DataSetTypes()...) // TODO: New field; add .Exists(); requires fix & DB migration
 
 	if validator.Origin() <= structure.OriginInternal {
@@ -215,4 +214,28 @@ func (u *Upload) HasDeduplicatorName() bool {
 
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
+}
+
+// this is an upload struct, with all time.Time fields replaced with string as they once were
+type LegacyUpload struct {
+	types.LegacyBase `bson:",inline"`
+
+	ByUser              *string   `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
+	Client              *Client   `json:"client,omitempty" bson:"client,omitempty"`
+	ComputerTime        *string   `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
+	DataSetType         *string   `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
+	DataState           *string   `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
+	DeviceManufacturers *[]string `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
+	DeviceModel         *string   `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string   `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
+	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
+	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
+	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
+}
+
+func NewLegacy() *LegacyUpload {
+	return &LegacyUpload{
+		LegacyBase: types.NewLegacy(Type),
+	}
 }
