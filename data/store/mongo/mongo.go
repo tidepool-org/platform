@@ -635,9 +635,9 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 
 	result := struct {
 		ID struct {
-			Active            bool       `bson:"_active"`
-			ArchivedDataSetID *string    `bson:"archivedDatasetId"`
-			ArchivedTime      *time.Time `bson:"archivedTime"`
+			Active            bool      `bson:"_active"`
+			ArchivedDataSetID string    `bson:"archivedDatasetId"`
+			ArchivedTime      time.Time `bson:"archivedTime"`
 		} `bson:"_id"`
 		ArchivedHashes []string `bson:"archivedHashes"`
 	}{}
@@ -650,7 +650,7 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 				overallErr = errors.Wrap(err, "unable to decode device data results")
 			}
 		}
-		if result.ID.Active != (result.ID.ArchivedDataSetID == nil) || result.ID.Active != (result.ID.ArchivedTime == nil) {
+		if result.ID.Active != (result.ID.ArchivedDataSetID == "") || result.ID.Active != (result.ID.ArchivedTime.IsZero()) {
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).Error("Unexpected pipe result for UnarchiveDeviceDataUsingHashesFromDataSet")
 			continue
@@ -671,8 +671,8 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 			unset["archivedDatasetId"] = true
 			unset["archivedTime"] = true
 		} else {
-			set["archivedDatasetId"] = *result.ID.ArchivedDataSetID
-			set["archivedTime"] = *result.ID.ArchivedTime
+			set["archivedDatasetId"] = result.ID.ArchivedDataSetID
+			set["archivedTime"] = result.ID.ArchivedTime
 		}
 		updateInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 		if err != nil {

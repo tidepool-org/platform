@@ -311,17 +311,17 @@ var _ = Describe("Mongo", func() {
 
 					BeforeEach(func() {
 						legacyUpload = NewLegacyDataSet(userID, deviceID)
-						createdTime, _ = time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
-						modifiedTime, _ = time.Parse(time.RFC3339, "2016-10-01T11:00:00Z")
-						deletedTime, _ = time.Parse(time.RFC3339, "2016-07-01T11:00:00Z")
-						recordTime, _ = time.Parse(time.RFC3339, "2016-06-01T11:00:00Z")
+						recordTime = test.PastNearTime()
+						createdTime = test.PastNearTime().AddDate(0, 0, 1)
+						modifiedTime = test.PastNearTime().AddDate(0, 0, 2)
+						deletedTime = test.PastNearTime().AddDate(0, 0, 3)
 					})
 
 					It("ensure string legacy dates are unmarshalled correctly", func() {
+						legacyUpload.Time = pointer.FromString(recordTime.Format(time.RFC3339Nano))
 						legacyUpload.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339Nano))
 						legacyUpload.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
 						legacyUpload.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339Nano))
-						legacyUpload.Time = pointer.FromString(recordTime.Format(time.RFC3339Nano))
 
 						_, err := collection.InsertOne(context.Background(), legacyUpload)
 						Expect(err).ToNot(HaveOccurred())

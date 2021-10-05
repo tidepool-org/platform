@@ -71,6 +71,22 @@ var _ = Describe("Base", func() {
 		})
 	})
 
+	Context("with new datum", func() {
+		var typ string
+		var datum types.Base
+
+		BeforeEach(func() {
+			typ = dataTypesTest.NewType()
+			datum = types.New(typ)
+		})
+
+		Context("Meta", func() {
+			It("returns the meta with type", func() {
+				Expect(datum.Meta()).To(Equal(&types.Meta{Type: typ}))
+			})
+		})
+	})
+
 	Context("Base", func() {
 		// Context("Parse", func() {
 		// TODO
@@ -349,6 +365,10 @@ var _ = Describe("Base", func() {
 				),
 				Entry("device id valid",
 					func(datum *types.Base) { datum.DeviceID = pointer.FromString(dataTest.NewDeviceID()) },
+					structure.Origins(),
+				),
+				Entry("device time missing",
+					func(datum *types.Base) { datum.DeviceTime = nil },
 					structure.Origins(),
 				),
 				Entry("device time invalid",
