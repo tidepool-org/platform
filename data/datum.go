@@ -18,6 +18,11 @@ type Datum interface {
 	GetOrigin() *origin.Origin
 	GetPayload() *metadata.Metadata
 
+	GetHistory() *[]interface{}
+	SetHistory(*[]interface{})
+	GetID() *string
+	SetID(id *string)
+
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)
 	SetActive(active bool)

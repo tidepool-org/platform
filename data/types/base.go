@@ -51,6 +51,7 @@ type Base struct {
 	DeviceTime        *string                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
+	History           *[]interface{}                `json:"history,omitempty" bson:"history,omitempty"`
 	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
 	ModifiedTime      *string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
@@ -92,6 +93,7 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	b.DeviceID = parser.String("deviceId")
 	b.DeviceTime = parser.String("deviceTime")
 	b.ID = parser.String("id")
+	b.History = parser.Array("history")
 	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
 	b.Notes = parser.StringArray("notes")
 	b.Origin = origin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
@@ -256,6 +258,29 @@ func (b *Base) IdentityFields() ([]string, error) {
 	}
 
 	return []string{*b.UserID, *b.DeviceID, *b.Time, b.Type}, nil
+}
+
+func (b *Base) GetID() *string {
+	return b.ID
+}
+
+func (b *Base) SetID(id *string) {
+	b.ID = id
+}
+
+func (b *Base) GetHistory() *[]interface{} {
+	if b.History == nil {
+		return &[]interface{}{}
+	}
+	return b.History
+}
+
+func (b *Base) SetHistory(history *[]interface{}) {
+	if history == nil {
+		b.History = &[]interface{}{}
+		return
+	}
+	b.History = history
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

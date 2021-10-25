@@ -223,6 +223,14 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 	return output.DataSet, output.Error
 }
 
+func (d *DataRepository) GetDataSetDataByID(ctx context.Context, dataSetID string, dataID string) (interface{}, error) {
+	return nil, nil
+}
+
+func (d *DataRepository) UpdateDataSetData(ctx context.Context, dataSet *upload.Upload, datum data.Datum) error {
+	return nil
+}
+
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	d.CreateDataSetInvocations++
 

@@ -16,6 +16,24 @@ func ErrorUserIDMissing() *service.Error {
 	}
 }
 
+func ErrorDataIDMissing() *service.Error {
+	return &service.Error{
+		Code:   "dataset-data-id-missing",
+		Status: http.StatusBadRequest,
+		Title:  "dataset data id is missing",
+		Detail: "dataset data id is missing",
+	}
+}
+
+func ErrorDataSetDataMissing() *service.Error {
+	return &service.Error{
+		Code:   "dataset-data-missing",
+		Status: http.StatusBadRequest,
+		Title:  "dataset data cannot be fetched",
+		Detail: "dataset data cannot be fetched",
+	}
+}
+
 func ErrorUserIDNotFound(userID string) *service.Error {
 	return &service.Error{
 		Code:   "user-id-not-found",

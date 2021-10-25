@@ -25,6 +25,8 @@ type DataRepository interface {
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
 
+	GetDataSetDataByID(ctx context.Context, dataSetDataID string, dataID string) (interface{}, error)
+	UpdateDataSetData(ctx context.Context, dataSet *upload.Upload, datum data.Datum) error
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
