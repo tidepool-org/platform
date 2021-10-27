@@ -28,7 +28,7 @@ func ErrorDataIDMissing() *service.Error {
 func ErrorDataSetDataMissing() *service.Error {
 	return &service.Error{
 		Code:   "dataset-data-missing",
-		Status: http.StatusBadRequest,
+		Status: http.StatusNotFound,
 		Title:  "dataset data cannot be fetched",
 		Detail: "dataset data cannot be fetched",
 	}
