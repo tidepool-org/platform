@@ -25,7 +25,7 @@ func DataSetsDataUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
-	if dataID == "" {
+	if dataSetID == "" {
 		dataServiceContext.RespondWithError(ErrorDataSetIDMissing())
 		return
 	}
