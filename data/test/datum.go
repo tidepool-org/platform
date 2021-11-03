@@ -29,6 +29,8 @@ type Datum struct {
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
 	GetOriginOutputs                     []*origin.Origin
+	GetTypeInvocations                   int
+	GetTypeOutput                        []string
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -118,6 +120,16 @@ func (d *Datum) GetOrigin() *origin.Origin {
 
 	output := d.GetOriginOutputs[0]
 	d.GetOriginOutputs = d.GetOriginOutputs[1:]
+	return output
+}
+
+func (d *Datum) GetType() string {
+	d.GetTypeInvocations++
+
+	gomega.Expect(d.GetTypeOutput).ToNot(gomega.BeEmpty())
+
+	output := d.GetTypeOutput[0]
+	d.GetTypeOutput = d.GetTypeOutput[1:]
 	return output
 }
 

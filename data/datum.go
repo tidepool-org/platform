@@ -18,6 +18,7 @@ type Datum interface {
 
 	GetOrigin() *origin.Origin
 	GetPayload() *metadata.Metadata
+	GetType() string
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

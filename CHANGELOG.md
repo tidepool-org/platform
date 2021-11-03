@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## Unreleased
+### Changed
+- YLP-1017 push glycemia data  in buckets in read db 
+
 ## 0.13.0 - 2021-09-09
 ### Changed
 - YLP-945 Update glycemia unit conversion in platform data

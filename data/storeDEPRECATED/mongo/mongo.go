@@ -6,9 +6,14 @@ import (
 
 	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	logrus "github.com/sirupsen/logrus"
+
+	goComMgo "github.com/mdblp/go-common/clients/mongo"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/schema"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -30,7 +35,12 @@ var (
 	}
 )
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
+type Stores struct {
+	*storeStructuredMongo.Store
+	BucketStore *MongoBucketStoreClient
+}
+
+func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger) (*Stores, error) {
 	if cfg != nil {
 		cfg.Indexes = deviceDataIndexes
 	}
@@ -39,23 +49,28 @@ func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) 
 		return nil, err
 	}
 
-	return &Store{
-		Store: baseStore,
+	bucketStore, err := NewMongoBucketStoreClient(config, lg)
+	if err != nil {
+		return nil, err
+	}
+
+	bucketStore.Start()
+	return &Stores{
+		Store:       baseStore,
+		BucketStore: bucketStore,
 	}, nil
 }
 
-type Store struct {
-	*storeStructuredMongo.Store
-}
-
-func (s *Store) NewDataSession() storeDEPRECATED.DataSession {
+func (s *Stores) NewDataSession() storeDEPRECATED.DataSession {
 	return &DataSession{
-		Session: s.Store.NewSession("deviceData"),
+		Session:     s.Store.NewSession("deviceData"),
+		BucketStore: s.BucketStore,
 	}
 }
 
 type DataSession struct {
 	*storeStructuredMongo.Session
+	BucketStore *MongoBucketStoreClient
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
@@ -315,6 +330,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload,
 	return nil
 }
 
+// Create data
 func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -335,21 +351,59 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	}
 
 	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	creationTimestamp := now.Truncate(time.Millisecond)
+	strTimestamp := creationTimestamp.Format(time.RFC3339Nano)
 
 	insertData := make([]interface{}, len(dataSetData))
+	var samples []schema.CbgSample
+	var err error
+
 	for index, datum := range dataSetData {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		datum.SetCreatedTime(&timestamp)
+		datum.SetCreatedTime(&strTimestamp)
+		// Prepare cbg to be pushed into data read db
+		if datum.GetType() == "cbg" {
+			loggerFields := log.Fields{"dataSet": dataSet}
+			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a cbg entry")
+			event := datum.(*continuous.Continuous)
+
+			// mapping
+			var s = &schema.CbgSample{}
+			s.Value = *event.Value
+			s.Units = *event.Units
+			// extract string value (dereference)
+			s.Timezone = *event.TimeZoneName
+			s.TimezoneOffset = *event.TimeZoneOffset
+			// what is this mess ???
+			strTime := *event.Time
+			s.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
+
+			if err != nil {
+				return errors.Wrap(err, "unable to parse cbg event time")
+			}
+
+			samples = append(samples, *s)
+
+		}
+
 		insertData[index] = datum
+	}
+
+	if len(samples) > 0 {
+		err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples)
+		if err != nil {
+			return errors.Wrap(err, "unable to create cbg bucket")
+		}
+	} else {
+		d.BucketStore.log.Debug("no cbg sample to write, nothing to add in bucket")
 	}
 
 	bulk := d.C().Bulk()
 	bulk.Unordered()
 	bulk.Insert(insertData...)
 
-	_, err := bulk.Run()
+	_, err = bulk.Run()
 
 	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")

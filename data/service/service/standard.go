@@ -1,6 +1,11 @@
 package service
 
 import (
+	"os"
+
+	"github.com/mdblp/go-common/clients/mongo"
+	logrus "github.com/sirupsen/logrus"
+
 	"github.com/tidepool-org/platform/application"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
@@ -21,12 +26,14 @@ type Standard struct {
 	*service.DEPRECATEDService
 	permissionClient        *permissionClient.Client
 	dataDeduplicatorFactory *dataDeduplicatorFactory.Factory
-	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Store
+	dataStoreDEPRECATED     *dataStoreDEPRECATEDMongo.Stores
 	syncTaskStore           *syncTaskMongo.Store
 	dataClient              *Client
 	api                     *api.Standard
 	server                  *server.Standard
 }
+
+var logrusLogger = logrus.New()
 
 func NewStandard() *Standard {
 	return &Standard{
@@ -70,6 +77,7 @@ func (s *Standard) Terminate() {
 	}
 	if s.dataStoreDEPRECATED != nil {
 		s.dataStoreDEPRECATED.Close()
+		s.dataStoreDEPRECATED.BucketStore.Close()
 		s.dataStoreDEPRECATED = nil
 	}
 	s.dataDeduplicatorFactory = nil
@@ -167,7 +175,21 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 
 	s.Logger().Debug("Creating data store")
 
-	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, s.Logger())
+	// Temporary hack
+	// new logger configuration required due to go common
+	logrusLogger.Out = os.Stdout
+	logrusLogger.SetFormatter(&logrus.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
+	// report method name
+	logrusLogger.SetReportCaller(true)
+
+	var mongoDbReadConfig = &mongo.Config{}
+	mongoDbReadConfig.FromEnv()
+	mongoDbReadConfig.Database = "data_read"
+
+	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, mongoDbReadConfig, s.Logger(), logrusLogger)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}

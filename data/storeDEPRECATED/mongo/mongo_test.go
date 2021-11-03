@@ -8,10 +8,15 @@ import (
 	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	logrus "github.com/sirupsen/logrus"
+	logrusTest "github.com/sirupsen/logrus/hooks/test"
+
+	goComMgo "github.com/mdblp/go-common/clients/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
+	bucketStoreTestHelper "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -120,13 +125,18 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 
 var _ = Describe("Mongo", func() {
 	var logger *logTest.Logger
+	var dbReadLogger *logrus.Logger
 	var config *storeStructuredMongo.Config
-	var store *mongo.Store
+	var dbReadConfig *goComMgo.Config
+	var store *mongo.Stores
 	var session storeDEPRECATED.DataSession
+	var hook *logrusTest.Hook
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
+		dbReadLogger, hook = logrusTest.NewNullLogger()
 		config = storeStructuredMongoTest.NewConfig()
+		dbReadConfig = bucketStoreTestHelper.NewConfig()
 	})
 
 	AfterEach(func() {
@@ -135,23 +145,29 @@ var _ = Describe("Mongo", func() {
 		}
 		if store != nil {
 			store.Close()
+			if store.BucketStore != nil {
+				store.BucketStore.Close()
+			}
+		}
+		if hook != nil {
+			hook.Reset()
 		}
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			store, err = mongo.NewStore(nil, nil)
+			store, err = mongo.NewStore(nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			store, err = mongo.NewStore(config, logger)
-			store.WaitUntilStarted()
+			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
+			store.WaitUntilStarted()
 		})
 	})
 
@@ -161,10 +177,11 @@ var _ = Describe("Mongo", func() {
 
 		BeforeEach(func() {
 			var err error
-			store, err = mongo.NewStore(config, logger)
-			store.WaitUntilStarted()
+			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger)
+			// if any error occured, not needed to wait until the store started
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
+			store.WaitUntilStarted()
 			mgoSession = storeStructuredMongoTest.Session().Copy()
 			mgoCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "deviceData")
 		})

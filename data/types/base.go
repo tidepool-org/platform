@@ -285,6 +285,10 @@ func (b *Base) GetOrigin() *origin.Origin {
 	return b.Origin
 }
 
+func (b *Base) GetType() string {
+	return b.Type
+}
+
 func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
