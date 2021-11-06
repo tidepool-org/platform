@@ -31,14 +31,14 @@ func NewMeta() interface{} {
 
 func NewTemporary() *temporary.Temporary {
 	datum := temporary.New()
-	datum.Basal = *dataTypesBasalTest.NewBasal()
+	datum.Basal = *dataTypesBasalTest.RandomBasal()
 	datum.DeliveryType = "temp"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(temporary.DurationMinimum, temporary.DurationMaximum))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, temporary.DurationMaximum))
-	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
+	datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
 	datum.Percent = pointer.FromFloat64(test.RandomFloat64FromRange(temporary.PercentMinimum, temporary.PercentMaximum))
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(temporary.RateMinimum, temporary.RateMaximum))
-	datum.Suppressed = dataTypesBasalScheduledTest.NewSuppressedScheduled()
+	datum.Suppressed = dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 	return datum
 }
 
@@ -330,7 +330,7 @@ var _ = Describe("Temporary", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", NewMeta()),
 				),
 				Entry("insulin formulation valid",
-					func(datum *temporary.Temporary) { datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3) },
+					func(datum *temporary.Temporary) { datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3) },
 				),
 				Entry("percent missing",
 					func(datum *temporary.Temporary) { datum.Percent = nil },
@@ -372,20 +372,19 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("suppressed automated",
 					func(datum *temporary.Temporary) {
-						datum.Suppressed = dataTypesBasalAutomatedTest.NewSuppressedAutomated()
+						datum.Suppressed = dataTypesBasalAutomatedTest.RandomSuppressedAutomated()
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", NewMeta()),
 				),
 				Entry("suppressed scheduled",
 					func(datum *temporary.Temporary) {
-						datum.Suppressed = dataTypesBasalScheduledTest.NewSuppressedScheduled()
+						datum.Suppressed = dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 					},
 				),
 				Entry("suppressed temporary with suppressed missing",
 					func(datum *temporary.Temporary) {
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil)
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotValid(), "/suppressed", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *temporary.Temporary) {
@@ -398,7 +397,7 @@ var _ = Describe("Temporary", func() {
 						datum.InsulinFormulation.Simple = nil
 						datum.Percent = pointer.FromFloat64(10.1)
 						datum.Rate = pointer.FromFloat64(100.1)
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil)
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
@@ -407,7 +406,7 @@ var _ = Describe("Temporary", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotValid(), "/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
 			)
 		})
@@ -479,7 +478,7 @@ var _ = Describe("Temporary", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *temporary.SuppressedTemporary), expectedErrors ...error) {
-					datum := dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalScheduledTest.NewSuppressedScheduled())
+					datum := dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalScheduledTest.RandomSuppressedScheduled())
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -523,7 +522,7 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("insulin formulation valid",
 					func(datum *temporary.SuppressedTemporary) {
-						datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
+						datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
 					},
 				),
 				Entry("percent missing",
@@ -566,20 +565,19 @@ var _ = Describe("Temporary", func() {
 				),
 				Entry("suppressed automated",
 					func(datum *temporary.SuppressedTemporary) {
-						datum.Suppressed = dataTypesBasalAutomatedTest.NewSuppressedAutomated()
+						datum.Suppressed = dataTypesBasalAutomatedTest.RandomSuppressedAutomated()
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
 				),
 				Entry("suppressed scheduled",
 					func(datum *temporary.SuppressedTemporary) {
-						datum.Suppressed = dataTypesBasalScheduledTest.NewSuppressedScheduled()
+						datum.Suppressed = dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 					},
 				),
 				Entry("suppressed temporary with suppressed missing",
 					func(datum *temporary.SuppressedTemporary) {
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil)
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/suppressed"),
 				),
 				Entry("multiple errors",
 					func(datum *temporary.SuppressedTemporary) {
@@ -590,14 +588,14 @@ var _ = Describe("Temporary", func() {
 						datum.InsulinFormulation.Simple = nil
 						datum.Percent = pointer.FromFloat64(10.1)
 						datum.Rate = pointer.FromFloat64(100.1)
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil)
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "temp"), "/deliveryType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/percent"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/rate"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/suppressed"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/suppressed"),
 				),
 			)
 		})
@@ -606,7 +604,7 @@ var _ = Describe("Temporary", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *temporary.SuppressedTemporary)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalScheduledTest.NewSuppressedScheduled())
+						datum := dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalScheduledTest.RandomSuppressedScheduled())
 						mutator(datum)
 						expectedDatum := dataTypesBasalTemporaryTest.CloneSuppressedTemporary(datum)
 						normalizer := dataNormalizer.New()

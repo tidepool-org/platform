@@ -49,7 +49,7 @@ func CloneBasalRateStartArray(datumArray *pump.BasalRateStartArray) *pump.BasalR
 
 func NewBasalRateStartArrayMap() *pump.BasalRateStartArrayMap {
 	datum := pump.NewBasalRateStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewBasalRateStartArray())
+	datum.Set(dataTypesBasalTest.RandomScheduleName(), NewBasalRateStartArray())
 	return datum
 }
 

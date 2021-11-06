@@ -394,20 +394,42 @@ var _ = Describe("Pump", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604801, 0, 604800), "/duration", NewMeta()),
 				),
-				Entry("duration expected exists",
-					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
-						datum.Duration = nil
-						datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(0, 604800))
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/expectedDuration", NewMeta()),
-				),
 				Entry("duration expected missing",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(test.RandomIntFromRange(0, 604800))
 						datum.DurationExpected = nil
 					},
+				),
+				Entry("duration expected; duration missing; out of range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
+						datum.Duration = nil
+						datum.DurationExpected = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/expectedDuration", NewMeta()),
+				),
+				Entry("duration expected; duration missing; in range (lower)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
+						datum.Duration = nil
+						datum.DurationExpected = pointer.FromInt(0)
+					},
+				),
+				Entry("duration expected; duration missing; in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
+						datum.Duration = nil
+						datum.DurationExpected = pointer.FromInt(604800)
+					},
+				),
+				Entry("duration expected; duration missing; out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
+						datum.Duration = nil
+						datum.DurationExpected = pointer.FromInt(604801)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604801, 0, 604800), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration expected; duration out of range; out of range (lower)",
 					pointer.FromString("mmol/L"),

@@ -51,7 +51,7 @@ func CloneInsulinSensitivityStartArray(datumArray *pump.InsulinSensitivityStartA
 
 func NewInsulinSensitivityStartArrayMap(units *string) *pump.InsulinSensitivityStartArrayMap {
 	datum := pump.NewInsulinSensitivityStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewInsulinSensitivityStartArray(units))
+	datum.Set(dataTypesBasalTest.RandomScheduleName(), NewInsulinSensitivityStartArray(units))
 	return datum
 }
 

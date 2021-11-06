@@ -65,7 +65,7 @@ func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.B
 
 func NewBloodGlucoseTargetStartArrayMap(units *string) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
 	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), RandomBloodGlucoseTargetStartArray(units))
+	datum.Set(dataTypesBasalTest.RandomScheduleName(), RandomBloodGlucoseTargetStartArray(units))
 	return datum
 }
 
