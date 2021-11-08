@@ -368,7 +368,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	return nil
 }
 
-func (d *DataRepository) UpdateDataSetData(ctx context.Context, dataSet *upload.Upload, datum data.Datum) error {
+func (d *DataRepository) UpdateDataSetDatum(ctx context.Context, dataSet *upload.Upload, datum data.Datum) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -396,18 +396,22 @@ func (d *DataRepository) UpdateDataSetData(ctx context.Context, dataSet *upload.
 	return nil
 }
 
-func (d *DataRepository) GetDataSetDataByID(ctx context.Context, dataSetID string, dataID string) (interface{}, error) {
+func (d *DataRepository) GetDataSetDatumByID(ctx context.Context, dataSetID string, datumID string) (interface{}, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if dataID == "" {
+	if datumID == "" {
 		return nil, errors.New("data id is missing")
 	}
 	if dataSetID == "" {
 		return nil, errors.New("data id is missing")
 	}
 	var result map[string]interface{}
-	err := d.FindOne(ctx, bson.M{"id": dataID, "uploadId": dataSetID}).Decode(&result)
+	res := d.FindOne(ctx, bson.M{"id": datumID, "uploadId": dataSetID})
+	if err := res.Err(); err == mongo.ErrNoDocuments {
+		return nil, &store.ErrDataNotFound{Err: err}
+	}
+	err := res.Decode(&result)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get data sets for user by id")
 	}

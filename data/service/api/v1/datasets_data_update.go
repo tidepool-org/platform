@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/store"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
@@ -16,12 +17,12 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func DataSetsDataUpdate(dataServiceContext dataService.Context) {
+func DataSetDatumUpdate(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 
-	dataID := dataServiceContext.Request().PathParam("dataId")
-	if dataID == "" {
-		dataServiceContext.RespondWithError(ErrorDataIDMissing())
+	datumID := dataServiceContext.Request().PathParam("datumId")
+	if datumID == "" {
+		dataServiceContext.RespondWithError(ErrorDatumIDMissing())
 		return
 	}
 	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
@@ -57,29 +58,24 @@ func DataSetsDataUpdate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
+	if dataSet.IsClosed() {
 		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
 		return
 	}
 
-	rawDatum, err := dataServiceContext.DataRepository().GetDataSetDataByID(ctx, dataSetID, dataID)
+	rawDatum, err := dataServiceContext.DataRepository().GetDataSetDatumByID(ctx, dataSetID, datumID)
 	if err != nil {
-		dataServiceContext.RespondWithError(ErrorDataSetDataMissing())
+		if _, ok := err.(*store.ErrDataNotFound); ok {
+			dataServiceContext.RespondWithError(ErrorDataSetDatumMissing())
+			return
+		}
+		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	// the result coming from the db decoder cannot be parsed properly a few lines down
-	// but the json marshaled/unmarshaled can so doing this extra step for now
-	resultsJSON, err := json.Marshal([]interface{}{rawDatum})
+	rawDatumArrayDB, err := rawDatumToRawDatumArray(rawDatum)
 	if err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
-		return
-	}
-	var rawDatumArrayDB []interface{}
-	err = json.Unmarshal(resultsJSON, &rawDatumArrayDB)
-	if err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
-		return
 	}
 
 	parser := structureParser.NewArray(&rawDatumArrayDB)
@@ -150,13 +146,28 @@ func DataSetsDataUpdate(dataServiceContext dataService.Context) {
 	dbDatum.SetHistory(nil)
 	existingHistory = append(existingHistory, dbDatum)
 	datum.SetHistory(&existingHistory)
-	datum.SetID(&dataID)
+	datum.SetID(&datumID)
 
-	err = dataServiceContext.DataRepository().UpdateDataSetData(ctx, dataSet, datum)
+	err = dataServiceContext.DataRepository().UpdateDataSetDatum(ctx, dataSet, datum)
 	if err != nil {
 		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
 		return
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, struct{}{})
+}
+
+// the result coming from the db decoder cannot be parsed properly in the parser
+// but the json marshaled/unmarshaled array can be so doing this extra step for now
+func rawDatumToRawDatumArray(rawDatum interface{}) ([]interface{}, error) {
+	resultsJSON, err := json.Marshal([]interface{}{rawDatum})
+	if err != nil {
+		return nil, err
+	}
+	var rawDatumArrayDB []interface{}
+	err = json.Unmarshal(resultsJSON, &rawDatumArrayDB)
+	if err != nil {
+		return nil, err
+	}
+	return rawDatumArrayDB, nil
 }

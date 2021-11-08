@@ -16,21 +16,21 @@ func ErrorUserIDMissing() *service.Error {
 	}
 }
 
-func ErrorDataIDMissing() *service.Error {
+func ErrorDatumIDMissing() *service.Error {
 	return &service.Error{
-		Code:   "dataset-data-id-missing",
+		Code:   "dataset-datum-id-missing",
 		Status: http.StatusBadRequest,
-		Title:  "dataset data id is missing",
-		Detail: "dataset data id is missing",
+		Title:  "dataset datum id is missing",
+		Detail: "dataset datum id is missing",
 	}
 }
 
-func ErrorDataSetDataMissing() *service.Error {
+func ErrorDataSetDatumMissing() *service.Error {
 	return &service.Error{
-		Code:   "dataset-data-missing",
+		Code:   "dataset-datum-missing",
 		Status: http.StatusNotFound,
-		Title:  "dataset data cannot be fetched",
-		Detail: "dataset data cannot be fetched",
+		Title:  "dataset datum cannot be fetched",
+		Detail: "dataset datum cannot be fetched",
 	}
 }
 

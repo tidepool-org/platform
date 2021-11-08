@@ -5,7 +5,7 @@ import "github.com/tidepool-org/platform/data/service"
 func Routes() []service.Route {
 	routes := []service.Route{
 		service.MakeRoute("POST", "/v1/datasets/:dataSetId/data", Authenticate(DataSetsDataCreate)),
-		service.MakeRoute("PUT", "/v1/datasets/:dataSetId/data/:dataId", Authenticate(DataSetsDataUpdate)),
+		service.MakeRoute("PUT", "/v1/datasets/:dataSetId/data/:datumId", Authenticate(DataSetDatumUpdate)),
 		service.MakeRoute("DELETE", "/v1/datasets/:dataSetId", Authenticate(DataSetsDelete)),
 		service.MakeRoute("PUT", "/v1/datasets/:dataSetId", Authenticate(DataSetsUpdate)),
 		service.MakeRoute("DELETE", "/v1/users/:userId/data", Authenticate(UsersDataDelete)),
