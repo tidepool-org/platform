@@ -13,9 +13,13 @@ func RandomCGM(units *string) *dataTypesSettingsCgm.CGM {
 	datum := dataTypesSettingsCgm.New()
 	datum.Base = *dataTypesTest.NewBase()
 	datum.Type = "cgmSettings"
+	datum.FirmwareVersion = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.FirmwareVersionLengthMaximum))
+	datum.HardwareVersion = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.HardwareVersionLengthMaximum))
 	datum.Manufacturers = pointer.FromStringArray(RandomManufacturersFromRange(1, 3))
 	datum.Model = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.ModelLengthMaximum))
+	datum.Name = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.NameLengthMaximum))
 	datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.SerialNumberLengthMaximum))
+	datum.SoftwareVersion = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.SoftwareVersionLengthMaximum))
 	datum.TransmitterID = pointer.FromString(test.RandomStringFromRangeAndCharset(5, 6, CharsetTransmitterID))
 	datum.Units = units
 	datum.DefaultAlerts = RandomAlerts()
@@ -33,9 +37,13 @@ func CloneCGM(datum *dataTypesSettingsCgm.CGM) *dataTypesSettingsCgm.CGM {
 	}
 	clone := dataTypesSettingsCgm.New()
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
+	clone.FirmwareVersion = pointer.CloneString(datum.FirmwareVersion)
+	clone.HardwareVersion = pointer.CloneString(datum.HardwareVersion)
 	clone.Manufacturers = pointer.CloneStringArray(datum.Manufacturers)
 	clone.Model = pointer.CloneString(datum.Model)
+	clone.Name = pointer.CloneString(datum.Name)
 	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
+	clone.SoftwareVersion = pointer.CloneString(datum.SoftwareVersion)
 	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
 	clone.Units = pointer.CloneString(datum.Units)
 	clone.DefaultAlerts = CloneAlerts(datum.DefaultAlerts)

@@ -1,4 +1,5 @@
 *.coverprofile
+*.test
 /_bin
 /_data
 /_log

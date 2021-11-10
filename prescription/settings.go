@@ -56,7 +56,7 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbohydrateRatioSchedule"))
 	}
 	if i.GlucoseSafetyLimit != nil {
-		pump.ValidateBloodGlucoseSuspendThreshold(i.GlucoseSafetyLimit, &i.BloodGlucoseUnits, "glucoseSafetyLimit", validator)
+		pump.ValidateBloodGlucoseSafetyLimit(i.GlucoseSafetyLimit, &i.BloodGlucoseUnits, "glucoseSafetyLimit", validator)
 	}
 	if i.InsulinModel != nil {
 		validator.String("insulinModel", i.InsulinModel).OneOf(AllowedInsulinModels()...)
