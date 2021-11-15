@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mdblp/go-json-rest/rest"
 
 	serviceContext "github.com/tidepool-org/platform/service/context"
 )

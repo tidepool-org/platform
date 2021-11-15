@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mdblp/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/errors"

@@ -1,7 +1,10 @@
 package api
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
+	"net/http"
+
+	"github.com/mdblp/go-json-rest/rest"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
@@ -74,6 +77,11 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 			Func:       s.withContext(route.Handler),
 		})
 	}
+	metricRoute := rest.Get("/metrics", func(w rest.ResponseWriter, r *rest.Request) {
+		promhttp.Handler().ServeHTTP(w.(http.ResponseWriter), r.Request)
+	})
+
+	contextRoutes = append(contextRoutes, metricRoute)
 
 	router, err := rest.MakeRouter(contextRoutes...)
 	if err != nil {

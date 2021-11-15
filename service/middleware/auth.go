@@ -3,7 +3,7 @@ package middleware
 import (
 	"strings"
 
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mdblp/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/crypto"

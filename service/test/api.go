@@ -3,7 +3,7 @@ package test
 import (
 	"net/http"
 
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mdblp/go-json-rest/rest"
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/service"

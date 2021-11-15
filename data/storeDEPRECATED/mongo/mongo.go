@@ -6,6 +6,8 @@ import (
 
 	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	logrus "github.com/sirupsen/logrus"
 
 	goComMgo "github.com/mdblp/go-common/clients/mongo"
@@ -34,6 +36,22 @@ var (
 		},
 	}
 )
+
+var dataWriteToReadStoreMetrics = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	Name:      "write_to_read_store_duration_milliseconds",
+	Help:      "A histogram for writing cbg data to read store execution time in ms",
+	Buckets:   prometheus.LinearBuckets(20, 20, 300),
+	Subsystem: "data",
+	Namespace: "dblp",
+}, []string{"type"})
+
+var datumWriteToDeviceDataStoreMetrics = promauto.NewHistogram(prometheus.HistogramOpts{
+	Name:      "write_datum_to_deviceData_duration_milliseconds",
+	Help:      "A histogram for writing a datum to the device data execution time (ms)",
+	Buckets:   prometheus.LinearBuckets(20, 20, 300),
+	Subsystem: "data",
+	Namespace: "dblp",
+})
 
 type Stores struct {
 	*storeStructuredMongo.Store
@@ -390,6 +408,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		insertData[index] = datum
 	}
 
+	start := time.Now()
 	if len(samples) > 0 {
 		err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples)
 		if err != nil {
@@ -398,12 +417,17 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	} else {
 		d.BucketStore.log.Debug("no cbg sample to write, nothing to add in bucket")
 	}
+	elapsed_time := time.Since(start).Milliseconds()
+	dataWriteToReadStoreMetrics.WithLabelValues("cbg").Observe(float64(elapsed_time))
 
+	start = time.Now()
 	bulk := d.C().Bulk()
 	bulk.Unordered()
 	bulk.Insert(insertData...)
 
 	_, err = bulk.Run()
+	elapsed_time = time.Since(start).Milliseconds()
+	datumWriteToDeviceDataStoreMetrics.Observe(float64(elapsed_time))
 
 	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")

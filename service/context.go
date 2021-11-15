@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mdblp/go-json-rest/rest"
 )
 
 type Context interface {

@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/mdblp/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service"
@@ -68,12 +68,14 @@ func (a *API) InitializeMiddleware() error {
 		return err
 	}
 
+	promMiddleware := &middleware.PromMiddleware{}
 	statusMiddleware := &rest.StatusMiddleware{}
 	timerMiddleware := &rest.TimerMiddleware{}
 	recorderMiddleware := &rest.RecorderMiddleware{}
 	gzipMiddleware := &rest.GzipMiddleware{}
 
 	middlewareStack := []rest.Middleware{
+		promMiddleware,
 		loggerMiddleware,
 		errorMiddleware,
 		traceMiddleware,
