@@ -189,7 +189,7 @@ func (t *Tool) initializeStore() error {
 	mongoDbReadConfig.FromEnv()
 	mongoDbReadConfig.Database = "data_read"
 
-	store, err := dataStoreDEPRECATEDMongo.NewStore(t.config, mongoDbReadConfig, t.Logger(), logrusLogger)
+	store, err := dataStoreDEPRECATEDMongo.NewStore(t.config, mongoDbReadConfig, t.Logger(), logrusLogger, true)
 	if err != nil {
 		return errors.Wrap(err, "unable to create store")
 	}

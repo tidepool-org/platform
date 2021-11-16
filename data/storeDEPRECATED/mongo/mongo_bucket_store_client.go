@@ -23,7 +23,7 @@ type MongoBucketStoreClient struct {
 	log *log.Logger
 }
 
-// Create a new bucket store client for a mongo DB
+// Create a new bucket store client for a mongo DB if active is set to true, nil otherwise
 func NewMongoBucketStoreClient(config *goComMgo.Config, logger *log.Logger) (*MongoBucketStoreClient, error) {
 	if config == nil {
 		return nil, errors.New("bucket store mongo configuration is missing")
@@ -31,6 +31,7 @@ func NewMongoBucketStoreClient(config *goComMgo.Config, logger *log.Logger) (*Mo
 
 	if logger == nil {
 		return nil, errors.New("logger is missing for bucket store client")
+
 	}
 
 	client := MongoBucketStoreClient{}

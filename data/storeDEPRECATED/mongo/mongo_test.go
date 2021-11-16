@@ -157,14 +157,14 @@ var _ = Describe("Mongo", func() {
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			store, err = mongo.NewStore(nil, nil, nil, nil)
+			store, err = mongo.NewStore(nil, nil, nil, nil, false)
 			Expect(err).To(HaveOccurred())
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger)
+			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, true)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			store.WaitUntilStarted()
@@ -177,7 +177,7 @@ var _ = Describe("Mongo", func() {
 
 		BeforeEach(func() {
 			var err error
-			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger)
+			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, true)
 			// if any error occured, not needed to wait until the store started
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
