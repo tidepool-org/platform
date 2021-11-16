@@ -1,4 +1,4 @@
-package pumpstatus
+package pump
 
 import (
 	"time"

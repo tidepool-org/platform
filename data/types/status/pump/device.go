@@ -1,4 +1,4 @@
-package pumpstatus
+package pump
 
 import (
 	"github.com/tidepool-org/platform/structure"

@@ -1,4 +1,4 @@
-package pumpstatus
+package pump
 
 import (
 	"time"
@@ -14,7 +14,7 @@ const (
 	TimeFormat = time.RFC3339Nano
 )
 
-type PumpStatus struct {
+type Pump struct {
 	dataTypes.Base `bson:",inline"`
 
 	BasalDelivery *BasalDelivery `json:"basalDelivery,omitempty" bson:"basalDelivery,omitempty"`
@@ -24,13 +24,13 @@ type PumpStatus struct {
 	Reservoir     *Reservoir     `json:"reservoir,omitempty" bson:"reservoir,omitempty"`
 }
 
-func New() *PumpStatus {
-	return &PumpStatus{
+func New() *Pump {
+	return &Pump{
 		Base: dataTypes.New(Type),
 	}
 }
 
-func (p *PumpStatus) Parse(parser structure.ObjectParser) {
+func (p *Pump) Parse(parser structure.ObjectParser) {
 	if !parser.HasMeta() {
 		parser = parser.WithMeta(p.Meta())
 	}
@@ -44,7 +44,7 @@ func (p *PumpStatus) Parse(parser structure.ObjectParser) {
 	p.Reservoir = ParseReservoir(parser.WithReferenceObjectParser("reservoir"))
 }
 
-func (p *PumpStatus) Validate(validator structure.Validator) {
+func (p *Pump) Validate(validator structure.Validator) {
 	if !validator.HasMeta() {
 		validator = validator.WithMeta(p.Meta())
 	}
@@ -72,7 +72,7 @@ func (p *PumpStatus) Validate(validator structure.Validator) {
 	}
 }
 
-func (p *PumpStatus) Normalize(normalizer data.Normalizer) {
+func (p *Pump) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(p.Meta())
 	}
