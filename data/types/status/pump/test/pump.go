@@ -1,12 +1,12 @@
 package test
 
 import (
-	dataTypesPumpStatus "github.com/tidepool-org/platform/data/types/pumpstatus"
+	dataTypesStatusPump "github.com/tidepool-org/platform/data/types/status/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 )
 
-func RandomPumpStatus() *dataTypesPumpStatus.PumpStatus {
-	datum := dataTypesPumpStatus.New()
+func RandomPump() *dataTypesStatusPump.Pump {
+	datum := dataTypesStatusPump.New()
 	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "pumpStatus"
 	datum.BasalDelivery = RandomBasalDelivery()
@@ -17,11 +17,11 @@ func RandomPumpStatus() *dataTypesPumpStatus.PumpStatus {
 	return datum
 }
 
-func ClonePumpStatus(datum *dataTypesPumpStatus.PumpStatus) *dataTypesPumpStatus.PumpStatus {
+func ClonePump(datum *dataTypesStatusPump.Pump) *dataTypesStatusPump.Pump {
 	if datum == nil {
 		return nil
 	}
-	clone := dataTypesPumpStatus.New()
+	clone := dataTypesStatusPump.New()
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.BasalDelivery = CloneBasalDelivery(datum.BasalDelivery)
 	clone.Battery = CloneBattery(datum.Battery)
