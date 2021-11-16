@@ -3,8 +3,6 @@ package pump_test
 import (
 	"sort"
 
-	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -12,9 +10,11 @@ import (
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesInsulinTests "github.com/tidepool-org/platform/data/types/insulin/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -49,6 +49,7 @@ var _ = Describe("Pump", func() {
 			Expect(datum.Display).To(BeNil())
 			Expect(datum.FirmwareVersion).To(BeNil())
 			Expect(datum.HardwareVersion).To(BeNil())
+			Expect(datum.InsulinFormulation).To(BeNil())
 			Expect(datum.InsulinModel).To(BeNil())
 			Expect(datum.InsulinSensitivitySchedule).To(BeNil())
 			Expect(datum.InsulinSensitivitySchedules).To(BeNil())
@@ -82,12 +83,12 @@ var _ = Describe("Pump", func() {
 				Entry("type missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Type = "" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &dataTypes.Meta{}),
 				),
 				Entry("type invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Type = "invalidType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "pumpSettings"), "/type", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "pumpSettings"), "/type", &dataTypes.Meta{Type: "invalidType"}),
 				),
 				Entry("type pumpSettings",
 					pointer.FromString("mmol/L"),
@@ -385,6 +386,23 @@ var _ = Describe("Pump", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/hardwareVersion", pumpTest.NewMeta()),
 				),
+				Entry("insulin formulation missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.InsulinFormulation = nil },
+				),
+				Entry("insulin formulation invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinFormulation.Name = pointer.FromString("")
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/insulinFormulation/name", pumpTest.NewMeta()),
+				),
+				Entry("insulin formulation valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.InsulinFormulation = dataTypesInsulinTests.NewFormulation(3)
+					},
+				),
 				Entry("insulin model missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.InsulinModel = nil },
@@ -664,6 +682,7 @@ var _ = Describe("Pump", func() {
 						datum.Display.BloodGlucose.Units = nil
 						datum.FirmwareVersion = pointer.FromString("")
 						datum.HardwareVersion = pointer.FromString("")
+						datum.InsulinFormulation.Name = pointer.FromString("")
 						datum.InsulinModel.ModelType = pointer.FromString("invalid")
 						datum.InsulinModel.ModelTypeOther = nil
 						invalidInsulinSensitivitySchedule := pumpTest.NewInsulinSensitivityStartArray(unitsBloodGlucose)
@@ -679,28 +698,29 @@ var _ = Describe("Pump", func() {
 						datum.SoftwareVersion = pointer.FromString("")
 						datum.Units = pumpTest.RandomUnits(pointer.FromString("invalid"))
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "pumpSettings"), "/type", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/activeSchedule", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basal/temporary/type", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basalSchedule/0/start", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPhysicalActivity/target", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPreprandial/target", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget/0/start", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio/0/start", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/firmwareVersion", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/hardwareVersion", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"fiasp", "other", "rapidAdult", "rapidChild", "walsh"}), "/insulinModel/modelType", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity/0/start", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/overridePresets/one", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.ScheduleTimeZoneOffsetMinimum-1, pump.ScheduleTimeZoneOffsetMinimum, pump.ScheduleTimeZoneOffsetMaximum), "/scheduleTimeZoneOffset", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/softwareVersion", &types.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units/bg", &types.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "pumpSettings"), "/type", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/activeSchedule", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basal/temporary/type", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/basalSchedule/0/start", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPhysicalActivity/target", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPreprandial/target", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget/0/start", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio/0/start", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/firmwareVersion", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/hardwareVersion", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/insulinFormulation/name", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"fiasp", "other", "rapidAdult", "rapidChild", "walsh"}), "/insulinModel/modelType", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinSensitivity/0/start", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/overridePresets/one", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.ScheduleTimeZoneOffsetMinimum-1, pump.ScheduleTimeZoneOffsetMinimum, pump.ScheduleTimeZoneOffsetMaximum), "/scheduleTimeZoneOffset", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/softwareVersion", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units/bg", &dataTypes.Meta{Type: "invalidType"}),
 				),
 			)
 		})

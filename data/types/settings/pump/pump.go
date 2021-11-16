@@ -3,11 +3,10 @@ package pump
 import (
 	"sort"
 
-	"github.com/tidepool-org/platform/data/blood/glucose"
-	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
-
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	dataTypes "github.com/tidepool-org/platform/data/types"
+	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -30,7 +29,7 @@ const (
 // TODO: Consider collapsing *Array objects into ArrayMap objects with "default" name
 
 type Pump struct {
-	types.Base `bson:",inline"`
+	dataTypes.Base `bson:",inline"`
 
 	ActiveScheduleName                 *string                          `json:"activeSchedule,omitempty" bson:"activeSchedule,omitempty"` // TODO: Rename to activeScheduleName; move into Basal struct
 	AutomatedDelivery                  *bool                            `json:"automatedDelivery,omitempty" bson:"automatedDelivery,omitempty"`
@@ -38,8 +37,8 @@ type Pump struct {
 	BasalRateSchedule                  *BasalRateStartArray             `json:"basalSchedule,omitempty" bson:"basalSchedule,omitempty"`   // TODO: Move into Basal struct; rename schedule
 	BasalRateSchedules                 *BasalRateStartArrayMap          `json:"basalSchedules,omitempty" bson:"basalSchedules,omitempty"` // TODO: Move into Basal struct; rename schedules
 	BloodGlucoseSafetyLimit            *float64                         `json:"bgSafetyLimit,omitempty" bson:"bgSafetyLimit,omitempty"`
-	BloodGlucoseTargetPhysicalActivity *glucose.Target                  `json:"bgTargetPhysicalActivity,omitempty" bson:"bgTargetPhysicalActivity,omitempty"`
-	BloodGlucoseTargetPreprandial      *glucose.Target                  `json:"bgTargetPreprandial,omitempty" bson:"bgTargetPreprandial,omitempty"`
+	BloodGlucoseTargetPhysicalActivity *dataBloodGlucose.Target         `json:"bgTargetPhysicalActivity,omitempty" bson:"bgTargetPhysicalActivity,omitempty"`
+	BloodGlucoseTargetPreprandial      *dataBloodGlucose.Target         `json:"bgTargetPreprandial,omitempty" bson:"bgTargetPreprandial,omitempty"`
 	BloodGlucoseTargetSchedule         *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`   // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
 	BloodGlucoseTargetSchedules        *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"` // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
 	Bolus                              *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
@@ -48,6 +47,7 @@ type Pump struct {
 	Display                            *Display                         `json:"display,omitempty" bson:"display,omitempty"`
 	FirmwareVersion                    *string                          `json:"firmwareVersion,omitempty" bson:"firmwareVersion,omitempty"`
 	HardwareVersion                    *string                          `json:"hardwareVersion,omitempty" bson:"hardwareVersion,omitempty"`
+	InsulinFormulation                 *dataTypesInsulin.Formulation    `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
 	InsulinModel                       *InsulinModel                    `json:"insulinModel,omitempty" bson:"insulinModel,omitempty"`
 	InsulinSensitivitySchedule         *InsulinSensitivityStartArray    `json:"insulinSensitivity,omitempty" bson:"insulinSensitivity,omitempty"`     // TODO: Move into BolusCalculator struct
 	InsulinSensitivitySchedules        *InsulinSensitivityStartArrayMap `json:"insulinSensitivities,omitempty" bson:"insulinSensitivities,omitempty"` // TODO: Move into BolusCalculator struct
@@ -63,7 +63,7 @@ type Pump struct {
 
 func New() *Pump {
 	return &Pump{
-		Base: types.New(Type),
+		Base: dataTypes.New(Type),
 	}
 }
 
@@ -80,8 +80,8 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BasalRateSchedule = ParseBasalRateStartArray(parser.WithReferenceArrayParser("basalSchedule"))
 	p.BasalRateSchedules = ParseBasalRateStartArrayMap(parser.WithReferenceObjectParser("basalSchedules"))
 	p.BloodGlucoseSafetyLimit = parser.Float64("bgSafetyLimit")
-	p.BloodGlucoseTargetPhysicalActivity = glucose.ParseTarget(parser.WithReferenceObjectParser("bgTargetPhysicalActivity"))
-	p.BloodGlucoseTargetPreprandial = glucose.ParseTarget(parser.WithReferenceObjectParser("bgTargetPreprandial"))
+	p.BloodGlucoseTargetPhysicalActivity = dataBloodGlucose.ParseTarget(parser.WithReferenceObjectParser("bgTargetPhysicalActivity"))
+	p.BloodGlucoseTargetPreprandial = dataBloodGlucose.ParseTarget(parser.WithReferenceObjectParser("bgTargetPreprandial"))
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
 	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
@@ -90,6 +90,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
 	p.FirmwareVersion = parser.String("firmwareVersion")
 	p.HardwareVersion = parser.String("hardwareVersion")
+	p.InsulinFormulation = dataTypesInsulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 	p.InsulinModel = ParseInsulinModel(parser.WithReferenceObjectParser("insulinModel"))
 	p.InsulinSensitivitySchedule = ParseInsulinSensitivityStartArray(parser.WithReferenceArrayParser("insulinSensitivity"))
 	p.InsulinSensitivitySchedules = ParseInsulinSensitivityStartArrayMap(parser.WithReferenceObjectParser("insulinSensitivities"))
@@ -162,6 +163,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 	}
 	validator.String("firmwareVersion", p.FirmwareVersion).NotEmpty().LengthLessThanOrEqualTo(FirmwareVersionLengthMaximum)
 	validator.String("hardwareVersion", p.HardwareVersion).NotEmpty().LengthLessThanOrEqualTo(HardwareVersionLengthMaximum)
+	if p.InsulinFormulation != nil {
+		p.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
+	}
 	if p.InsulinModel != nil {
 		p.InsulinModel.Validate(validator.WithReference("insulinModel"))
 	}
@@ -236,6 +240,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.Display != nil {
 		p.Display.Normalize(normalizer.WithReference("display"))
+	}
+	if p.InsulinFormulation != nil {
+		p.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
 	if p.InsulinSensitivitySchedule != nil {
 		p.InsulinSensitivitySchedule.Normalize(normalizer.WithReference("insulinSensitivity"), unitsBloodGlucose)

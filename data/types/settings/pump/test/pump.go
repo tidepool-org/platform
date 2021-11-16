@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -53,6 +54,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.Display = NewDisplay()
 	datum.FirmwareVersion = pointer.FromString(test.RandomStringFromRange(1, pump.FirmwareVersionLengthMaximum))
 	datum.HardwareVersion = pointer.FromString(test.RandomStringFromRange(1, pump.HardwareVersionLengthMaximum))
+	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
 	datum.InsulinModel = RandomInsulinModel()
 	datum.InsulinSensitivitySchedules = pump.NewInsulinSensitivityStartArrayMap()
 	datum.InsulinSensitivitySchedules.Set(scheduleName, NewInsulinSensitivityStartArray(unitsBloodGlucose))
@@ -89,6 +91,7 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Display = CloneDisplay(datum.Display)
 	clone.FirmwareVersion = pointer.CloneString(datum.FirmwareVersion)
 	clone.HardwareVersion = pointer.CloneString(datum.HardwareVersion)
+	clone.InsulinFormulation = dataTypesInsulinTest.CloneFormulation(datum.InsulinFormulation)
 	clone.InsulinModel = CloneInsulinModel(datum.InsulinModel)
 	clone.InsulinSensitivitySchedule = CloneInsulinSensitivityStartArray(datum.InsulinSensitivitySchedule)
 	clone.InsulinSensitivitySchedules = CloneInsulinSensitivityStartArrayMap(datum.InsulinSensitivitySchedules)
