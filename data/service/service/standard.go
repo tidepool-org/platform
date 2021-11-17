@@ -185,6 +185,13 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 		DisableColors: false,
 		FullTimestamp: true,
 	})
+	envLogLevel, _ := getenvStr("LOG_LEVEL")
+	logLevel, err := logrus.ParseLevel(envLogLevel)
+	if err != nil {
+		logLevel = logrus.WarnLevel
+	}
+
+	logrusLogger.SetLevel(logLevel)
 	// report method name
 	logrusLogger.SetReportCaller(true)
 	pushToReadStore := getPushToReadStoreEnv()

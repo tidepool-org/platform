@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -31,6 +33,8 @@ type Datum struct {
 	GetOriginOutputs                     []*origin.Origin
 	GetTypeInvocations                   int
 	GetTypeOutput                        []string
+	GetTimeInvocations                   int
+	GetTimeOutput                        []time.Time
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -130,6 +134,16 @@ func (d *Datum) GetType() string {
 
 	output := d.GetTypeOutput[0]
 	d.GetTypeOutput = d.GetTypeOutput[1:]
+	return output
+}
+
+func (d *Datum) GetTime() time.Time {
+	d.GetTimeInvocations++
+
+	gomega.Expect(d.GetTimeOutput).ToNot(gomega.BeEmpty())
+
+	output := d.GetTimeOutput[0]
+	d.GetTimeOutput = d.GetTimeOutput[1:]
 	return output
 }
 

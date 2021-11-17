@@ -289,6 +289,12 @@ func (b *Base) GetType() string {
 	return b.Type
 }
 
+func (b *Base) GetTime() time.Time {
+	strTime := *b.Time
+	timestamp, _ := time.Parse(time.RFC3339Nano, strTime)
+	return timestamp
+}
+
 func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }

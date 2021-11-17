@@ -1,6 +1,8 @@
 package data
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
@@ -19,6 +21,7 @@ type Datum interface {
 	GetOrigin() *origin.Origin
 	GetPayload() *metadata.Metadata
 	GetType() string
+	GetTime() time.Time
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)
