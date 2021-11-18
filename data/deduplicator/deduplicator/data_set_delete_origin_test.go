@@ -266,7 +266,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					dataSetData = make(data.Data, test.RandomIntFromRange(1, 3))
 					selectors = data.NewSelectors()
 					for index := range dataSetData {
-						base := dataTypesTest.NewBase()
+						base := dataTypesTest.RandomBase()
 						dataSetData[index] = base
 						*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(base.Origin.ID)}})
 					}
@@ -311,7 +311,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					When("data set data does not have an origin", func() {
 						BeforeEach(func() {
 							for index := range dataSetData {
-								base := dataTypesTest.NewBase()
+								base := dataTypesTest.RandomBase()
 								base.Origin = nil
 								dataSetData[index] = base
 							}
@@ -323,7 +323,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					When("data set data does not have an origin id", func() {
 						BeforeEach(func() {
 							for index := range dataSetData {
-								base := dataTypesTest.NewBase()
+								base := dataTypesTest.RandomBase()
 								base.Origin.ID = nil
 								dataSetData[index] = base
 							}

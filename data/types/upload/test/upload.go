@@ -12,7 +12,7 @@ import (
 
 func RandomUpload() *dataTypesUpload.Upload {
 	datum := dataTypesUpload.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "upload"
 	datum.ByUser = pointer.FromString(userTest.RandomID())
 	datum.Client = NewClient()

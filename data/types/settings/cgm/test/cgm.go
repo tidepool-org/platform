@@ -11,7 +11,7 @@ const CharsetTransmitterID = test.CharsetNumeric + test.CharsetUppercase
 
 func RandomCGM(units *string) *dataTypesSettingsCgm.CGM {
 	datum := dataTypesSettingsCgm.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "cgmSettings"
 	datum.FirmwareVersion = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.FirmwareVersionLengthMaximum))
 	datum.HardwareVersion = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.HardwareVersionLengthMaximum))

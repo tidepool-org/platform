@@ -30,7 +30,7 @@ func NewMeta() interface{} {
 
 func NewAlarm() *alarm.Alarm {
 	datum := alarm.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "alarm"
 	datum.AlarmType = pointer.FromString(test.RandomStringFromArray(alarm.AlarmTypes()))
 	return datum

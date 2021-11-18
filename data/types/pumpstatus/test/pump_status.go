@@ -7,7 +7,7 @@ import (
 
 func RandomPumpStatus() *dataTypesPumpStatus.PumpStatus {
 	datum := dataTypesPumpStatus.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "pumpStatus"
 	datum.BasalDelivery = RandomBasalDelivery()
 	datum.Battery = RandomBattery()

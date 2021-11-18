@@ -10,18 +10,6 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-// DEPRECATED: Use RandomTarget
-func NewTarget(units *string) *dataBloodGlucose.Target {
-	return RandomTarget(units)
-}
-
-func NewLowHighTarget(min float64, max float64) *dataBloodGlucose.Target {
-	datum := dataBloodGlucose.NewTarget()
-	datum.Low = pointer.FromFloat64(test.RandomFloat64FromRange(min, max))
-	datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Low, max))
-	return datum
-}
-
 func RandomTarget(units *string) *dataBloodGlucose.Target {
 	datum := dataBloodGlucose.NewTarget()
 	switch rand.Intn(4) {
@@ -37,6 +25,13 @@ func RandomTarget(units *string) *dataBloodGlucose.Target {
 		datum.Low = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.LowRangeForUnits(units)))
 		datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.HighRangeForUnits(*datum.Low, units)))
 	}
+	return datum
+}
+
+func RandomLowHighTarget(min float64, max float64) *dataBloodGlucose.Target {
+	datum := dataBloodGlucose.NewTarget()
+	datum.Low = pointer.FromFloat64(test.RandomFloat64FromRange(min, max))
+	datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Low, max))
 	return datum
 }
 

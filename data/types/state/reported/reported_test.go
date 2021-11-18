@@ -25,7 +25,7 @@ func NewMeta() interface{} {
 
 func NewReported() *reported.Reported {
 	datum := reported.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "reportedState"
 	datum.States = NewStateArray()
 	for index := rand.Intn(len(reported.StateStates())); index >= 0; index-- {

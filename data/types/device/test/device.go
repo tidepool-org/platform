@@ -6,14 +6,9 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-// DEPRECATED: Use RandomDevice
-func NewDevice() *device.Device {
-	return RandomDevice()
-}
-
 func RandomDevice() *device.Device {
 	datum := randomDevice()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "deviceEvent"
 	return datum
 }

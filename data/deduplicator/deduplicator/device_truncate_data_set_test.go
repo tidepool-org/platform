@@ -273,7 +273,7 @@ var _ = Describe("DeviceTruncateDataSet", func() {
 				BeforeEach(func() {
 					dataSetData = make(data.Data, test.RandomIntFromRange(0, 3))
 					for index := range dataSetData {
-						dataSetData[index] = dataTypesTest.NewBase()
+						dataSetData[index] = dataTypesTest.RandomBase()
 					}
 				})
 

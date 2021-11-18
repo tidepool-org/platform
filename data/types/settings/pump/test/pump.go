@@ -36,7 +36,7 @@ func NewManufacturers(minimumLength int, maximumLength int) []string {
 func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	scheduleName := dataTypesBasalTest.NewScheduleName()
 	datum := pump.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "pumpSettings"
 	datum.ActiveScheduleName = pointer.FromString(scheduleName)
 	datum.AutomatedDelivery = pointer.FromBool(test.RandomBool())
@@ -44,8 +44,8 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.BasalRateSchedules = pump.NewBasalRateStartArrayMap()
 	datum.BasalRateSchedules.Set(scheduleName, NewBasalRateStartArray())
 	datum.BloodGlucoseSafetyLimit = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(unitsBloodGlucose)))
-	datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
-	datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+	datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
+	datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 	datum.BloodGlucoseTargetSchedules = pump.NewBloodGlucoseTargetStartArrayMap()
 	datum.BloodGlucoseTargetSchedules.Set(scheduleName, RandomBloodGlucoseTargetStartArray(unitsBloodGlucose))
 	datum.Bolus = NewBolus()

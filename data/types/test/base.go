@@ -15,11 +15,6 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-// DEPRECATED: Use RandomBase
-func NewBase() *types.Base {
-	return RandomBase()
-}
-
 func RandomBase() *types.Base {
 	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now().Add(-30*24*time.Hour))
 	archivedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-7*24*time.Hour))

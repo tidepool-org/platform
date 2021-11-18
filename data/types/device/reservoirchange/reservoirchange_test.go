@@ -29,7 +29,7 @@ func NewMeta() interface{} {
 
 func NewReservoirChange() *reservoirchange.ReservoirChange {
 	datum := reservoirchange.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "reservoirChange"
 	return datum
 }

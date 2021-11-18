@@ -235,7 +235,7 @@ func RandomBloodGlucoseTargetSchedule() *pump.BloodGlucoseTargetStartArray {
 
 func RandomBloodGlucoseTargetStart(startMinimum int) *pump.BloodGlucoseTargetStart {
 	datum := pump.NewBloodGlucoseTargetStart()
-	datum.Target = *dataBloodGlucoseTest.NewLowHighTarget(minBgTarget, maxBgTarget)
+	datum.Target = *dataBloodGlucoseTest.RandomLowHighTarget(minBgTarget, maxBgTarget)
 	if startMinimum == pump.BloodGlucoseTargetStartStartMinimum {
 		datum.Start = pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)
 	} else {

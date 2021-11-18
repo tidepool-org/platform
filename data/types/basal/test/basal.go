@@ -8,7 +8,7 @@ import (
 
 func NewBasal() *basal.Basal {
 	datum := &basal.Basal{}
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "basal"
 	datum.DeliveryType = dataTypesTest.NewType()
 	return datum

@@ -218,7 +218,7 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target physical activity valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 					},
 				),
 				Entry("blood glucose target preprandial missing",
@@ -235,7 +235,7 @@ var _ = Describe("Pump", func() {
 				Entry("blood glucose target preprandial valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 					},
 				),
 				Entry("blood glucose target schedule and blood glucose target schedules missing",
@@ -782,8 +782,8 @@ var _ = Describe("Pump", func() {
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BasalRateSchedule = pumpTest.NewBasalRateStartArray()
 						datum.BloodGlucoseSafetyLimit = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(unitsBloodGlucose)))
-						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
-						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 						datum.BloodGlucoseTargetSchedule = pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = pumpTest.NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = pumpTest.NewInsulinSensitivityStartArray(unitsBloodGlucose)
@@ -823,8 +823,8 @@ var _ = Describe("Pump", func() {
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.BasalRateSchedule = pumpTest.NewBasalRateStartArray()
 						datum.BloodGlucoseSafetyLimit = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(unitsBloodGlucose)))
-						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
-						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.NewTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
+						datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 						datum.BloodGlucoseTargetSchedule = pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = pumpTest.NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = pumpTest.NewInsulinSensitivityStartArray(unitsBloodGlucose)

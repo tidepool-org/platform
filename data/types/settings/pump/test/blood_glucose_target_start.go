@@ -11,7 +11,7 @@ import (
 
 func RandomBloodGlucoseTargetStart(units *string, startMinimum int) *dataTypesSettingsPump.BloodGlucoseTargetStart {
 	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStart()
-	datum.Target = *dataBloodGlucoseTest.NewTarget(units)
+	datum.Target = *dataBloodGlucoseTest.RandomTarget(units)
 	if startMinimum == dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum {
 		datum.Start = pointer.FromInt(dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum)
 	} else {
