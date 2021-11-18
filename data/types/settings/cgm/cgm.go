@@ -138,9 +138,7 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 		if c.Manufacturers != nil {
 			sort.Strings(*c.Manufacturers)
 		}
-	}
 
-	if normalizer.Origin() == structure.OriginExternal {
 		c.Units = dataBloodGlucose.NormalizeUnits(c.Units) // FUTURE: Do not normalize units after deprecated fields deleted
 	}
 
