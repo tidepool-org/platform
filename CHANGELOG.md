@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.14.1 - 2021-11-24
+### Fixed
+- YLP-1089 Optimize mongo queries
+
 ## 0.14.0 - 2021-11-17
 ### Changed
 - YLP-1017 push glycemia data  in buckets in read db

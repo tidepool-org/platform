@@ -28,10 +28,7 @@ import (
 var (
 	deviceDataIndexes = map[string][]mgo.Index{
 		"deviceData": {
-			{Key: []string{"_userId", "_active", "_schemaVersion", "-time"}, Background: true, Name: "UserIdTypeWeighted"},
-			{Key: []string{"origin.id", "type", "-deletedTime", "_active"}, Background: true, Name: "OriginId"},
-			{Key: []string{"type", "uploadId"}, Background: true, Name: "typeUploadId"},
-			{Key: []string{"uploadId", "type", "-deletedTime", "_active"}, Background: true, Name: "UploadId"},
+			{Key: []string{"_userId", "uploadId", "type"}, Background: true, Name: "UserIdUploadIdType"},
 			{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
 		},
 	}
@@ -141,7 +138,7 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	if filter.DataSetType != nil {
 		selector["dataSetType"] = *filter.DataSetType
 	}
-	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
+	err := d.C().Find(selector).Sort("-time").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 
 	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
@@ -944,7 +941,7 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 	if filter.DataSetType != nil {
 		selector["dataSetType"] = *filter.DataSetType
 	}
-	err := d.C().Find(selector).Sort("-createdTime").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
+	err := d.C().Find(selector).Sort("-time").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
 	logger.WithFields(log.Fields{"count": len(dataSets), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserDataSets")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list user data sets")
