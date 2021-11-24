@@ -10,6 +10,8 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -35,8 +37,17 @@ type Store struct {
 }
 
 func (s *Store) EnsureIndexes() error {
-	repository := s.NewDataRepository()
-	return repository.EnsureIndexes()
+	datarepository := s.NewDataRepository()
+	summaryrepository := s.NewSummaryRepository()
+
+	err := datarepository.EnsureIndexes()
+	if err != nil {
+		return err
+	}
+
+	err = summaryrepository.EnsureIndexes()
+
+	return err
 }
 
 func (s *Store) NewDataRepository() store.DataRepository {
@@ -912,4 +923,273 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	}
 
 	return selector, nil
+}
+
+func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
+	var dataSets []*continuous.Continuous
+	selector := bson.M{
+		"_active": true,
+		"_userId": id,
+		"type":    "cbg",
+		// we currently pull all so we can do in-range and avg in 1 pass, maybe bad idea
+		//"value": bson.M{"$gt": 3.9, "$lt": 10},
+		// NOTE: redundant query for migration of time field
+		"$or": bson.A{
+			bson.M{"time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
+				"$lte": endTime.Format(time.RFC3339Nano)}},
+			bson.M{"time": bson.M{"$gte": startTime,
+				"$lte": endTime}},
+		},
+	}
+
+	cursor, err := d.Find(ctx, selector)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get in-range values")
+	}
+
+	if err = cursor.All(ctx, &dataSets); err != nil {
+		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
+	}
+
+	return dataSets, nil
+}
+
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (summary.UserLastUpdated, error) {
+	var status summary.UserLastUpdated
+
+	if ctx == nil {
+		return status, errors.New("context is missing")
+	}
+
+	if id == "" {
+		return status, errors.New("id is missing")
+	}
+
+	var dataSet []*continuous.Continuous
+	selector := bson.M{
+		"_active": true,
+		"_userId": id,
+		"type":    "cbg",
+	}
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"time", -1}})
+	findOptions.SetLimit(1)
+
+	cursor, err := d.Find(ctx, selector, findOptions)
+
+	if err != nil {
+		return status, errors.Wrap(err, "unable to get last cbg date")
+	}
+
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return status, errors.Wrap(err, "unable to decode last cbg date")
+	}
+
+	if dataSet != nil {
+		status.LastUpload, err = time.Parse(time.RFC3339Nano, *dataSet[0].CreatedTime)
+		if err != nil {
+			return status, errors.Wrap(err, "unable to parse latest CreatedTime")
+		}
+
+		status.LastData, err = time.Parse(time.RFC3339Nano, *dataSet[0].Time)
+		if err != nil {
+			return status, errors.Wrap(err, "unable to parse latest Time")
+		}
+	} else {
+		return status, errors.Wrap(err, "No cbg records found for user")
+	}
+
+	return status, nil
+}
+
+func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+	var userIDs []string
+
+	if ctx == nil {
+		return userIDs, errors.New("context is missing")
+	}
+
+	selector := bson.M{
+		"time": bson.M{"$gte": lastUpdated.Format(time.RFC3339Nano)},
+		"type": "cbg",
+	}
+
+	result, err := d.Distinct(ctx, "_userId", selector)
+	if err != nil {
+		return userIDs, errors.New("error fetching recently updated userIDs")
+	}
+
+	for _, v := range result {
+		userIDs = append(userIDs, v.(string))
+	}
+
+	return userIDs, nil
+}
+
+func (s *Store) NewSummaryRepository() store.SummaryRepository {
+	return &SummaryRepository{
+		s.Store.GetRepository("summary"),
+	}
+}
+
+type SummaryRepository struct {
+	*storeStructuredMongo.Repository
+}
+
+func (d *SummaryRepository) EnsureIndexes() error {
+	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetName("UserID"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "lastUpdated", Value: 1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetName("LastUpdated"),
+		},
+	})
+}
+
+func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("summary UserID is missing")
+	}
+
+	//logger := log.LoggerFromContext(ctx).WithField("id", id)
+
+	var summary summary.Summary
+	selector := bson.M{
+		"userId": id,
+	}
+
+	err := d.FindOne(ctx, selector).Decode(&summary)
+
+	if err == mongo.ErrNoDocuments {
+		return nil, err
+	}
+
+	return &summary, err
+}
+
+func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if summary == nil {
+		return nil, errors.New("summary object is missing")
+	}
+
+	if summary.UserID == "" {
+		return nil, errors.New("summary missing UserID")
+	}
+
+	opts := options.Replace().SetUpsert(true)
+	filter := bson.M{"userId": summary.UserID}
+
+	_, err := d.ReplaceOne(ctx, filter, summary, opts)
+
+	//logger := log.LoggerFromContext(ctx).WithField("id", id)
+
+	return summary, err
+}
+
+func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]*summary.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	var summaries []*summary.Summary
+	selector := bson.M{
+		"lastUpdated": bson.M{"$lte": lastUpdated},
+	}
+
+	cursor, err := d.Find(ctx, selector)
+
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get aged summaries")
+	}
+
+	if err = cursor.All(ctx, &summaries); err != nil {
+		return nil, errors.Wrap(err, "unable to decode aged summaries")
+	}
+
+	if summaries == nil {
+		summaries = []*summary.Summary{}
+	}
+	return summaries, nil
+}
+
+func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, error) {
+	var lastUpdated time.Time
+	var summaries []*summary.Summary
+
+	if ctx == nil {
+		return lastUpdated, errors.New("context is missing")
+	}
+
+	selector := bson.M{}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"lastUpdated", -1}})
+	findOptions.SetLimit(1)
+
+	cursor, err := d.Find(ctx, selector, findOptions)
+
+	if err != nil {
+		return lastUpdated, errors.Wrap(err, "unable to get last cbg date")
+	}
+
+	if err = cursor.All(ctx, &summaries); err != nil {
+		return lastUpdated, errors.Wrap(err, "unable to decode last cbg date")
+	}
+
+	if summaries != nil {
+		if summaries[0].LastUpdated != nil {
+			lastUpdated = *summaries[0].LastUpdated
+		}
+	} else {
+		return lastUpdated, errors.Wrap(err, "no summaries found")
+	}
+
+	return lastUpdated, nil
+}
+
+func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if id == "" {
+		return errors.New("user id is missing")
+	}
+
+	selector := bson.M{"userId": id}
+	timestamp := time.Now()
+
+	update := bson.M{
+		"$set": bson.M{
+			"lastUpdated": &timestamp,
+		},
+	}
+
+	_, err := d.UpdateOne(ctx, selector, update)
+
+	if err != nil {
+		return errors.Wrap(err, "unable to update lastUpdated date")
+	}
+
+	return nil
 }

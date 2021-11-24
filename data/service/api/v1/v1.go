@@ -18,5 +18,10 @@ func Routes() []service.Route {
 		service.MakeRoute("GET", "/v1/time", TimeGet),
 		service.MakeRoute("POST", "/v1/users/:userId/data_sets", Authenticate(UsersDataSetsCreate)),
 	}
-	return append(append(routes, DataSetsRoutes()...), SourcesRoutes()...)
+
+	routes = append(routes, DataSetsRoutes()...)
+	routes = append(routes, SourcesRoutes()...)
+	routes = append(routes, SummaryRoutes()...)
+
+	return routes
 }

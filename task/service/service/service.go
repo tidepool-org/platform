@@ -23,6 +23,7 @@ import (
 	taskServiceApiV1 "github.com/tidepool-org/platform/task/service/api/v1"
 	"github.com/tidepool-org/platform/task/store"
 	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
+	summaryUpdate "github.com/tidepool-org/platform/task/summary"
 )
 
 type Service struct {
@@ -265,6 +266,16 @@ func (s *Service) initializeTaskQueue() error {
 
 		taskQueue.RegisterRunner(rnnr)
 	}
+
+	s.Logger().Debug("Creating summary update runner")
+
+	summaryRnnr, summaryRnnrErr := summaryUpdate.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+
+	if summaryRnnrErr != nil {
+		return errors.Wrap(summaryRnnrErr, "unable to create summary update runner")
+	}
+
+	taskQueue.RegisterRunner(summaryRnnr)
 
 	s.Logger().Debug("Starting task queue")
 

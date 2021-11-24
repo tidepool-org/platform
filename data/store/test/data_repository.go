@@ -2,11 +2,13 @@ package test
 
 import (
 	"context"
+	"time"
 
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -133,6 +135,26 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
+type CalculateSummaryInput struct {
+	Context context.Context
+	Summary *summary.Summary
+}
+
+type CalculateSummaryOutput struct {
+	Summary *summary.Summary
+	Error   error
+}
+
+type GetLastUpdatedInput struct {
+	Context context.Context
+	ID      string
+}
+
+type GetLastUpdatedOutput struct {
+	Time  time.Time
+	Error error
+}
+
 type DataRepository struct {
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
@@ -186,6 +208,14 @@ type DataRepository struct {
 	GetDataSetInvocations                                int
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
+
+	CalculateSummaryInvocations int
+	CalculateSummaryInputs      []CalculateSummaryInput
+	CalculateSummaryOutputs     []CalculateSummaryOutput
+
+	GetLastUpdatedInvocations int
+	GetLastUpdatedInputs      []GetLastUpdatedInput
+	GetLastUpdatedOutputs     []GetLastUpdatedOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -403,6 +433,43 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
+func (d *DataRepository) CalculateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error) {
+	d.CalculateSummaryInvocations++
+
+	d.CalculateSummaryInputs = append(d.CalculateSummaryInputs, CalculateSummaryInput{Context: ctx, Summary: summary})
+
+	gomega.Expect(d.CalculateSummaryOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.CalculateSummaryOutputs[0]
+	d.CalculateSummaryOutputs = d.CalculateSummaryOutputs[1:]
+	return output.Summary, output.Error
+}
+
+func (d *DataRepository) GetLastUpdated(ctx context.Context, id string) (time.Time, error) {
+	d.GetLastUpdatedInvocations++
+
+	d.GetLastUpdatedInputs = append(d.GetLastUpdatedInputs, GetLastUpdatedInput{Context: ctx, ID: id})
+
+	gomega.Expect(d.GetLastUpdatedOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetLastUpdatedOutputs[0]
+	d.GetLastUpdatedOutputs = d.GetLastUpdatedOutputs[1:]
+	return output.Time, output.Error
+}
+
+// TODO
+func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string) (time.Time, error) {
+	d.GetLastUpdatedInvocations++
+
+	d.GetLastUpdatedInputs = append(d.GetLastUpdatedInputs, GetLastUpdatedInput{Context: ctx, ID: id})
+
+	gomega.Expect(d.GetLastUpdatedOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetLastUpdatedOutputs[0]
+	d.GetLastUpdatedOutputs = d.GetLastUpdatedOutputs[1:]
+	return output.Time, output.Error
+}
+
 func (d *DataRepository) Expectations() {
 	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
@@ -422,4 +489,6 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetLastUpdatedOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
 }

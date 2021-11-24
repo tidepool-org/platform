@@ -3,6 +3,7 @@ package mongo_test
 import (
 	"context"
 	"math/rand"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,6 +18,8 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
@@ -66,6 +69,49 @@ func NewDataSetData(deviceID string) data.Data {
 		datum.ModifiedUserID = nil
 		dataSetData = append(dataSetData, datum)
 	}
+	return dataSetData
+}
+
+func NewContinuous(units *string) *continuous.Continuous {
+	datum := continuous.New()
+	datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
+	datum.Type = "cbg"
+
+	return datum
+}
+
+func NewDataSetCGMData(deviceID string, startTime time.Time) data.Data {
+	var datumTime string
+	dataSetData := data.Data{}
+	unit := "mmol/l"
+
+	// we need this data to be repeated between runs for math checks
+	// create separate rand with known seed for glucose
+	r := rand.New(rand.NewSource(startTime.Unix()))
+
+	// generate 2 weeks of data
+	for count := 0; count < 4032; count++ {
+		datumTime = startTime.Add(time.Duration(-count) * time.Minute * 5).Format(time.RFC3339Nano)
+
+		datum := NewContinuous(&unit)
+		datum.Active = true
+		datum.ArchivedDataSetID = nil
+		datum.ArchivedTime = nil
+		datum.CreatedTime = nil
+		datum.CreatedUserID = nil
+		datum.DeletedTime = nil
+		datum.DeletedUserID = nil
+		datum.DeviceID = pointer.FromString(deviceID)
+		datum.ModifiedTime = nil
+		datum.ModifiedUserID = nil
+		datum.Time = pointer.FromString(datumTime)
+
+		// create a new glucose value using our known seed, also generates more interesting values
+		datum.Glucose.Value = pointer.FromFloat64(1 + (18-1)*r.Float64())
+
+		dataSetData = append(dataSetData, datum)
+	}
+
 	return dataSetData
 }
 
@@ -134,6 +180,7 @@ var _ = Describe("Mongo", func() {
 	var config *storeStructuredMongo.Config
 	var store *dataStoreMongo.Store
 	var repository dataStore.DataRepository
+	var summaryRepository dataStore.SummaryRepository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -164,6 +211,7 @@ var _ = Describe("Mongo", func() {
 
 	Context("with a new store", func() {
 		var collection *mongo.Collection
+		var summaryCollection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
@@ -171,12 +219,14 @@ var _ = Describe("Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			collection = store.GetCollection("deviceData")
+			summaryCollection = store.GetCollection("summary")
 			Expect(store.EnsureIndexes()).To(Succeed())
 		})
 
 		AfterEach(func() {
 			if collection != nil {
 				collection.Database().Drop(context.Background())
+				summaryCollection.Database().Drop(context.Background())
 			}
 		})
 
@@ -226,6 +276,31 @@ var _ = Describe("Mongo", func() {
 					}),
 				))
 			})
+
+			It("returns successfully", func() {
+				cursor, err := summaryCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId")),
+						"Background": Equal(true),
+						"Name":       Equal("UserID"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("lastUpdated")),
+						"Background": Equal(true),
+						"Name":       Equal("LastUpdated"),
+					}),
+				))
+			})
 		})
 
 		Context("NewDataRepository", func() {
@@ -235,16 +310,197 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
+		Context("NewSummaryRepository", func() {
+			It("returns a new repository", func() {
+				summaryRepository = store.NewSummaryRepository()
+				Expect(summaryRepository).ToNot(BeNil())
+			})
+		})
+
 		Context("with a new repository", func() {
 			BeforeEach(func() {
 				repository = store.NewDataRepository()
+				summaryRepository = store.NewSummaryRepository()
 				Expect(repository).ToNot(BeNil())
+				Expect(summaryRepository).ToNot(BeNil())
 			})
 
 			AfterEach(func() {
 				if repository != nil {
 					collection.DeleteMany(context.Background(), bson.D{})
+					summaryCollection.DeleteMany(context.Background(), bson.D{})
 				}
+			})
+
+			Context("Summary", func() {
+				var ctx context.Context
+				var userID string
+				var deviceID string
+				var summary *data.Summary
+				var randomSummary *data.Summary
+				var dataSetCGM *upload.Upload
+				var dataSetCGMData data.Data
+				var err error
+				var date time.Time
+
+				BeforeEach(func() {
+					// generate all these once, they dont need to change
+					ctx = log.NewContextWithLogger(context.Background(), logger)
+					userID = userTest.RandomID()
+					deviceID = dataTest.NewDeviceID()
+
+					dataSetCGM = NewDataSet(userID, deviceID)
+					dataSetCGM.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
+
+					dataSetCGMData = NewDataSetCGMData(deviceID, time.Date(2016, time.Month(9), 1, 12, 30, 0, 0, time.UTC))
+					randomSummary = dataTest.RandomSummary()
+
+					_, err = collection.InsertOne(context.Background(), dataSetCGM)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(repository.CreateDataSetData(ctx, dataSetCGM, dataSetCGMData)).To(Succeed())
+				})
+
+				// test empty context on lastupdated
+				It("tests that improper lastupdated context is correctly handled", func() {
+					date, err = repository.GetLastUpdated(nil, *dataSetCGM.UserID)
+					Expect(err).To(MatchError("context is missing"))
+				})
+
+				// test empty UserID on lastupdated
+				It("tests that improper lastupdated UserID is correctly handled", func() {
+					date, err = repository.GetLastUpdated(ctx, "")
+					Expect(err).To(MatchError("id is missing"))
+				})
+
+				// test lastupdated
+				It("tests that lastupdated value is correct", func() {
+					date, err = repository.GetLastUpdated(ctx, *dataSetCGM.UserID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(date).To(Equal(time.Date(2016, time.Month(9), 1, 12, 30, 0, 0, time.UTC)))
+				})
+
+				// test empty context on updatesummary
+				It("tests that improper updatesummary context is correctly handled", func() {
+					randomSummary.UserID = *dataSetCGM.UserID
+					summary, err = summaryRepository.UpdateSummary(nil, randomSummary)
+					Expect(err).To(MatchError("context is missing"))
+				})
+
+				// test empty summary on updatesummary
+				It("tests that improper updatesummary summary is correctly handled", func() {
+					summary, err = summaryRepository.UpdateSummary(ctx, nil)
+					Expect(err).To(MatchError("summary object is missing"))
+				})
+
+				// test empty UserID on updatesummary
+				It("tests that improper updatesummary UserID is correctly handled", func() {
+					randomSummary.UserID = ""
+					summary, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+					Expect(err).To(MatchError("summary missing UserID"))
+				})
+
+				// test updatesummary
+				It("returns an error if summary cant be written", func() {
+					randomSummary.UserID = *dataSetCGM.UserID
+
+					summary, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				// test empty UserID on getsummary
+				It("tests that improper getsummary UserID is correctly handled", func() {
+					summary, err = summaryRepository.GetSummary(ctx, "")
+					Expect(err).To(MatchError("summary UserID is missing"))
+				})
+
+				// test empty context on getsummary
+				It("tests that improper getsummary context is correctly handled", func() {
+					summary, err = summaryRepository.GetSummary(nil, *dataSetCGM.UserID)
+					Expect(err).To(MatchError("context is missing"))
+				})
+
+				// test get summary before and after updatesummary
+				It("returns an error if getsummary cannot retrieve record", func() {
+					randomSummary.UserID = *dataSetCGM.UserID
+
+					summary, err = summaryRepository.GetSummary(ctx, *dataSetCGM.UserID)
+					Expect(err).To(HaveOccurred())
+
+					summary, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+					Expect(err).ToNot(HaveOccurred())
+
+					summary, err = summaryRepository.GetSummary(ctx, *dataSetCGM.UserID)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				// test empty context on calculatesummary
+				It("tests that improper calculatesummary context is correctly handled", func() {
+					// fill in empty summary for calc to work with
+					summary = &data.Summary{}
+					summary.UserID = *dataSetCGM.UserID
+					summary.LastUpdated = time.Time{}
+					summary.LastData = time.Time{}
+
+					summary, err = repository.CalculateSummary(nil, summary)
+					Expect(err).To(MatchError("context is missing"))
+				})
+
+				// test empty summary on calculatesummary
+				It("tests that improper calculatesummary summary is correctly handled", func() {
+					summary, err = repository.CalculateSummary(ctx, nil)
+					Expect(err).To(MatchError("original summary is missing"))
+				})
+
+				// test empty userid on summary calculatesummary
+				It("tests that improper calculatesummary UserID is correctly handled", func() {
+					summary = &data.Summary{}
+					summary.UserID = ""
+					summary.LastUpdated = time.Time{}
+					summary.LastData = time.Time{}
+
+					summary, err = repository.CalculateSummary(ctx, summary)
+					Expect(err).To(MatchError("summary missing UserID"))
+				})
+
+				It("returns an error if summary cant be calculated", func() {
+					// fill in empty summary for calc to work with
+					summary = &data.Summary{}
+					summary.UserID = *dataSetCGM.UserID
+					summary.LastUpdated = time.Time{}
+					summary.LastData = time.Time{}
+
+					summary, err = repository.CalculateSummary(ctx, summary)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(summary.TimeAboveRange).To(Equal(0.47))
+					Expect(summary.TimeBelowRange).To(Equal(0.16))
+					Expect(summary.AverageGlucose).To(Equal(9.53))
+					Expect(summary.TimeInRange).To(Equal(0.37))
+				})
+
+				It("returns an error if rolling summary cant be calculated", func() {
+					// fill in known summary for calc to work with
+					// NOTE these values are intentionally crazy so it is obvious that it worked
+					// the result should have way higher values than normally possible
+					summary = &data.Summary{}
+					summary.UserID = *dataSetCGM.UserID
+					summary.LastUpdated = time.Time{}
+					summary.AverageGlucose = 20.0
+					summary.TimeInRange = 1.0
+					summary.TimeBelowRange = 1.0
+					summary.TimeAboveRange = 1.0
+
+					// 1 day before test dataset time
+					summary.LastData = time.Date(2016, time.Month(8), 31, 12, 30, 0, 0, time.UTC)
+
+					summary, err = repository.CalculateSummary(ctx, summary)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(summary.TimeAboveRange).To(Equal(0.96))
+					Expect(summary.TimeBelowRange).To(Equal(0.94))
+					Expect(summary.TimeInRange).To(Equal(0.95))
+					Expect(summary.AverageGlucose).To(Equal(19.16))
+				})
 			})
 
 			Context("with persisted data sets", func() {
@@ -1734,6 +1990,8 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 			})
+
+			//summary here
 		})
 	})
 })
