@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -145,13 +146,35 @@ type CalculateSummaryOutput struct {
 	Error   error
 }
 
-type GetLastUpdatedInput struct {
+type GetLastUpdatedForUserInput struct {
 	Context context.Context
 	ID      string
 }
 
-type GetLastUpdatedOutput struct {
-	Time  time.Time
+type GetLastUpdatedForUserOutput struct {
+	UserLastUpdated  summary.UserLastUpdated
+	Error error
+}
+
+type GetCGMDataRangeInput struct {
+	Context    context.Context
+	ID         string
+	StartTime  time.Time
+	EndTime    time.Time
+}
+
+type GetCGMDataRangeOutput struct {
+	Continuous  []*continuous.Continuous
+	Error error
+}
+
+type GetFreshUsersInput struct {
+	Context      context.Context
+	LastUpdated  time.Time
+}
+
+type GetFreshUsersOutput struct {
+	UserIDs  []string
 	Error error
 }
 
@@ -209,13 +232,21 @@ type DataRepository struct {
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
 
-	CalculateSummaryInvocations int
-	CalculateSummaryInputs      []CalculateSummaryInput
-	CalculateSummaryOutputs     []CalculateSummaryOutput
+	GetCGMDataRangeInvocations                           int
+	GetCGMDataRangeInputs                                []GetCGMDataRangeInput
+	GetCGMDataRangeOutputs                               []GetCGMDataRangeOutput
 
-	GetLastUpdatedInvocations int
-	GetLastUpdatedInputs      []GetLastUpdatedInput
-	GetLastUpdatedOutputs     []GetLastUpdatedOutput
+	CalculateSummaryInvocations                          int
+	CalculateSummaryInputs                               []CalculateSummaryInput
+	CalculateSummaryOutputs                              []CalculateSummaryOutput
+
+	GetLastUpdatedForUserInvocations                     int
+	GetLastUpdatedForUserInputs                          []GetLastUpdatedForUserInput
+	GetLastUpdatedForUserOutputs                         []GetLastUpdatedForUserOutput
+
+	GetFreshUsersInvocations                             int
+	GetFreshUsersInputs                                  []GetFreshUsersInput
+	GetFreshUsersOutputs                                 []GetFreshUsersOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -433,41 +464,40 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) CalculateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error) {
-	d.CalculateSummaryInvocations++
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (summary.UserLastUpdated, error) {
+	d.GetLastUpdatedForUserInvocations++
 
-	d.CalculateSummaryInputs = append(d.CalculateSummaryInputs, CalculateSummaryInput{Context: ctx, Summary: summary})
+	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, ID: id})
 
-	gomega.Expect(d.CalculateSummaryOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.CalculateSummaryOutputs[0]
-	d.CalculateSummaryOutputs = d.CalculateSummaryOutputs[1:]
-	return output.Summary, output.Error
+	output := d.GetLastUpdatedForUserOutputs[0]
+	d.GetLastUpdatedForUserOutputs = d.GetLastUpdatedForUserOutputs[1:]
+	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetLastUpdated(ctx context.Context, id string) (time.Time, error) {
-	d.GetLastUpdatedInvocations++
+func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
+	d.GetCGMDataRangeInvocations++
 
-	d.GetLastUpdatedInputs = append(d.GetLastUpdatedInputs, GetLastUpdatedInput{Context: ctx, ID: id})
+	d.GetCGMDataRangeInputs = append(d.GetCGMDataRangeInputs, GetCGMDataRangeInput{Context: ctx, ID: id, StartTime: startTime, EndTime: endTime})
 
-	gomega.Expect(d.GetLastUpdatedOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetCGMDataRangeOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.GetLastUpdatedOutputs[0]
-	d.GetLastUpdatedOutputs = d.GetLastUpdatedOutputs[1:]
-	return output.Time, output.Error
+	output := d.GetCGMDataRangeOutputs[0]
+	d.GetCGMDataRangeOutputs = d.GetCGMDataRangeOutputs[1:]
+	return output.Continuous, output.Error
 }
 
-// TODO
-func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string) (time.Time, error) {
-	d.GetLastUpdatedInvocations++
+func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+	d.GetFreshUsersInvocations++
 
-	d.GetLastUpdatedInputs = append(d.GetLastUpdatedInputs, GetLastUpdatedInput{Context: ctx, ID: id})
+	d.GetFreshUsersInputs = append(d.GetFreshUsersInputs, GetFreshUsersInput{Context: ctx, LastUpdated: lastUpdated})
 
-	gomega.Expect(d.GetLastUpdatedOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetFreshUsersOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.GetLastUpdatedOutputs[0]
-	d.GetLastUpdatedOutputs = d.GetLastUpdatedOutputs[1:]
-	return output.Time, output.Error
+	output := d.GetFreshUsersOutputs[0]
+	d.GetFreshUsersOutputs = d.GetFreshUsersOutputs[1:]
+	return output.UserIDs, output.Error
 }
 
 func (d *DataRepository) Expectations() {
@@ -489,6 +519,6 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.GetLastUpdatedOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
 }
