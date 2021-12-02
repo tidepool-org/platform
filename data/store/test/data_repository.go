@@ -8,8 +8,8 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -152,30 +152,30 @@ type GetLastUpdatedForUserInput struct {
 }
 
 type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated  summary.UserLastUpdated
-	Error error
+	UserLastUpdated summary.UserLastUpdated
+	Error           error
 }
 
 type GetCGMDataRangeInput struct {
-	Context    context.Context
-	ID         string
-	StartTime  time.Time
-	EndTime    time.Time
+	Context   context.Context
+	ID        string
+	StartTime time.Time
+	EndTime   time.Time
 }
 
 type GetCGMDataRangeOutput struct {
-	Continuous  []*continuous.Continuous
-	Error error
+	Continuous []*continuous.Continuous
+	Error      error
 }
 
 type GetFreshUsersInput struct {
-	Context      context.Context
-	LastUpdated  time.Time
+	Context     context.Context
+	LastUpdated time.Time
 }
 
 type GetFreshUsersOutput struct {
-	UserIDs  []string
-	Error error
+	UserIDs []string
+	Error   error
 }
 
 type DataRepository struct {
@@ -232,21 +232,21 @@ type DataRepository struct {
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
 
-	GetCGMDataRangeInvocations                           int
-	GetCGMDataRangeInputs                                []GetCGMDataRangeInput
-	GetCGMDataRangeOutputs                               []GetCGMDataRangeOutput
+	GetCGMDataRangeInvocations int
+	GetCGMDataRangeInputs      []GetCGMDataRangeInput
+	GetCGMDataRangeOutputs     []GetCGMDataRangeOutput
 
-	CalculateSummaryInvocations                          int
-	CalculateSummaryInputs                               []CalculateSummaryInput
-	CalculateSummaryOutputs                              []CalculateSummaryOutput
+	CalculateSummaryInvocations int
+	CalculateSummaryInputs      []CalculateSummaryInput
+	CalculateSummaryOutputs     []CalculateSummaryOutput
 
-	GetLastUpdatedForUserInvocations                     int
-	GetLastUpdatedForUserInputs                          []GetLastUpdatedForUserInput
-	GetLastUpdatedForUserOutputs                         []GetLastUpdatedForUserOutput
+	GetLastUpdatedForUserInvocations int
+	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
+	GetLastUpdatedForUserOutputs     []GetLastUpdatedForUserOutput
 
-	GetFreshUsersInvocations                             int
-	GetFreshUsersInputs                                  []GetFreshUsersInput
-	GetFreshUsersOutputs                                 []GetFreshUsersOutput
+	GetFreshUsersInvocations int
+	GetFreshUsersInputs      []GetFreshUsersInput
+	GetFreshUsersOutputs     []GetFreshUsersOutput
 }
 
 func NewDataRepository() *DataRepository {

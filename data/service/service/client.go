@@ -37,7 +37,7 @@ func GetDuration(dataSet *continuous.Continuous) int64 {
 	return 5
 }
 
-func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time) (float64, time.Time) {
+func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time) (float64, time.Time, error) {
 	var weight float64 = 1.0
 
 	if startTime.Before(lastData) {
@@ -49,7 +49,10 @@ func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time)
 		startTime = lastData
 	}
 
-	return weight, startTime
+	if weight < 0 {
+		return weight, startTime, errors.New("Invalid time period for calculation")
+	}
+	return weight, startTime, nil
 }
 
 func CalculateStats(userData []*continuous.Continuous, totalMinutes float64) *summary.Stats {
@@ -173,7 +176,11 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 
 	weight := 1.0
 	if userSummary.LastData != nil {
-		weight, startTime = CalculateWeight(startTime, status.LastData, *userSummary.LastData)
+		weight, startTime, err = CalculateWeight(startTime, status.LastData, *userSummary.LastData)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	totalMinutes := float64(math.Round(status.LastData.Sub(startTime).Minutes()))
