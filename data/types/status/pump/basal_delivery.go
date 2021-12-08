@@ -60,10 +60,10 @@ func (b *BasalDelivery) Parse(parser structure.ObjectParser) {
 
 func (b *BasalDelivery) Validate(validator structure.Validator) {
 	validator.String("state", b.State).Exists().OneOf(BasalDeliveryStates()...)
-	if dateValidator := validator.Time("time", b.Time); b.State != nil && (*b.State == BasalDeliveryStateScheduled || *b.State == BasalDeliveryStateSuspended) {
-		dateValidator.Exists()
-	} else if b.Time != nil {
-		dateValidator.NotExists()
+	if timeValidator := validator.Time("time", b.Time); b.State != nil && (*b.State == BasalDeliveryStateScheduled || *b.State == BasalDeliveryStateSuspended) {
+		timeValidator.Exists()
+	} else {
+		timeValidator.NotExists()
 	}
 	if doseValidator := validator.WithReference("dose"); b.State != nil && *b.State == BasalDeliveryStateTemporary {
 		if b.Dose != nil {
@@ -104,8 +104,10 @@ func (b *BasalDose) Parse(parser structure.ObjectParser) {
 }
 
 func (b *BasalDose) Validate(validator structure.Validator) {
-	if b.StartTime != nil {
-		validator.Time("endTime", b.EndTime).After(*b.StartTime)
+	if endTimeValidator := validator.Time("endTime", b.EndTime); b.StartTime != nil {
+		endTimeValidator.After(*b.StartTime)
+	} else {
+		endTimeValidator.NotExists()
 	}
 	validator.Float64("rate", b.Rate).Exists().InRange(BasalDoseRateMinimum, BasalDoseRateMaximum)
 	validator.Float64("amountDelivered", b.AmountDelivered).InRange(BasalDoseAmountDeliveredMinimum, BasalDoseAmountDeliveredMaximum)

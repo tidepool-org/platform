@@ -3,7 +3,6 @@ package food
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -59,8 +58,6 @@ func (e *Energy) Validate(validator structure.Validator) {
 	validator.String("units", e.Units).Exists().OneOf(EnergyUnits()...)
 	validator.Float64("value", e.Value).Exists().InRange(EnergyValueRangeForUnits(e.Units))
 }
-
-func (e *Energy) Normalize(normalizer data.Normalizer) {}
 
 func EnergyValueRangeForUnits(units *string) (float64, float64) {
 	if units != nil {

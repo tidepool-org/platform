@@ -11,7 +11,9 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Reservoir", func() {
@@ -31,19 +33,82 @@ var _ = Describe("Reservoir", func() {
 		Expect(dataTypesStatusPump.ReservoirUnits()).To(Equal([]string{"Units"}))
 	})
 
-	Context("ParseReservoir", func() {
-		// TODO
-	})
-
-	Context("NewReservoir", func() {
-		It("is successful", func() {
-			Expect(dataTypesStatusPump.NewReservoir()).To(Equal(&dataTypesStatusPump.Reservoir{}))
-		})
-	})
-
 	Context("Reservoir", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataTypesStatusPump.Reservoir)) {
+				datum := dataTypesStatusPumpTest.RandomReservoir()
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataTypesStatusPumpTest.NewObjectFromReservoir(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesStatusPumpTest.NewObjectFromReservoir(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataTypesStatusPump.Reservoir) {},
+			),
+			Entry("empty",
+				func(datum *dataTypesStatusPump.Reservoir) {
+					*datum = *dataTypesStatusPump.NewReservoir()
+				},
+			),
+			Entry("all",
+				func(datum *dataTypesStatusPump.Reservoir) {
+					datum.Time = pointer.FromTime(test.RandomTime())
+					datum.Remaining = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.ReservoirRemainingUnitsMinimum, dataTypesStatusPump.ReservoirRemainingUnitsMaximum))
+					datum.Units = pointer.FromString(test.RandomStringFromArray(dataTypesStatusPump.ReservoirUnits()))
+				},
+			),
+		)
+
+		Context("ParseReservoir", func() {
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesStatusPump.ParseReservoir(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesStatusPumpTest.RandomReservoir()
+				object := dataTypesStatusPumpTest.NewObjectFromReservoir(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesStatusPump.ParseReservoir(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("NewReservoir", func() {
+			It("returns the expected datum with all values initialized", func() {
+				datum := dataTypesStatusPump.NewReservoir()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.Time).To(BeNil())
+				Expect(datum.Remaining).To(BeNil())
+				Expect(datum.Units).To(BeNil())
+			})
+		})
+
 		Context("Parse", func() {
-			// TODO
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.Reservoir), expectedErrors ...error) {
+					expectedDatum := dataTypesStatusPumpTest.RandomReservoir()
+					object := dataTypesStatusPumpTest.NewObjectFromReservoir(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					datum := dataTypesStatusPump.NewReservoir()
+					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.Reservoir) {},
+				),
+				Entry("multiple errors",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.Reservoir) {
+						object["time"] = true
+						object["remaining"] = true
+						object["units"] = true
+						expectedDatum.Time = nil
+						expectedDatum.Remaining = nil
+						expectedDatum.Units = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/time"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/remaining"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/units"),
+				),
+			)
 		})
 
 		Context("Validate", func() {
@@ -60,13 +125,17 @@ var _ = Describe("Reservoir", func() {
 					func(datum *dataTypesStatusPump.Reservoir) { datum.Remaining = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/remaining"),
 				),
-				Entry("remaining below minimum",
-					func(datum *dataTypesStatusPump.Reservoir) {
-						datum.Remaining = pointer.FromFloat64(-0.1)
-					},
+				Entry("remaining out of range (lower)",
+					func(datum *dataTypesStatusPump.Reservoir) { datum.Remaining = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 10000), "/remaining"),
 				),
-				Entry("remaining above maximum",
+				Entry("remaining in range (lower)",
+					func(datum *dataTypesStatusPump.Reservoir) { datum.Remaining = pointer.FromFloat64(0) },
+				),
+				Entry("remaining in range (upper)",
+					func(datum *dataTypesStatusPump.Reservoir) { datum.Remaining = pointer.FromFloat64(10000) },
+				),
+				Entry("remaining out of range (upper)",
 					func(datum *dataTypesStatusPump.Reservoir) { datum.Remaining = pointer.FromFloat64(10000.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10000.1, 0, 10000), "/remaining"),
 				),
