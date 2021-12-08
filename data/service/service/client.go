@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -40,18 +39,19 @@ func GetDuration(dataSet *continuous.Continuous) int64 {
 func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time) (float64, time.Time, error) {
 	var weight float64 = 1.0
 
+	if endTime.Before(lastData) {
+		return weight, startTime, errors.New("Invalid time period for calculation, endTime before lastData.")
+	}
+
 	if startTime.Before(lastData) {
 		// get ratio between start time and actual start time for weights
-		existingTime := lastData.Sub(startTime)
+		wholeTime := endTime.Sub(startTime)
 		newTime := endTime.Sub(lastData)
-		weight = newTime.Seconds() / existingTime.Seconds()
+		weight = newTime.Seconds() / wholeTime.Seconds()
 
 		startTime = lastData
 	}
 
-	if weight < 0 {
-		return weight, startTime, errors.New("Invalid time period for calculation")
-	}
 	return weight, startTime, nil
 }
 
@@ -65,9 +65,9 @@ func CalculateStats(userData []*continuous.Continuous, totalMinutes float64) *su
 	for _, r := range userData {
 		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(units))
 
-		if normalizedValue < lowBloodGlucose {
+		if normalizedValue <= lowBloodGlucose {
 			belowRangeMinutes += GetDuration(r)
-		} else if normalizedValue > highBloodGlucose {
+		} else if normalizedValue >= highBloodGlucose {
 			aboveRangeMinutes += GetDuration(r)
 		} else {
 			inRangeMinutes += GetDuration(r)
@@ -90,16 +90,19 @@ func CalculateStats(userData []*continuous.Continuous, totalMinutes float64) *su
 	}
 }
 
-func ReweightStats(stats *summary.Stats, userSummary *summary.Summary, weight float64) *summary.Stats {
+func ReweightStats(stats *summary.Stats, userSummary *summary.Summary, weight float64) (*summary.Stats, error) {
+	if weight < 0 || weight > 1 {
+		return stats, errors.New("Invalid weight (<0||>1) for stats")
+	}
 	// if we are rolling in previous averages
-	if weight != 1 {
+	if weight != 1 && weight >= 0 {
 		stats.AverageGlucose = stats.AverageGlucose*weight + *userSummary.AverageGlucose.Value*(1-weight)
 		stats.TimeInRange = stats.TimeInRange*weight + *userSummary.TimeInRange*(1-weight)
 		stats.TimeBelowRange = stats.TimeBelowRange*weight + *userSummary.TimeBelowRange*(1-weight)
 		stats.TimeAboveRange = stats.TimeAboveRange*weight + *userSummary.TimeAboveRange*(1-weight)
 	}
 
-	return stats
+	return stats, nil
 }
 
 func NewClient(strDEPRECATED dataStore.Store) (*Client, error) {
@@ -132,10 +135,8 @@ func (c *Client) GetSummary(ctx context.Context, id string) (*summary.Summary, e
 
 	userSummary, err := summaryRepository.GetSummary(ctx, id)
 
-	fmt.Println(err)
 	if err == mongo.ErrNoDocuments {
 		_, err := dataRepository.GetLastUpdatedForUser(ctx, id)
-		fmt.Println(err)
 
 		if err != nil {
 			return nil, nil
@@ -199,7 +200,10 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	}
 
 	stats := CalculateStats(userData, totalMinutes)
-	stats = ReweightStats(stats, userSummary, weight)
+	stats, err = ReweightStats(stats, userSummary, weight)
+	if err != nil {
+		return nil, err
+	}
 
 	userSummary.LastUpload = &status.LastUpload
 	userSummary.LastData = &status.LastData
