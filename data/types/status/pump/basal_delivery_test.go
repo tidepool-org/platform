@@ -11,6 +11,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
@@ -64,19 +65,82 @@ var _ = Describe("BasalDelivery", func() {
 		Expect(dataTypesStatusPump.BasalDeliveryStates()).To(Equal([]string{"cancelingTemporary", "initiatingTemporary", "resuming", "scheduled", "suspended", "suspending", "temporary"}))
 	})
 
-	Context("ParseBasalDelivery", func() {
-		// TODO
-	})
-
-	Context("NewBasalDelivery", func() {
-		It("is successful", func() {
-			Expect(dataTypesStatusPump.NewBasalDelivery()).To(Equal(&dataTypesStatusPump.BasalDelivery{}))
-		})
-	})
-
 	Context("BasalDelivery", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataTypesStatusPump.BasalDelivery)) {
+				datum := dataTypesStatusPumpTest.RandomBasalDelivery()
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataTypesStatusPumpTest.NewObjectFromBasalDelivery(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesStatusPumpTest.NewObjectFromBasalDelivery(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataTypesStatusPump.BasalDelivery) {},
+			),
+			Entry("empty",
+				func(datum *dataTypesStatusPump.BasalDelivery) {
+					*datum = *dataTypesStatusPump.NewBasalDelivery()
+				},
+			),
+			Entry("all",
+				func(datum *dataTypesStatusPump.BasalDelivery) {
+					datum.State = pointer.FromString(test.RandomStringFromArray(dataTypesStatusPump.BasalDeliveryStates()))
+					datum.Time = pointer.FromTime(test.RandomTime())
+					datum.Dose = dataTypesStatusPumpTest.RandomBasalDose()
+				},
+			),
+		)
+
+		Context("ParseBasalDelivery", func() {
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesStatusPump.ParseBasalDelivery(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesStatusPumpTest.RandomBasalDelivery()
+				object := dataTypesStatusPumpTest.NewObjectFromBasalDelivery(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesStatusPump.ParseBasalDelivery(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("NewBasalDelivery", func() {
+			It("returns the expected datum with all values initialized", func() {
+				datum := dataTypesStatusPump.NewBasalDelivery()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.State).To(BeNil())
+				Expect(datum.Time).To(BeNil())
+				Expect(datum.Dose).To(BeNil())
+			})
+		})
+
 		Context("Parse", func() {
-			// TODO
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BasalDelivery), expectedErrors ...error) {
+					expectedDatum := dataTypesStatusPumpTest.RandomBasalDelivery()
+					object := dataTypesStatusPumpTest.NewObjectFromBasalDelivery(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					datum := dataTypesStatusPump.NewBasalDelivery()
+					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BasalDelivery) {},
+				),
+				Entry("multiple errors",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BasalDelivery) {
+						object["state"] = true
+						object["time"] = true
+						object["dose"] = true
+						expectedDatum.State = nil
+						expectedDatum.Time = nil
+						expectedDatum.Dose = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/time"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/dose"),
+				),
+			)
 		})
 
 		Context("Validate", func() {
@@ -289,19 +353,87 @@ var _ = Describe("BasalDelivery", func() {
 		})
 	})
 
-	Context("ParseBasalDose", func() {
-		// TODO
-	})
-
-	Context("NewBasalDose", func() {
-		It("is successful", func() {
-			Expect(dataTypesStatusPump.NewBasalDose()).To(Equal(&dataTypesStatusPump.BasalDose{}))
-		})
-	})
-
 	Context("BasalDose", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataTypesStatusPump.BasalDose)) {
+				datum := dataTypesStatusPumpTest.RandomBasalDose()
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataTypesStatusPumpTest.NewObjectFromBasalDose(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesStatusPumpTest.NewObjectFromBasalDose(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataTypesStatusPump.BasalDose) {},
+			),
+			Entry("empty",
+				func(datum *dataTypesStatusPump.BasalDose) {
+					*datum = *dataTypesStatusPump.NewBasalDose()
+				},
+			),
+			Entry("all",
+				func(datum *dataTypesStatusPump.BasalDose) {
+					datum.StartTime = pointer.FromTime(test.RandomTime())
+					datum.EndTime = pointer.FromTime(test.RandomTimeFromRange(*datum.StartTime, test.RandomTimeMaximum()))
+					datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BasalDoseRateMinimum, dataTypesStatusPump.BasalDoseRateMaximum))
+					datum.AmountDelivered = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BasalDoseAmountDeliveredMinimum, dataTypesStatusPump.BasalDoseAmountDeliveredMaximum))
+				},
+			),
+		)
+
+		Context("ParseBasalDose", func() {
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesStatusPump.ParseBasalDose(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesStatusPumpTest.RandomBasalDose()
+				object := dataTypesStatusPumpTest.NewObjectFromBasalDose(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesStatusPump.ParseBasalDose(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("NewBasalDose", func() {
+			It("returns the expected datum with all values initialized", func() {
+				datum := dataTypesStatusPump.NewBasalDose()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.StartTime).To(BeNil())
+				Expect(datum.EndTime).To(BeNil())
+				Expect(datum.Rate).To(BeNil())
+				Expect(datum.AmountDelivered).To(BeNil())
+			})
+		})
+
 		Context("Parse", func() {
-			// TODO
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BasalDose), expectedErrors ...error) {
+					expectedDatum := dataTypesStatusPumpTest.RandomBasalDose()
+					object := dataTypesStatusPumpTest.NewObjectFromBasalDose(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					datum := dataTypesStatusPump.NewBasalDose()
+					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BasalDose) {},
+				),
+				Entry("multiple errors",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BasalDose) {
+						object["startTime"] = true
+						object["endTime"] = true
+						object["rate"] = true
+						object["amountDelivered"] = true
+						expectedDatum.StartTime = nil
+						expectedDatum.EndTime = nil
+						expectedDatum.Rate = nil
+						expectedDatum.AmountDelivered = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/startTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/endTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/rate"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/amountDelivered"),
+				),
+			)
 		})
 
 		Context("Validate", func() {
@@ -314,41 +446,81 @@ var _ = Describe("BasalDelivery", func() {
 				Entry("succeeds",
 					func(datum *dataTypesStatusPump.BasalDose) {},
 				),
-				Entry("endTime before startTime",
+				Entry("start time missing; end time missing",
+					func(datum *dataTypesStatusPump.BasalDose) {
+						datum.StartTime = nil
+						datum.EndTime = nil
+					},
+				),
+				Entry("start time missing; end time exists",
+					func(datum *dataTypesStatusPump.BasalDose) {
+						datum.StartTime = nil
+						datum.EndTime = pointer.FromTime(test.RandomTime())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/endTime"),
+				),
+				Entry("start time exists; end time missing",
+					func(datum *dataTypesStatusPump.BasalDose) {
+						datum.StartTime = pointer.FromTime(test.RandomTime())
+						datum.EndTime = nil
+					},
+				),
+				Entry("start time exists; end time exists before start time",
 					func(datum *dataTypesStatusPump.BasalDose) {
 						datum.StartTime = pointer.FromTime(test.PastNearTime())
 						datum.EndTime = pointer.FromTime(test.PastFarTime())
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/endTime"),
+				),
+				Entry("start time exists; end time exists after start time",
+					func(datum *dataTypesStatusPump.BasalDose) {
+						datum.StartTime = pointer.FromTime(test.PastFarTime())
+						datum.EndTime = pointer.FromTime(test.PastNearTime())
+					},
 				),
 				Entry("rate missing",
 					func(datum *dataTypesStatusPump.BasalDose) { datum.Rate = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 				),
-				Entry("rate below minimum",
+				Entry("rate out of range (lower)",
 					func(datum *dataTypesStatusPump.BasalDose) { datum.Rate = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/rate"),
 				),
-				Entry("rate above maximum",
+				Entry("rate in range (lower)",
+					func(datum *dataTypesStatusPump.BasalDose) { datum.Rate = pointer.FromFloat64(0) },
+				),
+				Entry("rate in range (upper)",
+					func(datum *dataTypesStatusPump.BasalDose) { datum.Rate = pointer.FromFloat64(100) },
+				),
+				Entry("rate out of range (upper)",
 					func(datum *dataTypesStatusPump.BasalDose) { datum.Rate = pointer.FromFloat64(100.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/rate"),
 				),
-				Entry("amount delivered below minimum",
+				Entry("amount delivered missing",
+					func(datum *dataTypesStatusPump.BasalDose) { datum.AmountDelivered = nil },
+				),
+				Entry("amount delivered out of range (lower)",
 					func(datum *dataTypesStatusPump.BasalDose) { datum.AmountDelivered = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amountDelivered"),
 				),
-				Entry("amount delivered above maximum",
+				Entry("amount delivered in range (lower)",
+					func(datum *dataTypesStatusPump.BasalDose) { datum.AmountDelivered = pointer.FromFloat64(0) },
+				),
+				Entry("amount delivered in range (upper)",
+					func(datum *dataTypesStatusPump.BasalDose) { datum.AmountDelivered = pointer.FromFloat64(1000) },
+				),
+				Entry("amount delivered out of range (upper)",
 					func(datum *dataTypesStatusPump.BasalDose) { datum.AmountDelivered = pointer.FromFloat64(1000.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0, 1000), "/amountDelivered"),
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesStatusPump.BasalDose) {
-						datum.StartTime = pointer.FromTime(test.PastNearTime())
-						datum.EndTime = pointer.FromTime(test.PastFarTime())
+						datum.StartTime = nil
+						datum.EndTime = pointer.FromTime(test.RandomTime())
 						datum.Rate = nil
 						datum.AmountDelivered = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueTimeNotAfter(test.PastFarTime(), test.PastNearTime()), "/endTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/endTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/rate"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amountDelivered"),
 				),

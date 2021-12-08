@@ -89,51 +89,17 @@ var _ = Describe("Notifications", func() {
 		)
 
 		Context("ParseNotifications", func() {
-			DescribeTable("parses the datum",
-				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesSettingsController.Notifications), expectedErrors ...error) {
-					expectedDatum := dataTypesSettingsControllerTest.RandomNotifications()
-					object := dataTypesSettingsControllerTest.NewObjectFromNotifications(expectedDatum, test.ObjectFormatJSON)
-					mutator(object, expectedDatum)
-					parser := structureParser.NewObject(&object)
-					datum := dataTypesSettingsController.ParseNotifications(parser)
-					errorsTest.ExpectEqual(parser.Error(), expectedErrors...)
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("succeeds",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsController.Notifications) {},
-				),
-				Entry("multiple errors",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsController.Notifications) {
-						object["authorization"] = 0
-						object["alert"] = 0
-						object["criticalAlert"] = 0
-						object["badge"] = 0
-						object["sound"] = 0
-						object["announcement"] = 0
-						object["notificationCenter"] = 0
-						object["lockScreen"] = 0
-						object["alertStyle"] = 0
-						expectedDatum.Authorization = nil
-						expectedDatum.Alert = nil
-						expectedDatum.CriticalAlert = nil
-						expectedDatum.Badge = nil
-						expectedDatum.Sound = nil
-						expectedDatum.Announcement = nil
-						expectedDatum.NotificationCenter = nil
-						expectedDatum.LockScreen = nil
-						expectedDatum.AlertStyle = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(0), "/authorization"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/alert"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/criticalAlert"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/badge"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/sound"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/announcement"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/notificationCenter"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool(0), "/lockScreen"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(0), "/alertStyle"),
-				),
-			)
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesSettingsController.ParseNotifications(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesSettingsControllerTest.RandomNotifications()
+				object := dataTypesSettingsControllerTest.NewObjectFromNotifications(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesSettingsController.ParseNotifications(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("NewNotifications", func() {

@@ -28,3 +28,20 @@ func CloneReservoir(datum *dataTypesStatusPump.Reservoir) *dataTypesStatusPump.R
 	clone.Units = pointer.CloneString(datum.Units)
 	return clone
 }
+
+func NewObjectFromReservoir(datum *dataTypesStatusPump.Reservoir, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.Time != nil {
+		object["time"] = test.NewObjectFromTime(*datum.Time, objectFormat)
+	}
+	if datum.Remaining != nil {
+		object["remaining"] = test.NewObjectFromFloat64(*datum.Remaining, objectFormat)
+	}
+	if datum.Units != nil {
+		object["units"] = test.NewObjectFromString(*datum.Units, objectFormat)
+	}
+	return object
+}

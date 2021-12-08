@@ -38,7 +38,7 @@ func NewReservoir() *Reservoir {
 }
 
 func (r *Reservoir) Parse(parser structure.ObjectParser) {
-	r.Time = parser.Time("time", TimeFormat)
+	r.Time = parser.Time("time", time.RFC3339Nano)
 	r.Remaining = parser.Float64("remaining")
 	r.Units = parser.String("units")
 }

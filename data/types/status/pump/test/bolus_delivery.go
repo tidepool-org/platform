@@ -27,6 +27,20 @@ func CloneBolusDelivery(datum *dataTypesStatusPump.BolusDelivery) *dataTypesStat
 	return clone
 }
 
+func NewObjectFromBolusDelivery(datum *dataTypesStatusPump.BolusDelivery, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.State != nil {
+		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
+	}
+	if datum.Dose != nil {
+		object["dose"] = NewObjectFromBolusDose(datum.Dose, objectFormat)
+	}
+	return object
+}
+
 func RandomBolusDose() *dataTypesStatusPump.BolusDose {
 	datum := dataTypesStatusPump.NewBolusDose()
 	datum.StartTime = pointer.FromTime(test.RandomTime())
@@ -44,4 +58,21 @@ func CloneBolusDose(datum *dataTypesStatusPump.BolusDose) *dataTypesStatusPump.B
 	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	clone.AmountDelivered = pointer.CloneFloat64(datum.AmountDelivered)
 	return clone
+}
+
+func NewObjectFromBolusDose(datum *dataTypesStatusPump.BolusDose, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.StartTime != nil {
+		object["startTime"] = test.NewObjectFromTime(*datum.StartTime, objectFormat)
+	}
+	if datum.Amount != nil {
+		object["amount"] = test.NewObjectFromFloat64(*datum.Amount, objectFormat)
+	}
+	if datum.AmountDelivered != nil {
+		object["amountDelivered"] = test.NewObjectFromFloat64(*datum.AmountDelivered, objectFormat)
+	}
+	return object
 }

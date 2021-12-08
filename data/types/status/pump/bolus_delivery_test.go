@@ -11,7 +11,9 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("BolusDelivery", func() {
@@ -51,19 +53,77 @@ var _ = Describe("BolusDelivery", func() {
 		Expect(dataTypesStatusPump.BolusDeliveryStates()).To(Equal([]string{"canceling", "delivering", "initiating", "none"}))
 	})
 
-	Context("ParseBolusDelivery", func() {
-		// TODO
-	})
-
-	Context("NewBolusDelivery", func() {
-		It("is successful", func() {
-			Expect(dataTypesStatusPump.NewBolusDelivery()).To(Equal(&dataTypesStatusPump.BolusDelivery{}))
-		})
-	})
-
 	Context("BolusDelivery", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataTypesStatusPump.BolusDelivery)) {
+				datum := dataTypesStatusPumpTest.RandomBolusDelivery()
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataTypesStatusPumpTest.NewObjectFromBolusDelivery(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesStatusPumpTest.NewObjectFromBolusDelivery(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataTypesStatusPump.BolusDelivery) {},
+			),
+			Entry("empty",
+				func(datum *dataTypesStatusPump.BolusDelivery) {
+					*datum = *dataTypesStatusPump.NewBolusDelivery()
+				},
+			),
+			Entry("all",
+				func(datum *dataTypesStatusPump.BolusDelivery) {
+					datum.State = pointer.FromString(test.RandomStringFromArray(dataTypesStatusPump.BolusDeliveryStates()))
+					datum.Dose = dataTypesStatusPumpTest.RandomBolusDose()
+				},
+			),
+		)
+
+		Context("ParseBolusDelivery", func() {
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesStatusPump.ParseBolusDelivery(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesStatusPumpTest.RandomBolusDelivery()
+				object := dataTypesStatusPumpTest.NewObjectFromBolusDelivery(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesStatusPump.ParseBolusDelivery(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("NewBolusDelivery", func() {
+			It("returns the expected datum with all values initialized", func() {
+				datum := dataTypesStatusPump.NewBolusDelivery()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.State).To(BeNil())
+				Expect(datum.Dose).To(BeNil())
+			})
+		})
+
 		Context("Parse", func() {
-			// TODO
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BolusDelivery), expectedErrors ...error) {
+					expectedDatum := dataTypesStatusPumpTest.RandomBolusDelivery()
+					object := dataTypesStatusPumpTest.NewObjectFromBolusDelivery(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					datum := dataTypesStatusPump.NewBolusDelivery()
+					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BolusDelivery) {},
+				),
+				Entry("multiple errors",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BolusDelivery) {
+						object["state"] = true
+						object["dose"] = true
+						expectedDatum.State = nil
+						expectedDatum.Dose = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/dose"),
+				),
+			)
 		})
 
 		Context("Validate", func() {
@@ -154,19 +214,82 @@ var _ = Describe("BolusDelivery", func() {
 		})
 	})
 
-	Context("ParseBolusDose", func() {
-		// TODO
-	})
-
-	Context("NewBolusDose", func() {
-		It("is successful", func() {
-			Expect(dataTypesStatusPump.NewBolusDose()).To(Equal(&dataTypesStatusPump.BolusDose{}))
-		})
-	})
-
 	Context("BolusDose", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataTypesStatusPump.BolusDose)) {
+				datum := dataTypesStatusPumpTest.RandomBolusDose()
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataTypesStatusPumpTest.NewObjectFromBolusDose(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesStatusPumpTest.NewObjectFromBolusDose(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataTypesStatusPump.BolusDose) {},
+			),
+			Entry("empty",
+				func(datum *dataTypesStatusPump.BolusDose) {
+					*datum = *dataTypesStatusPump.NewBolusDose()
+				},
+			),
+			Entry("all",
+				func(datum *dataTypesStatusPump.BolusDose) {
+					datum.StartTime = pointer.FromTime(test.RandomTime())
+					datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BolusDoseAmountMinimum, dataTypesStatusPump.BolusDoseAmountMaximum))
+					datum.AmountDelivered = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BolusDoseAmountDeliveredMinimum, dataTypesStatusPump.BolusDoseAmountDeliveredMaximum))
+				},
+			),
+		)
+
+		Context("ParseBolusDose", func() {
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesStatusPump.ParseBolusDose(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesStatusPumpTest.RandomBolusDose()
+				object := dataTypesStatusPumpTest.NewObjectFromBolusDose(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesStatusPump.ParseBolusDose(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("NewBolusDose", func() {
+			It("returns the expected datum with all values initialized", func() {
+				datum := dataTypesStatusPump.NewBolusDose()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.StartTime).To(BeNil())
+				Expect(datum.Amount).To(BeNil())
+				Expect(datum.AmountDelivered).To(BeNil())
+			})
+		})
+
 		Context("Parse", func() {
-			// TODO
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BolusDose), expectedErrors ...error) {
+					expectedDatum := dataTypesStatusPumpTest.RandomBolusDose()
+					object := dataTypesStatusPumpTest.NewObjectFromBolusDose(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					datum := dataTypesStatusPump.NewBolusDose()
+					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BolusDose) {},
+				),
+				Entry("multiple errors",
+					func(object map[string]interface{}, expectedDatum *dataTypesStatusPump.BolusDose) {
+						object["startTime"] = true
+						object["amount"] = true
+						object["amountDelivered"] = true
+						expectedDatum.StartTime = nil
+						expectedDatum.Amount = nil
+						expectedDatum.AmountDelivered = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/startTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/amount"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/amountDelivered"),
+				),
+			)
 		})
 
 		Context("Validate", func() {
@@ -183,25 +306,45 @@ var _ = Describe("BolusDelivery", func() {
 					func(datum *dataTypesStatusPump.BolusDose) { datum.Amount = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/amount"),
 				),
-				Entry("amount below minimum",
+				Entry("amount out of range (lower)",
 					func(datum *dataTypesStatusPump.BolusDose) {
 						datum.Amount = pointer.FromFloat64(-0.1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amount"),
 				),
-				Entry("amount above maximum",
+				Entry("amount in range (lower)",
+					func(datum *dataTypesStatusPump.BolusDose) {
+						datum.Amount = pointer.FromFloat64(0)
+					},
+				),
+				Entry("amount in range (upper)",
+					func(datum *dataTypesStatusPump.BolusDose) {
+						datum.Amount = pointer.FromFloat64(1000)
+					},
+				),
+				Entry("amount out of range (upper)",
 					func(datum *dataTypesStatusPump.BolusDose) {
 						datum.Amount = pointer.FromFloat64(1000.1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0, 1000), "/amount"),
 				),
-				Entry("amount delivered below minimum",
+				Entry("amount delivered out of range (lower)",
 					func(datum *dataTypesStatusPump.BolusDose) {
 						datum.AmountDelivered = pointer.FromFloat64(-0.1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/amountDelivered"),
 				),
-				Entry("amount delivered above maximum",
+				Entry("amount delivered in range (lower)",
+					func(datum *dataTypesStatusPump.BolusDose) {
+						datum.AmountDelivered = pointer.FromFloat64(0)
+					},
+				),
+				Entry("amount delivered in range (upper)",
+					func(datum *dataTypesStatusPump.BolusDose) {
+						datum.AmountDelivered = pointer.FromFloat64(1000)
+					},
+				),
+				Entry("amount delivered out of range (upper)",
 					func(datum *dataTypesStatusPump.BolusDose) {
 						datum.AmountDelivered = pointer.FromFloat64(1000.1)
 					},

@@ -1,27 +1,24 @@
 package pump
 
 import (
-	"time"
-
 	"github.com/tidepool-org/platform/data"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
 	Type = "pumpStatus"
-
-	TimeFormat = time.RFC3339Nano
 )
 
 type Pump struct {
 	dataTypes.Base `bson:",inline"`
 
-	BasalDelivery *BasalDelivery `json:"basalDelivery,omitempty" bson:"basalDelivery,omitempty"`
-	Battery       *Battery       `json:"battery,omitempty" bson:"battery,omitempty"`
-	BolusDelivery *BolusDelivery `json:"bolusDelivery,omitempty" bson:"bolusDelivery,omitempty"`
-	Device        *Device        `json:"device,omitempty" bson:"device,omitempty"`
-	Reservoir     *Reservoir     `json:"reservoir,omitempty" bson:"reservoir,omitempty"`
+	BasalDelivery         *BasalDelivery `json:"basalDelivery,omitempty" bson:"basalDelivery,omitempty"`
+	Battery               *Battery       `json:"battery,omitempty" bson:"battery,omitempty"`
+	BolusDelivery         *BolusDelivery `json:"bolusDelivery,omitempty" bson:"bolusDelivery,omitempty"`
+	DeliveryIndeterminant *bool          `json:"deliveryIndeterminant,omitempty" bson:"deliveryIndeterminant,omitempty"`
+	Reservoir             *Reservoir     `json:"reservoir,omitempty" bson:"reservoir,omitempty"`
 }
 
 func New() *Pump {
@@ -40,7 +37,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BasalDelivery = ParseBasalDelivery(parser.WithReferenceObjectParser("basalDelivery"))
 	p.Battery = ParseBattery(parser.WithReferenceObjectParser("battery"))
 	p.BolusDelivery = ParseBolusDelivery(parser.WithReferenceObjectParser("bolusDelivery"))
-	p.Device = ParseDevice(parser.WithReferenceObjectParser("device"))
+	p.DeliveryIndeterminant = parser.Bool("deliveryIndeterminant")
 	p.Reservoir = ParseReservoir(parser.WithReferenceObjectParser("reservoir"))
 }
 
@@ -64,11 +61,12 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.BolusDelivery != nil {
 		p.BolusDelivery.Validate(validator.WithReference("bolusDelivery"))
 	}
-	if p.Device != nil {
-		p.Device.Validate(validator.WithReference("device"))
-	}
 	if p.Reservoir != nil {
 		p.Reservoir.Validate(validator.WithReference("reservoir"))
+	}
+
+	if p.BasalDelivery == nil && p.Battery == nil && p.BolusDelivery == nil && p.DeliveryIndeterminant == nil && p.Reservoir == nil {
+		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("basalDelivery", "battery", "bolusDelivery", "deliveryIndeterminant", "reservoir"))
 	}
 }
 
