@@ -60,7 +60,6 @@ func (s *Store) EnsureIndexes() error {
 	return repository.EnsureIndexes()
 }
 
-
 func (s *Store) EnsureSummaryTask() error {
 	repository := s.TaskRepository()
 	return repository.EnsureSummaryTask()

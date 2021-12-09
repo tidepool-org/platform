@@ -12,7 +12,7 @@ func TaskName() string {
 	return fmt.Sprintf("%s", Type)
 }
 
-func NewDefaultTaskCreate() (*task.TaskCreate) {
+func NewDefaultTaskCreate() *task.TaskCreate {
 	availableTime := time.Now().UTC()
 	expirationTime := availableTime.AddDate(1000, 0, 0)
 
@@ -21,6 +21,6 @@ func NewDefaultTaskCreate() (*task.TaskCreate) {
 		Type:           Type,
 		Priority:       5,
 		AvailableTime:  pointer.FromTime(availableTime),
- 		ExpirationTime: pointer.FromTime(expirationTime),
+		ExpirationTime: pointer.FromTime(expirationTime),
 	}
 }
