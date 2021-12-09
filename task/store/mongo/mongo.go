@@ -20,6 +20,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
+	"github.com/tidepool-org/platform/task/summary"
 )
 
 var (
@@ -57,6 +58,12 @@ func (s *Store) TaskRepository() *TaskRepository {
 func (s *Store) EnsureIndexes() error {
 	repository := s.TaskRepository()
 	return repository.EnsureIndexes()
+}
+
+
+func (s *Store) EnsureSummaryTask() error {
+	repository := s.TaskRepository()
+	return repository.EnsureSummaryTask()
 }
 
 type TaskRepository struct {
@@ -99,6 +106,40 @@ func (t *TaskRepository) EnsureIndexes() error {
 				SetBackground(true),
 		},
 	})
+}
+
+func (t *TaskRepository) EnsureSummaryTask() error {
+	create := summary.NewDefaultTaskCreate()
+
+	tsk, err := task.NewTask(create)
+	if err != nil {
+		return err
+	} else if err = structureValidator.New().Validate(tsk); err != nil {
+		return errors.Wrap(err, "task is invalid")
+	}
+
+	upsert := true
+	after := options.After
+	opts := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
+	}
+
+	summaryTask := t.FindOneAndUpdate(context.Background(),
+		bson.M{"name": tsk.Name},
+		bson.M{"$setOnInsert": tsk},
+		&opts,
+	)
+
+	if summaryTask.Err() != nil {
+		if summaryTask.Err() != mongo.ErrNoDocuments {
+			return errors.Wrap(summaryTask.Err(), "unable to create summary task")
+		}
+	}
+
+	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
+
+	return summaryTask.Err()
 }
 
 func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {

@@ -120,11 +120,6 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 		return errors.New("context is missing")
 	}
 
-	if len(t.task.Data) == 0 {
-		t.task.SetFailed()
-		return errors.New("data is missing")
-	}
-
 	t.context = ctx
 	t.validator = structureValidator.New()
 
@@ -140,6 +135,8 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 		t.task.SetFailed()
 		return err
 	}
+
+	t.logger.Info("Finished User Summary Update")
 
 	return nil
 }

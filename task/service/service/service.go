@@ -119,6 +119,11 @@ func (s *Service) initializeTaskStore() error {
 		return errors.Wrap(err, "unable to ensure task store indexes")
 	}
 
+	err = s.taskStore.EnsureSummaryTask()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure task store contains summary task")
+	}
+
 	return nil
 }
 
