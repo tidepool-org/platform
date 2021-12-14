@@ -72,5 +72,5 @@ type SummaryRepository interface {
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
 	GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]*summary.Summary, error)
 	GetLastUpdated(ctx context.Context) (time.Time, error)
-	UpdateLastUpdated(ctx context.Context, id string) error
+	UpdateLastUpdated(ctx context.Context, id string) (time.Time, error)
 }

@@ -257,7 +257,10 @@ func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Paginati
 		if _, exists := freshUserMap[agedSummary.UserID]; exists {
 			summariesReqUpdate = append(summariesReqUpdate, agedSummary)
 		} else {
-			summaryRepository.UpdateLastUpdated(ctx, agedSummary.UserID)
+			_, err := summaryRepository.UpdateLastUpdated(ctx, agedSummary.UserID)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if len(summariesReqUpdate) >= pagination.Size {

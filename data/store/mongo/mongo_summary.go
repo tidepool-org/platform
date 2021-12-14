@@ -140,23 +140,24 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 			lastUpdated = *summaries[0].LastUpdated
 		}
 	} else {
-		return lastUpdated, errors.Wrap(err, "no summaries found")
+		return time.Time{}, nil
 	}
 
 	return lastUpdated, nil
 }
 
-func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) error {
+func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (time.Time, error) {
+	// truncate+utc for consistency
+	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	if ctx == nil {
-		return errors.New("context is missing")
+		return timestamp, errors.New("context is missing")
 	}
 
 	if id == "" {
-		return errors.New("user id is missing")
+		return timestamp, errors.New("user id is missing")
 	}
 
 	selector := bson.M{"userId": id}
-	timestamp := time.Now()
 
 	update := bson.M{
 		"$set": bson.M{
@@ -167,8 +168,8 @@ func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) er
 	_, err := d.UpdateOne(ctx, selector, update)
 
 	if err != nil {
-		return errors.Wrap(err, "unable to update lastUpdated date")
+		return timestamp, errors.Wrap(err, "unable to update lastUpdated date")
 	}
 
-	return nil
+	return timestamp, nil
 }
