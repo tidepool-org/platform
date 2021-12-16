@@ -20,6 +20,10 @@ import (
 	"github.com/tidepool-org/go-common/jepson"
 )
 
+var (
+	ErrDuplicateUser = errors.New("user already exists")
+)
+
 // Client interface that we will implement and mock
 type Client interface {
 	Start() error
@@ -30,6 +34,8 @@ type Client interface {
 	TokenProvide() string
 	GetUser(userID, token string) (*UserData, error)
 	UpdateUser(userID string, userUpdate UserUpdate, token string) error
+	CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error)
+	DeleteUserSessions(userID, token string) error
 }
 
 // ShorelineClient manages the local data for a client. A client is intended to be shared among multiple
@@ -68,6 +74,11 @@ type UserUpdate struct {
 	Password      *string   `json:"password,omitempty"`
 	Roles         *[]string `json:"roles,omitempty"`
 	EmailVerified *bool     `json:"emailVerified,omitempty"`
+}
+
+// CustodialUserData is the data structure for creating custodial user
+type CustodialUserData struct {
+	Email *string `json:"email,omitempty"`
 }
 
 // TokenData is the data structure returned from a successful CheckToken query.
@@ -421,6 +432,84 @@ func (client *ShorelineClient) UpdateUser(userID string, userUpdate UserUpdate, 
 		default:
 			return &status.StatusError{
 				status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL)}
+		}
+	}
+}
+
+func (client *ShorelineClient) CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error) {
+	host := client.getHost()
+	if host == nil {
+		return nil, errors.New("No known user-api hosts.")
+	}
+	if clinicId == "" {
+		return nil, errors.New("clinic id is missing")
+	}
+
+	host.Path = path.Join(host.Path, "v1", "clinics", clinicId, "users")
+
+	type request struct {
+		Username *string  `json:"username,omitempty"`
+		Emails   []string `json:"emails,omitempty"`
+	}
+
+	payload := request{}
+	if userData.Email != nil && *userData.Email != "" {
+		payload.Username = userData.Email
+		payload.Emails = []string{*userData.Email}
+	}
+
+	if jsonUser, err := json.Marshal(payload); err != nil {
+		return nil, fmt.Errorf("unable to marshal payload: %w", err)
+	} else {
+		req, _ := http.NewRequest("POST", host.String(), bytes.NewBuffer(jsonUser))
+		req.Header.Add("x-tidepool-session-token", token)
+
+		res, err := client.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create a user: %w", err)
+		}
+		defer res.Body.Close()
+
+		switch res.StatusCode {
+		case http.StatusCreated:
+			ud, err := extractUserData(res.Body)
+			if err != nil {
+				return nil, err
+			}
+			return ud, nil
+		case http.StatusConflict:
+			return nil, ErrDuplicateUser
+		default:
+			return nil, fmt.Errorf("unexpected status code from service: %v", res.StatusCode)
+		}
+	}
+}
+
+
+// DeleteUserSession deletes all active sessions for a given user
+func (client *ShorelineClient) DeleteUserSessions(userID, token string) error {
+	host := client.getHost()
+	if host == nil {
+		return errors.New("No known user-api hosts.")
+	}
+
+	host.Path = path.Join(host.Path, "user", userID, "sessions")
+
+	req, _ := http.NewRequest("DELETE", host.String(), nil)
+	req.Header.Add("x-tidepool-session-token", token)
+
+	res, err := client.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "couldn't delete user sessions")
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	default:
+		return &status.StatusError{
+			Status: status.NewStatusf(res.StatusCode, "Unknown response code from service[%s]", req.URL),
 		}
 	}
 }

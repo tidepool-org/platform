@@ -4,6 +4,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/devices"
+	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+
 	"github.com/tidepool-org/platform/config"
 
 	provider "github.com/tidepool-org/platform/application"
@@ -23,6 +27,7 @@ import (
 
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	configTest "github.com/tidepool-org/platform/config/test"
+	prescriptionApplicationTest "github.com/tidepool-org/platform/prescription/application/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
@@ -110,6 +115,10 @@ var _ = Describe("Application", func() {
 					fx.Provide(func() provider.Provider { return prvdr }),
 					provider.ProviderComponentsModule,
 					fx.Provide(func(provider.Provider) config.Reporter { return prvdr.ConfigReporter() }),
+					fx.Provide(prescriptionApplicationTest.NewNoopMailer),
+					devices.ClientModule,
+					structuredMongo.StoreModule,
+					clinics.ClientModule,
 					application.Prescription,
 					fx.Invoke(func(res Result) {
 						routers = res.Routers

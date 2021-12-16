@@ -9,7 +9,7 @@ import (
 const DeadLetterSuffix = "-dead-letters"
 
 type CloudEventsConfig struct {
-	EventSource           string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"true"`
+	EventSource           string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"false"`
 	KafkaBrokers          []string `envconfig:"KAFKA_BROKERS" required:"true"`
 	KafkaConsumerGroup    string   `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
 	KafkaTopic            string   `envconfig:"KAFKA_TOPIC" default:"events"`
