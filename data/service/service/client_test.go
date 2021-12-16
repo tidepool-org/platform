@@ -174,6 +174,7 @@ var _ = Describe("Client", func() {
 					Expect(stats.TimeInRange).To(Equal(0.33))
 					Expect(stats.TimeBelowRange).To(Equal(0.33))
 					Expect(stats.TimeAboveRange).To(Equal(0.33))
+					Expect(stats.TimeCGMUse).To(Equal(1.00))
 				})
 			})
 
@@ -187,6 +188,7 @@ var _ = Describe("Client", func() {
 						TimeInRange:    1,
 						TimeBelowRange: 1,
 						TimeAboveRange: 1,
+						TimeCGMUse:     1,
 						AverageGlucose: 1,
 					}
 
@@ -197,6 +199,7 @@ var _ = Describe("Client", func() {
 					userSummary.TimeInRange = pointer.FromFloat64(0.0)
 					userSummary.TimeBelowRange = pointer.FromFloat64(0.0)
 					userSummary.TimeAboveRange = pointer.FromFloat64(0.0)
+					userSummary.TimeCGMUse = pointer.FromFloat64(0.0)
 				})
 
 				It("Returns correctly reweighted stats for 0 weight", func() {
@@ -207,6 +210,7 @@ var _ = Describe("Client", func() {
 					Expect(reweightedStats.TimeInRange).To(Equal(*userSummary.TimeInRange))
 					Expect(reweightedStats.TimeBelowRange).To(Equal(*userSummary.TimeBelowRange))
 					Expect(reweightedStats.TimeAboveRange).To(Equal(*userSummary.TimeAboveRange))
+					Expect(reweightedStats.TimeCGMUse).To(Equal(*userSummary.TimeCGMUse))
 					Expect(reweightedStats.AverageGlucose).To(Equal(*userSummary.AverageGlucose.Value))
 				})
 
@@ -218,6 +222,7 @@ var _ = Describe("Client", func() {
 					Expect(reweightedStats.TimeInRange).To(Equal(stats.TimeInRange))
 					Expect(reweightedStats.TimeBelowRange).To(Equal(stats.TimeBelowRange))
 					Expect(reweightedStats.TimeAboveRange).To(Equal(stats.TimeAboveRange))
+					Expect(reweightedStats.TimeCGMUse).To(Equal(stats.TimeCGMUse))
 					Expect(reweightedStats.AverageGlucose).To(Equal(stats.AverageGlucose))
 				})
 
@@ -227,6 +232,7 @@ var _ = Describe("Client", func() {
 						TimeInRange:    0.5,
 						TimeBelowRange: 0.5,
 						TimeAboveRange: 0.5,
+						TimeCGMUse:     0.5,
 						AverageGlucose: 0.5,
 					}
 
@@ -235,6 +241,7 @@ var _ = Describe("Client", func() {
 					Expect(reweightedStats.TimeInRange).To(Equal(midstats.TimeInRange))
 					Expect(reweightedStats.TimeBelowRange).To(Equal(midstats.TimeBelowRange))
 					Expect(reweightedStats.TimeAboveRange).To(Equal(midstats.TimeAboveRange))
+					Expect(reweightedStats.TimeCGMUse).To(Equal(midstats.TimeCGMUse))
 					Expect(reweightedStats.AverageGlucose).To(Equal(midstats.AverageGlucose))
 				})
 

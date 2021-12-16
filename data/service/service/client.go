@@ -55,37 +55,42 @@ func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time)
 	return weight, startTime, nil
 }
 
-func CalculateStats(userData []*continuous.Continuous, totalMinutes float64) *summary.Stats {
+func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64) *summary.Stats {
 	var inRangeMinutes int64 = 0
 	var belowRangeMinutes int64 = 0
 	var aboveRangeMinutes int64 = 0
 	var totalGlucose float64 = 0
+	var totalCGMMinutes int64 = 0
 	var normalizedValue float64
+	var duration int64
 
 	for _, r := range userData {
 		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(units))
+		duration = GetDuration(r)
 
 		if normalizedValue <= lowBloodGlucose {
-			belowRangeMinutes += GetDuration(r)
+			belowRangeMinutes += duration
 		} else if normalizedValue >= highBloodGlucose {
-			aboveRangeMinutes += GetDuration(r)
+			aboveRangeMinutes += duration
 		} else {
-			inRangeMinutes += GetDuration(r)
+			inRangeMinutes += duration
 		}
 
+		totalCGMMinutes += duration
 		totalGlucose += normalizedValue
 	}
 
 	averageGlucose := totalGlucose / float64(len(userData))
-	timeInRange := float64(inRangeMinutes) / totalMinutes
-	timeBelowRange := float64(belowRangeMinutes) / totalMinutes
-	timeAboveRange := float64(aboveRangeMinutes) / totalMinutes
+	timeInRange := float64(inRangeMinutes) / float64(totalCGMMinutes)
+	timeBelowRange := float64(belowRangeMinutes) / float64(totalCGMMinutes)
+	timeAboveRange := float64(aboveRangeMinutes) / float64(totalCGMMinutes)
+	timeCGMUse := float64(totalCGMMinutes) / totalWallMinutes
 
-	// return 2 decimals
 	return &summary.Stats{
 		TimeInRange:    math.Round(timeInRange*100) / 100,
 		TimeBelowRange: math.Round(timeBelowRange*100) / 100,
 		TimeAboveRange: math.Round(timeAboveRange*100) / 100,
+		TimeCGMUse:     math.Round(timeCGMUse*100) / 100,
 		AverageGlucose: math.Round(averageGlucose*100) / 100,
 	}
 }
@@ -96,10 +101,26 @@ func ReweightStats(stats *summary.Stats, userSummary *summary.Summary, weight fl
 	}
 	// if we are rolling in previous averages
 	if weight != 1 && weight >= 0 {
-		stats.AverageGlucose = stats.AverageGlucose*weight + *userSummary.AverageGlucose.Value*(1-weight)
-		stats.TimeInRange = stats.TimeInRange*weight + *userSummary.TimeInRange*(1-weight)
-		stats.TimeBelowRange = stats.TimeBelowRange*weight + *userSummary.TimeBelowRange*(1-weight)
-		stats.TimeAboveRange = stats.TimeAboveRange*weight + *userSummary.TimeAboveRange*(1-weight)
+		// check for nil to cover for any new stats that get added after creation
+		if userSummary.AverageGlucose.Value != nil {
+			stats.AverageGlucose = stats.AverageGlucose*weight + *userSummary.AverageGlucose.Value*(1-weight)
+		}
+
+		if userSummary.TimeInRange != nil {
+			stats.TimeInRange = stats.TimeInRange*weight + *userSummary.TimeInRange*(1-weight)
+		}
+
+		if userSummary.TimeBelowRange != nil {
+			stats.TimeBelowRange = stats.TimeBelowRange*weight + *userSummary.TimeBelowRange*(1-weight)
+		}
+
+		if userSummary.TimeAboveRange != nil {
+			stats.TimeAboveRange = stats.TimeAboveRange*weight + *userSummary.TimeAboveRange*(1-weight)
+		}
+
+		if userSummary.TimeCGMUse != nil {
+			stats.TimeCGMUse = stats.TimeCGMUse*weight + *userSummary.TimeCGMUse*(1-weight)
+		}
 	}
 
 	return stats, nil
@@ -211,6 +232,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	userSummary.TimeInRange = pointer.FromFloat64(stats.TimeInRange)
 	userSummary.TimeBelowRange = pointer.FromFloat64(stats.TimeBelowRange)
 	userSummary.TimeAboveRange = pointer.FromFloat64(stats.TimeAboveRange)
+	userSummary.TimeCGMUse = pointer.FromFloat64(stats.TimeCGMUse)
 	userSummary.AverageGlucose = &summary.Glucose{
 		Value: pointer.FromFloat64(stats.AverageGlucose),
 		Units: pointer.FromString(units),
@@ -244,21 +266,19 @@ func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Paginati
 		return nil, err
 	}
 
-	if len(distinctSummaryIDs) != len(distinctCGMUserIDs) {
-		distinctSummaryIDMap := make(map[string]struct{})
-		for _, v := range distinctSummaryIDs {
-			distinctSummaryIDMap[v] = empty
+	distinctSummaryIDMap := make(map[string]struct{})
+	for _, v := range distinctSummaryIDs {
+		distinctSummaryIDMap[v] = empty
+	}
+
+	for _, userID := range distinctCGMUserIDs {
+		if _, exists := distinctSummaryIDMap[userID]; exists {
+		} else {
+			userIDsReqUpdate = append(userIDsReqUpdate, userID)
 		}
 
-		for _, userID := range distinctCGMUserIDs {
-			if _, exists := distinctSummaryIDMap[userID]; exists {
-			} else {
-				userIDsReqUpdate = append(userIDsReqUpdate, userID)
-			}
-
-			if len(userIDsReqUpdate) >= pagination.Size {
-				return userIDsReqUpdate, err
-			}
+		if len(userIDsReqUpdate) >= pagination.Size {
+			return userIDsReqUpdate, err
 		}
 	}
 

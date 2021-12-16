@@ -17,6 +17,7 @@ type Stats struct {
 	TimeInRange    float64
 	TimeBelowRange float64
 	TimeAboveRange float64
+	TimeCGMUse     float64
 	AverageGlucose float64
 }
 
@@ -40,6 +41,7 @@ type Summary struct {
 	TimeInRange    *float64 `json:"timeInRange,omitempty" bson:"timeInRange,omitempty"`
 	TimeBelowRange *float64 `json:"timeBelowRange,omitempty" bson:"timeBelowRange,omitempty"`
 	TimeAboveRange *float64 `json:"timeAboveRange,omitempty" bson:"timeAboveRange,omitempty"`
+	TimeCGMUse     *float64 `json:"timeCGMUse,omitempty" bson:"timeCGMUse,omitempty"`
 
 	// these are mostly just constants right now.
 	HighGlucoseThreshold *float64 `json:"highGlucoseThreshold,omitempty" bson:"highGlucoseThreshold,omitempty"`
