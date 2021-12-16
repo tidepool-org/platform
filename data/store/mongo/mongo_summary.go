@@ -21,10 +21,11 @@ func (d *SummaryRepository) EnsureIndexes() error {
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
 			Keys: bson.D{
-				{Key: "_userId", Value: 1},
+				{Key: "userId", Value: 1},
 			},
 			Options: options.Index().
 				SetBackground(true).
+				SetUnique(true).
 				SetName("UserID"),
 		},
 		{
@@ -45,8 +46,6 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 	if id == "" {
 		return nil, errors.New("summary UserID is missing")
 	}
-
-	//logger := log.LoggerFromContext(ctx).WithField("id", id)
 
 	var summary summary.Summary
 	selector := bson.M{
@@ -79,22 +78,24 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.
 
 	_, err := d.ReplaceOne(ctx, filter, summary, opts)
 
-	//logger := log.LoggerFromContext(ctx).WithField("id", id)
-
 	return summary, err
 }
 
-func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]*summary.Summary, error) {
+func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+	var userIDs []string
+
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 
 	var summaries []*summary.Summary
 	selector := bson.M{
-		"lastUpdated": bson.M{"$lte": lastUpdated},
+		"lastUpdated": bson.M{"$lte": lastUpdated.Add(-20 * time.Minute)},
 	}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: 1}})
 
-	cursor, err := d.Find(ctx, selector)
+	cursor, err := d.Find(ctx, selector, findOptions)
 
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
@@ -106,10 +107,11 @@ func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated ti
 		return nil, errors.Wrap(err, "unable to decode aged summaries")
 	}
 
-	if summaries == nil {
-		summaries = []*summary.Summary{}
+	for _, v := range summaries {
+		userIDs = append(userIDs, v.UserID)
 	}
-	return summaries, nil
+
+	return userIDs, nil
 }
 
 func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, error) {
@@ -122,7 +124,7 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 
 	selector := bson.M{}
 	findOptions := options.Find()
-	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: -1}})
+	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: 1}})
 	findOptions.SetLimit(1)
 
 	cursor, err := d.Find(ctx, selector, findOptions)
@@ -140,14 +142,13 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 			lastUpdated = *summaries[0].LastUpdated
 		}
 	} else {
-		return time.Time{}, nil
+		return time.Now().UTC().Truncate(time.Millisecond), nil
 	}
 
 	return lastUpdated, nil
 }
 
 func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (time.Time, error) {
-	// truncate+utc for consistency
 	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	if ctx == nil {
 		return timestamp, errors.New("context is missing")
@@ -172,4 +173,25 @@ func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (t
 	}
 
 	return timestamp, nil
+}
+
+func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
+	var userIDs []string
+
+	if ctx == nil {
+		return userIDs, errors.New("context is missing")
+	}
+
+	selector := bson.M{}
+
+	result, err := d.Distinct(ctx, "userId", selector)
+	if err != nil {
+		return userIDs, errors.New("error fetching distinct userIDs")
+	}
+
+	for _, v := range result {
+		userIDs = append(userIDs, v.(string))
+	}
+
+	return userIDs, nil
 }

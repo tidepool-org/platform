@@ -4,12 +4,10 @@ import (
 	"context"
 	"math/rand"
 
-	//"sort"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
@@ -22,9 +20,9 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = 30 * time.Minute
-	AvailableAfterDurationMinimum = 15 * time.Minute
-	TaskDurationMaximum           = 40 * time.Minute
+	AvailableAfterDurationMaximum = 10 * time.Minute
+	AvailableAfterDurationMinimum = 5 * time.Minute
+	TaskDurationMaximum           = 45 * time.Minute
 	WorkerCount                   = 8
 )
 
@@ -124,28 +122,28 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	t.validator = structureValidator.New()
 
 	t.logger.Info("Searching for User Summaries requiring Update")
-	summaries, err := t.dataClient.GetAgedSummaries(t.context, nil)
+	agedSummaryUserIDs, err := t.dataClient.GetAgedSummaries(t.context, nil)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Info("Starting User Summary Update")
+	t.logger.Debug("Starting User Summary Update")
 
-	if err := t.UpdateSummaries(summaries); err != nil {
+	if err := t.UpdateSummaries(agedSummaryUserIDs); err != nil {
 		t.task.SetFailed()
 		return err
 	}
 
-	t.logger.Info("Finished User Summary Update")
+	t.logger.Debug("Finished User Summary Update")
 
 	return nil
 }
 
-func (t *TaskRunner) UpdateSummaries(summaries []*summary.Summary) error {
+func (t *TaskRunner) UpdateSummaries(userIDs []string) error {
 	sem := semaphore.NewWeighted(WorkerCount)
 	eg, c := errgroup.WithContext(t.context)
 
-	for _, summary := range summaries {
+	for _, userID := range userIDs {
 		if c.Err() != nil {
 			break
 		}
@@ -158,25 +156,25 @@ func (t *TaskRunner) UpdateSummaries(summaries []*summary.Summary) error {
 		// we can't pass arguments to errgroup goroutines
 		// we need to explicitly redefine the variables,
 		// because we're launching the goroutines in a loop
-		summary := summary
+		userID := userID
 		eg.Go(func() error {
 			defer sem.Release(1)
-			return t.UpdateUserSummary(summary)
+			return t.UpdateUserSummary(userID)
 		})
 	}
 	return eg.Wait()
 }
 
-func (t *TaskRunner) UpdateUserSummary(summary *summary.Summary) error {
-	t.logger.WithField("UserID", summary.UserID).Debug("Updating User Summary")
+func (t *TaskRunner) UpdateUserSummary(userID string) error {
+	t.logger.WithField("UserID", userID).Debug("Updating User Summary")
 
 	// update summary
-	_, err := t.dataClient.UpdateSummary(t.context, summary.UserID)
+	_, err := t.dataClient.UpdateSummary(t.context, userID)
 	if err != nil {
 		return err
 	}
 
-	t.logger.WithField("UserID", summary.UserID).Debug("Finished Updating User Summary")
+	t.logger.WithField("UserID", userID).Debug("Finished Updating User Summary")
 
 	return nil
 }

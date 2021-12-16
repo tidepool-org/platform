@@ -226,53 +226,78 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	return userSummary, err
 }
 
-func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]*summary.Summary, error) {
+func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	var empty struct{}
+	userIDsReqUpdate := []string{}
+
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
+
+	// check if we should be backfilling missing summaries first
+	distinctSummaryIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	distinctCGMUserIDs, err := dataRepository.DistinctCGMUserIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(distinctSummaryIDs) != len(distinctCGMUserIDs) {
+		distinctSummaryIDMap := make(map[string]struct{})
+		for _, v := range distinctSummaryIDs {
+			distinctSummaryIDMap[v] = empty
+		}
+
+		for _, userID := range distinctCGMUserIDs {
+			if _, exists := distinctSummaryIDMap[userID]; exists {
+			} else {
+				userIDsReqUpdate = append(userIDsReqUpdate, userID)
+			}
+
+			if len(userIDsReqUpdate) >= pagination.Size {
+				return userIDsReqUpdate, err
+			}
+		}
+	}
 
 	lastUpdated, err := summaryRepository.GetLastUpdated(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	agedSummaries, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+	agedUserIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
 	if err != nil {
 		return nil, err
 	}
 
-	freshUserIds, err := dataRepository.GetFreshUsers(ctx, lastUpdated)
+	freshUserIDs, err := dataRepository.GetFreshUsers(ctx, lastUpdated)
 	if err != nil {
 		return nil, err
 	}
 
 	freshUserMap := make(map[string]struct{})
-	var empty struct{}
-	for _, v := range freshUserIds {
+	for _, v := range freshUserIDs {
 		freshUserMap[v] = empty
 	}
 
-	var summariesReqUpdate []*summary.Summary
-
-	for _, agedSummary := range agedSummaries {
-		if _, exists := freshUserMap[agedSummary.UserID]; exists {
-			summariesReqUpdate = append(summariesReqUpdate, agedSummary)
+	for _, userID := range agedUserIDs {
+		if _, exists := freshUserMap[userID]; exists {
+			userIDsReqUpdate = append(userIDsReqUpdate, userID)
 		} else {
-			_, err := summaryRepository.UpdateLastUpdated(ctx, agedSummary.UserID)
+			_, err := summaryRepository.UpdateLastUpdated(ctx, userID)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		if len(summariesReqUpdate) >= pagination.Size {
-			break
+		if len(userIDsReqUpdate) >= pagination.Size {
+			return userIDsReqUpdate, err
 		}
 	}
 
-	if summariesReqUpdate == nil {
-		summariesReqUpdate = []*summary.Summary{}
-	}
-
-	return summariesReqUpdate, err
+	return userIDsReqUpdate, err
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

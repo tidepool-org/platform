@@ -178,6 +178,15 @@ type GetFreshUsersOutput struct {
 	Error   error
 }
 
+type DistinctCGMUserIDsInput struct {
+	Context context.Context
+}
+
+type DistinctCGMUserIDsOutput struct {
+	UserIDs []string
+	Error   error
+}
+
 type DataRepository struct {
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
@@ -247,6 +256,10 @@ type DataRepository struct {
 	GetFreshUsersInvocations int
 	GetFreshUsersInputs      []GetFreshUsersInput
 	GetFreshUsersOutputs     []GetFreshUsersOutput
+
+	DistinctCGMUserIDsInvocations int
+	DistinctCGMUserIDsInputs      []DistinctCGMUserIDsInput
+	DistinctCGMUserIDsOutputs     []DistinctCGMUserIDsOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -500,6 +513,18 @@ func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Tim
 	return output.UserIDs, output.Error
 }
 
+func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
+	d.DistinctCGMUserIDsInvocations++
+
+	d.DistinctCGMUserIDsInputs = append(d.DistinctCGMUserIDsInputs, DistinctCGMUserIDsInput{Context: ctx})
+
+	gomega.Expect(d.DistinctCGMUserIDsOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.DistinctCGMUserIDsOutputs[0]
+	d.DistinctCGMUserIDsOutputs = d.DistinctCGMUserIDsOutputs[1:]
+	return output.UserIDs, output.Error
+}
+
 func (d *DataRepository) Expectations() {
 	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
@@ -520,5 +545,8 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DistinctCGMUserIDsOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetFreshUsersOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
 }

@@ -47,6 +47,7 @@ type DataRepository interface {
 	GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error)
 	GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error)
 	GetLastUpdatedForUser(ctx context.Context, id string) (summary.UserLastUpdated, error)
+	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
 }
 
 type Filter struct {
@@ -70,7 +71,8 @@ type SummaryRepository interface {
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
-	GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]*summary.Summary, error)
+	GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]string, error)
 	GetLastUpdated(ctx context.Context) (time.Time, error)
 	UpdateLastUpdated(ctx context.Context, id string) (time.Time, error)
+	DistinctSummaryIDs(ctx context.Context) ([]string, error)
 }

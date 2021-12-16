@@ -977,13 +977,36 @@ func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Tim
 	}
 
 	selector := bson.M{
-		"time": bson.M{"$gte": lastUpdated.Format(time.RFC3339Nano)},
-		"type": "cbg",
+		"time":    bson.M{"$gte": lastUpdated.Format(time.RFC3339Nano)},
+		"type":    "cbg",
+		"_active": true,
 	}
 
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
 		return userIDs, errors.New("error fetching recently updated userIDs")
+	}
+
+	for _, v := range result {
+		userIDs = append(userIDs, v.(string))
+	}
+
+	return userIDs, nil
+}
+
+func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
+	var userIDs []string
+
+	if ctx == nil {
+		return userIDs, errors.New("context is missing")
+	}
+
+	selector := bson.M{"type": "cbg",
+		"_active": true}
+
+	result, err := d.Distinct(ctx, "_userId", selector)
+	if err != nil {
+		return userIDs, errors.New("error fetching distinct userIDs")
 	}
 
 	for _, v := range result {

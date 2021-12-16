@@ -26,7 +26,7 @@ type Client interface {
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
-	GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]*summary.Summary, error)
+	GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error)
 }
 
 type ClientImpl struct {
@@ -157,7 +157,7 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 	return summary, nil
 }
 
-func (c *ClientImpl) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]*summary.Summary, error) {
+func (c *ClientImpl) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	url := c.client.ConstructURL("v1", "agedsummaries")
 
 	if pagination == nil {
@@ -166,15 +166,15 @@ func (c *ClientImpl) GetAgedSummaries(ctx context.Context, pagination *page.Pagi
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	summaries := []*summary.Summary{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &summaries); err != nil {
+	userIDs := []string{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
-		return summaries, err
+		return userIDs, err
 	}
 
-	return summaries, nil
+	return userIDs, nil
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
