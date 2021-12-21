@@ -188,8 +188,8 @@ test-watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml --skipPackage=user,blob,image,task,tool,notification,oauth,dexcom,migration,aws $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml --skipPackage=user,blob,image,task,tool,notification,oauth,dexcom,migration,aws $(TEST)
+	@echo "ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml $(TEST)
 
 snyk-test:
 	@echo "snyk test --dev --org=tidepool"

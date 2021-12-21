@@ -3,7 +3,6 @@ package middleware_test
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/mdblp/go-json-rest/rest"
 	. "github.com/onsi/ginkgo"
@@ -319,101 +318,6 @@ var _ = Describe("Auth", func() {
 						}
 						middlewareFunc(res, req)
 						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
-					})
-				})
-
-				Context("with restricted token", func() {
-					var restrictedToken string
-
-					BeforeEach(func() {
-						restrictedToken = authTest.NewRestrictedToken()
-						query := req.URL.Query()
-						query.Add("restricted_token", restrictedToken)
-						req.URL.RawQuery = query.Encode()
-					})
-
-					It("returns unauthorized if multiple values", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						query := req.URL.Query()
-						query.Add("restricted_token", restrictedToken)
-						req.URL.RawQuery = query.Encode()
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns successfully", func() {
-						userID := serviceTest.NewUserID()
-						restrictedTokenObject := &auth.RestrictedToken{
-							ID:             restrictedToken,
-							UserID:         userID,
-							ExpirationTime: time.Now().Add(time.Hour),
-						}
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
-							Expect(details).ToNot(BeNil())
-							Expect(details.Method()).To(Equal(request.MethodRestrictedToken))
-							Expect(details.IsUser()).To(BeTrue())
-							Expect(details.UserID()).To(Equal(userID))
-							Expect(details.Token()).To(Equal(restrictedToken))
-							Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
-							Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).ToNot(BeNil())
-							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
-
-					It("returns successfully with no details if restricted token is not valid", func() {
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: errorsTest.RandomError()}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
-
-					It("returns successfully with no details if restricted token is missing", func() {
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: nil}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
-
-					It("returns successfully with no details if restricted token does not authenticate request", func() {
-						userID := serviceTest.NewUserID()
-						restrictedTokenObject := &auth.RestrictedToken{
-							ID:             restrictedToken,
-							UserID:         userID,
-							ExpirationTime: time.Now().Add(-time.Hour),
-						}
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
 					})
 				})
 			})

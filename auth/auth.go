@@ -14,8 +14,6 @@ const (
 )
 
 type Client interface {
-	ProviderSessionAccessor
-	RestrictedTokenAccessor
 	ExternalAccessor
 }
 

@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## Unreleased
+### Engineering
+YLP-1142 Clean up unused packages/services
+
 ## 0.14.1 - 2021-11-24
 ### Fixed
 - YLP-1089 Optimize mongo queries

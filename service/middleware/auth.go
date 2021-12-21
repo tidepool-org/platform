@@ -86,12 +86,7 @@ func (a *Auth) authenticate(req *rest.Request) (request.Details, error) {
 		return details, err
 	}
 
-	details, err = a.authenticateSessionToken(req)
-	if err != nil || details != nil {
-		return details, err
-	}
-
-	return a.authenticateRestrictedToken(req)
+	return a.authenticateSessionToken(req)
 }
 
 func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, error) {
@@ -144,20 +139,4 @@ func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, err
 	}
 
 	return details, nil
-}
-
-func (a *Auth) authenticateRestrictedToken(req *rest.Request) (request.Details, error) {
-	values, found := req.URL.Query()[auth.TidepoolRestrictedTokenParameterKey]
-	if !found {
-		return nil, nil
-	} else if len(values) != 1 {
-		return nil, request.ErrorUnauthorized()
-	}
-
-	restrictedToken, err := a.authClient.GetRestrictedToken(req.Context(), values[0])
-	if err != nil || restrictedToken == nil || !restrictedToken.Authenticates(req.Request) {
-		return nil, nil
-	}
-
-	return request.NewDetails(request.MethodRestrictedToken, restrictedToken.UserID, restrictedToken.ID), nil
 }
