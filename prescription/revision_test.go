@@ -33,8 +33,22 @@ var _ = Describe("Revision", func() {
 				Expect(revision.RevisionID).To(Equal(revisionID))
 			})
 
-			It("sets the signature to nil", func() {
-				Expect(revision.Signature).To(BeNil())
+			Context("integrity hash", func() {
+				It("is not nil", func() {
+					Expect(revision.IntegrityHash).ToNot(BeNil())
+				})
+
+				It("algorithm is set to JCSSHA512", func() {
+					Expect(revision.IntegrityHash.Algorithm).To(Equal("JCSSHA512"))
+				})
+
+				It("hash is not empty", func() {
+					Expect(revision.IntegrityHash.Hash).ToNot(BeEmpty())
+				})
+
+				It("hash equals to the create hash", func() {
+					Expect(revision.IntegrityHash.Hash).To(Equal(create.RevisionHash))
+				})
 			})
 
 			It("creates non-nil attributes", func() {
@@ -145,6 +159,21 @@ var _ = Describe("Revision", func() {
 				Expect(validate.Validate(revision)).To(HaveOccurred())
 			})
 
+			It("fails when the integrity hash is not set", func() {
+				revision.IntegrityHash = nil
+				Expect(validate.Validate(revision)).To(HaveOccurred())
+			})
+
+			It("fails when the integrity hash algorithm is invalid", func() {
+				revision.IntegrityHash.Algorithm = "invalid"
+				Expect(validate.Validate(revision)).To(HaveOccurred())
+			})
+
+			It("fails when the integrity hash value is empty", func() {
+				revision.IntegrityHash.Hash = ""
+				Expect(validate.Validate(revision)).To(HaveOccurred())
+			})
+
 			It("fails when attributes are invalid", func() {
 				revision.Attributes.State = "invalid"
 				Expect(validate.Validate(revision)).To(HaveOccurred())
@@ -170,79 +199,100 @@ var _ = Describe("Revision", func() {
 				})
 
 				It("fails with empty account type", func() {
-					attr.AccountType = ""
+					attr.AccountType = pointer.FromString("")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty caregiver first name when account type is 'caregiver'", func() {
-					attr.AccountType = prescription.AccountTypeCaregiver
-					attr.CaregiverFirstName = ""
-					attr.CaregiverLastName = "Doe"
+					attr.AccountType = pointer.FromString(prescription.AccountTypeCaregiver)
+					attr.CaregiverFirstName = pointer.FromString("")
+					attr.CaregiverLastName = pointer.FromString("Doe")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty caregiver last name when account type is 'caregiver'", func() {
-					attr.AccountType = prescription.AccountTypeCaregiver
-					attr.CaregiverFirstName = "Jane"
-					attr.CaregiverLastName = ""
+					attr.AccountType = pointer.FromString(prescription.AccountTypeCaregiver)
+					attr.CaregiverFirstName = pointer.FromString("Jane")
+					attr.CaregiverLastName = pointer.FromString("")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail with empty caregiver names when account type is patient", func() {
-					attr.AccountType = prescription.AccountTypePatient
-					attr.CaregiverFirstName = ""
-					attr.CaregiverLastName = ""
+					attr.AccountType = pointer.FromString(prescription.AccountTypePatient)
+					attr.CaregiverFirstName = pointer.FromString("")
+					attr.CaregiverLastName = pointer.FromString("")
+					Expect(validate.Validate(attr)).To(Not(HaveOccurred()))
+				})
+
+				It("doesn't fail with nil caregiver first name when account type is patient", func() {
+					attr.AccountType = pointer.FromString(prescription.AccountTypePatient)
+					attr.CaregiverFirstName = nil
+					attr.CaregiverLastName = pointer.FromString("")
+					Expect(validate.Validate(attr)).To(Not(HaveOccurred()))
+				})
+
+				It("doesn't fail with nil caregiver last name when account type is patient", func() {
+					attr.AccountType = pointer.FromString(prescription.AccountTypePatient)
+					attr.CaregiverFirstName = pointer.FromString("")
+					attr.CaregiverLastName = nil
+					Expect(validate.Validate(attr)).To(Not(HaveOccurred()))
+				})
+
+				It("doesn't fail with nil caregiver names when account type is patient", func() {
+					attr.AccountType = pointer.FromString(prescription.AccountTypePatient)
+					attr.CaregiverFirstName = nil
+					attr.CaregiverLastName = nil
 					Expect(validate.Validate(attr)).To(Not(HaveOccurred()))
 				})
 
 				It("fails with non-empty caregiver names when account type is patient", func() {
-					attr.AccountType = prescription.AccountTypePatient
-					attr.CaregiverFirstName = "Jane"
-					attr.CaregiverLastName = "Doe"
+					attr.AccountType = pointer.FromString(prescription.AccountTypePatient)
+					attr.CaregiverFirstName = pointer.FromString("Jane")
+					attr.CaregiverLastName = pointer.FromString("Doe")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty first name", func() {
-					attr.FirstName = ""
+					attr.FirstName = pointer.FromString("")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty last name", func() {
-					attr.LastName = ""
+					attr.LastName = pointer.FromString("")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty birthday", func() {
-					attr.Birthday = ""
+					attr.Birthday = pointer.FromString("")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with invalid birthday", func() {
-					attr.Birthday = "20222-03-10"
+					attr.Birthday = pointer.FromString("20222-03-10")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail with empty MRN", func() {
-					attr.MRN = ""
+					attr.MRN = pointer.FromString("")
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
 				It("fails with empty sex", func() {
-					attr.Sex = ""
+					attr.Sex = pointer.FromString("")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with invalid sex", func() {
-					attr.Sex = "invalid-option"
+					attr.Sex = pointer.FromString("invalid-option")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail with valid sex", func() {
-					attr.Sex = prescription.SexMale
+					attr.Sex = pointer.FromString(prescription.SexMale)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-					attr.Sex = prescription.SexFemale
+					attr.Sex = pointer.FromString(prescription.SexFemale)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-					attr.Sex = prescription.SexUndisclosed
+					attr.Sex = pointer.FromString(prescription.SexUndisclosed)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
@@ -268,12 +318,12 @@ var _ = Describe("Revision", func() {
 				})
 
 				It("doesn't fail with a valid year of diagnosis", func() {
-					attr.YearOfDiagnosis = 1999
+					attr.YearOfDiagnosis = pointer.FromInt(1999)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
 				It("fails with an invalid year of diagnosis", func() {
-					attr.YearOfDiagnosis = 1857
+					attr.YearOfDiagnosis = pointer.FromInt(1857)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
@@ -284,13 +334,13 @@ var _ = Describe("Revision", func() {
 
 				It("fails with empty initial settings when therapy settings is initial", func() {
 					attr.InitialSettings = nil
-					attr.TherapySettings = prescription.TherapySettingInitial
+					attr.TherapySettings = pointer.FromString(prescription.TherapySettingInitial)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails with empty initial settings when therapy settings is 'transfer pump settings'", func() {
 					attr.InitialSettings = nil
-					attr.TherapySettings = prescription.TherapySettingTransferPumpSettings
+					attr.TherapySettings = pointer.FromString(prescription.TherapySettingTransferPumpSettings)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
@@ -300,43 +350,43 @@ var _ = Describe("Revision", func() {
 				})
 
 				It("fails with invalid calculator values", func() {
-					attr.Calculator.Method = prescription.CalculatorMethodWeight
+					attr.Calculator.Method = pointer.FromString(prescription.CalculatorMethodWeight)
 					attr.Calculator.Weight = pointer.FromFloat64(-1.0)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail with valid training", func() {
-					attr.Training = prescription.TrainingInModule
+					attr.Training = pointer.FromString(prescription.TrainingInModule)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-					attr.Training = prescription.TrainingInPerson
+					attr.Training = pointer.FromString(prescription.TrainingInPerson)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
 				It("fails with invalid training", func() {
-					attr.Training = "invalid-value"
+					attr.Training = pointer.FromString("invalid-value")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail with valid therapy settings", func() {
-					attr.TherapySettings = prescription.TherapySettingInitial
+					attr.TherapySettings = pointer.FromString(prescription.TherapySettingInitial)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
-					attr.TherapySettings = prescription.TherapySettingTransferPumpSettings
+					attr.TherapySettings = pointer.FromString(prescription.TherapySettingTransferPumpSettings)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
 				It("fails with invalid therapy settings", func() {
-					attr.TherapySettings = "invalid-value"
+					attr.TherapySettings = pointer.FromString("invalid-value")
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("fails when state is 'submitted' and prescriber terms are not accepted", func() {
-					attr.PrescriberTermsAccepted = false
+					attr.PrescriberTermsAccepted = pointer.FromBool(false)
 					attr.State = prescription.StateSubmitted
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
 				It("doesn't fail when state is 'submitted' and prescriber terms accepted is true", func() {
-					attr.PrescriberTermsAccepted = true
+					attr.PrescriberTermsAccepted = pointer.FromBool(true)
 					attr.State = prescription.StateSubmitted
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
@@ -375,28 +425,27 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
-				It("doesn't fail with empty attributes when state is 'draft' or 'expired'", func() {
+				It("doesn't fail with nil attributes when state is 'draft' or 'expired'", func() {
 					now := time.Now()
 					attr = &prescription.Attributes{
 						DataAttributes: prescription.DataAttributes{
-							AccountType:             "",
-							CaregiverFirstName:      "",
-							CaregiverLastName:       "",
-							FirstName:               "",
-							LastName:                "",
-							Birthday:                "",
-							MRN:                     "",
-							Email:                   "",
-							Sex:                     "",
+							AccountType:             nil,
+							CaregiverFirstName:      nil,
+							CaregiverLastName:       nil,
+							FirstName:               nil,
+							LastName:                nil,
+							Birthday:                nil,
+							MRN:                     nil,
+							Email:                   nil,
+							Sex:                     nil,
 							Weight:                  nil,
-							YearOfDiagnosis:         0,
+							YearOfDiagnosis:         nil,
 							PhoneNumber:             nil,
 							InitialSettings:         nil,
 							Calculator:              nil,
-							Training:                "",
-							TherapySettings:         "",
-							PrescriberTermsAccepted: false,
-							State:                   "",
+							Training:                nil,
+							TherapySettings:         nil,
+							PrescriberTermsAccepted: nil,
 						},
 						CreationAttributes: prescription.CreationAttributes{
 							CreatedTime:   now,

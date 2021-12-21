@@ -26,13 +26,28 @@ const (
 	ServerSessionTokenTimeoutOnFailureLast  = 60 * time.Second
 )
 
-var ExternalClientModule = fx.Provide(func(name ServiceName, reporter config.Reporter, logger log.Logger) (auth.ExternalAccessor, error) {
+var ExternalClientModule = fx.Provide(func(name ServiceName, reporter config.Reporter, logger log.Logger, lifecycle fx.Lifecycle) (auth.ExternalAccessor, error) {
 	cfg := NewExternalConfig()
 	cfg.Config.UserAgent = string(name)
 	if err := cfg.Load(reporter.WithScopes("auth", "client", "external")); err != nil {
 		return nil, err
 	}
-	return NewExternal(cfg, platform.AuthorizeAsService, string(name), logger)
+	external, err := NewExternal(cfg, platform.AuthorizeAsService, string(name), logger)
+	if err != nil {
+		return nil, err
+	}
+
+	lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return external.Start()
+		},
+		OnStop: func(ctx context.Context) error {
+			external.Close()
+			return nil
+		},
+	})
+
+	return external, nil
 })
 
 func ProvideServiceName(name string) fx.Option {

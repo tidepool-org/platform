@@ -14,7 +14,7 @@ const (
 )
 
 type Calculator struct {
-	Method                        string   `json:"method,omitempty" bson:"method,omitempty"`
+	Method                        *string  `json:"method,omitempty" bson:"method,omitempty"`
 	RecommendedBasalRate          *float64 `json:"recommendedBasalRate,omitempty" bson:"recommendedBasalRate,omitempty"`
 	RecommendedCarbohydrateRatio  *float64 `json:"recommendedCarbohydrateRatio,omitempty" bson:"recommendedCarbohydrateRatio,omitempty"`
 	RecommendedInsulinSensitivity *float64 `json:"recommendedInsulinSensitivity,omitempty" bson:"recommendedInsulinSensitivity,omitempty"`
@@ -50,15 +50,15 @@ func (c *Calculator) ValidateTotalDailyDoseInputs(validator structure.Validator)
 }
 
 func (c *Calculator) Validate(validator structure.Validator) {
-	if c.Method != "" {
-		validator.String("method", &c.Method).Exists().OneOf(AllowedCalculatorMethods()...)
-		if c.Method == CalculatorMethodTotalDailyDose {
+	if c.Method != nil {
+		validator.String("method", c.Method).Exists().OneOf(AllowedCalculatorMethods()...)
+		if *c.Method == CalculatorMethodTotalDailyDose {
 			c.ValidateTotalDailyDoseInputs(validator)
 		}
-		if c.Method == CalculatorMethodWeight {
+		if *c.Method == CalculatorMethodWeight {
 			c.ValidateWeightInputs(validator)
 		}
-		if c.Method == CalculatorMethodTotalDailyDoseAndWeight {
+		if *c.Method == CalculatorMethodTotalDailyDoseAndWeight {
 			c.ValidateTotalDailyDoseInputs(validator)
 			c.ValidateWeightInputs(validator)
 		}
