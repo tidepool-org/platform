@@ -238,7 +238,6 @@ func (d *DataAttributes) ValidateSubmittedPrescription(validator structure.Valid
 	validator.String("birthday", d.Birthday).Exists()
 	validator.String("email", d.Email).Exists()
 	validator.String("sex", d.Sex).Exists()
-	validator.Int("yearOfDiagnosis", d.YearOfDiagnosis).Exists()
 	validator.String("training", d.Training).Exists()
 	validator.String("therapySettings", d.TherapySettings).Exists()
 	validator.Bool("prescriberTermsAccepted", d.PrescriberTermsAccepted).Exists().True()

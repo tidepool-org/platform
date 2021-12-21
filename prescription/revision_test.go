@@ -317,6 +317,11 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
+				It("doesn't fail with a empty year of diagnosis", func() {
+					attr.YearOfDiagnosis = nil
+					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+				})
+
 				It("doesn't fail with a valid year of diagnosis", func() {
 					attr.YearOfDiagnosis = pointer.FromInt(1999)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
