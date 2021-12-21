@@ -11,6 +11,7 @@ import (
 func main() {
 	fx.New(
 		provider.ProviderModule,
+		application.Dependencies,
 		application.Prescription,
 		service.APIServiceModule,
 		fx.Invoke(service.Start),
