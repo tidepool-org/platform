@@ -1001,8 +1001,7 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 		return userIDs, errors.New("context is missing")
 	}
 
-	selector := bson.M{"type": "cbg",
-		"_active": true}
+	selector := bson.M{}
 
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
