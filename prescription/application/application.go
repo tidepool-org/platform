@@ -35,5 +35,5 @@ var Dependencies = fx.Options(
 	devices.ClientModule,
 	structuredMongo.StoreModule,
 	clinics.ClientModule,
-	fx.Provide(mailer()),
+	fx.Provide(mailer),
 )
