@@ -249,7 +249,7 @@ var _ = Describe("Mongo", func() {
 					var pagination *page.Pagination
 
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						dataSet.Time = pointer.FromString("2016-09-01T11:00:00Z")
 						filter = storeDEPRECATED.NewFilter()
 						pagination = page.NewPagination()
 					})

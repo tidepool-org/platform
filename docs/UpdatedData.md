@@ -7,6 +7,7 @@ Here we document the data types that have to be created or udpated with new fiel
 - food
 - deviceEvent - Zen mode
 - deviceEvent - Private Mode
+- security basal
 
 _Note_: the examples below focused on the new fields. All the other fields (such as time, timezone, timezoneOffset) are not impacted by those changes and will not require updates.
 
@@ -314,4 +315,33 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
   "inputTime": "2020-05-12T08:40:00.000Z",
   "timezone": "Europe/Paris"
 }
+```
+
+## Security basal
+
+The security basal is defined as an array of scheduled basals. It's an array of couples defining the starting time named `start` and the basal `rate`: 
+- rate: a floating point number >= 0 representing the amount of insulin delivered in units per hour.
+- start: an integer encoding a start time as milliseconds from the start of a twenty-four hour day, 0 to 86.400.000 ms.
+
+The objects in the basalSchedule array have to be sorted based on the `start` field. If the objects are not correctly sorted, the API will return an error for the given entry that is not well positionned.
+
+Below is an example of a valid basal with 4 segments in the day:
+- 12am to 12pm: 1 u/hour
+- 12pm to 6pm: 0.8 u/hour
+- 6pm to 9pm: 1.2 u/hour
+- 9pm to 12am: 0.5 u/hour
+
+```json
+{
+  "type": "basalSecurity",
+  "deviceTime": "2018-02-01T00:00:00",
+  "time": "2020-05-12T08:50:08.000Z",
+  "timezone": "Europe/Paris",
+  "basalSchedule": [
+    {"rate": 1, "start": 0 },
+    {"rate": 0.8, "start": 43200000 },
+    {"rate": 1.2, "start": 64800000 },
+    {"rate": 0.5, "start": 75600000 }
+    ]
+  }
 ```

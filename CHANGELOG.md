@@ -2,6 +2,8 @@
 The Tidepool platform API
 
 ## Unreleased
+### Changed 
+- YLP-1137 Add Security profile as Backloop object
 ### Engineering
 YLP-1142 Clean up unused packages/services
 

@@ -8,3 +8,4 @@
 /docs/api/v1/data
 /soup/
 .cache
+**/junit-report

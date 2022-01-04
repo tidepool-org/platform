@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypesSettingsPumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -47,7 +48,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.ActiveScheduleName = pointer.FromString(scheduleName)
 	datum.Basal = NewBasal()
 	datum.BasalRateSchedules = pump.NewBasalRateStartArrayMap()
-	datum.BasalRateSchedules.Set(scheduleName, NewBasalRateStartArray())
+	datum.BasalRateSchedules.Set(scheduleName, dataTypesSettingsPumpTest.NewBasalRateStartArray())
 	datum.BloodGlucoseTargetSchedules = pump.NewBloodGlucoseTargetStartArrayMap()
 	datum.BloodGlucoseTargetSchedules.Set(scheduleName, NewBloodGlucoseTargetStartArray(unitsBloodGlucose))
 	datum.Bolus = NewBolus()
@@ -71,8 +72,8 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.ActiveScheduleName = pointer.CloneString(datum.ActiveScheduleName)
 	clone.Basal = CloneBasal(datum.Basal)
-	clone.BasalRateSchedule = CloneBasalRateStartArray(datum.BasalRateSchedule)
-	clone.BasalRateSchedules = CloneBasalRateStartArrayMap(datum.BasalRateSchedules)
+	clone.BasalRateSchedule = dataTypesSettingsPumpTest.CloneBasalRateStartArray(datum.BasalRateSchedule)
+	clone.BasalRateSchedules = dataTypesSettingsPumpTest.CloneBasalRateStartArrayMap(datum.BasalRateSchedules)
 	clone.BloodGlucoseTargetSchedule = CloneBloodGlucoseTargetStartArray(datum.BloodGlucoseTargetSchedule)
 	clone.BloodGlucoseTargetSchedules = CloneBloodGlucoseTargetStartArrayMap(datum.BloodGlucoseTargetSchedules)
 	clone.Bolus = CloneBolus(datum.Bolus)
@@ -186,7 +187,7 @@ var _ = Describe("Pump", func() {
 				Entry("basal rate schedule invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						invalidBasalRateSchedule := NewBasalRateStartArray()
+						invalidBasalRateSchedule := dataTypesSettingsPumpTest.NewBasalRateStartArray()
 						(*invalidBasalRateSchedule)[0].Start = nil
 						datum.BasalRateSchedule = invalidBasalRateSchedule
 						datum.BasalRateSchedules = nil
@@ -196,14 +197,14 @@ var _ = Describe("Pump", func() {
 				Entry("basal rate schedule valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BasalRateSchedule = NewBasalRateStartArray()
+						datum.BasalRateSchedule = dataTypesSettingsPumpTest.NewBasalRateStartArray()
 						datum.BasalRateSchedules = nil
 					},
 				),
 				Entry("basal rate schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						invalidBasalRateSchedule := NewBasalRateStartArray()
+						invalidBasalRateSchedule := dataTypesSettingsPumpTest.NewBasalRateStartArray()
 						(*invalidBasalRateSchedule)[0].Start = nil
 						datum.BasalRateSchedules.Set("one", invalidBasalRateSchedule)
 					},
@@ -212,7 +213,7 @@ var _ = Describe("Pump", func() {
 				Entry("basal rate schedules valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BasalRateSchedules.Set("one", NewBasalRateStartArray())
+						datum.BasalRateSchedules.Set("one", dataTypesSettingsPumpTest.NewBasalRateStartArray())
 					},
 				),
 				Entry("blood glucose target schedule and blood glucose target schedules missing",
@@ -549,7 +550,7 @@ var _ = Describe("Pump", func() {
 				Entry("modifies the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BasalRateSchedule = NewBasalRateStartArray()
+						datum.BasalRateSchedule = dataTypesSettingsPumpTest.NewBasalRateStartArray()
 						datum.BloodGlucoseTargetSchedule = NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = NewInsulinSensitivityStartArray(unitsBloodGlucose)
@@ -578,7 +579,7 @@ var _ = Describe("Pump", func() {
 				Entry("modifies the datum; units mg/dl",
 					pointer.FromString("mg/dl"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.BasalRateSchedule = NewBasalRateStartArray()
+						datum.BasalRateSchedule = dataTypesSettingsPumpTest.NewBasalRateStartArray()
 						datum.BloodGlucoseTargetSchedule = NewBloodGlucoseTargetStartArray(unitsBloodGlucose)
 						datum.CarbohydrateRatioSchedule = NewCarbohydrateRatioStartArray()
 						datum.InsulinSensitivitySchedule = NewInsulinSensitivityStartArray(unitsBloodGlucose)

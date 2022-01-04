@@ -15,6 +15,7 @@ import (
 	dataTypesDeviceFactory "github.com/tidepool-org/platform/data/types/device/factory"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
+	dataTypesSettingsBasalSecurity "github.com/tidepool-org/platform/data/types/settings/basalsecurity"
 	dataTypesSettingsCGM "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
@@ -26,6 +27,7 @@ import (
 var types = []string{
 	dataTypesActivityPhysical.Type,
 	dataTypesBasal.Type,
+	dataTypesSettingsBasalSecurity.Type,
 	dataTypesBloodGlucoseContinuous.Type,
 	dataTypesBloodGlucoseSelfmonitored.Type,
 	dataTypesBloodKetone.Type,
@@ -72,6 +74,8 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesFood.New()
 	case dataTypesInsulin.Type:
 		return dataTypesInsulin.New()
+	case dataTypesSettingsBasalSecurity.Type:
+		return dataTypesSettingsBasalSecurity.New()
 	case dataTypesSettingsCGM.Type:
 		return dataTypesSettingsCGM.New()
 	case dataTypesSettingsPump.Type:
