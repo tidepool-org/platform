@@ -16,7 +16,13 @@ import (
 	"github.com/tidepool-org/platform/data/schema"
 )
 
-var dailyCbgCollections = []string{"hotDailyCbg", "coldDailyCbg"}
+var ErrNoSamples = errors.New("impossible to bulk upsert an array of zero samples")
+var ErrIncorrectTimestamp = errors.New("impossible to bulk upsert samples having a incorrect timestamp")
+var ErrEmptyOrNilUserId = errors.New("impossible to upsert an array of sample for an empty or nil user id")
+var ErrUnableToParseBucketDayTime = errors.New("unable to parse cbg day time")
+var ErrInvalidDataType = errors.New("invalid empty data type")
+
+var dailyPrefixCollections = []string{"coldDaily", "hotDaily"}
 
 type MongoBucketStoreClient struct {
 	*goComMgo.StoreClient
@@ -44,12 +50,11 @@ func NewMongoBucketStoreClient(config *goComMgo.Config, logger *log.Logger) (*Mo
 /* bucket methods */
 
 // Look for a single bucket based on its Id
-func (c *MongoBucketStoreClient) Find(ctx context.Context, bucket *schema.CbgBucket) (result *schema.CbgBucket, err error) {
+func (c *MongoBucketStoreClient) Find(ctx context.Context, bucket schema.IBucket) (result *schema.IBucket, err error) {
 
-	if bucket.Id != "" {
+	if bucket.GetId() != "" {
 		var query bson.M = bson.M{}
-		tid, _ := primitive.ObjectIDFromHex(bucket.Id)
-		query["_id"] = tid
+		query["_id"] = bucket.GetId()
 		opts := options.FindOne()
 		opts.SetSort(bson.D{primitive.E{Key: "_id", Value: -1}})
 		if err = c.Collection("hotDailyCbg").FindOne(ctx, query, opts).Decode(&result); err != nil && err != mongo.ErrNoDocuments {
@@ -64,13 +69,13 @@ func (c *MongoBucketStoreClient) Find(ctx context.Context, bucket *schema.CbgBuc
 }
 
 // Update a bucket record if found overwhise it will be created. The bucket is searched by its id.
-func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, creationTimestamp time.Time, sample *schema.CbgSample) error {
+func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, creationTimestamp time.Time, sample schema.ISample, dataType string) error {
 
 	if sample == nil {
 		return errors.New("impossible to upsert a nil sample")
 	}
 
-	if sample.Timestamp.IsZero() {
+	if sample.GetTimestamp().IsZero() {
 		return errors.New("impossible to upsert a sample having a incorrect timestamp")
 	}
 
@@ -79,7 +84,7 @@ func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, cre
 	}
 
 	// Extrat ISODate from sample timestamp
-	ts := sample.Timestamp.Format("2006-01-02")
+	ts := sample.GetTimestamp().Format("2006-01-02")
 	day, err := time.Parse("2006-01-02", ts)
 	if err != nil {
 		return errors.New("unable to parse cbg day time")
@@ -89,8 +94,9 @@ func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, cre
 
 	c.log.Info("upsert cbg sample for: " + strUserId + "_" + ts)
 
-	for _, collection := range dailyCbgCollections {
-		_, err = c.Collection(collection).UpdateOne(
+	for _, collectionPrefix := range dailyPrefixCollections {
+		collectionName := collectionPrefix + dataType
+		_, err = c.Collection(collectionName).UpdateOne(
 			ctx,
 			bson.D{{Key: "_id", Value: strUserId + "_" + ts}}, // filter
 			bson.D{ // update
@@ -115,18 +121,23 @@ func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, cre
 
 // Perform a bulk of operations on bucket records based on the operation argument, update a record if found overwhise created it.
 // The bucket is searched by its id.
-func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string, creationTimestamp time.Time, samples []schema.CbgSample) error {
+func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string, creationTimestamp time.Time, samples []schema.ISample, dataType string) error {
 
 	if userId == nil {
-		return errors.New("impossible to upsert an array of sample for an empty or nil user id")
+		return ErrEmptyOrNilUserId
 	}
 
 	if creationTimestamp.IsZero() {
-		return errors.New("impossible to bulk upsert samples having a incorrect timestamp")
+		return ErrIncorrectTimestamp
 	}
 
 	if len(samples) == 0 {
-		return errors.New("impossible to bulk upsert an array of zero cbg samples")
+		c.log.Debugf("no %v sample to write, nothing to add in bucket", dataType)
+		return nil
+	}
+
+	if dataType == "" {
+		return ErrInvalidDataType
 	}
 
 	var operations []mongo.WriteModel
@@ -134,11 +145,12 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	// transform as mongo operations
 	// no data validation is done here as it is done in above layer in the Validate function
 	for _, sample := range samples {
-		ts := sample.Timestamp.Format("2006-01-02")
+		ts := sample.GetTimestamp().Format("2006-01-02")
+		//ts := "2021-12-22"
 
 		day, err := time.Parse("2006-01-02", ts)
 		if err != nil {
-			return errors.New("unable to parse cbg day time")
+			return ErrUnableToParseBucketDayTime
 		}
 
 		strUserId := *userId
@@ -162,8 +174,9 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	bulkOption.SetOrdered(false)
 
 	// update or insert in Hot Daily and Cold Daily
-	for _, collection := range dailyCbgCollections {
-		_, err := c.Collection(collection).BulkWrite(ctx, operations, &bulkOption)
+	for _, collectionPrefix := range dailyPrefixCollections {
+		collectionName := collectionPrefix + dataType
+		_, err := c.Collection(collectionName).BulkWrite(ctx, operations, &bulkOption)
 		if err != nil {
 			return err
 		}
@@ -212,7 +225,7 @@ func (c *MongoBucketStoreClient) Remove(ctx context.Context, bucket *schema.CbgB
 
 	if bucket.Id != "" {
 
-		for _, collection := range dailyCbgCollections {
+		for _, collection := range dailyPrefixCollections {
 			if _, err := c.Collection(collection).DeleteOne(ctx, bson.M{"_id": bucket.Id}); err != nil {
 				return err
 			}

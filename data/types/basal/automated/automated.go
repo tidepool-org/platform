@@ -21,10 +21,8 @@ const (
 type Automated struct {
 	basal.Basal `bson:",inline"`
 
-	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
 	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
 	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
 	ScheduleName       *string              `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
 }
 

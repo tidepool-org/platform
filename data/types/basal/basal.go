@@ -14,9 +14,10 @@ const (
 )
 
 type Basal struct {
-	types.Base `bson:",inline"`
-
-	DeliveryType string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
+	types.Base   `bson:",inline"`
+	Duration     *int     `json:"duration,omitempty" bson:"duration,omitempty"`
+	Rate         *float64 `json:"rate,omitempty" bson:"rate,omitempty"`
+	DeliveryType string   `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 }
 
 type Meta struct {

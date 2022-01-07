@@ -15,6 +15,8 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/schema"
 	"github.com/tidepool-org/platform/data/storeDEPRECATED"
+	"github.com/tidepool-org/platform/data/types/basal/automated"
+	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
@@ -381,7 +383,8 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	strTimestamp := creationTimestamp.Format(time.RFC3339Nano)
 
 	insertData := make([]interface{}, len(dataSetData))
-	var samples []schema.CbgSample
+
+	allSamples := make(map[string][]schema.ISample)
 	var err error
 	var incomingUserMetadata *schema.Metadata
 	strUserId := *dataSet.UserID
@@ -391,45 +394,43 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&strTimestamp)
 		// Prepare cbg to be pushed into data read db
-		if datum.GetType() == "cbg" {
-			loggerFields := log.Fields{"dataSet": dataSet}
+		loggerFields := log.Fields{"datum": datum}
+		switch event := datum.(type) {
+		case *continuous.Continuous:
 			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a cbg entry")
-			event := datum.(*continuous.Continuous)
-
 			// mapping
 			var s = &schema.CbgSample{}
-			s.Value = *event.Value
-			s.Units = *event.Units
-			// extract string value (dereference)
-			s.Timezone = *event.TimeZoneName
-			s.TimezoneOffset = *event.TimeZoneOffset
-			// what is this mess ???
-			strTime := *event.Time
-			s.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
-
-			if err != nil {
-				return errors.Wrap(err, "unable to parse cbg event time")
-			}
-
-			samples = append(samples, *s)
-
+			s.Map(event)
+			allSamples["Cbg"] = append(allSamples["Cbg"], *s)
+		case *automated.Automated:
+			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a automated basal entry")
+			var s = &schema.BasalSample{}
+			s.MapForAutomatedBasal(event)
+			allSamples["Basal"] = append(allSamples["Basal"], *s)
+		case *scheduled.Scheduled:
+			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a scheduled basal entry")
+			var s = &schema.BasalSample{}
+			s.MapForScheduledBasal(event)
+			allSamples["Basal"] = append(allSamples["Basal"], *s)
+		default:
+			d.BucketStore.log.Infof("object ignored %v", event)
 		}
+
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
 		insertData[index] = datum
 	}
 
 	if d.BucketStoreEnabled {
-		start := time.Now()
-		if len(samples) > 0 {
-			err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples)
+		for dataType, samples := range allSamples {
+			start := time.Now()
+			err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples, dataType)
+
 			if err != nil {
-				return errors.Wrap(err, "unable to create cbg bucket")
+				return errors.Wrapf(err, "unable to create %v bucket", dataType)
 			}
-		} else {
-			d.BucketStore.log.Debug("no cbg sample to write, nothing to add in bucket")
+			elapsed_time := time.Since(start).Milliseconds()
+			dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsed_time))
 		}
-		elapsed_time := time.Since(start).Milliseconds()
-		dataWriteToReadStoreMetrics.WithLabelValues("cbg").Observe(float64(elapsed_time))
 		// update meta data
 		if incomingUserMetadata != nil {
 			err = d.BucketStore.UpsertMetaData(ctx, dataSet.UserID, incomingUserMetadata)
