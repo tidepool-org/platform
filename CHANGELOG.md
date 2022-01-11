@@ -2,7 +2,8 @@
 The Tidepool platform API
 
 ## Unreleased
-### Changed 
+### 0.15.0 - 2022-01-10 
+- YLP-1123 Add backloops device events - Flush
 - YLP-1137 Add Security profile as Backloop object
 ### Engineering
 - YLP-1142 Clean up unused packages/services

@@ -7,6 +7,7 @@ Here we document the data types that have to be created or udpated with new fiel
 - food
 - deviceEvent - Zen mode
 - deviceEvent - Private Mode
+- Device Event - Flush
 - security basal
 
 _Note_: the examples below focused on the new fields. All the other fields (such as time, timezone, timezoneOffset) are not impacted by those changes and will not require updates.
@@ -314,6 +315,26 @@ Leveraging the `deviceEvent` type and creating 2 new subTypes with the same stru
   "time": "2020-05-12T08:50:08.000Z",
   "inputTime": "2020-05-12T08:40:00.000Z",
   "timezone": "Europe/Paris"
+}
+```
+
+## Device Event - Flush
+
+The flush event is defined as an object that is availble on some pump models where a pre-defined quantity of insulin is delivered to test the pump. Here we put the followinf fields to define this event:
+- `Volume`: the quantity of insulin that has been delivered by the pump.
+- `Status`: was it successfully delivered or not, it'a a binary value: success or failure.
+- `StatusCode`: the status code returned by the pump, this code can give more details than the above status code.
+
+```json
+{
+  "type": "deviceEvent",
+  "subType": "flush",
+  "deviceTime": "2018-02-01T00:00:00",
+  "time": "2020-05-12T08:50:08.000Z",
+  "timezoneOffset": 60,
+  "Status": "success",
+  "StatusCode": 0,
+  "Volume": 2.0
 }
 ```
 
