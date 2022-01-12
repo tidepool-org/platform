@@ -7,10 +7,12 @@ Here we document the data types that have to be created or udpated with new fiel
 - food
 - deviceEvent - Zen mode
 - deviceEvent - Private Mode
-- Device Event - Flush
+- deviceEvent - Flush
 - security basal
 
 _Note_: the examples below focused on the new fields. All the other fields (such as time, timezone, timezoneOffset) are not impacted by those changes and will not require updates.
+
+We are also encouraging to provide the `guid` field as an external ID so that we can troubleshoot uploads and ease the reconciliations with external data. This `guid`field is available in all data types but it's not mandatory.
 
 ## wizard 
 
@@ -334,7 +336,8 @@ The flush event is defined as an object that is availble on some pump models whe
   "timezoneOffset": 60,
   "Status": "success",
   "StatusCode": 0,
-  "Volume": 2.0
+  "Volume": 2.0,
+  "guid": "flush1234"
 }
 ```
 
@@ -363,6 +366,7 @@ Below is an example of a valid basal with 4 segments in the day:
     {"rate": 0.8, "start": 43200000 },
     {"rate": 1.2, "start": 64800000 },
     {"rate": 0.5, "start": 75600000 }
-    ]
+    ],
+  "guid": "basalSecurity1234"
   }
 ```

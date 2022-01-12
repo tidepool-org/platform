@@ -97,6 +97,7 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	b.DeviceID = parser.String("deviceId")
 	b.DeviceTime = parser.String("deviceTime")
 	b.ID = parser.String("id")
+	b.GUID = parser.String("guid")
 	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
 	b.Notes = parser.StringArray("notes")
 	b.Origin = origin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
