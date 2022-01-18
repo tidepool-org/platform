@@ -17,9 +17,9 @@ import (
 )
 
 const (
-	BackfillAvailableAfterDurationMaximum = 3 * time.Minute
-	BackfillAvailableAfterDurationMinimum = 3 * time.Minute
-	BackfillTaskDurationMaximum           = 10 * time.Minute
+	BackfillAvailableAfterDurationMaximum = 4 * time.Hour
+	BackfillAvailableAfterDurationMinimum = 4 * time.Hour
+	BackfillTaskDurationMaximum           = 30 * time.Minute
 )
 
 type BackfillRunner struct {
