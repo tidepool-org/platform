@@ -120,6 +120,10 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	panic("Create has no output")
 }
 
+func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
+	return nil, nil
+}
+
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	c.DeleteAllInvocations++
 	c.DeleteAllInputs = append(c.DeleteAllInputs, userID)

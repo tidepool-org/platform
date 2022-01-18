@@ -73,6 +73,10 @@ func (p *Provider) BlobUnstructuredStore() blobStoreUnstructured.Store {
 	panic("BlobUnstructuredStore has no output")
 }
 
+func (p *Provider) DeviceLogsUnstructuredStore() blobStoreUnstructured.Store {
+	return nil
+}
+
 func (p *Provider) AssertOutputsEmpty() {
 	if len(p.AuthClientOutputs) > 0 {
 		panic("AuthClientOutputs is not empty")

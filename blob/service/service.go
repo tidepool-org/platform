@@ -22,15 +22,18 @@ import (
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	storeUnstructuredFactory "github.com/tidepool-org/platform/store/unstructured/factory"
+	storeUnstructuredS3 "github.com/tidepool-org/platform/store/unstructured/s3"
 )
 
 type Service struct {
 	*serviceService.Authenticated
-	blobStructuredStore   *blobStoreStructuredMongo.Store
-	blobUnstructuredStore *blobStoreUnstructured.StoreImpl
-	blobClient            *blobServiceClient.Client
-	userEventsHandler     events.Runner
+	blobStructuredStore         *blobStoreStructuredMongo.Store
+	blobUnstructuredStore       *blobStoreUnstructured.StoreImpl
+	deviceLogsUnstructuredStore *blobStoreUnstructured.StoreImpl
+	blobClient                  *blobServiceClient.Client
+	userEventsHandler           events.Runner
 }
 
 func New() *Service {
@@ -62,6 +65,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeBlobUnstructuredStore(); err != nil {
 		return err
 	}
+	if err := s.initializeDeviceLogsUnstructuredStore(); err != nil {
+		return err
+	}
 	if err := s.initializeBlobClient(); err != nil {
 		return err
 	}
@@ -77,6 +83,7 @@ func (s *Service) Terminate() {
 	s.terminateRouter()
 	s.terminateBlobClient()
 	s.terminateBlobUnstructuredStore()
+	s.terminateDeviceLogsUnstructuredStore()
 	s.terminateBlobStructuredStore()
 }
 
@@ -94,6 +101,10 @@ func (s *Service) BlobStructuredStore() blobStoreStructured.Store {
 
 func (s *Service) BlobUnstructuredStore() blobStoreUnstructured.Store {
 	return s.blobUnstructuredStore
+}
+
+func (s *Service) DeviceLogsUnstructuredStore() blobStoreUnstructured.Store {
+	return s.deviceLogsUnstructuredStore
 }
 
 func (s *Service) BlobClient() blob.Client {
@@ -136,36 +147,60 @@ func (s *Service) terminateBlobStructuredStore() {
 	}
 }
 
-func (s *Service) initializeBlobUnstructuredStore() error {
+func (s *Service) getAWSUnstructuredStore(bucketKey *string) (*blobStoreUnstructured.StoreImpl, error) {
 	s.Logger().Debug("Creating aws session")
 
 	session, err := awsSdkGoAwsSession.NewSession() // FUTURE: Session pooling
 	if err != nil {
-		return errors.Wrap(err, "unable to create aws session")
+		return nil, errors.Wrap(err, "unable to create aws session")
 	}
 
 	s.Logger().Debug("Creating aws session")
 
 	api, err := awsApi.New(session)
 	if err != nil {
-		return errors.Wrap(err, "unable to create aws api")
+		return nil, errors.Wrap(err, "unable to create aws api")
 	}
 
 	s.Logger().Debug("Creating unstructured store")
 
-	unstructuredStore, err := storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("unstructured", "store"), api)
+	var unstructuredStore storeUnstructured.Store
+	if bucketKey == nil {
+		unstructuredStore, err = storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("unstructured", "store"), api)
+	} else {
+		configReporter := s.ConfigReporter().WithScopes(storeUnstructuredS3.Type).WithScopes("unstructured", "store")
+		unstructuredStore, err = storeUnstructuredFactory.NewS3StoreWithBucket(configReporter, *bucketKey, api)
+	}
 	if err != nil {
-		return errors.Wrap(err, "unable to create unstructured store")
+		return nil, errors.Wrap(err, "unable to create unstructured store")
 	}
 
 	s.Logger().Debug("Creating blob unstructured store")
 
 	blobUnstructuredStore, err := blobStoreUnstructured.NewStore(unstructuredStore)
 	if err != nil {
-		return errors.Wrap(err, "unable to create blob unstructured store")
+		return nil, errors.Wrap(err, "unable to create blob unstructured store")
 	}
-	s.blobUnstructuredStore = blobUnstructuredStore
 
+	return blobUnstructuredStore, nil
+}
+
+func (s *Service) initializeBlobUnstructuredStore() error {
+	store, err := s.getAWSUnstructuredStore(nil)
+	if err != nil {
+		return err
+	}
+	s.blobUnstructuredStore = store
+	return nil
+}
+
+func (s *Service) initializeDeviceLogsUnstructuredStore() error {
+	logsBucket := "logs_bucket"
+	store, err := s.getAWSUnstructuredStore(&logsBucket)
+	if err != nil {
+		return err
+	}
+	s.deviceLogsUnstructuredStore = store
 	return nil
 }
 
@@ -173,6 +208,13 @@ func (s *Service) terminateBlobUnstructuredStore() {
 	if s.blobUnstructuredStore != nil {
 		s.Logger().Debug("Destroying blob unstructured store")
 		s.blobUnstructuredStore = nil
+	}
+}
+
+func (s *Service) terminateDeviceLogsUnstructuredStore() {
+	if s.deviceLogsUnstructuredStore != nil {
+		s.Logger().Debug("Destroying blob unstructured store")
+		s.deviceLogsUnstructuredStore = nil
 	}
 }
 

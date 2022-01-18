@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/tidepool-org/platform/permission"
 
@@ -110,6 +111,70 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	result, err := r.Provider.BlobClient().Create(req.Context(), userID, content)
+	if err != nil {
+		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
+			responder.Error(http.StatusBadRequest, err)
+			return
+		} else if responder.RespondIfError(err) {
+			return
+		}
+	}
+
+	responder.Data(http.StatusCreated, result)
+}
+
+func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	digestMD5, err := request.ParseDigestMD5Header(req.Header, "Digest")
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	mediaType, err := request.ParseMediaTypeHeader(req.Header, "Content-Type")
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if mediaType == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Content-Type"))
+		return
+	}
+	startAtTime, err := request.ParseTimeHeader(req.Header, "X-Logs-Start-At-Time", time.RFC3339)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if mediaType == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("X-Logs-Start-At-Time"))
+		return
+	}
+	endAtTime, err := request.ParseTimeHeader(req.Header, "X-Logs-End-At-Time", time.RFC3339)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if mediaType == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("X-Logs-End-At-Time"))
+		return
+	}
+
+	content := blob.NewDeviceLogsContent()
+	content.Body = req.Body
+	content.DigestMD5 = digestMD5
+	content.MediaType = mediaType
+	content.StartAt = startAtTime
+	content.EndAt = endAtTime
+
+	_, err = r.AuthClient().EnsureAuthorizedUser(req.Context(), userID, permission.Write)
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().CreateDeviceLogs(req.Context(), userID, content)
 	if err != nil {
 		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)

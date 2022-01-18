@@ -29,6 +29,10 @@ func (s *Store) NewBlobRepository() blobStoreStructured.BlobRepository {
 	panic("NewBlobRepository has no output")
 }
 
+func (s *Store) NewDeviceLogsRepository() blobStoreStructured.DeviceLogsRepository {
+	return nil
+}
+
 func (s *Store) AssertOutputsEmpty() {
 	if len(s.NewRepositoryOutputs) > 0 {
 		panic("NewRepositoryOutputs is not empty")
