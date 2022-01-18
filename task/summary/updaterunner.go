@@ -3,7 +3,6 @@ package summary
 import (
 	"context"
 	"math/rand"
-
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
@@ -20,20 +19,20 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = 10 * time.Minute
-	AvailableAfterDurationMinimum = 5 * time.Minute
-	TaskDurationMaximum           = 45 * time.Minute
-	WorkerCount                   = 8
+	UpdateAvailableAfterDurationMaximum = 10 * time.Minute
+	UpdateAvailableAfterDurationMinimum = 5 * time.Minute
+	UpdateTaskDurationMaximum           = 45 * time.Minute
+	UpdateWorkerCount                   = 8
 )
 
-type Runner struct {
+type UpdateRunner struct {
 	logger          log.Logger
 	versionReporter version.Reporter
 	authClient      auth.Client
 	dataClient      dataClient.Client
 }
 
-func NewRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client) (*Runner, error) {
+func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client) (*UpdateRunner, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
@@ -47,7 +46,7 @@ func NewRunner(logger log.Logger, versionReporter version.Reporter, authClient a
 		return nil, errors.New("data client is missing")
 	}
 
-	return &Runner{
+	return &UpdateRunner{
 		logger:          logger,
 		versionReporter: versionReporter,
 		authClient:      authClient,
@@ -55,16 +54,16 @@ func NewRunner(logger log.Logger, versionReporter version.Reporter, authClient a
 	}, nil
 }
 
-func (r *Runner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == Type
+func (r *UpdateRunner) CanRunTask(tsk *task.Task) bool {
+	return tsk != nil && tsk.Type == UpdateType
 }
 
-func (r *Runner) GenerateNextTime() time.Duration {
-	randTime := time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum - AvailableAfterDurationMinimum + 1)))
-	return AvailableAfterDurationMinimum + randTime
+func (r *UpdateRunner) GenerateNextTime() time.Duration {
+	randTime := time.Duration(rand.Int63n(int64(UpdateAvailableAfterDurationMaximum - UpdateAvailableAfterDurationMinimum + 1)))
+	return UpdateAvailableAfterDurationMinimum + randTime
 }
 
-func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
+func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
@@ -76,7 +75,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	} else {
 		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 
-		if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
+		if taskRunner, tErr := NewUpdateTaskRunner(r, tsk); tErr != nil {
 			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
 		} else if tErr = taskRunner.Run(ctx); tErr != nil {
 			tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
@@ -87,19 +86,19 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime())
 	}
 
-	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
+	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
 		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
 }
 
-type TaskRunner struct {
-	*Runner
+type UpdateTaskRunner struct {
+	*UpdateRunner
 	task      *task.Task
 	context   context.Context
 	validator structure.Validator
 }
 
-func NewTaskRunner(rnnr *Runner, tsk *task.Task) (*TaskRunner, error) {
+func NewUpdateTaskRunner(rnnr *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
 	if rnnr == nil {
 		return nil, errors.New("runner is missing")
 	}
@@ -107,13 +106,13 @@ func NewTaskRunner(rnnr *Runner, tsk *task.Task) (*TaskRunner, error) {
 		return nil, errors.New("task is missing")
 	}
 
-	return &TaskRunner{
-		Runner: rnnr,
-		task:   tsk,
+	return &UpdateTaskRunner{
+		UpdateRunner: rnnr,
+		task:         tsk,
 	}, nil
 }
 
-func (t *TaskRunner) Run(ctx context.Context) error {
+func (t *UpdateTaskRunner) Run(ctx context.Context) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -130,7 +129,6 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	t.logger.Debug("Starting User Summary Update")
 
 	if err := t.UpdateSummaries(agedSummaryUserIDs); err != nil {
-		t.task.SetFailed()
 		return err
 	}
 
@@ -139,8 +137,8 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	return nil
 }
 
-func (t *TaskRunner) UpdateSummaries(userIDs []string) error {
-	sem := semaphore.NewWeighted(WorkerCount)
+func (t *UpdateTaskRunner) UpdateSummaries(userIDs []string) error {
+	sem := semaphore.NewWeighted(UpdateWorkerCount)
 	eg, c := errgroup.WithContext(t.context)
 
 	for _, userID := range userIDs {
@@ -165,7 +163,7 @@ func (t *TaskRunner) UpdateSummaries(userIDs []string) error {
 	return eg.Wait()
 }
 
-func (t *TaskRunner) UpdateUserSummary(userID string) error {
+func (t *UpdateTaskRunner) UpdateUserSummary(userID string) error {
 	t.logger.WithField("UserID", userID).Debug("Updating User Summary")
 
 	// update summary

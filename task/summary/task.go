@@ -8,17 +8,34 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
-func TaskName() string {
-	return fmt.Sprintf("%s", Type)
+func BackfillTaskName() string {
+	return fmt.Sprintf("%s", BackfillType)
 }
 
-func NewDefaultTaskCreate() *task.TaskCreate {
+func UpdateTaskName() string {
+	return fmt.Sprintf("%s", UpdateType)
+}
+
+func NewDefaultBackfillTaskCreate() *task.TaskCreate {
 	availableTime := time.Now().UTC()
 	expirationTime := availableTime.AddDate(1000, 0, 0)
 
 	return &task.TaskCreate{
-		Name:           pointer.FromString(TaskName()),
-		Type:           Type,
+		Name:           pointer.FromString(BackfillTaskName()),
+		Type:           BackfillType,
+		Priority:       5,
+		AvailableTime:  pointer.FromTime(availableTime),
+		ExpirationTime: pointer.FromTime(expirationTime),
+	}
+}
+
+func NewDefaultUpdateTaskCreate() *task.TaskCreate {
+	availableTime := time.Now().UTC()
+	expirationTime := availableTime.AddDate(1000, 0, 0)
+
+	return &task.TaskCreate{
+		Name:           pointer.FromString(UpdateTaskName()),
+		Type:           UpdateType,
 		Priority:       5,
 		AvailableTime:  pointer.FromTime(availableTime),
 		ExpirationTime: pointer.FromTime(expirationTime),

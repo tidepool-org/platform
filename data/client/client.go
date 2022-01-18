@@ -25,8 +25,10 @@ type Client interface {
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
+	CreateSummaries(ctx context.Context, ids []string) error
 	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
 	GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetBackfillSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error)
 }
 
 type ClientImpl struct {
@@ -137,6 +139,22 @@ func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summar
 	return summary, nil
 }
 
+func (c *ClientImpl) CreateSummaries(ctx context.Context, ids []string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if len(ids) == 0 {
+		return errors.New("ids is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "createsummaries")
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, &ids, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -155,6 +173,23 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 	}
 
 	return summary, nil
+}
+
+func (c *ClientImpl) GetBackfillSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	url := c.client.ConstructURL("v1", "backfillsummaries")
+
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	userIDs := []string{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
+		return userIDs, errors.Wrap(err, "backfill request returned an error")
+	}
+
+	return userIDs, nil
 }
 
 func (c *ClientImpl) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {

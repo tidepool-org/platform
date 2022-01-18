@@ -119,9 +119,14 @@ func (s *Service) initializeTaskStore() error {
 		return errors.Wrap(err, "unable to ensure task store indexes")
 	}
 
-	err = s.taskStore.EnsureSummaryTask()
+	err = s.taskStore.EnsureSummaryUpdateTask()
 	if err != nil {
-		return errors.Wrap(err, "unable to ensure task store contains summary task")
+		return errors.Wrap(err, "unable to ensure task store contains summary update task")
+	}
+
+	err = s.taskStore.EnsureSummaryBackfillTask()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure task store contains summary backfill task")
 	}
 
 	return nil
@@ -274,13 +279,21 @@ func (s *Service) initializeTaskQueue() error {
 
 	s.Logger().Debug("Creating summary update runner")
 
-	summaryRnnr, summaryRnnrErr := summaryUpdate.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+	summaryUpdateRnnr, summaryUpdateRnnrErr := summaryUpdate.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 
-	if summaryRnnrErr != nil {
-		return errors.Wrap(summaryRnnrErr, "unable to create summary update runner")
+	if summaryUpdateRnnrErr != nil {
+		return errors.Wrap(summaryUpdateRnnrErr, "unable to create summary update runner")
 	}
 
-	taskQueue.RegisterRunner(summaryRnnr)
+	taskQueue.RegisterRunner(summaryUpdateRnnr)
+
+	summaryBackfillRnnr, summaryBackfillRnnrErr := summaryUpdate.NewBackfillRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+
+	if summaryBackfillRnnrErr != nil {
+		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
+	}
+
+	taskQueue.RegisterRunner(summaryBackfillRnnr)
 
 	s.Logger().Debug("Starting task queue")
 

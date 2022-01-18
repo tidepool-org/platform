@@ -88,6 +88,11 @@ func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated ti
 		return nil, errors.New("context is missing")
 	}
 
+	// find results on a brand new set
+	if lastUpdated.IsZero() {
+		lastUpdated = time.Now()
+	}
+
 	var summaries []*summary.Summary
 	selector := bson.M{
 		"lastUpdated": bson.M{"$lte": lastUpdated.Add(-20 * time.Minute)},
@@ -194,4 +199,28 @@ func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, e
 	}
 
 	return userIDs, nil
+}
+
+func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*summary.Summary) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if len(summaries) == 0 {
+		return errors.New("summaries for create missing")
+	}
+
+	var insertData []mongo.WriteModel
+
+	for _, userSummary := range summaries {
+		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(userSummary))
+	}
+
+	opts := options.BulkWrite().SetOrdered(false)
+
+	_, err := d.BulkWrite(ctx, insertData, opts)
+
+	if err != nil {
+		return errors.Wrap(err, "unable to create summaries")
+	}
+	return nil
 }

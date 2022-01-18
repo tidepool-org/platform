@@ -48,6 +48,7 @@ type DataRepository interface {
 	GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error)
 	GetLastUpdatedForUser(ctx context.Context, id string) (summary.UserLastUpdated, error)
 	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
+	UserHasData(ctx context.Context, id string) (bool, error)
 }
 
 type Filter struct {
@@ -75,4 +76,5 @@ type SummaryRepository interface {
 	GetLastUpdated(ctx context.Context) (time.Time, error)
 	UpdateLastUpdated(ctx context.Context, id string) (time.Time, error)
 	DistinctSummaryIDs(ctx context.Context) ([]string, error)
+	CreateSummaries(ctx context.Context, summaries []*summary.Summary) error
 }

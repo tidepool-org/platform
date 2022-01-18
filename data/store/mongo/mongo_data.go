@@ -969,6 +969,32 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	return status, nil
 }
 
+func (d *DataRepository) UserHasData(ctx context.Context, id string) (bool, error) {
+
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+
+	if id == "" {
+		return false, errors.New("id is missing")
+	}
+
+	var dataSet *data.DataSet
+	selector := bson.M{
+		"_userId": id,
+	}
+
+	err := d.FindOne(ctx, selector).Decode(&dataSet)
+
+	if err == mongo.ErrNoDocuments {
+		return false, nil
+	} else if err != nil {
+		return false, errors.Wrap(err, "unable to get data set")
+	}
+
+	return true, nil
+}
+
 func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error) {
 	var userIDs []string
 

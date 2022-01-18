@@ -60,9 +60,14 @@ func (s *Store) EnsureIndexes() error {
 	return repository.EnsureIndexes()
 }
 
-func (s *Store) EnsureSummaryTask() error {
+func (s *Store) EnsureSummaryUpdateTask() error {
 	repository := s.TaskRepository()
-	return repository.EnsureSummaryTask()
+	return repository.EnsureSummaryUpdateTask()
+}
+
+func (s *Store) EnsureSummaryBackfillTask() error {
+	repository := s.TaskRepository()
+	return repository.EnsureSummaryBackfillTask()
 }
 
 type TaskRepository struct {
@@ -107,8 +112,8 @@ func (t *TaskRepository) EnsureIndexes() error {
 	})
 }
 
-func (t *TaskRepository) EnsureSummaryTask() error {
-	create := summary.NewDefaultTaskCreate()
+func (t *TaskRepository) EnsureSummaryUpdateTask() error {
+	create := summary.NewDefaultUpdateTaskCreate()
 
 	tsk, err := task.NewTask(create)
 	if err != nil {
@@ -132,7 +137,41 @@ func (t *TaskRepository) EnsureSummaryTask() error {
 
 	if summaryTask.Err() != nil {
 		if summaryTask.Err() != mongo.ErrNoDocuments {
-			return errors.Wrap(summaryTask.Err(), "unable to create summary task")
+			return errors.Wrap(summaryTask.Err(), "unable to create summary update task")
+		}
+	}
+
+	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
+
+	return summaryTask.Err()
+}
+
+func (t *TaskRepository) EnsureSummaryBackfillTask() error {
+	create := summary.NewDefaultBackfillTaskCreate()
+
+	tsk, err := task.NewTask(create)
+	if err != nil {
+		return err
+	} else if err = structureValidator.New().Validate(tsk); err != nil {
+		return errors.Wrap(err, "task is invalid")
+	}
+
+	upsert := true
+	after := options.After
+	opts := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
+	}
+
+	summaryTask := t.FindOneAndUpdate(context.Background(),
+		bson.M{"name": tsk.Name},
+		bson.M{"$setOnInsert": tsk},
+		&opts,
+	)
+
+	if summaryTask.Err() != nil {
+		if summaryTask.Err() != mongo.ErrNoDocuments {
+			return errors.Wrap(summaryTask.Err(), "unable to create summary backfill task")
 		}
 	}
 

@@ -1,6 +1,7 @@
 package summary
 
-const Type = "org.tidepool.summary.update"
+const UpdateType = "org.tidepool.summary.update"
+const BackfillType = "org.tidepool.summary.backfill"
 
-const DataSetClientName = Type
+const DataSetClientName = UpdateType
 const DataSetClientVersion = "1.0.0"

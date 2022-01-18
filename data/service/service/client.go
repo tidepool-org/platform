@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -248,14 +249,13 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	return userSummary, err
 }
 
-func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *Client) GetBackfillSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	var empty struct{}
 	userIDsReqUpdate := []string{}
 
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
-	// check if we should be backfilling missing summaries first
 	distinctSummaryIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
 	if err != nil {
 		return nil, err
@@ -278,9 +278,19 @@ func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Paginati
 		}
 
 		if len(userIDsReqUpdate) >= pagination.Size {
-			return userIDsReqUpdate, err
+			break
 		}
 	}
+
+	return userIDsReqUpdate, err
+}
+
+func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	var empty struct{}
+	userIDsReqUpdate := []string{}
+
+	summaryRepository := c.dataStore.NewSummaryRepository()
+	dataRepository := c.dataStore.NewDataRepository()
 
 	lastUpdated, err := summaryRepository.GetLastUpdated(ctx)
 	if err != nil {
@@ -313,11 +323,35 @@ func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Paginati
 		}
 
 		if len(userIDsReqUpdate) >= pagination.Size {
-			return userIDsReqUpdate, err
+			break
 		}
 	}
 
 	return userIDsReqUpdate, err
+}
+
+func (c *Client) CreateSummaries(ctx context.Context, userIDs []string) error {
+	repository := c.dataStore.NewSummaryRepository()
+	dataRepository := c.dataStore.NewDataRepository()
+
+	var summaries []*summary.Summary
+
+	for _, userID := range userIDs {
+		// check to ensure the user has data
+		userExists, err := dataRepository.UserHasData(ctx, userID)
+		if err != nil {
+			return err
+		}
+
+		if userExists != true {
+			return errors.New(fmt.Sprintf("Unknown User: %s", userID))
+		}
+
+		userSummary := summary.New(userID)
+		summaries = append(summaries, userSummary)
+	}
+
+	return repository.CreateSummaries(ctx, summaries)
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

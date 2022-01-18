@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -17,6 +18,8 @@ func SummaryRoutes() []dataService.Route {
 		dataService.MakeRoute("GET", "/v1/summary/:userId", Authenticate(GetSummary)),
 		dataService.MakeRoute("POST", "/v1/summary/:userId", Authenticate(UpdateSummary)),
 		dataService.MakeRoute("GET", "/v1/agedsummaries", Authenticate(GetAgedSummaries)),
+		dataService.MakeRoute("POST", "/v1/createsummaries", Authenticate(CreateSummaries)),
+		dataService.MakeRoute("GET", "/v1/backfillsummaries", Authenticate(GetBackfillSummaries)),
 	}
 }
 
@@ -68,6 +71,42 @@ func GetSummary(dataServiceContext dataService.Context) {
 	}
 }
 
+func CreateSummaries(dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+	dataClient := dataServiceContext.DataClient()
+
+	var ids []string
+	var err error
+
+	responder := request.MustNewResponder(res, req)
+
+	if details := request.DetailsFromContext(ctx); !details.IsService() {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
+	}
+
+	var rawDatumArray []interface{}
+	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
+		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
+		return
+	}
+
+	// slightly unnecesary, but ensured consistency
+	for _, rawId := range rawDatumArray {
+		ids = append(ids, fmt.Sprintf("%v", rawId))
+	}
+
+	err = dataClient.CreateSummaries(ctx, ids)
+
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+	} else {
+		responder.Empty(http.StatusOK)
+	}
+}
+
 func UpdateSummary(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
@@ -92,6 +131,34 @@ func UpdateSummary(dataServiceContext dataService.Context) {
 	}
 }
 
+func GetBackfillSummaries(dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+	dataClient := dataServiceContext.DataClient()
+
+	responder := request.MustNewResponder(res, req)
+
+	if details := request.DetailsFromContext(ctx); !details.IsService() {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
+	}
+
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	userIDs, err := dataClient.GetBackfillSummaries(ctx, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, userIDs)
+}
+
 func GetAgedSummaries(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
@@ -111,11 +178,11 @@ func GetAgedSummaries(dataServiceContext dataService.Context) {
 		return
 	}
 
-	summaries, err := dataClient.GetAgedSummaries(ctx, pagination)
+	userIDs, err := dataClient.GetAgedSummaries(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
-	responder.Data(http.StatusOK, summaries)
+	responder.Data(http.StatusOK, userIDs)
 }
