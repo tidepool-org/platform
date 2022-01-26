@@ -1020,7 +1020,7 @@ func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Tim
 	return userIDs, nil
 }
 
-func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
 	var userIDs []string
 
 	if ctx == nil {

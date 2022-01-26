@@ -371,167 +371,280 @@ var _ = Describe("Mongo", func() {
 					Expect(repository.CreateDataSetData(ctx, dataSetCGM, dataSetCGMData)).To(Succeed())
 				})
 
-				It("tests that improper GetLastUpdatedForUser context is correctly handled", func() {
-					userLastUpdated, err = repository.GetLastUpdatedForUser(nil, userID)
-					Expect(err).To(MatchError("context is missing"))
+				Context("GetLastUpdatedForUser", func(){
+					It("returns error if context is empty", func() {
+						userLastUpdated, err = repository.GetLastUpdatedForUser(nil, userID)
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("returns error if UserID is empty", func() {
+						userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "")
+						Expect(err).To(MatchError("id is missing"))
+					})
+
+					It("tests that GetLastUpdatedForUser value is correct", func() {
+						userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userLastUpdated.LastData).To(Equal(time.Date(2016, time.Month(9), 1, 12, 30, 0, 0, time.UTC)))
+					})
 				})
 
-				It("tests that improper GetLastUpdatedForUser UserID is correctly handled", func() {
-					userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "")
-					Expect(err).To(MatchError("id is missing"))
+				Context("UpdateSummary", func(){
+					// these tests do not verify the DB contents, as that is done later in GetSummary
+					It("returns error if context is empty", func() {
+						_, err = summaryRepository.UpdateSummary(nil, randomSummary)
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("test empty summary is correctly handled", func() {
+						_, err = summaryRepository.UpdateSummary(ctx, nil)
+						Expect(err).To(MatchError("summary object is missing"))
+					})
+
+					It("test empty UserID is correctly handled", func() {
+						randomSummary.UserID = ""
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).To(MatchError("summary missing UserID"))
+					})
+
+					It("test that summary can be written", func() {
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+					})
 				})
 
-				It("tests that GetLastUpdatedForUser value is correct", func() {
-					userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(userLastUpdated.LastData).To(Equal(time.Date(2016, time.Month(9), 1, 12, 30, 0, 0, time.UTC)))
+				Context("GetSummary", func(){
+					It("returns error if context is empty", func() {
+						_, err = summaryRepository.GetSummary(nil, userID)
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("returns error if UserID is empty", func() {
+						_, err = summaryRepository.GetSummary(ctx, "")
+						Expect(err).To(MatchError("summary UserID is missing"))
+					})
+
+					It("returns an error if getsummary cannot retrieve record", func() {
+						_, err = summaryRepository.GetSummary(ctx, userID)
+						Expect(err).To(HaveOccurred())
+
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						_, err = summaryRepository.GetSummary(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+					})
 				})
 
-				It("tests that improper updatesummary context is correctly handled", func() {
-					_, err = summaryRepository.UpdateSummary(nil, randomSummary)
-					Expect(err).To(MatchError("context is missing"))
+				Context("GetLastUpdated", func(){
+					It("returns error if context is empty", func() {
+						lastUpdated, err = summaryRepository.GetLastUpdated(nil)
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("test with no summaries returns current date", func() {
+						timeNow := time.Now()
+						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(lastUpdated.After(timeNow)).To(BeTrue())
+					})
+
+					It("test finds correct lastUpdated date", func() {
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(lastUpdated).To(Equal(*randomSummary.LastUpdated))
+					})
+
+					It("test finds correct lastUpdated date when multiple are present", func() {
+						// set 2nd anotherRandomSummary to be LastUpdated 1 year after randomSummary to ensure ordering
+						anotherRandomSummary.LastUpdated = pointer.FromTime(randomSummary.LastUpdated.AddDate(1, 0, 0))
+
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						_, err = summaryRepository.UpdateSummary(ctx, anotherRandomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(lastUpdated).To(Equal(*randomSummary.LastUpdated))
+					})
 				})
 
-				It("tests that improper updatesummary summary is correctly handled", func() {
-					_, err = summaryRepository.UpdateSummary(ctx, nil)
-					Expect(err).To(MatchError("summary object is missing"))
+				Context("UpdateLastUpdated", func(){
+					It("returns error if context is empty", func() {
+						_, err = summaryRepository.UpdateLastUpdated(nil, randomSummary.UserID)
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("test empty UserID returns error", func() {
+						_, err = summaryRepository.UpdateLastUpdated(ctx, "")
+						Expect(err).To(MatchError("user id is missing"))
+					})
+
+					It("tests that UpdateLastUpdated updates the summary", func() {
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						lastUpdated, err = summaryRepository.UpdateLastUpdated(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+
+						userSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(*userSummary.LastUpdated).To(Equal(lastUpdated))
+					})
 				})
 
-				It("tests that improper updatesummary UserID is correctly handled", func() {
-					randomSummary.UserID = ""
-					_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).To(MatchError("summary missing UserID"))
+				Context("GetAgedSummaries", func(){
+					It("returns error if context is empty", func() {
+						lastUpdated := time.Now()
+						_, err := summaryRepository.GetAgedSummaries(nil, lastUpdated)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("test with no summaries", func() {
+						lastUpdated := time.Now()
+						userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(BeEmpty())
+					})
+
+					It("test with a fresh summary", func() {
+						_, err := summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						lastUpdated := randomSummary.LastUpdated.Add(10 * time.Minute)
+						userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(BeEmpty())
+					})
+
+					It("test with an aged summary", func() {
+						_, err := summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						lastUpdated := randomSummary.LastUpdated.Add(45 * time.Minute)
+						userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(ConsistOf([1]string{userID}))
+					})
 				})
 
-				It("returns an error if summary cant be written", func() {
-					_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
+				Context("GetFreshUsers", func(){
+					It("returns error if context is empty", func() {
+						_, err := repository.GetFreshUsers(nil, dataSetLastUpdated.Add(10*time.Minute))
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("test with no new cgm data", func() {
+						userIDs, err := repository.GetFreshUsers(ctx, dataSetLastUpdated.Add(10*time.Minute))
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(BeEmpty())
+					})
+
+					It("test with new cgm data", func() {
+						userIDs, err := repository.GetFreshUsers(ctx, dataSetLastUpdated.Add(-10*time.Minute))
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(ConsistOf([1]string{userID}))
+					})
 				})
 
-				It("tests that improper getsummary UserID is correctly handled", func() {
-					_, err = summaryRepository.GetSummary(ctx, "")
-					Expect(err).To(MatchError("summary UserID is missing"))
+				Context("CreateSummaries", func(){
+					It("returns error if context is empty", func() {
+						summaries := []*summary.Summary{randomSummary}
+						err := summaryRepository.CreateSummaries(nil, summaries)
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("returns error if summaries is empty", func() {
+						summaries := []*summary.Summary{}
+						err := summaryRepository.CreateSummaries(ctx, summaries)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("summaries for create missing"))
+					})
+
+					It("creates one summary correctly", func() {
+						summaries := []*summary.Summary{randomSummary}
+						err := summaryRepository.CreateSummaries(ctx, summaries)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						newSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+
+						// copy id from inserted summary for easy equality
+						randomSummary.ID = newSummary.ID
+						Expect(newSummary).To(Equal(randomSummary))
+					})
+
+					It("creates multiple summaries correctly", func() {
+						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
+						err := summaryRepository.CreateSummaries(ctx, summaries)
+
+						Expect(err).ToNot(HaveOccurred())
+
+						for _, insertedSummary := range summaries {
+							newSummary, err := summaryRepository.GetSummary(ctx, insertedSummary.UserID)
+							Expect(err).ToNot(HaveOccurred())
+
+							// copy id from inserted summary for easy equality
+							insertedSummary.ID = newSummary.ID
+							Expect(newSummary).To(Equal(insertedSummary))
+						}
+					})
 				})
 
-				It("tests that improper getsummary context is correctly handled", func() {
-					_, err = summaryRepository.GetSummary(nil, userID)
-					Expect(err).To(MatchError("context is missing"))
-				})
 
-				It("returns an error if getsummary cannot retrieve record", func() {
-					_, err = summaryRepository.GetSummary(ctx, userID)
-					Expect(err).To(HaveOccurred())
+				Context("DistinctSummaryIDs", func(){
+					It("returns error if context is empty", func() {
+						_, err := summaryRepository.DistinctSummaryIDs(nil)
 
-					_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("context is missing"))
+					})
 
-					_, err = summaryRepository.GetSummary(ctx, userID)
-					Expect(err).ToNot(HaveOccurred())
-				})
+					It("returns correct count and IDs of one summary", func() {
+						summaries := []*summary.Summary{randomSummary}
+						err := summaryRepository.CreateSummaries(ctx, summaries)
+						Expect(err).ToNot(HaveOccurred())
 
-				It("tests that improper GetLastUpdated context is correctly handled", func() {
-					userLastUpdated, err = repository.GetLastUpdatedForUser(nil, userID)
-					Expect(err).To(MatchError("context is missing"))
-				})
+						resultUserIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resultUserIDs).To(ConsistOf([1]string{randomSummary.UserID}))
+					})
 
-				It("tests that GetLastUpdated with no summaries returns current date", func() {
-					timeNow := time.Now()
-					lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
-					Expect(err).ToNot(HaveOccurred())
+					It("returns correct count and IDs of multiple summaries", func() {
+						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
+						err := summaryRepository.CreateSummaries(ctx, summaries)
+						Expect(err).ToNot(HaveOccurred())
 
-					Expect(lastUpdated.After(timeNow)).To(BeTrue())
-				})
+						resultUserIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resultUserIDs).To(ConsistOf([2]string{randomSummary.UserID, anotherRandomSummary.UserID}))
 
-				It("tests that GetLastUpdated uses present summaries", func() {
-					_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
+					})
 
-					lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(lastUpdated).To(Equal(*randomSummary.LastUpdated))
-				})
-
-				It("tests that GetLastUpdated uses corrent summary when multiple are present", func() {
-					// set 2nd anotherRandomSummary to be LastUpdated 1 year after randomSummary to ensure ordering
-					anotherRandomSummary.LastUpdated = pointer.FromTime(randomSummary.LastUpdated.AddDate(1, 0, 0))
-
-					_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
-
-					_, err = summaryRepository.UpdateSummary(ctx, anotherRandomSummary)
-					Expect(err).ToNot(HaveOccurred())
-
-					lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(lastUpdated).To(Equal(*randomSummary.LastUpdated))
-				})
-
-				It("tests that improper UpdateLastUpdated context is correctly handled", func() {
-					_, err = summaryRepository.UpdateLastUpdated(nil, randomSummary.UserID)
-					Expect(err).To(MatchError("context is missing"))
-				})
-
-				It("tests that improper UpdateLastUpdated UserID is correctly handled", func() {
-					_, err = summaryRepository.UpdateLastUpdated(ctx, "")
-					Expect(err).To(MatchError("user id is missing"))
-				})
-
-				It("tests that UpdateLastUpdated updates the summary", func() {
-					_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
-
-					lastUpdated, err = summaryRepository.UpdateLastUpdated(ctx, randomSummary.UserID)
-					Expect(err).ToNot(HaveOccurred())
-
-					userSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(*userSummary.LastUpdated).To(Equal(lastUpdated))
-				})
-
-				It("tests GetAgedSummaries with no summaries", func() {
-					lastUpdated := time.Now()
-					userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userIDs)).To(Equal(0))
-				})
-
-				It("tests GetAgedSummaries with a fresh summary", func() {
-					_, err := summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
-
-					lastUpdated := randomSummary.LastUpdated.Add(10 * time.Minute)
-					userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userIDs)).To(Equal(0))
-				})
-
-				It("tests GetAgedSummaries with an aged summary", func() {
-					_, err := summaryRepository.UpdateSummary(ctx, randomSummary)
-					Expect(err).ToNot(HaveOccurred())
-
-					lastUpdated := randomSummary.LastUpdated.Add(45 * time.Minute)
-					userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userIDs)).To(Equal(1))
-				})
-
-				It("tests GetFreshUsers with no new cgm data", func() {
-					userIDs, err := repository.GetFreshUsers(ctx, dataSetLastUpdated.Add(10*time.Minute))
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userIDs)).To(Equal(0))
-				})
-
-				It("tests GetFreshUsers with new cgm data", func() {
-					userIDs, err := repository.GetFreshUsers(ctx, dataSetLastUpdated.Add(-10*time.Minute))
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userIDs)).To(Equal(1))
+					It("returns correct count and IDs of summaries with 0 summaries", func() {
+						resultUserIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resultUserIDs).To(BeEmpty())
+					})
 				})
 			})
 
@@ -565,6 +678,56 @@ var _ = Describe("Mongo", func() {
 					userID = userTest.RandomID()
 					deviceID = dataTest.NewDeviceID()
 					dataSet = NewDataSet(userID, deviceID)
+				})
+
+				Context("DistinctUserIDs", func(){
+					BeforeEach(func() {
+						dataSet = NewDataSet(userTest.RandomID(), deviceID)
+					})
+
+					It("returns correct count and IDs of distinct users", func() {
+						preparePersistedDataSets()
+
+						resultUserIDs, err := repository.DistinctUserIDs(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(len(resultUserIDs)).To(Equal(2))
+						Expect(resultUserIDs).To(ConsistOf([2]string{userID, *dataSetExistingOther.UserID}))
+					})
+
+					It("returns correct count and IDs of distinct users after change", func() {
+						preparePersistedDataSets()
+						_, err := collection.InsertOne(context.Background(), dataSet)
+						Expect(err).ToNot(HaveOccurred())
+
+						resultUserIDs, err := repository.DistinctUserIDs(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(len(resultUserIDs)).To(Equal(3))
+						Expect(resultUserIDs).To(ConsistOf([3]string{userID, *dataSetExistingOther.UserID, *dataSet.UserID}))
+					})
+
+					It("returns correct count with 0 users", func() {
+						resultUserIDs, err := repository.DistinctUserIDs(ctx)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(resultUserIDs).To(BeEmpty())
+					})
+				})
+
+				Context("UserHasData", func(){
+					BeforeEach(func() {
+						preparePersistedDataSets()
+					})
+
+					It("returns correct status for existing user", func() {
+						status, err := repository.UserHasData(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(status).To(BeTrue())
+					})
+
+					It("returns correct status for non existing user", func() {
+						status, err := repository.UserHasData(ctx, userTest.RandomID())
+						Expect(err).ToNot(HaveOccurred())
+						Expect(status).To(BeFalse())
+					})
 				})
 
 				Context("GetDataSetsForUserByID", func() {

@@ -261,7 +261,7 @@ func (c *Client) GetBackfillSummaries(ctx context.Context, pagination *page.Pagi
 		return nil, err
 	}
 
-	distinctCGMUserIDs, err := dataRepository.DistinctCGMUserIDs(ctx)
+	distinctDataUserIDs, err := dataRepository.DistinctUserIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func (c *Client) GetBackfillSummaries(ctx context.Context, pagination *page.Pagi
 		distinctSummaryIDMap[v] = empty
 	}
 
-	for _, userID := range distinctCGMUserIDs {
+	for _, userID := range distinctDataUserIDs {
 		if _, exists := distinctSummaryIDMap[userID]; exists {
 		} else {
 			userIDsReqUpdate = append(userIDsReqUpdate, userID)
