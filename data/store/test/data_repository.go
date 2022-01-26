@@ -178,11 +178,11 @@ type GetFreshUsersOutput struct {
 	Error   error
 }
 
-type DistinctCGMUserIDsInput struct {
+type DistinctUserIDsInput struct {
 	Context context.Context
 }
 
-type DistinctCGMUserIDsOutput struct {
+type DistinctUserIDsOutput struct {
 	UserIDs []string
 	Error   error
 }
@@ -267,9 +267,9 @@ type DataRepository struct {
 	GetFreshUsersInputs      []GetFreshUsersInput
 	GetFreshUsersOutputs     []GetFreshUsersOutput
 
-	DistinctCGMUserIDsInvocations int
-	DistinctCGMUserIDsInputs      []DistinctCGMUserIDsInput
-	DistinctCGMUserIDsOutputs     []DistinctCGMUserIDsOutput
+	DistinctUserIDsInvocations int
+	DistinctUserIDsInputs      []DistinctUserIDsInput
+	DistinctUserIDsOutputs     []DistinctUserIDsOutput
 
 	UserHasDataInvocations int
 	UserHasDataInputs      []UserHasDataInput
@@ -527,15 +527,15 @@ func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Tim
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
-	d.DistinctCGMUserIDsInvocations++
+func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
+	d.DistinctUserIDsInvocations++
 
-	d.DistinctCGMUserIDsInputs = append(d.DistinctCGMUserIDsInputs, DistinctCGMUserIDsInput{Context: ctx})
+	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx})
 
-	gomega.Expect(d.DistinctCGMUserIDsOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.DistinctUserIDsOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.DistinctCGMUserIDsOutputs[0]
-	d.DistinctCGMUserIDsOutputs = d.DistinctCGMUserIDsOutputs[1:]
+	output := d.DistinctUserIDsOutputs[0]
+	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
 }
 
@@ -571,7 +571,7 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DistinctCGMUserIDsOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DistinctUserIDsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetFreshUsersOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.UserHasDataOutputs).To(gomega.BeEmpty())

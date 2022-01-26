@@ -371,7 +371,7 @@ var _ = Describe("Mongo", func() {
 					Expect(repository.CreateDataSetData(ctx, dataSetCGM, dataSetCGMData)).To(Succeed())
 				})
 
-				Context("GetLastUpdatedForUser", func(){
+				Context("GetLastUpdatedForUser", func() {
 					It("returns error if context is empty", func() {
 						userLastUpdated, err = repository.GetLastUpdatedForUser(nil, userID)
 						Expect(err).To(MatchError("context is missing"))
@@ -389,7 +389,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("UpdateSummary", func(){
+				Context("UpdateSummary", func() {
 					// these tests do not verify the DB contents, as that is done later in GetSummary
 					It("returns error if context is empty", func() {
 						_, err = summaryRepository.UpdateSummary(nil, randomSummary)
@@ -413,7 +413,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("GetSummary", func(){
+				Context("GetSummary", func() {
 					It("returns error if context is empty", func() {
 						_, err = summaryRepository.GetSummary(nil, userID)
 						Expect(err).To(MatchError("context is missing"))
@@ -436,7 +436,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("GetLastUpdated", func(){
+				Context("GetLastUpdated", func() {
 					It("returns error if context is empty", func() {
 						lastUpdated, err = summaryRepository.GetLastUpdated(nil)
 						Expect(err).To(MatchError("context is missing"))
@@ -477,7 +477,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("UpdateLastUpdated", func(){
+				Context("UpdateLastUpdated", func() {
 					It("returns error if context is empty", func() {
 						_, err = summaryRepository.UpdateLastUpdated(nil, randomSummary.UserID)
 						Expect(err).To(MatchError("context is missing"))
@@ -501,7 +501,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("GetAgedSummaries", func(){
+				Context("GetAgedSummaries", func() {
 					It("returns error if context is empty", func() {
 						lastUpdated := time.Now()
 						_, err := summaryRepository.GetAgedSummaries(nil, lastUpdated)
@@ -541,7 +541,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("GetFreshUsers", func(){
+				Context("GetFreshUsers", func() {
 					It("returns error if context is empty", func() {
 						_, err := repository.GetFreshUsers(nil, dataSetLastUpdated.Add(10*time.Minute))
 						Expect(err).To(HaveOccurred())
@@ -563,7 +563,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("CreateSummaries", func(){
+				Context("CreateSummaries", func() {
 					It("returns error if context is empty", func() {
 						summaries := []*summary.Summary{randomSummary}
 						err := summaryRepository.CreateSummaries(nil, summaries)
@@ -610,8 +610,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-
-				Context("DistinctSummaryIDs", func(){
+				Context("DistinctSummaryIDs", func() {
 					It("returns error if context is empty", func() {
 						_, err := summaryRepository.DistinctSummaryIDs(nil)
 
@@ -680,7 +679,7 @@ var _ = Describe("Mongo", func() {
 					dataSet = NewDataSet(userID, deviceID)
 				})
 
-				Context("DistinctUserIDs", func(){
+				Context("DistinctUserIDs", func() {
 					BeforeEach(func() {
 						dataSet = NewDataSet(userTest.RandomID(), deviceID)
 					})
@@ -712,7 +711,7 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("UserHasData", func(){
+				Context("UserHasData", func() {
 					BeforeEach(func() {
 						preparePersistedDataSets()
 					})
