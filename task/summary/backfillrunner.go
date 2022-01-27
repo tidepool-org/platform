@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
@@ -117,24 +117,14 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	t.context = ctx
 	t.validator = structureValidator.New()
 
-	pagination := page.NewPagination()
-	pagination.Size = 1000
+	t.logger.Debug("Starting User Summary Creation")
 
-	t.logger.Info("Searching for User Summaries requiring Creation")
-	backfillSummaryUserIDs, err := t.dataClient.GetBackfillSummaries(t.context, pagination)
+	count, err := t.dataClient.BackfillSummaries(t.context)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Debug("Starting User Summary Creation")
-
-	if len(backfillSummaryUserIDs) > 0 {
-		if err := t.dataClient.CreateSummaries(t.context, backfillSummaryUserIDs); err != nil {
-			return err
-		}
-	}
-
-	t.logger.Debug("Finished User Summary Creation")
+	t.logger.Info(fmt.Sprintf("Backfilled %d summaries", count))
 
 	return nil
 }

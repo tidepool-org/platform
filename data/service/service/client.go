@@ -23,6 +23,7 @@ const (
 	lowBloodGlucose  = 3.9
 	highBloodGlucose = 10
 	units            = "mmol/l"
+	backfillBatch    = 10000
 )
 
 type Client struct {
@@ -249,7 +250,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	return userSummary, err
 }
 
-func (c *Client) GetBackfillSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
 	var empty struct{}
 	userIDsReqUpdate := []string{}
 
@@ -258,12 +259,12 @@ func (c *Client) GetBackfillSummaries(ctx context.Context, pagination *page.Pagi
 
 	distinctSummaryIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	distinctDataUserIDs, err := dataRepository.DistinctUserIDs(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	distinctSummaryIDMap := make(map[string]struct{})
@@ -277,12 +278,36 @@ func (c *Client) GetBackfillSummaries(ctx context.Context, pagination *page.Pagi
 			userIDsReqUpdate = append(userIDsReqUpdate, userID)
 		}
 
-		if len(userIDsReqUpdate) >= pagination.Size {
+		if len(userIDsReqUpdate) >= backfillBatch {
 			break
 		}
 	}
 
-	return userIDsReqUpdate, err
+	var summaries []*summary.Summary
+
+	for _, userID := range userIDsReqUpdate {
+		// check to ensure the user has data
+		userExists, err := dataRepository.UserHasData(ctx, userID)
+		if err != nil {
+			return 0, err
+		}
+
+		if userExists != true {
+			return 0, errors.New(fmt.Sprintf("Unknown User: %s", userID))
+		}
+
+		userSummary := summary.New(userID)
+		summaries = append(summaries, userSummary)
+	}
+
+	if len(summaries) > 0 {
+		err = summaryRepository.CreateSummaries(ctx, summaries)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return len(summaries), nil
 }
 
 func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
@@ -328,30 +353,6 @@ func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Paginati
 	}
 
 	return userIDsReqUpdate, err
-}
-
-func (c *Client) CreateSummaries(ctx context.Context, userIDs []string) error {
-	repository := c.dataStore.NewSummaryRepository()
-	dataRepository := c.dataStore.NewDataRepository()
-
-	var summaries []*summary.Summary
-
-	for _, userID := range userIDs {
-		// check to ensure the user has data
-		userExists, err := dataRepository.UserHasData(ctx, userID)
-		if err != nil {
-			return err
-		}
-
-		if userExists != true {
-			return errors.New(fmt.Sprintf("Unknown User: %s", userID))
-		}
-
-		userSummary := summary.New(userID)
-		summaries = append(summaries, userSummary)
-	}
-
-	return repository.CreateSummaries(ctx, summaries)
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
