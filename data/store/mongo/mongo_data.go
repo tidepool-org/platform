@@ -1003,7 +1003,7 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 	}
 
 	selector := bson.M{
-		"time":    bson.M{"$gte": time.Now().UTC().Format(time.RFC3339Nano)},
+		"time":    bson.M{"$gte": time.Now().AddDate(-1, 0, 0).UTC().Format(time.RFC3339Nano)},
 		"_active": true,
 		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},

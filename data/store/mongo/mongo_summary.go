@@ -55,7 +55,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 	err := d.FindOne(ctx, selector).Decode(&summary)
 
 	if err == mongo.ErrNoDocuments {
-		return nil, nil
+		return nil, errors.New("summary not found")
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
@@ -121,12 +121,12 @@ func (d *SummaryRepository) GetUsersWithSummariesBefore(ctx context.Context, las
 	return userIDs, nil
 }
 
-func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, error) {
+func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (*time.Time, error) {
 	var lastUpdated time.Time
 	var summaries []*summary.Summary
 
 	if ctx == nil {
-		return lastUpdated, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	selector := bson.M{}
@@ -137,11 +137,11 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 	cursor, err := d.Find(ctx, selector, findOptions)
 
 	if err != nil {
-		return lastUpdated, errors.Wrap(err, "unable to get last cbg date")
+		return nil, errors.Wrap(err, "unable to get last cbg date")
 	}
 
 	if err = cursor.All(ctx, &summaries); err != nil {
-		return lastUpdated, errors.Wrap(err, "unable to decode last cbg date")
+		return nil, errors.Wrap(err, "unable to decode last cbg date")
 	}
 
 	if len(summaries) > 0 {
@@ -149,10 +149,10 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 			lastUpdated = *summaries[0].LastUpdated
 		}
 	} else {
-		return time.Now().UTC().Truncate(time.Millisecond), nil
+		lastUpdated = time.Now().UTC().Truncate(time.Millisecond)
 	}
 
-	return lastUpdated, nil
+	return &lastUpdated, nil
 }
 
 func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (*time.Time, error) {

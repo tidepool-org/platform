@@ -1,15 +1,16 @@
 package summary
 
 import (
-	"time"
-	"strings"
 	"math"
+	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 const (

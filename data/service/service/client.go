@@ -209,12 +209,12 @@ func (c *Client) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination
 		return nil, err
 	}
 
-	agedUserIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
+	agedUserIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, *lastUpdated)
 	if err != nil {
 		return nil, err
 	}
 
-	freshUserIDs, err := dataRepository.GetUsersWithBGDataSince(ctx, lastUpdated)
+	freshUserIDs, err := dataRepository.GetUsersWithBGDataSince(ctx, *lastUpdated)
 	if err != nil {
 		return nil, err
 	}
