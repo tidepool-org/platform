@@ -26,8 +26,8 @@ type Client interface {
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
-	GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error)
-	BackfillSummaries(ctx context.Context) (int, error)
+	GetAgedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	BackfillSummaries(ctx context.Context) (int64, error)
 }
 
 type ClientImpl struct {
@@ -158,8 +158,8 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 	return summary, nil
 }
 
-func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
-	var count int
+func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int64, error) {
+	var count int64
 	url := c.client.ConstructURL("v1", "summaries")
 
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
@@ -169,7 +169,7 @@ func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (c *ClientImpl) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *ClientImpl) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	url := c.client.ConstructURL("v1", "summaries")
 
 	if pagination == nil {

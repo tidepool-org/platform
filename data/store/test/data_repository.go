@@ -168,12 +168,12 @@ type GetCGMDataRangeOutput struct {
 	Error      error
 }
 
-type GetFreshUsersInput struct {
+type GetUsersWithBGDataSinceInput struct {
 	Context     context.Context
 	LastUpdated time.Time
 }
 
-type GetFreshUsersOutput struct {
+type GetUsersWithBGDataSinceOutput struct {
 	UserIDs []string
 	Error   error
 }
@@ -185,16 +185,6 @@ type DistinctUserIDsInput struct {
 type DistinctUserIDsOutput struct {
 	UserIDs []string
 	Error   error
-}
-
-type UserHasDataInput struct {
-	Context context.Context
-	ID      string
-}
-
-type UserHasDataOutput struct {
-	Status bool
-	Error  error
 }
 
 type DataRepository struct {
@@ -263,17 +253,13 @@ type DataRepository struct {
 	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
 	GetLastUpdatedForUserOutputs     []GetLastUpdatedForUserOutput
 
-	GetFreshUsersInvocations int
-	GetFreshUsersInputs      []GetFreshUsersInput
-	GetFreshUsersOutputs     []GetFreshUsersOutput
+	GetUsersWithBGDataSinceInvocations int
+	GetUsersWithBGDataSinceInputs      []GetUsersWithBGDataSinceInput
+	GetUsersWithBGDataSinceOutputs     []GetUsersWithBGDataSinceOutput
 
 	DistinctUserIDsInvocations int
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
-
-	UserHasDataInvocations int
-	UserHasDataInputs      []UserHasDataInput
-	UserHasDataOutputs     []UserHasDataOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -515,15 +501,15 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	return output.Continuous, output.Error
 }
 
-func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error) {
-	d.GetFreshUsersInvocations++
+func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+	d.GetUsersWithBGDataSinceInvocations++
 
-	d.GetFreshUsersInputs = append(d.GetFreshUsersInputs, GetFreshUsersInput{Context: ctx, LastUpdated: lastUpdated})
+	d.GetUsersWithBGDataSinceInputs = append(d.GetUsersWithBGDataSinceInputs, GetUsersWithBGDataSinceInput{Context: ctx, LastUpdated: lastUpdated})
 
-	gomega.Expect(d.GetFreshUsersOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.GetFreshUsersOutputs[0]
-	d.GetFreshUsersOutputs = d.GetFreshUsersOutputs[1:]
+	output := d.GetUsersWithBGDataSinceOutputs[0]
+	d.GetUsersWithBGDataSinceOutputs = d.GetUsersWithBGDataSinceOutputs[1:]
 	return output.UserIDs, output.Error
 }
 
@@ -537,18 +523,6 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) 
 	output := d.DistinctUserIDsOutputs[0]
 	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
-}
-
-func (d *DataRepository) UserHasData(ctx context.Context, id string) (bool, error) {
-	d.UserHasDataInvocations++
-
-	d.UserHasDataInputs = append(d.UserHasDataInputs, UserHasDataInput{Context: ctx})
-
-	gomega.Expect(d.UserHasDataOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.UserHasDataOutputs[0]
-	d.UserHasDataOutputs = d.UserHasDataOutputs[1:]
-	return output.Status, output.Error
 }
 
 func (d *DataRepository) Expectations() {
@@ -572,7 +546,6 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DistinctUserIDsOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.GetFreshUsersOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.UserHasDataOutputs).To(gomega.BeEmpty())
 }

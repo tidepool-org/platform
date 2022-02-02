@@ -45,10 +45,9 @@ type DataRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error)
-	GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error)
-	GetLastUpdatedForUser(ctx context.Context, id string) (summary.UserLastUpdated, error)
-	DistinctUserIDs(ctx context.Context) ([]string, error)
-	UserHasData(ctx context.Context, id string) (bool, error)
+	GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error)
+	GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
+	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
 }
 
 type Filter struct {
@@ -72,9 +71,9 @@ type SummaryRepository interface {
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
-	GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]string, error)
+	GetUsersWithSummariesBefore(ctx context.Context, lastUpdated time.Time) ([]string, error)
 	GetLastUpdated(ctx context.Context) (time.Time, error)
-	UpdateLastUpdated(ctx context.Context, id string) (time.Time, error)
+	UpdateLastUpdated(ctx context.Context, id string) (*time.Time, error)
 	DistinctSummaryIDs(ctx context.Context) ([]string, error)
-	CreateSummaries(ctx context.Context, summaries []*summary.Summary) error
+	CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int64, error)
 }

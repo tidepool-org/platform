@@ -16,8 +16,8 @@ func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.MakeRoute("GET", "/v1/summaries/:userId", Authenticate(GetSummary)),
 		dataService.MakeRoute("POST", "/v1/summaries/:userId", Authenticate(UpdateSummary)),
-		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetAgedSummaries)),
 		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
+		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetAgedUserIDs)),
 	}
 }
 
@@ -115,7 +115,9 @@ func BackfillSummaries(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, status)
 }
 
-func GetAgedSummaries(dataServiceContext dataService.Context) {
+// NOTE: the following route does advance lastUpdated for not-aged summaries as it creates the list
+// This generally does not change the result of subsequent calls, only the amount of processing required
+func GetAgedUserIDs(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -134,7 +136,7 @@ func GetAgedSummaries(dataServiceContext dataService.Context) {
 		return
 	}
 
-	userIDs, err := dataClient.GetAgedSummaries(ctx, pagination)
+	userIDs, err := dataClient.GetAgedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

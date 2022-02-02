@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -267,7 +266,7 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 	var task *task.Task
 	err := t.FindOne(ctx, bson.M{"id": id}).Decode(&task)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
-	fmt.Print(err)
+
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {

@@ -121,7 +121,7 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) error {
 	t.validator = structureValidator.New()
 
 	t.logger.Info("Searching for User Summaries requiring Update")
-	agedSummaryUserIDs, err := t.dataClient.GetAgedSummaries(t.context, nil)
+	agedSummaryUserIDs, err := t.dataClient.GetAgedUserIDs(t.context, nil)
 	if err != nil {
 		return err
 	}
@@ -138,28 +138,27 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) error {
 }
 
 func (t *UpdateTaskRunner) UpdateSummaries(userIDs []string) error {
-	sem := semaphore.NewWeighted(UpdateWorkerCount)
-	eg, c := errgroup.WithContext(t.context)
+	eg, ctx := errgroup.WithContext(t.context)
 
-	for _, userID := range userIDs {
-		if c.Err() != nil {
-			break
+	eg.Go(func() error {
+		sem := semaphore.NewWeighted(UpdateWorkerCount)
+		for _, userID := range userIDs {
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return err
+			}
+
+			// we can't pass arguments to errgroup goroutines
+			// we need to explicitly redefine the variables,
+			// because we're launching the goroutines in a loop
+			userID := userID
+			eg.Go(func() error {
+				defer sem.Release(1)
+				return t.UpdateUserSummary(userID)
+			})
 		}
 
-		if err := sem.Acquire(t.context, 1); err != nil {
-			t.logger.Error("Failed to acquire semaphore")
-			break
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			return t.UpdateUserSummary(userID)
-		})
-	}
+		return nil
+	})
 	return eg.Wait()
 }
 

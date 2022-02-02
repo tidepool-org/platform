@@ -55,10 +55,12 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 	err := d.FindOne(ctx, selector).Decode(&summary)
 
 	if err == mongo.ErrNoDocuments {
-		return nil, err
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	return &summary, err
+	return &summary, nil
 }
 
 func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error) {
@@ -81,7 +83,7 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.
 	return summary, err
 }
 
-func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+func (d *SummaryRepository) GetUsersWithSummariesBefore(ctx context.Context, lastUpdated time.Time) ([]string, error) {
 	var userIDs []string
 
 	if ctx == nil {
@@ -95,7 +97,7 @@ func (d *SummaryRepository) GetAgedSummaries(ctx context.Context, lastUpdated ti
 
 	var summaries []*summary.Summary
 	selector := bson.M{
-		"lastUpdated": bson.M{"$lte": lastUpdated.Add(-20 * time.Minute)},
+		"lastUpdated": bson.M{"$lte": lastUpdated.Add(-60 * time.Minute)},
 	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: 1}})
@@ -142,7 +144,7 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 		return lastUpdated, errors.Wrap(err, "unable to decode last cbg date")
 	}
 
-	if summaries != nil {
+	if len(summaries) > 0 {
 		if summaries[0].LastUpdated != nil {
 			lastUpdated = *summaries[0].LastUpdated
 		}
@@ -153,18 +155,18 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (time.Time, erro
 	return lastUpdated, nil
 }
 
-func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (time.Time, error) {
-	timestamp := time.Now().UTC().Truncate(time.Millisecond)
+func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (*time.Time, error) {
 	if ctx == nil {
-		return timestamp, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	if id == "" {
-		return timestamp, errors.New("user id is missing")
+		return nil, errors.New("user id is missing")
 	}
 
 	selector := bson.M{"userId": id}
 
+	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	update := bson.M{
 		"$set": bson.M{
 			"lastUpdated": &timestamp,
@@ -174,10 +176,10 @@ func (d *SummaryRepository) UpdateLastUpdated(ctx context.Context, id string) (t
 	_, err := d.UpdateOne(ctx, selector, update)
 
 	if err != nil {
-		return timestamp, errors.Wrap(err, "unable to update lastUpdated date")
+		return nil, errors.Wrap(err, "unable to update lastUpdated date")
 	}
 
-	return timestamp, nil
+	return &timestamp, nil
 }
 
 func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
@@ -201,12 +203,12 @@ func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, e
 	return userIDs, nil
 }
 
-func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*summary.Summary) error {
+func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int64, error) {
 	if ctx == nil {
-		return errors.New("context is missing")
+		return 0, errors.New("context is missing")
 	}
 	if len(summaries) == 0 {
-		return errors.New("summaries for create missing")
+		return 0, errors.New("summaries for create missing")
 	}
 
 	var insertData []mongo.WriteModel
@@ -217,10 +219,14 @@ func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*su
 
 	opts := options.BulkWrite().SetOrdered(false)
 
-	_, err := d.BulkWrite(ctx, insertData, opts)
+	writeResult, err := d.BulkWrite(ctx, insertData, opts)
+	count := writeResult.InsertedCount
 
 	if err != nil {
-		return errors.Wrap(err, "unable to create summaries")
+		if count > 0 {
+			return count, errors.Wrap(err, "failed to create some summaries")
+		}
+		return count, errors.Wrap(err, "unable to create summaries")
 	}
-	return nil
+	return count, nil
 }

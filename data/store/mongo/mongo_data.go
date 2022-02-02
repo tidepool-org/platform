@@ -920,15 +920,15 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	return dataSets, nil
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (summary.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
 	var status summary.UserLastUpdated
 
 	if ctx == nil {
-		return status, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	if id == "" {
-		return status, errors.New("id is missing")
+		return nil, errors.New("id is missing")
 	}
 
 	var dataSet []*continuous.Continuous
@@ -945,57 +945,31 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	cursor, err := d.Find(ctx, selector, findOptions)
 
 	if err != nil {
-		return status, errors.Wrap(err, "unable to get last cbg date")
+		return nil, errors.Wrap(err, "unable to get last cbg date")
 	}
 
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return status, errors.Wrap(err, "unable to decode last cbg date")
+		return nil, errors.Wrap(err, "unable to decode last cbg date")
 	}
 
-	if dataSet != nil {
+	if len(dataSet) > 0 {
 		status.LastUpload, err = time.Parse(time.RFC3339Nano, *dataSet[0].CreatedTime)
 		if err != nil {
-			return status, errors.Wrap(err, "unable to parse latest CreatedTime")
+			return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
 		}
 
 		status.LastData, err = time.Parse(time.RFC3339Nano, *dataSet[0].Time)
 		if err != nil {
-			return status, errors.Wrap(err, "unable to parse latest Time")
+			return nil, errors.Wrap(err, "unable to parse latest Time")
 		}
 	} else {
-		return status, errors.Wrap(err, "No cbg records found for user")
+		return nil, errors.Wrap(err, "No cbg records found for user")
 	}
 
-	return status, nil
+	return &status, nil
 }
 
-func (d *DataRepository) UserHasData(ctx context.Context, id string) (bool, error) {
-
-	if ctx == nil {
-		return false, errors.New("context is missing")
-	}
-
-	if id == "" {
-		return false, errors.New("id is missing")
-	}
-
-	var dataSet *data.DataSet
-	selector := bson.M{
-		"_userId": id,
-	}
-
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
-
-	if err == mongo.ErrNoDocuments {
-		return false, nil
-	} else if err != nil {
-		return false, errors.Wrap(err, "unable to get data set")
-	}
-
-	return true, nil
-}
-
-func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {
 	var userIDs []string
 
 	if ctx == nil {
@@ -1006,6 +980,7 @@ func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Tim
 		"time":    bson.M{"$gte": lastUpdated.Format(time.RFC3339Nano)},
 		"type":    "cbg",
 		"_active": true,
+		"_userId": bson.M{"$ne": -1111},
 	}
 
 	result, err := d.Distinct(ctx, "_userId", selector)
@@ -1020,14 +995,19 @@ func (d *DataRepository) GetFreshUsers(ctx context.Context, lastUpdated time.Tim
 	return userIDs, nil
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
+func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
 	var userIDs []string
 
 	if ctx == nil {
 		return userIDs, errors.New("context is missing")
 	}
 
-	selector := bson.M{}
+	selector := bson.M{
+		"time":    bson.M{"$gte": time.Now().UTC().Format(time.RFC3339Nano)},
+		"_active": true,
+		"type":    "cbg",
+		"_userId": bson.M{"$ne": -1111},
+	}
 
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {

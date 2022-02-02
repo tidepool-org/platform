@@ -2,17 +2,11 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"math"
-	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/blood/glucose"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
@@ -20,112 +14,14 @@ import (
 )
 
 const (
+	backfillBatch    = 10000
 	lowBloodGlucose  = 3.9
 	highBloodGlucose = 10
 	units            = "mmol/l"
-	backfillBatch    = 10000
 )
 
 type Client struct {
 	dataStore dataStore.Store
-}
-
-// assumes all except freestyle is 5 minutes
-func GetDuration(dataSet *continuous.Continuous) int64 {
-	if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
-		return 15
-	}
-	return 5
-}
-
-func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time) (float64, time.Time, error) {
-	var weight float64 = 1.0
-
-	if endTime.Before(lastData) {
-		return weight, startTime, errors.New("Invalid time period for calculation, endTime before lastData.")
-	}
-
-	if startTime.Before(lastData) {
-		// get ratio between start time and actual start time for weights
-		wholeTime := endTime.Sub(startTime)
-		newTime := endTime.Sub(lastData)
-		weight = newTime.Seconds() / wholeTime.Seconds()
-
-		startTime = lastData
-	}
-
-	return weight, startTime, nil
-}
-
-func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64) *summary.Stats {
-	var inRangeMinutes int64 = 0
-	var belowRangeMinutes int64 = 0
-	var aboveRangeMinutes int64 = 0
-	var totalGlucose float64 = 0
-	var totalCGMMinutes int64 = 0
-	var normalizedValue float64
-	var duration int64
-
-	for _, r := range userData {
-		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(units))
-		duration = GetDuration(r)
-
-		if normalizedValue <= lowBloodGlucose {
-			belowRangeMinutes += duration
-		} else if normalizedValue >= highBloodGlucose {
-			aboveRangeMinutes += duration
-		} else {
-			inRangeMinutes += duration
-		}
-
-		totalCGMMinutes += duration
-		totalGlucose += normalizedValue
-	}
-
-	averageGlucose := totalGlucose / float64(len(userData))
-	timeInRange := float64(inRangeMinutes) / float64(totalCGMMinutes)
-	timeBelowRange := float64(belowRangeMinutes) / float64(totalCGMMinutes)
-	timeAboveRange := float64(aboveRangeMinutes) / float64(totalCGMMinutes)
-	timeCGMUse := float64(totalCGMMinutes) / totalWallMinutes
-
-	return &summary.Stats{
-		TimeInRange:    math.Round(timeInRange*100) / 100,
-		TimeBelowRange: math.Round(timeBelowRange*100) / 100,
-		TimeAboveRange: math.Round(timeAboveRange*100) / 100,
-		TimeCGMUse:     math.Round(timeCGMUse*100) / 100,
-		AverageGlucose: math.Round(averageGlucose*100) / 100,
-	}
-}
-
-func ReweightStats(stats *summary.Stats, userSummary *summary.Summary, weight float64) (*summary.Stats, error) {
-	if weight < 0 || weight > 1 {
-		return stats, errors.New("Invalid weight (<0||>1) for stats")
-	}
-	// if we are rolling in previous averages
-	if weight != 1 && weight >= 0 {
-		// check for nil to cover for any new stats that get added after creation
-		if userSummary.AverageGlucose.Value != nil {
-			stats.AverageGlucose = stats.AverageGlucose*weight + *userSummary.AverageGlucose.Value*(1-weight)
-		}
-
-		if userSummary.TimeInRange != nil {
-			stats.TimeInRange = stats.TimeInRange*weight + *userSummary.TimeInRange*(1-weight)
-		}
-
-		if userSummary.TimeBelowRange != nil {
-			stats.TimeBelowRange = stats.TimeBelowRange*weight + *userSummary.TimeBelowRange*(1-weight)
-		}
-
-		if userSummary.TimeAboveRange != nil {
-			stats.TimeAboveRange = stats.TimeAboveRange*weight + *userSummary.TimeAboveRange*(1-weight)
-		}
-
-		if userSummary.TimeCGMUse != nil {
-			stats.TimeCGMUse = stats.TimeCGMUse*weight + *userSummary.TimeCGMUse*(1-weight)
-		}
-	}
-
-	return stats, nil
 }
 
 func NewClient(strDEPRECATED dataStore.Store) (*Client, error) {
@@ -154,60 +50,61 @@ func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, erro
 
 func (c *Client) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
 	summaryRepository := c.dataStore.NewSummaryRepository()
-	dataRepository := c.dataStore.NewDataRepository()
 
 	userSummary, err := summaryRepository.GetSummary(ctx, id)
-
-	if err == mongo.ErrNoDocuments {
-		_, err := dataRepository.GetLastUpdatedForUser(ctx, id)
-
-		if err != nil {
-			return nil, nil
-		} else {
-			return &summary.Summary{}, nil
-		}
+	if err != nil {
+		return nil, err
 	}
+
 	return userSummary, err
 }
 
 func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
+	var err error
+	var status *summary.UserLastUpdated
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
 	// we need the original summary object to grab the original for rolling calc
 	userSummary, err := summaryRepository.GetSummary(ctx, id)
-
-	if err == mongo.ErrNoDocuments {
+	if err != nil {
+		return nil, err
+	} else if userSummary == nil {
 		// check to ensure the user has data
-		_, err := dataRepository.GetLastUpdatedForUser(ctx, id)
+		status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 
 		userSummary = summary.New(id)
-	} else if err != nil {
-		return nil, err
 	}
 
 	timestamp := time.Now().UTC()
 	userSummary.LastUpdated = &timestamp
 
-	status, err := dataRepository.GetLastUpdatedForUser(ctx, id)
-
-	// remove 2 weeks for start time
-	startTime := status.LastData.AddDate(0, 0, -14)
-	firstData := startTime
-
-	weight := 1.0
-	if userSummary.LastData != nil {
-		weight, startTime, err = CalculateWeight(startTime, status.LastData, *userSummary.LastData)
-
+	if status == nil {
+		status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	totalMinutes := float64(math.Round(status.LastData.Sub(startTime).Minutes()))
+	// remove 2 weeks for start time
+	startTime := status.LastData.AddDate(0, 0, -14)
+	firstData := startTime
+
+	var newWeight *summary.WeightingResult
+	if userSummary.LastData != nil {
+		newWeight, err = summary.CalculateWeight(startTime, status.LastData, *userSummary.LastData)
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		newWeight = &summary.WeightingResult{Weight: 1.0, StartTime: startTime}
+	}
+
+	totalMinutes := float64(math.Round(status.LastData.Sub(newWeight.StartTime).Minutes()))
 
 	// quit here if we dont have a long enough timeblock, and might result in +Inf result
 	// 0.5 minutes was chosen to smooth any possible float inaccuracy with large division
@@ -217,13 +114,13 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return userSummary, nil
 	}
 
-	userData, err := dataRepository.GetCGMDataRange(ctx, id, startTime, status.LastData)
+	userData, err := dataRepository.GetCGMDataRange(ctx, id, newWeight.StartTime, status.LastData)
 	if err != nil {
 		return nil, err
 	}
 
-	stats := CalculateStats(userData, totalMinutes)
-	stats, err = ReweightStats(stats, userSummary, weight)
+	stats := summary.CalculateStats(userData, totalMinutes)
+	stats, err = summary.ReweightStats(stats, userSummary, newWeight.Weight)
 	if err != nil {
 		return nil, err
 	}
@@ -250,21 +147,22 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	return userSummary, err
 }
 
-func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
+func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 	var empty struct{}
 	userIDsReqUpdate := []string{}
+	var count int64 = 0
 
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
 	distinctSummaryIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
 	if err != nil {
-		return 0, err
+		return count, err
 	}
 
-	distinctDataUserIDs, err := dataRepository.DistinctUserIDs(ctx)
+	distinctDataUserIDs, err := dataRepository.DistinctCGMUserIDs(ctx)
 	if err != nil {
-		return 0, err
+		return count, err
 	}
 
 	distinctSummaryIDMap := make(map[string]struct{})
@@ -286,31 +184,20 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
 	var summaries []*summary.Summary
 
 	for _, userID := range userIDsReqUpdate {
-		// check to ensure the user has data
-		userExists, err := dataRepository.UserHasData(ctx, userID)
-		if err != nil {
-			return 0, err
-		}
-
-		if userExists != true {
-			return 0, errors.New(fmt.Sprintf("Unknown User: %s", userID))
-		}
-
-		userSummary := summary.New(userID)
-		summaries = append(summaries, userSummary)
+		summaries = append(summaries, summary.New(userID))
 	}
 
 	if len(summaries) > 0 {
-		err = summaryRepository.CreateSummaries(ctx, summaries)
+		count, err = summaryRepository.CreateSummaries(ctx, summaries)
 		if err != nil {
-			return 0, err
+			return count, err
 		}
 	}
 
-	return len(summaries), nil
+	return count, nil
 }
 
-func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *Client) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	var empty struct{}
 	userIDsReqUpdate := []string{}
 
@@ -322,12 +209,12 @@ func (c *Client) GetAgedSummaries(ctx context.Context, pagination *page.Paginati
 		return nil, err
 	}
 
-	agedUserIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+	agedUserIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
 	if err != nil {
 		return nil, err
 	}
 
-	freshUserIDs, err := dataRepository.GetFreshUsers(ctx, lastUpdated)
+	freshUserIDs, err := dataRepository.GetUsersWithBGDataSince(ctx, lastUpdated)
 	if err != nil {
 		return nil, err
 	}

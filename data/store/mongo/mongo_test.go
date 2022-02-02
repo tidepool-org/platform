@@ -501,10 +501,10 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("GetAgedSummaries", func() {
+				Context("GetUsersWithSummariesBefore", func() {
 					It("returns error if context is empty", func() {
 						lastUpdated := time.Now()
-						_, err := summaryRepository.GetAgedSummaries(nil, lastUpdated)
+						_, err := summaryRepository.GetUsersWithSummariesBefore(nil, lastUpdated)
 
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
@@ -512,7 +512,7 @@ var _ = Describe("Mongo", func() {
 
 					It("test with no summaries", func() {
 						lastUpdated := time.Now()
-						userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+						userIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userIDs).To(BeEmpty())
@@ -523,7 +523,7 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						lastUpdated := randomSummary.LastUpdated.Add(10 * time.Minute)
-						userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+						userIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userIDs).To(BeEmpty())
@@ -534,29 +534,29 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						lastUpdated := randomSummary.LastUpdated.Add(45 * time.Minute)
-						userIDs, err := summaryRepository.GetAgedSummaries(ctx, lastUpdated)
+						userIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userIDs).To(ConsistOf([1]string{userID}))
 					})
 				})
 
-				Context("GetFreshUsers", func() {
+				Context("GetUsersWithBGDataSince", func() {
 					It("returns error if context is empty", func() {
-						_, err := repository.GetFreshUsers(nil, dataSetLastUpdated.Add(10*time.Minute))
+						_, err := repository.GetUsersWithBGDataSince(nil, dataSetLastUpdated.Add(10*time.Minute))
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
 					})
 
 					It("test with no new cgm data", func() {
-						userIDs, err := repository.GetFreshUsers(ctx, dataSetLastUpdated.Add(10*time.Minute))
+						userIDs, err := repository.GetUsersWithBGDataSince(ctx, dataSetLastUpdated.Add(10*time.Minute))
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userIDs).To(BeEmpty())
 					})
 
 					It("test with new cgm data", func() {
-						userIDs, err := repository.GetFreshUsers(ctx, dataSetLastUpdated.Add(-10*time.Minute))
+						userIDs, err := repository.GetUsersWithBGDataSince(ctx, dataSetLastUpdated.Add(-10*time.Minute))
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userIDs).To(ConsistOf([1]string{userID}))
@@ -679,7 +679,7 @@ var _ = Describe("Mongo", func() {
 					dataSet = NewDataSet(userID, deviceID)
 				})
 
-				Context("DistinctUserIDs", func() {
+				Context("DistinctCGMUserIDs", func() {
 					BeforeEach(func() {
 						dataSet = NewDataSet(userTest.RandomID(), deviceID)
 					})
@@ -687,7 +687,7 @@ var _ = Describe("Mongo", func() {
 					It("returns correct count and IDs of distinct users", func() {
 						preparePersistedDataSets()
 
-						resultUserIDs, err := repository.DistinctUserIDs(ctx)
+						resultUserIDs, err := repository.DistinctCGMUserIDs(ctx)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(len(resultUserIDs)).To(Equal(2))
 						Expect(resultUserIDs).To(ConsistOf([2]string{userID, *dataSetExistingOther.UserID}))
@@ -698,34 +698,16 @@ var _ = Describe("Mongo", func() {
 						_, err := collection.InsertOne(context.Background(), dataSet)
 						Expect(err).ToNot(HaveOccurred())
 
-						resultUserIDs, err := repository.DistinctUserIDs(ctx)
+						resultUserIDs, err := repository.DistinctCGMUserIDs(ctx)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(len(resultUserIDs)).To(Equal(3))
 						Expect(resultUserIDs).To(ConsistOf([3]string{userID, *dataSetExistingOther.UserID, *dataSet.UserID}))
 					})
 
 					It("returns correct count with 0 users", func() {
-						resultUserIDs, err := repository.DistinctUserIDs(ctx)
+						resultUserIDs, err := repository.DistinctCGMUserIDs(ctx)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(resultUserIDs).To(BeEmpty())
-					})
-				})
-
-				Context("UserHasData", func() {
-					BeforeEach(func() {
-						preparePersistedDataSets()
-					})
-
-					It("returns correct status for existing user", func() {
-						status, err := repository.UserHasData(ctx, userID)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(status).To(BeTrue())
-					})
-
-					It("returns correct status for non existing user", func() {
-						status, err := repository.UserHasData(ctx, userTest.RandomID())
-						Expect(err).ToNot(HaveOccurred())
-						Expect(status).To(BeFalse())
 					})
 				})
 
