@@ -1,4 +1,4 @@
-package devicesettingschange_test
+package alert_test
 
 import (
 	"testing"
