@@ -26,7 +26,7 @@ func NewMeta() interface{} {
 
 func NewPrime() *prime.Prime {
 	datum := prime.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "prime"
 	datum.Target = pointer.FromString(test.RandomStringFromArray(prime.Targets()))
 	switch *datum.Target {

@@ -167,7 +167,7 @@ func RandomInitialSettings() *prescription.InitialSettings {
 	return &prescription.InitialSettings{
 		BloodGlucoseUnits:                  units,
 		BasalRateSchedule:                  randomPump.BasalRateSchedules.Get(scheduleName),
-		GlucoseSafetyLimit:                 randomPump.BloodGlucoseSuspendThreshold,
+		GlucoseSafetyLimit:                 randomPump.BloodGlucoseSafetyLimit,
 		BloodGlucoseTargetSchedule:         bloodGlucoseSchedule,
 		BloodGlucoseTargetPreprandial:      PreprandialBloodGlucoseTarget(bloodGlucoseSchedule),
 		BloodGlucoseTargetPhysicalActivity: PhysicalActivityBloodGlucoseTarget(bloodGlucoseSchedule),
@@ -227,7 +227,7 @@ func RandomBloodGlucoseTargetSchedule() *pump.BloodGlucoseTargetStartArray {
 
 func RandomBloodGlucoseTargetStart(startMinimum int) *pump.BloodGlucoseTargetStart {
 	datum := pump.NewBloodGlucoseTargetStart()
-	datum.Target = *dataBloodGlucoseTest.NewLowHighTarget(minBgTarget, maxBgTarget)
+	datum.Target = *dataBloodGlucoseTest.RandomLowHighTarget(minBgTarget, maxBgTarget)
 	if startMinimum == pump.BloodGlucoseTargetStartStartMinimum {
 		datum.Start = pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)
 	} else {

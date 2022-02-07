@@ -26,7 +26,7 @@ func NewMeta() interface{} {
 
 func NewDeviceSensor() *devicesensor.DeviceSensor {
 	datum := devicesensor.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "deviceSensor"
 	datum.EventType = pointer.FromString(test.RandomStringFromArray(devicesensor.EventTypes()))
 	return datum

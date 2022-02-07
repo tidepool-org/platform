@@ -10,7 +10,7 @@ import (
 
 func RandomDosingDecision(unitsBloodGlucose *string) *dataTypesDosingDecision.DosingDecision {
 	datum := dataTypesDosingDecision.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "dosingDecision"
 	datum.Errors = pointer.FromStringArray(test.RandomStringArray())
 	datum.InsulinOnBoard = RandomInsulinOnBoard()

@@ -332,7 +332,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 				BeforeEach(func() {
 					dataSetData = make(data.Data, test.RandomIntFromRange(1, 3))
 					for index := range dataSetData {
-						base := dataTypesTest.NewBase()
+						base := dataTypesTest.RandomBase()
 						base.Deduplicator.Hash = nil
 						dataSetData[index] = base
 					}

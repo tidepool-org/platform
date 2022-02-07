@@ -17,8 +17,8 @@ import (
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	dataTypesPumpStatus "github.com/tidepool-org/platform/data/types/pumpstatus"
-	dataTypesSettingsApplication "github.com/tidepool-org/platform/data/types/settings/application"
 	dataTypesSettingsCGM "github.com/tidepool-org/platform/data/types/settings/cgm"
+	dataTypesSettingsController "github.com/tidepool-org/platform/data/types/settings/controller"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
@@ -40,8 +40,8 @@ var types = []string{
 	dataTypesFood.Type,
 	dataTypesInsulin.Type,
 	dataTypesPumpStatus.Type,
-	dataTypesSettingsApplication.Type,
 	dataTypesSettingsCGM.Type,
+	dataTypesSettingsController.Type,
 	dataTypesSettingsPump.Type,
 	dataTypesStateReported.Type,
 	dataTypesUpload.Type,
@@ -84,10 +84,10 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesInsulin.New()
 	case dataTypesPumpStatus.Type:
 		return dataTypesPumpStatus.New()
-	case dataTypesSettingsApplication.Type:
-		return dataTypesSettingsApplication.New()
 	case dataTypesSettingsCGM.Type:
 		return dataTypesSettingsCGM.New()
+	case dataTypesSettingsController.Type:
+		return dataTypesSettingsController.New()
 	case dataTypesSettingsPump.Type:
 		return dataTypesSettingsPump.New()
 	case dataTypesStateReported.Type:

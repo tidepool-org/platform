@@ -5,6 +5,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceAlarm "github.com/tidepool-org/platform/data/types/device/alarm"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
+	dataTypesDeviceOverrideSettingsPump "github.com/tidepool-org/platform/data/types/device/override/settings/pump"
 	dataTypesDevicePrime "github.com/tidepool-org/platform/data/types/device/prime"
 	dataTypesDeviceReservoirchange "github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
@@ -17,6 +18,7 @@ var subTypes = []string{
 	dataTypesDeviceAlarm.SubType,
 	dataTypesDeviceCalibration.SubType,
 	dataTypesDevicePrime.SubType,
+	dataTypesDeviceOverrideSettingsPump.SubType,
 	dataTypesDeviceReservoirchange.SubType,
 	dataTypesDeviceStatus.SubType,
 	dataTypesDeviceTimechange.SubType,
@@ -48,6 +50,8 @@ func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesDeviceCalibration.New()
 	case dataTypesDevicePrime.SubType:
 		return dataTypesDevicePrime.New()
+	case dataTypesDeviceOverrideSettingsPump.SubType:
+		return dataTypesDeviceOverrideSettingsPump.New()
 	case dataTypesDeviceReservoirchange.SubType:
 		return dataTypesDeviceReservoirchange.New()
 	case dataTypesDeviceStatus.SubType:

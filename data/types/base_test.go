@@ -93,7 +93,7 @@ var _ = Describe("Base", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *types.Base), expectedOrigins []structure.Origin, expectedErrors ...error) {
-					datum := dataTypesTest.NewBase()
+					datum := dataTypesTest.RandomBase()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, expectedOrigins, expectedErrors...)
 				},
@@ -838,7 +838,7 @@ var _ = Describe("Base", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *types.Base), expectator func(datum *types.Base, expectedDatum *types.Base)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesTest.NewBase()
+						datum := dataTypesTest.RandomBase()
 						mutator(datum)
 						expectedDatum := dataTypesTest.CloneBase(datum)
 						normalizer := dataNormalizer.New()
@@ -862,7 +862,7 @@ var _ = Describe("Base", func() {
 
 			DescribeTable("normalizes the datum with origin external",
 				func(mutator func(datum *types.Base), expectator func(datum *types.Base, expectedDatum *types.Base)) {
-					datum := dataTypesTest.NewBase()
+					datum := dataTypesTest.RandomBase()
 					mutator(datum)
 					expectedDatum := dataTypesTest.CloneBase(datum)
 					normalizer := dataNormalizer.New()
@@ -899,7 +899,7 @@ var _ = Describe("Base", func() {
 			DescribeTable("normalizes the datum with origin internal/store",
 				func(mutator func(datum *types.Base), expectator func(datum *types.Base, expectedDatum *types.Base)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := dataTypesTest.NewBase()
+						datum := dataTypesTest.RandomBase()
 						mutator(datum)
 						expectedDatum := dataTypesTest.CloneBase(datum)
 						normalizer := dataNormalizer.New()
@@ -933,7 +933,7 @@ var _ = Describe("Base", func() {
 		var datum *types.Base
 
 		BeforeEach(func() {
-			datum = dataTypesTest.NewBase()
+			datum = dataTypesTest.RandomBase()
 		})
 
 		Context("IdentityFields", func() {

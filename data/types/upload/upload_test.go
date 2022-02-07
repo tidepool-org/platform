@@ -484,7 +484,7 @@ var _ = Describe("Upload", func() {
 				Entry("all missing",
 					func(datum *dataTypesUpload.Upload) {
 						*datum = *dataTypesUpload.New()
-						datum.Base = *dataTypesTest.NewBase()
+						datum.Base = *dataTypesTest.RandomBase()
 					},
 					func(datum *dataTypesUpload.Upload, expectedDatum *dataTypesUpload.Upload) {
 						Expect(datum.DataSetType).ToNot(BeNil())
@@ -522,7 +522,7 @@ var _ = Describe("Upload", func() {
 				Entry("all missing",
 					func(datum *dataTypesUpload.Upload) {
 						*datum = *dataTypesUpload.New()
-						datum.Base = *dataTypesTest.NewBase()
+						datum.Base = *dataTypesTest.RandomBase()
 					},
 					nil,
 				),

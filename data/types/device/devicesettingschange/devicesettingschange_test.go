@@ -17,7 +17,7 @@ import (
 
 func NewDeviceSettingsChange() *devicesettingschange.DeviceSettingsChange {
 	datum := devicesettingschange.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "deviceSettingsChange"
 	return datum
 }

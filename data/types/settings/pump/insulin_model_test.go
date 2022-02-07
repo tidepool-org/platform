@@ -16,6 +16,14 @@ import (
 )
 
 var _ = Describe("InsulinModel", func() {
+	It("InsulinModelActionDelayMaximum is expected", func() {
+		Expect(dataTypesSettingsPump.InsulinModelActionDelayMaximum).To(Equal(86400))
+	})
+
+	It("InsulinModelActionDelayMinimum is expected", func() {
+		Expect(dataTypesSettingsPump.InsulinModelActionDelayMinimum).To(Equal(0))
+	})
+
 	It("InsulinModelActionDurationMaximum is expected", func() {
 		Expect(dataTypesSettingsPump.InsulinModelActionDurationMaximum).To(Equal(86400))
 	})
@@ -162,6 +170,28 @@ var _ = Describe("InsulinModel", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/modelTypeOther"),
 				),
+				Entry("action delay out of range (lower)",
+					func(datum *dataTypesSettingsPump.InsulinModel) {
+						datum.ActionDelay = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/actionDelay"),
+				),
+				Entry("action delay in range (lower)",
+					func(datum *dataTypesSettingsPump.InsulinModel) {
+						datum.ActionDelay = pointer.FromInt(0)
+					},
+				),
+				Entry("action delay in range (upper)",
+					func(datum *dataTypesSettingsPump.InsulinModel) {
+						datum.ActionDelay = pointer.FromInt(86400)
+					},
+				),
+				Entry("action delay out of range (upper)",
+					func(datum *dataTypesSettingsPump.InsulinModel) {
+						datum.ActionDelay = pointer.FromInt(86401)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86401, 0, 86400), "/actionDelay"),
+				),
 				Entry("action duration out of range (lower)",
 					func(datum *dataTypesSettingsPump.InsulinModel) {
 						datum.ActionDuration = pointer.FromInt(-1)
@@ -241,11 +271,13 @@ var _ = Describe("InsulinModel", func() {
 					func(datum *dataTypesSettingsPump.InsulinModel) {
 						datum.ModelType = pointer.FromString("invalid")
 						datum.ModelTypeOther = pointer.FromString(test.RandomStringFromRange(1, 100))
+						datum.ActionDelay = pointer.FromInt(-1)
 						datum.ActionDuration = pointer.FromInt(-1)
 						datum.ActionPeakOffset = pointer.FromInt(-1)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"fiasp", "other", "rapidAdult", "rapidChild", "walsh"}), "/modelType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/modelTypeOther"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/actionDelay"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/actionDuration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400), "/actionPeakOffset"),
 				),

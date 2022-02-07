@@ -24,7 +24,7 @@ func NewMeta() interface{} {
 
 func NewFood(ingredientArrayDepthLimit int) *food.Food {
 	datum := food.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "food"
 	datum.Amount = NewAmount()
 	datum.Brand = pointer.FromString(test.RandomStringFromRange(1, 100))
