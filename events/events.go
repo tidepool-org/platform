@@ -1,7 +1,6 @@
 package events
 
 import (
-	"github.com/Shopify/sarama"
 	ev "github.com/tidepool-org/go-common/events"
 )
 
@@ -12,7 +11,7 @@ type Runner interface {
 }
 
 type runner struct {
-	consumer *ev.FaultTolerantConsumer
+	consumer *ev.FaultTolerantConsumerGroup
 	handlers []ev.EventHandler
 }
 
@@ -22,30 +21,29 @@ func NewRunner(handlers []ev.EventHandler) Runner {
 	}
 }
 
-func (u *runner) Initialize() error {
+func (r *runner) Initialize() error {
 	config := ev.NewConfig()
 	if err := config.LoadFromEnv(); err != nil {
 		return err
 	}
-	config.SaramaConfig.Version = sarama.V2_6_0_0
-	consumer, err := ev.NewFaultTolerantCloudEventsConsumer(config)
+	consumer, err := ev.NewFaultTolerantConsumerGroup(config, func() (ev.MessageConsumer, error) {
+		return ev.NewCloudEventsMessageHandler(r.handlers)
+	})
 	if err != nil {
 		return err
 	}
-	for _, handler := range u.handlers {
-		consumer.RegisterHandler(handler)
-	}
-	u.consumer = consumer
+
+	r.consumer = consumer
 	return nil
 }
 
-func (u *runner) Run() error {
-	return u.consumer.Start()
+func (r *runner) Run() error {
+	return r.consumer.Start()
 }
 
-func (u *runner) Terminate() error {
-	if u.consumer != nil {
-		return u.consumer.Stop()
+func (r *runner) Terminate() error {
+	if r.consumer != nil {
+		return r.consumer.Stop()
 	}
 	return nil
 }

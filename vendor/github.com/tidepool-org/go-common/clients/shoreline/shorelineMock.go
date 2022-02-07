@@ -50,3 +50,11 @@ func (client *ShorelineMockClient) GetUser(userID, token string) (*UserData, err
 func (client *ShorelineMockClient) UpdateUser(userID string, userUpdate UserUpdate, token string) error {
 	return nil
 }
+
+func (client *ShorelineMockClient) CreateCustodialUserForClinic(clinicId string, userData CustodialUserData, token string) (*UserData, error) {
+	return nil, nil
+}
+
+func (client *ShorelineMockClient) DeleteUserSessions(userId string, token string) error {
+	return nil
+}

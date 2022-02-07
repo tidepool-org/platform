@@ -36,6 +36,8 @@ var (
 
 type RevisionCreate struct {
 	DataAttributes `json:",inline"`
+	CreatedUserID  string `json:"createdUserId"`
+	RevisionHash   string `json:"revisionHash"`
 	ClinicID       string `json:"-"`
 	ClinicianID    string `json:"-"`
 	IsPrescriber   bool   `json:"-"`
@@ -50,6 +52,10 @@ func NewRevisionCreate(clinicID, clinicianID string, isPrescriber bool) *Revisio
 }
 
 func (r *RevisionCreate) Validate(validator structure.Validator) {
+	integrityAttributes := NewIntegrityAttributesFromRevisionCreate(*r)
+	integrityHash := MustGenerateIntegrityHash(integrityAttributes)
+	validator.String("revisionHash", &r.RevisionHash).Exists().EqualTo(integrityHash.Hash)
+	validator.String("createdUserId", &r.CreatedUserID).Exists().EqualTo(r.ClinicianID)
 	validator.String("clinicianId", &r.ClinicianID).Exists().NotEmpty().Using(user.IDValidator)
 	validator.String("clinicId", &r.ClinicID).Exists().NotEmpty()
 	r.DataAttributes.Validate(validator)
@@ -63,16 +69,10 @@ func (r *RevisionCreate) IsClinicianAuthorized() bool {
 	return true
 }
 
-type Signature struct {
-	Value  string `json:"signature" bson:"signature"`
-	UserID string `json:"signatureUserId" bson:"signatureUserId"`
-	KeyID  string `json:"signatureKeyId" bson:"signatureKeyId"`
-}
-
 type Revision struct {
-	RevisionID int         `json:"revisionId" bson:"revisionId"`
-	Signature  *Signature  `json:"signature,omitempty" bson:"signature,omitempty"`
-	Attributes *Attributes `json:"attributes" bson:"attributes"`
+	RevisionID    int            `json:"revisionId" bson:"revisionId"`
+	IntegrityHash *IntegrityHash `json:"integrityHash" bson:"integrityHash"`
+	Attributes    *Attributes    `json:"attributes" bson:"attributes"`
 }
 
 type Revisions []*Revision
@@ -81,6 +81,12 @@ func NewRevision(revisionID int, create *RevisionCreate) *Revision {
 	now := time.Now()
 	return &Revision{
 		RevisionID: revisionID,
+		// Trust the integrity hash that's sent by the frontend, because it's already validated
+		// in RevisionCreate validation. Just set the algorithm field for completeness.
+		IntegrityHash: &IntegrityHash{
+			Algorithm: algorithmJCSSha512,
+			Hash:      create.RevisionHash,
+		},
 		Attributes: &Attributes{
 			DataAttributes: DataAttributes{
 				AccountType:             create.AccountType,
@@ -112,6 +118,13 @@ func NewRevision(revisionID int, create *RevisionCreate) *Revision {
 
 func (r *Revision) Validate(validator structure.Validator) {
 	validator.Int("revisionId", &r.RevisionID).GreaterThanOrEqualTo(0)
+	integrityHashValidator := validator.WithReference("integrityHash")
+	if r.IntegrityHash != nil {
+		integrityHashValidator.String("hash", &r.IntegrityHash.Hash).Exists().NotEmpty()
+		integrityHashValidator.String("algorithm", &r.IntegrityHash.Algorithm).Exists().EqualTo(algorithmJCSSha512)
+	} else {
+		integrityHashValidator.ReportError(structureValidator.ErrorValueEmpty())
+	}
 	attributesValidator := validator.WithReference("attributes")
 	if r.Attributes != nil {
 		r.Attributes.Validate(attributesValidator)
@@ -157,54 +170,44 @@ func (a *Attributes) Validate(validator structure.Validator) {
 }
 
 type DataAttributes struct {
-	AccountType             string           `json:"accountType,omitempty" bson:"accountType"`
-	CaregiverFirstName      string           `json:"caregiverFirstName,omitempty" bson:"caregiverFirstName"`
-	CaregiverLastName       string           `json:"caregiverLastName,omitempty" bson:"caregiverLastName"`
-	FirstName               string           `json:"firstName,omitempty" bson:"firstName"`
-	LastName                string           `json:"lastName,omitempty" bson:"lastName"`
-	Birthday                string           `json:"birthday,omitempty" bson:"birthday"`
-	MRN                     string           `json:"mrn,omitempty" bson:"mrn"`
-	Email                   string           `json:"email,omitempty" bson:"email"`
-	Sex                     string           `json:"sex,omitempty" bson:"sex"`
+	AccountType             *string          `json:"accountType,omitempty" bson:"accountType"`
+	CaregiverFirstName      *string          `json:"caregiverFirstName,omitempty" bson:"caregiverFirstName"`
+	CaregiverLastName       *string          `json:"caregiverLastName,omitempty" bson:"caregiverLastName"`
+	FirstName               *string          `json:"firstName,omitempty" bson:"firstName"`
+	LastName                *string          `json:"lastName,omitempty" bson:"lastName"`
+	Birthday                *string          `json:"birthday,omitempty" bson:"birthday"`
+	MRN                     *string          `json:"mrn,omitempty" bson:"mrn"`
+	Email                   *string          `json:"email,omitempty" bson:"email"`
+	Sex                     *string          `json:"sex,omitempty" bson:"sex"`
 	Weight                  *Weight          `json:"weight,omitempty" bson:"weight"`
-	YearOfDiagnosis         int              `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis"`
+	YearOfDiagnosis         *int             `json:"yearOfDiagnosis,omitempty" bson:"yearOfDiagnosis"`
 	PhoneNumber             *PhoneNumber     `json:"phoneNumber,omitempty" bson:"phoneNumber"`
 	InitialSettings         *InitialSettings `json:"initialSettings,omitempty" bson:"initialSettings"`
 	Calculator              *Calculator      `json:"calculator,omitempty" bson:"calculator"`
-	Training                string           `json:"training,omitempty" bson:"training"`
-	TherapySettings         string           `json:"therapySettings,omitempty" bson:"therapySettings"`
-	PrescriberTermsAccepted bool             `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted"`
+	Training                *string          `json:"training,omitempty" bson:"training"`
+	TherapySettings         *string          `json:"therapySettings,omitempty" bson:"therapySettings"`
+	PrescriberTermsAccepted *bool            `json:"prescriberTermsAccepted,omitempty" bson:"prescriberTermsAccepted"`
 	State                   string           `json:"state" bson:"state"`
 }
 
 func (d *DataAttributes) Validate(validator structure.Validator) {
-	if d.AccountType != "" {
-		validator.String("accountType", &d.AccountType).OneOf(AccountTypes()...)
-		if d.AccountType == AccountTypePatient {
-			validator.String("caregiverFirstName", &d.CaregiverFirstName).Empty()
-			validator.String("caregiverLastName", &d.CaregiverLastName).Empty()
+	validator.String("accountType", d.AccountType).OneOf(AccountTypes()...)
+	if d.AccountType != nil {
+		if *d.AccountType == AccountTypePatient {
+			validator.String("caregiverFirstName", d.CaregiverFirstName).Empty()
+			validator.String("caregiverLastName", d.CaregiverLastName).Empty()
 		}
 	}
-	if d.Birthday != "" {
-		validator.String("birthday", &d.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
-	}
-	if d.Email != "" {
-		validator.String("email", &d.Email).Email()
-	}
-	if d.Sex != "" {
-		validator.String("sex", &d.Sex).OneOf(SexValues()...)
-	}
-	if d.YearOfDiagnosis != 0 {
-		validator.Int("yearOfDiagnosis", &d.YearOfDiagnosis).GreaterThan(1900)
-	}
+	validator.String("firstName", d.FirstName).NotEmpty()
+	validator.String("lastName", d.LastName).NotEmpty()
+	validator.String("birthday", d.Birthday).AsTime("2006-01-02").NotZero().BeforeNow(time.Second)
+	validator.String("email", d.Email).Email()
+	validator.String("sex", d.Sex).OneOf(SexValues()...)
+	validator.Int("yearOfDiagnosis", d.YearOfDiagnosis).GreaterThan(1900)
+	validator.String("training", d.Training).OneOf(Trainings()...)
+	validator.String("therapySettings", d.TherapySettings).OneOf(TherapySettings()...)
 	if d.PhoneNumber != nil {
 		d.PhoneNumber.Validate(validator.WithReference("phoneNumber"))
-	}
-	if d.Training != "" {
-		validator.String("training", &d.Training).OneOf(Trainings()...)
-	}
-	if d.TherapySettings != "" {
-		validator.String("therapySettings", &d.TherapySettings).OneOf(TherapySettings()...)
 	}
 	if d.Weight != nil {
 		d.Weight.Validate(validator.WithReference("weight"))
@@ -215,30 +218,30 @@ func (d *DataAttributes) Validate(validator structure.Validator) {
 	if d.Calculator != nil {
 		d.Calculator.Validate(validator.WithReference("calculator"))
 	}
-	validator.String("state", &d.State).OneOf(RevisionStates()...)
 
+	validator.String("state", &d.State).Exists().OneOf(RevisionStates()...)
 	if d.State == StateSubmitted {
 		d.ValidateSubmittedPrescription(validator)
 	}
 }
 
 func (d *DataAttributes) ValidateSubmittedPrescription(validator structure.Validator) {
-	validator.String("accountType", &d.AccountType).NotEmpty()
-	if d.AccountType == AccountTypeCaregiver {
-		validator.String("caregiverFirstName", &d.CaregiverFirstName).NotEmpty()
-		validator.String("caregiverLastName", &d.CaregiverLastName).NotEmpty()
+	validator.String("accountType", d.AccountType).Exists()
+	if d.AccountType != nil {
+		if *d.AccountType == AccountTypeCaregiver {
+			validator.String("caregiverFirstName", d.CaregiverFirstName).NotEmpty().Exists()
+			validator.String("caregiverLastName", d.CaregiverLastName).NotEmpty().Exists()
+		}
 	}
-	validator.String("firstName", &d.FirstName).NotEmpty()
-	validator.String("lastName", &d.LastName).NotEmpty()
-	validator.String("birthday", &d.Birthday).NotEmpty()
-	validator.String("email", &d.Email).NotEmpty()
-	validator.String("sex", &d.Sex).NotEmpty()
-	validator.Int("yearOfDiagnosis", &d.YearOfDiagnosis).GreaterThan(1900)
-	validator.String("training", &d.Training).NotEmpty()
-	validator.String("therapySettings", &d.TherapySettings).NotEmpty()
-	validator.Bool("prescriberTermsAccepted", &d.PrescriberTermsAccepted).True()
+	validator.String("firstName", d.FirstName).Exists()
+	validator.String("lastName", d.LastName).Exists()
+	validator.String("birthday", d.Birthday).Exists()
+	validator.String("email", d.Email).Exists()
+	validator.String("sex", d.Sex).Exists()
+	validator.String("training", d.Training).Exists()
+	validator.String("therapySettings", d.TherapySettings).Exists()
+	validator.Bool("prescriberTermsAccepted", d.PrescriberTermsAccepted).Exists().True()
 
-	// if phoneNumber is nil validate will fail
 	phoneValidator := validator.WithReference("phoneNumber")
 	if d.PhoneNumber != nil {
 		d.PhoneNumber.Validate(phoneValidator)
