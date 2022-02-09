@@ -75,8 +75,10 @@ func New(id string) *Summary {
 
 // assumes all except freestyle is 5 minutes
 func GetDuration(dataSet *continuous.Continuous) int64 {
-	if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
-		return 15
+	if dataSet.DeviceID != nil {
+		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
+			return 15
+		}
 	}
 	return 5
 }
