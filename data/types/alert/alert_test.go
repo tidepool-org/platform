@@ -13,8 +13,6 @@ import (
 	dataTypesAlertTest "github.com/tidepool-org/platform/data/types/alert/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/metadata"
-	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -121,7 +119,6 @@ var _ = Describe("Alert", func() {
 					datum.TriggerDelay = pointer.FromInt(test.RandomIntFromRange(dataTypesAlert.TriggerDelayMinimum, dataTypesAlert.TriggerDelayMaximum))
 					datum.Sound = pointer.FromString(test.RandomStringFromArray(dataTypesAlert.Sounds()))
 					datum.SoundName = pointer.FromString(test.RandomStringFromRange(1, dataTypesAlert.SoundNameLengthMaximum))
-					datum.Parameters = metadataTest.RandomMetadata()
 					datum.IssuedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 					datum.AcknowledgedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.IssuedTime, time.Now()))
 					datum.RetractedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.IssuedTime, time.Now()))
@@ -140,7 +137,6 @@ var _ = Describe("Alert", func() {
 				Expect(datum.TriggerDelay).To(BeNil())
 				Expect(datum.Sound).To(BeNil())
 				Expect(datum.SoundName).To(BeNil())
-				Expect(datum.Parameters).To(BeNil())
 				Expect(datum.IssuedTime).To(BeNil())
 				Expect(datum.AcknowledgedTime).To(BeNil())
 				Expect(datum.RetractedTime).To(BeNil())
@@ -168,7 +164,6 @@ var _ = Describe("Alert", func() {
 						object["triggerDelay"] = true
 						object["sound"] = true
 						object["soundName"] = true
-						object["parameters"] = true
 						object["issuedTime"] = true
 						object["acknowledgedTime"] = true
 						object["retractedTime"] = true
@@ -178,7 +173,6 @@ var _ = Describe("Alert", func() {
 						expectedDatum.TriggerDelay = nil
 						expectedDatum.Sound = nil
 						expectedDatum.SoundName = nil
-						expectedDatum.Parameters = nil
 						expectedDatum.IssuedTime = nil
 						expectedDatum.AcknowledgedTime = nil
 						expectedDatum.RetractedTime = nil
@@ -189,7 +183,6 @@ var _ = Describe("Alert", func() {
 					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotInt(true), "/triggerDelay", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotString(true), "/sound", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotString(true), "/soundName", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotObject(true), "/parameters", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotTime(true), "/issuedTime", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotTime(true), "/acknowledgedTime", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureParser.ErrorTypeNotTime(true), "/retractedTime", NewMeta()),
@@ -451,22 +444,6 @@ var _ = Describe("Alert", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/soundName", NewMeta()),
 				),
-				Entry("parameters missing",
-					func(datum *dataTypesAlert.Alert) {
-						datum.Parameters = nil
-					},
-				),
-				Entry("parameters empty",
-					func(datum *dataTypesAlert.Alert) {
-						datum.Parameters = metadata.NewMetadata()
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/parameters", NewMeta()),
-				),
-				Entry("parameters valid",
-					func(datum *dataTypesAlert.Alert) {
-						datum.Parameters = metadataTest.RandomMetadata()
-					},
-				),
 				Entry("issued time missing",
 					func(datum *dataTypesAlert.Alert) {
 						datum.IssuedTime = nil
@@ -541,7 +518,6 @@ var _ = Describe("Alert", func() {
 						datum.TriggerDelay = pointer.FromInt(test.RandomIntFromRange(dataTypesAlert.TriggerDelayMinimum, dataTypesAlert.TriggerDelayMaximum))
 						datum.Sound = pointer.FromString("invalid")
 						datum.SoundName = pointer.FromString(test.RandomStringFromRange(1, dataTypesAlert.SoundNameLengthMaximum))
-						datum.Parameters = metadata.NewMetadata()
 						datum.IssuedTime = pointer.FromTime(time.Time{})
 						datum.AcknowledgedTime = pointer.FromTime(time.Time{}.Add(-time.Second))
 						datum.RetractedTime = pointer.FromTime(time.Time{}.Add(-time.Second))
@@ -553,7 +529,6 @@ var _ = Describe("Alert", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/triggerDelay", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"name", "silence", "vibrate"}), "/sound", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/soundName", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/parameters", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/issuedTime", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueTimeNotAfter(time.Time{}.Add(-time.Second), time.Time{}), "/acknowledgedTime", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueTimeNotAfter(time.Time{}.Add(-time.Second), time.Time{}), "/retractedTime", &dataTypes.Meta{Type: "invalidType"}),

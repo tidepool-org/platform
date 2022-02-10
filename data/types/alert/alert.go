@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataTypes "github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -54,16 +53,15 @@ func Triggers() []string {
 type Alert struct {
 	dataTypes.Base `bson:",inline"`
 
-	Name             *string            `json:"name,omitempty" bson:"name,omitempty"`
-	Priority         *string            `json:"priority,omitempty" bson:"priority,omitempty"`
-	Trigger          *string            `json:"trigger,omitempty" bson:"trigger,omitempty"`
-	TriggerDelay     *int               `json:"triggerDelay,omitempty" bson:"triggerDelay,omitempty"`
-	Sound            *string            `json:"sound,omitempty" bson:"sound,omitempty"`
-	SoundName        *string            `json:"soundName,omitempty" bson:"soundName,omitempty"`
-	Parameters       *metadata.Metadata `json:"parameters,omitempty" bson:"parameters,omitempty"`
-	IssuedTime       *time.Time         `json:"issuedTime,omitempty" bson:"issuedTime,omitempty"`
-	AcknowledgedTime *time.Time         `json:"acknowledgedTime,omitempty" bson:"acknowledgedTime,omitempty"`
-	RetractedTime    *time.Time         `json:"retractedTime,omitempty" bson:"retractedTime,omitempty"`
+	Name             *string    `json:"name,omitempty" bson:"name,omitempty"`
+	Priority         *string    `json:"priority,omitempty" bson:"priority,omitempty"`
+	Trigger          *string    `json:"trigger,omitempty" bson:"trigger,omitempty"`
+	TriggerDelay     *int       `json:"triggerDelay,omitempty" bson:"triggerDelay,omitempty"`
+	Sound            *string    `json:"sound,omitempty" bson:"sound,omitempty"`
+	SoundName        *string    `json:"soundName,omitempty" bson:"soundName,omitempty"`
+	IssuedTime       *time.Time `json:"issuedTime,omitempty" bson:"issuedTime,omitempty"`
+	AcknowledgedTime *time.Time `json:"acknowledgedTime,omitempty" bson:"acknowledgedTime,omitempty"`
+	RetractedTime    *time.Time `json:"retractedTime,omitempty" bson:"retractedTime,omitempty"`
 }
 
 func New() *Alert {
@@ -85,7 +83,6 @@ func (a *Alert) Parse(parser structure.ObjectParser) {
 	a.TriggerDelay = parser.Int("triggerDelay")
 	a.Sound = parser.String("sound")
 	a.SoundName = parser.String("soundName")
-	a.Parameters = metadata.ParseMetadata(parser.WithReferenceObjectParser("parameters"))
 	a.IssuedTime = parser.Time("issuedTime", time.RFC3339Nano)
 	a.AcknowledgedTime = parser.Time("acknowledgedTime", time.RFC3339Nano)
 	a.RetractedTime = parser.Time("retractedTime", time.RFC3339Nano)
@@ -115,9 +112,6 @@ func (a *Alert) Validate(validator structure.Validator) {
 		soundNameValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(SoundNameLengthMaximum)
 	} else {
 		soundNameValidator.NotExists()
-	}
-	if a.Parameters != nil {
-		a.Parameters.Validate(validator.WithReference("parameters"))
 	}
 	validator.Time("issuedTime", a.IssuedTime).Exists().NotZero()
 	if acknowledgedTimeValidator := validator.Time("acknowledgedTime", a.AcknowledgedTime); a.IssuedTime != nil {

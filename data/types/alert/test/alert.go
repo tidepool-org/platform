@@ -5,7 +5,6 @@ import (
 
 	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
-	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
@@ -36,7 +35,6 @@ func randomAlert() *dataTypesAlert.Alert {
 	if *datum.Sound == dataTypesAlert.SoundName {
 		datum.SoundName = pointer.FromString(test.RandomStringFromRange(1, dataTypesAlert.SoundNameLengthMaximum))
 	}
-	datum.Parameters = metadataTest.RandomMetadata()
 	datum.IssuedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 	if test.RandomBool() {
 		datum.AcknowledgedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.IssuedTime, time.Now()))
@@ -58,7 +56,6 @@ func CloneAlert(datum *dataTypesAlert.Alert) *dataTypesAlert.Alert {
 	clone.TriggerDelay = pointer.CloneInt(datum.TriggerDelay)
 	clone.Sound = pointer.CloneString(datum.Sound)
 	clone.SoundName = pointer.CloneString(datum.SoundName)
-	clone.Parameters = metadataTest.CloneMetadata(datum.Parameters)
 	clone.IssuedTime = pointer.CloneTime(datum.IssuedTime)
 	clone.AcknowledgedTime = pointer.CloneTime(datum.AcknowledgedTime)
 	clone.RetractedTime = pointer.CloneTime(datum.RetractedTime)
@@ -87,9 +84,6 @@ func NewObjectFromAlert(datum *dataTypesAlert.Alert, objectFormat test.ObjectFor
 	}
 	if datum.SoundName != nil {
 		object["soundName"] = test.NewObjectFromString(*datum.SoundName, objectFormat)
-	}
-	if datum.Parameters != nil {
-		object["parameters"] = metadataTest.NewObjectFromMetadata(datum.Parameters, objectFormat)
 	}
 	if datum.IssuedTime != nil {
 		object["issuedTime"] = test.NewObjectFromTime(*datum.IssuedTime, objectFormat)
