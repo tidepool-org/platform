@@ -137,7 +137,7 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 		TimeInRange:    math.Round(timeInRange*100) / 100,
 		TimeBelowRange: math.Round(timeBelowRange*100) / 100,
 		TimeAboveRange: math.Round(timeAboveRange*100) / 100,
-		TimeCGMUse:     math.Round(timeCGMUse*100) / 100,
+		TimeCGMUse:     math.Round(timeCGMUse*1000) / 1000,
 		AverageGlucose: math.Round(averageGlucose*100) / 100,
 	}
 }
