@@ -131,7 +131,7 @@ func (d *SummaryRepository) GetLastUpdated(ctx context.Context) (*time.Time, err
 
 	selector := bson.M{}
 	findOptions := options.Find()
-	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: 1}})
+	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: -1}})
 	findOptions.SetLimit(1)
 
 	cursor, err := d.Find(ctx, selector, findOptions)
