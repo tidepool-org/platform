@@ -505,7 +505,7 @@ var _ = Describe("Mongo", func() {
 						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
 						Expect(err).ToNot(HaveOccurred())
 
-						Expect(*lastUpdated).To(Equal(*randomSummary.LastUpdated))
+						Expect(*lastUpdated).To(Equal(*anotherRandomSummary.LastUpdated))
 					})
 				})
 
