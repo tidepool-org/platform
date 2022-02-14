@@ -90,14 +90,9 @@ func (d *SummaryRepository) GetUsersWithSummariesBefore(ctx context.Context, las
 		return nil, errors.New("context is missing")
 	}
 
-	// find results on a brand new set
-	if lastUpdated.IsZero() {
-		lastUpdated = time.Now()
-	}
-
 	var summaries []*summary.Summary
 	selector := bson.M{
-		"lastUpdated": bson.M{"$lte": lastUpdated.Add(-60 * time.Minute)},
+		"lastUpdated": bson.M{"$lte": lastUpdated},
 	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "lastUpdated", Value: 1}})

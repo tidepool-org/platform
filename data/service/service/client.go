@@ -209,7 +209,7 @@ func (c *Client) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination
 		return nil, err
 	}
 
-	agedUserIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, *lastUpdated)
+	agedUserIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, time.Now().Add(-60*time.Minute))
 	if err != nil {
 		return nil, err
 	}

@@ -32,6 +32,7 @@ type Stats struct {
 	TimeAboveRange float64
 	TimeCGMUse     float64
 	AverageGlucose float64
+	DeviceID       string
 }
 
 type UserLastUpdated struct {
@@ -108,6 +109,7 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 	var aboveRangeMinutes int64 = 0
 	var totalGlucose float64 = 0
 	var totalCGMMinutes int64 = 0
+
 	var normalizedValue float64
 	var duration int64
 

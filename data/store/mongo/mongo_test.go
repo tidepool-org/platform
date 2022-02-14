@@ -554,7 +554,7 @@ var _ = Describe("Mongo", func() {
 						_, err := summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						lastUpdated := randomSummary.LastUpdated.Add(10 * time.Minute)
+						lastUpdated := randomSummary.LastUpdated.Add(-1 * time.Minute)
 						userIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
 
 						Expect(err).ToNot(HaveOccurred())
@@ -565,7 +565,7 @@ var _ = Describe("Mongo", func() {
 						_, err := summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						lastUpdated := randomSummary.LastUpdated.Add(120 * time.Minute)
+						lastUpdated := randomSummary.LastUpdated.Add(1 * time.Minute)
 						userIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, lastUpdated)
 
 						Expect(err).ToNot(HaveOccurred())
