@@ -468,15 +468,15 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
-				Context("GetLastUpdated", func() {
+				Context("GetOldestUpdate", func() {
 					It("returns error if context is empty", func() {
-						lastUpdated, err = summaryRepository.GetLastUpdated(nil)
+						lastUpdated, err = summaryRepository.GetOldestUpdate(nil)
 						Expect(err).To(MatchError("context is missing"))
 					})
 
 					It("test with no summaries returns current date", func() {
 						timeNow := time.Now()
-						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
+						lastUpdated, err = summaryRepository.GetOldestUpdate(ctx)
 						Expect(err).ToNot(HaveOccurred())
 
 						Expect(lastUpdated.After(timeNow)).To(BeTrue())
@@ -486,7 +486,7 @@ var _ = Describe("Mongo", func() {
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
+						lastUpdated, err = summaryRepository.GetOldestUpdate(ctx)
 						Expect(err).ToNot(HaveOccurred())
 
 						Expect(*lastUpdated).To(Equal(*randomSummary.LastUpdated))
@@ -502,10 +502,10 @@ var _ = Describe("Mongo", func() {
 						_, err = summaryRepository.UpdateSummary(ctx, anotherRandomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						lastUpdated, err = summaryRepository.GetLastUpdated(ctx)
+						lastUpdated, err = summaryRepository.GetOldestUpdate(ctx)
 						Expect(err).ToNot(HaveOccurred())
 
-						Expect(*lastUpdated).To(Equal(*anotherRandomSummary.LastUpdated))
+						Expect(*lastUpdated).To(Equal(*randomSummary.LastUpdated))
 					})
 				})
 

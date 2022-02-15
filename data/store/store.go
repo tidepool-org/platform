@@ -72,7 +72,7 @@ type SummaryRepository interface {
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
 	GetUsersWithSummariesBefore(ctx context.Context, lastUpdated time.Time) ([]string, error)
-	GetLastUpdated(ctx context.Context) (*time.Time, error)
+	GetOldestUpdate(ctx context.Context) (*time.Time, error)
 	UpdateLastUpdated(ctx context.Context, id string) (*time.Time, error)
 	DistinctSummaryIDs(ctx context.Context) ([]string, error)
 	CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int64, error)

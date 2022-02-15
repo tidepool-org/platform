@@ -204,7 +204,7 @@ func (c *Client) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
-	lastUpdated, err := summaryRepository.GetLastUpdated(ctx)
+	oldestUpdate, err := summaryRepository.GetOldestUpdate(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (c *Client) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination
 		return nil, err
 	}
 
-	freshUserIDs, err := dataRepository.GetUsersWithBGDataSince(ctx, *lastUpdated)
+	freshUserIDs, err := dataRepository.GetUsersWithBGDataSince(ctx, *oldestUpdate)
 	if err != nil {
 		return nil, err
 	}
