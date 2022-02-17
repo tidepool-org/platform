@@ -3,6 +3,7 @@ package mongo_test
 import (
 	"context"
 	"math/rand"
+	"time"
 
 	mgo "github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -19,6 +20,7 @@ import (
 	bucketStoreTestHelper "github.com/tidepool-org/platform/data/storeDEPRECATED/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
@@ -31,6 +33,7 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/test"
+	timeZoneTest "github.com/tidepool-org/platform/time/zone/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -66,6 +69,36 @@ func NewDataSetData(deviceID string) data.Data {
 		datum.DeviceID = pointer.FromString(deviceID)
 		datum.ModifiedTime = nil
 		datum.ModifiedUserID = nil
+		dataSetData = append(dataSetData, datum)
+	}
+	return dataSetData
+}
+
+func NewDataSetCbgData(deviceID string) data.Data {
+	dataSetData := data.Data{}
+	for count := 0; count < test.RandomIntFromRange(4, 6); count++ {
+		timeReference := test.RandomTime()
+		zoneName := timeZoneTest.RandomName()
+		zoneLoc, _ := time.LoadLocation(zoneName)
+		_, offset := timeReference.UTC().In(zoneLoc).Zone()
+
+		datum := continuous.New()
+		datum.Time = pointer.FromString(timeReference.Format(time.RFC3339Nano))
+		datum.TimeZoneName = pointer.FromString(zoneName)
+		datum.TimeZoneOffset = pointer.FromInt(offset / 60)
+		datum.Value = pointer.FromFloat64(test.RandomFloat64())
+		datum.Units = pointer.FromString(test.RandomString())
+		datum.Active = false
+		datum.ArchivedDataSetID = nil
+		datum.ArchivedTime = nil
+		datum.CreatedTime = nil
+		datum.CreatedUserID = nil
+		datum.DeletedTime = nil
+		datum.DeletedUserID = nil
+		datum.DeviceID = pointer.FromString(deviceID)
+		datum.ModifiedTime = nil
+		datum.ModifiedUserID = nil
+
 		dataSetData = append(dataSetData, datum)
 	}
 	return dataSetData
@@ -157,14 +190,22 @@ var _ = Describe("Mongo", func() {
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
 			var err error
-			store, err = mongo.NewStore(nil, nil, nil, nil, false)
+			bucketConfig := mongo.BucketMigrationConfig{
+				EnableBucketStore: false,
+				DataTypesArchived: []string{"cbg"},
+			}
+			store, err = mongo.NewStore(nil, nil, nil, nil, bucketConfig)
 			Expect(err).To(HaveOccurred())
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
 			var err error
-			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, true)
+			bucketConfig := mongo.BucketMigrationConfig{
+				EnableBucketStore: true,
+				DataTypesArchived: []string{"cbg"},
+			}
+			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, bucketConfig)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			store.WaitUntilStarted()
@@ -174,16 +215,22 @@ var _ = Describe("Mongo", func() {
 	Context("with a new store", func() {
 		var mgoSession *mgo.Session
 		var mgoCollection *mgo.Collection
+		var mgoArchiveCollection *mgo.Collection
 
 		BeforeEach(func() {
 			var err error
-			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, true)
+			bucketConfig := mongo.BucketMigrationConfig{
+				EnableBucketStore: true,
+				DataTypesArchived: []string{"cbg"},
+			}
+			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, bucketConfig)
 			// if any error occured, not needed to wait until the store started
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			store.WaitUntilStarted()
 			mgoSession = storeStructuredMongoTest.Session().Copy()
 			mgoCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "deviceData")
+			mgoArchiveCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "deviceData_archive")
 		})
 
 		AfterEach(func() {
@@ -589,6 +636,7 @@ var _ = Describe("Mongo", func() {
 					var dataSetExistingOneData data.Data
 					var dataSetExistingTwoData data.Data
 					var dataSetData data.Data
+					var dataSetCbgData data.Data
 
 					preparePersistedDataSetsData := func() {
 						preparePersistedDataSets()
@@ -604,6 +652,7 @@ var _ = Describe("Mongo", func() {
 						dataSetExistingOneData = NewDataSetData(deviceID)
 						dataSetExistingTwoData = NewDataSetData(deviceID)
 						dataSetData = NewDataSetData(deviceID)
+						dataSetCbgData = NewDataSetCbgData(deviceID)
 					})
 
 					Context("DeleteDataSet", func() {
@@ -757,6 +806,13 @@ var _ = Describe("Mongo", func() {
 								ValidateDataSetData(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
 								Expect(session.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 								ValidateDataSetData(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
+							})
+
+							It("stores cbg data in archive collection", func() {
+								dataSetBeforeCreateData := append(append(dataSetExistingOtherData, dataSetExistingOneData...), dataSetExistingTwoData...)
+								Expect(session.CreateDataSetData(ctx, dataSet, dataSetCbgData)).To(Succeed())
+								ValidateDataSetData(mgoCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
+								ValidateDataSetData(mgoArchiveCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetCbgData)
 							})
 						})
 					})

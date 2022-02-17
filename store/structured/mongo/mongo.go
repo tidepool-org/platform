@@ -235,17 +235,19 @@ func (s *Store) Status() interface{} {
 
 func (s *Store) NewSession(collection string) *Session {
 	return &Session{
-		sourceSession: s.Session(),
-		database:      s.Config.Database,
-		collection:    s.Config.CollectionPrefix + collection,
+		sourceSession:     s.Session(),
+		database:          s.Config.Database,
+		collection:        s.Config.CollectionPrefix + collection,
+		collectionArchive: s.Config.CollectionPrefix + collection + "_archive",
 	}
 }
 
 type Session struct {
-	sourceSession *mgo.Session
-	targetSession *mgo.Session
-	database      string
-	collection    string
+	sourceSession     *mgo.Session
+	targetSession     *mgo.Session
+	database          string
+	collection        string
+	collectionArchive string
 }
 
 func (s *Session) IsClosed() bool {
@@ -270,7 +272,7 @@ func (s *Session) EnsureAllIndexes(indexes []mgo.Index) error {
 	return nil
 }
 
-func (s *Session) C() *mgo.Collection {
+func (s *Session) getCollection(collectionName string) *mgo.Collection {
 	if s.IsClosed() {
 		return nil
 	}
@@ -279,7 +281,15 @@ func (s *Session) C() *mgo.Collection {
 		s.targetSession = s.sourceSession.Copy()
 	}
 
-	return s.targetSession.DB(s.database).C(s.collection)
+	return s.targetSession.DB(s.database).C(collectionName)
+}
+
+func (s *Session) C() *mgo.Collection {
+	return s.getCollection(s.collection)
+}
+
+func (s *Session) ArchiveC() *mgo.Collection {
+	return s.getCollection(s.collectionArchive)
 }
 
 func (s *Session) ConstructUpdate(set bson.M, unset bson.M, operators ...map[string]bson.M) bson.M {

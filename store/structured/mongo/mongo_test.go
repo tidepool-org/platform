@@ -204,6 +204,17 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
+				Context("ArchiveC", func() {
+					It("returns successfully", func() {
+						Expect(session.ArchiveC()).ToNot(BeNil())
+					})
+
+					It("returns nil if the session is closed", func() {
+						session.Close()
+						Expect(session.ArchiveC()).To(BeNil())
+					})
+				})
+
 				DescribeTable("ConstructUpdate",
 					func(set bson.M, unset bson.M, operators []map[string]bson.M, expected bson.M) {
 						Expect(session.ConstructUpdate(set, unset, operators...)).To(Equal(expected))

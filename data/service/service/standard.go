@@ -3,6 +3,7 @@ package service
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/mdblp/go-common/clients/mongo"
 	logrus "github.com/sirupsen/logrus"
@@ -194,12 +195,16 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	logrusLogger.SetLevel(logLevel)
 	// report method name
 	logrusLogger.SetReportCaller(true)
-	pushToReadStore := getPushToReadStoreEnv()
 	var mongoDbReadConfig = &mongo.Config{}
 	mongoDbReadConfig.FromEnv()
 	mongoDbReadConfig.Database = "data_read"
 
-	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, mongoDbReadConfig, s.Logger(), logrusLogger, pushToReadStore)
+	migrateConfig := dataStoreDEPRECATEDMongo.BucketMigrationConfig{
+		EnableBucketStore: getPushToReadStoreEnv(),
+		DataTypesArchived: getArchivedDataTypesEnv(),
+	}
+
+	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, mongoDbReadConfig, s.Logger(), logrusLogger, migrateConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}
@@ -309,4 +314,17 @@ func getPushToReadStoreEnv() bool {
 		return true
 	}
 	return v
+}
+
+func getArchivedDataTypesEnv() []string {
+	s, err := getenvStr("ARCHIVED_DATA_TYPES")
+	if err != nil {
+		logrusLogger.Warn("environment variable ARCHIVED_DATA_TYPES not exported, set empty by default")
+		return []string{}
+	}
+	if s != "" {
+		dataTypes := strings.Split(s, ",")
+		return dataTypes
+	}
+	return []string{}
 }

@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.16.0 - 2022-02-15
+### Changed
+- YLP-1219 Re-route CBG data to archive collection (deviceData database)
+
 ## 0.15.0 - 2022-01-10
 ### Changed 
 - YLP-1123 Add backloops device events - Flush
@@ -47,7 +51,7 @@ The Tidepool platform API
 - Switching to Jenkins pipeline
 - Upgrade to Go 1.15
 
-## 0.10.4
+## 0.10.4 - 2020-11-23
 ### Fixed
 - YLP-289 Biphasic bolus not linked to meal
 ### Engineering
@@ -175,18 +179,19 @@ The Tidepool platform API
 ## 0.2.1 2018-12-06
 - Bring back DBLG1 device
 
-# Tidepool
+Tidepool
+========
 
-## v1.32.1
+## v1.32.1 - 2019-07-19
 
 * [Fix combination boluses with a normal component of zero](https://trello.com/c/s67Yc2qP)
 
-## v1.32.0
+## v1.32.0 - 2019-04-09
 
 * [Add scanned subType for smbg records to platform validation](https://trello.com/c/ACTIeEq9)
 * [Suppress noisy platform log messages](https://trello.com/c/YbawaBoZ)
 
-## v1.31.0
+## v1.31.0 - 2019-04-12
 
 * Add image service
 * Add new dependencies for image service
@@ -237,12 +242,12 @@ The Tidepool platform API
 * Add user id to ArchiveDeviceDataUsingHashesFromDataSet selector to properly use indexes
 * Fix data set id validation to allow Jellyfish id format
 
-## v1.30.1
+## v1.30.1 - 2018-12-06
 
 * Relax Dexcom API validations to match Tidepool data model validations
 * Rename insulin dose constants to properly include units
 
-## v1.30.0
+## v1.30.0 - 2018-11-14
 
 * Fix Dexcom API v2 edge cases
 * Handle unexpected data from Dexcom API v2
@@ -271,7 +276,7 @@ The Tidepool platform API
 * Update Makefile to install build tools from vendor directory
 * Update Makefile to remove unused tools
 
-## v1.29.0
+## v1.29.0 - 2018-10-20
 
 * Allow physical activity other field as optional
 * Update mongo queries for data using selectors to more effectively use indexes
@@ -333,7 +338,7 @@ The Tidepool platform API
 * Add dump users tool
 * Minor refactor to reorder sort.Sort interface functions for consistency
 
-## v1.28.0
+## v1.28.0 - 2018-07-16
 
 * Enable continuous data set type for Tidepool Mobile
 * Device and time related upload record fields are optional for continuous data set type
@@ -344,7 +349,7 @@ The Tidepool platform API
 * Allow insulin data type without dose
 * Rename ErrorValueBoolean* to ErrorValueBool* for consistency
 
-## v1.27.0
+## v1.27.0 - 2018-06-16
 
 * Add Dockerfile and config for running blob service
 * Remove check for correct content type from legacy service responses
@@ -414,7 +419,7 @@ The Tidepool platform API
 * Update dependencies
 * Update to Go 1.10.2
 
-## v1.26.0
+## v1.26.0 - 2018-05-18
 
 * Use correct form of insulin dose "Units" for Dexcom API ingestion
 * Update Makefile to exclude .git directory from CompileDaemon
@@ -473,7 +478,7 @@ The Tidepool platform API
 * Refactor data factory into specific packages
 * Refactor data type functions to constants
 
-## v1.25.0
+## v1.25.0 - 2018-04-26
 
 * Use correct 2-Clause BSD License
 * Return only active data sets
@@ -483,7 +488,7 @@ The Tidepool platform API
 * Fix Dexcom API authentication failure; always update provider session, even if error
 * Add additional support Medtronic device models
 
-## v1.24.0
+## v1.24.0 - 2018-03-27
 
 * Add support for new Trividia Health devices
 * Fix serialization bug introduced with new basal schedule array map structure
@@ -531,7 +536,7 @@ The Tidepool platform API
 * Return error from config.Get rather than bool for compatibility
 * Allow additional scopes on tools
 
-## v1.23.0
+## v1.23.0 - 2018-02-22
 
 * Fix start script source of environment file
 * Add LifeScan Verio and LifeScan Verio Flex to supported devices
@@ -546,14 +551,14 @@ The Tidepool platform API
 * Use actual executables for migrations and tools
 * Use /bin/sh in various start.sh scripts
 
-## v1.22.0
+## v1.22.0 - 2018-02-13
 
 * Remove legacy code to fixup unexpected data from Dexcom API
 * Properly handle expired access tokens from Dexcom API
 * Warn on excessive duration Dexcom API requests and overall task
 * Add custom User-Agent header to client requests
 
-## v1.21.0
+## v1.21.0 - 2018-01-30
 
 * Dependency updates
 * Use Go v1.9.2
@@ -564,16 +569,16 @@ The Tidepool platform API
 * Support private client data in upload
 * Use environment variable for test database address
 
-## v1.20.2
+## v1.20.2 - 2017-12-01
 
 * Add fix to handle Dexcom API not correctly reporting daily G5 Mobile devices
 
-## v1.20.1
+## v1.20.1 - 2017-11-22
 
 * Fix alert settings snooze validation for Dexcom API
 * Update Dockerfile to Go 1.9.1
 
-## v1.20.0
+## v1.20.0 - 2017-11-07
 
 * Use Go v1.9.1
 * Update dependencies
@@ -699,7 +704,7 @@ The Tidepool platform API
 * Remove legacy group id from data replaced by user id
 * Remove deprecated user services `Client.GetUserGroupID`
 
-## v1.9.0
+## v1.9.0 - 2017-08-10
 
 * Bump `hash_deactivate_old` data deduplicator to version 1.1.0
 * Update `hash_deactivate_old` data deduplicator to use archived data set id and time fields to accurately:
@@ -713,7 +718,7 @@ The Tidepool platform API
 * Add service middleware to extract select request headers and add as request logger fields
 * Defer access to context store sessions and log until actually needed
 
-## v1.8.0
+## v1.8.0 - 2017-08-10
 
 * Add CHANGELOG.md
 * **REQUIRED MIGRATION**: `migrate_data_deduplicator_descriptor` - data deduplicator descriptor name and version
@@ -726,6 +731,6 @@ The Tidepool platform API
 * Remove unused data store functionality
 * Remove unused data deduplicators
 
-## v1.7.0
+## v1.7.0 - 2017-06-23
 
 * See commit history for details on this and all previous releases

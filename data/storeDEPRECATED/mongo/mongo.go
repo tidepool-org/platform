@@ -52,17 +52,31 @@ var datumWriteToDeviceDataStoreMetrics = promauto.NewHistogram(prometheus.Histog
 	Namespace: "dblp",
 })
 
+var datumWriteToDeviceDataArchiveStoreMetrics = promauto.NewHistogram(prometheus.HistogramOpts{
+	Name:      "write_datum_to_deviceDataArchive_duration_milliseconds",
+	Help:      "A histogram for writing a datum to the device data archive execution time (ms)",
+	Buckets:   prometheus.LinearBuckets(20, 20, 300),
+	Subsystem: "data",
+	Namespace: "dblp",
+})
+
 type Stores struct {
 	*storeStructuredMongo.Store
 	BucketStore        *MongoBucketStoreClient
 	BucketStoreEnabled bool
+	DataTypesArchived  []string
+}
+
+type BucketMigrationConfig struct {
+	EnableBucketStore bool
+	DataTypesArchived []string
 }
 
 func (s *Stores) IsEnabled() bool {
 	return s.BucketStoreEnabled
 }
 
-func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, enableBucketStore bool) (*Stores, error) {
+func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, migrateConfig BucketMigrationConfig) (*Stores, error) {
 	if cfg != nil {
 		cfg.Indexes = deviceDataIndexes
 	}
@@ -72,7 +86,7 @@ func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log
 	}
 
 	bucketStore := &MongoBucketStoreClient{}
-	if enableBucketStore {
+	if migrateConfig.EnableBucketStore {
 		bucketStore, err = NewMongoBucketStoreClient(config, lg)
 		if err != nil {
 			return nil, err
@@ -83,7 +97,8 @@ func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log
 	return &Stores{
 		Store:              baseStore,
 		BucketStore:        bucketStore,
-		BucketStoreEnabled: enableBucketStore,
+		BucketStoreEnabled: migrateConfig.EnableBucketStore,
+		DataTypesArchived:  migrateConfig.DataTypesArchived,
 	}, nil
 }
 
@@ -92,6 +107,7 @@ func (s *Stores) NewDataSession() storeDEPRECATED.DataSession {
 		Session:            s.Store.NewSession("deviceData"),
 		BucketStore:        s.BucketStore,
 		BucketStoreEnabled: s.BucketStoreEnabled,
+		DataTypesArchived:  s.DataTypesArchived,
 	}
 }
 
@@ -99,6 +115,7 @@ type DataSession struct {
 	*storeStructuredMongo.Session
 	BucketStore        *MongoBucketStoreClient
 	BucketStoreEnabled bool
+	DataTypesArchived  []string
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
@@ -382,17 +399,19 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	creationTimestamp := now.Truncate(time.Millisecond)
 	strTimestamp := creationTimestamp.Format(time.RFC3339Nano)
 
-	insertData := make([]interface{}, len(dataSetData))
+	insertData := make([]interface{}, 0, len(dataSetData))
+	archiveData := make([]interface{}, 0, len(dataSetData))
 
 	allSamples := make(map[string][]schema.ISample)
 	var err error
 	var incomingUserMetadata *schema.Metadata
 	strUserId := *dataSet.UserID
 
-	for index, datum := range dataSetData {
+	for _, datum := range dataSetData {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&strTimestamp)
+		archive := d.isDatumToArchive(datum)
 		// Prepare cbg to be pushed into data read db
 		loggerFields := log.Fields{"datum": datum}
 		switch event := datum.(type) {
@@ -417,7 +436,12 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		}
 
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
-		insertData[index] = datum
+		if archive {
+			archiveData = append(archiveData, datum)
+		} else {
+			insertData = append(insertData, datum)
+		}
+
 	}
 
 	if d.BucketStoreEnabled {
@@ -442,22 +466,46 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		d.BucketStore.log.Debug("push to read database is disabled")
 	}
 
-	start := time.Now()
-	bulk := d.C().Bulk()
-	bulk.Unordered()
-	bulk.Insert(insertData...)
-
-	_, err = bulk.Run()
-	elapsed_time := time.Since(start).Milliseconds()
-	datumWriteToDeviceDataStoreMetrics.Observe(float64(elapsed_time))
-
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(now) / time.Microsecond}
+	err = d.bulkInsert(d.C(), insertData, datumWriteToDeviceDataStoreMetrics)
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(insertData), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
-
 	if err != nil {
 		return errors.Wrap(err, "unable to create data set data")
 	}
+
+	err = d.bulkInsert(d.ArchiveC(), archiveData, datumWriteToDeviceDataArchiveStoreMetrics)
+	loggerFields = log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(archiveData), "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetArchiveData")
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set data")
+	}
+
 	return nil
+}
+
+func (d *DataSession) bulkInsert(collection *mgo.Collection, data []interface{}, promHisto prometheus.Histogram) error {
+	if len(data) > 0 {
+		start := time.Now()
+		bulk := collection.Bulk()
+		bulk.Unordered()
+		bulk.Insert(data...)
+
+		_, err := bulk.Run()
+		elapsed_time := time.Since(start).Milliseconds()
+		promHisto.Observe(float64(elapsed_time))
+		return err
+	}
+	return nil
+}
+
+func (d *DataSession) isDatumToArchive(datum data.Datum) bool {
+	datumType := datum.GetType()
+	for _, archivedType := range d.DataTypesArchived {
+		if archivedType == datumType {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
