@@ -92,11 +92,15 @@ var _ = Describe("Summary", func() {
 	var userID string
 	var datumTime time.Time
 	var deviceID string
+	var highDeviceID string
+	var lowDeviceID string
 	var dataSetCGMData []*continuous.Continuous
 
 	BeforeEach(func() {
 		userID = userTest.RandomID()
 		deviceID = dataTest.NewDeviceID()
+		highDeviceID = dataTest.NewDeviceID()
+		lowDeviceID = dataTest.NewDeviceID()
 		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	})
 
@@ -174,6 +178,20 @@ var _ = Describe("Summary", func() {
 				Expect(stats.TimeBelowRange).To(Equal(0.33))
 				Expect(stats.TimeAboveRange).To(Equal(0.33))
 				Expect(stats.TimeCGMUse).To(Equal(1.00))
+			})
+
+			It("Returns correct DeviceID competing for records", func() {
+				dataSetCGMDataHigh := NewDataSetCGMDataAvg(highDeviceID, datumTime, requestedAvgGlucose+2)
+
+				// here we chop off the last ~1000 records to simulate 2 devices with incomplete data
+				dataSetCGMDataLow := NewDataSetCGMDataAvg(lowDeviceID, datumTime, requestedAvgGlucose-2)[:3000]
+
+				dataSetCGMData = append(dataSetCGMDataHigh, dataSetCGMDataLow...)
+
+				stats := summary.CalculateStats(dataSetCGMData, 20160)
+
+				Expect(stats.DeviceID).To(Equal(highDeviceID))
+				Expect(stats.AverageGlucose).To(Equal(requestedAvgGlucose + 2))
 			})
 		})
 

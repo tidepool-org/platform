@@ -33,6 +33,26 @@ type Stats struct {
 	TimeCGMUse     float64
 	AverageGlucose float64
 	DeviceID       string
+
+	InRangeMinutes    int64
+	BelowRangeMinutes int64
+	AboveRangeMinutes int64
+	TotalGlucose      float64
+	TotalCGMMinutes   int64
+	TotalRecords      int64
+}
+
+func NewStats(deviceId string) *Stats {
+	return &Stats{
+		DeviceID: deviceId,
+
+		InRangeMinutes:    0,
+		BelowRangeMinutes: 0,
+		AboveRangeMinutes: 0,
+		TotalGlucose:      0,
+		TotalCGMMinutes:   0,
+		TotalRecords:      0,
+	}
 }
 
 type UserLastUpdated struct {
@@ -104,44 +124,63 @@ func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time)
 }
 
 func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64) *Stats {
-	var inRangeMinutes int64 = 0
-	var belowRangeMinutes int64 = 0
-	var aboveRangeMinutes int64 = 0
-	var totalGlucose float64 = 0
-	var totalCGMMinutes int64 = 0
+	stats := make(map[string]*Stats)
+	var winningStats *Stats
 
 	var normalizedValue float64
 	var duration int64
+	var deviceId string
 
 	for _, r := range userData {
+		if r.DeviceID != nil {
+			deviceId = *r.DeviceID
+		} else {
+			deviceId = ""
+		}
+
+		if _, ok := stats[deviceId]; !ok {
+			stats[deviceId] = NewStats(deviceId)
+		}
+
 		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(units))
 		duration = GetDuration(r)
 
 		if normalizedValue <= lowBloodGlucose {
-			belowRangeMinutes += duration
+			stats[deviceId].BelowRangeMinutes += duration
 		} else if normalizedValue >= highBloodGlucose {
-			aboveRangeMinutes += duration
+			stats[deviceId].AboveRangeMinutes += duration
 		} else {
-			inRangeMinutes += duration
+			stats[deviceId].InRangeMinutes += duration
 		}
 
-		totalCGMMinutes += duration
-		totalGlucose += normalizedValue
+		stats[deviceId].TotalCGMMinutes += duration
+		stats[deviceId].TotalGlucose += normalizedValue
+		stats[deviceId].TotalRecords += 1
 	}
 
-	averageGlucose := totalGlucose / float64(len(userData))
-	timeInRange := float64(inRangeMinutes) / float64(totalCGMMinutes)
-	timeBelowRange := float64(belowRangeMinutes) / float64(totalCGMMinutes)
-	timeAboveRange := float64(aboveRangeMinutes) / float64(totalCGMMinutes)
-	timeCGMUse := float64(totalCGMMinutes) / totalWallMinutes
+	for deviceId := range stats {
+		stats[deviceId].AverageGlucose = stats[deviceId].TotalGlucose / float64(stats[deviceId].TotalRecords)
+		stats[deviceId].TimeInRange = float64(stats[deviceId].InRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
+		stats[deviceId].TimeBelowRange = float64(stats[deviceId].BelowRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
+		stats[deviceId].TimeAboveRange = float64(stats[deviceId].AboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
+		stats[deviceId].TimeCGMUse = float64(stats[deviceId].TotalCGMMinutes) / totalWallMinutes
 
-	return &Stats{
-		TimeInRange:    math.Round(timeInRange*100) / 100,
-		TimeBelowRange: math.Round(timeBelowRange*100) / 100,
-		TimeAboveRange: math.Round(timeAboveRange*100) / 100,
-		TimeCGMUse:     math.Round(timeCGMUse*1000) / 1000,
-		AverageGlucose: math.Round(averageGlucose*100) / 100,
+		stats[deviceId].TimeInRange = math.Round(stats[deviceId].TimeInRange*100) / 100
+		stats[deviceId].TimeBelowRange = math.Round(stats[deviceId].TimeBelowRange*100) / 100
+		stats[deviceId].TimeAboveRange = math.Round(stats[deviceId].TimeAboveRange*100) / 100
+		stats[deviceId].TimeCGMUse = math.Round(stats[deviceId].TimeCGMUse*1000) / 1000
+		stats[deviceId].AverageGlucose = math.Round(stats[deviceId].AverageGlucose*100) / 100
+
+		if winningStats != nil {
+			if stats[deviceId].TimeCGMUse > winningStats.TimeCGMUse {
+				winningStats = stats[deviceId]
+			}
+		} else {
+			winningStats = stats[deviceId]
+		}
 	}
+
+	return winningStats
 }
 
 func ReweightStats(stats *Stats, userSummary *Summary, weight float64) (*Stats, error) {
