@@ -22,3 +22,17 @@ func CloneRecommendedBasal(datum *dataTypesDosingDecision.RecommendedBasal) *dat
 	clone.Duration = pointer.CloneInt(datum.Duration)
 	return clone
 }
+
+func NewObjectFromRecommendedBasal(datum *dataTypesDosingDecision.RecommendedBasal, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.Rate != nil {
+		object["rate"] = test.NewObjectFromFloat64(*datum.Rate, objectFormat)
+	}
+	if datum.Duration != nil {
+		object["duration"] = test.NewObjectFromInt(*datum.Duration, objectFormat)
+	}
+	return object
+}

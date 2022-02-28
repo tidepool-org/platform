@@ -8,8 +8,7 @@ import (
 
 func RandomCarbohydratesOnBoard() *dataTypesDosingDecision.CarbohydratesOnBoard {
 	datum := dataTypesDosingDecision.NewCarbohydratesOnBoard()
-	datum.StartTime = pointer.FromTime(test.RandomTime())
-	datum.EndTime = pointer.FromTime(test.RandomTimeFromRange(*datum.StartTime, test.RandomTimeMaximum()))
+	datum.Time = pointer.FromTime(test.RandomTime())
 	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingDecision.CarbohydratesOnBoardAmountMinimum, dataTypesDosingDecision.CarbohydratesOnBoardAmountMaximum))
 	return datum
 }
@@ -19,8 +18,21 @@ func CloneCarbohydratesOnBoard(datum *dataTypesDosingDecision.CarbohydratesOnBoa
 		return nil
 	}
 	clone := dataTypesDosingDecision.NewCarbohydratesOnBoard()
-	clone.StartTime = pointer.CloneTime(datum.StartTime)
-	clone.EndTime = pointer.CloneTime(datum.EndTime)
+	clone.Time = pointer.CloneTime(datum.Time)
 	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	return clone
+}
+
+func NewObjectFromCarbohydratesOnBoard(datum *dataTypesDosingDecision.CarbohydratesOnBoard, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.Time != nil {
+		object["time"] = test.NewObjectFromTime(*datum.Time, objectFormat)
+	}
+	if datum.Amount != nil {
+		object["amount"] = test.NewObjectFromFloat64(*datum.Amount, objectFormat)
+	}
+	return object
 }

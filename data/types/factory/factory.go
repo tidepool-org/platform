@@ -16,11 +16,12 @@ import (
 	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
-	dataTypesPumpStatus "github.com/tidepool-org/platform/data/types/pumpstatus"
 	dataTypesSettingsCGM "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsController "github.com/tidepool-org/platform/data/types/settings/controller"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
+	dataTypesStatusController "github.com/tidepool-org/platform/data/types/status/controller"
+	dataTypesStatusPump "github.com/tidepool-org/platform/data/types/status/pump"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	dataTypesWater "github.com/tidepool-org/platform/data/types/water"
 	"github.com/tidepool-org/platform/structure"
@@ -39,11 +40,12 @@ var types = []string{
 	dataTypesDosingDecision.Type,
 	dataTypesFood.Type,
 	dataTypesInsulin.Type,
-	dataTypesPumpStatus.Type,
 	dataTypesSettingsCGM.Type,
 	dataTypesSettingsController.Type,
 	dataTypesSettingsPump.Type,
 	dataTypesStateReported.Type,
+	dataTypesStatusController.Type,
+	dataTypesStatusPump.Type,
 	dataTypesUpload.Type,
 	dataTypesWater.Type,
 }
@@ -82,8 +84,6 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesFood.New()
 	case dataTypesInsulin.Type:
 		return dataTypesInsulin.New()
-	case dataTypesPumpStatus.Type:
-		return dataTypesPumpStatus.New()
 	case dataTypesSettingsCGM.Type:
 		return dataTypesSettingsCGM.New()
 	case dataTypesSettingsController.Type:
@@ -92,6 +92,10 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesSettingsPump.New()
 	case dataTypesStateReported.Type:
 		return dataTypesStateReported.New()
+	case dataTypesStatusController.Type:
+		return dataTypesStatusController.New()
+	case dataTypesStatusPump.Type:
+		return dataTypesStatusPump.New()
 	case dataTypesUpload.Type:
 		return dataTypesUpload.New()
 	case dataTypesWater.Type:
