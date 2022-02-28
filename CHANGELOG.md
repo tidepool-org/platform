@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.17.0 - 2022-02-25
+### Changed
+- YLP-1301 Add internal id for keeping a link between device data and dailyBasal collections
+
 ## 0.16.0 - 2022-02-15
 ### Changed
 - YLP-1219 Re-route CBG data to archive collection (deviceData database)

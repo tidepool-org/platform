@@ -8,6 +8,7 @@ require (
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/githubnemo/CompileDaemon v1.2.1
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/google/uuid v1.3.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mdblp/go-common v1.1.0
 	github.com/mdblp/go-json-rest v3.3.3+incompatible

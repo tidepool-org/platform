@@ -55,6 +55,7 @@ type Base struct {
 	DeviceTime        *string                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
 	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
+	InternalID        string                        `json:"-" bson:"internalId,omitempty"`
 	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
 	ModifiedTime      *string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
@@ -282,6 +283,10 @@ func (b *Base) IdentityFields() ([]string, error) {
 	return []string{*b.UserID, *b.DeviceID, *b.Time, b.Type}, nil
 }
 
+func (b *Base) GetInternalId() string {
+	return b.InternalID
+}
+
 func (b *Base) GetOrigin() *origin.Origin {
 	return b.Origin
 }
@@ -338,6 +343,10 @@ func (b *Base) SetDeletedTime(deletedTime *string) {
 
 func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
+}
+
+func (b *Base) SetInternalID(internalID string) {
+	b.InternalID = internalID
 }
 
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

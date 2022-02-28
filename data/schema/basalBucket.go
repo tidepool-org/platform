@@ -15,6 +15,7 @@ type (
 
 	BasalSample struct {
 		Sample       `bson:",inline"`
+		InternalID   string  `bson:"internalId,omitempty"` // used for linking data between collections
 		Guid         string  `bson:"guid,omitempty"`
 		DeliveryType string  `bson:"deliveryType,omitempty"`
 		Duration     int     `bson:"duration,omitempty"`
