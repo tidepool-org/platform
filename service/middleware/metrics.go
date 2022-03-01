@@ -15,7 +15,7 @@ var (
 
 const (
 	reqsName    = "dblp_data_http_requests_total"
-	latencyName = "dblp_data_http_request_duration_milliseconds"
+	latencyName = "dblp_data_http_requests_duration_seconds"
 )
 
 // Middleware is a handler that exposes prometheus metrics for the number of requests,
@@ -59,7 +59,7 @@ func (mw *PromMiddleware) MiddlewareFunc(h rest.HandlerFunc) rest.HandlerFunc {
 		statusCode := r.Env["STATUS_CODE"].(int)
 
 		mw.reqs.WithLabelValues(http.StatusText(statusCode), r.Method, r.PathExp).Inc()
-		mw.latency.WithLabelValues(http.StatusText(statusCode), r.Method, r.PathExp).Observe(float64(time.Since(start).Nanoseconds()) / 1000000)
+		mw.latency.WithLabelValues(http.StatusText(statusCode), r.Method, r.PathExp).Observe(float64(time.Since(start).Nanoseconds()) / 1000000000)
 	}
 
 }

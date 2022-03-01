@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.17.2 - 2022-03-01
+### Fixed
+- YLP-1282 fix metrics formats
+
 ## 0.17.1 - 2022-02-28
 ### Fixed
 - YLP-1302 basal update based on rate timestamp and duration

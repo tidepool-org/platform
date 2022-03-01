@@ -37,25 +37,22 @@ var (
 )
 
 var dataWriteToReadStoreMetrics = promauto.NewHistogramVec(prometheus.HistogramOpts{
-	Name:      "write_to_read_store_duration_milliseconds",
+	Name:      "write_to_read_store_duration_seconds",
 	Help:      "A histogram for writing cbg data to read store execution time in ms",
-	Buckets:   prometheus.LinearBuckets(20, 20, 300),
 	Subsystem: "data",
 	Namespace: "dblp",
 }, []string{"type"})
 
 var datumWriteToDeviceDataStoreMetrics = promauto.NewHistogram(prometheus.HistogramOpts{
-	Name:      "write_datum_to_deviceData_duration_milliseconds",
+	Name:      "write_datum_to_device_data_duration_seconds",
 	Help:      "A histogram for writing a datum to the device data execution time (ms)",
-	Buckets:   prometheus.LinearBuckets(20, 20, 300),
 	Subsystem: "data",
 	Namespace: "dblp",
 })
 
 var datumWriteToDeviceDataArchiveStoreMetrics = promauto.NewHistogram(prometheus.HistogramOpts{
-	Name:      "write_datum_to_deviceDataArchive_duration_milliseconds",
+	Name:      "write_datum_to_device_data_archive_duration_seconds",
 	Help:      "A histogram for writing a datum to the device data archive execution time (ms)",
-	Buckets:   prometheus.LinearBuckets(20, 20, 300),
 	Subsystem: "data",
 	Namespace: "dblp",
 })
@@ -452,7 +449,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 			if err != nil {
 				return errors.Wrapf(err, "unable to create %v bucket", dataType)
 			}
-			elapsed_time := time.Since(start).Milliseconds()
+			elapsed_time := time.Since(start).Seconds()
 			dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsed_time))
 		}
 		// update meta data
@@ -491,7 +488,7 @@ func (d *DataSession) bulkInsert(collection *mgo.Collection, data []interface{},
 		bulk.Insert(data...)
 
 		_, err := bulk.Run()
-		elapsed_time := time.Since(start).Milliseconds()
+		elapsed_time := time.Since(start).Seconds()
 		promHisto.Observe(float64(elapsed_time))
 		return err
 	}
