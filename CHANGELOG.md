@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.17.1 - 2022-02-28
+### Fixed
+- YLP-1302 basal update based on rate timestamp and duration
+
 ## 0.17.0 - 2022-02-25
 ### Changed
 - YLP-1301 Add internal id for keeping a link between device data and dailyBasal collections
@@ -13,6 +17,7 @@ The Tidepool platform API
 ### Changed 
 - YLP-1123 Add backloops device events - Flush
 - YLP-1137 Add Security profile as Backloop object
+
 ### Engineering
 - YLP-1142 Clean up unused packages/services
 - YLP-1020 push basal data in buckets in read db

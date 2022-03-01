@@ -47,22 +47,36 @@ func NewMongoBucketStoreClient(config *goComMgo.Config, logger *log.Logger) (*Mo
 	return &client, err
 }
 
+func reverse(ss []string) {
+	last := len(ss) - 1
+	for i := 0; i < len(ss)/2; i++ {
+		ss[i], ss[last-i] = ss[last-i], ss[i]
+	}
+}
+
 /* bucket methods */
 
-// Look for a single bucket based on its Id
-func (c *MongoBucketStoreClient) Find(ctx context.Context, bucket schema.IBucket) (result *schema.IBucket, err error) {
+// Look for a single bucket based on its Id in cold and daily
+func (c *MongoBucketStoreClient) Find(ctx context.Context, bucket schema.IBucket, dataType string) (result *schema.IBucket, err error) {
 
 	if bucket.GetId() != "" {
 		var query bson.M = bson.M{}
 		query["_id"] = bucket.GetId()
 		opts := options.FindOne()
 		opts.SetSort(bson.D{primitive.E{Key: "_id", Value: -1}})
-		if err = c.Collection("hotDailyCbg").FindOne(ctx, query, opts).Decode(&result); err != nil && err != mongo.ErrNoDocuments {
-			c.log.WithError(err)
-			return result, err
-		}
 
-		return result, nil
+		revertedCollections := dailyPrefixCollections
+		reverse(revertedCollections)
+
+		for _, collectionPrefix := range revertedCollections {
+			collectionName := collectionPrefix + dataType
+			if err = c.Collection(collectionName).FindOne(ctx, query, opts).Decode(&result); err != nil && err != mongo.ErrNoDocuments {
+				c.log.WithError(err)
+				return result, err
+			} else if err != mongo.ErrNoDocuments {
+				return result, nil
+			}
+		}
 	}
 
 	return nil, errors.New("Find called with an empty bucket.Id")
@@ -92,7 +106,7 @@ func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, cre
 	valTrue := true
 	strUserId := *userId
 
-	c.log.Info("upsert cbg sample for: " + strUserId + "_" + ts)
+	c.log.Info("upsert " + dataType + " sample for: " + strUserId + "_" + ts)
 
 	for _, collectionPrefix := range dailyPrefixCollections {
 		collectionName := collectionPrefix + dataType
@@ -146,27 +160,8 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	// no data validation is done here as it is done in above layer in the Validate function
 	for _, sample := range samples {
 		ts := sample.GetTimestamp().Format("2006-01-02")
-		//ts := "2021-12-22"
-
-		day, err := time.Parse("2006-01-02", ts)
-		if err != nil {
-			return ErrUnableToParseBucketDayTime
-		}
-
-		strUserId := *userId
-		operation := mongo.NewUpdateOneModel()
-		operation.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
-		operation.SetUpdate(bson.D{ // update
-			{Key: "$addToSet", Value: bson.D{
-				{Key: "samples", Value: sample}}},
-			{Key: "$setOnInsert", Value: bson.D{
-				{Key: "_id", Value: strUserId + "_" + ts},
-				{Key: "creationTimestamp", Value: creationTimestamp},
-				{Key: "day", Value: day},
-				{Key: "userId", Value: strUserId}}},
-		})
-		operation.SetUpsert(true)
-		operations = append(operations, operation)
+		ops, _ := buildUpdateOneModel(dataType, sample, userId, ts, creationTimestamp)
+		operations = append(operations, ops...)
 
 	}
 	// Specify an option to turn the bulk insertion with no order of operation
@@ -183,6 +178,84 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	}
 
 	return nil
+}
+
+func buildUpdateOneModel(dataType string, sample schema.ISample, userId *string, ts string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", ts)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	switch dataType {
+	case "Cbg":
+		op := mongo.NewUpdateOneModel()
+		op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
+		op.SetUpdate(bson.D{ // update
+			{Key: "$addToSet", Value: bson.D{
+				{Key: "samples", Value: sample}}},
+			{Key: "$setOnInsert", Value: bson.D{
+				{Key: "_id", Value: strUserId + "_" + ts},
+				{Key: "creationTimestamp", Value: creationTimestamp},
+				{Key: "day", Value: day},
+				{Key: "userId", Value: strUserId}}},
+		})
+		op.SetUpsert(true)
+		updates = append(updates, op)
+	case "Basal":
+		// Insert the bucket if not exist and then insert the sample in it
+		basalFirstOp := mongo.NewUpdateOneModel()
+		var array []schema.ISample
+		basalFirstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
+		basalFirstOp.SetUpdate(bson.D{ // update
+			{Key: "$setOnInsert", Value: bson.D{
+				{Key: "_id", Value: strUserId + "_" + ts},
+				{Key: "creationTimestamp", Value: creationTimestamp},
+				{Key: "day", Value: day},
+				{Key: "userId", Value: strUserId},
+				{Key: "samples", Value: append(array, sample)},
+			},
+			},
+		})
+		basalFirstOp.SetUpsert(true)
+
+		// Update the basal
+		basalSecondOp := mongo.NewUpdateOneModel()
+		elemfilter := sample.(schema.BasalSample)
+		basalSecondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + ts},
+			{Key: "samples", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "rate", Value: elemfilter.Rate},
+					{Key: "deliveryType", Value: elemfilter.DeliveryType},
+					{Key: "timestamp", Value: elemfilter.Timestamp},
+				},
+				},
+			},
+			},
+		})
+		basalSecondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "samples.$.internalId", Value: elemfilter.InternalID},
+				{Key: "samples.$.duration", Value: elemfilter.Duration},
+			},
+			},
+		})
+
+		// Otherwise we know that we did not update the basal so we guarantee an insertion
+		// in the array
+		basalThirdOp := mongo.NewUpdateOneModel()
+		basalThirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
+		basalThirdOp.SetUpdate(bson.D{ // update
+			{Key: "$addToSet", Value: bson.D{
+				{Key: "samples", Value: sample}}},
+		})
+		updates = append(updates, basalFirstOp, basalSecondOp, basalThirdOp)
+	}
+
+	return updates, nil
 }
 
 // update or insert in MetaData
