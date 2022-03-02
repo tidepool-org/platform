@@ -27,10 +27,6 @@ var _ = Describe("Origin", func() {
 		Expect(origin.NameLengthMaximum).To(Equal(100))
 	})
 
-	It("TimeFormat is expected", func() {
-		Expect(origin.TimeFormat).To(Equal(time.RFC3339Nano))
-	})
-
 	It("TypeApplication is expected", func() {
 		Expect(origin.TypeApplication).To(Equal("application"))
 	})

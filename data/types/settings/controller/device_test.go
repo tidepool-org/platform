@@ -82,45 +82,17 @@ var _ = Describe("Device", func() {
 		)
 
 		Context("ParseDevice", func() {
-			DescribeTable("parses the datum",
-				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesSettingsController.Device), expectedErrors ...error) {
-					expectedDatum := dataTypesSettingsControllerTest.RandomDevice()
-					object := dataTypesSettingsControllerTest.NewObjectFromDevice(expectedDatum, test.ObjectFormatJSON)
-					mutator(object, expectedDatum)
-					parser := structureParser.NewObject(&object)
-					datum := dataTypesSettingsController.ParseDevice(parser)
-					errorsTest.ExpectEqual(parser.Error(), expectedErrors...)
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("succeeds",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsController.Device) {},
-				),
-				Entry("multiple errors",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsController.Device) {
-						object["firmwareVersion"] = true
-						object["hardwareVersion"] = true
-						object["manufacturers"] = true
-						object["model"] = true
-						object["name"] = true
-						object["serialNumber"] = true
-						object["softwareVersion"] = true
-						expectedDatum.FirmwareVersion = nil
-						expectedDatum.HardwareVersion = nil
-						expectedDatum.Manufacturers = nil
-						expectedDatum.Model = nil
-						expectedDatum.Name = nil
-						expectedDatum.SerialNumber = nil
-						expectedDatum.SoftwareVersion = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/firmwareVersion"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/hardwareVersion"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/manufacturers"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/model"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/name"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/serialNumber"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/softwareVersion"),
-				),
-			)
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesSettingsController.ParseDevice(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesSettingsControllerTest.RandomDevice()
+				object := dataTypesSettingsControllerTest.NewObjectFromDevice(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesSettingsController.ParseDevice(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("NewDevice", func() {

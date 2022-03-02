@@ -12,8 +12,8 @@ const (
 )
 
 type InsulinOnBoard struct {
-	StartTime *time.Time `json:"startTime,omitempty" bson:"startTime,omitempty"`
-	Amount    *float64   `json:"amount,omitempty" bson:"amount,omitempty"`
+	Time   *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Amount *float64   `json:"amount,omitempty" bson:"amount,omitempty"`
 }
 
 func ParseInsulinOnBoard(parser structure.ObjectParser) *InsulinOnBoard {
@@ -30,7 +30,7 @@ func NewInsulinOnBoard() *InsulinOnBoard {
 }
 
 func (i *InsulinOnBoard) Parse(parser structure.ObjectParser) {
-	i.StartTime = parser.Time("startTime", TimeFormat)
+	i.Time = parser.Time("time", time.RFC3339Nano)
 	i.Amount = parser.Float64("amount")
 }
 

@@ -1,7 +1,6 @@
 package food
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -52,20 +51,5 @@ func (n *Nutrition) Validate(validator structure.Validator) {
 	}
 	if n.Protein != nil {
 		n.Protein.Validate(validator.WithReference("protein"))
-	}
-}
-
-func (n *Nutrition) Normalize(normalizer data.Normalizer) {
-	if n.Carbohydrate != nil {
-		n.Carbohydrate.Normalize(normalizer.WithReference("carbohydrate"))
-	}
-	if n.Energy != nil {
-		n.Energy.Normalize(normalizer.WithReference("energy"))
-	}
-	if n.Fat != nil {
-		n.Fat.Normalize(normalizer.WithReference("fat"))
-	}
-	if n.Protein != nil {
-		n.Protein.Normalize(normalizer.WithReference("protein"))
 	}
 }
