@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.17.3 - 2022-03-02
+### Engineering
+- Make bucketed data configurable
+
 ## 0.17.2 - 2022-03-01
 ### Fixed
 - YLP-1282 fix metrics formats

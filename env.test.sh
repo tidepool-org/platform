@@ -22,3 +22,4 @@ export TIDEPOOL_USER_STORE_DATABASE="user_test"
 
 export PUSH_TO_READ_STORE_ENABLED=true
 export ARCHIVED_DATA_TYPES="cbg"
+export BUCKETED_DATA_TYPES="cbg,basal"

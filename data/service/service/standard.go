@@ -202,6 +202,7 @@ func (s *Standard) initializeDataStoreDEPRECATED() error {
 	migrateConfig := dataStoreDEPRECATEDMongo.BucketMigrationConfig{
 		EnableBucketStore: getPushToReadStoreEnv(),
 		DataTypesArchived: getArchivedDataTypesEnv(),
+		DataTypesBucketed: getBucketsDataTypesEnv(),
 	}
 
 	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, mongoDbReadConfig, s.Logger(), logrusLogger, migrateConfig)
@@ -320,6 +321,19 @@ func getArchivedDataTypesEnv() []string {
 	s, err := getenvStr("ARCHIVED_DATA_TYPES")
 	if err != nil {
 		logrusLogger.Warn("environment variable ARCHIVED_DATA_TYPES not exported, set empty by default")
+		return []string{}
+	}
+	if s != "" {
+		dataTypes := strings.Split(s, ",")
+		return dataTypes
+	}
+	return []string{}
+}
+
+func getBucketsDataTypesEnv() []string {
+	s, err := getenvStr("BUCKETED_DATA_TYPES")
+	if err != nil {
+		logrusLogger.Warn("environment variable BUCKETED_DATA_TYPES not exported, set empty by default")
 		return []string{}
 	}
 	if s != "" {

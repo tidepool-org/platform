@@ -62,11 +62,13 @@ type Stores struct {
 	BucketStore        *MongoBucketStoreClient
 	BucketStoreEnabled bool
 	DataTypesArchived  []string
+	DataTypesBucketed  []string
 }
 
 type BucketMigrationConfig struct {
 	EnableBucketStore bool
 	DataTypesArchived []string
+	DataTypesBucketed []string
 }
 
 func (s *Stores) IsEnabled() bool {
@@ -96,6 +98,7 @@ func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log
 		BucketStore:        bucketStore,
 		BucketStoreEnabled: migrateConfig.EnableBucketStore,
 		DataTypesArchived:  migrateConfig.DataTypesArchived,
+		DataTypesBucketed:  migrateConfig.DataTypesBucketed,
 	}, nil
 }
 
@@ -105,6 +108,7 @@ func (s *Stores) NewDataSession() storeDEPRECATED.DataSession {
 		BucketStore:        s.BucketStore,
 		BucketStoreEnabled: s.BucketStoreEnabled,
 		DataTypesArchived:  s.DataTypesArchived,
+		DataTypesBucketed:  s.DataTypesBucketed,
 	}
 }
 
@@ -113,6 +117,7 @@ type DataSession struct {
 	BucketStore        *MongoBucketStoreClient
 	BucketStoreEnabled bool
 	DataTypesArchived  []string
+	DataTypesBucketed  []string
 }
 
 func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
@@ -409,29 +414,33 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&strTimestamp)
 		archive := d.isDatumToArchive(datum)
-		// Prepare cbg to be pushed into data read db
-		loggerFields := log.Fields{"datum": datum}
-		switch event := datum.(type) {
-		case *continuous.Continuous:
-			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a cbg entry")
-			// mapping
-			var s = &schema.CbgSample{}
-			s.Map(event)
-			allSamples["Cbg"] = append(allSamples["Cbg"], *s)
-		case *automated.Automated:
-			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a automated basal entry")
-			var s = &schema.BasalSample{}
-			s.MapForAutomatedBasal(event)
-			allSamples["Basal"] = append(allSamples["Basal"], *s)
-		case *scheduled.Scheduled:
-			log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a scheduled basal entry")
-			var s = &schema.BasalSample{}
-			s.MapForScheduledBasal(event)
-			allSamples["Basal"] = append(allSamples["Basal"], *s)
-		default:
-			d.BucketStore.log.Infof("object ignored %v", event)
+		moveToBucket := d.isDatumToBucket(datum)
+		if moveToBucket {
+			// Prepare cbg to be pushed into data read db
+			loggerFields := log.Fields{"datum": datum}
+			switch event := datum.(type) {
+			case *continuous.Continuous:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a cbg entry")
+				// mapping
+				var s = &schema.CbgSample{}
+				s.Map(event)
+				allSamples["Cbg"] = append(allSamples["Cbg"], *s)
+			case *automated.Automated:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a automated basal entry")
+				var s = &schema.BasalSample{}
+				s.MapForAutomatedBasal(event)
+				allSamples["Basal"] = append(allSamples["Basal"], *s)
+			case *scheduled.Scheduled:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a scheduled basal entry")
+				var s = &schema.BasalSample{}
+				s.MapForScheduledBasal(event)
+				allSamples["Basal"] = append(allSamples["Basal"], *s)
+			default:
+				d.BucketStore.log.Infof("object ignored %v", event)
+			}
+		} else {
+			d.BucketStore.log.Infof("object ignored %v", datum)
 		}
-
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
 		if archive {
 			archiveData = append(archiveData, datum)
@@ -498,6 +507,16 @@ func (d *DataSession) bulkInsert(collection *mgo.Collection, data []interface{},
 func (d *DataSession) isDatumToArchive(datum data.Datum) bool {
 	datumType := datum.GetType()
 	for _, archivedType := range d.DataTypesArchived {
+		if archivedType == datumType {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *DataSession) isDatumToBucket(datum data.Datum) bool {
+	datumType := datum.GetType()
+	for _, archivedType := range d.DataTypesBucketed {
 		if archivedType == datumType {
 			return true
 		}

@@ -193,6 +193,7 @@ var _ = Describe("Mongo", func() {
 			bucketConfig := mongo.BucketMigrationConfig{
 				EnableBucketStore: false,
 				DataTypesArchived: []string{"cbg"},
+				DataTypesBucketed: []string{"cbg", "basal"},
 			}
 			store, err = mongo.NewStore(nil, nil, nil, nil, bucketConfig)
 			Expect(err).To(HaveOccurred())
@@ -204,6 +205,7 @@ var _ = Describe("Mongo", func() {
 			bucketConfig := mongo.BucketMigrationConfig{
 				EnableBucketStore: true,
 				DataTypesArchived: []string{"cbg"},
+				DataTypesBucketed: []string{"cbg", "basal"},
 			}
 			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, bucketConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -222,6 +224,7 @@ var _ = Describe("Mongo", func() {
 			bucketConfig := mongo.BucketMigrationConfig{
 				EnableBucketStore: true,
 				DataTypesArchived: []string{"cbg"},
+				DataTypesBucketed: []string{"cbg", "basal"},
 			}
 			store, err = mongo.NewStore(config, dbReadConfig, logger, dbReadLogger, bucketConfig)
 			// if any error occured, not needed to wait until the store started
