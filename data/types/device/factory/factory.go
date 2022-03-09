@@ -48,10 +48,10 @@ func NewDeviceDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesDeviceAlarm.New()
 	case dataTypesDeviceCalibration.SubType:
 		return dataTypesDeviceCalibration.New()
-	case dataTypesDevicePrime.SubType:
-		return dataTypesDevicePrime.New()
 	case dataTypesDeviceOverrideSettingsPump.SubType:
 		return dataTypesDeviceOverrideSettingsPump.New()
+	case dataTypesDevicePrime.SubType:
+		return dataTypesDevicePrime.New()
 	case dataTypesDeviceReservoirchange.SubType:
 		return dataTypesDeviceReservoirchange.New()
 	case dataTypesDeviceStatus.SubType:

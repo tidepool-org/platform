@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/tidepool-org/platform/data"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
+	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBasal "github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalFactory "github.com/tidepool-org/platform/data/types/basal/factory"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -30,6 +31,7 @@ import (
 
 var types = []string{
 	dataTypesActivityPhysical.Type,
+	dataTypesAlert.Type,
 	dataTypesBasal.Type,
 	dataTypesBloodGlucoseContinuous.Type,
 	dataTypesBloodGlucoseSelfmonitored.Type,
@@ -64,6 +66,8 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 	switch *value {
 	case dataTypesActivityPhysical.Type:
 		return dataTypesActivityPhysical.New()
+	case dataTypesAlert.Type:
+		return dataTypesAlert.New()
 	case dataTypesBasal.Type:
 		return dataTypesBasalFactory.NewBasalDatum(parser)
 	case dataTypesBloodGlucoseContinuous.Type:
