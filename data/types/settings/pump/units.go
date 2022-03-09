@@ -7,21 +7,21 @@ import (
 )
 
 const (
-	CarbohydrateExchanges = "exchanges"
-	CarbohydrateGrams     = "grams"
-	InsulinUnits          = "Units"
+	CarbohydrateUnitsExchanges = "exchanges"
+	CarbohydrateUnitsGrams     = "grams"
+	InsulinUnitsUnits          = "Units"
 )
 
-func Carbohydrates() []string {
+func CarbohydrateUnits() []string {
 	return []string{
-		CarbohydrateExchanges,
-		CarbohydrateGrams,
+		CarbohydrateUnitsExchanges,
+		CarbohydrateUnitsGrams,
 	}
 }
 
-func Insulins() []string {
+func InsulinUnits() []string {
 	return []string{
-		InsulinUnits,
+		InsulinUnitsUnits,
 	}
 }
 
@@ -52,8 +52,8 @@ func (u *Units) Parse(parser structure.ObjectParser) {
 
 func (u *Units) Validate(validator structure.Validator) {
 	validator.String("bg", u.BloodGlucose).Exists().OneOf(dataBloodGlucose.Units()...)
-	validator.String("carb", u.Carbohydrate).Exists().OneOf(Carbohydrates()...)
-	validator.String("insulin", u.Insulin).OneOf(Insulins()...)
+	validator.String("carb", u.Carbohydrate).Exists().OneOf(CarbohydrateUnits()...)
+	validator.String("insulin", u.Insulin).OneOf(InsulinUnits()...)
 }
 
 func (u *Units) Normalize(normalizer data.Normalizer) {

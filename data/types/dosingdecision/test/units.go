@@ -24,3 +24,20 @@ func CloneUnits(datum *dataTypesDosingDecision.Units) *dataTypesDosingDecision.U
 	clone.Insulin = pointer.CloneString(datum.Insulin)
 	return clone
 }
+
+func NewObjectFromUnits(datum *dataTypesDosingDecision.Units, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.BloodGlucose != nil {
+		object["bg"] = test.NewObjectFromString(*datum.BloodGlucose, objectFormat)
+	}
+	if datum.Carbohydrate != nil {
+		object["carb"] = test.NewObjectFromString(*datum.Carbohydrate, objectFormat)
+	}
+	if datum.Insulin != nil {
+		object["insulin"] = test.NewObjectFromString(*datum.Insulin, objectFormat)
+	}
+	return object
+}

@@ -85,42 +85,17 @@ var _ = Describe("OverridePreset", func() {
 		)
 
 		Context("ParseOverridePreset", func() {
-			DescribeTable("parses the datum",
-				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesSettingsPump.OverridePreset), expectedErrors ...error) {
-					expectedDatum := dataTypesSettingsPumpTest.RandomOverridePreset(pointer.FromString(dataBloodGlucoseTest.RandomUnits()))
-					object := dataTypesSettingsPumpTest.NewObjectFromOverridePreset(expectedDatum, test.ObjectFormatJSON)
-					mutator(object, expectedDatum)
-					parser := structureParser.NewObject(&object)
-					datum := dataTypesSettingsPump.ParseOverridePreset(parser)
-					errorsTest.ExpectEqual(parser.Error(), expectedErrors...)
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("succeeds",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsPump.OverridePreset) {},
-				),
-				Entry("multiple errors",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsPump.OverridePreset) {
-						object["abbreviation"] = true
-						object["duration"] = true
-						object["bgTarget"] = true
-						object["basalRateScaleFactor"] = true
-						object["carbRatioScaleFactor"] = true
-						object["insulinSensitivityScaleFactor"] = true
-						expectedDatum.Abbreviation = nil
-						expectedDatum.Duration = nil
-						expectedDatum.BloodGlucoseTarget = nil
-						expectedDatum.BasalRateScaleFactor = nil
-						expectedDatum.CarbohydrateRatioScaleFactor = nil
-						expectedDatum.InsulinSensitivityScaleFactor = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/abbreviation"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(true), "/duration"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/bgTarget"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/basalRateScaleFactor"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/carbRatioScaleFactor"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotFloat64(true), "/insulinSensitivityScaleFactor"),
-				),
-			)
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesSettingsPump.ParseOverridePreset(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesSettingsPumpTest.RandomOverridePreset(pointer.FromString(dataBloodGlucoseTest.RandomUnits()))
+				object := dataTypesSettingsPumpTest.NewObjectFromOverridePreset(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesSettingsPump.ParseOverridePreset(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("NewOverridePreset", func() {
@@ -548,20 +523,17 @@ var _ = Describe("OverridePreset", func() {
 		)
 
 		Context("ParseOverridePresetMap", func() {
-			DescribeTable("parses the datum",
-				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesSettingsPump.OverridePresetMap), expectedErrors ...error) {
-					expectedDatum := dataTypesSettingsPumpTest.RandomOverridePresetMap(pointer.FromString(dataBloodGlucoseTest.RandomUnits()))
-					object := dataTypesSettingsPumpTest.NewObjectFromOverridePresetMap(expectedDatum, test.ObjectFormatJSON)
-					mutator(object, expectedDatum)
-					parser := structureParser.NewObject(&object)
-					datum := dataTypesSettingsPump.ParseOverridePresetMap(parser)
-					errorsTest.ExpectEqual(parser.Error(), expectedErrors...)
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("succeeds",
-					func(object map[string]interface{}, expectedDatum *dataTypesSettingsPump.OverridePresetMap) {},
-				),
-			)
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesSettingsPump.ParseOverridePresetMap(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesSettingsPumpTest.RandomOverridePresetMap(pointer.FromString(dataBloodGlucoseTest.RandomUnits()))
+				object := dataTypesSettingsPumpTest.NewObjectFromOverridePresetMap(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesSettingsPump.ParseOverridePresetMap(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("NewOverridePresetMap", func() {

@@ -1,7 +1,6 @@
 package food
 
 import (
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -44,5 +43,3 @@ func (p *Protein) Validate(validator structure.Validator) {
 	validator.Float64("total", p.Total).Exists().InRange(ProteinTotalGramsMinimum, ProteinTotalGramsMaximum)
 	validator.String("units", p.Units).Exists().OneOf(ProteinUnits()...)
 }
-
-func (p *Protein) Normalize(normalizer data.Normalizer) {}
