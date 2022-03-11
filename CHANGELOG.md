@@ -1,6 +1,10 @@
 # Platform 
 The Tidepool platform API
 
+## 0.17.4 - 2022-03-02
+### Fixed
+- YLP-1323 Status code validation for flush event is too scrict
+
 ## 0.17.3 - 2022-03-02
 ### Engineering
 - Make bucketed data configurable

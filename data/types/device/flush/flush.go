@@ -74,7 +74,7 @@ func (p *Flush) Validate(validator structure.Validator) {
 
 	validator.String("status", p.Status).Exists().OneOf(Statuses()...)
 	validator.Float64("volume", p.Volume).Exists().InRange(VolumeTargetMinimum, VolumeTargetMaximum)
-	validator.Int("statusCode", p.StatusCode).Exists().OneOf(StatusCodes()...)
+	validator.Int("statusCode", p.StatusCode).Exists()
 }
 
 // IsValid returns true if there is no error in the validator

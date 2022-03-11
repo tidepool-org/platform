@@ -124,13 +124,13 @@ var _ = Describe("Status", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"success", "failure"}), "/status", NewMeta()),
 				),
-				Entry("Status valid, StatusCode invalid",
+				Entry("Status valid, StatusCode missing",
 					func(datum *flush.Flush) {
 						datum.SubType = "flush"
 						datum.Status = pointer.FromString("success")
-						datum.StatusCode = pointer.FromInt(-1)
+						datum.StatusCode = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueIntNotOneOf(-1, flush.StatusCodes()), "/statusCode", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/statusCode", NewMeta()),
 				),
 				Entry("Status success, volume missing",
 					func(datum *flush.Flush) {
@@ -178,12 +178,12 @@ var _ = Describe("Status", func() {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
 						datum.Status = pointer.FromString("invalid")
-						datum.StatusCode = pointer.FromInt(-1)
+						datum.StatusCode = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "flush"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"success", "failure"}), "/status", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueIntNotOneOf(-1, flush.StatusCodes()), "/statusCode", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/statusCode", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})
