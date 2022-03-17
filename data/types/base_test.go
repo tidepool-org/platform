@@ -22,6 +22,7 @@ import (
 	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	timeZone "github.com/tidepool-org/platform/time/zone"
@@ -87,9 +88,49 @@ var _ = Describe("Base", func() {
 	})
 
 	Context("Base", func() {
-		// Context("Parse", func() {
-		// TODO
-		// })
+		Context("Parse", func() {
+			var parsedBase types.Base
+			It("parses eventId when guid is missing", func() {
+				parsedBase = types.New("")
+				object := map[string]interface{}{"eventId": "1234"}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(*parsedBase.GUID).To(Equal("1234"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("parses eventId when guid is empty", func() {
+				parsedBase = types.New("")
+				object := map[string]interface{}{"eventId": "1234", "guid": ""}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(*parsedBase.GUID).To(Equal("1234"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("doesn't parses eventId when guid is not empty", func() {
+				parsedBase = types.New("")
+				object := map[string]interface{}{"eventId": "1234", "guid": "4567"}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(*parsedBase.GUID).To(Equal("4567"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("parses guid", func() {
+				parsedBase = types.New("")
+				object := map[string]interface{}{"guid": "4567"}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(*parsedBase.GUID).To(Equal("4567"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("parses without error with empty guid and eventId", func() {
+				parsedBase = types.New("")
+				object := map[string]interface{}{}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(parsedBase.GUID).To(BeNil())
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

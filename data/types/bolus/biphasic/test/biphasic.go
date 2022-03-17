@@ -13,7 +13,7 @@ func NewBiphasic() *biphasic.Biphasic {
 	datum.Type = "bolus"
 	datum.SubType = "biphasic"
 	datum.Part = pointer.FromString(test.RandomStringFromArray(biphasic.Parts()))
-	datum.EventID = pointer.FromString("123456789")
+	datum.GUID = pointer.FromString("123456789")
 	datum.LinkedBolus = NewLinkedBolus()
 	return datum
 }
@@ -26,7 +26,7 @@ func CloneBiphasic(datum *biphasic.Biphasic) *biphasic.Biphasic {
 	clone.Normal = *dataTypesBolusNormalTest.CloneNormal(&datum.Normal)
 	clone.SubType = datum.SubType
 	clone.Part = pointer.CloneString(datum.Part)
-	clone.EventID = pointer.CloneString(datum.EventID)
+	clone.GUID = pointer.CloneString(datum.GUID)
 	clone.LinkedBolus = CloneLinkedBolus(datum.LinkedBolus)
 	return clone
 }

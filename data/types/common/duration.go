@@ -8,15 +8,18 @@ import (
 )
 
 const (
-	DurationUnitsHours          = "hours"
-	DurationUnitsMinutes        = "minutes"
-	DurationUnitsSeconds        = "seconds"
-	DurationValueHoursMaximum   = 168.0
-	DurationValueHoursMinimum   = 0.0
-	DurationValueMinutesMaximum = DurationValueHoursMaximum * 60.0
-	DurationValueMinutesMinimum = DurationValueHoursMinimum * 60.0
-	DurationValueSecondsMaximum = DurationValueMinutesMaximum * 60.0
-	DurationValueSecondsMinimum = DurationValueMinutesMinimum * 60.0
+	DurationUnitsHours               = "hours"
+	DurationUnitsMinutes             = "minutes"
+	DurationUnitsSeconds             = "seconds"
+	DurationUnitsMilliseconds        = "milliseconds"
+	DurationValueHoursMaximum        = 480.0 // 20 * 24 hours
+	DurationValueHoursMinimum        = 0.0
+	DurationValueMinutesMaximum      = DurationValueHoursMaximum * 60.0
+	DurationValueMinutesMinimum      = DurationValueHoursMinimum * 60.0
+	DurationValueSecondsMaximum      = DurationValueMinutesMaximum * 60.0
+	DurationValueSecondsMinimum      = DurationValueMinutesMinimum * 60.0
+	DurationValueMillisecondsMaximum = DurationValueSecondsMaximum * 1000.0
+	DurationValueMillisecondsMinimum = DurationValueSecondsMinimum * 1000.0
 )
 
 func DurationUnits() []string {
@@ -24,6 +27,7 @@ func DurationUnits() []string {
 		DurationUnitsHours,
 		DurationUnitsMinutes,
 		DurationUnitsSeconds,
+		DurationUnitsMilliseconds,
 	}
 }
 
@@ -66,6 +70,8 @@ func DurationValueRangeForUnits(units *string) (float64, float64) {
 			return DurationValueMinutesMinimum, DurationValueMinutesMaximum
 		case DurationUnitsSeconds:
 			return DurationValueSecondsMinimum, DurationValueSecondsMaximum
+		case DurationUnitsMilliseconds:
+			return DurationValueMillisecondsMinimum, DurationValueMillisecondsMaximum
 		}
 	}
 	return -math.MaxFloat64, math.MaxFloat64

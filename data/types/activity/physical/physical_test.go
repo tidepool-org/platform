@@ -43,7 +43,7 @@ func NewPhysical() *physical.Physical {
 	datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
 	datum.ReportedIntensity = pointer.FromString(test.RandomStringFromArray(physical.ReportedIntensities()))
 	datum.Step = NewStep()
-	datum.EventID = pointer.FromString("123456789")
+	datum.GUID = pointer.FromString("123456789")
 	return datum
 }
 
@@ -66,7 +66,7 @@ func ClonePhysical(datum *physical.Physical) *physical.Physical {
 	clone.ReportedIntensity = pointer.CloneString(datum.ReportedIntensity)
 	clone.Step = CloneStep(datum.Step)
 	clone.InputTime = dataTypesCommonTest.CloneInputTime(datum.InputTime)
-	clone.EventID = pointer.CloneString(datum.EventID)
+	clone.GUID = pointer.CloneString(datum.GUID)
 	return clone
 }
 
@@ -125,7 +125,7 @@ var _ = Describe("Physical", func() {
 			Expect(datum.Name).To(BeNil())
 			Expect(datum.ReportedIntensity).To(BeNil())
 			Expect(datum.Step).To(BeNil())
-			Expect(datum.EventID).To(BeNil())
+			Expect(datum.GUID).To(BeNil())
 			Expect(datum.InputTime.InputTime).To(BeNil())
 		})
 	})
@@ -1184,9 +1184,9 @@ var _ = Describe("Physical", func() {
 				Entry("distance valid",
 					func(datum *physical.Physical) { datum.Distance = NewDistance() },
 				),
-				Entry("eventID missing, duration missing",
+				Entry("GUID missing, duration missing",
 					func(datum *physical.Physical) {
-						datum.EventID = nil
+						datum.GUID = nil
 						datum.Duration = nil
 					},
 				),
@@ -1289,7 +1289,7 @@ var _ = Describe("Physical", func() {
 				Entry("step valid",
 					func(datum *physical.Physical) { datum.Step = NewStep() },
 				),
-				Entry("EventID exists, duration missing",
+				Entry("GUID exists, duration missing",
 					func(datum *physical.Physical) {
 						datum.Duration = nil
 					},

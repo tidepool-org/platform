@@ -53,7 +53,7 @@ func NewAlarmWithStatusID() *alarm.Alarm {
 
 func NewAlarmFromHandset() *alarm.Alarm {
 	datum := NewAlarm()
-	datum.EventID = pointer.FromString("ID123456789")
+	datum.GUID = pointer.FromString("ID123456789")
 	datum.AlarmType = pointer.FromString(alarm.AlarmTypeHandset)
 	datum.AlarmLevel = pointer.FromString(test.RandomStringFromArray(alarm.AlarmLevels()))
 	datum.AlarmCode = pointer.FromString("code123")
@@ -76,7 +76,7 @@ func CloneAlarm(datum *alarm.Alarm) *alarm.Alarm {
 			clone.Status = data.DatumAsPointer(dataTypesDeviceStatusTest.CloneStatus(status))
 		}
 	}
-	clone.EventID = pointer.CloneString(datum.EventID)
+	clone.GUID = pointer.CloneString(datum.GUID)
 	clone.StatusID = pointer.CloneString(datum.StatusID)
 	clone.AlarmLevel = pointer.CloneString(datum.AlarmLevel)
 	clone.AlarmCode = pointer.CloneString(datum.AlarmCode)
@@ -326,22 +326,11 @@ var _ = Describe("Change", func() {
 				Entry("succeeds",
 					func(datum *alarm.Alarm) {},
 				),
-				Entry("EventId is missing",
+				Entry("GUID is missing",
 					func(datum *alarm.Alarm) {
-						datum.EventID = nil
+						datum.GUID = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventID", NewMeta()),
-				),
-				Entry("EventId length out of range",
-					func(datum *alarm.Alarm) {
-						datum.EventID = pointer.FromString(test.RandomStringFromRange(65, 65))
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(65, 64), "/eventID", NewMeta()),
-				),
-				Entry("EventId length in range",
-					func(datum *alarm.Alarm) {
-						datum.EventID = pointer.FromString(test.RandomStringFromRange(64, 64))
-					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/guid", NewMeta()),
 				),
 				Entry("invalid alarm level",
 					func(datum *alarm.Alarm) {
@@ -403,14 +392,14 @@ var _ = Describe("Change", func() {
 				),
 				Entry("Mulitple missing",
 					func(datum *alarm.Alarm) {
-						datum.EventID = nil
+						datum.GUID = nil
 						datum.AlarmLevel = nil
 						datum.AlarmCode = nil
 						datum.AlarmLabel = nil
 						datum.AckStatus = nil
 						datum.UpdateTime = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventID", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/guid", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmLevel", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmCode", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/alarmLabel", NewMeta()),

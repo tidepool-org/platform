@@ -36,7 +36,7 @@ var _ = Describe("Normal", func() {
 			Expect(datum.Normal).ToNot(BeNil())
 			Expect(datum.NormalExpected).To(BeNil())
 			Expect(datum.Part).To(BeNil())
-			Expect(datum.EventID).To(BeNil())
+			Expect(datum.GUID).To(BeNil())
 			Expect(datum.LinkedBolus).To(BeNil())
 		})
 	})
@@ -98,19 +98,19 @@ var _ = Describe("Normal", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/part", NewMeta()),
 				),
-				Entry("EventID missing",
+				Entry("GUID missing",
 					func(datum *biphasic.Biphasic) {
-						datum.EventID = nil
+						datum.GUID = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventId", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/guid", NewMeta()),
 				),
 				Entry("Multiple errors",
 					func(datum *biphasic.Biphasic) {
 						datum.Part = nil
-						datum.EventID = nil
+						datum.GUID = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/part", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/eventId", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/guid", NewMeta()),
 				),
 			)
 		})

@@ -28,7 +28,6 @@ const (
 	Acknowledged            = "acknowledged"
 	Outdated                = "outdated"
 	AlarmCodeMaximumLength  = 64
-	EventIDMaximumLength    = 64
 	AlarmLabelMaximumLength = 256
 )
 
@@ -71,7 +70,6 @@ type Alarm struct {
 	AlarmType  *string     `json:"alarmType,omitempty" bson:"alarmType,omitempty"`
 	Status     *data.Datum `json:"-" bson:"-"`
 	StatusID   *string     `json:"status,omitempty" bson:"status,omitempty"`
-	EventID    *string     `json:"eventId,omitempty" bson:"eventId,omitempty"`
 	AlarmLevel *string     `json:"alarmLevel,omitempty" bson:"alarmLevel,omitempty"`
 	AlarmCode  *string     `json:"alarmCode,omitempty" bson:"alarmCode,omitempty"`
 	AlarmLabel *string     `json:"alarmLabel,omitempty" bson:"alarmLabel,omitempty"`
@@ -94,7 +92,6 @@ func (a *Alarm) Parse(parser structure.ObjectParser) {
 
 	a.AlarmType = parser.String("alarmType")
 	a.Status = dataTypesDeviceStatus.ParseStatusDatum(parser.WithReferenceObjectParser("status"))
-	a.EventID = parser.String("eventId")
 	a.AlarmLevel = parser.String("alarmLevel")
 	a.AlarmCode = parser.String("alarmCode")
 	a.AlarmLabel = parser.String("alarmLabel")
@@ -137,7 +134,7 @@ func (a *Alarm) Validate(validator structure.Validator) {
 	timeValidator.AsTime(types.TimeFormat)
 
 	if a.AlarmType != nil && *a.AlarmType == AlarmTypeHandset {
-		validator.String("eventID", a.EventID).Exists().LengthLessThanOrEqualTo(EventIDMaximumLength)
+		validator.String("guid", a.GUID).Exists()
 		alarmLevelValidator.Exists()
 		validator.String("alarmCode", a.AlarmCode).Exists().LengthLessThanOrEqualTo(AlarmCodeMaximumLength)
 		validator.String("alarmLabel", a.AlarmLabel).Exists().LengthLessThanOrEqualTo(AlarmLabelMaximumLength)

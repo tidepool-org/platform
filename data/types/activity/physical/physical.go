@@ -198,7 +198,6 @@ type Physical struct {
 	Name              *string           `json:"name,omitempty" bson:"name,omitempty"`
 	ReportedIntensity *string           `json:"reportedIntensity,omitempty" bson:"reportedIntensity,omitempty"`
 	Step              *Step             `json:"step,omitempty" bson:"step,omitempty"`
-	EventID           *string           `json:"eventId,omitempty" bson:"eventId,omitempty"`
 	InputTime         *common.InputTime `bson:",inline"`
 }
 
@@ -228,7 +227,6 @@ func (p *Physical) Parse(parser structure.ObjectParser) {
 	p.Name = parser.String("name")
 	p.ReportedIntensity = parser.String("reportedIntensity")
 	p.Step = ParseStep(parser.WithReferenceObjectParser("step"))
-	p.EventID = parser.String("eventId")
 	p.InputTime.Parse(parser)
 }
 
@@ -272,8 +270,8 @@ func (p *Physical) Validate(validator structure.Validator) {
 	if p.Step != nil {
 		p.Step.Validate(validator.WithReference("step"))
 	}
-	validator.String("eventId", p.EventID)
-	if p.EventID != nil && p.Duration == nil {
+	validator.String("guid", p.GUID)
+	if p.GUID != nil && p.Duration == nil {
 		validator.WithReference("duration").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	p.InputTime.Validate(validator)

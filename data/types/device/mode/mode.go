@@ -12,6 +12,7 @@ const (
 	ConfidentialMode = "confidential"
 	ZenMode          = "zen"
 	Warmup           = "warmup"
+	LoopMode         = "loopMode"
 )
 
 func Modes() []string {
@@ -19,12 +20,12 @@ func Modes() []string {
 		ConfidentialMode,
 		ZenMode,
 		Warmup,
+		LoopMode,
 	}
 }
 
 type Mode struct {
 	device.Device `bson:",inline"`
-	EventID       *string                `json:"eventId,omitempty" bson:"eventId,omitempty"`
 	Duration      *commontypes.Duration  `json:"duration,omitempty" bson:"duration,omitempty"`
 	InputTime     *commontypes.InputTime `bson:",inline"`
 }
@@ -40,9 +41,7 @@ func (m *Mode) Parse(parser structure.ObjectParser) {
 	if !parser.HasMeta() {
 		parser = parser.WithMeta(m.Meta())
 	}
-
 	m.Device.Parse(parser)
-	m.EventID = parser.String("eventId")
 	m.Duration = commontypes.ParseDuration(parser.WithReferenceObjectParser("duration"))
 	m.InputTime.Parse(parser)
 }
@@ -54,10 +53,10 @@ func (m *Mode) Validate(validator structure.Validator) {
 
 	m.Device.Validate(validator)
 	validator.String("subType", &m.SubType).OneOf(Modes()...)
-	validator.String("eventId", m.EventID).Exists().NotEmpty()
+	validator.String("guid", m.GUID).Exists().NotEmpty()
 	if m.Duration != nil {
 		m.Duration.Validate(validator.WithReference("duration"))
-	} else {
+	} else if m.SubType != LoopMode {
 		validator.WithReference("duration").ReportError(structureValidator.ErrorValueNotExists())
 	}
 	if m.InputTime.InputTime != nil {

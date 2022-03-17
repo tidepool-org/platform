@@ -23,7 +23,6 @@ type Biphasic struct {
 	normal.Normal `bson:",inline"`
 
 	Part        *string      `json:"part,omitempty" bson:"part,omitempty"`
-	EventID     *string      `json:"eventId,omitempty" bson:"eventId,omitempty"`
 	LinkedBolus *LinkedBolus `json:"linkedBolus,omitempty" bson:"linkedBolus,omitempty"`
 }
 
@@ -41,7 +40,6 @@ func (b *Biphasic) Parse(parser structure.ObjectParser) {
 	b.Normal.Parse(parser)
 	b.LinkedBolus = ParseLinkedBolus(parser.WithReferenceObjectParser("linkedBolus"))
 	b.Part = parser.String("part")
-	b.EventID = parser.String("eventId")
 }
 
 func (b *Biphasic) Validate(validator structure.Validator) {
@@ -55,7 +53,7 @@ func (b *Biphasic) Validate(validator structure.Validator) {
 		validator.String("subType", &b.SubType).EqualTo(SubType)
 	}
 	validator.String("part", b.Part).Exists().NotEmpty().OneOf(Parts()...)
-	validator.String("eventId", b.EventID).Exists().NotEmpty()
+	validator.String("guid", b.GUID).Exists().NotEmpty()
 	if b.LinkedBolus != nil {
 		b.LinkedBolus.Validate(validator)
 	}

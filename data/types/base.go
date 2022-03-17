@@ -99,6 +99,10 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	b.DeviceTime = parser.String("deviceTime")
 	b.ID = parser.String("id")
 	b.GUID = parser.String("guid")
+	// Mapping eventId field to guid
+	if b.GUID == nil || *b.GUID == "" {
+		b.GUID = parser.String("eventId")
+	}
 	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
 	b.Notes = parser.StringArray("notes")
 	b.Origin = origin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
