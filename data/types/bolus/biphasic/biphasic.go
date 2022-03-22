@@ -23,6 +23,7 @@ type Biphasic struct {
 	normal.Normal `bson:",inline"`
 
 	Part        *string      `json:"part,omitempty" bson:"part,omitempty"`
+	BiphasicID  *string      `json:"biphasicId,omitempty" bson:"biphasicId,omitempty"`
 	LinkedBolus *LinkedBolus `json:"linkedBolus,omitempty" bson:"linkedBolus,omitempty"`
 }
 
@@ -40,6 +41,18 @@ func (b *Biphasic) Parse(parser structure.ObjectParser) {
 	b.Normal.Parse(parser)
 	b.LinkedBolus = ParseLinkedBolus(parser.WithReferenceObjectParser("linkedBolus"))
 	b.Part = parser.String("part")
+
+	b.BiphasicID = parser.String("biphasicId")
+	// In old data model eventId field was used in order to link the two parts of the bolus
+	// We now use biphasicId field for this purpose
+	if b.BiphasicID == nil || *b.BiphasicID == "" {
+		// injecting eventId field from the payload into BiphasicID
+		b.BiphasicID = parser.String("eventId")
+		// re-injecting guid field from the payload into GUID
+		// because of base type parsing (see Parse method in data/types/base.go)
+		// that injects eventId when guid is not defined
+		b.GUID = parser.String("guid")
+	}
 }
 
 func (b *Biphasic) Validate(validator structure.Validator) {
@@ -53,7 +66,7 @@ func (b *Biphasic) Validate(validator structure.Validator) {
 		validator.String("subType", &b.SubType).EqualTo(SubType)
 	}
 	validator.String("part", b.Part).Exists().NotEmpty().OneOf(Parts()...)
-	validator.String("guid", b.GUID).Exists().NotEmpty()
+	validator.String("biphasicId", b.BiphasicID).Exists().NotEmpty()
 	if b.LinkedBolus != nil {
 		b.LinkedBolus.Validate(validator)
 	}

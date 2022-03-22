@@ -12,6 +12,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -43,7 +44,52 @@ var _ = Describe("Normal", func() {
 
 	Context("Normal", func() {
 		Context("Parse", func() {
-			// TODO
+			var parsedBase *biphasic.Biphasic
+			It("parses eventId when biphasicId is missing", func() {
+				parsedBase = biphasic.New()
+				object := map[string]interface{}{"eventId": "1234"}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(parsedBase.GUID).To(BeNil())
+				Expect(*parsedBase.BiphasicID).To(Equal("1234"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("parses eventId when biphasicId is empty", func() {
+				parsedBase = biphasic.New()
+				object := map[string]interface{}{"eventId": "1234", "biphasicId": ""}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(parsedBase.GUID).To(BeNil())
+				Expect(*parsedBase.BiphasicID).To(Equal("1234"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("doesn't parses eventId when biphasicId is not empty", func() {
+				parsedBase = biphasic.New()
+				object := map[string]interface{}{"eventId": "1234", "biphasicId": "4567"}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(*parsedBase.GUID).To(Equal("1234"))
+				Expect(*parsedBase.BiphasicID).To(Equal("4567"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("parses biphasicId", func() {
+				parsedBase = biphasic.New()
+				object := map[string]interface{}{"biphasicId": "4567"}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(parsedBase.GUID).To(BeNil())
+				Expect(*parsedBase.BiphasicID).To(Equal("4567"))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+			It("parses without error with empty biphasicId and eventId", func() {
+				parsedBase = biphasic.New()
+				object := map[string]interface{}{}
+				parser := structureParser.NewObject(&object)
+				parsedBase.Parse(parser)
+				Expect(parsedBase.GUID).To(BeNil())
+				Expect(parsedBase.BiphasicID).To(BeNil())
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("Validate", func() {
@@ -100,17 +146,17 @@ var _ = Describe("Normal", func() {
 				),
 				Entry("GUID missing",
 					func(datum *biphasic.Biphasic) {
-						datum.GUID = nil
+						datum.BiphasicID = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/guid", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/biphasicId", NewMeta()),
 				),
 				Entry("Multiple errors",
 					func(datum *biphasic.Biphasic) {
 						datum.Part = nil
-						datum.GUID = nil
+						datum.BiphasicID = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/part", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/guid", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/biphasicId", NewMeta()),
 				),
 			)
 		})
