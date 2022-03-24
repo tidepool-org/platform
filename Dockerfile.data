@@ -1,21 +1,25 @@
 # Development
-FROM golang:1.15-alpine AS development
+FROM --platform=$BUILDPLATFORM golang:1.15-alpine AS development
 ENV GO111MODULE on
 WORKDIR /go/src/github.com/tidepool-org/platform
 RUN apk --no-cache add git make tzdata && \
     apk add --no-cache ca-certificates tzdata && \
     go get github.com/githubnemo/CompileDaemon && \
     adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform && \
     chown -R tidepool /go/pkg/mod 
-USER tidepool
+
 COPY . .
+RUN chown -R tidepool /go/src/github.com/tidepool-org/platform
+
+USER tidepool
 ENV SERVICE=services/data
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
-FROM alpine:latest AS production
+FROM --platform=$BUILDPLATFORM alpine:latest AS production
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
     apk add --no-cache ca-certificates tzdata && \

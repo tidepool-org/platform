@@ -7,5 +7,7 @@ publishNpm: false
 publishOpenapiBucket: com.diabeloop.backloops.docs
 publishSoupBucket: com.diabeloop.backloops.docs
 securityScan: true
-dockerBuildCommand: "docker build -f Dockerfile.data"
+dockerBuild: 
+  platform: 'linux/arm64,linux/amd64'
+  file: 'Dockerfile.data'
 dockerImageName: platform-data

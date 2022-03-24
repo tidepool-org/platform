@@ -139,7 +139,7 @@ build-list:
 
 build:
 	@echo "go build $(BUILD)"
-	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
+	@go mod tidy && cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do $(GO_BUILD_CMD) $${LINE}; done
 
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
@@ -150,6 +150,11 @@ ci-build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
 
 service-build:
+ifeq ($(TARGETPLATFORM),linux/arm64)
+	export GOOS=darwin && export GOARCH=arm64 && export CGO_ENABLED=0
+else
+	export CGO_ENABLED=1
+endif
 ifdef SERVICE
 	@$(MAKE) build BUILD=$${SERVICE}
 endif

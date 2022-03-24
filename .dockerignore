@@ -4,3 +4,6 @@ _tmp/
 debug
 deploy/
 local/
+docs/
+ci-doc/
+soup/

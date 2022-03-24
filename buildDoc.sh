@@ -7,7 +7,7 @@ export GO111MODULE="on"
 
 if [ ! -x "$GOPATH/bin/swag" ]; then
   echo "Getting swag..."
-  go get -u github.com/swaggo/swag/cmd/swag
+  go install github.com/swaggo/swag/cmd/swag
 fi
 
 $GOPATH/bin/swag --version
