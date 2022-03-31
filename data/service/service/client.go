@@ -197,49 +197,10 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (c *Client) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
-	var empty struct{}
-	userIDsReqUpdate := []string{}
-
+func (c *Client) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	summaryRepository := c.dataStore.NewSummaryRepository()
-	dataRepository := c.dataStore.NewDataRepository()
 
-	oldestUpdate, err := summaryRepository.GetOldestUpdate(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	agedUserIDs, err := summaryRepository.GetUsersWithSummariesBefore(ctx, time.Now().Add(-60*time.Minute))
-	if err != nil {
-		return nil, err
-	}
-
-	freshUserIDs, err := dataRepository.GetUsersWithBGDataSince(ctx, *oldestUpdate)
-	if err != nil {
-		return nil, err
-	}
-
-	freshUserMap := make(map[string]struct{})
-	for _, v := range freshUserIDs {
-		freshUserMap[v] = empty
-	}
-
-	for _, userID := range agedUserIDs {
-		if _, exists := freshUserMap[userID]; exists {
-			userIDsReqUpdate = append(userIDsReqUpdate, userID)
-		} else {
-			_, err := summaryRepository.UpdateLastUpdated(ctx, userID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if len(userIDsReqUpdate) >= pagination.Size {
-			break
-		}
-	}
-
-	return userIDsReqUpdate, err
+	return summaryRepository.GetOutdatedUserIDs(ctx, pagination)
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

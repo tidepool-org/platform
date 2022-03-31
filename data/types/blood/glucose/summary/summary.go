@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	lowBloodGlucose  = 3.9
-	highBloodGlucose = 10
-	units            = "mmol/l"
+	lowBloodGlucose      = 3.9
+	veryLowBloodGlucose  = 3.0
+	highBloodGlucose     = 10.0
+	veryHighBloodGlucose = 13.9
+	units                = "mmol/l"
 )
 
 // reimpliment glucose with only the fields we need, to avoid inheriting Base, which does
@@ -28,18 +30,30 @@ type Glucose struct {
 
 type Stats struct {
 	TimeInRange    float64
-	TimeBelowRange float64
-	TimeAboveRange float64
-	TimeCGMUse     float64
-	AverageGlucose float64
-	DeviceID       string
 
-	InRangeMinutes    int64
-	BelowRangeMinutes int64
-	AboveRangeMinutes int64
-	TotalGlucose      float64
-	TotalCGMMinutes   int64
-	TotalRecords      int64
+	TimeBelowRange     float64
+	TimeVeryBelowRange float64
+
+	TimeAboveRange     float64
+	TimeVeryAboveRange float64
+
+	TimeCGMUse           float64
+	AverageGlucose       float64
+	GlucoseMgmtIndicator float64
+
+	DeviceID string
+
+	InRangeMinutes        int64
+
+	BelowRangeMinutes     int64
+	VeryBelowRangeMinutes int64
+
+	AboveRangeMinutes     int64
+	VeryAboveRangeMinutes int64
+
+	TotalGlucose          float64
+	TotalCGMMinutes       int64
+	TotalRecords          int64
 }
 
 func NewStats(deviceId string) *Stats {
@@ -47,8 +61,13 @@ func NewStats(deviceId string) *Stats {
 		DeviceID: deviceId,
 
 		InRangeMinutes:    0,
-		BelowRangeMinutes: 0,
-		AboveRangeMinutes: 0,
+
+		BelowRangeMinutes:     0,
+		VeryBelowRangeMinutes: 0,
+
+		AboveRangeMinutes:     0,
+		VeryAboveRangeMinutes: 0,
+
 		TotalGlucose:      0,
 		TotalCGMMinutes:   0,
 		TotalRecords:      0,
@@ -70,17 +89,24 @@ type Summary struct {
 	UserID string             `json:"userId" bson:"userId"`
 
 	// date tracking
-	LastUpdated *time.Time `json:"lastUpdated" bson:"lastUpdated"`
-	FirstData   *time.Time `json:"firstData,omitempty" bson:"firstData,omitempty"`
-	LastData    *time.Time `json:"lastData,omitempty" bson:"lastData,omitempty"`
-	LastUpload  *time.Time `json:"lastUpload,omitempty" bson:"lastUpload,omitempty"`
+	LastUpdated    *time.Time `json:"lastUpdated" bson:"lastUpdated"`
+	FirstData      *time.Time `json:"firstData,omitempty" bson:"firstData,omitempty"`
+	LastData       *time.Time `json:"lastData,omitempty" bson:"lastData,omitempty"`
+	LastUpload     *time.Time `json:"lastUpload,omitempty" bson:"lastUpload,omitempty"`
+	OutdatedSince  *time.Time `json:"outdatedSince,omitempty" bson:"outdatedSince,omitempty"`
 
 	// actual values
-	AverageGlucose *Glucose `json:"avgGlucose,omitempty" bson:"avgGlucose,omitempty"`
-	TimeInRange    *float64 `json:"timeInRange,omitempty" bson:"timeInRange,omitempty"`
-	TimeBelowRange *float64 `json:"timeBelowRange,omitempty" bson:"timeBelowRange,omitempty"`
-	TimeAboveRange *float64 `json:"timeAboveRange,omitempty" bson:"timeAboveRange,omitempty"`
-	TimeCGMUse     *float64 `json:"timeCGMUse,omitempty" bson:"timeCGMUse,omitempty"`
+	AverageGlucose       *Glucose `json:"avgGlucose,omitempty" bson:"avgGlucose,omitempty"`
+	GlucoseMgmtIndicator *float64 `json:"glucoseMgmtIndicator,omitempty" bson:"glucoseMgmtIndicator,omitempty"`
+	TimeInRange          *float64 `json:"timeInRange,omitempty" bson:"timeInRange,omitempty"`
+
+	TimeBelowRange     *float64 `json:"timeBelowRange,omitempty" bson:"timeBelowRange,omitempty"`
+	TimeVeryBelowRange *float64 `json:"timeVeryBelowRange,omitempty" bson:"timeVeryBelowRange,omitempty"`
+
+	TimeAboveRange     *float64 `json:"timeAboveRange,omitempty" bson:"timeAboveRange,omitempty"`
+	TimeVeryAboveRange *float64 `json:"timeVeryAboveRange,omitempty" bson:"timeVeryAboveRange,omitempty"`
+
+	TimeCGMUse         *float64 `json:"timeCGMUse,omitempty" bson:"timeCGMUse,omitempty"`
 
 	// these are mostly just constants right now.
 	HighGlucoseThreshold *float64 `json:"highGlucoseThreshold,omitempty" bson:"highGlucoseThreshold,omitempty"`
@@ -123,6 +149,13 @@ func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time)
 	return &result, nil
 }
 
+func CalculateGMI(averageGlucose float64) float64 {
+	gmi := 12.71 + 4.70587 * averageGlucose
+	gmi = (0.09148*gmi) + 2.152
+	gmi = math.Round(gmi*100)/100
+	return gmi
+}
+
 func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64) *Stats {
 	stats := make(map[string]*Stats)
 	var winningStats *Stats
@@ -145,7 +178,11 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(units))
 		duration = GetDuration(r)
 
-		if normalizedValue <= lowBloodGlucose {
+		if normalizedValue <= veryLowBloodGlucose {
+			stats[deviceId].VeryBelowRangeMinutes += duration
+		} else if normalizedValue >= veryHighBloodGlucose {
+			stats[deviceId].VeryAboveRangeMinutes += duration
+		} else if normalizedValue <= lowBloodGlucose {
 			stats[deviceId].BelowRangeMinutes += duration
 		} else if normalizedValue >= highBloodGlucose {
 			stats[deviceId].AboveRangeMinutes += duration
@@ -162,13 +199,18 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 		stats[deviceId].AverageGlucose = stats[deviceId].TotalGlucose / float64(stats[deviceId].TotalRecords)
 		stats[deviceId].TimeInRange = float64(stats[deviceId].InRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeBelowRange = float64(stats[deviceId].BelowRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
+		stats[deviceId].TimeVeryBelowRange = float64(stats[deviceId].VeryBelowRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeAboveRange = float64(stats[deviceId].AboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
+		stats[deviceId].TimeVeryAboveRange = float64(stats[deviceId].VeryAboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeCGMUse = float64(stats[deviceId].TotalCGMMinutes) / totalWallMinutes
 
 		stats[deviceId].TimeInRange = math.Round(stats[deviceId].TimeInRange*100) / 100
 		stats[deviceId].TimeBelowRange = math.Round(stats[deviceId].TimeBelowRange*100) / 100
+		stats[deviceId].TimeVeryBelowRange = math.Round(stats[deviceId].TimeVeryBelowRange*100) / 100
 		stats[deviceId].TimeAboveRange = math.Round(stats[deviceId].TimeAboveRange*100) / 100
+		stats[deviceId].TimeVeryAboveRange = math.Round(stats[deviceId].TimeVeryAboveRange*100) / 100
 		stats[deviceId].TimeCGMUse = math.Round(stats[deviceId].TimeCGMUse*1000) / 1000
+		stats[deviceId].GlucoseMgmtIndicator = CalculateGMI(stats[deviceId].AverageGlucose)
 		stats[deviceId].AverageGlucose = math.Round(stats[deviceId].AverageGlucose*100) / 100
 
 		if winningStats != nil {
@@ -202,12 +244,24 @@ func ReweightStats(stats *Stats, userSummary *Summary, weight float64) (*Stats, 
 			stats.TimeBelowRange = stats.TimeBelowRange*weight + *userSummary.TimeBelowRange*(1-weight)
 		}
 
+		if userSummary.TimeVeryBelowRange != nil {
+			stats.TimeVeryBelowRange = stats.TimeVeryBelowRange*weight + *userSummary.TimeVeryBelowRange*(1-weight)
+		}
+
 		if userSummary.TimeAboveRange != nil {
 			stats.TimeAboveRange = stats.TimeAboveRange*weight + *userSummary.TimeAboveRange*(1-weight)
 		}
 
+		if userSummary.TimeVeryAboveRange != nil {
+			stats.TimeVeryAboveRange = stats.TimeVeryAboveRange*weight + *userSummary.TimeVeryAboveRange*(1-weight)
+		}
+
 		if userSummary.TimeCGMUse != nil {
 			stats.TimeCGMUse = stats.TimeCGMUse*weight + *userSummary.TimeCGMUse*(1-weight)
+		}
+
+		if userSummary.GlucoseMgmtIndicator != nil {
+			stats.GlucoseMgmtIndicator = stats.GlucoseMgmtIndicator*weight + *userSummary.GlucoseMgmtIndicator*(1-weight)
 		}
 	}
 

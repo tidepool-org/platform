@@ -121,14 +121,14 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) error {
 	t.validator = structureValidator.New()
 
 	t.logger.Info("Searching for User Summaries requiring Update")
-	agedSummaryUserIDs, err := t.dataClient.GetAgedUserIDs(t.context, nil)
+	outdatedSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, nil)
 	if err != nil {
 		return err
 	}
 
 	t.logger.Debug("Starting User Summary Update")
 
-	if err := t.UpdateSummaries(agedSummaryUserIDs); err != nil {
+	if err := t.UpdateSummaries(outdatedSummaryUserIDs); err != nil {
 		return err
 	}
 

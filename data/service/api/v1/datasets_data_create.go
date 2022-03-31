@@ -91,11 +91,16 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	hasCGMData := false
+
 	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
+		if dataSet.Type == "cbg" {
+			hasCGMData = true
+		}
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -107,6 +112,13 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataRepository(), dataSet, datumArray); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
+	}
+
+	if hasCGMData {
+		_, err = dataServiceContext.SummaryRepository().SetOutdated(ctx, *dataSet.UserID)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set summary outdated")
+		}
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {

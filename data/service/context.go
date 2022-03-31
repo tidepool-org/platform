@@ -22,6 +22,7 @@ type Context interface {
 	DataDeduplicatorFactory() deduplicator.Factory
 
 	DataRepository() dataStore.DataRepository
+	SummaryRepository() dataStore.SummaryRepository
 	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 
 	DataClient() dataClient.Client

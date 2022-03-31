@@ -70,10 +70,9 @@ type SummaryRepository interface {
 	EnsureIndexes() error
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
+	SetOutdated(ctx context.Context, id string) (*time.Time, error)
+	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error)
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
-	GetUsersWithSummariesBefore(ctx context.Context, lastUpdated time.Time) ([]string, error)
-	GetOldestUpdate(ctx context.Context) (*time.Time, error)
-	UpdateLastUpdated(ctx context.Context, id string) (*time.Time, error)
 	DistinctSummaryIDs(ctx context.Context) ([]string, error)
 	CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int64, error)
 }

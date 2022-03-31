@@ -26,7 +26,7 @@ type Client interface {
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
-	GetAgedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context) (int64, error)
 }
 
@@ -169,7 +169,7 @@ func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (c *ClientImpl) GetAgedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	url := c.client.ConstructURL("v1", "summaries")
 
 	if pagination == nil {
