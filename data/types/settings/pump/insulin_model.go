@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	InsulinModelActionDelayMaximum          = 86400
+	InsulinModelActionDelayMinimum          = 0
 	InsulinModelActionDurationMaximum       = 86400
 	InsulinModelActionDurationMinimum       = 0
 	InsulinModelActionPeakOffsetMaximum     = InsulinModelActionDurationMaximum
@@ -30,6 +32,7 @@ func InsulinModelModelTypes() []string {
 type InsulinModel struct {
 	ModelType        *string `json:"modelType,omitempty" bson:"modelType,omitempty"`
 	ModelTypeOther   *string `json:"modelTypeOther,omitempty" bson:"modelTypeOther,omitempty"`
+	ActionDelay      *int    `json:"actionDelay,omitempty" bson:"actionDelay,omitempty"`
 	ActionDuration   *int    `json:"actionDuration,omitempty" bson:"actionDuration,omitempty"`
 	ActionPeakOffset *int    `json:"actionPeakOffset,omitempty" bson:"actionPeakOffset,omitempty"`
 }
@@ -50,6 +53,7 @@ func NewInsulinModel() *InsulinModel {
 func (i *InsulinModel) Parse(parser structure.ObjectParser) {
 	i.ModelType = parser.String("modelType")
 	i.ModelTypeOther = parser.String("modelTypeOther")
+	i.ActionDelay = parser.Int("actionDelay")
 	i.ActionDuration = parser.Int("actionDuration")
 	i.ActionPeakOffset = parser.Int("actionPeakOffset")
 }
@@ -61,6 +65,7 @@ func (i *InsulinModel) Validate(validator structure.Validator) {
 	} else {
 		validator.String("modelTypeOther", i.ModelTypeOther).NotExists()
 	}
+	validator.Int("actionDelay", i.ActionDelay).InRange(InsulinModelActionDelayMinimum, InsulinModelActionDelayMaximum)
 	validator.Int("actionDuration", i.ActionDuration).InRange(InsulinModelActionDurationMinimum, InsulinModelActionDurationMaximum)
 	actionPeakOffsetValidator := validator.Int("actionPeakOffset", i.ActionPeakOffset)
 	if i.ActionDuration != nil && *i.ActionDuration >= InsulinModelActionDurationMinimum && *i.ActionDuration <= InsulinModelActionDurationMaximum {

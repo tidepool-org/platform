@@ -15,10 +15,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -143,7 +143,7 @@ func NewListDatabases(filter bsoncore.Document) *ListDatabases {
 // Result returns the result of executing this operation.
 func (ld *ListDatabases) Result() ListDatabasesResult { return ld.result }
 
-func (ld *ListDatabases) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
+func (ld *ListDatabases) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, _ int) error {
 	var err error
 
 	ld.result, err = buildListDatabasesResult(response, srvr)

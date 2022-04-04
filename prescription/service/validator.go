@@ -3,6 +3,11 @@ package service
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/structure"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/tidepool-org/platform/guardrails"
 
 	devicesApi "github.com/tidepool-org/devices/api"
@@ -10,7 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/prescription"
-	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type DeviceSettingsValidator interface {
@@ -32,20 +37,27 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 		return nil
 	}
 
-	if settings.CgmID != "" {
+	if settings.CgmID != nil {
 		// Make sure the referenced CGM exists
-		_, err := d.devicesClient.GetCgmById(ctx, &devicesApi.GetCgmByIdRequest{Id: settings.CgmID})
-		if err != nil {
+		_, err := d.devicesClient.GetCgmById(ctx, &devicesApi.GetCgmByIdRequest{Id: *settings.CgmID})
+		if isNotFoundError(err) {
+			validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueNotValid())
+			return nil
+		} else if err != nil {
 			return err
 		}
 	}
+
 	// Only verify the settings if a pump has been selected.
-	if settings.PumpID == "" {
+	if settings.PumpID == nil {
 		return nil
 	}
 
-	response, err := d.devicesClient.GetPumpById(ctx, &devicesApi.GetPumpByIdRequest{Id: settings.PumpID})
-	if err != nil {
+	response, err := d.devicesClient.GetPumpById(ctx, &devicesApi.GetPumpByIdRequest{Id: *settings.PumpID})
+	if isNotFoundError(err) {
+		validator.WithReference("pumpId").ReportError(structureValidator.ErrorValueNotValid())
+		return nil
+	} else if err != nil {
 		return err
 	}
 
@@ -88,6 +100,18 @@ func (d *deviceSettingsValidator) Validate(ctx context.Context, settings *prescr
 	}
 
 	return nil
+}
+
+func isNotFoundError(err error) bool {
+	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			switch e.Code() {
+			case codes.NotFound:
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func canValidatePrescriptionSettings(settings *prescription.InitialSettings, guardRails *devicesApi.GuardRails) bool {

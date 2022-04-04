@@ -37,6 +37,10 @@ func NewKafkaCloudEventsProducerForDeadLetters(config *CloudEventsConfig) (*Kafk
 }
 
 func newKafkaCloudEventsProducerWithTopic(config *CloudEventsConfig, topic string) (*KafkaCloudEventsProducer, error) {
+	// We are using a sync producer which requires setting the variables below
+	config.SaramaConfig.Producer.Return.Errors = true
+	config.SaramaConfig.Producer.Return.Successes = true
+	
 	sender, err := kafka_sarama.NewSender(config.KafkaBrokers, config.SaramaConfig, topic)
 	if err != nil {
 		return nil, err

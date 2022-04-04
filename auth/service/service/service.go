@@ -2,6 +2,10 @@ package service
 
 import (
 	"context"
+	"net/http"
+	"time"
+
+	"github.com/tidepool-org/platform/apple"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -37,6 +41,7 @@ type Service struct {
 	providerFactory   provider.Factory
 	authClient        *Client
 	userEventsHandler events.Runner
+	deviceCheck       apple.DeviceCheck
 }
 
 func New() *Service {
@@ -83,6 +88,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthClient(); err != nil {
 		return err
 	}
+	if err := s.initializeDeviceCheck(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -116,6 +124,10 @@ func (s *Service) TaskClient() task.Client {
 
 func (s *Service) ProviderFactory() provider.Factory {
 	return s.providerFactory
+}
+
+func (s *Service) DeviceCheck() apple.DeviceCheck {
+	return s.deviceCheck
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -340,6 +352,23 @@ func (s *Service) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize events runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Service) initializeDeviceCheck() error {
+	s.Logger().Debug("Initializing device check")
+
+	cfg := apple.NewDeviceCheckConfig()
+	if err := cfg.Load(); err != nil {
+		s.Logger().Errorf("error loading device check config: %v", err)
+		return err
+	}
+
+	httpClient := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+	s.deviceCheck = apple.NewDeviceCheck(cfg, httpClient)
 
 	return nil
 }

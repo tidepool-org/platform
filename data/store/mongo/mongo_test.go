@@ -72,7 +72,7 @@ func NewLegacyDataSet(userID string, deviceID string) *dataTypesUploadTest.Legac
 func NewDataSetData(deviceID string) data.Data {
 	dataSetData := data.Data{}
 	for count := 0; count < test.RandomIntFromRange(4, 6); count++ {
-		datum := dataTypesTest.NewBase()
+		datum := dataTypesTest.RandomBase()
 		datum.Active = false
 		datum.ArchivedDataSetID = nil
 		datum.ArchivedTime = nil
@@ -318,6 +318,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("ensure string legacy dates are unmarshalled correctly", func() {
+						legacyUpload.Time = legacyUpload.CreatedTime
 						legacyUpload.Time = pointer.FromString(recordTime.Format(time.RFC3339Nano))
 						legacyUpload.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339Nano))
 						legacyUpload.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))

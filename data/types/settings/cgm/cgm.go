@@ -2,6 +2,7 @@ package cgm
 
 import (
 	"regexp"
+	"sort"
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -14,21 +15,29 @@ import (
 const (
 	Type = "cgmSettings"
 
+	FirmwareVersionLengthMaximum  = 100
+	HardwareVersionLengthMaximum  = 100
 	ManufacturerLengthMaximum     = 100
 	ManufacturersLengthMaximum    = 10
 	ModelLengthMaximum            = 100
+	NameLengthMaximum             = 100
 	SerialNumberLengthMaximum     = 100
+	SoftwareVersionLengthMaximum  = 100
 	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
 )
 
 type CGM struct {
 	dataTypes.Base `bson:",inline"`
 
-	Manufacturers *[]string `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
-	Model         *string   `json:"model,omitempty" bson:"model,omitempty"`
-	SerialNumber  *string   `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	TransmitterID *string   `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
-	Units         *string   `json:"units,omitempty" bson:"units,omitempty"`
+	FirmwareVersion *string   `json:"firmwareVersion,omitempty" bson:"firmwareVersion,omitempty"`
+	HardwareVersion *string   `json:"hardwareVersion,omitempty" bson:"hardwareVersion,omitempty"`
+	Manufacturers   *[]string `json:"manufacturers,omitempty" bson:"manufacturers,omitempty"`
+	Model           *string   `json:"model,omitempty" bson:"model,omitempty"`
+	Name            *string   `json:"name,omitempty" bson:"name,omitempty"`
+	SerialNumber    *string   `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	SoftwareVersion *string   `json:"softwareVersion,omitempty" bson:"softwareVersion,omitempty"`
+	TransmitterID   *string   `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
+	Units           *string   `json:"units,omitempty" bson:"units,omitempty"`
 
 	DefaultAlerts   *Alerts          `json:"defaultAlerts,omitempty" bson:"defaultAlerts,omitempty"`
 	ScheduledAlerts *ScheduledAlerts `json:"scheduledAlerts,omitempty" bson:"scheduledAlerts,omitempty"`
@@ -53,9 +62,13 @@ func (c *CGM) Parse(parser structure.ObjectParser) {
 
 	c.Base.Parse(parser)
 
+	c.FirmwareVersion = parser.String("firmwareVersion")
+	c.HardwareVersion = parser.String("hardwareVersion")
 	c.Manufacturers = parser.StringArray("manufacturers")
 	c.Model = parser.String("model")
+	c.Name = parser.String("name")
 	c.SerialNumber = parser.String("serialNumber")
+	c.SoftwareVersion = parser.String("softwareVersion")
 	c.TransmitterID = parser.String("transmitterId")
 	c.Units = parser.String("units")
 
@@ -79,11 +92,15 @@ func (c *CGM) Validate(validator structure.Validator) {
 		validator.String("type", &c.Type).EqualTo(Type)
 	}
 
+	validator.String("firmwareVersion", c.FirmwareVersion).NotEmpty().LengthLessThanOrEqualTo(FirmwareVersionLengthMaximum)
+	validator.String("hardwareVersion", c.HardwareVersion).NotEmpty().LengthLessThanOrEqualTo(HardwareVersionLengthMaximum)
 	validator.StringArray("manufacturers", c.Manufacturers).NotEmpty().LengthLessThanOrEqualTo(ManufacturersLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(ManufacturerLengthMaximum)
 	}).EachUnique()
 	validator.String("model", c.Model).NotEmpty().LengthLessThanOrEqualTo(ModelLengthMaximum)
+	validator.String("name", c.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
+	validator.String("softwareVersion", c.SoftwareVersion).NotEmpty().LengthLessThanOrEqualTo(SoftwareVersionLengthMaximum)
 	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("units", c.Units).OneOf(dataBloodGlucose.Units()...) // FUTURE: Use locally defined Units
 
@@ -118,6 +135,10 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	units := c.Units
 
 	if normalizer.Origin() == structure.OriginExternal {
+		if c.Manufacturers != nil {
+			sort.Strings(*c.Manufacturers)
+		}
+
 		c.Units = dataBloodGlucose.NormalizeUnits(c.Units) // FUTURE: Do not normalize units after deprecated fields deleted
 	}
 

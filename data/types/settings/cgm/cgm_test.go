@@ -1,6 +1,8 @@
 package cgm_test
 
 import (
+	"sort"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -30,6 +32,14 @@ var _ = Describe("CGM", func() {
 		Expect(dataTypesSettingsCgm.Type).To(Equal("cgmSettings"))
 	})
 
+	It("FirmwareVersionLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.FirmwareVersionLengthMaximum).To(Equal(100))
+	})
+
+	It("HardwareVersionLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.HardwareVersionLengthMaximum).To(Equal(100))
+	})
+
 	It("ManufacturerLengthMaximum is expected", func() {
 		Expect(dataTypesSettingsCgm.ManufacturerLengthMaximum).To(Equal(100))
 	})
@@ -42,8 +52,16 @@ var _ = Describe("CGM", func() {
 		Expect(dataTypesSettingsCgm.ModelLengthMaximum).To(Equal(100))
 	})
 
+	It("NameLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.NameLengthMaximum).To(Equal(100))
+	})
+
 	It("SerialNumberLengthMaximum is expected", func() {
 		Expect(dataTypesSettingsCgm.SerialNumberLengthMaximum).To(Equal(100))
+	})
+
+	It("SoftwareVersionLengthMaximum is expected", func() {
+		Expect(dataTypesSettingsCgm.SoftwareVersionLengthMaximum).To(Equal(100))
 	})
 
 	It("TransmitterIDExpressionString is expected", func() {
@@ -55,9 +73,13 @@ var _ = Describe("CGM", func() {
 			datum := dataTypesSettingsCgm.New()
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("cgmSettings"))
+			Expect(datum.FirmwareVersion).To(BeNil())
+			Expect(datum.HardwareVersion).To(BeNil())
 			Expect(datum.Manufacturers).To(BeNil())
 			Expect(datum.Model).To(BeNil())
+			Expect(datum.Name).To(BeNil())
 			Expect(datum.SerialNumber).To(BeNil())
+			Expect(datum.SoftwareVersion).To(BeNil())
 			Expect(datum.TransmitterID).To(BeNil())
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.DefaultAlerts).To(BeNil())
@@ -98,6 +120,50 @@ var _ = Describe("CGM", func() {
 				Entry("type cgmSettings",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Type = "cgmSettings" },
+				),
+				Entry("firmware version missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.FirmwareVersion = nil },
+				),
+				Entry("firmware version empty",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.FirmwareVersion = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/firmwareVersion", NewMeta()),
+				),
+				Entry("firmware version length in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.FirmwareVersion = pointer.FromString(test.RandomStringFromRange(1, 100))
+					},
+				),
+				Entry("firmware version length out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.FirmwareVersion = pointer.FromString(test.RandomStringFromRange(101, 101))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/firmwareVersion", NewMeta()),
+				),
+				Entry("hardware version missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.HardwareVersion = nil },
+				),
+				Entry("hardware version empty",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.HardwareVersion = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/hardwareVersion", NewMeta()),
+				),
+				Entry("hardware version length in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.HardwareVersion = pointer.FromString(test.RandomStringFromRange(1, 100))
+					},
+				),
+				Entry("hardware version length out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.HardwareVersion = pointer.FromString(test.RandomStringFromRange(101, 101))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/hardwareVersion", NewMeta()),
 				),
 				Entry("manufacturers missing",
 					pointer.FromString("mmol/L"),
@@ -168,6 +234,28 @@ var _ = Describe("CGM", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/model", NewMeta()),
 				),
+				Entry("name missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Name = nil },
+				),
+				Entry("name empty",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.Name = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", NewMeta()),
+				),
+				Entry("name length in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Name = pointer.FromString(test.RandomStringFromRange(1, 100))
+					},
+				),
+				Entry("name length out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.Name = pointer.FromString(test.RandomStringFromRange(101, 101))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/name", NewMeta()),
+				),
 				Entry("serial number missing",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.SerialNumber = nil },
@@ -189,6 +277,28 @@ var _ = Describe("CGM", func() {
 						datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/serialNumber", NewMeta()),
+				),
+				Entry("software version missing",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.SoftwareVersion = nil },
+				),
+				Entry("software version empty",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.SoftwareVersion = pointer.FromString("") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/softwareVersion", NewMeta()),
+				),
+				Entry("software version length in range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.SoftwareVersion = pointer.FromString(test.RandomStringFromRange(1, 100))
+					},
+				),
+				Entry("software version length out of range (upper)",
+					pointer.FromString("mmol/L"),
+					func(datum *dataTypesSettingsCgm.CGM, units *string) {
+						datum.SoftwareVersion = pointer.FromString(test.RandomStringFromRange(101, 101))
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/softwareVersion", NewMeta()),
 				),
 				Entry("transmitted id missing",
 					pointer.FromString("mmol/L"),
@@ -334,9 +444,13 @@ var _ = Describe("CGM", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {
 						datum.Type = "invalidType"
+						datum.FirmwareVersion = pointer.FromString("")
+						datum.HardwareVersion = pointer.FromString("")
 						datum.Manufacturers = pointer.FromStringArray([]string{})
 						datum.Model = pointer.FromString("")
+						datum.Name = pointer.FromString("")
 						datum.SerialNumber = pointer.FromString("")
+						datum.SoftwareVersion = pointer.FromString("")
 						datum.TransmitterID = pointer.FromString("")
 						datum.Units = pointer.FromString("invalid")
 						datum.DefaultAlerts.Enabled = nil
@@ -347,9 +461,13 @@ var _ = Describe("CGM", func() {
 						datum.RateAlerts.FallRateAlert = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "cgmSettings"), "/type", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/firmwareVersion", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/hardwareVersion", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/manufacturers", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/model", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/softwareVersion", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/defaultAlerts/enabled", &dataTypes.Meta{Type: "invalidType"}),
@@ -382,24 +500,28 @@ var _ = Describe("CGM", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 					},
 				),
 				Entry("modifies the datum; units missing",
 					nil,
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 					},
 				),
 				Entry("modifies the datum; units invalid",
 					pointer.FromString("invalid"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 					},
 				),
 				Entry("modifies the datum; units mmol/L",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 					},
 				),
 				Entry("modifies the datum; units mmol/l",
@@ -407,12 +529,14 @@ var _ = Describe("CGM", func() {
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						sort.Strings(*expectedDatum.Manufacturers)
 					},
 				),
 				Entry("modifies the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)
@@ -424,6 +548,7 @@ var _ = Describe("CGM", func() {
 					pointer.FromString("mg/dl"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) {},
 					func(datum *dataTypesSettingsCgm.CGM, expectedDatum *dataTypesSettingsCgm.CGM, units *string) {
+						sort.Strings(*expectedDatum.Manufacturers)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.HighLevelAlert.Level, expectedDatum.HighLevelAlert.Level, units)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.LowLevelAlert.Level, expectedDatum.LowLevelAlert.Level, units)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.RateAlerts.FallRateAlert.Rate, expectedDatum.RateAlerts.FallRateAlert.Rate, units)

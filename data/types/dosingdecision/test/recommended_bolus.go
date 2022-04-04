@@ -20,3 +20,14 @@ func CloneRecommendedBolus(datum *dataTypesDosingDecision.RecommendedBolus) *dat
 	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	return clone
 }
+
+func NewObjectFromRecommendedBolus(datum *dataTypesDosingDecision.RecommendedBolus, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.Amount != nil {
+		object["amount"] = test.NewObjectFromFloat64(*datum.Amount, objectFormat)
+	}
+	return object
+}

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/apple"
+
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
@@ -18,6 +20,7 @@ type Service interface {
 	ProviderFactory() provider.Factory
 
 	TaskClient() task.Client
+	DeviceCheck() apple.DeviceCheck
 
 	Status(context.Context) *Status
 }

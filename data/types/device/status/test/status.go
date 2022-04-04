@@ -12,7 +12,7 @@ import (
 
 func NewStatus() *status.Status {
 	datum := status.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "status"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(status.DurationMinimum, math.MaxInt32))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, math.MaxInt32))

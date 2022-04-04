@@ -56,7 +56,7 @@ var _ = Describe("Device", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *device.Device), expectedErrors ...error) {
-					datum := dataTypesDeviceTest.NewDevice()
+					datum := dataTypesDeviceTest.RandomDevice()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -96,7 +96,7 @@ var _ = Describe("Device", func() {
 			var datum *device.Device
 
 			BeforeEach(func() {
-				datum = dataTypesDeviceTest.NewDevice()
+				datum = dataTypesDeviceTest.RandomDevice()
 			})
 
 			It("returns error if user id is missing", func() {

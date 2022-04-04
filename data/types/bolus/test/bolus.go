@@ -8,7 +8,7 @@ import (
 
 func NewBolus() *bolus.Bolus {
 	datum := &bolus.Bolus{}
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "bolus"
 	datum.SubType = dataTypesTest.NewType()
 	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
