@@ -34,7 +34,7 @@ func NewManufacturers(minimumLength int, maximumLength int) []string {
 }
 
 func NewPump(unitsBloodGlucose *string) *pump.Pump {
-	scheduleName := dataTypesBasalTest.NewScheduleName()
+	scheduleName := dataTypesBasalTest.RandomScheduleName()
 	datum := pump.New()
 	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "pumpSettings"
@@ -54,7 +54,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.Display = NewDisplay()
 	datum.FirmwareVersion = pointer.FromString(test.RandomStringFromRange(1, pump.FirmwareVersionLengthMaximum))
 	datum.HardwareVersion = pointer.FromString(test.RandomStringFromRange(1, pump.HardwareVersionLengthMaximum))
-	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
+	datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
 	datum.InsulinModel = RandomInsulinModel()
 	datum.InsulinSensitivitySchedules = pump.NewInsulinSensitivityStartArrayMap()
 	datum.InsulinSensitivitySchedules.Set(scheduleName, NewInsulinSensitivityStartArray(unitsBloodGlucose))

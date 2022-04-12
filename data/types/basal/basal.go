@@ -11,6 +11,8 @@ import (
 
 const (
 	Type = "basal"
+
+	ScheduleNameLengthMaximum = 1000
 )
 
 type Basal struct {

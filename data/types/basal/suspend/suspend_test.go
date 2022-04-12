@@ -32,11 +32,11 @@ func NewMeta() interface{} {
 
 func NewSuspend() *suspend.Suspend {
 	datum := suspend.New()
-	datum.Basal = *dataTypesBasalTest.NewBasal()
+	datum.Basal = *dataTypesBasalTest.RandomBasal()
 	datum.DeliveryType = "suspend"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(suspend.DurationMinimum, suspend.DurationMaximum))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, suspend.DurationMaximum))
-	datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalScheduledTest.NewSuppressedScheduled())
+	datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalScheduledTest.RandomSuppressedScheduled())
 	return datum
 }
 
@@ -303,35 +303,34 @@ var _ = Describe("Suspend", func() {
 				),
 				Entry("suppressed automated",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = dataTypesBasalAutomatedTest.NewSuppressedAutomated()
+						datum.Suppressed = dataTypesBasalAutomatedTest.RandomSuppressedAutomated()
 					},
 				),
 				Entry("suppressed scheduled",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = dataTypesBasalScheduledTest.NewSuppressedScheduled()
+						datum.Suppressed = dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 					},
 				),
 				Entry("suppressed temporary with suppressed missing",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil)
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil)
 					},
 				),
 				Entry("suppressed temporary with suppressed automated",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalAutomatedTest.NewSuppressedAutomated())
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalAutomatedTest.RandomSuppressedAutomated())
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
 				),
 				Entry("suppressed temporary with suppressed scheduled",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalScheduledTest.NewSuppressedScheduled())
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalScheduledTest.RandomSuppressedScheduled())
 					},
 				),
 				Entry("suppressed temporary with suppressed temporary with suppressed missing",
 					func(datum *suspend.Suspend) {
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil))
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil))
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotValid(), "/suppressed/suppressed", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *suspend.Suspend) {
@@ -339,13 +338,13 @@ var _ = Describe("Suspend", func() {
 						datum.DeliveryType = "invalidDeliveryType"
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(604800001)
-						datum.Suppressed = dataTypesBasalTemporaryTest.NewSuppressedTemporary(dataTypesBasalTemporaryTest.NewSuppressedTemporary(nil))
+						datum.Suppressed = dataTypesBasalTemporaryTest.RandomSuppressedTemporary(dataTypesBasalTemporaryTest.RandomSuppressedTemporary(nil))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "basal"), "/type", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidDeliveryType", "suspend"), "/deliveryType", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/suppressed/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotValid(), "/suppressed/suppressed", &basal.Meta{Type: "invalidType", DeliveryType: "invalidDeliveryType"}),
 				),
 			)
 		})

@@ -107,7 +107,7 @@ var _ = Describe("Pump", func() {
 				Entry("active schedule name valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.ActiveScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
+						datum.ActiveScheduleName = pointer.FromString(dataTypesBasalTest.RandomScheduleName())
 					},
 				),
 				Entry("automated delivery missing",
@@ -400,7 +400,7 @@ var _ = Describe("Pump", func() {
 				Entry("insulin formulation valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.InsulinFormulation = dataTypesInsulinTests.NewFormulation(3)
+						datum.InsulinFormulation = dataTypesInsulinTests.RandomFormulation(3)
 					},
 				),
 				Entry("insulin model missing",
