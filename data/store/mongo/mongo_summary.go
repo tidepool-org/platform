@@ -92,8 +92,8 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 	}
 
 	projection := bson.D{
-		{"userId", 1},
-		{"_id", 0},
+		{Key: "userId", Value: 1},
+		{Key: "_id", Value: 0},
 	}
 	opts := options.Find().SetProjection(projection)
 	opts.SetSort(bson.D{{Key: "outdatedSince", Value: 1}})
@@ -165,7 +165,7 @@ func (d *SummaryRepository) SetOutdated(ctx context.Context, id string) (*time.T
 
 	err := d.FindOne(ctx, selector).Decode(&summary)
 
-    if err != nil && err != mongo.ErrNoDocuments {
+	if err != nil && err != mongo.ErrNoDocuments {
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
