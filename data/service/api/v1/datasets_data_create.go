@@ -91,15 +91,15 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	hasCGMData := false
+	updatesSummary := false
 
 	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		if dataSet.Type == "cbg" {
-			hasCGMData = true
+		if datum.UpdatesSummary() {
+			updatesSummary = true
 		}
 	}
 
@@ -114,7 +114,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if hasCGMData {
+	if updatesSummary {
 		_, err = dataServiceContext.SummaryRepository().SetOutdated(ctx, *dataSet.UserID)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set summary outdated")

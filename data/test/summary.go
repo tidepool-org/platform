@@ -14,7 +14,9 @@ func RandomSummary() *summary.Summary {
 	datum.LastData = pointer.FromTime(test.RandomTime())
 	datum.TimeInRange = pointer.FromFloat64(test.RandomFloat64FromRange(0, 1))
 	datum.TimeBelowRange = pointer.FromFloat64(test.RandomFloat64FromRange(0, 1))
+	datum.TimeVeryBelowRange = pointer.FromFloat64(test.RandomFloat64FromRange(0, 1))
 	datum.TimeAboveRange = pointer.FromFloat64(test.RandomFloat64FromRange(0, 1))
+	datum.TimeVeryAboveRange = pointer.FromFloat64(test.RandomFloat64FromRange(0, 1))
 	datum.LowGlucoseThreshold = pointer.FromFloat64(test.RandomFloat64FromRange(0, 5))
 	datum.HighGlucoseThreshold = pointer.FromFloat64(test.RandomFloat64FromRange(5, 20))
 

@@ -969,32 +969,6 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	return &status, nil
 }
 
-func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {
-	var userIDs []string
-
-	if ctx == nil {
-		return userIDs, errors.New("context is missing")
-	}
-
-	selector := bson.M{
-		"time":    bson.M{"$gte": lastUpdated.Format(time.RFC3339Nano)},
-		"type":    "cbg",
-		"_active": true,
-		"_userId": bson.M{"$ne": -1111},
-	}
-
-	result, err := d.Distinct(ctx, "_userId", selector)
-	if err != nil {
-		return userIDs, errors.New("error fetching recently updated userIDs")
-	}
-
-	for _, v := range result {
-		userIDs = append(userIDs, v.(string))
-	}
-
-	return userIDs, nil
-}
-
 func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
 	var userIDs []string
 

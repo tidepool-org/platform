@@ -69,18 +69,11 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	userSummary, err := summaryRepository.GetSummary(ctx, id)
 	if err != nil {
 		return nil, err
-	} else if userSummary == nil {
-		// check to ensure the user has data
-		status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-
-		userSummary = summary.New(id)
 	}
 
 	timestamp := time.Now().UTC()
 	userSummary.LastUpdated = &timestamp
+	userSummary.OutdatedSince = nil
 
 	if status == nil {
 		status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
@@ -132,6 +125,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	userSummary.TimeBelowRange = pointer.FromFloat64(stats.TimeBelowRange)
 	userSummary.TimeAboveRange = pointer.FromFloat64(stats.TimeAboveRange)
 	userSummary.TimeCGMUse = pointer.FromFloat64(stats.TimeCGMUse)
+	userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(stats.GlucoseMgmtIndicator)
 	userSummary.AverageGlucose = &summary.Glucose{
 		Value: pointer.FromFloat64(stats.AverageGlucose),
 		Units: pointer.FromString(units),
@@ -149,7 +143,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 
 func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 	var empty struct{}
-	userIDsReqUpdate := []string{}
+	userIDsReqBackfill := []string{}
 	var count int64 = 0
 
 	summaryRepository := c.dataStore.NewSummaryRepository()
@@ -173,17 +167,17 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 	for _, userID := range distinctDataUserIDs {
 		if _, exists := distinctSummaryIDMap[userID]; exists {
 		} else {
-			userIDsReqUpdate = append(userIDsReqUpdate, userID)
+			userIDsReqBackfill = append(userIDsReqBackfill, userID)
 		}
 
-		if len(userIDsReqUpdate) >= backfillBatch {
+		if len(userIDsReqBackfill) >= backfillBatch {
 			break
 		}
 	}
 
 	var summaries []*summary.Summary
 
-	for _, userID := range userIDsReqUpdate {
+	for _, userID := range userIDsReqBackfill {
 		summaries = append(summaries, summary.New(userID))
 	}
 

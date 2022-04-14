@@ -16,10 +16,12 @@ import (
 )
 
 const (
-	lowBloodGlucose     = 3.9
-	highBloodGlucose    = 10.0
-	units               = "mmol/l"
-	requestedAvgGlucose = 5.0
+	veryLowBloodGlucose  = 3.0
+	lowBloodGlucose      = 3.9
+	highBloodGlucose     = 10.0
+	veryHighBloodGlucose = 13.9
+	units                = "mmol/l"
+	requestedAvgGlucose  = 5.0
 )
 
 func NewContinuous(units *string, datumTime *time.Time, deviceID *string) *continuous.Continuous {
@@ -64,17 +66,19 @@ func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, reqAvg float64) 
 }
 
 // creates a dataset with random values evenly divided between ranges
-func NewDataSetCGMDataTimeInRange(deviceID string, startTime time.Time, low float64, high float64) []*continuous.Continuous {
+func NewDataSetCGMDataTimeInRange(deviceID string, startTime time.Time, veryLow float64, low float64, high float64, veryHigh float64) []*continuous.Continuous {
 	dataSetData := []*continuous.Continuous{}
 
-	glucoseBrackets := [3][2]float64{
-		{1, low},
-		{low + 0.01, high - 0.01},
-		{high, 20},
+	glucoseBrackets := [5][2]float64{
+		{1, veryLow - 0.01},
+		{veryLow, low - 0.01},
+		{low, high - 0.01},
+		{high, veryHigh - 0.01},
+		{veryHigh, 20},
 	}
 
 	// generate 2 weeks of data
-	for count := 0; count < 4032; count += 3 {
+	for count := 0; count < 4032; count += 5 {
 		for i, bracket := range glucoseBrackets {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
@@ -170,14 +174,16 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct time in range value for records", func() {
-				dataSetCGMData = NewDataSetCGMDataTimeInRange(deviceID, datumTime, lowBloodGlucose, highBloodGlucose)
+				dataSetCGMData = NewDataSetCGMDataTimeInRange(deviceID, datumTime, veryLowBloodGlucose, lowBloodGlucose, highBloodGlucose, veryHighBloodGlucose)
 
 				stats := summary.CalculateStats(dataSetCGMData, 20160)
 
-				Expect(stats.TimeInRange).To(Equal(0.33))
-				Expect(stats.TimeBelowRange).To(Equal(0.33))
-				Expect(stats.TimeAboveRange).To(Equal(0.33))
-				Expect(stats.TimeCGMUse).To(Equal(1.00))
+				Expect(stats.TimeInRange).To(Equal(0.200))
+				Expect(stats.TimeVeryBelowRange).To(Equal(0.200))
+				Expect(stats.TimeBelowRange).To(Equal(0.200))
+				Expect(stats.TimeAboveRange).To(Equal(0.200))
+				Expect(stats.TimeVeryAboveRange).To(Equal(0.200))
+				Expect(stats.TimeCGMUse).Should(BeNumerically("~", 1.000, 0.001))
 			})
 
 			It("Returns correct DeviceID competing for records", func() {

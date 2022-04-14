@@ -306,6 +306,15 @@ func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
 }
 
+func (b *Base) UpdatesSummary() bool {
+	// TODO This could be a const list, once multiple types need checking
+	if b.Type == "cbg" {
+		return true
+	}
+
+	return false
+}
+
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	return b.Deduplicator
 }

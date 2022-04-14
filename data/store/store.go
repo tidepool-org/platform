@@ -45,7 +45,6 @@ type DataRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error)
-	GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error)
 	GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
 	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
 }

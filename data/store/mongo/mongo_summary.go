@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
 	"github.com/tidepool-org/platform/page"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
@@ -42,8 +43,8 @@ func (d *SummaryRepository) EnsureIndexes() error {
 				{Key: "outdatedSince", Value: 1},
 			},
 			Options: options.Index().
-			SetBackground(true).
-			SetName("OutdatedSince"),
+				SetBackground(true).
+				SetName("OutdatedSince"),
 		},
 	})
 }
@@ -164,11 +165,11 @@ func (d *SummaryRepository) SetOutdated(ctx context.Context, id string) (*time.T
 
 	err := d.FindOne(ctx, selector).Decode(&summary)
 
-	if err != nil && err != mongo.ErrNoDocuments {
-		return nil, errors.Wrap(err, "unable to get outdated summary")
+    if err != nil && err != mongo.ErrNoDocuments {
+		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	if summary.OutdatedSince != nil{
+	if summary.OutdatedSince != nil {
 		return summary.OutdatedSince, nil
 	}
 
@@ -179,7 +180,6 @@ func (d *SummaryRepository) SetOutdated(ctx context.Context, id string) (*time.T
 
 	return &timestamp, nil
 }
-
 
 func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
 	var userIDs []string
