@@ -368,6 +368,56 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	return nil
 }
 
+func (d *DataRepository) UpdateDataSetDatum(ctx context.Context, dataSet *upload.Upload, datum data.Datum) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return err
+	}
+	if datum == nil {
+		return errors.New("data set data is missing")
+	}
+
+	now := time.Now()
+	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+
+	datum.SetUserID(dataSet.UserID)
+	datum.SetDataSetID(dataSet.UploadID)
+	datum.SetCreatedTime(&timestamp)
+
+	filter := bson.M{"id": *datum.GetID(), "uploadId": *dataSet.UploadID}
+	_, err := d.ReplaceOne(ctx, filter, datum)
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set data")
+	}
+	return nil
+}
+
+func (d *DataRepository) GetDataSetDatumByID(ctx context.Context, dataSetID string, datumID string) (interface{}, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if datumID == "" {
+		return nil, errors.New("data id is missing")
+	}
+	if dataSetID == "" {
+		return nil, errors.New("data id is missing")
+	}
+	var result map[string]interface{}
+	res := d.FindOne(ctx, bson.M{"id": datumID, "uploadId": dataSetID})
+	if err := res.Err(); err == mongo.ErrNoDocuments {
+		return nil, &store.ErrDataNotFound{Err: err}
+	}
+	err := res.Decode(&result)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get data sets for user by id")
+	}
+	return result, nil
+}
+
 func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")

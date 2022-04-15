@@ -215,3 +215,10 @@ func (u *Upload) HasDeduplicatorName() bool {
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
 }
+
+func (u *Upload) IsClosed() bool {
+	if (u.State != nil && *u.State == "closed") || (u.DataState != nil && *u.DataState == "closed") {
+		return true
+	}
+	return false
+}

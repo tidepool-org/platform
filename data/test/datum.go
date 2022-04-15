@@ -17,6 +17,8 @@ type IdentityFieldsOutput struct {
 type Datum struct {
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
+	ID                                   *string
+	History                              *[]interface{}
 	ParseInvocations                     int
 	ParseInputs                          []structure.ObjectParser
 	ValidateInvocations                  int
@@ -104,6 +106,29 @@ func (d *Datum) GetPayload() *metadata.Metadata {
 	output := d.GetPayloadOutputs[0]
 	d.GetPayloadOutputs = d.GetPayloadOutputs[1:]
 	return output
+}
+
+func (d *Datum) GetID() *string {
+	return d.ID
+}
+
+func (d *Datum) SetID(id *string) {
+	d.ID = id
+}
+
+func (d *Datum) GetHistory() *[]interface{} {
+	if d.History == nil {
+		return &[]interface{}{}
+	}
+	return d.History
+}
+
+func (d *Datum) SetHistory(history *[]interface{}) {
+	if history == nil {
+		d.History = &[]interface{}{}
+		return
+	}
+	d.History = history
 }
 
 func (d *Datum) GetOrigin() *origin.Origin {
