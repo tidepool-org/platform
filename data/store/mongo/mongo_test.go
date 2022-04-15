@@ -521,13 +521,6 @@ var _ = Describe("Mongo", func() {
 						Expect(err).To(MatchError("user id is missing"))
 					})
 
-					It("returns error if summary is not found", func() {
-						_, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
-
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("summary not found"))
-					})
-
 					It("returns and correctly sets outdated", func() {
 						summaries := []*summary.Summary{randomSummary}
 						_, err := summaryRepository.CreateSummaries(ctx, summaries)
