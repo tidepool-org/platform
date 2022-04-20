@@ -40,7 +40,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
@@ -84,7 +84,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		update.State = pointer.FromString(data.DataSetStateClosed)
 	}
 
-	dataSet, err = dataServiceContext.DataSession().UpdateDataSet(ctx, dataSetID, update)
+	dataSet, err = dataServiceContext.DataRepository().UpdateDataSet(ctx, dataSetID, update)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to update data set", err)
 		return
@@ -98,7 +98,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		} else if deduplicator == nil {
 			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}

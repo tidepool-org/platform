@@ -13,20 +13,20 @@ type DestroySyncTasksForUserByIDInput struct {
 	UserID  string
 }
 
-type SyncTaskSession struct {
+type SyncTaskRepository struct {
 	*test.Closer
 	DestroySyncTasksForUserByIDInvocations int
 	DestroySyncTasksForUserByIDInputs      []DestroySyncTasksForUserByIDInput
 	DestroySyncTasksForUserByIDOutputs     []error
 }
 
-func NewSyncTaskSession() *SyncTaskSession {
-	return &SyncTaskSession{
+func NewSyncTaskRepository() *SyncTaskRepository {
+	return &SyncTaskRepository{
 		Closer: test.NewCloser(),
 	}
 }
 
-func (s *SyncTaskSession) DestroySyncTasksForUserByID(ctx context.Context, userID string) error {
+func (s *SyncTaskRepository) DestroySyncTasksForUserByID(ctx context.Context, userID string) error {
 	s.DestroySyncTasksForUserByIDInvocations++
 
 	s.DestroySyncTasksForUserByIDInputs = append(s.DestroySyncTasksForUserByIDInputs, DestroySyncTasksForUserByIDInput{Context: ctx, UserID: userID})
@@ -38,7 +38,7 @@ func (s *SyncTaskSession) DestroySyncTasksForUserByID(ctx context.Context, userI
 	return output
 }
 
-func (s *SyncTaskSession) Expectations() {
+func (s *SyncTaskRepository) Expectations() {
 	s.Closer.AssertOutputsEmpty()
 	gomega.Expect(s.DestroySyncTasksForUserByIDOutputs).To(gomega.BeEmpty())
 }

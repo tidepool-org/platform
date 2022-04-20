@@ -11,6 +11,7 @@ const (
 	IDLengthMaximum      = 100
 	NameLengthMaximum    = 100
 	TimeFormat           = time.RFC3339Nano
+	TypeApplication      = "application"
 	TypeDevice           = "device"
 	TypeManual           = "manual"
 	TypeService          = "service"
@@ -19,6 +20,7 @@ const (
 
 func Types() []string {
 	return []string{
+		TypeApplication,
 		TypeDevice,
 		TypeManual,
 		TypeService,

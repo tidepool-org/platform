@@ -1,31 +1,53 @@
 ./association/association.go:78:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
-./blob/blob.go:132:6: type name will be used as blob.BlobArray by other packages, and that stutters; consider calling this Array
-./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
 ./data/client/client.go:27:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
 ./data/data_set.go:24:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
-./data/data_set.go:53:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
-./data/data_set.go:60:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
-./data/data_set.go:86:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
-./data/data_set.go:113:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
-./data/data_set.go:148:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
-./data/data_set.go:220:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
-./data/data_set.go:288:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
-./data/data_set.go:330:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
-./data/storeDEPRECATED/storeDEPRECATED_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
-./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
-./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
-./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
-./image/image.go:526:6: type name will be used as image.ImageArray by other packages, and that stutters; consider calling this Array
+./data/data_set.go:51:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
+./data/data_set.go:58:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
+./data/data_set.go:84:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
+./data/data_set.go:111:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
+./data/data_set.go:162:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
+./data/data_set.go:234:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
+./data/data_set.go:302:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
+./data/data_set.go:343:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
+./data/schema/basalBucket.go:9:3: struct field Id should be ID
+./data/schema/basalBucket.go:11:3: struct field UserId should be UserID
+./data/schema/basalBucket.go:19:3: struct field Guid should be GUID
+./data/schema/basalBucket.go:26:22: method GetId should be GetID
+./data/schema/cbgBucket.go:7:3: struct field Id should be ID
+./data/schema/cbgBucket.go:9:3: struct field UserId should be UserID
+./data/schema/cbgBucket.go:21:20: method GetId should be GetID
+./data/schema/metadata.go:7:3: struct field Id should be ID
+./data/schema/metadata.go:9:3: struct field UserId should be UserID
+./data/store/mongo/mongo_bucket_store_client.go:21:5: var ErrEmptyOrNilUserId should be ErrEmptyOrNilUserID
+./data/store/mongo/mongo_bucket_store_client.go:27:6: type name will be used as mongo.MongoBucketStoreClient by other packages, and that stutters; consider calling this BucketStoreClient
+./data/store/mongo/mongo_bucket_store_client.go:32:1: comment on exported function NewMongoBucketStoreClient should be of the form "NewMongoBucketStoreClient ..."
+./data/store/mongo/mongo_bucket_store_client.go:59:1: comment on exported method MongoBucketStoreClient.Find should be of the form "Find ..."
+./data/store/mongo/mongo_bucket_store_client.go:85:1: comment on exported method MongoBucketStoreClient.Upsert should be of the form "Upsert ..."
+./data/store/mongo/mongo_bucket_store_client.go:86:62: method parameter userId should be userID
+./data/store/mongo/mongo_bucket_store_client.go:107:2: var strUserId should be strUserID
+./data/store/mongo/mongo_bucket_store_client.go:136:1: comment on exported method MongoBucketStoreClient.UpsertMany should be of the form "UpsertMany ..."
+./data/store/mongo/mongo_bucket_store_client.go:138:66: method parameter userId should be userID
+./data/store/mongo/mongo_bucket_store_client.go:183:66: func parameter userId should be userID
+./data/store/mongo/mongo_bucket_store_client.go:189:2: var strUserId should be strUserID
+./data/store/mongo/mongo_bucket_store_client.go:261:1: comment on exported method MongoBucketStoreClient.UpsertMetaData should be of the form "UpsertMetaData ..."
+./data/store/mongo/mongo_bucket_store_client.go:262:70: method parameter userId should be userID
+./data/store/mongo/mongo_bucket_store_client.go:296:1: comment on exported method MongoBucketStoreClient.Remove should be of the form "Remove ..."
+./data/store/mongo/mongo_bucket_store_client.go:311:120: method parameter strUserId should be strUserID
+./data/store/mongo/mongo_bucket_store_client.go:343:9: if block ends with a return statement, so drop this else and outdent its block
+./data/store/mongo/mongo.go:373:1: comment on exported method DataRepository.CreateDataSetData should be of the form "CreateDataSetData ..."
+./data/store/mongo/mongo.go:399:2: var strUserId should be strUserID
+./data/store/mongo/mongo.go:451:4: don't use underscores in Go names; var elapsed_time should be elapsedTime
+./data/store/mongo/mongo.go:496:3: don't use underscores in Go names; var elapsed_time should be elapsedTime
+./data/types/base.go:276:16: method GetInternalId should be GetInternalID
+./data/types/device/alarm/alarm.go:48:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
+./data/types/device/alarm/alarm.go:52:6: func name will be used as alarm.AlarmLevels by other packages, and that stutters; consider calling this Levels
 ./metadata/metadata.go:65:6: type name will be used as metadata.MetadataArray by other packages, and that stutters; consider calling this Array
-./profile/profile.go:17:6: type name will be used as profile.ProfileArray by other packages, and that stutters; consider calling this Array
 ./request/mutator.go:9:6: type name will be used as request.RequestMutator by other packages, and that stutters; consider calling this Mutator
+./service/middleware/metrics.go:21:1: comment on exported type PromMiddleware should be of the form "PromMiddleware ..." (with optional leading article)
+./service/middleware/metrics.go:29:1: comment on exported method PromMiddleware.MiddlewareFunc should be of the form "MiddlewareFunc ..."
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
-./task/task.go:22:6: type name will be used as task.TaskAccessor by other packages, and that stutters; consider calling this Accessor
-./task/task.go:37:6: func name will be used as task.TaskStates by other packages, and that stutters; consider calling this States
-./task/task.go:46:6: type name will be used as task.TaskFilter by other packages, and that stutters; consider calling this Filter
-./task/task.go:82:6: type name will be used as task.TaskCreate by other packages, and that stutters; consider calling this Create
-./task/task.go:120:6: type name will be used as task.TaskUpdate by other packages, and that stutters; consider calling this Update
+./test/int.go:54:10: if block ends with a return statement, so drop this else and outdent its block
 ./test/rest/response_writer.go:9:6: type EncodeJsonOutput should be EncodeJSONOutput
 ./test/rest/response_writer.go:30:2: struct field WriteJsonInvocations should be WriteJSONInvocations
 ./test/rest/response_writer.go:31:2: struct field WriteJsonInputs should be WriteJSONInputs
@@ -39,4 +61,3 @@
 ./test/rest/response_writer.go:39:2: struct field EncodeJsonOutput should be EncodeJSONOutput
 ./test/rest/response_writer.go:80:26: method WriteJson should be WriteJSON
 ./test/rest/response_writer.go:97:26: method EncodeJson should be EncodeJSON
-./user/user.go:103:6: type name will be used as user.UserArray by other packages, and that stutters; consider calling this Array

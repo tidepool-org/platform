@@ -1,89 +1,72 @@
 package mongo_test
 
 import (
-	"os"
+	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/log"
-	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Mongo", func() {
 	Context("Store", func() {
-		var logger log.Logger
 		var config *storeStructuredMongo.Config
 		var store *storeStructuredMongo.Store
-		var session *storeStructuredMongo.Session
+		var repository *storeStructuredMongo.Repository
 
 		BeforeEach(func() {
-			logger = logTest.NewLogger()
 			config = storeStructuredMongoTest.NewConfig()
 		})
 
 		AfterEach(func() {
-			if session != nil {
-				session.Close()
-			}
 			if store != nil {
-				store.Close()
+				err := store.Terminate(context.Background())
+				Expect(err).ToNot(HaveOccurred())
 			}
 		})
 
-		Context("NewStore", func() {
+		Context("NewStores", func() {
 			It("returns an error if the config is missing", func() {
 				var err error
-				store, err = storeStructuredMongo.NewStore(nil, logger)
-				Expect(err).To(MatchError("config is missing"))
+				store, err = storeStructuredMongo.NewStore(nil)
+				Expect(err).To(MatchError("database config is empty"))
 				Expect(store).To(BeNil())
 			})
 
 			It("returns an error if the config is invalid", func() {
-				config.SetAddresses(nil)
+				config.Addresses = nil
 				var err error
-				store, err = storeStructuredMongo.NewStore(config, logger)
+				store, err = storeStructuredMongo.NewStore(config)
 				Expect(err).To(MatchError("config is invalid; addresses is missing"))
 				Expect(store).To(BeNil())
 			})
 
-			It("returns an error if the logger is missing", func() {
-				var err error
-				store, err = storeStructuredMongo.NewStore(config, nil)
-				Expect(err).To(MatchError("logger is missing"))
-				Expect(store).To(BeNil())
-			})
-
 			It("returns no error if the server is not reachable and initialize session once it is", func() {
-				config.SetAddresses([]string{"127.0.0.0"})
+				config.SetAddressesSync([]string{"127.0.0.0"})
 				config.WaitConnectionInterval = 1 * time.Second
 				config.Timeout = 2 * time.Second
+				config.MaxConnectionAttempts = 3
 				var err error
 
-				store, err = storeStructuredMongo.NewStore(config, logger)
+				store, err = storeStructuredMongo.NewStore(config)
 				Expect(err).To(BeNil())
 				Expect(store).ToNot(BeNil())
-				Expect(store.Session()).To(BeNil())
 				time.Sleep(3 * time.Second)
-				Expect(store.Session()).To(BeNil())
-				mongoAddress := "127.0.0.1:27017"
-				if os.Getenv("TIDEPOOL_STORE_ADDRESSES") != "" {
-					mongoAddress = os.Getenv("TIDEPOOL_STORE_ADDRESSES")
-				}
-				config.SetAddresses([]string{mongoAddress})
+				config.SetAddressesSync([]string{storeStructuredMongoTest.Address()})
 				store.WaitUntilStarted()
-				Expect(store.Session()).ToNot(BeNil())
+				Expect(true)
 			})
 
 			It("returns no error if successful", func() {
 				var err error
-				store, err = storeStructuredMongo.NewStore(config, logger)
+				store, err = storeStructuredMongo.NewStore(config)
 				store.WaitUntilStarted()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(store).ToNot(BeNil())
@@ -93,131 +76,74 @@ var _ = Describe("Mongo", func() {
 		Context("with a new store", func() {
 			BeforeEach(func() {
 				var err error
-				store, err = storeStructuredMongo.NewStore(config, logger)
+				store, err = storeStructuredMongo.NewStore(config)
 				store.WaitUntilStarted()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(store).ToNot(BeNil())
 			})
 
-			Context("IsClosed/Close", func() {
-				It("returns false if it is not closed", func() {
-					Expect(store.IsClosed()).To(BeFalse())
-				})
-
-				It("returns true if it is closed", func() {
-					store.Close()
-					Expect(store.IsClosed()).To(BeTrue())
-				})
-			})
-
 			Context("Status", func() {
-				It("returns the appropriate status when not closed", func() {
-					status := store.Status()
+				It("returns the appropriate status when initialized", func() {
+					status := store.Status(context.Background())
 					Expect(status).ToNot(BeNil())
-					mongoStatus, ok := status.(*storeStructuredMongo.Status)
-					Expect(ok).To(BeTrue())
-					Expect(mongoStatus).ToNot(BeNil())
-					Expect(mongoStatus.State).To(Equal("OPEN"))
-					Expect(mongoStatus.BuildInfo).ToNot(BeNil())
-					Expect(mongoStatus.LiveServers).ToNot(BeEmpty())
-					Expect(mongoStatus.Mode).To(Equal(mgo.Strong))
-					Expect(mongoStatus.Safe).ToNot(BeNil())
-					Expect(mongoStatus.Ping).To(Equal("OK"))
-				})
-
-				It("returns the appropriate status when closed", func() {
-					store.Close()
-					Expect(store.IsClosed()).To(BeTrue())
-					status := store.Status()
-					Expect(status).ToNot(BeNil())
-					mongoStatus, ok := status.(*storeStructuredMongo.Status)
-					Expect(ok).To(BeTrue())
-					Expect(mongoStatus).ToNot(BeNil())
-					Expect(mongoStatus.State).To(Equal("CLOSED"))
-					Expect(mongoStatus.BuildInfo).To(BeNil())
-					Expect(mongoStatus.LiveServers).To(BeEmpty())
-					Expect(mongoStatus.Mode).To(Equal(mgo.Eventual))
-					Expect(mongoStatus.Safe).To(BeNil())
-					Expect(mongoStatus.Ping).To(Equal("FAILED"))
+					Expect(status.Ping).To(Equal("OK"))
 				})
 			})
 
-			Context("NewSession", func() {
-				It("returns a new session if no collection specified", func() {
-					session = store.NewSession("")
-					Expect(session).ToNot(BeNil())
+			Context("GetRepository", func() {
+				It("returns a new repository if no repository specified", func() {
+					repository = store.GetRepository("")
+					Expect(repository).ToNot(BeNil())
 				})
 
 				It("returns successfully", func() {
-					session = store.NewSession("test")
-					Expect(session).ToNot(BeNil())
+					repository = store.GetRepository("test")
+					Expect(repository).ToNot(BeNil())
 				})
 			})
 
-			Context("with a new session", func() {
+			Context("with a new repository", func() {
 				BeforeEach(func() {
-					session = store.NewSession("test")
-					Expect(session).ToNot(BeNil())
+					repository = store.GetRepository("test")
+					Expect(repository).ToNot(BeNil())
 				})
 
-				Context("IsClosed/Close", func() {
-					It("returns false if it is not closed", func() {
-						Expect(session.IsClosed()).To(BeFalse())
-					})
-
-					It("returns true if it is closed", func() {
-						session.Close()
-						Expect(session.IsClosed()).To(BeTrue())
-					})
-				})
-
-				Context("EnsureAllIndexes", func() {
+				Context("CreateAllIndexes", func() {
 					It("returns an error if the index is invalid", func() {
-						Expect(session.EnsureAllIndexes([]mgo.Index{{}})).To(MatchError("unable to ensure index with key []; invalid index key: no fields provided"))
+						Expect(repository.CreateAllIndexes(context.Background(), []mongo.IndexModel{{}})).To(MatchError("unable to create indexes; index model keys cannot be nil"))
 					})
 
 					It("returns successfully with nil indexes", func() {
-						Expect(session.EnsureAllIndexes(nil)).To(Succeed())
+						Expect(repository.CreateAllIndexes(context.Background(), nil)).To(Succeed())
 					})
 
 					It("returns successfully with empty indexes", func() {
-						Expect(session.EnsureAllIndexes([]mgo.Index{})).To(Succeed())
+						Expect(repository.CreateAllIndexes(context.Background(), []mongo.IndexModel{})).To(Succeed())
 					})
 
 					It("returns successfully with multiple indexes", func() {
-						Expect(session.EnsureAllIndexes([]mgo.Index{
-							{Key: []string{"one"}, Unique: true, Background: true},
-							{Key: []string{"two"}, Background: true},
-							{Key: []string{"three"}},
+						Expect(repository.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+							{
+								Keys: bson.D{{Key: "one", Value: 1}},
+								Options: options.Index().
+									SetUnique(true).
+									SetBackground(true),
+							},
+							{
+								Keys: bson.D{{Key: "two", Value: 1}},
+								Options: options.Index().
+									SetBackground(true),
+							},
+							{
+								Keys: bson.D{{Key: "three", Value: 1}},
+							},
 						})).To(Succeed())
-					})
-				})
-
-				Context("C", func() {
-					It("returns successfully", func() {
-						Expect(session.C()).ToNot(BeNil())
-					})
-
-					It("returns nil if the session is closed", func() {
-						session.Close()
-						Expect(session.C()).To(BeNil())
-					})
-				})
-
-				Context("ArchiveC", func() {
-					It("returns successfully", func() {
-						Expect(session.ArchiveC()).ToNot(BeNil())
-					})
-
-					It("returns nil if the session is closed", func() {
-						session.Close()
-						Expect(session.ArchiveC()).To(BeNil())
 					})
 				})
 
 				DescribeTable("ConstructUpdate",
 					func(set bson.M, unset bson.M, operators []map[string]bson.M, expected bson.M) {
-						Expect(session.ConstructUpdate(set, unset, operators...)).To(Equal(expected))
+						Expect(repository.ConstructUpdate(set, unset, operators...)).To(Equal(expected))
 					},
 					Entry("where set is nil and unset is nil", nil, nil, nil, nil),
 					Entry("where set is empty and unset is nil", bson.M{}, nil, nil, nil),

@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 
+	"go.uber.org/fx"
+
 	"github.com/tidepool-org/platform/config"
 	configEnv "github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/errors"
@@ -14,6 +16,21 @@ import (
 	logJson "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/sync"
 	"github.com/tidepool-org/platform/version"
+)
+
+var ProviderModule = fx.Options(
+	fx.Provide(DefaultProvider),
+	fx.Provide(configEnv.NewDefaultReporter),
+	ProviderComponentsModule,
+)
+
+var ProviderComponentsModule = fx.Provide(
+	ExportLogger,
+	ExportVersionReporter,
+	fx.Annotated{
+		Name:   "userAgent",
+		Target: ExportUserAgent,
+	},
 )
 
 type Provider interface {
@@ -32,6 +49,27 @@ type ProviderImpl struct {
 	prefix          string
 	name            string
 	userAgent       string
+}
+
+func DefaultProvider() (Provider, error) {
+	prvdr, err := NewProvider("TIDEPOOL", "service")
+	if err != nil {
+		return nil, err
+	}
+
+	return prvdr, nil
+}
+
+func ExportLogger(prvdr Provider) log.Logger {
+	return prvdr.Logger()
+}
+
+func ExportUserAgent(prvdr Provider) string {
+	return prvdr.UserAgent()
+}
+
+func ExportVersionReporter(prvdr Provider) version.Reporter {
+	return prvdr.VersionReporter()
 }
 
 func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {

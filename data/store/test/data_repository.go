@@ -6,7 +6,7 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -15,7 +15,7 @@ import (
 type GetDataSetsForUserByIDInput struct {
 	Context    context.Context
 	UserID     string
-	Filter     *dataStoreDEPRECATED.Filter
+	Filter     *dataStore.Filter
 	Pagination *page.Pagination
 }
 
@@ -134,7 +134,7 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
-type DataSession struct {
+type DataRepository struct {
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
 	GetDataSetsForUserByIDInputs                         []GetDataSetsForUserByIDInput
@@ -189,13 +189,18 @@ type DataSession struct {
 	GetDataSetOutputs                                    []GetDataSetOutput
 }
 
-func NewDataSession() *DataSession {
-	return &DataSession{
+func NewDataRepository() *DataRepository {
+	return &DataRepository{
 		Closer: test.NewCloser(),
 	}
 }
 
-func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStoreDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+// EnsureIndexes required in order to implement the DataRepository interface
+func (d *DataRepository) EnsureIndexes() error {
+	return nil
+}
+
+func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStore.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
 	d.GetDataSetsForUserByIDInvocations++
 
 	d.GetDataSetsForUserByIDInputs = append(d.GetDataSetsForUserByIDInputs, GetDataSetsForUserByIDInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
@@ -207,7 +212,7 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	return output.DataSets, output.Error
 }
 
-func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
 	d.GetDataSetByIDInvocations++
 
 	d.GetDataSetByIDInputs = append(d.GetDataSetByIDInputs, GetDataSetByIDInput{Context: ctx, DataSetID: dataSetID})
@@ -219,7 +224,7 @@ func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*up
 	return output.DataSet, output.Error
 }
 
-func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	d.CreateDataSetInvocations++
 
 	d.CreateDataSetInputs = append(d.CreateDataSetInputs, CreateDataSetInput{Context: ctx, DataSet: dataSet})
@@ -231,7 +236,7 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 	return output
 }
 
-func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error) {
+func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error) {
 	d.UpdateDataSetInvocations++
 
 	d.UpdateDataSetInputs = append(d.UpdateDataSetInputs, UpdateDataSetInput{Context: ctx, ID: id, Update: update})
@@ -243,7 +248,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	return output.DataSet, output.Error
 }
 
-func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
+func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
 	d.DeleteDataSetInvocations++
 
 	d.DeleteDataSetInputs = append(d.DeleteDataSetInputs, DeleteDataSetInput{Context: ctx, DataSet: dataSet, doPurge: doPurge})
@@ -255,7 +260,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload,
 	return output
 }
 
-func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
+func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
 	d.CreateDataSetDataInvocations++
 
 	d.CreateDataSetDataInputs = append(d.CreateDataSetDataInputs, CreateDataSetDataInput{Context: ctx, DataSet: dataSet, DataSetData: dataSetData})
@@ -267,7 +272,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	return output
 }
 
-func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.ActivateDataSetDataInvocations++
 
 	d.ActivateDataSetDataInputs = append(d.ActivateDataSetDataInputs, ActivateDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -279,7 +284,7 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	return output
 }
 
-func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.ArchiveDataSetDataInvocations++
 
 	d.ArchiveDataSetDataInputs = append(d.ArchiveDataSetDataInputs, ArchiveDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -291,7 +296,7 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	return output
 }
 
-func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.DeleteDataSetDataInvocations++
 
 	d.DeleteDataSetDataInputs = append(d.DeleteDataSetDataInputs, DeleteDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -303,7 +308,7 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	return output
 }
 
-func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.DestroyDeletedDataSetDataInvocations++
 
 	d.DestroyDeletedDataSetDataInputs = append(d.DestroyDeletedDataSetDataInputs, DestroyDeletedDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -315,7 +320,7 @@ func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *up
 	return output
 }
 
-func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	d.DestroyDataSetDataInvocations++
 
 	d.DestroyDataSetDataInputs = append(d.DestroyDataSetDataInputs, DestroyDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -327,7 +332,7 @@ func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Up
 	return output
 }
 
-func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	d.ArchiveDeviceDataUsingHashesFromDataSetInvocations++
 
 	d.ArchiveDeviceDataUsingHashesFromDataSetInputs = append(d.ArchiveDeviceDataUsingHashesFromDataSetInputs, ArchiveDeviceDataUsingHashesFromDataSetInput{Context: ctx, DataSet: dataSet})
@@ -339,7 +344,7 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 	return output
 }
 
-func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	d.UnarchiveDeviceDataUsingHashesFromDataSetInvocations++
 
 	d.UnarchiveDeviceDataUsingHashesFromDataSetInputs = append(d.UnarchiveDeviceDataUsingHashesFromDataSetInputs, UnarchiveDeviceDataUsingHashesFromDataSetInput{Context: ctx, DataSet: dataSet})
@@ -351,7 +356,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	return output
 }
 
-func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
 	d.DeleteOtherDataSetDataInvocations++
 
 	d.DeleteOtherDataSetDataInputs = append(d.DeleteOtherDataSetDataInputs, DeleteOtherDataSetDataInput{Context: ctx, DataSet: dataSet})
@@ -363,7 +368,7 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 	return output
 }
 
-func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string) error {
+func (d *DataRepository) DestroyDataForUserByID(ctx context.Context, userID string) error {
 	d.DestroyDataForUserByIDInvocations++
 
 	d.DestroyDataForUserByIDInputs = append(d.DestroyDataForUserByIDInputs, DestroyDataForUserByIDInput{Context: ctx, UserID: userID})
@@ -375,7 +380,7 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 	return output
 }
 
-func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
 	d.ListUserDataSetsInvocations++
 
 	d.ListUserDataSetsInputs = append(d.ListUserDataSetsInputs, ListUserDataSetsInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
@@ -387,7 +392,7 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 	return output.DataSets, output.Error
 }
 
-func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
 	d.GetDataSetInvocations++
 
 	d.GetDataSetInputs = append(d.GetDataSetInputs, GetDataSetInput{Context: ctx, ID: id})
@@ -399,7 +404,7 @@ func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet,
 	return output.DataSet, output.Error
 }
 
-func (d *DataSession) Expectations() {
+func (d *DataRepository) Expectations() {
 	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetByIDOutputs).To(gomega.BeEmpty())

@@ -55,15 +55,15 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	accessLogMiddleware, err := middleware.NewAccessLog()
-	if err != nil {
-		return err
-	}
 	recoverMiddleware, err := middleware.NewRecover()
 	if err != nil {
 		return err
 	}
 	authMiddleware, err := middleware.NewAuth(a.Secret(), a.AuthClient())
+	if err != nil {
+		return err
+	}
+	accessLogMiddleware, err := middleware.NewAccessLog()
 	if err != nil {
 		return err
 	}

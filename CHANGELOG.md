@@ -473,7 +473,7 @@ Tidepool
 * Use "Units" rather than "units" for insulin
 * Fix bug in upload data type with check against incorrect type
 * Move mutator to request package; ignore missing mutators in client
-* Rename various New functions in mongo packages to NewStore for consistency
+* Rename various New functions in mongo packages to NewStores for consistency
 * Add new fields to cgm settings data type
 * Add new fields to pump settings data type
 * Add insulin type to automated, scheduled, temporary basal and all bolus types

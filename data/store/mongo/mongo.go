@@ -4,20 +4,22 @@ import (
 	"context"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
+	"github.com/tidepool-org/platform/data/types/basal/automated"
+	"github.com/tidepool-org/platform/data/types/basal/scheduled"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	logrus "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	goComMgo "github.com/mdblp/go-common/clients/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/schema"
-	"github.com/tidepool-org/platform/data/storeDEPRECATED"
-	"github.com/tidepool-org/platform/data/types/basal/automated"
-	"github.com/tidepool-org/platform/data/types/basal/scheduled"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -25,15 +27,6 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-)
-
-var (
-	deviceDataIndexes = map[string][]mgo.Index{
-		"deviceData": {
-			{Key: []string{"_userId", "uploadId", "type"}, Background: true, Name: "UserIdUploadIdType"},
-			{Key: []string{"uploadId"}, Background: true, Unique: true, PartialFilter: bson.M{"type": "upload"}, Name: "UniqueUploadId"},
-		},
-	}
 )
 
 var dataWriteToReadStoreMetrics = promauto.NewHistogramVec(prometheus.HistogramOpts{
@@ -75,11 +68,40 @@ func (s *Stores) IsEnabled() bool {
 	return s.BucketStoreEnabled
 }
 
-func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, migrateConfig BucketMigrationConfig) (*Stores, error) {
-	if cfg != nil {
-		cfg.Indexes = deviceDataIndexes
+var (
+	dataSourcesIndexes = map[string][]mongo.IndexModel{
+		"deviceData": {
+			// Additional indexes are also created in `tide-whisperer` and `jellyfish`
+			{
+				Keys: bson.D{
+					{Key: "_userId", Value: 1},
+					{Key: "uploadId", Value: 1},
+					{Key: "type", Value: 1},
+				},
+				Options: options.Index().
+					SetBackground(true).
+					SetName("UserIdUploadIdType"),
+			},
+			{
+				Keys: bson.D{
+					{Key: "uploadId", Value: 1},
+				},
+				Options: options.Index().
+					SetUnique(true).
+					SetBackground(true).
+					SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
+					SetName("UniqueUploadId"),
+			},
+		},
 	}
-	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
+)
+
+func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, migrateConfig BucketMigrationConfig) (*Stores, error) {
+	if config != nil {
+		cfg.Indexes = dataSourcesIndexes
+	}
+
+	baseStore, err := storeStructuredMongo.NewStore(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -102,9 +124,9 @@ func NewStore(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log
 	}, nil
 }
 
-func (s *Stores) NewDataSession() storeDEPRECATED.DataSession {
-	return &DataSession{
-		Session:            s.Store.NewSession("deviceData"),
+func (s *Stores) NewDataRepository() store.DataRepository {
+	return &DataRepository{
+		Repository:         s.Store.GetRepository("deviceData"),
 		BucketStore:        s.BucketStore,
 		BucketStoreEnabled: s.BucketStoreEnabled,
 		DataTypesArchived:  s.DataTypesArchived,
@@ -112,15 +134,15 @@ func (s *Stores) NewDataSession() storeDEPRECATED.DataSession {
 	}
 }
 
-type DataSession struct {
-	*storeStructuredMongo.Session
+type DataRepository struct {
+	*storeStructuredMongo.Repository
 	BucketStore        *MongoBucketStoreClient
 	BucketStoreEnabled bool
 	DataTypesArchived  []string
 	DataTypesBucketed  []string
 }
 
-func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string, filter *storeDEPRECATED.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -128,7 +150,7 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 		return nil, errors.New("user id is missing")
 	}
 	if filter == nil {
-		filter = storeDEPRECATED.NewFilter()
+		filter = store.NewFilter()
 	} else if err := structureValidator.New().Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
@@ -136,10 +158,6 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	if d.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -159,7 +177,9 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 	if filter.DataSetType != nil {
 		selector["dataSetType"] = *filter.DataSetType
 	}
-	err := d.C().Find(selector).Sort("-time").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"time": -1})
+	cursor, err := d.Find(ctx, selector, opts)
 
 	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
@@ -168,13 +188,17 @@ func (d *DataSession) GetDataSetsForUserByID(ctx context.Context, userID string,
 		return nil, errors.Wrap(err, "unable to get data sets for user by id")
 	}
 
+	if err = cursor.All(ctx, &dataSets); err != nil {
+		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
+	}
+
 	if dataSets == nil {
 		dataSets = []*upload.Upload{}
 	}
 	return dataSets, nil
 }
 
-func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -182,45 +206,33 @@ func (d *DataSession) GetDataSetByID(ctx context.Context, dataSetID string) (*up
 		return nil, errors.New("data set id is missing")
 	}
 
-	if d.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 
-	dataSets := []*upload.Upload{}
+	var dataSet *upload.Upload
 	selector := bson.M{
 		"uploadId": dataSetID,
 		"type":     "upload",
 	}
-	err := d.C().Find(selector).Limit(2).All(&dataSets)
+	err := d.FindOne(ctx, selector).Decode(&dataSet)
 
 	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetByID")
 
-	if err != nil {
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set by id")
 	}
 
-	if dataSetsCount := len(dataSets); dataSetsCount == 0 {
-		return nil, nil
-	} else if dataSetsCount > 1 {
-		log.LoggerFromContext(ctx).WithField("dataSetId", dataSetID).Warn("Multiple data sets found for data set id")
-	}
-
-	return dataSets[0], nil
+	return dataSet, nil
 }
 
-func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if err := validateDataSet(dataSet); err != nil {
 		return err
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -230,19 +242,9 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
-	// This search is protected by the `UniqueUploadId` index, so it's not possible for there to be
-	// duplicate `uploadId`s, even if a race condition occurs here.
-	selector := bson.M{
-		"uploadId": dataSet.UploadID,
-		"type":     dataSet.Type,
-	}
-	count, err := d.C().Find(selector).Count()
-	if err == nil {
-		if count > 0 {
-			err = errors.New("data set already exists")
-		} else {
-			err = d.C().Insert(dataSet)
-		}
+	var err error
+	if _, err = d.InsertOne(ctx, dataSet); storeStructuredMongo.IsDup(err) {
+		err = errors.New("data set already exists")
 	}
 
 	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetId": dataSet.UploadID, "duration": time.Since(now) / time.Microsecond}
@@ -254,7 +256,7 @@ func (d *DataSession) CreateDataSet(ctx context.Context, dataSet *upload.Upload)
 	return nil
 }
 
-func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error) {
+func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -267,10 +269,6 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	if d.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -308,7 +306,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	if update.TimeZoneOffset != nil {
 		set["timezoneOffset"] = *update.TimeZoneOffset
 	}
-	changeInfo, err := d.C().UpdateAll(bson.M{"type": "upload", "uploadId": id}, d.ConstructUpdate(set, unset))
+	changeInfo, err := d.UpdateMany(ctx, bson.M{"type": "upload", "uploadId": id}, d.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateDataSet")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update data set")
@@ -317,7 +315,7 @@ func (d *DataSession) UpdateDataSet(ctx context.Context, id string, update *data
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
+func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Upload, doPurge bool) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -325,17 +323,13 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload,
 		return err
 	}
 
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var err error
 	var selector bson.M
-	var removeInfo *mgo.ChangeInfo
-	var updateInfo *mgo.ChangeInfo
+	var removeInfo *mongo.DeleteResult
+	var updateInfo *mongo.UpdateResult
 
 	if doPurge {
 		selector = bson.M{
@@ -350,7 +344,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload,
 		}
 	}
 
-	removeInfo, err = d.C().RemoveAll(selector)
+	removeInfo, err = d.DeleteMany(ctx, selector)
 	if err == nil && doPurge == false {
 		selector = bson.M{
 			"_userId":       dataSet.UserID,
@@ -363,7 +357,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload,
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	}
 
 	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "doPurge": doPurge, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
@@ -378,7 +372,7 @@ func (d *DataSession) DeleteDataSet(ctx context.Context, dataSet *upload.Upload,
 }
 
 // Create data
-func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
+func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -389,10 +383,6 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		return errors.New("data set data is missing")
 	}
 
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	if len(dataSetData) == 0 {
 		return nil
 	}
@@ -401,8 +391,8 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 	creationTimestamp := now.Truncate(time.Millisecond)
 	strTimestamp := creationTimestamp.Format(time.RFC3339Nano)
 
-	insertData := make([]interface{}, 0, len(dataSetData))
-	archiveData := make([]interface{}, 0, len(dataSetData))
+	var insertData []mongo.WriteModel
+	var archiveData []mongo.WriteModel
 
 	allSamples := make(map[string][]schema.ISample)
 	var err error
@@ -415,6 +405,7 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		datum.SetCreatedTime(&strTimestamp)
 		archive := d.isDatumToArchive(datum)
 		moveToBucket := d.isDatumToBucket(datum)
+
 		if moveToBucket {
 			// Prepare cbg to be pushed into data read db
 			loggerFields := log.Fields{"datum": datum}
@@ -443,9 +434,9 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		}
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
 		if archive {
-			archiveData = append(archiveData, datum)
+			archiveData = append(archiveData, mongo.NewInsertOneModel().SetDocument(datum))
 		} else {
-			insertData = append(insertData, datum)
+			insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 		}
 
 	}
@@ -458,8 +449,8 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 			if err != nil {
 				return errors.Wrapf(err, "unable to create %v bucket", dataType)
 			}
-			elapsed_time := time.Since(start).Seconds()
-			dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsed_time))
+			elapsedTime := time.Since(start).Seconds()
+			dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsedTime))
 		}
 		// update meta data
 		if incomingUserMetadata != nil {
@@ -472,39 +463,30 @@ func (d *DataSession) CreateDataSetData(ctx context.Context, dataSet *upload.Upl
 		d.BucketStore.log.Debug("push to read database is disabled")
 	}
 
-	err = d.bulkInsert(d.C(), insertData, datumWriteToDeviceDataStoreMetrics)
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(insertData), "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
-	if err != nil {
-		return errors.Wrap(err, "unable to create data set data")
+	opts := options.BulkWrite().SetOrdered(false)
+
+	if len(insertData) > 0 {
+		_, err = d.BulkWrite(ctx, insertData, opts)
+		loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(insertData), "duration": time.Since(now) / time.Microsecond}
+		log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
+		if err != nil {
+			return errors.Wrap(err, "unable to create data set data")
+		}
 	}
 
-	err = d.bulkInsert(d.ArchiveC(), archiveData, datumWriteToDeviceDataArchiveStoreMetrics)
-	loggerFields = log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(archiveData), "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetArchiveData")
-	if err != nil {
-		return errors.Wrap(err, "unable to create data set data")
+	if len(archiveData) > 0 {
+		_, err = d.ArchiveCollection.BulkWrite(ctx, archiveData, opts)
+		loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(archiveData), "duration": time.Since(now) / time.Microsecond}
+		log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetArchiveData")
+		if err != nil {
+			return errors.Wrap(err, "unable to create data set archive data")
+		}
 	}
 
 	return nil
 }
 
-func (d *DataSession) bulkInsert(collection *mgo.Collection, data []interface{}, promHisto prometheus.Histogram) error {
-	if len(data) > 0 {
-		start := time.Now()
-		bulk := collection.Bulk()
-		bulk.Unordered()
-		bulk.Insert(data...)
-
-		_, err := bulk.Run()
-		elapsed_time := time.Since(start).Seconds()
-		promHisto.Observe(float64(elapsed_time))
-		return err
-	}
-	return nil
-}
-
-func (d *DataSession) isDatumToArchive(datum data.Datum) bool {
+func (d *DataRepository) isDatumToArchive(datum data.Datum) bool {
 	datumType := datum.GetType()
 	for _, archivedType := range d.DataTypesArchived {
 		if archivedType == datumType {
@@ -514,17 +496,17 @@ func (d *DataSession) isDatumToArchive(datum data.Datum) bool {
 	return false
 }
 
-func (d *DataSession) isDatumToBucket(datum data.Datum) bool {
+func (d *DataRepository) isDatumToBucket(datum data.Datum) bool {
 	datumType := datum.GetType()
-	for _, archivedType := range d.DataTypesBucketed {
-		if archivedType == datumType {
+	for _, bucketedType := range d.DataTypesBucketed {
+		if bucketedType == datumType {
 			return true
 		}
 	}
 	return false
 }
 
-func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -534,10 +516,6 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -558,7 +536,7 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 		"archivedTime":      1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to activate data set data")
 		return errors.Wrap(err, "unable to activate data set data")
@@ -568,7 +546,7 @@ func (d *DataSession) ActivateDataSetData(ctx context.Context, dataSet *upload.U
 	return nil
 }
 
-func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -578,10 +556,6 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -602,7 +576,7 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 		"archivedDatasetId": 1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to archive data set data")
 		return errors.Wrap(err, "unable to archive data set data")
@@ -612,7 +586,7 @@ func (d *DataSession) ArchiveDataSetData(ctx context.Context, dataSet *upload.Up
 	return nil
 }
 
-func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -622,10 +596,6 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -647,7 +617,7 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 		"deletedUserId":     1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete data set data")
 		return errors.Wrap(err, "unable to delete data set data")
@@ -657,7 +627,7 @@ func (d *DataSession) DeleteDataSetData(ctx context.Context, dataSet *upload.Upl
 	return nil
 }
 
-func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -667,10 +637,6 @@ func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *up
 	selector, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -680,7 +646,7 @@ func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *up
 	selector["uploadId"] = dataSet.UploadID
 	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
-	changeInfo, err := d.C().RemoveAll(selector)
+	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy deleted data set data")
 		return errors.Wrap(err, "unable to destroy deleted data set data")
@@ -690,7 +656,7 @@ func (d *DataSession) DestroyDeletedDataSetData(ctx context.Context, dataSet *up
 	return nil
 }
 
-func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -702,17 +668,13 @@ func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Up
 		return err
 	}
 
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
 	selector["type"] = bson.M{"$ne": "upload"}
-	changeInfo, err := d.C().RemoveAll(selector)
+	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
 		return errors.Wrap(err, "unable to destroy data set data")
@@ -722,7 +684,7 @@ func (d *DataSession) DestroyDataSetData(ctx context.Context, dataSet *upload.Up
 	return nil
 }
 
-func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -733,22 +695,17 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 		return errors.New("data set device id is missing")
 	}
 
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
-	var updateInfo *mgo.ChangeInfo
+	var updateInfo *mongo.UpdateResult
 
-	var hashes []string
 	selector := bson.M{
 		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
 		"type":     bson.M{"$ne": "upload"},
 	}
-	err := d.C().Find(selector).Distinct("_deduplicator.hash", &hashes)
+	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
 	if err == nil && len(hashes) > 0 {
 		selector = bson.M{
 			"_userId":            dataSet.UserID,
@@ -764,7 +721,7 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 			"modifiedTime":      timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	}
 
 	loggerFields := log.Fields{"userId": dataSet.UserID, "deviceId": *dataSet.DeviceID, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
@@ -776,7 +733,7 @@ func (d *DataSession) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Contex
 	return nil
 }
 
-func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -785,10 +742,6 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	}
 	if dataSet.DeviceID == nil || *dataSet.DeviceID == "" {
 		return errors.New("data set device id is missing")
-	}
-
-	if d.IsClosed() {
-		return errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -812,10 +765,9 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 			},
 		},
 	}
-	pipe := d.C().Pipe(pipeline)
-	iter := pipe.Iter()
+	cursor, _ := d.Aggregate(ctx, pipeline)
 
-	var overallUpdateInfo mgo.ChangeInfo
+	var overallUpdateInfo mongo.UpdateResult
 	var overallErr error
 
 	result := struct {
@@ -826,7 +778,15 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 		} `bson:"_id"`
 		ArchivedHashes []string `bson:"archivedHashes"`
 	}{}
-	for iter.Next(&result) {
+	for cursor.Next(ctx) {
+		err := cursor.Decode(&result)
+		if err != nil {
+			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
+			log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Error("Unable to decode result for UnarchiveDeviceDataUsingHashesFromDataSet")
+			if overallErr == nil {
+				overallErr = errors.Wrap(err, "unable to decode device data results")
+			}
+		}
 		if result.ID.Active != (result.ID.ArchivedDataSetID == "") || result.ID.Active != (result.ID.ArchivedTime == "") {
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).Error("Unexpected pipe result for UnarchiveDeviceDataUsingHashesFromDataSet")
@@ -851,7 +811,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 			set["archivedDatasetId"] = result.ID.ArchivedDataSetID
 			set["archivedTime"] = result.ID.ArchivedTime
 		}
-		updateInfo, err := d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+		updateInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 		if err != nil {
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Error("Unable to update result for UnarchiveDeviceDataUsingHashesFromDataSet")
@@ -859,12 +819,11 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 				overallErr = errors.Wrap(err, "unable to transfer device data active")
 			}
 		} else {
-			overallUpdateInfo.Updated += updateInfo.Updated
-			overallUpdateInfo.Removed += updateInfo.Removed
+			overallUpdateInfo.ModifiedCount += updateInfo.ModifiedCount
 		}
 	}
 
-	if err := iter.Err(); err != nil {
+	if err := cursor.Err(); err != nil {
 		if overallErr == nil {
 			overallErr = errors.Wrap(err, "unable to iterate to transfer device data active")
 		}
@@ -876,7 +835,7 @@ func (d *DataSession) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Cont
 	return overallErr
 }
 
-func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -888,16 +847,12 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 		return errors.New("data set device id is missing")
 	}
 
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
 
 	var err error
-	var removeInfo *mgo.ChangeInfo
-	var updateInfo *mgo.ChangeInfo
+	var removeInfo *mongo.DeleteResult
+	var updateInfo *mongo.UpdateResult
 
 	selector := bson.M{
 		"_userId":  dataSet.UserID,
@@ -905,7 +860,7 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 		"uploadId": bson.M{"$ne": dataSet.UploadID},
 		"type":     bson.M{"$ne": "upload"},
 	}
-	removeInfo, err = d.C().RemoveAll(selector)
+	removeInfo, err = d.DeleteMany(ctx, selector)
 	if err == nil {
 		selector = bson.M{
 			"_userId":       dataSet.UserID,
@@ -919,7 +874,7 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.C().UpdateAll(selector, d.ConstructUpdate(set, unset))
+		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	}
 
 	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
@@ -931,7 +886,7 @@ func (d *DataSession) DeleteOtherDataSetData(ctx context.Context, dataSet *uploa
 	return nil
 }
 
-func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string) error {
+func (d *DataRepository) DestroyDataForUserByID(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -939,16 +894,12 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 		return errors.New("user id is missing")
 	}
 
-	if d.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	selector := bson.M{
 		"_userId": userID,
 	}
-	removeInfo, err := d.C().RemoveAll(selector)
+	removeInfo, err := d.DeleteMany(ctx, selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroyDataForUserByID")
@@ -960,7 +911,7 @@ func (d *DataSession) DestroyDataForUserByID(ctx context.Context, userID string)
 	return nil
 }
 
-func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -976,10 +927,6 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	if d.IsClosed() {
-		return nil, errors.New("session closed")
 	}
 
 	now := time.Now()
@@ -1006,10 +953,16 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 	if filter.DataSetType != nil {
 		selector["dataSetType"] = *filter.DataSetType
 	}
-	err := d.C().Find(selector).Sort("-time").Skip(pagination.Page * pagination.Size).Limit(pagination.Size).All(&dataSets)
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := d.Find(ctx, selector, opts)
 	logger.WithFields(log.Fields{"count": len(dataSets), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserDataSets")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list user data sets")
+	}
+
+	if err = cursor.All(ctx, &dataSets); err != nil {
+		return nil, errors.Wrap(err, "unable to decode user data sets")
 	}
 
 	if dataSets == nil {
@@ -1019,7 +972,7 @@ func (d *DataSession) ListUserDataSets(ctx context.Context, userID string, filte
 	return dataSets, nil
 }
 
-func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -1027,33 +980,23 @@ func (d *DataSession) GetDataSet(ctx context.Context, id string) (*data.DataSet,
 		return nil, errors.New("id is missing")
 	}
 
-	if d.IsClosed() {
-		return nil, errors.New("session closed")
-	}
-
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	dataSets := data.DataSets{}
+	var dataSet *data.DataSet
 	selector := bson.M{
 		"uploadId": id,
 		"type":     "upload",
 	}
-	err := d.C().Find(selector).Limit(2).All(&dataSets)
+	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetDataSet")
-	if err != nil {
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set")
 	}
 
-	switch count := len(dataSets); count {
-	case 0:
-		return nil, nil
-	case 1:
-		return dataSets[0], nil
-	default:
-		logger.WithField("count", count).Warnf("Multiple data sets found for id %q", id)
-		return dataSets[0], nil
-	}
+	return dataSet, nil
 }
 
 func validateDataSet(dataSet *upload.Upload) error {

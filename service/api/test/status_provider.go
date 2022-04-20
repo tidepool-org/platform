@@ -1,5 +1,7 @@
 package test
 
+import "context"
+
 type StatusProvider struct {
 	StatusInvocations int
 	StatusStub        func() interface{}
@@ -11,7 +13,7 @@ func NewStatusProvider() *StatusProvider {
 	return &StatusProvider{}
 }
 
-func (s *StatusProvider) Status() interface{} {
+func (s *StatusProvider) Status(ctx context.Context) interface{} {
 	s.StatusInvocations++
 	if s.StatusStub != nil {
 		return s.StatusStub()

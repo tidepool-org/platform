@@ -50,7 +50,6 @@ func NewBase() *types.Base {
 	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
 	datum.Origin = originTest.RandomOrigin()
 	datum.Payload = metadataTest.RandomMetadata()
-	datum.SchemaVersion = 2
 	datum.Source = pointer.FromString("carelink")
 	datum.Tags = pointer.FromStringArray([]string{NewTag(1, 10)})
 	datum.Time = pointer.FromString(timeReference.Format(time.RFC3339Nano))
@@ -59,7 +58,7 @@ func NewBase() *types.Base {
 	datum.Type = NewType()
 	datum.UploadID = pointer.FromString(dataTest.RandomSetID())
 	datum.UserID = pointer.FromString(userTest.RandomID())
-	datum.Version = NewVersion()
+	datum.VersionInternal = NewVersionInternal()
 	return datum
 }
 
@@ -90,7 +89,6 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.Notes = pointer.CloneStringArray(datum.Notes)
 	clone.Origin = originTest.CloneOrigin(datum.Origin)
 	clone.Payload = metadataTest.CloneMetadata(datum.Payload)
-	clone.SchemaVersion = datum.SchemaVersion
 	clone.Source = pointer.CloneString(datum.Source)
 	clone.Tags = pointer.CloneStringArray(datum.Tags)
 	clone.Time = pointer.CloneString(datum.Time)
@@ -99,6 +97,6 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.Type = datum.Type
 	clone.UploadID = pointer.CloneString(datum.UploadID)
 	clone.UserID = pointer.CloneString(datum.UserID)
-	clone.Version = datum.Version
+	clone.VersionInternal = datum.VersionInternal
 	return clone
 }

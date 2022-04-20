@@ -6,7 +6,7 @@ RUN apk --no-cache add git make tzdata && \
     apk add --no-cache ca-certificates tzdata && \
     go get github.com/githubnemo/CompileDaemon && \
     adduser -D tidepool && \
-    chown -R tidepool /go/pkg/mod 
+    chown -R tidepool /go/pkg/mod
 
 COPY . .
 RUN chown -R tidepool /go/src/github.com/tidepool-org/platform

@@ -30,8 +30,6 @@ type DataSetAccessor interface {
 }
 
 const (
-	SchemaVersionCurrent = 3 // DEPRECATED
-
 	ComputerTimeFormat = "2006-01-02T15:04:05"
 	TimeFormat         = time.RFC3339Nano
 
@@ -329,7 +327,6 @@ type DataSet struct {
 	ModifiedTime        *string                 `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID      *string                 `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	Payload             *metadata.Metadata      `json:"payload,omitempty" bson:"payload,omitempty"`
-	SchemaVersion       int                     `json:"-" bson:"_schemaVersion,omitempty"`
 	Source              *string                 `json:"source,omitempty" bson:"source,omitempty"`
 	State               *string                 `json:"-" bson:"_state,omitempty"`
 	Time                *string                 `json:"time,omitempty" bson:"time,omitempty"`

@@ -1,4 +1,4 @@
-package storeDEPRECATED_test
+package pumpstatus_test
 
 import (
 	"testing"

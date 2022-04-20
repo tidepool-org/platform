@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("Writer", func() {
 	Context("NewWriter", func() {
-		It("returns an error if the writer is missng", func() {
+		It("returns an error if the writer is missing", func() {
 			writer, err := sync.NewWriter(nil)
 			Expect(err).To(MatchError("writer is missing"))
 			Expect(writer).To(BeNil())

@@ -1,6 +1,8 @@
 package config
 
-import "strings"
+import (
+	"strings"
+)
 
 type Reporter interface {
 	Get(key string) (string, error)

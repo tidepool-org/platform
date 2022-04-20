@@ -71,7 +71,7 @@ endif
 goimports:
 ifeq ($(shell which goimports),)
 	go install golang.org/x/tools/cmd/goimports
-endif	
+endif
 
 golint:
 ifeq ($(shell which golint),)
@@ -233,13 +233,13 @@ endif
 
 ci-deploy: deploy
 
-ci-soups: clean-soup-doc generate-soups 
+ci-soups: clean-soup-doc generate-soups
 
 generate-soups:
 	@cd $(ROOT_DIRECTORY) && \
-		$(MAKE) service-soup SERVICE_DIRECTORY=data SERVICE=platform TARGET=soup VERSION=${VERSION_BASE} 
+		$(MAKE) service-soup SERVICE_DIRECTORY=data SERVICE=platform TARGET=soup VERSION=${VERSION_BASE}
 
-service-soup: 
+service-soup:
 	@cd ${SERVICE_DIRECTORY} && \
 		echo "# SOUPs List for ${SERVICE}@${VERSION}" > soup.md && \
 		go list -f '## {{printf "%s \n\t* description: \n\t* version: %s\n\t* webSite: https://%s\n\t* sources:" .Path .Version .Path}}' -m all >> soup.md && \

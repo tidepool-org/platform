@@ -26,15 +26,12 @@ const (
 	ModifiedTimeFormat      = time.RFC3339Nano
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
-	SchemaVersionCurrent    = SchemaVersionMaximum
-	SchemaVersionMaximum    = 3
-	SchemaVersionMinimum    = 1
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339Nano
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionMinimum          = 0
+	VersionInternalMinimum  = 0
 	ParsingTimeFormat       = "2006-01-02T15:04:05.999-0700"
 )
 
@@ -62,7 +59,6 @@ type Base struct {
 	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
 	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
 	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
-	SchemaVersion     int                           `json:"-" bson:"_schemaVersion,omitempty"`
 	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *string                       `json:"time,omitempty" bson:"time,omitempty"`
@@ -71,7 +67,7 @@ type Base struct {
 	Type              string                        `json:"type,omitempty" bson:"type,omitempty"`
 	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID            *string                       `json:"-" bson:"_userId,omitempty"`
-	Version           int                           `json:"-" bson:"_version,omitempty"`
+	VersionInternal   int                           `json:"-" bson:"_version,omitempty"`
 }
 
 type Meta struct {
@@ -203,10 +199,6 @@ func (b *Base) Validate(validator structure.Validator) {
 		b.Payload.Validate(validator.WithReference("payload"))
 	}
 
-	if validator.Origin() <= structure.OriginStore {
-		validator.Int("_schemaVersion", &b.SchemaVersion).Exists().InRange(SchemaVersionMinimum, SchemaVersionMaximum)
-	}
-
 	validator.String("source", b.Source).EqualTo("carelink")
 	validator.StringArray("tags", b.Tags).NotEmpty().LengthLessThanOrEqualTo(TagsLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
@@ -227,7 +219,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 	if validator.Origin() <= structure.OriginStore {
 		validator.String("_userId", b.UserID).Exists().Using(user.IDValidator)
-		validator.Int("_version", &b.Version).Exists().GreaterThanOrEqualTo(VersionMinimum)
+		validator.Int("_version", &b.VersionInternal).Exists().GreaterThanOrEqualTo(VersionInternalMinimum)
 	}
 }
 
@@ -244,12 +236,6 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())
-		}
-	}
-
-	if normalizer.Origin() == structure.OriginExternal {
-		if b.SchemaVersion == 0 {
-			b.SchemaVersion = SchemaVersionCurrent
 		}
 	}
 

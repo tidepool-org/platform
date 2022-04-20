@@ -89,6 +89,10 @@ func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit 
 	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not between %s and %s", stringify(value), stringify(lowerLimit), stringify(upperLimit))
 }
 
+func ErrorValueNotValid() error {
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value is not valid")
+}
+
 func ErrorValueNotSerializable() error {
 	return errors.Preparedf(ErrorCodeValueNotSerializable, "value is not serializable", "value is not serializable")
 }
@@ -123,6 +127,10 @@ func ErrorValueStringMatches(value string, expression *regexp.Regexp) error {
 
 func ErrorValueStringNotMatches(value string, expression *regexp.Regexp) error {
 	return errors.Preparedf(ErrorCodeValueNotMatches, "value does not match expression", "value %s does not match expression %s", stringify(value), stringify(expression))
+}
+
+func ErrorValueStringNotValidUUID(value string) error {
+	return errors.Preparedf(ErrorCodeValueNotValid, "value is not valid", "value %s is not a valid UUID", stringify(value))
 }
 
 func ErrorValueStringAsTimeNotValid(value string, layout string) error {

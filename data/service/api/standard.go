@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataContext "github.com/tidepool-org/platform/data/service/context"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
@@ -22,21 +22,21 @@ type Standard struct {
 	*api.API
 	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
+	dataStore               dataStore.Store
 	syncTaskStore           syncTaskStore.Store
 	dataClient              dataClient.Client
 }
 
 func NewStandard(svc service.Service, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client) (*Standard, error) {
 	if permissionClient == nil {
 		return nil, errors.New("permission client is missing")
 	}
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
 	}
-	if dataStoreDEPRECATED == nil {
+	if store == nil {
 		return nil, errors.New("data store DEPRECATED is missing")
 	}
 	if syncTaskStore == nil {
@@ -55,7 +55,7 @@ func NewStandard(svc service.Service, permissionClient permission.Client,
 		API:                     a,
 		permissionClient:        permissionClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStoreDEPRECATED:     dataStoreDEPRECATED,
+		dataStore:               store,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
 	}, nil
@@ -96,5 +96,5 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, handler)
+		s.dataStore, s.syncTaskStore, s.dataClient, handler)
 }

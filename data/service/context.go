@@ -4,7 +4,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
@@ -18,8 +18,8 @@ type Context interface {
 
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	DataSession() dataStoreDEPRECATED.DataSession
-	SyncTaskSession() syncTaskStore.SyncTaskSession
+	DataRepository() dataStore.DataRepository
+	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 
 	DataClient() dataClient.Client
 }
