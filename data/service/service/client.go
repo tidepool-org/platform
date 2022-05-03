@@ -123,7 +123,9 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	userSummary.FirstData = &firstData
 	userSummary.TimeInRange = pointer.FromFloat64(stats.TimeInRange)
 	userSummary.TimeBelowRange = pointer.FromFloat64(stats.TimeBelowRange)
+	userSummary.TimeVeryBelowRange = pointer.FromFloat64(stats.TimeVeryBelowRange)
 	userSummary.TimeAboveRange = pointer.FromFloat64(stats.TimeAboveRange)
+	userSummary.TimeVeryAboveRange = pointer.FromFloat64(stats.TimeVeryAboveRange)
 	userSummary.TimeCGMUse = pointer.FromFloat64(stats.TimeCGMUse)
 	userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(stats.GlucoseMgmtIndicator)
 	userSummary.AverageGlucose = &summary.Glucose{

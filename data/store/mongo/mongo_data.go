@@ -896,9 +896,7 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		// we currently pull all so we can do in-range and avg in 1 pass, maybe bad idea
-		//"value": bson.M{"$gt": 3.9, "$lt": 10},
-		// NOTE: redundant query for migration of time field
+		// NOTE: redundant $or query for migration of time field
 		"$or": bson.A{
 			bson.M{"time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
 				"$lte": endTime.Format(time.RFC3339Nano)}},
@@ -910,11 +908,11 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	cursor, err := d.Find(ctx, selector)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get in-range values")
+		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
 	}
 
 	if err = cursor.All(ctx, &dataSets); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
+		return nil, errors.Wrap(err, "unable to decode data sets")
 	}
 
 	return dataSets, nil
@@ -938,9 +936,14 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 		"type":    "cbg",
 	}
 
+	projection := bson.D{
+		{Key: "createdTime", Value: 1},
+		{Key: "time", Value: 1},
+	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
+	findOptions.SetProjection(projection)
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 
@@ -976,8 +979,14 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 		return userIDs, errors.New("context is missing")
 	}
 
+	timestamp := time.Now().AddDate(-2, 0, 0).UTC()
+
 	selector := bson.M{
-		"time":    bson.M{"$gte": time.Now().AddDate(-2, 0, 0).UTC().Format(time.RFC3339Nano)},
+		// NOTE: redundant $or query for migration of time field
+		"$or": bson.A{
+			bson.M{"time": bson.M{"$gte": timestamp}},
+			bson.M{"time": bson.M{"$gte": timestamp.Format(time.RFC3339Nano)}},
+		},
 		"_active": true,
 		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},
