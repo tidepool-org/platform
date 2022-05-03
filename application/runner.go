@@ -54,13 +54,13 @@ func Run(runner Runner, provider Provider) error {
 		errs <- nil
 	}()
 
-	fmt.Printf("listening for signals")
+	provider.Logger().Debug("Listening for signals")
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case sig := <-signals:
-		fmt.Printf("Received signal %s", sig.String())
+		provider.Logger().Debugf("Received signal %s", sig.String())
 		return nil
 	case runErr := <-errs:
 		return runErr

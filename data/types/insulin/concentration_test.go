@@ -52,7 +52,7 @@ var _ = Describe("Concentration", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Concentration), expectedErrors ...error) {
-					datum := dataTypesInsulinTest.NewConcentration()
+					datum := dataTypesInsulinTest.RandomConcentration()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -193,7 +193,7 @@ var _ = Describe("Concentration", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Concentration)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesInsulinTest.NewConcentration()
+						datum := dataTypesInsulinTest.RandomConcentration()
 						mutator(datum)
 						expectedDatum := dataTypesInsulinTest.CloneConcentration(datum)
 						normalizer := dataNormalizer.New()

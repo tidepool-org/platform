@@ -57,7 +57,7 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 func NewDataSetData(deviceID string) data.Data {
 	dataSetData := data.Data{}
 	for count := 0; count < test.RandomIntFromRange(4, 6); count++ {
-		datum := dataTypesTest.NewBase()
+		datum := dataTypesTest.RandomBase()
 		datum.Active = false
 		datum.ArchivedDataSetID = nil
 		datum.ArchivedTime = nil

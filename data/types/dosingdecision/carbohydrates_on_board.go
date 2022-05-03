@@ -12,9 +12,8 @@ const (
 )
 
 type CarbohydratesOnBoard struct {
-	StartTime *time.Time `json:"startTime,omitempty" bson:"startTime,omitempty"`
-	EndTime   *time.Time `json:"endTime,omitempty" bson:"endTime,omitempty"`
-	Amount    *float64   `json:"amount,omitempty" bson:"amount,omitempty"`
+	Time   *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Amount *float64   `json:"amount,omitempty" bson:"amount,omitempty"`
 }
 
 func ParseCarbohydratesOnBoard(parser structure.ObjectParser) *CarbohydratesOnBoard {
@@ -31,14 +30,10 @@ func NewCarbohydratesOnBoard() *CarbohydratesOnBoard {
 }
 
 func (c *CarbohydratesOnBoard) Parse(parser structure.ObjectParser) {
-	c.StartTime = parser.Time("startTime", TimeFormat)
-	c.EndTime = parser.Time("endTime", TimeFormat)
+	c.Time = parser.Time("time", time.RFC3339Nano)
 	c.Amount = parser.Float64("amount")
 }
 
 func (c *CarbohydratesOnBoard) Validate(validator structure.Validator) {
-	if c.StartTime != nil {
-		validator.Time("endTime", c.EndTime).After(*c.StartTime)
-	}
 	validator.Float64("amount", c.Amount).Exists().InRange(CarbohydratesOnBoardAmountMinimum, CarbohydratesOnBoardAmountMaximum)
 }

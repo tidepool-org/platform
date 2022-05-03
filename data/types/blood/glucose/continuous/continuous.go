@@ -60,9 +60,7 @@ func (c *Continuous) Validate(validator structure.Validator) {
 	}
 
 	validator.Float64("trendRate", c.TrendRate).InRange(TrendRateMinimum, TrendRateMaximum)
-	if c.Trend != nil {
-		validator.String("units", c.Trend).Exists().OneOf(Trends()...)
-	}
+	validator.String("trend", c.Trend).OneOf(Trends()...)
 }
 
 func (c *Continuous) Normalize(normalizer data.Normalizer) {

@@ -10,7 +10,6 @@ import (
 const (
 	IDLengthMaximum      = 100
 	NameLengthMaximum    = 100
-	TimeFormat           = time.RFC3339Nano
 	TypeApplication      = "application"
 	TypeDevice           = "device"
 	TypeManual           = "manual"
@@ -64,7 +63,7 @@ func (o *Origin) Validate(validator structure.Validator) {
 	if o.Payload != nil {
 		o.Payload.Validate(validator.WithReference("payload"))
 	}
-	validator.String("time", o.Time).AsTime(TimeFormat).NotZero()
+	validator.String("time", o.Time).AsTime(time.RFC3339Nano).NotZero()
 	validator.String("type", o.Type).OneOf(Types()...)
 	validator.String("version", o.Version).NotEmpty().LengthLessThanOrEqualTo(VersionLengthMaximum)
 }

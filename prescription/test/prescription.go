@@ -66,45 +66,37 @@ func RandomClaimedPrescription() *prescription.Prescription {
 }
 
 func RandomRevisionCreate() *prescription.RevisionCreate {
-	accountType := faker.RandomChoice(prescription.AccountTypes())
-	caregiverFirstName := ""
-	caregiverLastName := ""
-	if accountType == prescription.AccountTypeCaregiver {
-		caregiverFirstName = faker.Name().FirstName()
-		caregiverLastName = faker.Name().LastName()
+	userID := userTest.RandomID()
+	dataAttributes := RandomAttribtues().DataAttributes
+	create := &prescription.RevisionCreate{
+		ClinicID:       faker.Number().Hexadecimal(24),
+		ClinicianID:    userID,
+		CreatedUserID:  userID,
+		DataAttributes: dataAttributes,
 	}
-	return &prescription.RevisionCreate{
-		ClinicID:    faker.Number().Hexadecimal(24),
-		ClinicianID: userTest.RandomID(),
-		DataAttributes: prescription.DataAttributes{
-			AccountType:             accountType,
-			CaregiverFirstName:      caregiverFirstName,
-			CaregiverLastName:       caregiverLastName,
-			FirstName:               faker.Name().FirstName(),
-			LastName:                faker.Name().LastName(),
-			Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
-			MRN:                     faker.Code().Rut(),
-			Email:                   faker.Internet().Email(),
-			Sex:                     RandomSex(),
-			Weight:                  RandomWeight(),
-			YearOfDiagnosis:         faker.RandomInt(1940, 2020),
-			PhoneNumber:             RandomPhoneNumber(),
-			InitialSettings:         RandomInitialSettings(),
-			Calculator:              RandomCalculator(),
-			Training:                RandomTraining(),
-			TherapySettings:         RandomTherapySettings(),
-			PrescriberTermsAccepted: true,
-			State:                   prescription.StateSubmitted,
-		},
-	}
+	ResetRevisionCreateHash(create)
+	return create
+}
+
+func ResetRevisionCreateHash(create *prescription.RevisionCreate) {
+	attrs := prescription.NewIntegrityAttributesFromRevisionCreate(*create)
+	hash := prescription.MustGenerateIntegrityHash(attrs)
+	create.RevisionHash = hash.Hash
 }
 
 func RandomRevision() *prescription.Revision {
-	return &prescription.Revision{
+	revision := &prescription.Revision{
 		RevisionID: faker.RandomInt(0, 10),
-		Signature:  nil,
 		Attributes: RandomAttribtues(),
 	}
+	ResetRevisionHash(revision)
+	return revision
+}
+
+func ResetRevisionHash(revision *prescription.Revision) {
+	attrs := prescription.NewIntegrityAttributesFromRevision(*revision)
+	hash := prescription.MustGenerateIntegrityHash(attrs)
+	revision.IntegrityHash = &hash
 }
 
 func RandomAttribtues() *prescription.Attributes {
@@ -117,23 +109,23 @@ func RandomAttribtues() *prescription.Attributes {
 	}
 	return &prescription.Attributes{
 		DataAttributes: prescription.DataAttributes{
-			AccountType:             accountType,
-			CaregiverFirstName:      caregiverFirstName,
-			CaregiverLastName:       caregiverLastName,
-			FirstName:               faker.Name().FirstName(),
-			LastName:                faker.Name().LastName(),
-			Birthday:                faker.Date().Birthday(7, 80).Format("2006-01-02"),
-			MRN:                     faker.Code().Rut(),
-			Email:                   faker.Internet().Email(),
-			Sex:                     RandomSex(),
+			AccountType:             pointer.FromString(accountType),
+			CaregiverFirstName:      pointer.FromString(caregiverFirstName),
+			CaregiverLastName:       pointer.FromString(caregiverLastName),
+			FirstName:               pointer.FromString(faker.Name().FirstName()),
+			LastName:                pointer.FromString(faker.Name().LastName()),
+			Birthday:                pointer.FromString(faker.Date().Birthday(7, 80).Format("2006-01-02")),
+			MRN:                     pointer.FromString(faker.Code().Rut()),
+			Email:                   pointer.FromString(faker.Internet().Email()),
+			Sex:                     pointer.FromString(RandomSex()),
 			Weight:                  RandomWeight(),
-			YearOfDiagnosis:         faker.RandomInt(1940, 2020),
+			YearOfDiagnosis:         pointer.FromInt(faker.RandomInt(1940, 2020)),
 			PhoneNumber:             RandomPhoneNumber(),
 			InitialSettings:         RandomInitialSettings(),
 			Calculator:              RandomCalculator(),
-			Training:                RandomTraining(),
-			TherapySettings:         RandomTherapySettings(),
-			PrescriberTermsAccepted: true,
+			Training:                pointer.FromString(RandomTraining()),
+			TherapySettings:         pointer.FromString(RandomTherapySettings()),
+			PrescriberTermsAccepted: pointer.FromBool(true),
 			State:                   prescription.StateSubmitted,
 		},
 		CreationAttributes: prescription.CreationAttributes{
@@ -175,7 +167,7 @@ func RandomInitialSettings() *prescription.InitialSettings {
 	return &prescription.InitialSettings{
 		BloodGlucoseUnits:                  units,
 		BasalRateSchedule:                  randomPump.BasalRateSchedules.Get(scheduleName),
-		GlucoseSafetyLimit:                 randomPump.BloodGlucoseSuspendThreshold,
+		GlucoseSafetyLimit:                 randomPump.BloodGlucoseSafetyLimit,
 		BloodGlucoseTargetSchedule:         bloodGlucoseSchedule,
 		BloodGlucoseTargetPreprandial:      PreprandialBloodGlucoseTarget(bloodGlucoseSchedule),
 		BloodGlucoseTargetPhysicalActivity: PhysicalActivityBloodGlucoseTarget(bloodGlucoseSchedule),
@@ -184,14 +176,14 @@ func RandomInitialSettings() *prescription.InitialSettings {
 		InsulinSensitivitySchedule:         randomPump.InsulinSensitivitySchedules.Get(scheduleName),
 		BasalRateMaximum:                   randomPump.Basal.RateMaximum,
 		BolusAmountMaximum:                 randomPump.Bolus.AmountMaximum,
-		PumpID:                             RandomDeviceID(),
-		CgmID:                              RandomDeviceID(),
+		PumpID:                             pointer.FromString(RandomDeviceID()),
+		CgmID:                              pointer.FromString(RandomDeviceID()),
 	}
 }
 
 func RandomCalculator() *prescription.Calculator {
 	return &prescription.Calculator{
-		Method:                        testUtils.RandomStringFromArray(prescription.AllowedCalculatorMethods()),
+		Method:                        pointer.FromString(testUtils.RandomStringFromArray(prescription.AllowedCalculatorMethods())),
 		RecommendedBasalRate:          pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
 		RecommendedCarbohydrateRatio:  pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
 		RecommendedInsulinSensitivity: pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
@@ -235,7 +227,7 @@ func RandomBloodGlucoseTargetSchedule() *pump.BloodGlucoseTargetStartArray {
 
 func RandomBloodGlucoseTargetStart(startMinimum int) *pump.BloodGlucoseTargetStart {
 	datum := pump.NewBloodGlucoseTargetStart()
-	datum.Target = *dataBloodGlucoseTest.NewLowHighTarget(minBgTarget, maxBgTarget)
+	datum.Target = *dataBloodGlucoseTest.RandomLowHighTarget(minBgTarget, maxBgTarget)
 	if startMinimum == pump.BloodGlucoseTargetStartStartMinimum {
 		datum.Start = pointer.FromInt(pump.BloodGlucoseTargetStartStartMinimum)
 	} else {

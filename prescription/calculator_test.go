@@ -27,19 +27,19 @@ var _ = Describe("Calculator", func() {
 			validate = validator.New()
 		})
 
-		It("doesn't fail with empty method", func() {
-			calculator.Method = ""
+		It("doesn't fail with nil method", func() {
+			calculator.Method = nil
 			Expect(validate.Validate(calculator)).ToNot(HaveOccurred())
 		})
 
 		It("fails with invalid method", func() {
-			calculator.Method = "invalidMethod"
+			calculator.Method = pointer.FromString("invalidMethod")
 			Expect(validate.Validate(calculator)).To(HaveOccurred())
 		})
 
 		Describe("method is 'totalDailyDose'", func() {
 			BeforeEach(func() {
-				calculator.Method = prescription.CalculatorMethodTotalDailyDose
+				calculator.Method = pointer.FromString(prescription.CalculatorMethodTotalDailyDose)
 			})
 
 			It("fails with empty 'totalDailyDose' input", func() {
@@ -65,7 +65,7 @@ var _ = Describe("Calculator", func() {
 
 		Describe("method is 'weight'", func() {
 			BeforeEach(func() {
-				calculator.Method = prescription.CalculatorMethodWeight
+				calculator.Method = pointer.FromString(prescription.CalculatorMethodWeight)
 			})
 
 			It("fails with empty 'weight' input", func() {
@@ -91,7 +91,7 @@ var _ = Describe("Calculator", func() {
 
 		Describe("method is 'totalDailyDoseAndWeight'", func() {
 			BeforeEach(func() {
-				calculator.Method = prescription.CalculatorMethodTotalDailyDoseAndWeight
+				calculator.Method = pointer.FromString(prescription.CalculatorMethodTotalDailyDoseAndWeight)
 			})
 
 			It("fails with empty 'totalDailyDose' input", func() {

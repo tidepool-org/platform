@@ -9,6 +9,7 @@ import (
 	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
 
+	// workaround for mockgen incompatibility with vendored dependencies
 	_ "github.com/golang/mock/mockgen/model"
 
 	"github.com/tidepool-org/platform/auth"

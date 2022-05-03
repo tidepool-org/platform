@@ -11,7 +11,7 @@ import (
 
 func RandomBloodGlucoseTargetStart(units *string, startMinimum int) *dataTypesSettingsPump.BloodGlucoseTargetStart {
 	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStart()
-	datum.Target = *dataBloodGlucoseTest.NewTarget(units)
+	datum.Target = *dataBloodGlucoseTest.RandomTarget(units)
 	if startMinimum == dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum {
 		datum.Start = pointer.FromInt(dataTypesSettingsPump.BloodGlucoseTargetStartStartMinimum)
 	} else {
@@ -28,6 +28,17 @@ func CloneBloodGlucoseTargetStart(datum *dataTypesSettingsPump.BloodGlucoseTarge
 	clone.Target = *dataBloodGlucoseTest.CloneTarget(&datum.Target)
 	clone.Start = pointer.CloneInt(datum.Start)
 	return clone
+}
+
+func NewObjectFromBloodGlucoseTargetStart(datum *dataTypesSettingsPump.BloodGlucoseTargetStart, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := dataBloodGlucoseTest.NewObjectFromTarget(&datum.Target, objectFormat)
+	if datum.Start != nil {
+		object["start"] = test.NewObjectFromInt(*datum.Start, objectFormat)
+	}
+	return object
 }
 
 func RandomBloodGlucoseTargetStartArray(units *string) *dataTypesSettingsPump.BloodGlucoseTargetStartArray {
@@ -52,6 +63,25 @@ func CloneBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGl
 	return cloneArray
 }
 
+func NewArrayFromBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGlucoseTargetStartArray, objectFormat test.ObjectFormat) []interface{} {
+	if datumArray == nil {
+		return nil
+	}
+	array := []interface{}{}
+	for _, datum := range *datumArray {
+		array = append(array, NewObjectFromBloodGlucoseTargetStart(datum, objectFormat))
+	}
+	return array
+}
+
+func AnonymizeBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGlucoseTargetStartArray) []interface{} {
+	array := []interface{}{}
+	for _, datum := range *datumArray {
+		array = append(array, datum)
+	}
+	return array
+}
+
 func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
 	if datumArrayMap == nil {
 		return nil
@@ -63,9 +93,20 @@ func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.B
 	return clone
 }
 
+func NewObjectFromBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datumArrayMap == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	for datumName, datumArray := range *datumArrayMap {
+		object[datumName] = NewArrayFromBloodGlucoseTargetStartArray(datumArray, objectFormat)
+	}
+	return object
+}
+
 func NewBloodGlucoseTargetStartArrayMap(units *string) *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap {
 	datum := dataTypesSettingsPump.NewBloodGlucoseTargetStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), RandomBloodGlucoseTargetStartArray(units))
+	datum.Set(dataTypesBasalTest.RandomScheduleName(), RandomBloodGlucoseTargetStartArray(units))
 	return datum
 }
 
