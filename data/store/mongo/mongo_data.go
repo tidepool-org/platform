@@ -994,7 +994,7 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
-		return userIDs, errors.New("error fetching distinct userIDs")
+		return userIDs, errors.Wrap(err, "error fetching distinct userIDs")
 	}
 
 	for _, v := range result {
