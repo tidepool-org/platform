@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Address   string
 	UserAgent string
+	Timeout   *int
 }
 
 func NewConfig() *Config {

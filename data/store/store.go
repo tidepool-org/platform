@@ -69,6 +69,7 @@ type SummaryRepository interface {
 	EnsureIndexes() error
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
+	DeleteSummary(ctx context.Context, id string) error
 	SetOutdated(ctx context.Context, id string) (*time.Time, error)
 	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error)
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)

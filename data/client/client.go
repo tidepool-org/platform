@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -31,7 +32,8 @@ type Client interface {
 }
 
 type ClientImpl struct {
-	client *platform.Client
+	client     *platform.Client
+	longClient *platform.Client
 }
 
 func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
@@ -40,8 +42,15 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, e
 		return nil, err
 	}
 
+	cfg.Timeout = pointer.FromInt(300)
+	longClient, err := platform.NewClient(cfg, authorizeAs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ClientImpl{
-		client: clnt,
+		client:     clnt,
+		longClient: longClient,
 	}, nil
 }
 
@@ -160,9 +169,9 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 
 func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int64, error) {
 	var count int64
-	url := c.client.ConstructURL("v1", "summaries")
+	url := c.longClient.ConstructURL("v1", "summaries")
 
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
+	if err := c.longClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
 		return count, errors.Wrap(err, "backfill request returned an error")
 	}
 

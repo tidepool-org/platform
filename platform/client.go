@@ -47,9 +47,15 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 	// 		return errors.New("service secret is missing")
 	// 	}
 	// }
+	var timeout int
+	if cfg.Timeout != nil {
+		timeout = *cfg.Timeout
+	} else {
+		timeout = 60
+	}
 
 	httpClient := &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: time.Duration(timeout) * time.Second,
 	}
 
 	return &Client{

@@ -73,6 +73,27 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 	return &summary, nil
 }
 
+func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if id == "" {
+		return errors.New("summary UserID is missing")
+	}
+
+	selector := bson.M{
+		"userId": id,
+	}
+
+	_, err := d.DeleteOne(ctx, selector)
+
+	if err != nil {
+		return errors.Wrap(err, "unable to delete summary")
+	}
+
+	return nil
+}
+
 func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
 	var userIDs []string
 	var summaries []*summary.Summary
