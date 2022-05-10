@@ -79,9 +79,12 @@ type UserLastUpdated struct {
 	LastUpload time.Time
 }
 
-type WeightingResult struct {
-	Weight    float64
-	StartTime time.Time
+type WeightingInput struct {
+	StartTime        time.Time
+	EndTime          time.Time
+	LastData         time.Time
+	OldPercentCGMUse float64
+	NewPercentCGMUse float64
 }
 
 type Summary struct {
@@ -130,23 +133,27 @@ func GetDuration(dataSet *continuous.Continuous) int64 {
 	return 5
 }
 
-func CalculateWeight(startTime time.Time, endTime time.Time, lastData time.Time) (*WeightingResult, error) {
-	if endTime.Before(lastData) {
+func CalculateWeight(input *WeightingInput) (*float64, error) {
+	if input.EndTime.Before(input.LastData) {
 		return nil, errors.New("Invalid time period for calculation, endTime before lastData.")
 	}
 
-	result := WeightingResult{Weight: 1.0, StartTime: startTime}
+	var weight float64 = 1.0
 
-	if startTime.Before(lastData) {
+	if input.StartTime.Before(input.LastData) {
 		// get ratio between start time and actual start time for weights
-		wholeTime := endTime.Sub(startTime)
-		newTime := endTime.Sub(lastData)
-		result.Weight = newTime.Seconds() / wholeTime.Seconds()
-
-		result.StartTime = lastData
+		wholeTime := input.EndTime.Sub(input.StartTime)
+		newTime := input.EndTime.Sub(input.LastData)
+		weight = newTime.Seconds() / wholeTime.Seconds()
 	}
 
-	return &result, nil
+	// adjust weight for %cgm use
+	oldWeight := (1 - weight) * input.OldPercentCGMUse
+	newWeight := weight * input.NewPercentCGMUse
+	weightMultiplier := 1 / (oldWeight + newWeight)
+	weight = newWeight * weightMultiplier
+
+	return &weight, nil
 }
 
 func CalculateGMI(averageGlucose float64) float64 {
@@ -203,15 +210,7 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 		stats[deviceId].TimeAboveRange = float64(stats[deviceId].AboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeVeryAboveRange = float64(stats[deviceId].VeryAboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeCGMUse = float64(stats[deviceId].TotalCGMMinutes) / totalWallMinutes
-
-		stats[deviceId].TimeInRange = math.Round(stats[deviceId].TimeInRange*1000) / 1000
-		stats[deviceId].TimeBelowRange = math.Round(stats[deviceId].TimeBelowRange*1000) / 1000
-		stats[deviceId].TimeVeryBelowRange = math.Round(stats[deviceId].TimeVeryBelowRange*1000) / 1000
-		stats[deviceId].TimeAboveRange = math.Round(stats[deviceId].TimeAboveRange*1000) / 1000
-		stats[deviceId].TimeVeryAboveRange = math.Round(stats[deviceId].TimeVeryAboveRange*1000) / 1000
-		stats[deviceId].TimeCGMUse = math.Round(stats[deviceId].TimeCGMUse*1000) / 1000
 		stats[deviceId].GlucoseMgmtIndicator = CalculateGMI(stats[deviceId].AverageGlucose)
-		stats[deviceId].AverageGlucose = math.Round(stats[deviceId].AverageGlucose*1000) / 1000
 
 		if winningStats != nil {
 			if stats[deviceId].TimeCGMUse > winningStats.TimeCGMUse {

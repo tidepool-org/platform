@@ -17,6 +17,7 @@ type AuthorizeAs int
 const (
 	AuthorizeAsService AuthorizeAs = iota
 	AuthorizeAsUser
+	DefaultTimeout = 60 * time.Second
 )
 
 type Client struct {
@@ -47,15 +48,15 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 	// 		return errors.New("service secret is missing")
 	// 	}
 	// }
-	var timeout int
+	var timeout time.Duration
 	if cfg.Timeout != nil {
 		timeout = *cfg.Timeout
 	} else {
-		timeout = 60
+		timeout = DefaultTimeout
 	}
 
 	httpClient := &http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+		Timeout: timeout,
 	}
 
 	return &Client{

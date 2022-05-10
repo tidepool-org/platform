@@ -130,37 +130,62 @@ var _ = Describe("Summary", func() {
 
 	Context("CalculateWeight", func() {
 		It("Returns correct weight for time range", func() {
-			startTime := time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			endTime := time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			lastData := time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+			input := summary.WeightingInput{
+				StartTime:        time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				OldPercentCGMUse: 1,
+				NewPercentCGMUse: 1,
+			}
 
-			result, err := summary.CalculateWeight(startTime, endTime, lastData)
+			newWeight, err := summary.CalculateWeight(&input)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(result.StartTime).To(Equal(lastData))
-			Expect(result.Weight).To(BeNumerically("~", 0.5, 0.01))
+			Expect(*newWeight).To(BeNumerically("~", 0.333, 0.001))
+		})
+
+		It("Returns correct weight for time range with <100% cgm use", func() {
+			input := summary.WeightingInput{
+				StartTime:        time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				OldPercentCGMUse: 0.3,
+				NewPercentCGMUse: 0.5,
+			}
+
+			newWeight, err := summary.CalculateWeight(&input)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(*newWeight).To(BeNumerically("~", 0.625, 0.001))
 		})
 
 		It("Returns error on negative time range", func() {
-			startTime := time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			endTime := time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			lastData := time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+			input := summary.WeightingInput{
+				StartTime:        time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				OldPercentCGMUse: 1,
+				NewPercentCGMUse: 1,
+			}
 
-			result, err := summary.CalculateWeight(startTime, endTime, lastData)
+			newWeight, err := summary.CalculateWeight(&input)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("Invalid time period for calculation, endTime before lastData."))
-			Expect(result).To(BeNil())
+			Expect(newWeight).To(BeNil())
 		})
 
 		It("Returns unchanged date and 1 weight when starttime is after lastdata", func() {
-			startTime := time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			endTime := time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-			lastData := time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+			input := summary.WeightingInput{
+				StartTime:        time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				OldPercentCGMUse: 1,
+				NewPercentCGMUse: 1,
+			}
 
-			result, err := summary.CalculateWeight(startTime, endTime, lastData)
+			newWeight, err := summary.CalculateWeight(&input)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.StartTime).To(Equal(startTime))
-			Expect(result.Weight).To(Equal(1.0))
+			Expect(*newWeight).To(Equal(1.0))
 		})
 	})
 
@@ -170,7 +195,7 @@ var _ = Describe("Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, requestedAvgGlucose)
 				stats := summary.CalculateStats(dataSetCGMData, 20160)
 
-				Expect(stats.AverageGlucose).To(Equal(requestedAvgGlucose))
+				Expect(stats.AverageGlucose).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 			})
 
 			It("Returns correct time in range value for records", func() {

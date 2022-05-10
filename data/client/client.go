@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"net/http"
+    "time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
@@ -13,6 +14,10 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+    ExtendedTimeout = 300 * time.Second
 )
 
 // TODO: Move interface to data package once upload dependency broken
@@ -32,8 +37,8 @@ type Client interface {
 }
 
 type ClientImpl struct {
-	client     *platform.Client
-	longClient *platform.Client
+	client                *platform.Client
+	extendedTimeoutClient *platform.Client
 }
 
 func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
@@ -42,15 +47,15 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, e
 		return nil, err
 	}
 
-	cfg.Timeout = pointer.FromInt(300)
-	longClient, err := platform.NewClient(cfg, authorizeAs)
+	cfg.Timeout = pointer.FromDuration(ExtendedTimeout)
+	extendedTimeoutClient, err := platform.NewClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ClientImpl{
-		client:     clnt,
-		longClient: longClient,
+		client:                clnt,
+		extendedTimeoutClient: extendedTimeoutClient,
 	}, nil
 }
 
@@ -169,9 +174,9 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 
 func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int64, error) {
 	var count int64
-	url := c.longClient.ConstructURL("v1", "summaries")
+	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries")
 
-	if err := c.longClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
+	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
 		return count, errors.Wrap(err, "backfill request returned an error")
 	}
 

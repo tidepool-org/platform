@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"math"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
@@ -86,34 +85,43 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	startTime := status.LastData.AddDate(0, 0, -14)
 	firstData := startTime
 
-	var newWeight *summary.WeightingResult
+	var newWeight = pointer.FromFloat64(1.0)
 	if userSummary.LastData != nil {
-		newWeight, err = summary.CalculateWeight(startTime, status.LastData, *userSummary.LastData)
+		if startTime.Before(status.LastData) {
+			startTime = status.LastData
+		}
 
+		weightingInput := summary.WeightingInput{
+			StartTime:        startTime,
+			EndTime:          status.LastData,
+			LastData:         *userSummary.LastData,
+			OldPercentCGMUse: *userSummary.TimeCGMUse,
+			NewPercentCGMUse: *userSummary.TimeCGMUse,
+		}
+
+		newWeight, err = summary.CalculateWeight(&weightingInput)
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		newWeight = &summary.WeightingResult{Weight: 1.0, StartTime: startTime}
 	}
 
-	totalMinutes := float64(math.Round(status.LastData.Sub(newWeight.StartTime).Minutes()))
+	totalMinutes := status.LastData.Sub(startTime).Minutes()
 
-	// quit here if we dont have a long enough timeblock, and might result in +Inf result
+	// quit here if we don't have a long enough time-block, and might result in +Inf result
 	// 0.5 minutes was chosen to smooth any possible float inaccuracy with large division
 	// and avoid calculating on duplicate calls
-	// theres nothing actually wrong here, so dont return an error.
+	// there's nothing actually wrong here, so don't return an error.
 	if totalMinutes < 0.5 {
 		return userSummary, nil
 	}
 
-	userData, err := dataRepository.GetCGMDataRange(ctx, id, newWeight.StartTime, status.LastData)
+	userData, err := dataRepository.GetCGMDataRange(ctx, id, startTime, status.LastData)
 	if err != nil {
 		return nil, err
 	}
 
 	stats := summary.CalculateStats(userData, totalMinutes)
-	stats, err = summary.ReweightStats(stats, userSummary, newWeight.Weight)
+	stats, err = summary.ReweightStats(stats, userSummary, *newWeight)
 	if err != nil {
 		return nil, err
 	}

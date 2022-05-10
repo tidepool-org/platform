@@ -2,6 +2,7 @@ package client
 
 import (
 	"net/url"
+    "time"
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
@@ -10,7 +11,7 @@ import (
 type Config struct {
 	Address   string
 	UserAgent string
-	Timeout   *int
+	Timeout   *time.Duration
 }
 
 func NewConfig() *Config {
