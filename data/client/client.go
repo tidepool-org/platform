@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"net/http"
-    "time"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-    ExtendedTimeout = 300 * time.Second
+	ExtendedTimeout = 300 * time.Second
 )
 
 // TODO: Move interface to data package once upload dependency broken

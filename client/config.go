@@ -2,7 +2,7 @@ package client
 
 import (
 	"net/url"
-    "time"
+	"time"
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
