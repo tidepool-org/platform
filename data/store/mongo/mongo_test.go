@@ -507,7 +507,6 @@ var _ = Describe("Mongo", func() {
 
 				Context("SetOutdated", func() {
 					It("returns error if context is empty", func() {
-						//context id time error
 						_, err := summaryRepository.SetOutdated(nil, randomSummary.UserID)
 
 						Expect(err).To(HaveOccurred())
@@ -546,6 +545,73 @@ var _ = Describe("Mongo", func() {
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(timestampOne).To(Equal(timestampTwo))
+					})
+				})
+
+				Context("GetOutdatedUserIDs", func() {
+					var pagination *page.Pagination
+					BeforeEach(func() {
+						pagination = page.NewPagination()
+					})
+
+					It("returns error if context is empty", func() {
+						_, err := summaryRepository.GetOutdatedUserIDs(nil, pagination)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("context is missing"))
+					})
+
+					It("returns error if pagination is empty", func() {
+						_, err := summaryRepository.GetOutdatedUserIDs(ctx, nil)
+
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("pagination is missing"))
+					})
+
+					It("returns and correctly gets outdated summaries", func() {
+						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
+						_, err := summaryRepository.CreateSummaries(ctx, summaries)
+						Expect(err).ToNot(HaveOccurred())
+
+						_, err = summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+
+						userIDs, err := summaryRepository.GetOutdatedUserIDs(ctx, pagination)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(ConsistOf([1]string{randomSummary.UserID}))
+					})
+				})
+
+				Context("Test full update summary flow", func() {
+					It("ensure an outdated record is no longer outdated after update", func() {
+						_, err = summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("summary not found"))
+
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						newSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						randomSummary.ID = newSummary.ID
+						Expect(newSummary).To(Equal(randomSummary))
+
+						outdatedTime, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedTime).ToNot(BeNil())
+
+						outdatedSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSummary.OutdatedSince).To(Equal(outdatedTime))
+
+						outdatedSummary.OutdatedSince = nil
+						_, err = summaryRepository.UpdateSummary(ctx, outdatedSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						finalSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(finalSummary.OutdatedSince).To(BeNil())
 					})
 				})
 

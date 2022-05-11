@@ -74,11 +74,9 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	userSummary.LastUpdated = &timestamp
 	userSummary.OutdatedSince = nil
 
-	if status == nil {
-		status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
-		if err != nil {
-			return nil, err
-		}
+	status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
 	// remove 2 weeks for start time
@@ -87,8 +85,8 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 
 	var newWeight = pointer.FromFloat64(1.0)
 	if userSummary.LastData != nil {
-		if startTime.Before(status.LastData) {
-			startTime = status.LastData
+		if startTime.Before(*userSummary.LastData) {
+			startTime = *userSummary.LastData
 		}
 
 		weightingInput := summary.WeightingInput{
@@ -108,10 +106,13 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	totalMinutes := status.LastData.Sub(startTime).Minutes()
 
 	// quit here if we don't have a long enough time-block, and might result in +Inf result
-	// 0.5 minutes was chosen to smooth any possible float inaccuracy with large division
-	// and avoid calculating on duplicate calls
+	// 0.5 minutes for float inaccuracy and avoid calculating on duplicate calls
 	// there's nothing actually wrong here, so don't return an error.
 	if totalMinutes < 0.5 {
+		userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
+		if err != nil {
+			return nil, err
+		}
 		return userSummary, nil
 	}
 
