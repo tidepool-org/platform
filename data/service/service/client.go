@@ -82,29 +82,13 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	// remove 2 weeks for start time
 	startTime := status.LastData.AddDate(0, 0, -14)
 	firstData := startTime
-
-	var newWeight = pointer.FromFloat64(1.0)
 	if userSummary.LastData != nil {
 		if startTime.Before(*userSummary.LastData) {
 			startTime = *userSummary.LastData
 		}
-
-		weightingInput := summary.WeightingInput{
-			StartTime:        startTime,
-			EndTime:          status.LastData,
-			LastData:         *userSummary.LastData,
-			OldPercentCGMUse: *userSummary.TimeCGMUse,
-			NewPercentCGMUse: *userSummary.TimeCGMUse,
-		}
-
-		newWeight, err = summary.CalculateWeight(&weightingInput)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	totalMinutes := status.LastData.Sub(startTime).Minutes()
-
 	// quit here if we don't have a long enough time-block, and might result in +Inf result
 	// 0.5 minutes for float inaccuracy and avoid calculating on duplicate calls
 	// there's nothing actually wrong here, so don't return an error.
@@ -122,6 +106,23 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	}
 
 	stats := summary.CalculateStats(userData, totalMinutes)
+
+	var newWeight = pointer.FromFloat64(1.0)
+	if userSummary.LastData != nil && userSummary.TimeCGMUse != nil {
+		weightingInput := summary.WeightingInput{
+			StartTime:        startTime,
+			EndTime:          status.LastData,
+			LastData:         *userSummary.LastData,
+			OldPercentCGMUse: *userSummary.TimeCGMUse,
+			NewPercentCGMUse: stats.TimeCGMUse,
+		}
+
+		newWeight, err = summary.CalculateWeight(&weightingInput)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	stats, err = summary.ReweightStats(stats, userSummary, *newWeight)
 	if err != nil {
 		return nil, err
