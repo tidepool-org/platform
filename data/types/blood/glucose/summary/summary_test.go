@@ -1,8 +1,11 @@
 package summary_test
 
 import (
+	"context"
 	"math/rand"
 	"time"
+
+	"github.com/tidepool-org/platform/log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -44,11 +48,13 @@ func NewContinuous(units *string, datumTime *time.Time, deviceID *string) *conti
 	return datum
 }
 
-func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, reqAvg float64) []*continuous.Continuous {
-	dataSetData := []*continuous.Continuous{}
+func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, days int, reqAvg float64) []*continuous.Continuous {
+	var dataSetData []*continuous.Continuous
 
-	// generate 2 weeks of data
-	for count := 0; count < 4032; count += 2 {
+	requiredRecords := days * 288
+
+	// generate X days of data
+	for count := 0; count < requiredRecords; count += 2 {
 		randValue := 1 + rand.Float64()*(reqAvg-1)
 		glucoseValues := [2]float64{reqAvg + randValue, reqAvg - randValue}
 
@@ -66,8 +72,10 @@ func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, reqAvg float64) 
 }
 
 // creates a dataset with random values evenly divided between ranges
-func NewDataSetCGMDataTimeInRange(deviceID string, startTime time.Time, veryLow float64, low float64, high float64, veryHigh float64) []*continuous.Continuous {
-	dataSetData := []*continuous.Continuous{}
+func NewDataSetCGMDataTimeInRange(deviceID string, startTime time.Time, days int, veryLow float64, low float64, high float64, veryHigh float64) []*continuous.Continuous {
+	var dataSetData []*continuous.Continuous
+
+	requiredRecords := days * 288
 
 	glucoseBrackets := [5][2]float64{
 		{1, veryLow - 0.01},
@@ -78,7 +86,7 @@ func NewDataSetCGMDataTimeInRange(deviceID string, startTime time.Time, veryLow 
 	}
 
 	// generate 2 weeks of data
-	for count := 0; count < 4032; count += 5 {
+	for count := 0; count < requiredRecords; count += 5 {
 		for i, bracket := range glucoseBrackets {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
@@ -93,6 +101,8 @@ func NewDataSetCGMDataTimeInRange(deviceID string, startTime time.Time, veryLow 
 }
 
 var _ = Describe("Summary", func() {
+	var ctx context.Context
+	var logger *logTest.Logger
 	var userID string
 	var datumTime time.Time
 	var deviceID string
@@ -101,6 +111,8 @@ var _ = Describe("Summary", func() {
 	var dataSetCGMData []*continuous.Continuous
 
 	BeforeEach(func() {
+		logger = logTest.NewLogger()
+		ctx = log.NewContextWithLogger(context.Background(), logger)
 		userID = userTest.RandomID()
 		deviceID = dataTest.NewDeviceID()
 		highDeviceID = dataTest.NewDeviceID()
@@ -132,8 +144,8 @@ var _ = Describe("Summary", func() {
 		It("Returns correct weight for time range", func() {
 			input := summary.WeightingInput{
 				StartTime:        time.Date(2015, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
-				EndTime:          time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
-				LastData:         time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2017, time.Month(1), 8, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2018, time.Month(1), 14, 0, 0, 0, 0, time.UTC),
 				OldPercentCGMUse: 1,
 				NewPercentCGMUse: 1,
 			}
@@ -141,14 +153,14 @@ var _ = Describe("Summary", func() {
 			newWeight, err := summary.CalculateWeight(&input)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(*newWeight).To(BeNumerically("~", 0.333, 0.001))
+			Expect(*newWeight).To(BeNumerically("~", 0.334, 0.001))
 		})
 
 		It("Returns correct weight for time range with <100% cgm use", func() {
 			input := summary.WeightingInput{
-				StartTime:        time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
-				EndTime:          time.Date(2018, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
-				LastData:         time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				StartTime:        time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2017, time.Month(1), 7, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2017, time.Month(1), 14, 0, 0, 0, 0, time.UTC),
 				OldPercentCGMUse: 0.3,
 				NewPercentCGMUse: 0.5,
 			}
@@ -156,7 +168,22 @@ var _ = Describe("Summary", func() {
 			newWeight, err := summary.CalculateWeight(&input)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(*newWeight).To(BeNumerically("~", 0.625, 0.001))
+			Expect(*newWeight).To(BeNumerically("~", 0.66, 0.001))
+		})
+
+		It("Returns correct weight for time range with >100% cgm use", func() {
+			input := summary.WeightingInput{
+				StartTime:        time.Date(2017, time.Month(1), 1, 0, 0, 0, 0, time.UTC),
+				LastData:         time.Date(2017, time.Month(1), 7, 0, 0, 0, 0, time.UTC),
+				EndTime:          time.Date(2017, time.Month(1), 14, 0, 0, 0, 0, time.UTC),
+				OldPercentCGMUse: 0.5,
+				NewPercentCGMUse: 1.0,
+			}
+
+			newWeight, err := summary.CalculateWeight(&input)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(*newWeight).To(BeNumerically("~", 0.7, 0.001))
 		})
 
 		It("Returns error on negative time range", func() {
@@ -192,14 +219,14 @@ var _ = Describe("Summary", func() {
 	Context("Summary calculations requiring datasets", func() {
 		Context("CalculateStats", func() {
 			It("Returns correct average glucose for records", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
 				stats := summary.CalculateStats(dataSetCGMData, 20160)
 
 				Expect(stats.AverageGlucose).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 			})
 
 			It("Returns correct time in range value for records", func() {
-				dataSetCGMData = NewDataSetCGMDataTimeInRange(deviceID, datumTime, veryLowBloodGlucose, lowBloodGlucose, highBloodGlucose, veryHighBloodGlucose)
+				dataSetCGMData = NewDataSetCGMDataTimeInRange(deviceID, datumTime, 14, veryLowBloodGlucose, lowBloodGlucose, highBloodGlucose, veryHighBloodGlucose)
 
 				stats := summary.CalculateStats(dataSetCGMData, 20160)
 
@@ -212,10 +239,10 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct DeviceID competing for records", func() {
-				dataSetCGMDataHigh := NewDataSetCGMDataAvg(highDeviceID, datumTime, requestedAvgGlucose+2)
+				dataSetCGMDataHigh := NewDataSetCGMDataAvg(highDeviceID, datumTime, 14, requestedAvgGlucose+2)
 
-				// here we chop off the last ~1000 records to simulate 2 devices with incomplete data
-				dataSetCGMDataLow := NewDataSetCGMDataAvg(lowDeviceID, datumTime, requestedAvgGlucose-2)[:3000]
+				// here we generate one less day of records to simulate a device with incomplete data
+				dataSetCGMDataLow := NewDataSetCGMDataAvg(lowDeviceID, datumTime, 13, requestedAvgGlucose-2)
 
 				dataSetCGMData = append(dataSetCGMDataHigh, dataSetCGMDataLow...)
 
@@ -309,6 +336,103 @@ var _ = Describe("Summary", func() {
 				Expect(reweightedStats).To(Equal(stats))
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError("Invalid weight (<0||>1) for stats"))
+			})
+		})
+
+		Context("Update", func() {
+			var userData []*continuous.Continuous
+			var userSummary *summary.Summary
+			var status *summary.UserLastUpdated
+			var err error
+			var newDatumTime time.Time
+
+			//BeforeEach(func() {
+			//	datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+			//})
+
+			It("Returns correctly calculated summary with no rolling", func() {
+				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
+				userSummary = summary.New(userID)
+				userSummary.OutdatedSince = &datumTime
+
+				status = &summary.UserLastUpdated{
+					LastData:   datumTime,
+					LastUpload: datumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+			})
+
+			It("Returns correctly calculated summary with rolling <100% cgm use", func() {
+				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 7, requestedAvgGlucose-4)
+				userSummary = summary.New(userID)
+				newDatumTime = datumTime.AddDate(0, 0, 7)
+				userSummary.OutdatedSince = &datumTime
+				expectedAverageGlucose := (requestedAvgGlucose-4)*0.333333333 + (requestedAvgGlucose+4)*0.66666666
+				expectedCGMUse := (0.5)*0.333333333 + (1)*0.66666666
+
+				status = &summary.UserLastUpdated{
+					LastData:   datumTime,
+					LastUpload: datumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 0.5, 0.001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+
+				// start the actual test
+				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
+				userSummary.OutdatedSince = &datumTime
+
+				status = &summary.UserLastUpdated{
+					LastData:   newDatumTime,
+					LastUpload: newDatumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", expectedAverageGlucose, 0.001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", expectedCGMUse, 0.001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+			})
+
+			It("Returns correctly calculated summary with rolling 100% cgm use", func() {
+				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose-4)
+				userSummary = summary.New(userID)
+				newDatumTime = datumTime.AddDate(0, 0, 7)
+				userSummary.OutdatedSince = &datumTime
+
+				status = &summary.UserLastUpdated{
+					LastData:   datumTime,
+					LastUpload: datumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+
+				// start the actual test
+				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
+				userSummary.OutdatedSince = &datumTime
+
+				status = &summary.UserLastUpdated{
+					LastData:   newDatumTime,
+					LastUpload: newDatumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 		})
 	})

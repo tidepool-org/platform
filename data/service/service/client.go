@@ -2,14 +2,13 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -59,6 +58,8 @@ func (c *Client) GetSummary(ctx context.Context, id string) (*summary.Summary, e
 }
 
 func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
+	logger := log.LoggerFromContext(ctx)
+	logger.Debugf("Starting summary calculation for %s", id)
 	var err error
 	var status *summary.UserLastUpdated
 	summaryRepository := c.dataStore.NewSummaryRepository()
@@ -70,10 +71,6 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return nil, err
 	}
 
-	timestamp := time.Now().UTC()
-	userSummary.LastUpdated = &timestamp
-	userSummary.OutdatedSince = nil
-
 	status, err = dataRepository.GetLastUpdatedForUser(ctx, id)
 	if err != nil {
 		return nil, err
@@ -81,23 +78,12 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 
 	// remove 2 weeks for start time
 	startTime := status.LastData.AddDate(0, 0, -14)
-	firstData := startTime
+
+	// if summary already exists with a last data checkpoint, start data pull there
 	if userSummary.LastData != nil {
 		if startTime.Before(*userSummary.LastData) {
 			startTime = *userSummary.LastData
 		}
-	}
-
-	totalMinutes := status.LastData.Sub(startTime).Minutes()
-	// quit here if we don't have a long enough time-block, and might result in +Inf result
-	// 0.5 minutes for float inaccuracy and avoid calculating on duplicate calls
-	// there's nothing actually wrong here, so don't return an error.
-	if totalMinutes < 0.5 {
-		userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
-		if err != nil {
-			return nil, err
-		}
-		return userSummary, nil
 	}
 
 	userData, err := dataRepository.GetCGMDataRange(ctx, id, startTime, status.LastData)
@@ -105,50 +91,12 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return nil, err
 	}
 
-	stats := summary.CalculateStats(userData, totalMinutes)
-
-	var newWeight = pointer.FromFloat64(1.0)
-	if userSummary.LastData != nil && userSummary.TimeCGMUse != nil {
-		weightingInput := summary.WeightingInput{
-			StartTime:        startTime,
-			EndTime:          status.LastData,
-			LastData:         *userSummary.LastData,
-			OldPercentCGMUse: *userSummary.TimeCGMUse,
-			NewPercentCGMUse: stats.TimeCGMUse,
-		}
-
-		newWeight, err = summary.CalculateWeight(&weightingInput)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	stats, err = summary.ReweightStats(stats, userSummary, *newWeight)
+	newSummary, err := summary.Update(ctx, userSummary, status, userData)
 	if err != nil {
 		return nil, err
 	}
 
-	userSummary.LastUpload = &status.LastUpload
-	userSummary.LastData = &status.LastData
-	userSummary.FirstData = &firstData
-	userSummary.TimeInRange = pointer.FromFloat64(stats.TimeInRange)
-	userSummary.TimeBelowRange = pointer.FromFloat64(stats.TimeBelowRange)
-	userSummary.TimeVeryBelowRange = pointer.FromFloat64(stats.TimeVeryBelowRange)
-	userSummary.TimeAboveRange = pointer.FromFloat64(stats.TimeAboveRange)
-	userSummary.TimeVeryAboveRange = pointer.FromFloat64(stats.TimeVeryAboveRange)
-	userSummary.TimeCGMUse = pointer.FromFloat64(stats.TimeCGMUse)
-	userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(stats.GlucoseMgmtIndicator)
-	userSummary.AverageGlucose = &summary.Glucose{
-		Value: pointer.FromFloat64(stats.AverageGlucose),
-		Units: pointer.FromString(units),
-	}
-	userSummary.LowGlucoseThreshold = pointer.FromFloat64(lowBloodGlucose)
-	userSummary.HighGlucoseThreshold = pointer.FromFloat64(highBloodGlucose)
-
-	userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
-	if err != nil {
-		return nil, err
-	}
+	userSummary, err = summaryRepository.UpdateSummary(ctx, newSummary)
 
 	return userSummary, err
 }

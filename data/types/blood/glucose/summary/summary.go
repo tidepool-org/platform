@@ -1,9 +1,12 @@
 package summary
 
 import (
+	"context"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/tidepool-org/platform/log"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -265,4 +268,117 @@ func ReweightStats(stats *Stats, userSummary *Summary, weight float64) (*Stats, 
 	}
 
 	return stats, nil
+}
+
+func Update(ctx context.Context, userSummary *Summary, status *UserLastUpdated, userData []*continuous.Continuous) (*Summary, error) {
+	var err error
+	logger := log.LoggerFromContext(ctx)
+
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	if userSummary == nil {
+		return nil, errors.New("userSummary is missing")
+	}
+
+	if len(userData) == 0 {
+		return nil, errors.New("userData is empty")
+	}
+
+	// prepare state of existing summary
+	timestamp := time.Now().UTC()
+	userSummary.LastUpdated = &timestamp
+	userSummary.OutdatedSince = nil
+
+	// remove 2 weeks for start time
+	startTime := status.LastData.AddDate(0, 0, -14)
+	endTime := status.LastData
+
+	// hold onto 2 week past date for summary weighting time range
+	firstData := startTime
+
+	// if summary already exists with a last data checkpoint, use it for the start of this calculation
+	if userSummary.LastData != nil {
+		if startTime.Before(*userSummary.LastData) {
+			startTime = *userSummary.LastData
+			logger.Debugf(
+				"Found existing summary for userid %v, adjusting startTime for rolling calculation.",
+				userSummary.UserID)
+		}
+	}
+
+	oldestRecord, err := time.Parse(time.RFC3339Nano, *userData[0].Time)
+	if err != nil {
+		return nil, err
+	}
+
+	newestRecord, err := time.Parse(time.RFC3339Nano, *userData[len(userData)-1].Time)
+	if err != nil {
+		return nil, err
+	}
+
+	// check that the oldest record we are given, fits within the range we expect
+	if oldestRecord.Before(startTime) || newestRecord.After(endTime) {
+		return nil, errors.New("Received data for summary calculation does not match given start and end points")
+	}
+
+	totalMinutes := status.LastData.Sub(startTime).Minutes()
+	logger.Debugf("Total minutes for userid %v summary calculation: %v", userSummary.UserID, totalMinutes)
+
+	// don't recalculate if there is no new data/this was double called
+	if totalMinutes < 1 {
+		logger.Debugf("Total minutes near-zero for userid %v summary calculation, aborting.", userSummary.UserID)
+		return userSummary, nil
+	}
+
+	stats := CalculateStats(userData, totalMinutes)
+	logger.Debugf("Stats for new data for userid %v summary: %+v", userSummary.UserID, stats)
+
+	var newWeight = pointer.FromFloat64(1.0)
+	if userSummary.LastData != nil && userSummary.TimeCGMUse != nil {
+		logger.Debugf("Calculating rolling weight for userid %v.", userSummary.UserID)
+		weightingInput := WeightingInput{
+			StartTime:        firstData,
+			EndTime:          endTime,
+			LastData:         *userSummary.LastData,
+			OldPercentCGMUse: *userSummary.TimeCGMUse,
+			NewPercentCGMUse: stats.TimeCGMUse,
+		}
+
+		newWeight, err = CalculateWeight(&weightingInput)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	logger.Debugf("Weight for userid %v new summary: %v", userSummary.UserID, newWeight)
+	//logger.Debugf("Existing summary for userid %v: %v", userSummary.UserID, userSummary)
+	//logger.Debugf("New stats for userid %v: %v", userSummary.UserID, stats)
+
+	stats, err = ReweightStats(stats, userSummary, *newWeight)
+	if err != nil {
+		return nil, err
+	}
+	//logger.Debugf("New stats for userid %v after reweight: %v", userSummary.UserID, stats)
+
+	userSummary.LastUpload = &status.LastUpload
+	userSummary.LastData = &status.LastData
+	userSummary.FirstData = &firstData
+	userSummary.TimeInRange = pointer.FromFloat64(stats.TimeInRange)
+	userSummary.TimeBelowRange = pointer.FromFloat64(stats.TimeBelowRange)
+	userSummary.TimeVeryBelowRange = pointer.FromFloat64(stats.TimeVeryBelowRange)
+	userSummary.TimeAboveRange = pointer.FromFloat64(stats.TimeAboveRange)
+	userSummary.TimeVeryAboveRange = pointer.FromFloat64(stats.TimeVeryAboveRange)
+	userSummary.TimeCGMUse = pointer.FromFloat64(stats.TimeCGMUse)
+	userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(stats.GlucoseMgmtIndicator)
+	userSummary.AverageGlucose = &Glucose{
+		Value: pointer.FromFloat64(stats.AverageGlucose),
+		Units: pointer.FromString(units),
+	}
+	userSummary.LowGlucoseThreshold = pointer.FromFloat64(lowBloodGlucose)
+	userSummary.HighGlucoseThreshold = pointer.FromFloat64(highBloodGlucose)
+
+	//logger.Debugf("Final summary for userid %v: %v", userSummary.UserID, userSummary)
+	return userSummary, nil
 }
