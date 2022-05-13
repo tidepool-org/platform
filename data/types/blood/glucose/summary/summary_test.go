@@ -140,6 +140,59 @@ var _ = Describe("Summary", func() {
 		})
 	})
 
+	Context("CalculateGMI", func() {
+		// input and output examples sourced from https://diabetesjournals.org/care/article/41/11/2275/36593/
+		It("Returns correct GMI for medical example 1", func() {
+			gmi := summary.CalculateGMI(5.55)
+			Expect(gmi).To(Equal(5.7))
+		})
+
+		It("Returns correct GMI for medical example 2", func() {
+			gmi := summary.CalculateGMI(6.9375)
+			Expect(gmi).To(Equal(6.3))
+		})
+
+		It("Returns correct GMI for medical example 3", func() {
+			gmi := summary.CalculateGMI(8.325)
+			Expect(gmi).To(Equal(6.9))
+		})
+
+		It("Returns correct GMI for medical example 4", func() {
+			gmi := summary.CalculateGMI(9.722)
+			Expect(gmi).To(Equal(7.5))
+		})
+
+		It("Returns correct GMI for medical example 5", func() {
+			gmi := summary.CalculateGMI(11.11)
+			Expect(gmi).To(Equal(8.1))
+		})
+
+		It("Returns correct GMI for medical example 6", func() {
+			gmi := summary.CalculateGMI(12.4875)
+			Expect(gmi).To(Equal(8.7))
+		})
+
+		It("Returns correct GMI for medical example 7", func() {
+			gmi := summary.CalculateGMI(13.875)
+			Expect(gmi).To(Equal(9.3))
+		})
+
+		It("Returns correct GMI for medical example 8", func() {
+			gmi := summary.CalculateGMI(15.2625)
+			Expect(gmi).To(Equal(9.9))
+		})
+
+		It("Returns correct GMI for medical example 9", func() {
+			gmi := summary.CalculateGMI(16.65)
+			Expect(gmi).To(Equal(10.5))
+		})
+
+		It("Returns correct GMI for medical example 10", func() {
+			gmi := summary.CalculateGMI(19.425)
+			Expect(gmi).To(Equal(11.7))
+		})
+	})
+
 	Context("CalculateWeight", func() {
 		It("Returns correct weight for time range", func() {
 			input := summary.WeightingInput{
@@ -249,7 +302,7 @@ var _ = Describe("Summary", func() {
 				stats := summary.CalculateStats(dataSetCGMData, 20160)
 
 				Expect(stats.DeviceID).To(Equal(highDeviceID))
-				Expect(stats.AverageGlucose).To(Equal(requestedAvgGlucose + 2))
+				Expect(stats.AverageGlucose).To(BeNumerically("~", requestedAvgGlucose+2, 0.001))
 			})
 		})
 
@@ -354,6 +407,7 @@ var _ = Describe("Summary", func() {
 				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
 				userSummary = summary.New(userID)
 				userSummary.OutdatedSince = &datumTime
+				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
 				status = &summary.UserLastUpdated{
 					LastData:   datumTime,
@@ -364,6 +418,7 @@ var _ = Describe("Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
+				Expect(*userSummary.GlucoseMgmtIndicator).To(BeNumerically("~", expectedGMI, 0.001))
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 
@@ -374,6 +429,7 @@ var _ = Describe("Summary", func() {
 				userSummary.OutdatedSince = &datumTime
 				expectedAverageGlucose := (requestedAvgGlucose-4)*0.333333333 + (requestedAvgGlucose+4)*0.66666666
 				expectedCGMUse := (0.5)*0.333333333 + (1)*0.66666666
+				expectedGMI := summary.CalculateGMI(expectedAverageGlucose)
 
 				status = &summary.UserLastUpdated{
 					LastData:   datumTime,
@@ -385,6 +441,7 @@ var _ = Describe("Summary", func() {
 				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 0.5, 0.001))
 				Expect(userSummary.OutdatedSince).To(BeNil())
+				Expect(userSummary.GlucoseMgmtIndicator).To(BeNil())
 
 				// start the actual test
 				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
@@ -400,6 +457,7 @@ var _ = Describe("Summary", func() {
 				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", expectedAverageGlucose, 0.001))
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", expectedCGMUse, 0.001))
 				Expect(userSummary.OutdatedSince).To(BeNil())
+				Expect(*userSummary.GlucoseMgmtIndicator).To(BeNumerically("~", expectedGMI, 0.001))
 			})
 
 			It("Returns correctly calculated summary with rolling 100% cgm use", func() {
@@ -407,6 +465,8 @@ var _ = Describe("Summary", func() {
 				userSummary = summary.New(userID)
 				newDatumTime = datumTime.AddDate(0, 0, 7)
 				userSummary.OutdatedSince = &datumTime
+				expectedGMIFirst := summary.CalculateGMI(requestedAvgGlucose - 4)
+				expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose)
 
 				status = &summary.UserLastUpdated{
 					LastData:   datumTime,
@@ -418,6 +478,7 @@ var _ = Describe("Summary", func() {
 				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
 				Expect(userSummary.OutdatedSince).To(BeNil())
+				Expect(*userSummary.GlucoseMgmtIndicator).To(BeNumerically("~", expectedGMIFirst, 0.001))
 
 				// start the actual test
 				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
@@ -433,6 +494,43 @@ var _ = Describe("Summary", func() {
 				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
 				Expect(userSummary.OutdatedSince).To(BeNil())
+				Expect(*userSummary.GlucoseMgmtIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
+			})
+
+			It("Returns correctly non-rolling summary with two 2 week sets", func() {
+				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose-4)
+				userSummary = summary.New(userID)
+				newDatumTime = datumTime.AddDate(0, 0, 14)
+				userSummary.OutdatedSince = &datumTime
+				expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose + 4)
+
+				status = &summary.UserLastUpdated{
+					LastData:   datumTime,
+					LastUpload: datumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.00001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 0.07142, 0.00001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+				Expect(userSummary.GlucoseMgmtIndicator).To(BeNil())
+
+				// start the actual test
+				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 14, requestedAvgGlucose+4)
+				userSummary.OutdatedSince = &datumTime
+
+				status = &summary.UserLastUpdated{
+					LastData:   newDatumTime,
+					LastUpload: newDatumTime,
+				}
+
+				userSummary, err = summary.Update(ctx, userSummary, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.00001))
+				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.00001))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+				Expect(*userSummary.GlucoseMgmtIndicator).To(BeNumerically("~", expectedGMISecond, 0.00001))
 			})
 		})
 	})

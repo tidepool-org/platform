@@ -115,8 +115,10 @@ type Summary struct {
 	TimeCGMUse *float64 `json:"timeCGMUse,omitempty" bson:"timeCGMUse,omitempty"`
 
 	// these are mostly just constants right now.
-	HighGlucoseThreshold *float64 `json:"highGlucoseThreshold,omitempty" bson:"highGlucoseThreshold,omitempty"`
-	LowGlucoseThreshold  *float64 `json:"lowGlucoseThreshold,omitempty" bson:"lowGlucoseThreshold,omitempty"`
+	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold,omitempty" bson:"highGlucoseThreshold,omitempty"`
+	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold,omitempty" bson:"veryHighGlucoseThreshold,omitempty"`
+	LowGlucoseThreshold      *float64 `json:"lowGlucoseThreshold,omitempty" bson:"lowGlucoseThreshold,omitempty"`
+	VeryLowGlucoseThreshold  *float64 `json:"VeryLowGlucoseThreshold,omitempty" bson:"VeryLowGlucoseThreshold,omitempty"`
 }
 
 func New(id string) *Summary {
@@ -162,7 +164,7 @@ func CalculateWeight(input *WeightingInput) (*float64, error) {
 func CalculateGMI(averageGlucose float64) float64 {
 	gmi := 12.71 + 4.70587*averageGlucose
 	gmi = (0.09148 * gmi) + 2.152
-	gmi = math.Round(gmi*100) / 100
+	gmi = math.Round(gmi*10) / 10
 	return gmi
 }
 
@@ -213,7 +215,6 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 		stats[deviceId].TimeAboveRange = float64(stats[deviceId].AboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeVeryAboveRange = float64(stats[deviceId].VeryAboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
 		stats[deviceId].TimeCGMUse = float64(stats[deviceId].TotalCGMMinutes) / totalWallMinutes
-		stats[deviceId].GlucoseMgmtIndicator = CalculateGMI(stats[deviceId].AverageGlucose)
 
 		if winningStats != nil {
 			if stats[deviceId].TimeCGMUse > winningStats.TimeCGMUse {
@@ -260,10 +261,6 @@ func ReweightStats(stats *Stats, userSummary *Summary, weight float64) (*Stats, 
 
 		if userSummary.TimeCGMUse != nil {
 			stats.TimeCGMUse = stats.TimeCGMUse*weight + *userSummary.TimeCGMUse*(1-weight)
-		}
-
-		if userSummary.GlucoseMgmtIndicator != nil {
-			stats.GlucoseMgmtIndicator = stats.GlucoseMgmtIndicator*weight + *userSummary.GlucoseMgmtIndicator*(1-weight)
 		}
 	}
 
@@ -377,7 +374,16 @@ func Update(ctx context.Context, userSummary *Summary, status *UserLastUpdated, 
 		Units: pointer.FromString(units),
 	}
 	userSummary.LowGlucoseThreshold = pointer.FromFloat64(lowBloodGlucose)
+	userSummary.VeryLowGlucoseThreshold = pointer.FromFloat64(veryLowBloodGlucose)
 	userSummary.HighGlucoseThreshold = pointer.FromFloat64(highBloodGlucose)
+	userSummary.VeryHighGlucoseThreshold = pointer.FromFloat64(veryHighBloodGlucose)
+
+	// we only add GMI if cgm use >70%, otherwise clear it
+	if *userSummary.TimeCGMUse > 0.7 {
+		userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(CalculateGMI(stats.AverageGlucose))
+	} else {
+		userSummary.GlucoseMgmtIndicator = nil
+	}
 
 	//logger.Debugf("Final summary for userid %v: %v", userSummary.UserID, userSummary)
 	return userSummary, nil
