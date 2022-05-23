@@ -905,7 +905,10 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 		},
 	}
 
-	cursor, err := d.Find(ctx, selector)
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "time", Value: 1}})
+
+	cursor, err := d.Find(ctx, selector, opts)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
