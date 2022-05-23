@@ -21,55 +21,61 @@ const (
 	veryLowBloodGlucose  = 3.0
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
-	units                = "mmol/l"
+	summaryGlucoseUnits  = "mmol/L"
+	daysAgoToKeep        = 14
 )
 
-// reimpliment glucose with only the fields we need, to avoid inheriting Base, which does
+// Glucose reimplementation with only the fields we need, to avoid inheriting Base, which does
 // not belong in this collection
 type Glucose struct {
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units *string  `json:"units," bson:"units"`
+	Value *float64 `json:"value" bson:"value"`
 }
 
 type Stats struct {
-	TimeInRange float64
+	DeviceID string    `json:"deviceId" bson:"deviceId"`
+	Date     time.Time `json:"date" bson:"date"`
 
-	TimeBelowRange     float64
-	TimeVeryBelowRange float64
+	InRangeMinutes int64 `json:"inRangeMinutes" bson:"inRangeMinutes"`
+	InRangeRecords int64 `json:"inRangeRecords" bson:"inRangeRecords"`
 
-	TimeAboveRange     float64
-	TimeVeryAboveRange float64
+	BelowRangeMinutes int64 `json:"belowRangeMinutes" bson:"belowRangeMinutes"`
+	BelowRangeRecords int64 `json:"belowRangeRecords" bson:"belowRangeRecords"`
 
-	TimeCGMUse           float64
-	AverageGlucose       float64
-	GlucoseMgmtIndicator float64
+	VeryBelowRangeMinutes int64 `json:"veryBelowRangeMinutes" bson:"veryBelowRangeMinutes"`
+	VeryBelowRangeRecords int64 `json:"veryBelowRangeRecords" bson:"veryBelowRangeRecords"`
 
-	DeviceID string
+	AboveRangeMinutes int64 `json:"aboveRangeMinutes" bson:"aboveRangeMinutes"`
+	AboveRangeRecords int64 `json:"aboveRangeRecords" bson:"aboveRangeRecords"`
 
-	InRangeMinutes int64
+	VeryAboveRangeMinutes int64 `json:"veryAboveRangeMinutes" bson:"veryAboveRangeMinutes"`
+	VeryAboveRangeRecords int64 `json:"veryAboveRangeRecords" bson:"veryAboveRangeRecords"`
 
-	BelowRangeMinutes     int64
-	VeryBelowRangeMinutes int64
-
-	AboveRangeMinutes     int64
-	VeryAboveRangeMinutes int64
-
-	TotalGlucose    float64
-	TotalCGMMinutes int64
-	TotalRecords    int64
+	TotalGlucose    float64   `json:"totalGlucose" bson:"totalGlucose"`
+	TotalCGMMinutes int64     `json:"totalCGMMinutes" bson:"totalCGMMinutes"`
+	TotalRecords    int64     `json:"totalRecords" bson:"totalRecords"`
+	LastRecordTime  time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 }
 
-func NewStats(deviceId string) *Stats {
+func NewStats(deviceId string, date time.Time) *Stats {
 	return &Stats{
 		DeviceID: deviceId,
+		Date:     date,
 
 		InRangeMinutes: 0,
+		InRangeRecords: 0,
 
-		BelowRangeMinutes:     0,
+		BelowRangeMinutes: 0,
+		BelowRangeRecords: 0,
+
 		VeryBelowRangeMinutes: 0,
+		VeryBelowRangeRecords: 0,
 
-		AboveRangeMinutes:     0,
+		AboveRangeMinutes: 0,
+		AboveRangeRecords: 0,
+
 		VeryAboveRangeMinutes: 0,
+		VeryAboveRangeRecords: 0,
 
 		TotalGlucose:    0,
 		TotalCGMMinutes: 0,
@@ -94,31 +100,34 @@ type Summary struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	UserID string             `json:"userId" bson:"userId"`
 
+	DailyStats []*Stats `json:"dailyStats" bson:"dailyStats"`
+
 	// date tracking
-	LastUpdated   *time.Time `json:"lastUpdated,omitempty" bson:"lastUpdated,omitempty"`
-	FirstData     *time.Time `json:"firstData,omitempty" bson:"firstData,omitempty"`
-	LastData      *time.Time `json:"lastData,omitempty" bson:"lastData,omitempty"`
-	LastUpload    *time.Time `json:"lastUpload,omitempty" bson:"lastUpload,omitempty"`
+	LastUpdated   *time.Time `json:"lastUpdated" bson:"lastUpdated"`
+	FirstData     *time.Time `json:"firstData" bson:"firstData"`
+	LastData      *time.Time `json:"lastData" bson:"lastData"`
+	LastUpload    *time.Time `json:"lastUpload" bson:"lastUpload"`
 	OutdatedSince *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+	TotalDays     *int64     `json:"totalDays" bson:"totalDays"`
 
 	// actual values
-	AverageGlucose       *Glucose `json:"avgGlucose,omitempty" bson:"avgGlucose,omitempty"`
-	GlucoseMgmtIndicator *float64 `json:"glucoseMgmtIndicator,omitempty" bson:"glucoseMgmtIndicator,omitempty"`
-	TimeInRange          *float64 `json:"timeInRange,omitempty" bson:"timeInRange,omitempty"`
+	AverageGlucose       *Glucose `json:"avgGlucose" bson:"avgGlucose"`
+	GlucoseMgmtIndicator *float64 `json:"glucoseMgmtIndicator" bson:"glucoseMgmtIndicator"`
+	TimeInRange          *float64 `json:"timeInRange" bson:"timeInRange"`
 
-	TimeBelowRange     *float64 `json:"timeBelowRange,omitempty" bson:"timeBelowRange,omitempty"`
-	TimeVeryBelowRange *float64 `json:"timeVeryBelowRange,omitempty" bson:"timeVeryBelowRange,omitempty"`
+	TimeBelowRange     *float64 `json:"timeBelowRange" bson:"timeBelowRange"`
+	TimeVeryBelowRange *float64 `json:"timeVeryBelowRange" bson:"timeVeryBelowRange"`
 
-	TimeAboveRange     *float64 `json:"timeAboveRange,omitempty" bson:"timeAboveRange,omitempty"`
-	TimeVeryAboveRange *float64 `json:"timeVeryAboveRange,omitempty" bson:"timeVeryAboveRange,omitempty"`
+	TimeAboveRange     *float64 `json:"timeAboveRange" bson:"timeAboveRange"`
+	TimeVeryAboveRange *float64 `json:"timeVeryAboveRange" bson:"timeVeryAboveRange"`
 
-	TimeCGMUse *float64 `json:"timeCGMUse,omitempty" bson:"timeCGMUse,omitempty"`
+	TimeCGMUse *float64 `json:"timeCGMUse" bson:"timeCGMUse"`
 
-	// these are mostly just constants right now.
-	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold,omitempty" bson:"highGlucoseThreshold,omitempty"`
-	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold,omitempty" bson:"veryHighGlucoseThreshold,omitempty"`
-	LowGlucoseThreshold      *float64 `json:"lowGlucoseThreshold,omitempty" bson:"lowGlucoseThreshold,omitempty"`
-	VeryLowGlucoseThreshold  *float64 `json:"VeryLowGlucoseThreshold,omitempty" bson:"VeryLowGlucoseThreshold,omitempty"`
+	// these are just constants right now.
+	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
+	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold"`
+	LowGlucoseThreshold      *float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold"`
+	VeryLowGlucoseThreshold  *float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold"`
 }
 
 func New(id string) *Summary {
@@ -128,7 +137,7 @@ func New(id string) *Summary {
 	}
 }
 
-// assumes all except freestyle is 5 minutes
+// GetDuration assumes all except freestyle is 5 minutes
 func GetDuration(dataSet *continuous.Continuous) int64 {
 	if dataSet.DeviceID != nil {
 		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
@@ -138,29 +147,6 @@ func GetDuration(dataSet *continuous.Continuous) int64 {
 	return 5
 }
 
-func CalculateWeight(input *WeightingInput) (*float64, error) {
-	if input.EndTime.Before(input.LastData) {
-		return nil, errors.New("Invalid time period for calculation, endTime before lastData.")
-	}
-
-	var weight float64 = 1.0
-
-	if input.StartTime.Before(input.LastData) {
-		// get ratio between start time and actual start time for weights
-		wholeTime := input.EndTime.Sub(input.StartTime)
-		newTime := input.EndTime.Sub(input.LastData)
-		weight = newTime.Seconds() / wholeTime.Seconds()
-	}
-
-	// adjust weight for %cgm use
-	oldWeight := (1 - weight) * input.OldPercentCGMUse
-	newWeight := weight * input.NewPercentCGMUse
-	weightMultiplier := 1 / (oldWeight + newWeight)
-	weight = newWeight * weightMultiplier
-
-	return &weight, nil
-}
-
 func CalculateGMI(averageGlucose float64) float64 {
 	gmi := 12.71 + 4.70587*averageGlucose
 	gmi = (0.09148 * gmi) + 2.152
@@ -168,13 +154,78 @@ func CalculateGMI(averageGlucose float64) float64 {
 	return gmi
 }
 
-func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64) *Stats {
-	stats := make(map[string]*Stats)
+func (userSummary *Summary) StoreWinningStats(stats map[string]*Stats) error {
 	var winningStats *Stats
+	var dayCount int
+	var oldestDay time.Time
+	var oldestDayToKeep time.Time
+	var existingDay = false
+
+	if len(stats) < 1 {
+		return errors.New("candidate stats empty")
+	}
+
+	// find stats with most samples
+	for deviceId := range stats {
+		if winningStats != nil {
+			if stats[deviceId].TotalCGMMinutes > winningStats.TotalCGMMinutes {
+				winningStats = stats[deviceId]
+			}
+		} else {
+			winningStats = stats[deviceId]
+		}
+	}
+
+	// update existing day if one does exist
+	if len(userSummary.DailyStats) > 1 {
+		for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
+			if userSummary.DailyStats[i].Date.Equal(winningStats.Date) {
+				userSummary.DailyStats[i] = winningStats
+				existingDay = true
+				break
+			}
+		}
+	}
+	if existingDay == false {
+		userSummary.DailyStats = append(userSummary.DailyStats, winningStats)
+	}
+
+	// remove extra days to cap at 14 days of stats
+	dayCount = len(userSummary.DailyStats)
+	if dayCount > daysAgoToKeep {
+		userSummary.DailyStats = userSummary.DailyStats[dayCount-daysAgoToKeep:]
+	}
+
+	// remove any stats that are older than 14 days from the last stat
+	oldestDay = (*userSummary.DailyStats[0]).Date
+	oldestDayToKeep = userSummary.DailyStats[len(userSummary.DailyStats)-1].Date.AddDate(0, 0, -daysAgoToKeep)
+	if oldestDay.Before(oldestDayToKeep) {
+		for i := range userSummary.DailyStats {
+			if userSummary.DailyStats[len(userSummary.DailyStats)-1-i].Date.After(oldestDayToKeep) {
+				userSummary.DailyStats = userSummary.DailyStats[len(userSummary.DailyStats)-2-i:]
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) error {
+	stats := make(map[string]*Stats)
 
 	var normalizedValue float64
 	var duration int64
 	var deviceId string
+	var recordTime time.Time
+	var lastDay time.Time
+	var currentDay time.Time
+	var err error
+	var deviceIdExists bool
+
+	if len(userData) < 1 {
+		return errors.New("userData is empty, nothing to calculate stats for")
+	}
 
 	for _, r := range userData {
 		if r.DeviceID != nil {
@@ -183,208 +234,201 @@ func CalculateStats(userData []*continuous.Continuous, totalWallMinutes float64)
 			deviceId = ""
 		}
 
-		if _, ok := stats[deviceId]; !ok {
-			stats[deviceId] = NewStats(deviceId)
+		recordTime, err = time.Parse(time.RFC3339Nano, *r.Time)
+		if err != nil {
+			return errors.Wrap(err, "cannot parse time in record")
 		}
 
-		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(units))
+		// truncate time is not timezone/DST safe here, even if we do expect UTC
+		currentDay = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
+			0, 0, 0, 0, recordTime.Location())
+
+		// check if data is in the past somehow, it would currently corrupt stats, this shouldn't be possible
+		// but the check is cheap insurance
+		if len(userSummary.DailyStats) > 0 {
+			if recordTime.Before((*userSummary.DailyStats[len(userSummary.DailyStats)-1]).Date) {
+				return errors.Newf("CalculateStats given data before oldest stats for user %s", userSummary.UserID)
+			}
+		}
+
+		// pick winner for the day, if we are now on the next day
+		if !lastDay.IsZero() && !currentDay.Equal(lastDay) {
+			err = userSummary.StoreWinningStats(stats)
+			if err != nil {
+				return err
+			}
+			stats = make(map[string]*Stats)
+		}
+		lastDay = currentDay
+
+		_, deviceIdExists = stats[deviceId]
+		if !deviceIdExists {
+			// create new deviceId in map
+			stats[deviceId] = NewStats(deviceId, recordTime.Truncate(24*time.Hour))
+
+			// overwrite with stats if they already exist
+			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
+			// NOTE2 this may have a rare race condition with multiple devices, as we never store the losing
+			// device, resulting in larger batches always winning, even if less complete over time.
+			if len(userSummary.DailyStats) > 1 {
+				for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
+					if userSummary.DailyStats[i].Date.Equal(currentDay) && userSummary.DailyStats[i].DeviceID == deviceId {
+						stats[deviceId] = userSummary.DailyStats[i]
+						break
+					}
+				}
+			}
+		}
+
+		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
 		duration = GetDuration(r)
 
 		if normalizedValue <= veryLowBloodGlucose {
 			stats[deviceId].VeryBelowRangeMinutes += duration
+			stats[deviceId].VeryBelowRangeRecords += 1
 		} else if normalizedValue >= veryHighBloodGlucose {
 			stats[deviceId].VeryAboveRangeMinutes += duration
+			stats[deviceId].VeryAboveRangeRecords += 1
 		} else if normalizedValue <= lowBloodGlucose {
 			stats[deviceId].BelowRangeMinutes += duration
+			stats[deviceId].BelowRangeRecords += 1
 		} else if normalizedValue >= highBloodGlucose {
 			stats[deviceId].AboveRangeMinutes += duration
+			stats[deviceId].AboveRangeRecords += 1
 		} else {
 			stats[deviceId].InRangeMinutes += duration
+			stats[deviceId].InRangeRecords += 1
 		}
 
 		stats[deviceId].TotalCGMMinutes += duration
 		stats[deviceId].TotalGlucose += normalizedValue
 		stats[deviceId].TotalRecords += 1
+		stats[deviceId].LastRecordTime = recordTime
+	}
+	// store
+	err = userSummary.StoreWinningStats(stats)
+	if err != nil {
+		return err
 	}
 
-	for deviceId := range stats {
-		stats[deviceId].AverageGlucose = stats[deviceId].TotalGlucose / float64(stats[deviceId].TotalRecords)
-		stats[deviceId].TimeInRange = float64(stats[deviceId].InRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
-		stats[deviceId].TimeBelowRange = float64(stats[deviceId].BelowRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
-		stats[deviceId].TimeVeryBelowRange = float64(stats[deviceId].VeryBelowRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
-		stats[deviceId].TimeAboveRange = float64(stats[deviceId].AboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
-		stats[deviceId].TimeVeryAboveRange = float64(stats[deviceId].VeryAboveRangeMinutes) / float64(stats[deviceId].TotalCGMMinutes)
-		stats[deviceId].TimeCGMUse = float64(stats[deviceId].TotalCGMMinutes) / totalWallMinutes
-
-		if winningStats != nil {
-			if stats[deviceId].TimeCGMUse > winningStats.TimeCGMUse {
-				winningStats = stats[deviceId]
-			}
-		} else {
-			winningStats = stats[deviceId]
-		}
-	}
-
-	return winningStats
+	return nil
 }
 
-func ReweightStats(stats *Stats, userSummary *Summary, weight float64) (*Stats, error) {
-	if weight < 0 || weight > 1 {
-		return stats, errors.New("Invalid weight (<0||>1) for stats")
-	}
-	// if we are rolling in previous averages
-	if weight != 1 && weight >= 0 {
-		// check for nil to cover for any new stats that get added after creation
-		if userSummary.AverageGlucose.Value != nil {
-			stats.AverageGlucose = stats.AverageGlucose*weight + *userSummary.AverageGlucose.Value*(1-weight)
-		}
+func (userSummary *Summary) CalculateSummary() error {
+	totalStats := NewStats("summary", time.Time{})
+	for _, stats := range userSummary.DailyStats {
+		totalStats.InRangeMinutes += stats.InRangeMinutes
+		totalStats.InRangeRecords += stats.InRangeRecords
 
-		if userSummary.TimeInRange != nil {
-			stats.TimeInRange = stats.TimeInRange*weight + *userSummary.TimeInRange*(1-weight)
-		}
+		totalStats.BelowRangeMinutes += stats.BelowRangeMinutes
+		totalStats.BelowRangeRecords += stats.BelowRangeRecords
 
-		if userSummary.TimeBelowRange != nil {
-			stats.TimeBelowRange = stats.TimeBelowRange*weight + *userSummary.TimeBelowRange*(1-weight)
-		}
+		totalStats.VeryBelowRangeMinutes += stats.VeryBelowRangeMinutes
+		totalStats.VeryBelowRangeRecords += stats.VeryBelowRangeRecords
 
-		if userSummary.TimeVeryBelowRange != nil {
-			stats.TimeVeryBelowRange = stats.TimeVeryBelowRange*weight + *userSummary.TimeVeryBelowRange*(1-weight)
-		}
+		totalStats.AboveRangeMinutes += stats.AboveRangeMinutes
+		totalStats.AboveRangeRecords += stats.AboveRangeRecords
 
-		if userSummary.TimeAboveRange != nil {
-			stats.TimeAboveRange = stats.TimeAboveRange*weight + *userSummary.TimeAboveRange*(1-weight)
-		}
+		totalStats.VeryAboveRangeMinutes += stats.VeryAboveRangeMinutes
+		totalStats.VeryAboveRangeRecords += stats.VeryAboveRangeRecords
 
-		if userSummary.TimeVeryAboveRange != nil {
-			stats.TimeVeryAboveRange = stats.TimeVeryAboveRange*weight + *userSummary.TimeVeryAboveRange*(1-weight)
-		}
-
-		if userSummary.TimeCGMUse != nil {
-			stats.TimeCGMUse = stats.TimeCGMUse*weight + *userSummary.TimeCGMUse*(1-weight)
-		}
+		totalStats.TotalGlucose += stats.TotalGlucose
+		totalStats.TotalCGMMinutes += stats.TotalCGMMinutes
+		totalStats.TotalRecords += stats.TotalRecords
 	}
 
-	return stats, nil
+	// remove partial day (data end) from total time for more accurate TimeCGMUse
+	totalMinutes := float64(daysAgoToKeep * 1440)
+	lastRecordTime := userSummary.DailyStats[len(userSummary.DailyStats)-1].LastRecordTime
+	tomorrow := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day()+1,
+		0, 0, 0, 0, lastRecordTime.Location())
+	totalMinutes = totalMinutes - tomorrow.Sub(lastRecordTime).Minutes()
+
+	userSummary.LastData = &lastRecordTime
+	userSummary.FirstData = &userSummary.DailyStats[0].Date
+
+	userSummary.AverageGlucose = &Glucose{
+		Value: pointer.FromFloat64(totalStats.TotalGlucose / float64(totalStats.TotalRecords)),
+		Units: pointer.FromString(summaryGlucoseUnits),
+	}
+	userSummary.TimeInRange = pointer.FromFloat64(
+		float64(totalStats.InRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeBelowRange = pointer.FromFloat64(
+		float64(totalStats.BelowRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeVeryBelowRange = pointer.FromFloat64(
+		float64(totalStats.VeryBelowRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeAboveRange = pointer.FromFloat64(
+		float64(totalStats.AboveRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeVeryAboveRange = pointer.FromFloat64(
+		float64(totalStats.VeryAboveRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeCGMUse = pointer.FromFloat64(
+		float64(totalStats.TotalCGMMinutes) / totalMinutes)
+
+	// we only add GMI if cgm use >70%, otherwise clear it
+	if *userSummary.TimeCGMUse > 0.7 {
+		userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(CalculateGMI(*userSummary.AverageGlucose.Value))
+	} else {
+		userSummary.GlucoseMgmtIndicator = nil
+	}
+
+	return nil
 }
 
-func Update(ctx context.Context, userSummary *Summary, status *UserLastUpdated, userData []*continuous.Continuous) (*Summary, error) {
+func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated, userData []*continuous.Continuous) error {
 	var err error
 	logger := log.LoggerFromContext(ctx)
 
 	if ctx == nil {
-		return nil, errors.New("context is missing")
+		return errors.New("context is missing")
 	}
 
 	if userSummary == nil {
-		return nil, errors.New("userSummary is missing")
+		return errors.New("userSummary is missing")
 	}
 
 	if len(userData) == 0 {
-		return nil, errors.New("userData is empty")
+		return errors.New("userData is empty")
 	}
 
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
 	userSummary.LastUpdated = &timestamp
+	userSummary.LastUpload = &status.LastUpload
 	userSummary.OutdatedSince = nil
 
-	// remove 2 weeks for start time
-	startTime := status.LastData.AddDate(0, 0, -14)
-	endTime := status.LastData
-
-	// hold onto 2 week past date for summary weighting time range
-	firstData := startTime
-
-	// if summary already exists with a last data checkpoint, use it for the start of this calculation
+	// ensure new data being calculated is after the previously added data to prevent corruption
 	if userSummary.LastData != nil {
-		if startTime.Before(*userSummary.LastData) {
-			startTime = *userSummary.LastData
-			logger.Debugf(
-				"Found existing summary for userid %v, adjusting startTime for rolling calculation.",
-				userSummary.UserID)
+		oldestRecordTime, err := time.Parse(time.RFC3339Nano, *userData[0].Time)
+		if err != nil {
+			return err
+		}
+		if oldestRecordTime.Before(*userSummary.LastData) {
+			logger.Debugf("New CGM data for userid %s is before last calculated data", userSummary.UserID)
+			return errors.Newf("New CGM data for userid %s is before last calculated data", userSummary.UserID)
 		}
 	}
-
-	oldestRecord, err := time.Parse(time.RFC3339Nano, *userData[0].Time)
-	if err != nil {
-		return nil, err
-	}
-
-	newestRecord, err := time.Parse(time.RFC3339Nano, *userData[len(userData)-1].Time)
-	if err != nil {
-		return nil, err
-	}
-
-	// check that the oldest record we are given, fits within the range we expect
-	if oldestRecord.Before(startTime) || newestRecord.After(endTime) {
-		return nil, errors.New("Received data for summary calculation does not match given start and end points")
-	}
-
-	totalMinutes := status.LastData.Sub(startTime).Minutes()
-	logger.Debugf("Total minutes for userid %v summary calculation: %v", userSummary.UserID, totalMinutes)
 
 	// don't recalculate if there is no new data/this was double called
-	if totalMinutes < 1 {
-		logger.Debugf("Total minutes near-zero for userid %v summary calculation, aborting.", userSummary.UserID)
-		return userSummary, nil
+	if len(userData) < 1 {
+		logger.Debugf("No new records for userid %v summary calculation, aborting.", userSummary.UserID)
+		return nil
 	}
 
-	stats := CalculateStats(userData, totalMinutes)
-	logger.Debugf("Stats for new data for userid %v summary: %+v", userSummary.UserID, stats)
-
-	var newWeight = pointer.FromFloat64(1.0)
-	if userSummary.LastData != nil && userSummary.TimeCGMUse != nil {
-		logger.Debugf("Calculating rolling weight for userid %v.", userSummary.UserID)
-		weightingInput := WeightingInput{
-			StartTime:        firstData,
-			EndTime:          endTime,
-			LastData:         *userSummary.LastData,
-			OldPercentCGMUse: *userSummary.TimeCGMUse,
-			NewPercentCGMUse: stats.TimeCGMUse,
-		}
-
-		newWeight, err = CalculateWeight(&weightingInput)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	logger.Debugf("Weight for userid %v new summary: %v", userSummary.UserID, newWeight)
-	//logger.Debugf("Existing summary for userid %v: %v", userSummary.UserID, userSummary)
-	//logger.Debugf("New stats for userid %v: %v", userSummary.UserID, stats)
-
-	stats, err = ReweightStats(stats, userSummary, *newWeight)
+	err = userSummary.CalculateStats(userData)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	//logger.Debugf("New stats for userid %v after reweight: %v", userSummary.UserID, stats)
 
-	userSummary.LastUpload = &status.LastUpload
-	userSummary.LastData = &status.LastData
-	userSummary.FirstData = &firstData
-	userSummary.TimeInRange = pointer.FromFloat64(stats.TimeInRange)
-	userSummary.TimeBelowRange = pointer.FromFloat64(stats.TimeBelowRange)
-	userSummary.TimeVeryBelowRange = pointer.FromFloat64(stats.TimeVeryBelowRange)
-	userSummary.TimeAboveRange = pointer.FromFloat64(stats.TimeAboveRange)
-	userSummary.TimeVeryAboveRange = pointer.FromFloat64(stats.TimeVeryAboveRange)
-	userSummary.TimeCGMUse = pointer.FromFloat64(stats.TimeCGMUse)
-	userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(stats.GlucoseMgmtIndicator)
-	userSummary.AverageGlucose = &Glucose{
-		Value: pointer.FromFloat64(stats.AverageGlucose),
-		Units: pointer.FromString(units),
+	err = userSummary.CalculateSummary()
+	if err != nil {
+		return err
 	}
+
+	// add static stuff
 	userSummary.LowGlucoseThreshold = pointer.FromFloat64(lowBloodGlucose)
 	userSummary.VeryLowGlucoseThreshold = pointer.FromFloat64(veryLowBloodGlucose)
 	userSummary.HighGlucoseThreshold = pointer.FromFloat64(highBloodGlucose)
 	userSummary.VeryHighGlucoseThreshold = pointer.FromFloat64(veryHighBloodGlucose)
 
-	// we only add GMI if cgm use >70%, otherwise clear it
-	if *userSummary.TimeCGMUse > 0.7 {
-		userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(CalculateGMI(stats.AverageGlucose))
-	} else {
-		userSummary.GlucoseMgmtIndicator = nil
-	}
-
-	//logger.Debugf("Final summary for userid %v: %v", userSummary.UserID, userSummary)
-	return userSummary, nil
+	return nil
 }

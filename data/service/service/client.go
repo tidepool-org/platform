@@ -12,10 +12,7 @@ import (
 )
 
 const (
-	backfillBatch    = 10000
-	lowBloodGlucose  = 3.9
-	highBloodGlucose = 10
-	units            = "mmol/l"
+	backfillBatch = 10000
 )
 
 type Client struct {
@@ -58,10 +55,10 @@ func (c *Client) GetSummary(ctx context.Context, id string) (*summary.Summary, e
 }
 
 func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
-	logger := log.LoggerFromContext(ctx)
-	logger.Debugf("Starting summary calculation for %s", id)
 	var err error
 	var status *summary.UserLastUpdated
+	logger := log.LoggerFromContext(ctx)
+	logger.Debugf("Starting summary calculation for %s", id)
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
@@ -91,20 +88,21 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return nil, err
 	}
 
-	newSummary, err := summary.Update(ctx, userSummary, status, userData)
+	err = userSummary.Update(ctx, status, userData)
 	if err != nil {
 		return nil, err
 	}
 
-	userSummary, err = summaryRepository.UpdateSummary(ctx, newSummary)
+	userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 
 	return userSummary, err
 }
 
 func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 	var empty struct{}
-	userIDsReqBackfill := []string{}
+	var userIDsReqBackfill []string
 	var count int64 = 0
+	var summaries []*summary.Summary
 
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
@@ -134,8 +132,6 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 			break
 		}
 	}
-
-	var summaries []*summary.Summary
 
 	for _, userID := range userIDsReqBackfill {
 		summaries = append(summaries, summary.New(userID))
