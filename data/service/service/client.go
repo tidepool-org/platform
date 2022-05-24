@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -88,11 +89,18 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return nil, err
 	}
 
-	err = userSummary.Update(ctx, status, userData)
-	if err != nil {
-		return nil, err
+	// if there is new data
+	if len(userData) > 0 {
+		err = userSummary.Update(ctx, status, userData)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// "new" data must be in the past, don't update, just remove flags and set new date
+		logger.Infof("User %s has an outdated summary with no forward data, skipping calc.", id)
+		userSummary.OutdatedSince = nil
+		userSummary.LastUpdated = &time.Time{}
 	}
-
 	userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 
 	return userSummary, err

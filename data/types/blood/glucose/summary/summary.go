@@ -108,20 +108,36 @@ type Summary struct {
 	LastData      *time.Time `json:"lastData" bson:"lastData"`
 	LastUpload    *time.Time `json:"lastUpload" bson:"lastUpload"`
 	OutdatedSince *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-	TotalDays     *int64     `json:"totalDays" bson:"totalDays"`
+
+	TotalDays *int64 `json:"totalDays" bson:"totalDays"`
+
+	TimeCGMUse        *float64 `json:"timeCGMUse" bson:"timeCGMUse"`
+	TimeCGMUseMinutes *int64   `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
+	TimeCGMUseRecords *int64   `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 
 	// actual values
 	AverageGlucose       *Glucose `json:"avgGlucose" bson:"avgGlucose"`
 	GlucoseMgmtIndicator *float64 `json:"glucoseMgmtIndicator" bson:"glucoseMgmtIndicator"`
-	TimeInRange          *float64 `json:"timeInRange" bson:"timeInRange"`
 
-	TimeBelowRange     *float64 `json:"timeBelowRange" bson:"timeBelowRange"`
-	TimeVeryBelowRange *float64 `json:"timeVeryBelowRange" bson:"timeVeryBelowRange"`
+	TimeInRange        *float64 `json:"timeInRange" bson:"timeInRange"`
+	TimeInRangeMinutes *int64   `json:"timeInRangeMinutes" bson:"timeInRangeMinutes"`
+	TimeInRangeRecords *int64   `json:"timeInRangeRecords" bson:"timeInRangeRecords"`
 
-	TimeAboveRange     *float64 `json:"timeAboveRange" bson:"timeAboveRange"`
-	TimeVeryAboveRange *float64 `json:"timeVeryAboveRange" bson:"timeVeryAboveRange"`
+	TimeBelowRange        *float64 `json:"timeBelowRange" bson:"timeBelowRange"`
+	TimeBelowRangeMinutes *int64   `json:"timeBelowRangeMinutes" bson:"timeBelowRangeMinutes"`
+	TimeBelowRangeRecords *int64   `json:"timeBelowRangeRecords" bson:"timeBelowRangeRecords"`
 
-	TimeCGMUse *float64 `json:"timeCGMUse" bson:"timeCGMUse"`
+	TimeVeryBelowRange        *float64 `json:"timeVeryBelowRange" bson:"timeVeryBelowRange"`
+	TimeVeryBelowRangeMinutes *int64   `json:"timeVeryBelowRangeMinutes" bson:"timeVeryBelowRangeMinutes"`
+	TimeVeryBelowRangeRecords *int64   `json:"timeVeryBelowRangeRecords" bson:"timeVeryBelowRangeRecords"`
+
+	TimeAboveRange        *float64 `json:"timeAboveRange" bson:"timeAboveRange"`
+	TimeAboveRangeMinutes *int64   `json:"timeAboveRangeMinutes" bson:"timeAboveRangeMinutes"`
+	TimeAboveRangeRecords *int64   `json:"timeAboveRangeRecords" bson:"timeAboveRangeRecords"`
+
+	TimeVeryAboveRange        *float64 `json:"timeVeryAboveRange" bson:"timeVeryAboveRange"`
+	TimeVeryAboveRangeMinutes *int64   `json:"timeVeryAboveRangeMinutes" bson:"timeVeryAboveRangeMinutes"`
+	TimeVeryAboveRangeRecords *int64   `json:"timeVeryAboveRangeRecords" bson:"timeVeryAboveRangeRecords"`
 
 	// these are just constants right now.
 	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
@@ -347,22 +363,41 @@ func (userSummary *Summary) CalculateSummary() error {
 	userSummary.LastData = &lastRecordTime
 	userSummary.FirstData = &userSummary.DailyStats[0].Date
 
+	userSummary.TotalDays = pointer.FromInt64(int64(len(userSummary.DailyStats)))
+
 	userSummary.AverageGlucose = &Glucose{
 		Value: pointer.FromFloat64(totalStats.TotalGlucose / float64(totalStats.TotalRecords)),
 		Units: pointer.FromString(summaryGlucoseUnits),
 	}
 	userSummary.TimeInRange = pointer.FromFloat64(
 		float64(totalStats.InRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeInRangeMinutes = &totalStats.InRangeMinutes
+	userSummary.TimeInRangeRecords = &totalStats.InRangeRecords
+
 	userSummary.TimeBelowRange = pointer.FromFloat64(
 		float64(totalStats.BelowRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeBelowRangeMinutes = &totalStats.BelowRangeMinutes
+	userSummary.TimeBelowRangeRecords = &totalStats.BelowRangeRecords
+
 	userSummary.TimeVeryBelowRange = pointer.FromFloat64(
 		float64(totalStats.VeryBelowRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeVeryBelowRangeMinutes = &totalStats.VeryBelowRangeMinutes
+	userSummary.TimeVeryBelowRangeRecords = &totalStats.VeryBelowRangeRecords
+
 	userSummary.TimeAboveRange = pointer.FromFloat64(
 		float64(totalStats.AboveRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeAboveRangeMinutes = &totalStats.AboveRangeMinutes
+	userSummary.TimeAboveRangeRecords = &totalStats.AboveRangeRecords
+
 	userSummary.TimeVeryAboveRange = pointer.FromFloat64(
 		float64(totalStats.VeryAboveRangeMinutes) / float64(totalStats.TotalCGMMinutes))
+	userSummary.TimeVeryAboveRangeMinutes = &totalStats.VeryAboveRangeMinutes
+	userSummary.TimeVeryAboveRangeRecords = &totalStats.VeryAboveRangeRecords
+
 	userSummary.TimeCGMUse = pointer.FromFloat64(
 		float64(totalStats.TotalCGMMinutes) / totalMinutes)
+	userSummary.TimeCGMUseRecords = &totalStats.TotalRecords
+	userSummary.TimeCGMUseMinutes = &totalStats.TotalCGMMinutes
 
 	// we only add GMI if cgm use >70%, otherwise clear it
 	if *userSummary.TimeCGMUse > 0.7 {

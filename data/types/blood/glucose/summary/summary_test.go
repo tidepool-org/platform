@@ -507,14 +507,32 @@ var _ = Describe("Summary", func() {
 				err = userSummary.CalculateSummary()
 				Expect(err).ToNot(HaveOccurred())
 
+				Expect(*userSummary.TotalDays).To(Equal(int64(14)))
+
 				Expect(*userSummary.TimeInRange).To(Equal(0.200))
+				Expect(*userSummary.TimeInRangeMinutes).To(Equal(int64(3990)))
+				Expect(*userSummary.TimeInRangeRecords).To(Equal(int64(798)))
+
 				Expect(*userSummary.TimeVeryBelowRange).To(Equal(0.200))
+				Expect(*userSummary.TimeVeryBelowRangeMinutes).To(Equal(int64(3990)))
+				Expect(*userSummary.TimeVeryBelowRangeRecords).To(Equal(int64(798)))
+
 				Expect(*userSummary.TimeBelowRange).To(Equal(0.200))
+				Expect(*userSummary.TimeBelowRangeMinutes).To(Equal(int64(3990)))
+				Expect(*userSummary.TimeBelowRangeRecords).To(Equal(int64(798)))
+
 				Expect(*userSummary.TimeAboveRange).To(Equal(0.200))
+				Expect(*userSummary.TimeAboveRangeMinutes).To(Equal(int64(3990)))
+				Expect(*userSummary.TimeAboveRangeRecords).To(Equal(int64(798)))
+
 				Expect(*userSummary.TimeVeryAboveRange).To(Equal(0.200))
+				Expect(*userSummary.TimeVeryAboveRangeMinutes).To(Equal(int64(3990)))
+				Expect(*userSummary.TimeVeryAboveRangeRecords).To(Equal(int64(798)))
 
 				// ranges calc only generates 98.9% of a day, count needs to be divisible by 5
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 0.989, 0.001))
+				Expect(*userSummary.TimeCGMUseMinutes).To(Equal(int64(19950)))
+				Expect(*userSummary.TimeCGMUseRecords).To(Equal(int64(3990)))
 			})
 
 			It("Returns correct average glucose for stats", func() {
@@ -527,8 +545,11 @@ var _ = Describe("Summary", func() {
 				err = userSummary.CalculateSummary()
 				Expect(err).ToNot(HaveOccurred())
 
+				Expect(*userSummary.TotalDays).To(Equal(int64(14)))
 				Expect(*userSummary.AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 				Expect(*userSummary.TimeCGMUse).To(BeNumerically("~", 1.0, 0.001))
+				Expect(*userSummary.TimeCGMUseMinutes).To(Equal(int64(20160)))
+				Expect(*userSummary.TimeCGMUseRecords).To(Equal(int64(4032)))
 			})
 
 		})
