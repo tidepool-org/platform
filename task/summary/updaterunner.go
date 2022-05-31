@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/tidepool-org/platform/page"
+
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
@@ -19,9 +21,9 @@ import (
 )
 
 const (
-	UpdateAvailableAfterDurationMaximum = 10 * time.Minute
-	UpdateAvailableAfterDurationMinimum = 5 * time.Minute
-	UpdateTaskDurationMaximum           = 45 * time.Minute
+	UpdateAvailableAfterDurationMaximum = 6 * time.Minute
+	UpdateAvailableAfterDurationMinimum = 3 * time.Minute
+	UpdateTaskDurationMaximum           = 20 * time.Minute
 	UpdateWorkerCount                   = 8
 )
 
@@ -121,7 +123,9 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) error {
 	t.validator = structureValidator.New()
 
 	t.logger.Info("Searching for User Summaries requiring Update")
-	outdatedSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, nil)
+	pagination := page.NewPagination()
+	pagination.Size = 300
+	outdatedSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, pagination)
 	if err != nil {
 		return err
 	}
