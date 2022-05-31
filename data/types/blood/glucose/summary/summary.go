@@ -36,24 +36,24 @@ type Stats struct {
 	DeviceID string    `json:"deviceId" bson:"deviceId"`
 	Date     time.Time `json:"date" bson:"date"`
 
-	InRangeMinutes int64 `json:"inRangeMinutes" bson:"inRangeMinutes"`
-	InRangeRecords int64 `json:"inRangeRecords" bson:"inRangeRecords"`
+	TargetMinutes int `json:"targetMinutes" bson:"targetMinutes"`
+	TargetRecords int `json:"targetRecords" bson:"targetRecords"`
 
-	BelowRangeMinutes int64 `json:"belowRangeMinutes" bson:"belowRangeMinutes"`
-	BelowRangeRecords int64 `json:"belowRangeRecords" bson:"belowRangeRecords"`
+	LowMinutes int `json:"lowMinutes" bson:"lowMinutes"`
+	LowRecords int `json:"lowRecords" bson:"lowRecords"`
 
-	VeryBelowRangeMinutes int64 `json:"veryBelowRangeMinutes" bson:"veryBelowRangeMinutes"`
-	VeryBelowRangeRecords int64 `json:"veryBelowRangeRecords" bson:"veryBelowRangeRecords"`
+	VeryLowMinutes int `json:"veryLowMinutes" bson:"veryLowMinutes"`
+	VeryLowRecords int `json:"veryLowRecords" bson:"veryLowRecords"`
 
-	AboveRangeMinutes int64 `json:"aboveRangeMinutes" bson:"aboveRangeMinutes"`
-	AboveRangeRecords int64 `json:"aboveRangeRecords" bson:"aboveRangeRecords"`
+	HighMinutes int `json:"highMinutes" bson:"highMinutes"`
+	HighRecords int `json:"highRecords" bson:"highRecords"`
 
-	VeryAboveRangeMinutes int64 `json:"veryAboveRangeMinutes" bson:"veryAboveRangeMinutes"`
-	VeryAboveRangeRecords int64 `json:"veryAboveRangeRecords" bson:"veryAboveRangeRecords"`
+	VeryHighMinutes int `json:"veryHighMinutes" bson:"veryHighMinutes"`
+	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
 
 	TotalGlucose    float64   `json:"totalGlucose" bson:"totalGlucose"`
-	TotalCGMMinutes int64     `json:"totalCGMMinutes" bson:"totalCGMMinutes"`
-	TotalRecords    int64     `json:"totalRecords" bson:"totalRecords"`
+	TotalCGMMinutes int       `json:"totalCGMMinutes" bson:"totalCGMMinutes"`
+	TotalCGMRecords int       `json:"totalCGMRecords" bson:"totalCGMRecords"`
 	LastRecordTime  time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 }
 
@@ -62,24 +62,24 @@ func NewStats(deviceId string, date time.Time) *Stats {
 		DeviceID: deviceId,
 		Date:     date,
 
-		InRangeMinutes: 0,
-		InRangeRecords: 0,
+		TargetMinutes: 0,
+		TargetRecords: 0,
 
-		BelowRangeMinutes: 0,
-		BelowRangeRecords: 0,
+		LowMinutes: 0,
+		LowRecords: 0,
 
-		VeryBelowRangeMinutes: 0,
-		VeryBelowRangeRecords: 0,
+		VeryLowMinutes: 0,
+		VeryLowRecords: 0,
 
-		AboveRangeMinutes: 0,
-		AboveRangeRecords: 0,
+		HighMinutes: 0,
+		HighRecords: 0,
 
-		VeryAboveRangeMinutes: 0,
-		VeryAboveRangeRecords: 0,
+		VeryHighMinutes: 0,
+		VeryHighRecords: 0,
 
 		TotalGlucose:    0,
 		TotalCGMMinutes: 0,
-		TotalRecords:    0,
+		TotalCGMRecords: 0,
 	}
 }
 
@@ -96,11 +96,42 @@ type WeightingInput struct {
 	NewPercentCGMUse float64
 }
 
+type Period struct {
+	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
+	TimeCGMUseMinutes *int     `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
+	TimeCGMUseRecords *int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
+
+	// actual values
+	AverageGlucose             *Glucose `json:"avgGlucose" bson:"avgGlucose"`
+	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
+
+	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeTargetPercent"`
+	TimeInTargetMinutes *int     `json:"timeInTargetMinutes" bson:"timeTargetMinutes"`
+	TimeInTargetRecords *int     `json:"timeInTargetRecords" bson:"timeTargetRecords"`
+
+	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
+	TimeInLowMinutes *int     `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
+	TimeInLowRecords *int     `json:"timeInLowRecords" bson:"timeInLowRecords"`
+
+	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+	TimeInVeryLowMinutes *int     `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
+	TimeInVeryLowRecords *int     `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+
+	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+	TimeInHighMinutes *int     `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
+	TimeInHighRecords *int     `json:"timeInHighRecords" bson:"timeInHighRecords"`
+
+	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+	TimeInVeryHighMinutes *int     `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
+	TimeInVeryHighRecords *int     `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+}
+
 type Summary struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	UserID string             `json:"userId" bson:"userId"`
 
-	DailyStats []*Stats `json:"dailyStats" bson:"dailyStats"`
+	DailyStats []*Stats           `json:"dailyStats" bson:"dailyStats"`
+	Periods    map[string]*Period `json:"periods" bson:"periods"`
 
 	// date tracking
 	LastUpdated   *time.Time `json:"lastUpdated" bson:"lastUpdated"`
@@ -109,35 +140,7 @@ type Summary struct {
 	LastUpload    *time.Time `json:"lastUpload" bson:"lastUpload"`
 	OutdatedSince *time.Time `json:"outdatedSince" bson:"outdatedSince"`
 
-	TotalDays *int64 `json:"totalDays" bson:"totalDays"`
-
-	TimeCGMUse        *float64 `json:"timeCGMUse" bson:"timeCGMUse"`
-	TimeCGMUseMinutes *int64   `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
-	TimeCGMUseRecords *int64   `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
-
-	// actual values
-	AverageGlucose       *Glucose `json:"avgGlucose" bson:"avgGlucose"`
-	GlucoseMgmtIndicator *float64 `json:"glucoseMgmtIndicator" bson:"glucoseMgmtIndicator"`
-
-	TimeInRange        *float64 `json:"timeInRange" bson:"timeInRange"`
-	TimeInRangeMinutes *int64   `json:"timeInRangeMinutes" bson:"timeInRangeMinutes"`
-	TimeInRangeRecords *int64   `json:"timeInRangeRecords" bson:"timeInRangeRecords"`
-
-	TimeBelowRange        *float64 `json:"timeBelowRange" bson:"timeBelowRange"`
-	TimeBelowRangeMinutes *int64   `json:"timeBelowRangeMinutes" bson:"timeBelowRangeMinutes"`
-	TimeBelowRangeRecords *int64   `json:"timeBelowRangeRecords" bson:"timeBelowRangeRecords"`
-
-	TimeVeryBelowRange        *float64 `json:"timeVeryBelowRange" bson:"timeVeryBelowRange"`
-	TimeVeryBelowRangeMinutes *int64   `json:"timeVeryBelowRangeMinutes" bson:"timeVeryBelowRangeMinutes"`
-	TimeVeryBelowRangeRecords *int64   `json:"timeVeryBelowRangeRecords" bson:"timeVeryBelowRangeRecords"`
-
-	TimeAboveRange        *float64 `json:"timeAboveRange" bson:"timeAboveRange"`
-	TimeAboveRangeMinutes *int64   `json:"timeAboveRangeMinutes" bson:"timeAboveRangeMinutes"`
-	TimeAboveRangeRecords *int64   `json:"timeAboveRangeRecords" bson:"timeAboveRangeRecords"`
-
-	TimeVeryAboveRange        *float64 `json:"timeVeryAboveRange" bson:"timeVeryAboveRange"`
-	TimeVeryAboveRangeMinutes *int64   `json:"timeVeryAboveRangeMinutes" bson:"timeVeryAboveRangeMinutes"`
-	TimeVeryAboveRangeRecords *int64   `json:"timeVeryAboveRangeRecords" bson:"timeVeryAboveRangeRecords"`
+	TotalDays *int `json:"totalDays" bson:"totalDays"`
 
 	// these are just constants right now.
 	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
@@ -150,11 +153,12 @@ func New(id string) *Summary {
 	return &Summary{
 		UserID:        id,
 		OutdatedSince: &time.Time{},
+		Periods:       make(map[string]*Period),
 	}
 }
 
 // GetDuration assumes all except freestyle is 5 minutes
-func GetDuration(dataSet *continuous.Continuous) int64 {
+func GetDuration(dataSet *continuous.Continuous) int {
 	if dataSet.DeviceID != nil {
 		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
 			return 15
@@ -216,9 +220,10 @@ func (userSummary *Summary) StoreWinningStats(stats map[string]*Stats) error {
 	oldestDay = (*userSummary.DailyStats[0]).Date
 	oldestDayToKeep = userSummary.DailyStats[len(userSummary.DailyStats)-1].Date.AddDate(0, 0, -daysAgoToKeep)
 	if oldestDay.Before(oldestDayToKeep) {
-		for i := range userSummary.DailyStats {
-			if userSummary.DailyStats[len(userSummary.DailyStats)-1-i].Date.After(oldestDayToKeep) {
-				userSummary.DailyStats = userSummary.DailyStats[len(userSummary.DailyStats)-2-i:]
+		// we don't check the last entry because we just added/updated it
+		for i := len(userSummary.DailyStats) - 2; i >= 0; i-- {
+			if userSummary.DailyStats[i].Date.Before(oldestDayToKeep) {
+				userSummary.DailyStats = userSummary.DailyStats[i+1:]
 				break
 			}
 		}
@@ -231,7 +236,7 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 	stats := make(map[string]*Stats)
 
 	var normalizedValue float64
-	var duration int64
+	var duration int
 	var deviceId string
 	var recordTime time.Time
 	var lastDay time.Time
@@ -300,25 +305,25 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		duration = GetDuration(r)
 
 		if normalizedValue <= veryLowBloodGlucose {
-			stats[deviceId].VeryBelowRangeMinutes += duration
-			stats[deviceId].VeryBelowRangeRecords += 1
+			stats[deviceId].VeryLowMinutes += duration
+			stats[deviceId].VeryLowRecords += 1
 		} else if normalizedValue >= veryHighBloodGlucose {
-			stats[deviceId].VeryAboveRangeMinutes += duration
-			stats[deviceId].VeryAboveRangeRecords += 1
+			stats[deviceId].VeryHighMinutes += duration
+			stats[deviceId].VeryHighRecords += 1
 		} else if normalizedValue <= lowBloodGlucose {
-			stats[deviceId].BelowRangeMinutes += duration
-			stats[deviceId].BelowRangeRecords += 1
+			stats[deviceId].LowMinutes += duration
+			stats[deviceId].LowRecords += 1
 		} else if normalizedValue >= highBloodGlucose {
-			stats[deviceId].AboveRangeMinutes += duration
-			stats[deviceId].AboveRangeRecords += 1
+			stats[deviceId].HighMinutes += duration
+			stats[deviceId].HighRecords += 1
 		} else {
-			stats[deviceId].InRangeMinutes += duration
-			stats[deviceId].InRangeRecords += 1
+			stats[deviceId].TargetMinutes += duration
+			stats[deviceId].TargetRecords += 1
 		}
 
 		stats[deviceId].TotalCGMMinutes += duration
+		stats[deviceId].TotalCGMRecords += 1
 		stats[deviceId].TotalGlucose += normalizedValue
-		stats[deviceId].TotalRecords += 1
 		stats[deviceId].LastRecordTime = recordTime
 	}
 	// store
@@ -331,26 +336,36 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 }
 
 func (userSummary *Summary) CalculateSummary() error {
+	var timeCGMUsePercent float64
+	var timeInTargetPercent float64
+	var timeInLowPercent float64
+	var timeInVeryLowPercent float64
+	var timeInHighPercent float64
+	var timeInVeryHighPercent float64
+	var glucoseManagementIndicator *float64
+	var averageGlucose float64
+
 	totalStats := NewStats("summary", time.Time{})
+
 	for _, stats := range userSummary.DailyStats {
-		totalStats.InRangeMinutes += stats.InRangeMinutes
-		totalStats.InRangeRecords += stats.InRangeRecords
+		totalStats.TargetMinutes += stats.TargetMinutes
+		totalStats.TargetRecords += stats.TargetRecords
 
-		totalStats.BelowRangeMinutes += stats.BelowRangeMinutes
-		totalStats.BelowRangeRecords += stats.BelowRangeRecords
+		totalStats.LowMinutes += stats.LowMinutes
+		totalStats.LowRecords += stats.LowRecords
 
-		totalStats.VeryBelowRangeMinutes += stats.VeryBelowRangeMinutes
-		totalStats.VeryBelowRangeRecords += stats.VeryBelowRangeRecords
+		totalStats.VeryLowMinutes += stats.VeryLowMinutes
+		totalStats.VeryLowRecords += stats.VeryLowRecords
 
-		totalStats.AboveRangeMinutes += stats.AboveRangeMinutes
-		totalStats.AboveRangeRecords += stats.AboveRangeRecords
+		totalStats.HighMinutes += stats.HighMinutes
+		totalStats.HighRecords += stats.HighRecords
 
-		totalStats.VeryAboveRangeMinutes += stats.VeryAboveRangeMinutes
-		totalStats.VeryAboveRangeRecords += stats.VeryAboveRangeRecords
+		totalStats.VeryHighMinutes += stats.VeryHighMinutes
+		totalStats.VeryHighRecords += stats.VeryHighRecords
 
 		totalStats.TotalGlucose += stats.TotalGlucose
 		totalStats.TotalCGMMinutes += stats.TotalCGMMinutes
-		totalStats.TotalRecords += stats.TotalRecords
+		totalStats.TotalCGMRecords += stats.TotalCGMRecords
 	}
 
 	// remove partial day (data end) from total time for more accurate TimeCGMUse
@@ -363,47 +378,54 @@ func (userSummary *Summary) CalculateSummary() error {
 	userSummary.LastData = &lastRecordTime
 	userSummary.FirstData = &userSummary.DailyStats[0].Date
 
-	userSummary.TotalDays = pointer.FromInt64(int64(len(userSummary.DailyStats)))
+	userSummary.TotalDays = pointer.FromInt(len(userSummary.DailyStats))
 
-	userSummary.AverageGlucose = &Glucose{
-		Value: pointer.FromFloat64(totalStats.TotalGlucose / float64(totalStats.TotalRecords)),
-		Units: pointer.FromString(summaryGlucoseUnits),
-	}
-	userSummary.TimeInRange = pointer.FromFloat64(
-		float64(totalStats.InRangeMinutes) / float64(totalStats.TotalCGMMinutes))
-	userSummary.TimeInRangeMinutes = &totalStats.InRangeMinutes
-	userSummary.TimeInRangeRecords = &totalStats.InRangeRecords
-
-	userSummary.TimeBelowRange = pointer.FromFloat64(
-		float64(totalStats.BelowRangeMinutes) / float64(totalStats.TotalCGMMinutes))
-	userSummary.TimeBelowRangeMinutes = &totalStats.BelowRangeMinutes
-	userSummary.TimeBelowRangeRecords = &totalStats.BelowRangeRecords
-
-	userSummary.TimeVeryBelowRange = pointer.FromFloat64(
-		float64(totalStats.VeryBelowRangeMinutes) / float64(totalStats.TotalCGMMinutes))
-	userSummary.TimeVeryBelowRangeMinutes = &totalStats.VeryBelowRangeMinutes
-	userSummary.TimeVeryBelowRangeRecords = &totalStats.VeryBelowRangeRecords
-
-	userSummary.TimeAboveRange = pointer.FromFloat64(
-		float64(totalStats.AboveRangeMinutes) / float64(totalStats.TotalCGMMinutes))
-	userSummary.TimeAboveRangeMinutes = &totalStats.AboveRangeMinutes
-	userSummary.TimeAboveRangeRecords = &totalStats.AboveRangeRecords
-
-	userSummary.TimeVeryAboveRange = pointer.FromFloat64(
-		float64(totalStats.VeryAboveRangeMinutes) / float64(totalStats.TotalCGMMinutes))
-	userSummary.TimeVeryAboveRangeMinutes = &totalStats.VeryAboveRangeMinutes
-	userSummary.TimeVeryAboveRangeRecords = &totalStats.VeryAboveRangeRecords
-
-	userSummary.TimeCGMUse = pointer.FromFloat64(
-		float64(totalStats.TotalCGMMinutes) / totalMinutes)
-	userSummary.TimeCGMUseRecords = &totalStats.TotalRecords
-	userSummary.TimeCGMUseMinutes = &totalStats.TotalCGMMinutes
+	// calculate derived summary stats
+	timeCGMUsePercent = float64(totalStats.TotalCGMMinutes) / totalMinutes
+	timeInTargetPercent = float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes)
+	timeInLowPercent = float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes)
+	timeInVeryLowPercent = float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes)
+	timeInHighPercent = float64(totalStats.HighMinutes) / float64(totalStats.TotalCGMMinutes)
+	timeInVeryHighPercent = float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalCGMMinutes)
+	averageGlucose = totalStats.TotalGlucose / float64(totalStats.TotalCGMRecords)
 
 	// we only add GMI if cgm use >70%, otherwise clear it
-	if *userSummary.TimeCGMUse > 0.7 {
-		userSummary.GlucoseMgmtIndicator = pointer.FromFloat64(CalculateGMI(*userSummary.AverageGlucose.Value))
-	} else {
-		userSummary.GlucoseMgmtIndicator = nil
+	glucoseManagementIndicator = nil
+	if timeCGMUsePercent > 0.7 {
+		glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose))
+	}
+
+	// statically place stats into the 14-day period slot for now.
+	userSummary.Periods["14"] = &Period{
+		TimeCGMUsePercent: &timeCGMUsePercent,
+		TimeCGMUseMinutes: &totalStats.TotalCGMMinutes,
+		TimeCGMUseRecords: &totalStats.TotalCGMRecords,
+
+		AverageGlucose: &Glucose{
+			Value: pointer.FromFloat64(averageGlucose),
+			Units: pointer.FromString(summaryGlucoseUnits),
+		},
+		GlucoseManagementIndicator: glucoseManagementIndicator,
+
+		TimeInTargetPercent: &timeInTargetPercent,
+		TimeInTargetMinutes: &totalStats.TargetMinutes,
+		TimeInTargetRecords: &totalStats.TargetRecords,
+
+		TimeInLowPercent: &timeInLowPercent,
+		TimeInLowMinutes: &totalStats.LowMinutes,
+		TimeInLowRecords: &totalStats.LowRecords,
+
+		TimeInVeryLowPercent: &timeInVeryLowPercent,
+		TimeInVeryLowMinutes: &totalStats.VeryLowMinutes,
+		TimeInVeryLowRecords: &totalStats.VeryLowRecords,
+
+		TimeInHighPercent: &timeInHighPercent,
+		TimeInHighMinutes: &totalStats.HighMinutes,
+		TimeInHighRecords: &totalStats.HighRecords,
+
+		TimeInVeryHighPercent: &timeInVeryHighPercent,
+		TimeInVeryHighMinutes: &totalStats.VeryHighMinutes,
+		TimeInVeryHighRecords: &totalStats.VeryHighRecords,
 	}
 
 	return nil

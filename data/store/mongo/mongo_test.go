@@ -355,7 +355,7 @@ var _ = Describe("Mongo", func() {
 				var err error
 
 				BeforeEach(func() {
-					// generate all these once, they dont need to change
+					// generate all these once, they don't need to change
 					ctx = log.NewContextWithLogger(context.Background(), logger)
 					userID = userTest.RandomID()
 					otherUserID = userTest.RandomID()
@@ -405,6 +405,15 @@ var _ = Describe("Mongo", func() {
 					})
 				})
 
+				Context("GetCGMDataRange", func() {
+					// TODO
+					//GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time)
+				})
+				Context("GetLastUpdatedForUser", func() {
+					// TODO
+					//GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
+				})
+
 				Context("UpdateSummary", func() {
 					// these tests do not verify the DB contents, as that is done later in GetSummary
 					It("returns error if context is empty", func() {
@@ -448,8 +457,38 @@ var _ = Describe("Mongo", func() {
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						_, err = summaryRepository.GetSummary(ctx, userID)
+						newSummary, err := summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
+						// copy id from inserted summary for easy equality
+						randomSummary.ID = newSummary.ID
+						Expect(newSummary).To(Equal(randomSummary))
+					})
+
+					It("ensure that nil summary fields are correctly removed from the db", func() {
+						var newSummary *summary.Summary
+						_, err = summaryRepository.GetSummary(ctx, userID)
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("summary not found"))
+
+						randomSummary.Periods["14"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						Expect(randomSummary.Periods["14"].GlucoseManagementIndicator).ToNot(BeNil())
+
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						newSummary, err = summaryRepository.GetSummary(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(newSummary.Periods["14"].GlucoseManagementIndicator).ToNot(BeNil())
+
+						randomSummary.Periods["14"].GlucoseManagementIndicator = nil
+						Expect(randomSummary.Periods["14"].GlucoseManagementIndicator).To(BeNil())
+
+						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						newSummary, err = summaryRepository.GetSummary(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(newSummary.Periods["14"].GlucoseManagementIndicator).To(BeNil())
 					})
 				})
 
