@@ -2,11 +2,11 @@ package client
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary"
 	"net/http"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"

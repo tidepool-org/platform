@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,7 +12,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"

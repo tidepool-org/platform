@@ -3,6 +3,7 @@ package summary_test
 import (
 	"context"
 	"fmt"
+	"github.com/tidepool-org/platform/data/summary"
 	"math/rand"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	"github.com/tidepool-org/platform/pointer"
 	userTest "github.com/tidepool-org/platform/user/test"

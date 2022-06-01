@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/tidepool-org/platform/page"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/errors"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -32,11 +32,11 @@ func (d *SummaryRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
-				{Key: "lastUpdated", Value: 1},
+				{Key: "lastUpdatedDate", Value: 1},
 			},
 			Options: options.Index().
 				SetBackground(true).
-				SetName("LastUpdated"),
+				SetName("LastUpdatedDate"),
 		},
 		{
 			Keys: bson.D{

@@ -62,8 +62,6 @@ func GetSummary(dataServiceContext dataService.Context) {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if summary == nil {
 		responder.Empty(http.StatusNotFound)
-	} else if summary.LastUpdated == nil {
-		responder.Empty(http.StatusNoContent)
 	} else {
 		responder.Data(http.StatusOK, summary)
 	}

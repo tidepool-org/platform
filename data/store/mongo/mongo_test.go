@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary"
 	"math/rand"
 	"time"
 
@@ -19,7 +20,6 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -297,9 +297,9 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("UserID"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("lastUpdated")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("lastUpdatedDate")),
 						"Background": Equal(true),
-						"Name":       Equal("LastUpdated"),
+						"Name":       Equal("LastUpdatedDate"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("outdatedSince")),
@@ -570,6 +570,16 @@ var _ = Describe("Mongo", func() {
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(timestamp).To(Equal(summary.OutdatedSince))
+					})
+
+					It("returns and correctly upserts an outdated summary if none existed", func() {
+						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						summary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(timestamp).To(Equal(summary.OutdatedSince))
+						Expect(randomSummary.UserID).To(Equal(summary.UserID))
 					})
 
 					It("returns and correctly leaves outdated unchanged if already set", func() {

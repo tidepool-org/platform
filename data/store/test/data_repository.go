@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -9,7 +10,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"

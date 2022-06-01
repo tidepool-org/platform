@@ -105,9 +105,9 @@ type Period struct {
 	AverageGlucose             *Glucose `json:"avgGlucose" bson:"avgGlucose"`
 	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
 
-	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeTargetPercent"`
-	TimeInTargetMinutes *int     `json:"timeInTargetMinutes" bson:"timeTargetMinutes"`
-	TimeInTargetRecords *int     `json:"timeInTargetRecords" bson:"timeTargetRecords"`
+	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
+	TimeInTargetMinutes *int     `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
+	TimeInTargetRecords *int     `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
 
 	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
 	TimeInLowMinutes *int     `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
@@ -134,11 +134,11 @@ type Summary struct {
 	Periods    map[string]*Period `json:"periods" bson:"periods"`
 
 	// date tracking
-	LastUpdated   *time.Time `json:"lastUpdated" bson:"lastUpdated"`
-	FirstData     *time.Time `json:"firstData" bson:"firstData"`
-	LastData      *time.Time `json:"lastData" bson:"lastData"`
-	LastUpload    *time.Time `json:"lastUpload" bson:"lastUpload"`
-	OutdatedSince *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+	LastUpdatedDate *time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	FirstData       *time.Time `json:"firstData" bson:"firstData"`
+	LastData        *time.Time `json:"lastData" bson:"lastData"`
+	LastUploadDate  *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
+	OutdatedSince   *time.Time `json:"outdatedSince" bson:"outdatedSince"`
 
 	TotalDays *int `json:"totalDays" bson:"totalDays"`
 
@@ -455,8 +455,8 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
-	userSummary.LastUpdated = &timestamp
-	userSummary.LastUpload = &status.LastUpload
+	userSummary.LastUpdatedDate = &timestamp
+	userSummary.LastUploadDate = &status.LastUpload
 	userSummary.OutdatedSince = nil
 
 	// ensure new data being calculated is after the previously added data to prevent corruption

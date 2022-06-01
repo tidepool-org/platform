@@ -1,17 +1,17 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/data/types/blood/glucose/summary"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
 func RandomSummary() *summary.Summary {
 	var datum = summary.Summary{
-		LastUpdated:              pointer.FromTime(test.RandomTime()),
+		LastUpdatedDate:          pointer.FromTime(test.RandomTime()),
 		FirstData:                pointer.FromTime(test.RandomTime()),
 		LastData:                 pointer.FromTime(test.RandomTime()),
-		LastUpload:               pointer.FromTime(test.RandomTime()),
+		LastUploadDate:           pointer.FromTime(test.RandomTime()),
 		OutdatedSince:            nil,
 		TotalDays:                pointer.FromInt(test.RandomIntFromRange(0, 90)),
 		HighGlucoseThreshold:     pointer.FromFloat64(test.RandomFloat64FromRange(5, 10)),
