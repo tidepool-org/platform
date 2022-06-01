@@ -3,9 +3,10 @@ package summary_test
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/data/summary"
 	"math/rand"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"

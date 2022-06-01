@@ -2,8 +2,9 @@ package mongo
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

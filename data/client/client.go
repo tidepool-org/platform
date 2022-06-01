@@ -2,9 +2,10 @@ package client
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary"
 	"net/http"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"

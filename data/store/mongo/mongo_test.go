@@ -2,9 +2,10 @@ package mongo_test
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary"
 	"math/rand"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

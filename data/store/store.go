@@ -2,8 +2,9 @@ package store
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
