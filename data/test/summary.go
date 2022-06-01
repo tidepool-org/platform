@@ -44,7 +44,7 @@ func RandomSummary() *summary.Summary {
 	}
 
 	datum.Periods = make(map[string]*summary.Period)
-	datum.Periods["14"] = &summary.Period{
+	datum.Periods["14d"] = &summary.Period{
 		GlucoseManagementIndicator: pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
 		AverageGlucose: &summary.Glucose{
 			Value: pointer.FromFloat64(test.RandomFloat64FromRange(1, 30)),

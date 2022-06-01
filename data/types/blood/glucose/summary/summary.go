@@ -154,6 +154,7 @@ func New(id string) *Summary {
 		UserID:        id,
 		OutdatedSince: &time.Time{},
 		Periods:       make(map[string]*Period),
+		DailyStats:    make([]*Stats, 0),
 	}
 }
 
@@ -395,8 +396,13 @@ func (userSummary *Summary) CalculateSummary() error {
 		glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose))
 	}
 
+	// ensure periods exists, just in case
+	if userSummary.Periods == nil {
+		userSummary.Periods = make(map[string]*Period)
+	}
+
 	// statically place stats into the 14-day period slot for now.
-	userSummary.Periods["14"] = &Period{
+	userSummary.Periods["14d"] = &Period{
 		TimeCGMUsePercent: &timeCGMUsePercent,
 		TimeCGMUseMinutes: &totalStats.TotalCGMMinutes,
 		TimeCGMUseRecords: &totalStats.TotalCGMRecords,

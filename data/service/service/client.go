@@ -58,13 +58,14 @@ func (c *Client) GetSummary(ctx context.Context, id string) (*summary.Summary, e
 func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
 	var err error
 	var status *summary.UserLastUpdated
+	var userSummary *summary.Summary
 	logger := log.LoggerFromContext(ctx)
 	logger.Debugf("Starting summary calculation for %s", id)
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
 	// we need the original summary object to grab the original for rolling calc
-	userSummary, err := summaryRepository.GetSummary(ctx, id)
+	userSummary, err = summaryRepository.GetSummary(ctx, id)
 	if err != nil {
 		return nil, err
 	}

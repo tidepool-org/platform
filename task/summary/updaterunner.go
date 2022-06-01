@@ -25,6 +25,7 @@ const (
 	UpdateAvailableAfterDurationMinimum = 3 * time.Minute
 	UpdateTaskDurationMaximum           = 20 * time.Minute
 	UpdateWorkerCount                   = 8
+	UpdateWorkerBatchSize               = 300
 )
 
 type UpdateRunner struct {
@@ -124,7 +125,7 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) error {
 
 	t.logger.Info("Searching for User Summaries requiring Update")
 	pagination := page.NewPagination()
-	pagination.Size = 300
+	pagination.Size = UpdateWorkerBatchSize
 	outdatedSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, pagination)
 	if err != nil {
 		return err

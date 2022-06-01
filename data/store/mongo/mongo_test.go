@@ -470,25 +470,25 @@ var _ = Describe("Mongo", func() {
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("summary not found"))
 
-						randomSummary.Periods["14"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
-						Expect(randomSummary.Periods["14"].GlucoseManagementIndicator).ToNot(BeNil())
+						randomSummary.Periods["14d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						Expect(randomSummary.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						newSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(newSummary.Periods["14"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
 
-						randomSummary.Periods["14"].GlucoseManagementIndicator = nil
-						Expect(randomSummary.Periods["14"].GlucoseManagementIndicator).To(BeNil())
+						randomSummary.Periods["14d"].GlucoseManagementIndicator = nil
+						Expect(randomSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						newSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(newSummary.Periods["14"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
 					})
 				})
 
@@ -589,11 +589,9 @@ var _ = Describe("Mongo", func() {
 
 				Context("GetOutdatedUserIDs", func() {
 					var pagination *page.Pagination
-					BeforeEach(func() {
-						pagination = page.NewPagination()
-					})
 
 					It("returns error if context is empty", func() {
+						pagination = page.NewPagination()
 						_, err := summaryRepository.GetOutdatedUserIDs(nil, pagination)
 
 						Expect(err).To(HaveOccurred())
@@ -608,6 +606,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns and correctly gets outdated summaries", func() {
+						pagination = page.NewPagination()
 						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
 						_, err := summaryRepository.CreateSummaries(ctx, summaries)
 						Expect(err).ToNot(HaveOccurred())

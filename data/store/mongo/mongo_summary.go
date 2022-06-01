@@ -57,12 +57,12 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 		return nil, errors.New("summary UserID is missing")
 	}
 
-	var summary summary.Summary
+	var userSummary = summary.New(id)
 	selector := bson.M{
 		"userId": id,
 	}
 
-	err := d.FindOne(ctx, selector).Decode(&summary)
+	err := d.FindOne(ctx, selector).Decode(userSummary)
 
 	if err == mongo.ErrNoDocuments {
 		return nil, errors.New("summary not found")
@@ -70,7 +70,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	return &summary, nil
+	return userSummary, nil
 }
 
 func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error {
