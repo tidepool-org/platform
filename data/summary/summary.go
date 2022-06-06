@@ -57,9 +57,9 @@ type Stats struct {
 	LastRecordTime  time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 }
 
-func NewStats(deviceId string, date time.Time) *Stats {
+func NewStats(deviceID string, date time.Time) *Stats {
 	return &Stats{
-		DeviceID: deviceId,
+		DeviceID: deviceID,
 		Date:     date,
 
 		TargetMinutes: 0,
@@ -187,13 +187,13 @@ func (userSummary *Summary) StoreWinningStats(stats map[string]*Stats) error {
 	}
 
 	// find stats with most samples
-	for deviceId := range stats {
+	for deviceID := range stats {
 		if winningStats != nil {
-			if stats[deviceId].TotalCGMMinutes > winningStats.TotalCGMMinutes {
-				winningStats = stats[deviceId]
+			if stats[deviceID].TotalCGMMinutes > winningStats.TotalCGMMinutes {
+				winningStats = stats[deviceID]
 			}
 		} else {
-			winningStats = stats[deviceId]
+			winningStats = stats[deviceID]
 		}
 	}
 
@@ -238,7 +238,7 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 
 	var normalizedValue float64
 	var duration int
-	var deviceId string
+	var deviceID string
 	var recordTime time.Time
 	var lastDay time.Time
 	var currentDay time.Time
@@ -251,9 +251,9 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 
 	for _, r := range userData {
 		if r.DeviceID != nil {
-			deviceId = *r.DeviceID
+			deviceID = *r.DeviceID
 		} else {
-			deviceId = ""
+			deviceID = ""
 		}
 
 		recordTime, err = time.Parse(time.RFC3339Nano, *r.Time)
@@ -283,10 +283,10 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		}
 		lastDay = currentDay
 
-		_, deviceIdExists = stats[deviceId]
+		_, deviceIdExists = stats[deviceID]
 		if !deviceIdExists {
 			// create new deviceId in map
-			stats[deviceId] = NewStats(deviceId, recordTime.Truncate(24*time.Hour))
+			stats[deviceID] = NewStats(deviceID, recordTime.Truncate(24*time.Hour))
 
 			// overwrite with stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
@@ -294,8 +294,8 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 			// device, resulting in larger batches always winning, even if less complete over time.
 			if len(userSummary.DailyStats) > 1 {
 				for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-					if userSummary.DailyStats[i].Date.Equal(currentDay) && userSummary.DailyStats[i].DeviceID == deviceId {
-						stats[deviceId] = userSummary.DailyStats[i]
+					if userSummary.DailyStats[i].Date.Equal(currentDay) && userSummary.DailyStats[i].DeviceID == deviceID {
+						stats[deviceID] = userSummary.DailyStats[i]
 						break
 					}
 				}
@@ -306,26 +306,26 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		duration = GetDuration(r)
 
 		if normalizedValue <= veryLowBloodGlucose {
-			stats[deviceId].VeryLowMinutes += duration
-			stats[deviceId].VeryLowRecords += 1
+			stats[deviceID].VeryLowMinutes += duration
+			stats[deviceID].VeryLowRecords++
 		} else if normalizedValue >= veryHighBloodGlucose {
-			stats[deviceId].VeryHighMinutes += duration
-			stats[deviceId].VeryHighRecords += 1
+			stats[deviceID].VeryHighMinutes += duration
+			stats[deviceID].VeryHighRecords++
 		} else if normalizedValue <= lowBloodGlucose {
-			stats[deviceId].LowMinutes += duration
-			stats[deviceId].LowRecords += 1
+			stats[deviceID].LowMinutes += duration
+			stats[deviceID].LowRecords++
 		} else if normalizedValue >= highBloodGlucose {
-			stats[deviceId].HighMinutes += duration
-			stats[deviceId].HighRecords += 1
+			stats[deviceID].HighMinutes += duration
+			stats[deviceID].HighRecords++
 		} else {
-			stats[deviceId].TargetMinutes += duration
-			stats[deviceId].TargetRecords += 1
+			stats[deviceID].TargetMinutes += duration
+			stats[deviceID].TargetRecords++
 		}
 
-		stats[deviceId].TotalCGMMinutes += duration
-		stats[deviceId].TotalCGMRecords += 1
-		stats[deviceId].TotalGlucose += normalizedValue
-		stats[deviceId].LastRecordTime = recordTime
+		stats[deviceID].TotalCGMMinutes += duration
+		stats[deviceID].TotalCGMRecords++
+		stats[deviceID].TotalGlucose += normalizedValue
+		stats[deviceID].LastRecordTime = recordTime
 	}
 	// store
 	err = userSummary.StoreWinningStats(stats)
