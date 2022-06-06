@@ -10,7 +10,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.6.2
 	github.com/fatih/color v1.9.0 // indirect
-	github.com/githubnemo/CompileDaemon v1.2.1
+	github.com/githubnemo/CompileDaemon v1.4.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.2.0
 	github.com/gowebpki/jcs v0.0.0-20210215032300-680d9436c864

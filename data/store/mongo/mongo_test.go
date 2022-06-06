@@ -391,19 +391,19 @@ var _ = Describe("Mongo", func() {
 							Expect(len(cgmRecords)).To(Equal(577))
 						})
 
-						//It("returns right data for the requested range", func() {
-						//	var cgmRecords []*continuous.Continuous
-						//	dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -3)
-						//	cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetLastUpdated)
-						//
-						//	Expect(err).ToNot(HaveOccurred())
-						//	Expect(len(cgmRecords)).To(Equal(864))
-						//	var datumTime time.Time
-						//	for i, cgmDatum := range cgmRecords {
-						//		datumTime, _ = time.Parse(time.RFC3339Nano, *cgmDatum.Time)
-						//		Expect(datumTime).To(Equal(dataSetFirstData.Add(time.Duration(i) * 5).Truncate(time.Millisecond)))
-						//	}
-						//})
+						It("returns right data for the requested range", func() {
+							var cgmRecords []*continuous.Continuous
+							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -3)
+							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetLastUpdated)
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(cgmRecords)).To(Equal(864))
+							var datumTime time.Time
+							for i, cgmDatum := range cgmRecords {
+								datumTime, _ = time.Parse(time.RFC3339Nano, *cgmDatum.Time)
+								Expect(datumTime).To(Equal(dataSetFirstData.Add(time.Duration(i+1) * 5 * time.Minute).Truncate(time.Millisecond)))
+							}
+						})
 					})
 
 					Context("GetLastUpdatedForUser", func() {
