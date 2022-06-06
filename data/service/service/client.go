@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	backfillBatch = 10000
+	backfillBatch = 100000
 )
 
 type Client struct {
@@ -112,7 +112,6 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 	var empty struct{}
 	var userIDsReqBackfill []string
 	var count int64 = 0
-	var summaries []*summary.Summary
 
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
@@ -143,8 +142,9 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
 		}
 	}
 
-	for _, userID := range userIDsReqBackfill {
-		summaries = append(summaries, summary.New(userID))
+	var summaries = make([]*summary.Summary, len(userIDsReqBackfill))
+	for i, userID := range userIDsReqBackfill {
+		summaries[i] = summary.New(userID)
 	}
 
 	if len(summaries) > 0 {

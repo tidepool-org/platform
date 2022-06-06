@@ -107,17 +107,11 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 		return nil, errors.New("pagination is missing")
 	}
 
-	timestamp := time.Now().UTC().Truncate(time.Millisecond)
-
 	selector := bson.M{
-		"outdatedSince": bson.M{"$lte": timestamp},
+		"outdatedSince": bson.M{"$ne": nil},
 	}
 
-	projection := bson.D{
-		{Key: "userId", Value: 1},
-		{Key: "_id", Value: 0},
-	}
-	opts := options.Find().SetProjection(projection)
+	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "outdatedSince", Value: 1}})
 	opts.SetLimit(int64(page.Size))
 
@@ -152,10 +146,10 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.
 		return nil, errors.New("summary missing UserID")
 	}
 
-	opts := options.Replace().SetUpsert(true)
+	opts := options.Update().SetUpsert(true)
 	selector := bson.M{"userId": summary.UserID}
 
-	_, err := d.ReplaceOne(ctx, selector, summary, opts)
+	_, err := d.UpdateOne(ctx, selector, bson.M{"$set": summary}, opts)
 
 	return summary, err
 }

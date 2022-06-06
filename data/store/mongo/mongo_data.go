@@ -892,31 +892,47 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 }
 
 func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
+	var dataSetsOld []*continuous.Continuous
 	var dataSets []*continuous.Continuous
+	selectorOld := bson.M{
+		"_active": true,
+		"_userId": id,
+		"type":    "cbg",
+		"time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
+			"$lte": endTime.Format(time.RFC3339Nano)},
+	}
+
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		// NOTE: redundant $or query for migration of time field
-		"$or": bson.A{
-			bson.M{"time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
-				"$lte": endTime.Format(time.RFC3339Nano)}},
-			bson.M{"time": bson.M{"$gte": startTime,
-				"$lte": endTime}},
-		},
+		"time": bson.M{"$gte": startTime,
+			"$lte": endTime},
 	}
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
 
+	cursorOld, err := d.Find(ctx, selectorOld, opts)
 	cursor, err := d.Find(ctx, selector, opts)
 
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
 	}
 
+	if err = cursorOld.All(ctx, &dataSetsOld); err != nil {
+		return nil, errors.Wrap(err, "unable to decode data sets")
+	}
 	if err = cursor.All(ctx, &dataSets); err != nil {
 		return nil, errors.Wrap(err, "unable to decode data sets")
+	}
+
+	if len(dataSets) > 0 && len(dataSetsOld) > 0 {
+		// user has old and new format data
+		dataSets = append(dataSetsOld, dataSets...)
+	} else if len(dataSetsOld) > 0 && len(dataSets) == 0 {
+		// user has old format data, but no new data
+		dataSets = dataSetsOld
 	}
 
 	return dataSets, nil
@@ -940,14 +956,9 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 		"type":    "cbg",
 	}
 
-	projection := bson.D{
-		{Key: "createdTime", Value: 1},
-		{Key: "time", Value: 1},
-	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
-	findOptions.SetProjection(projection)
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 
@@ -964,11 +975,13 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
 		}
+		status.LastUpload = status.LastUpload.UTC()
 
 		status.LastData, err = time.Parse(time.RFC3339Nano, *dataSet[0].Time)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to parse latest Time")
 		}
+		status.LastData = status.LastData.UTC()
 	} else {
 		return nil, errors.Wrap(err, "No cbg records found for user")
 	}
@@ -985,17 +998,16 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 
 	timestamp := time.Now().AddDate(-2, 0, 0).UTC()
 
+	// we don't query for users with different time field types, as users with the new types would
+	// not exist before summaries were launched.
 	selector := bson.M{
-		// NOTE: redundant $or query for migration of time field
-		"$or": bson.A{
-			bson.M{"time": bson.M{"$gte": timestamp}},
-			bson.M{"time": bson.M{"$gte": timestamp.Format(time.RFC3339Nano)}},
-		},
+		"time":    bson.M{"$gte": timestamp.Format(time.RFC3339Nano)},
 		"_active": true,
 		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},
 	}
 
+	// we would prefer to use hints here instead of _userId $ne -1111, but hints are not (yet?) available on distinct opts
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
 		return userIDs, errors.Wrap(err, "error fetching distinct userIDs")

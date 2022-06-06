@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	BackfillAvailableAfterDurationMaximum = 4 * time.Hour
-	BackfillAvailableAfterDurationMinimum = 4 * time.Hour
+	BackfillAvailableAfterDurationMaximum = 24 * time.Hour
+	BackfillAvailableAfterDurationMinimum = 24 * time.Hour
 	BackfillTaskDurationMaximum           = 30 * time.Minute
 )
 
