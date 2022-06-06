@@ -243,7 +243,7 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 	var lastDay time.Time
 	var currentDay time.Time
 	var err error
-	var deviceIdExists bool
+	var deviceIDExists bool
 
 	if len(userData) < 1 {
 		return errors.New("userData is empty, nothing to calculate stats for")
@@ -283,8 +283,8 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		}
 		lastDay = currentDay
 
-		_, deviceIdExists = stats[deviceID]
-		if !deviceIdExists {
+		_, deviceIDExists = stats[deviceID]
+		if !deviceIDExists {
 			// create new deviceId in map
 			stats[deviceID] = NewStats(deviceID, recordTime.Truncate(24*time.Hour))
 
