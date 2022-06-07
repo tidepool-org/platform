@@ -388,7 +388,7 @@ var _ = Describe("Mongo", func() {
 							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetLastUpdated)
 
 							Expect(err).ToNot(HaveOccurred())
-							Expect(len(cgmRecords)).To(Equal(577))
+							Expect(len(cgmRecords)).To(Equal(576))
 						})
 
 						It("returns right data for the requested range", func() {
