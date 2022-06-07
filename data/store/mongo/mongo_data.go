@@ -898,7 +898,7 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		"time": bson.M{"$gte": startTime.Format(time.RFC3339Nano),
+		"time": bson.M{"$gt": startTime.Format(time.RFC3339Nano),
 			"$lte": endTime.Format(time.RFC3339Nano)},
 	}
 
