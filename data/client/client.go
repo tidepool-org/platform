@@ -34,7 +34,7 @@ type Client interface {
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
-	BackfillSummaries(ctx context.Context) (int64, error)
+	BackfillSummaries(ctx context.Context) (int, error)
 }
 
 type ClientImpl struct {
@@ -173,8 +173,8 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 	return summary, nil
 }
 
-func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int64, error) {
-	var count int64
+func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
+	var count int
 	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries")
 
 	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {

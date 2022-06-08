@@ -449,25 +449,33 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 		return errors.New("userSummary is missing")
 	}
 
-	if len(userData) == 0 {
-		return errors.New("userData is empty")
-	}
-
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
 	userSummary.LastUpdatedDate = &timestamp
 	userSummary.LastUploadDate = &status.LastUpload
 	userSummary.OutdatedSince = nil
 
-	// ensure new data being calculated is after the previously added data to prevent corruption
+	// remove any past values that squeeze through the string date query that feeds this function
+	// this mostly occurs when different sources use different time precisions (s vs ms vs ns)
+	// resulting in $gt 00:00:01.275Z pulling in 00:00:01Z, which is before.
 	if userSummary.LastData != nil {
-		oldestRecordTime, err := time.Parse(time.RFC3339Nano, *userData[0].Time)
-		if err != nil {
-			return err
+		var skip int
+		for i := 0; i < len(userData); i++ {
+			recordTime, err := time.Parse(time.RFC3339Nano, *userData[0].Time)
+			if err != nil {
+				return err
+			}
+
+			if recordTime.Before(*userSummary.LastData) {
+				skip = i
+			} else {
+				break
+			}
 		}
-		if oldestRecordTime.Before(*userSummary.LastData) {
-			logger.Debugf("New CGM data for userid %s is before last calculated data", userSummary.UserID)
-			return errors.Newf("New CGM data for userid %s is before last calculated data", userSummary.UserID)
+
+		if skip > 0 {
+			logger.Debugf("New CGM data for userid %s is before last calculated data, skipping first %d records", userSummary.UserID, skip)
+			userData = userData[skip:]
 		}
 	}
 

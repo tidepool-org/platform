@@ -551,7 +551,7 @@ var _ = Describe("Mongo", func() {
 						summaries := []*summary.Summary{randomSummary}
 						count, err := summaryRepository.CreateSummaries(nil, summaries)
 
-						Expect(count).To(Equal(int64(0)))
+						Expect(count).To(Equal(0))
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
 					})
@@ -560,7 +560,7 @@ var _ = Describe("Mongo", func() {
 						summaries := []*summary.Summary{}
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
-						Expect(count).To(Equal(int64(0)))
+						Expect(count).To(Equal(0))
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("summaries for create missing"))
 					})
@@ -570,7 +570,7 @@ var _ = Describe("Mongo", func() {
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(int64(1)))
+						Expect(count).To(Equal(1))
 
 						newSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 						Expect(err).ToNot(HaveOccurred())
@@ -585,7 +585,7 @@ var _ = Describe("Mongo", func() {
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(int64(2)))
+						Expect(count).To(Equal(2))
 
 						for _, insertedSummary := range summaries {
 							newSummary, err := summaryRepository.GetSummary(ctx, insertedSummary.UserID)
