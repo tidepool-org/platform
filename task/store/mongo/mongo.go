@@ -19,6 +19,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
+	"github.com/tidepool-org/platform/task/summary"
 )
 
 var (
@@ -56,6 +57,16 @@ func (s *Store) TaskRepository() *TaskRepository {
 func (s *Store) EnsureIndexes() error {
 	repository := s.TaskRepository()
 	return repository.EnsureIndexes()
+}
+
+func (s *Store) EnsureSummaryUpdateTask() error {
+	repository := s.TaskRepository()
+	return repository.EnsureSummaryUpdateTask()
+}
+
+func (s *Store) EnsureSummaryBackfillTask() error {
+	repository := s.TaskRepository()
+	return repository.EnsureSummaryBackfillTask()
 }
 
 type TaskRepository struct {
@@ -98,6 +109,74 @@ func (t *TaskRepository) EnsureIndexes() error {
 				SetBackground(true),
 		},
 	})
+}
+
+func (t *TaskRepository) EnsureSummaryUpdateTask() error {
+	create := summary.NewDefaultUpdateTaskCreate()
+
+	tsk, err := task.NewTask(create)
+	if err != nil {
+		return err
+	} else if err = structureValidator.New().Validate(tsk); err != nil {
+		return errors.Wrap(err, "task is invalid")
+	}
+
+	upsert := true
+	after := options.After
+	opts := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
+	}
+
+	summaryTask := t.FindOneAndUpdate(context.Background(),
+		bson.M{"name": tsk.Name},
+		bson.M{"$setOnInsert": tsk},
+		&opts,
+	)
+
+	if summaryTask.Err() != nil {
+		if summaryTask.Err() != mongo.ErrNoDocuments {
+			return errors.Wrap(summaryTask.Err(), "unable to create summary update task")
+		}
+	}
+
+	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
+
+	return summaryTask.Err()
+}
+
+func (t *TaskRepository) EnsureSummaryBackfillTask() error {
+	create := summary.NewDefaultBackfillTaskCreate()
+
+	tsk, err := task.NewTask(create)
+	if err != nil {
+		return err
+	} else if err = structureValidator.New().Validate(tsk); err != nil {
+		return errors.Wrap(err, "task is invalid")
+	}
+
+	upsert := true
+	after := options.After
+	opts := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
+	}
+
+	summaryTask := t.FindOneAndUpdate(context.Background(),
+		bson.M{"name": tsk.Name},
+		bson.M{"$setOnInsert": tsk},
+		&opts,
+	)
+
+	if summaryTask.Err() != nil {
+		if summaryTask.Err() != mongo.ErrNoDocuments {
+			return errors.Wrap(summaryTask.Err(), "unable to create summary backfill task")
+		}
+	}
+
+	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
+
+	return summaryTask.Err()
 }
 
 func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
@@ -185,8 +264,9 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
 	var task *task.Task
-	err := t.FindOne(ctx, bson.M{"id": id}).Decode(task)
+	err := t.FindOne(ctx, bson.M{"id": id}).Decode(&task)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
+
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {

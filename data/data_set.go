@@ -32,6 +32,7 @@ type DataSetAccessor interface {
 const (
 	ComputerTimeFormat = "2006-01-02T15:04:05"
 	TimeFormat         = time.RFC3339Nano
+	DeviceTimeFormat   = "2006-01-02T15:04:05"
 
 	DataSetTypeContinuous = "continuous"
 	DataSetTypeNormal     = "normal" // TODO: Normal?

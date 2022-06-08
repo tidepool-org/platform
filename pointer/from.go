@@ -18,6 +18,10 @@ func FromInt(value int) *int {
 	return &value
 }
 
+func FromInt64(value int64) *int64 {
+	return &value
+}
+
 func FromString(value string) *string {
 	return &value
 }
