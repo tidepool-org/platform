@@ -467,7 +467,7 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 			}
 
 			if recordTime.Before(*userSummary.LastData) {
-				skip = i
+				skip = i + 1
 			} else {
 				break
 			}
