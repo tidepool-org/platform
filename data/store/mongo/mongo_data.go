@@ -955,19 +955,22 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	}
 
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
+	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
 
 	selectorOld := bson.M{
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		"time":    bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano)},
+		"time": bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano),
+			"$gte": pastCutoff.Format(time.RFC3339Nano)},
 	}
 
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		"time":    bson.M{"$lte": futureCutoff},
+		"time": bson.M{"$lte": futureCutoff,
+			"$gte": pastCutoff.Format(time.RFC3339Nano)},
 	}
 
 	findOptions := options.Find()
@@ -1022,12 +1025,14 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 		return userIDs, errors.New("context is missing")
 	}
 
-	timestamp := time.Now().AddDate(-2, 0, 0).UTC()
+	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
+	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
 	// we don't query for users with different time field types, as users with the new types would
 	// not exist before summaries were launched.
 	selector := bson.M{
-		"time":    bson.M{"$gte": timestamp.Format(time.RFC3339Nano)},
+		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
+			"$lte": futureCutoff.Format(time.RFC3339Nano)},
 		"_active": true,
 		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},

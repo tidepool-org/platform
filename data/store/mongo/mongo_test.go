@@ -415,6 +415,24 @@ var _ = Describe("Mongo", func() {
 							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
 							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
+
+						It("returns right lastUpdated for user with far future data", func() {
+							dataSetLastUpdatedFuture := time.Now().UTC().AddDate(0, 0, 4).Truncate(time.Millisecond)
+							dataSetCGMFuture := NewDataSet(userID, deviceID)
+							dataSetCGMFuture.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, 0, 4).Format(time.RFC3339Nano))
+							dataSetCGMDataFuture := NewDataSetCGMData(deviceID, dataSetLastUpdatedFuture, 1)
+
+							_, err = collection.InsertOne(context.Background(), dataSetCGMFuture)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(repository.CreateDataSetData(ctx, dataSetCGMFuture, dataSetCGMDataFuture)).To(Succeed())
+
+							var userLastUpdated *summary.UserLastUpdated
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+						})
 					})
 
 					Context("DistinctCGMUserIDs", func() {

@@ -461,7 +461,7 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 	if userSummary.LastData != nil {
 		var skip int
 		for i := 0; i < len(userData); i++ {
-			recordTime, err := time.Parse(time.RFC3339Nano, *userData[0].Time)
+			recordTime, err := time.Parse(time.RFC3339Nano, *userData[i].Time)
 			if err != nil {
 				return err
 			}
