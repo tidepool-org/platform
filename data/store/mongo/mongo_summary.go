@@ -96,7 +96,6 @@ func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error 
 }
 
 func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
-	var userIDs []string
 	var summaries []*summary.Summary
 
 	if ctx == nil {
@@ -127,8 +126,9 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 		return nil, errors.Wrap(err, "unable to decode outdated summaries")
 	}
 
-	for _, v := range summaries {
-		userIDs = append(userIDs, v.UserID)
+	var userIDs = make([]string, len(summaries))
+	for i := 0; i < len(summaries); i++ {
+		userIDs[i] = summaries[i].UserID
 	}
 
 	return userIDs, nil
@@ -218,7 +218,7 @@ func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, e
 	return userIDs, nil
 }
 
-func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int64, error) {
+func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int, error) {
 	if ctx == nil {
 		return 0, errors.New("context is missing")
 	}
@@ -226,16 +226,16 @@ func (d *SummaryRepository) CreateSummaries(ctx context.Context, summaries []*su
 		return 0, errors.New("summaries for create missing")
 	}
 
-	var insertData []mongo.WriteModel
+	insertData := make([]interface{}, len(summaries))
 
-	for _, userSummary := range summaries {
-		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(userSummary))
+	for i := 0; i < len(summaries); i++ {
+		insertData[i] = *summaries[i]
 	}
 
-	opts := options.BulkWrite().SetOrdered(false)
+	opts := options.InsertMany().SetOrdered(false)
 
-	writeResult, err := d.BulkWrite(ctx, insertData, opts)
-	count := writeResult.InsertedCount
+	writeResult, err := d.InsertMany(ctx, insertData, opts)
+	count := len(writeResult.InsertedIDs)
 
 	if err != nil {
 		if count > 0 {

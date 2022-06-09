@@ -415,6 +415,24 @@ var _ = Describe("Mongo", func() {
 							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
 							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
+
+						It("returns right lastUpdated for user with far future data", func() {
+							dataSetLastUpdatedFuture := time.Now().UTC().AddDate(0, 0, 4).Truncate(time.Millisecond)
+							dataSetCGMFuture := NewDataSet(userID, deviceID)
+							dataSetCGMFuture.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, 0, 4).Format(time.RFC3339Nano))
+							dataSetCGMDataFuture := NewDataSetCGMData(deviceID, dataSetLastUpdatedFuture, 1)
+
+							_, err = collection.InsertOne(context.Background(), dataSetCGMFuture)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(repository.CreateDataSetData(ctx, dataSetCGMFuture, dataSetCGMDataFuture)).To(Succeed())
+
+							var userLastUpdated *summary.UserLastUpdated
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+						})
 					})
 
 					Context("DistinctCGMUserIDs", func() {
@@ -551,7 +569,7 @@ var _ = Describe("Mongo", func() {
 						summaries := []*summary.Summary{randomSummary}
 						count, err := summaryRepository.CreateSummaries(nil, summaries)
 
-						Expect(count).To(Equal(int64(0)))
+						Expect(count).To(Equal(0))
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
 					})
@@ -560,7 +578,7 @@ var _ = Describe("Mongo", func() {
 						summaries := []*summary.Summary{}
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
-						Expect(count).To(Equal(int64(0)))
+						Expect(count).To(Equal(0))
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("summaries for create missing"))
 					})
@@ -570,7 +588,7 @@ var _ = Describe("Mongo", func() {
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(int64(1)))
+						Expect(count).To(Equal(1))
 
 						newSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 						Expect(err).ToNot(HaveOccurred())
@@ -585,7 +603,7 @@ var _ = Describe("Mongo", func() {
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(int64(2)))
+						Expect(count).To(Equal(2))
 
 						for _, insertedSummary := range summaries {
 							newSummary, err := summaryRepository.GetSummary(ctx, insertedSummary.UserID)

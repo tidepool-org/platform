@@ -773,6 +773,24 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
+
+			It("Returns correctly calculated summary with userData records before summary LastData", func() {
+				summaryLastData := datumTime.AddDate(0, 0, -7)
+				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
+				userSummary = summary.New(userID)
+				userSummary.OutdatedSince = &datumTime
+				userSummary.LastData = &summaryLastData
+
+				status = &summary.UserLastUpdated{
+					LastData:   datumTime,
+					LastUpload: datumTime,
+				}
+
+				err = userSummary.Update(ctx, status, userData)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(*userSummary.TotalDays).To(Equal(7))
+				Expect(userSummary.OutdatedSince).To(BeNil())
+			})
 		})
 	})
 })

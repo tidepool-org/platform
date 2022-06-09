@@ -108,20 +108,20 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	return userSummary, err
 }
 
-func (c *Client) BackfillSummaries(ctx context.Context) (int64, error) {
+func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
 	var empty struct{}
 	var userIDsReqBackfill []string
-	var count int64 = 0
+	var count = 0
 
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
-	distinctSummaryIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
+	distinctDataUserIDs, err := dataRepository.DistinctCGMUserIDs(ctx)
 	if err != nil {
 		return count, err
 	}
 
-	distinctDataUserIDs, err := dataRepository.DistinctCGMUserIDs(ctx)
+	distinctSummaryIDs, err := summaryRepository.DistinctSummaryIDs(ctx)
 	if err != nil {
 		return count, err
 	}
