@@ -942,8 +942,9 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 }
 
 func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
+	var err error
+	var cursor *mongo.Cursor
 	var status summary.UserLastUpdated
-	var dataSetOld []*continuous.Continuous
 	var dataSet []*continuous.Continuous
 
 	if ctx == nil {
@@ -970,36 +971,36 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 		"_userId": id,
 		"type":    "cbg",
 		"time": bson.M{"$lte": futureCutoff,
-			"$gte": pastCutoff.Format(time.RFC3339Nano)},
+			"$gte": pastCutoff},
 	}
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
 
-	cursorOld, err := d.Find(ctx, selectorOld, findOptions)
+	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get last cbg date")
 	}
 
-	cursor, err := d.Find(ctx, selector, findOptions)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get last cbg date")
-	}
-
-	if err = cursorOld.All(ctx, &dataSetOld); err != nil {
-		return nil, errors.Wrap(err, "unable to decode last cbg date")
-	}
 	if err = cursor.All(ctx, &dataSet); err != nil {
 		return nil, errors.Wrap(err, "unable to decode last cbg date")
 	}
 
-	if len(dataSet) > 0 {
-		// we already have the right set in dataSet
-	} else if len(dataSetOld) > 0 {
-		// replace empty dataSet with dataSetOld
-		dataSet = dataSetOld
-	} else {
+	// if we can't find a new format record, instead look for legacy date records
+	if len(dataSet) < 1 {
+		cursor, err = d.Find(ctx, selectorOld, findOptions)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to get last cbg date")
+		}
+		if err = cursor.All(ctx, &dataSet); err != nil {
+			return nil, errors.Wrap(err, "unable to decode last cbg date")
+		}
+
+	}
+
+	// if we still have no record
+	if len(dataSet) < 1 {
 		return nil, errors.Wrap(err, "No cbg records found for user")
 	}
 
