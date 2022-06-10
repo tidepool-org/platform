@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	UpdateAvailableAfterDurationMaximum = 6 * time.Minute
-	UpdateAvailableAfterDurationMinimum = 3 * time.Minute
-	UpdateTaskDurationMaximum           = 20 * time.Minute
+	UpdateAvailableAfterDurationMaximum = 4 * time.Minute
+	UpdateAvailableAfterDurationMinimum = 2 * time.Minute
+	UpdateTaskDurationMaximum           = 5 * time.Minute
 	UpdateWorkerCount                   = 8
-	UpdateWorkerBatchSize               = 300
+	UpdateWorkerBatchSize               = 500
 )
 
 type UpdateRunner struct {

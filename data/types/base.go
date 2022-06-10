@@ -307,8 +307,17 @@ func (b *Base) SetDeletedUserID(deletedUserID *string) {
 }
 
 func (b *Base) UpdatesSummary() bool {
-	// TODO This could be a const list, once multiple types need checking
-	if b.Type == "cbg" {
+	// two years has a bit of padding, to allow for some calculation delay
+	twoYearsPast := time.Now().UTC().AddDate(0, -23, -20)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	datumTime, err := time.Parse(time.RFC3339Nano, *b.Time)
+	if err != nil {
+		// play it safe, return false for unparsable date
+		return false
+	}
+
+	if b.Type == "cbg" && datumTime.Before(oneDayFuture) && datumTime.After(twoYearsPast) {
 		return true
 	}
 

@@ -1026,7 +1026,8 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 		return userIDs, errors.New("context is missing")
 	}
 
-	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
+	// allow for a small margin on the pastCutoff to allow for calculation delay
+	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
 	// we don't query for users with different time field types, as users with the new types would
