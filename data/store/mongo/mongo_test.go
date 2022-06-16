@@ -519,9 +519,10 @@ var _ = Describe("Mongo", func() {
 
 					It("ensure that nil summary fields are correctly removed from the db", func() {
 						var newSummary *summary.Summary
-						_, err = summaryRepository.GetSummary(ctx, userID)
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("summary not found"))
+						var userSummary *summary.Summary
+						userSummary, err = summaryRepository.GetSummary(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userSummary).To(BeNil())
 
 						randomSummary.Periods["14d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
 						Expect(randomSummary.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
@@ -557,9 +558,9 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns an error if getsummary cannot retrieve record", func() {
-						_, err = summaryRepository.GetSummary(ctx, userID)
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("summary not found"))
+						userSummary, err := summaryRepository.GetSummary(ctx, userID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userSummary).To(BeNil())
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -714,9 +715,9 @@ var _ = Describe("Mongo", func() {
 
 				Context("Test full update summary flow", func() {
 					It("ensure an outdated record is no longer outdated after update", func() {
-						_, err = summaryRepository.GetSummary(ctx, randomSummary.UserID)
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("summary not found"))
+						userSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userSummary).To(BeNil())
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())

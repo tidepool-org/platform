@@ -47,13 +47,7 @@ func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, erro
 
 func (c *Client) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
 	summaryRepository := c.dataStore.NewSummaryRepository()
-
-	userSummary, err := summaryRepository.GetSummary(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return userSummary, err
+	return summaryRepository.GetSummary(ctx, id)
 }
 
 func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
@@ -77,12 +71,22 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	}
 
 	if status == nil {
-		// user's data is inactive/deleted, or this summary shouldn't have been created
-		logger.Warnf("User %s has an outdated summary with no data, skipping calc.", id)
-		userSummary.OutdatedSince = nil
-		userSummary.LastUpdatedDate = &time.Time{}
-		userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
-		return userSummary, err
+		if userSummary != nil {
+			// user's data is inactive/deleted, or this summary shouldn't have been created
+			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", id)
+			userSummary.OutdatedSince = nil
+			userSummary.LastUpdatedDate = &time.Time{}
+			userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return userSummary, nil
+	}
+
+	// user exists (has relevant data), but no summary, create a blank one
+	if userSummary == nil {
+		userSummary = summary.New(id)
 	}
 
 	// remove 2 weeks for start time
