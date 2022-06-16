@@ -28,7 +28,7 @@ const (
 // Glucose reimplementation with only the fields we need, to avoid inheriting Base, which does
 // not belong in this collection
 type Glucose struct {
-	Units *string  `json:"units," bson:"units"`
+	Units *string  `json:"units" bson:"units"`
 	Value *float64 `json:"value" bson:"value"`
 }
 
