@@ -66,7 +66,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 	err := d.FindOne(ctx, selector).Decode(userSummary)
 
 	if err == mongo.ErrNoDocuments {
-		return nil, errors.New("summary not found")
+		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
