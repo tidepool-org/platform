@@ -1001,7 +1001,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 
 	// if we still have no record
 	if len(dataSet) < 1 {
-		return nil, errors.Wrap(err, "No cbg records found for user")
+		return nil, nil
 	}
 
 	status.LastUpload, err = time.Parse(time.RFC3339Nano, *dataSet[0].CreatedTime)

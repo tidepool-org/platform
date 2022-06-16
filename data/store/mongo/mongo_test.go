@@ -416,6 +416,14 @@ var _ = Describe("Mongo", func() {
 							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
 
+						It("returns right lastUpdated for user with no data", func() {
+							var userLastUpdated *summary.UserLastUpdated
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "deadbeef")
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(userLastUpdated).To(BeNil())
+						})
+
 						It("returns right lastUpdated for user with far future data", func() {
 							dataSetLastUpdatedFuture := time.Now().UTC().AddDate(0, 0, 4).Truncate(time.Millisecond)
 							dataSetCGMFuture := NewDataSet(userID, deviceID)

@@ -76,6 +76,15 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return nil, err
 	}
 
+	if status == nil {
+		// user's data is inactive/deleted, or this summary shouldn't have been created
+		logger.Warnf("User %s has an outdated summary with no data, skipping calc.", id)
+		userSummary.OutdatedSince = nil
+		userSummary.LastUpdatedDate = &time.Time{}
+		userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
+		return userSummary, err
+	}
+
 	// remove 2 weeks for start time
 	startTime := status.LastData.AddDate(0, 0, -14)
 
