@@ -1,7 +1,7 @@
 # Platform 
-The Tidepool platform API
+The data platform API
 
-## 0.18.0-rc4 - 2022-03-24
+## 0.18.0 - 2022-06-17
 ### Engineering
 - Build multi-architecture docker images
 ### Changed
