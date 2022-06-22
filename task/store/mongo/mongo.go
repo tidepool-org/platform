@@ -364,7 +364,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		return nil, task.AlreadyClaimedTask
 	}
 
-	TasksStateTotal.WithLabelValues(state, tsk.Type).Inc()
+	TasksStateTotal.WithLabelValues(tsk.State, tsk.Type).Inc()
 	return tsk, nil
 }
 

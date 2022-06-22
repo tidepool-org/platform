@@ -205,7 +205,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("records metrics of completed tasks", func() {
-						completedTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateCompleted)
+						updated.State = task.TaskStateCompleted
+						completedTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
 
 						Expect(err).ToNot(HaveOccurred())
 
@@ -218,7 +219,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("records metrics of failed tasks", func() {
-						failedTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateFailed)
+						updated.State = task.TaskStateFailed
+						failedTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
 
 						Expect(err).ToNot(HaveOccurred())
 
@@ -231,7 +233,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("records metrics of running tasks", func() {
-						runningTask, err := repository.UpdateFromState(ctx, updated, task.TaskStateRunning)
+						updated.State = task.TaskStateRunning
+						runningTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
 
 						Expect(err).ToNot(HaveOccurred())
 
