@@ -204,6 +204,16 @@ var _ = Describe("Mongo", func() {
 						Expect(result.Error).To(Equal(updated.Error))
 					})
 
+					It("returns error if task is updated from the same state multiple times", func() {
+						updated.State = task.TaskStatePending
+						_, err := repository.UpdateFromState(ctx, updated, tsk.State)
+						Expect(err).ToNot(HaveOccurred())
+
+						_, err = repository.UpdateFromState(ctx, updated, tsk.State)
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("Task has already been claimed or is now unavailable."))
+					})
+
 					It("records metrics of completed tasks", func() {
 						updated.State = task.TaskStateCompleted
 						completedTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
