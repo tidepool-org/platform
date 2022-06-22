@@ -325,3 +325,5 @@ func (t Tasks) Sanitize(details request.Details) error {
 	}
 	return nil
 }
+
+var AlreadyClaimedTask = errors.New("Task has already been claimed or is now unavailable.")
