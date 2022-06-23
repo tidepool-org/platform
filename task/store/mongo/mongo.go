@@ -355,13 +355,16 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		"id":    tsk.ID,
 		"state": state,
 	}
-	_, err := t.ReplaceOne(ctx, selector, tsk)
+	result, err := t.ReplaceOne(ctx, selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update from state")
 	}
+	if result.ModifiedCount != 1 {
+		return nil, task.AlreadyClaimedTask
+	}
 
-	TasksStateTotal.WithLabelValues(state, tsk.Type).Inc()
+	TasksStateTotal.WithLabelValues(tsk.State, tsk.Type).Inc()
 	return tsk, nil
 }
 
