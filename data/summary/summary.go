@@ -295,9 +295,16 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 			stats.LastRecordTime = userSummary.DailyStats[len(userSummary.DailyStats)-1].LastRecordTime
 		}
 
+		// duration has never been calculated, use current record's duration for this cycle
+		if duration == 0 {
+			duration = GetDuration(r)
+		}
+
+		// calculate skipWindow based on duration of previous value
+		skipWindow := time.Duration(duration)*time.Minute - 1*time.Second
+
 		// if we are too close to the previous value, skip
-		// 45 seconds is arbitrary, but under one minute to allow future devices with 1 minute readings
-		if recordTime.Sub(stats.LastRecordTime) > 45*time.Second {
+		if recordTime.Sub(stats.LastRecordTime) > skipWindow {
 			normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
 			duration = GetDuration(r)
 
