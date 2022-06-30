@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -382,6 +383,28 @@ var _ = Describe("Mongo", func() {
 					})
 
 					Context("GetCGMDataRange", func() {
+						It("returns empty if range is 0", func() {
+							var cgmRecords []*continuous.Continuous
+							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
+							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetFirstData)
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(cgmRecords)).To(Equal(0))
+						})
+
+						It("returns error if range is backwards", func() {
+							var cgmRecords []*continuous.Continuous
+							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
+							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetLastUpdated, dataSetFirstData)
+
+							Expect(err).To(HaveOccurred())
+							Expect(cgmRecords).To(BeNil())
+							Expect(err).To(MatchError(
+								fmt.Sprintf("startTime (%s) after endTime (%s) for user %s",
+									dataSetLastUpdated, dataSetFirstData, userID),
+							))
+						})
+
 						It("returns right count for the requested range", func() {
 							var cgmRecords []*continuous.Continuous
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)

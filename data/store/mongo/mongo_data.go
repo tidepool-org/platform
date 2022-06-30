@@ -894,6 +894,17 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
 	var dataSetsOld []*continuous.Continuous
 	var dataSets []*continuous.Continuous
+
+	// quit early if range is 0
+	if startTime.Equal(endTime) {
+		return dataSets, nil
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if startTime.After(endTime) {
+		return nil, errors.Newf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, id)
+	}
+
 	selectorOld := bson.M{
 		"_active": true,
 		"_userId": id,
@@ -906,7 +917,7 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		"time": bson.M{"$gte": startTime,
+		"time": bson.M{"$gt": startTime,
 			"$lte": endTime},
 	}
 

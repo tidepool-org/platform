@@ -33,8 +33,7 @@ type Glucose struct {
 }
 
 type Stats struct {
-	DeviceID string    `json:"deviceId" bson:"deviceId"`
-	Date     time.Time `json:"date" bson:"date"`
+	Date time.Time `json:"date" bson:"date"`
 
 	TargetMinutes int `json:"targetMinutes" bson:"targetMinutes"`
 	TargetRecords int `json:"targetRecords" bson:"targetRecords"`
@@ -51,16 +50,16 @@ type Stats struct {
 	VeryHighMinutes int `json:"veryHighMinutes" bson:"veryHighMinutes"`
 	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
 
-	TotalGlucose    float64   `json:"totalGlucose" bson:"totalGlucose"`
-	TotalCGMMinutes int       `json:"totalCGMMinutes" bson:"totalCGMMinutes"`
-	TotalCGMRecords int       `json:"totalCGMRecords" bson:"totalCGMRecords"`
-	LastRecordTime  time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
+	TotalGlucose    float64 `json:"totalGlucose" bson:"totalGlucose"`
+	TotalCGMMinutes int     `json:"totalCGMMinutes" bson:"totalCGMMinutes"`
+	TotalCGMRecords int     `json:"totalCGMRecords" bson:"totalCGMRecords"`
+
+	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 }
 
-func NewStats(deviceID string, date time.Time) *Stats {
+func NewStats(date time.Time) *Stats {
 	return &Stats{
-		DeviceID: deviceID,
-		Date:     date,
+		Date: date,
 
 		TargetMinutes: 0,
 		TargetRecords: 0,
@@ -175,40 +174,34 @@ func CalculateGMI(averageGlucose float64) float64 {
 	return gmi
 }
 
-func (userSummary *Summary) StoreWinningStats(stats map[string]*Stats) error {
-	var winningStats *Stats
+func (userSummary *Summary) AddStats(stats *Stats) error {
 	var dayCount int
 	var oldestDay time.Time
 	var oldestDayToKeep time.Time
 	var existingDay = false
 
-	if len(stats) < 1 {
-		return errors.New("candidate stats empty")
-	}
-
-	// find stats with most samples
-	for deviceID := range stats {
-		if winningStats != nil {
-			if stats[deviceID].TotalCGMMinutes > winningStats.TotalCGMMinutes {
-				winningStats = stats[deviceID]
-			}
-		} else {
-			winningStats = stats[deviceID]
-		}
+	if stats == nil {
+		return errors.New("stats empty")
 	}
 
 	// update existing day if one does exist
-	if len(userSummary.DailyStats) > 1 {
+	if len(userSummary.DailyStats) > 0 {
 		for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-			if userSummary.DailyStats[i].Date.Equal(winningStats.Date) {
-				userSummary.DailyStats[i] = winningStats
+			if userSummary.DailyStats[i].Date.Equal(stats.Date) {
+				userSummary.DailyStats[i] = stats
 				existingDay = true
+				break
+			}
+
+			// we already passed our date, give up
+			if userSummary.DailyStats[i].Date.After(stats.Date) {
 				break
 			}
 		}
 	}
+
 	if existingDay == false {
-		userSummary.DailyStats = append(userSummary.DailyStats, winningStats)
+		userSummary.DailyStats = append(userSummary.DailyStats, stats)
 	}
 
 	// remove extra days to cap at 14 days of stats
@@ -234,28 +227,19 @@ func (userSummary *Summary) StoreWinningStats(stats map[string]*Stats) error {
 }
 
 func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) error {
-	stats := make(map[string]*Stats)
-
 	var normalizedValue float64
 	var duration int
-	var deviceID string
 	var recordTime time.Time
 	var lastDay time.Time
 	var currentDay time.Time
 	var err error
-	var deviceIDExists bool
+	var stats *Stats
 
 	if len(userData) < 1 {
 		return errors.New("userData is empty, nothing to calculate stats for")
 	}
 
 	for _, r := range userData {
-		if r.DeviceID != nil {
-			deviceID = *r.DeviceID
-		} else {
-			deviceID = ""
-		}
-
 		recordTime, err = time.Parse(time.RFC3339Nano, *r.Time)
 		if err != nil {
 			return errors.Wrap(err, "cannot parse time in record")
@@ -268,67 +252,80 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		// check if data is in the past somehow, it would currently corrupt stats, this shouldn't be possible
 		// but the check is cheap insurance
 		if len(userSummary.DailyStats) > 0 {
-			if recordTime.Before((*userSummary.DailyStats[len(userSummary.DailyStats)-1]).Date) {
+			if recordTime.Before(userSummary.DailyStats[len(userSummary.DailyStats)-1].Date) {
 				return errors.Newf("CalculateStats given data before oldest stats for user %s", userSummary.UserID)
 			}
 		}
 
-		// pick winner for the day, if we are now on the next day
+		// store stats for the day, if we are now on the next day
 		if !lastDay.IsZero() && !currentDay.Equal(lastDay) {
-			err = userSummary.StoreWinningStats(stats)
+			err = userSummary.AddStats(stats)
 			if err != nil {
 				return err
 			}
-			stats = make(map[string]*Stats)
+			stats = nil
 		}
-		lastDay = currentDay
 
-		_, deviceIDExists = stats[deviceID]
-		if !deviceIDExists {
-			// create new deviceId in map
-			stats[deviceID] = NewStats(deviceID, recordTime.Truncate(24*time.Hour))
-
-			// overwrite with stats if they already exist
+		if stats == nil {
+			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			// NOTE2 this may have a rare race condition with multiple devices, as we never store the losing
-			// device, resulting in larger batches always winning, even if less complete over time.
-			if len(userSummary.DailyStats) > 1 {
+			if len(userSummary.DailyStats) > 0 {
 				for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-					if userSummary.DailyStats[i].Date.Equal(currentDay) && userSummary.DailyStats[i].DeviceID == deviceID {
-						stats[deviceID] = userSummary.DailyStats[i]
+					if userSummary.DailyStats[i].Date.Equal(currentDay) {
+						stats = userSummary.DailyStats[i]
+						break
+					}
+
+					// we already passed our date, give up
+					if userSummary.DailyStats[i].Date.After(currentDay) {
 						break
 					}
 				}
 			}
+
+			if stats == nil {
+				stats = NewStats(recordTime.Truncate(24 * time.Hour))
+			}
 		}
 
-		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
-		duration = GetDuration(r)
+		lastDay = currentDay
 
-		if normalizedValue <= veryLowBloodGlucose {
-			stats[deviceID].VeryLowMinutes += duration
-			stats[deviceID].VeryLowRecords++
-		} else if normalizedValue >= veryHighBloodGlucose {
-			stats[deviceID].VeryHighMinutes += duration
-			stats[deviceID].VeryHighRecords++
-		} else if normalizedValue <= lowBloodGlucose {
-			stats[deviceID].LowMinutes += duration
-			stats[deviceID].LowRecords++
-		} else if normalizedValue >= highBloodGlucose {
-			stats[deviceID].HighMinutes += duration
-			stats[deviceID].HighRecords++
-		} else {
-			stats[deviceID].TargetMinutes += duration
-			stats[deviceID].TargetRecords++
+		// if on fresh day, pull LastRecordTime from last day if possible
+		if stats.LastRecordTime.IsZero() && len(userSummary.DailyStats) > 1 {
+			stats.LastRecordTime = userSummary.DailyStats[len(userSummary.DailyStats)-1].LastRecordTime
 		}
 
-		stats[deviceID].TotalCGMMinutes += duration
-		stats[deviceID].TotalCGMRecords++
-		stats[deviceID].TotalGlucose += normalizedValue
-		stats[deviceID].LastRecordTime = recordTime
+		// if we are too close to the previous value, skip
+		// 45 seconds is arbitrary, but under one minute to allow future devices with 1 minute readings
+		if recordTime.Sub(stats.LastRecordTime) > 45*time.Second {
+			normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
+			duration = GetDuration(r)
+
+			if normalizedValue <= veryLowBloodGlucose {
+				stats.VeryLowMinutes += duration
+				stats.VeryLowRecords++
+			} else if normalizedValue >= veryHighBloodGlucose {
+				stats.VeryHighMinutes += duration
+				stats.VeryHighRecords++
+			} else if normalizedValue <= lowBloodGlucose {
+				stats.LowMinutes += duration
+				stats.LowRecords++
+			} else if normalizedValue >= highBloodGlucose {
+				stats.HighMinutes += duration
+				stats.HighRecords++
+			} else {
+				stats.TargetMinutes += duration
+				stats.TargetRecords++
+			}
+
+			stats.TotalCGMMinutes += duration
+			stats.TotalCGMRecords++
+			stats.TotalGlucose += normalizedValue
+			stats.LastRecordTime = recordTime
+		}
 	}
 	// store
-	err = userSummary.StoreWinningStats(stats)
+	err = userSummary.AddStats(stats)
 	if err != nil {
 		return err
 	}
@@ -346,7 +343,7 @@ func (userSummary *Summary) CalculateSummary() error {
 	var glucoseManagementIndicator *float64
 	var averageGlucose float64
 
-	totalStats := NewStats("summary", time.Time{})
+	totalStats := NewStats(time.Time{})
 
 	for _, stats := range userSummary.DailyStats {
 		totalStats.TargetMinutes += stats.TargetMinutes

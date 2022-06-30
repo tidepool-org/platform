@@ -24,7 +24,6 @@ func RandomSummary() *summary.Summary {
 	datum.DailyStats = make([]*summary.Stats, 2)
 	for i := 0; i < 2; i++ {
 		datum.DailyStats[i] = &summary.Stats{
-			DeviceID:        NewDeviceID(),
 			Date:            test.RandomTime(),
 			TargetMinutes:   test.RandomIntFromRange(0, 1440),
 			TargetRecords:   test.RandomIntFromRange(0, 288),
