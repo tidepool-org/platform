@@ -158,9 +158,10 @@ func (a *AlertSchedules) Parse(parser structure.ArrayParser) {
 }
 
 func (a *AlertSchedules) Validate(validator structure.Validator) {
-	if len(*a) == 0 {
-		validator.ReportError(structureValidator.ErrorValueEmpty())
-	}
+	// g6 receiver can send a valid empty list, we currently disable this validation for this case.
+	//if len(*a) == 0 {
+	//	validator.ReportError(structureValidator.ErrorValueEmpty())
+	//}
 	var hasDefault bool
 	for index, alertSchedule := range *a {
 		if alertScheduleValidator := validator.WithReference(strconv.Itoa(index)); alertSchedule != nil {

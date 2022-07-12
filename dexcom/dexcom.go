@@ -24,7 +24,9 @@ func TransmitterIDValidator(value string, errorReporter structure.ErrorReporter)
 
 func ValidateTransmitterID(value string) error {
 	if value == "" {
-		return structureValidator.ErrorValueEmpty()
+		// dexcom started sending empty transmitter id on a very small portion of users which recently were created
+		//return structureValidator.ErrorValueEmpty()
+		return nil
 	} else if !transmitterIDExpression.MatchString(value) {
 		return ErrorValueStringAsTransmitterIDNotValid(value)
 	}
