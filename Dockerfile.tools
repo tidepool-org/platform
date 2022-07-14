@@ -1,6 +1,7 @@
 # Development
 FROM golang:1.18.3-alpine AS development
 WORKDIR /go/src/github.com/tidepool-org/platform
+COPY . .
 RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories && \
     echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories && \
     apk --no-cache add git make tzdata mongodb yaml-cpp=0.6.2-r2 && \
@@ -9,7 +10,6 @@ RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repos
     adduser -D tidepool && \
     chown -R tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
-COPY . .
 ENV SERVICE=tools
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
