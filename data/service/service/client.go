@@ -77,7 +77,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 			// user's data is inactive/deleted, or this summary shouldn't have been created
 			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", id)
 			userSummary.OutdatedSince = nil
-			userSummary.LastUpdatedDate = &timestamp
+			userSummary.LastUpdatedDate = timestamp
 
 			userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 			if err != nil {
@@ -95,7 +95,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	// check status.LastData for going back in time to prevent deleted data from causing issues
 	if status.LastData.Before(*userSummary.LastData) {
 		userSummary.OutdatedSince = nil
-		userSummary.LastUpdatedDate = &timestamp
+		userSummary.LastUpdatedDate = timestamp
 
 		userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 		if err != nil {
@@ -128,7 +128,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		// "new" data must be in the past, don't update, just remove flags and set new date
 		logger.Infof("User %s has an outdated summary with no forward data, skipping calc.", id)
 		userSummary.OutdatedSince = nil
-		userSummary.LastUpdatedDate = &timestamp
+		userSummary.LastUpdatedDate = timestamp
 	}
 	userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 
