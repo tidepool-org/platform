@@ -3,6 +3,7 @@ package summary
 import (
 	"context"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,14 +23,14 @@ const (
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
 	summaryGlucoseUnits  = "mmol/L"
-	daysAgoToKeep        = 14
+	hoursAgoToKeep       = 30 * 24
 )
 
 // Glucose reimplementation with only the fields we need, to avoid inheriting Base, which does
 // not belong in this collection
 type Glucose struct {
-	Units *string  `json:"units" bson:"units"`
-	Value *float64 `json:"value" bson:"value"`
+	Units string  `json:"units" bson:"units"`
+	Value float64 `json:"value" bson:"value"`
 }
 
 type Stats struct {
@@ -96,56 +97,56 @@ type WeightingInput struct {
 }
 
 type Period struct {
-	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
-	TimeCGMUseMinutes *int     `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
-	TimeCGMUseRecords *int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
+	TimeCGMUsePercent float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
+	TimeCGMUseMinutes int     `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
+	TimeCGMUseRecords int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 
 	// actual values
-	AverageGlucose             *Glucose `json:"avgGlucose" bson:"avgGlucose"`
+	AverageGlucose             Glucose  `json:"avgGlucose" bson:"avgGlucose"`
 	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
 
-	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
-	TimeInTargetMinutes *int     `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
-	TimeInTargetRecords *int     `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+	TimeInTargetPercent float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
+	TimeInTargetMinutes int     `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
+	TimeInTargetRecords int     `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
 
-	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
-	TimeInLowMinutes *int     `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
-	TimeInLowRecords *int     `json:"timeInLowRecords" bson:"timeInLowRecords"`
+	TimeInLowPercent float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
+	TimeInLowMinutes int     `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
+	TimeInLowRecords int     `json:"timeInLowRecords" bson:"timeInLowRecords"`
 
-	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
-	TimeInVeryLowMinutes *int     `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
-	TimeInVeryLowRecords *int     `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+	TimeInVeryLowPercent float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+	TimeInVeryLowMinutes int     `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
+	TimeInVeryLowRecords int     `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
 
-	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
-	TimeInHighMinutes *int     `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
-	TimeInHighRecords *int     `json:"timeInHighRecords" bson:"timeInHighRecords"`
+	TimeInHighPercent float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+	TimeInHighMinutes int     `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
+	TimeInHighRecords int     `json:"timeInHighRecords" bson:"timeInHighRecords"`
 
-	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
-	TimeInVeryHighMinutes *int     `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
-	TimeInVeryHighRecords *int     `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+	TimeInVeryHighPercent float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+	TimeInVeryHighMinutes int     `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
+	TimeInVeryHighRecords int     `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
 type Summary struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	UserID string             `json:"userId" bson:"userId"`
 
-	DailyStats []*Stats           `json:"dailyStats" bson:"dailyStats"`
-	Periods    map[string]*Period `json:"periods" bson:"periods"`
+	HourlyStats []*Stats           `json:"hourlyStats" bson:"hourlyStats"`
+	Periods     map[string]*Period `json:"periods" bson:"periods"`
 
 	// date tracking
-	LastUpdatedDate *time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	FirstData       *time.Time `json:"firstData" bson:"firstData"`
+	LastUpdatedDate time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	FirstData       time.Time  `json:"firstData" bson:"firstData"`
 	LastData        *time.Time `json:"lastData" bson:"lastData"`
-	LastUploadDate  *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
+	LastUploadDate  time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
 	OutdatedSince   *time.Time `json:"outdatedSince" bson:"outdatedSince"`
 
-	TotalDays *int `json:"totalDays" bson:"totalDays"`
+	TotalHours int `json:"totalHours" bson:"totalHours"`
 
 	// these are just constants right now.
-	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
-	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold"`
-	LowGlucoseThreshold      *float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold"`
-	VeryLowGlucoseThreshold  *float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold"`
+	HighGlucoseThreshold     float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
+	VeryHighGlucoseThreshold float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold"`
+	LowGlucoseThreshold      float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold"`
+	VeryLowGlucoseThreshold  float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold"`
 }
 
 func New(id string) *Summary {
@@ -153,7 +154,7 @@ func New(id string) *Summary {
 		UserID:        id,
 		OutdatedSince: &time.Time{},
 		Periods:       make(map[string]*Period),
-		DailyStats:    make([]*Stats, 0),
+		HourlyStats:   make([]*Stats, 0),
 	}
 }
 
@@ -175,49 +176,58 @@ func CalculateGMI(averageGlucose float64) float64 {
 }
 
 func (userSummary *Summary) AddStats(stats *Stats) error {
-	var dayCount int
-	var oldestDay time.Time
-	var oldestDayToKeep time.Time
+	var hourCount int
+	var oldestHour time.Time
+	var oldestHourToKeep time.Time
 	var existingDay = false
+	var statsGap int
+	var newStatsTime time.Time
 
 	if stats == nil {
 		return errors.New("stats empty")
 	}
 
-	// update existing day if one does exist
-	if len(userSummary.DailyStats) > 0 {
-		for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-			if userSummary.DailyStats[i].Date.Equal(stats.Date) {
-				userSummary.DailyStats[i] = stats
+	// update existing hour if one does exist
+	if len(userSummary.HourlyStats) > 0 {
+		for i := len(userSummary.HourlyStats) - 1; i >= 0; i-- {
+			if userSummary.HourlyStats[i].Date.Equal(stats.Date) {
+				userSummary.HourlyStats[i] = stats
 				existingDay = true
 				break
 			}
 
 			// we already passed our date, give up
-			if userSummary.DailyStats[i].Date.After(stats.Date) {
+			if userSummary.HourlyStats[i].Date.After(stats.Date) {
 				break
 			}
+		}
+
+		// add hours for any gaps that this new stat skipped
+		statsGap = int(stats.Date.Sub(userSummary.HourlyStats[len(userSummary.HourlyStats)-1].Date).Hours())
+		for i := statsGap; i > 1; i-- {
+			newStatsTime = stats.Date.Add(time.Duration(-i) * time.Hour)
+			userSummary.HourlyStats = append(userSummary.HourlyStats, NewStats(newStatsTime))
 		}
 	}
 
 	if existingDay == false {
-		userSummary.DailyStats = append(userSummary.DailyStats, stats)
+		userSummary.HourlyStats = append(userSummary.HourlyStats, stats)
 	}
 
-	// remove extra days to cap at 14 days of stats
-	dayCount = len(userSummary.DailyStats)
-	if dayCount > daysAgoToKeep {
-		userSummary.DailyStats = userSummary.DailyStats[dayCount-daysAgoToKeep:]
+	// remove extra days to cap at X days of stats
+	hourCount = len(userSummary.HourlyStats)
+	if hourCount > hoursAgoToKeep {
+		userSummary.HourlyStats = userSummary.HourlyStats[hourCount-hoursAgoToKeep:]
 	}
 
-	// remove any stats that are older than 14 days from the last stat
-	oldestDay = (*userSummary.DailyStats[0]).Date
-	oldestDayToKeep = userSummary.DailyStats[len(userSummary.DailyStats)-1].Date.AddDate(0, 0, -daysAgoToKeep)
-	if oldestDay.Before(oldestDayToKeep) {
+	// remove any stats that are older than X days from the last stat
+	oldestHour = userSummary.HourlyStats[0].Date
+	oldestHourToKeep = stats.Date.Add(-hoursAgoToKeep * time.Hour)
+	if oldestHour.Before(oldestHourToKeep) {
 		// we don't check the last entry because we just added/updated it
-		for i := len(userSummary.DailyStats) - 2; i >= 0; i-- {
-			if userSummary.DailyStats[i].Date.Before(oldestDayToKeep) {
-				userSummary.DailyStats = userSummary.DailyStats[i+1:]
+		for i := len(userSummary.HourlyStats) - 2; i >= 0; i-- {
+			if userSummary.HourlyStats[i].Date.Before(oldestHourToKeep) {
+				userSummary.HourlyStats = userSummary.HourlyStats[i+1:]
 				break
 			}
 		}
@@ -230,13 +240,18 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 	var normalizedValue float64
 	var duration int
 	var recordTime time.Time
-	var lastDay time.Time
-	var currentDay time.Time
+	var lastHour time.Time
+	var currentHour time.Time
 	var err error
 	var stats *Stats
 
 	if len(userData) < 1 {
 		return errors.New("userData is empty, nothing to calculate stats for")
+	}
+
+	// skip past data
+	if len(userSummary.HourlyStats) > 0 {
+		userData, err = SkipUntil(userSummary.HourlyStats[len(userSummary.HourlyStats)-1].Date, userData)
 	}
 
 	for _, r := range userData {
@@ -246,19 +261,11 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		}
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
-		currentDay = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
-			0, 0, 0, 0, recordTime.Location())
-
-		// check if data is in the past somehow, it would currently corrupt stats, this shouldn't be possible
-		// but the check is cheap insurance
-		if len(userSummary.DailyStats) > 0 {
-			if recordTime.Before(userSummary.DailyStats[len(userSummary.DailyStats)-1].Date) {
-				return errors.Newf("CalculateStats given data before oldest stats for user %s", userSummary.UserID)
-			}
-		}
+		currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
+			recordTime.Hour(), 0, 0, 0, recordTime.Location())
 
 		// store stats for the day, if we are now on the next day
-		if !lastDay.IsZero() && !currentDay.Equal(lastDay) {
+		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
 			err = userSummary.AddStats(stats)
 			if err != nil {
 				return err
@@ -269,30 +276,30 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 		if stats == nil {
 			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(userSummary.DailyStats) > 0 {
-				for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-					if userSummary.DailyStats[i].Date.Equal(currentDay) {
-						stats = userSummary.DailyStats[i]
+			if len(userSummary.HourlyStats) > 0 {
+				for i := len(userSummary.HourlyStats) - 1; i >= 0; i-- {
+					if userSummary.HourlyStats[i].Date.Equal(currentHour) {
+						stats = userSummary.HourlyStats[i]
 						break
 					}
 
 					// we already passed our date, give up
-					if userSummary.DailyStats[i].Date.After(currentDay) {
+					if userSummary.HourlyStats[i].Date.After(currentHour) {
 						break
 					}
 				}
 			}
 
 			if stats == nil {
-				stats = NewStats(recordTime.Truncate(24 * time.Hour))
+				stats = NewStats(currentHour)
 			}
 		}
 
-		lastDay = currentDay
+		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if stats.LastRecordTime.IsZero() && len(userSummary.DailyStats) > 1 {
-			stats.LastRecordTime = userSummary.DailyStats[len(userSummary.DailyStats)-1].LastRecordTime
+		if stats.LastRecordTime.IsZero() && len(userSummary.HourlyStats) > 0 {
+			stats.LastRecordTime = userSummary.HourlyStats[len(userSummary.HourlyStats)-1].LastRecordTime
 		}
 
 		// duration has never been calculated, use current record's duration for this cycle
@@ -340,7 +347,49 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 	return nil
 }
 
-func (userSummary *Summary) CalculateSummary() error {
+func (userSummary *Summary) CalculateSummary() {
+	totalStats := NewStats(time.Time{})
+
+	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
+	// currently only supports day precision
+	stopPoints := []int{1, 7, 14, 30}
+	var nextStopPoint int
+	var currentIndex int
+
+	for i := 0; i < len(userSummary.HourlyStats); i++ {
+		if i == stopPoints[nextStopPoint]*24 {
+			userSummary.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
+			nextStopPoint++
+		}
+
+		currentIndex = len(userSummary.HourlyStats) - 1 - i
+		totalStats.TargetMinutes += userSummary.HourlyStats[currentIndex].TargetMinutes
+		totalStats.TargetRecords += userSummary.HourlyStats[currentIndex].TargetRecords
+
+		totalStats.LowMinutes += userSummary.HourlyStats[currentIndex].LowMinutes
+		totalStats.LowRecords += userSummary.HourlyStats[currentIndex].LowRecords
+
+		totalStats.VeryLowMinutes += userSummary.HourlyStats[currentIndex].VeryLowMinutes
+		totalStats.VeryLowRecords += userSummary.HourlyStats[currentIndex].VeryLowRecords
+
+		totalStats.HighMinutes += userSummary.HourlyStats[currentIndex].HighMinutes
+		totalStats.HighRecords += userSummary.HourlyStats[currentIndex].HighRecords
+
+		totalStats.VeryHighMinutes += userSummary.HourlyStats[currentIndex].VeryHighMinutes
+		totalStats.VeryHighRecords += userSummary.HourlyStats[currentIndex].VeryHighRecords
+
+		totalStats.TotalGlucose += userSummary.HourlyStats[currentIndex].TotalGlucose
+		totalStats.TotalCGMMinutes += userSummary.HourlyStats[currentIndex].TotalCGMMinutes
+		totalStats.TotalCGMRecords += userSummary.HourlyStats[currentIndex].TotalCGMRecords
+	}
+
+	// fill in periods we never reached
+	for i := nextStopPoint; i < len(stopPoints); i++ {
+		userSummary.CalculatePeriod(stopPoints[i], totalStats)
+	}
+}
+
+func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
 	var timeCGMUsePercent float64
 	var timeInTargetPercent float64
 	var timeInLowPercent float64
@@ -350,40 +399,17 @@ func (userSummary *Summary) CalculateSummary() error {
 	var glucoseManagementIndicator *float64
 	var averageGlucose float64
 
-	totalStats := NewStats(time.Time{})
-
-	for _, stats := range userSummary.DailyStats {
-		totalStats.TargetMinutes += stats.TargetMinutes
-		totalStats.TargetRecords += stats.TargetRecords
-
-		totalStats.LowMinutes += stats.LowMinutes
-		totalStats.LowRecords += stats.LowRecords
-
-		totalStats.VeryLowMinutes += stats.VeryLowMinutes
-		totalStats.VeryLowRecords += stats.VeryLowRecords
-
-		totalStats.HighMinutes += stats.HighMinutes
-		totalStats.HighRecords += stats.HighRecords
-
-		totalStats.VeryHighMinutes += stats.VeryHighMinutes
-		totalStats.VeryHighRecords += stats.VeryHighRecords
-
-		totalStats.TotalGlucose += stats.TotalGlucose
-		totalStats.TotalCGMMinutes += stats.TotalCGMMinutes
-		totalStats.TotalCGMRecords += stats.TotalCGMRecords
-	}
-
-	// remove partial day (data end) from total time for more accurate TimeCGMUse
-	totalMinutes := float64(daysAgoToKeep * 1440)
-	lastRecordTime := userSummary.DailyStats[len(userSummary.DailyStats)-1].LastRecordTime
-	tomorrow := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day()+1,
-		0, 0, 0, 0, lastRecordTime.Location())
-	totalMinutes = totalMinutes - tomorrow.Sub(lastRecordTime).Minutes()
+	// remove partial hour (data end) from total time for more accurate TimeCGMUse
+	totalMinutes := float64(i * 24 * 60)
+	lastRecordTime := userSummary.HourlyStats[len(userSummary.HourlyStats)-1].LastRecordTime
+	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
+		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
+	totalMinutes = totalMinutes - nextHour.Sub(lastRecordTime).Minutes()
 
 	userSummary.LastData = &lastRecordTime
-	userSummary.FirstData = &userSummary.DailyStats[0].Date
+	userSummary.FirstData = userSummary.HourlyStats[0].Date
 
-	userSummary.TotalDays = pointer.FromInt(len(userSummary.DailyStats))
+	userSummary.TotalHours = len(userSummary.HourlyStats)
 
 	// calculate derived summary stats
 	timeCGMUsePercent = float64(totalStats.TotalCGMMinutes) / totalMinutes
@@ -405,40 +431,37 @@ func (userSummary *Summary) CalculateSummary() error {
 		userSummary.Periods = make(map[string]*Period)
 	}
 
-	// statically place stats into the 14-day period slot for now.
-	userSummary.Periods["14d"] = &Period{
-		TimeCGMUsePercent: &timeCGMUsePercent,
-		TimeCGMUseMinutes: &totalStats.TotalCGMMinutes,
-		TimeCGMUseRecords: &totalStats.TotalCGMRecords,
+	userSummary.Periods[strconv.Itoa(i)+"d"] = &Period{
+		TimeCGMUsePercent: timeCGMUsePercent,
+		TimeCGMUseMinutes: totalStats.TotalCGMMinutes,
+		TimeCGMUseRecords: totalStats.TotalCGMRecords,
 
-		AverageGlucose: &Glucose{
-			Value: pointer.FromFloat64(averageGlucose),
-			Units: pointer.FromString(summaryGlucoseUnits),
+		AverageGlucose: Glucose{
+			Value: averageGlucose,
+			Units: summaryGlucoseUnits,
 		},
 		GlucoseManagementIndicator: glucoseManagementIndicator,
 
-		TimeInTargetPercent: &timeInTargetPercent,
-		TimeInTargetMinutes: &totalStats.TargetMinutes,
-		TimeInTargetRecords: &totalStats.TargetRecords,
+		TimeInTargetPercent: timeInTargetPercent,
+		TimeInTargetMinutes: totalStats.TargetMinutes,
+		TimeInTargetRecords: totalStats.TargetRecords,
 
-		TimeInLowPercent: &timeInLowPercent,
-		TimeInLowMinutes: &totalStats.LowMinutes,
-		TimeInLowRecords: &totalStats.LowRecords,
+		TimeInLowPercent: timeInLowPercent,
+		TimeInLowMinutes: totalStats.LowMinutes,
+		TimeInLowRecords: totalStats.LowRecords,
 
-		TimeInVeryLowPercent: &timeInVeryLowPercent,
-		TimeInVeryLowMinutes: &totalStats.VeryLowMinutes,
-		TimeInVeryLowRecords: &totalStats.VeryLowRecords,
+		TimeInVeryLowPercent: timeInVeryLowPercent,
+		TimeInVeryLowMinutes: totalStats.VeryLowMinutes,
+		TimeInVeryLowRecords: totalStats.VeryLowRecords,
 
-		TimeInHighPercent: &timeInHighPercent,
-		TimeInHighMinutes: &totalStats.HighMinutes,
-		TimeInHighRecords: &totalStats.HighRecords,
+		TimeInHighPercent: timeInHighPercent,
+		TimeInHighMinutes: totalStats.HighMinutes,
+		TimeInHighRecords: totalStats.HighRecords,
 
-		TimeInVeryHighPercent: &timeInVeryHighPercent,
-		TimeInVeryHighMinutes: &totalStats.VeryHighMinutes,
-		TimeInVeryHighRecords: &totalStats.VeryHighRecords,
+		TimeInVeryHighPercent: timeInVeryHighPercent,
+		TimeInVeryHighMinutes: totalStats.VeryHighMinutes,
+		TimeInVeryHighRecords: totalStats.VeryHighRecords,
 	}
-
-	return nil
 }
 
 func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated, userData []*continuous.Continuous) error {
@@ -455,31 +478,17 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
-	userSummary.LastUpdatedDate = &timestamp
-	userSummary.LastUploadDate = &status.LastUpload
+	userSummary.LastUpdatedDate = timestamp
+	userSummary.LastUploadDate = status.LastUpload
 	userSummary.OutdatedSince = nil
 
 	// remove any past values that squeeze through the string date query that feeds this function
 	// this mostly occurs when different sources use different time precisions (s vs ms vs ns)
 	// resulting in $gt 00:00:01.275Z pulling in 00:00:01Z, which is before.
 	if userSummary.LastData != nil {
-		var skip int
-		for i := 0; i < len(userData); i++ {
-			recordTime, err := time.Parse(time.RFC3339Nano, *userData[i].Time)
-			if err != nil {
-				return err
-			}
-
-			if recordTime.Before(*userSummary.LastData) {
-				skip = i + 1
-			} else {
-				break
-			}
-		}
-
-		if skip > 0 {
-			logger.Debugf("New CGM data for userid %s is before last calculated data, skipping first %d records", userSummary.UserID, skip)
-			userData = userData[skip:]
+		userData, err = SkipUntil(*userSummary.LastData, userData)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -494,16 +503,35 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 		return err
 	}
 
-	err = userSummary.CalculateSummary()
-	if err != nil {
-		return err
-	}
+	userSummary.CalculateSummary()
 
 	// add static stuff
-	userSummary.LowGlucoseThreshold = pointer.FromFloat64(lowBloodGlucose)
-	userSummary.VeryLowGlucoseThreshold = pointer.FromFloat64(veryLowBloodGlucose)
-	userSummary.HighGlucoseThreshold = pointer.FromFloat64(highBloodGlucose)
-	userSummary.VeryHighGlucoseThreshold = pointer.FromFloat64(veryHighBloodGlucose)
+	userSummary.LowGlucoseThreshold = lowBloodGlucose
+	userSummary.VeryLowGlucoseThreshold = veryLowBloodGlucose
+	userSummary.HighGlucoseThreshold = highBloodGlucose
+	userSummary.VeryHighGlucoseThreshold = veryHighBloodGlucose
 
 	return nil
+}
+
+func SkipUntil(date time.Time, userData []*continuous.Continuous) ([]*continuous.Continuous, error) {
+	var skip int
+	for i := 0; i < len(userData); i++ {
+		recordTime, err := time.Parse(time.RFC3339Nano, *userData[i].Time)
+		if err != nil {
+			return nil, err
+		}
+
+		if recordTime.Before(date) {
+			skip = i + 1
+		} else {
+			break
+		}
+	}
+
+	if skip > 0 {
+		userData = userData[skip:]
+	}
+
+	return userData, nil
 }

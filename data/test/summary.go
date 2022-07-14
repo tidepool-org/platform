@@ -8,22 +8,22 @@ import (
 
 func RandomSummary() *summary.Summary {
 	var datum = summary.Summary{
-		LastUpdatedDate:          pointer.FromTime(test.RandomTime()),
-		FirstData:                pointer.FromTime(test.RandomTime()),
+		LastUpdatedDate:          test.RandomTime(),
+		FirstData:                test.RandomTime(),
 		LastData:                 pointer.FromTime(test.RandomTime()),
-		LastUploadDate:           pointer.FromTime(test.RandomTime()),
+		LastUploadDate:           test.RandomTime(),
 		OutdatedSince:            nil,
-		TotalDays:                pointer.FromInt(test.RandomIntFromRange(0, 90)),
-		HighGlucoseThreshold:     pointer.FromFloat64(test.RandomFloat64FromRange(5, 10)),
-		VeryHighGlucoseThreshold: pointer.FromFloat64(test.RandomFloat64FromRange(10, 20)),
-		LowGlucoseThreshold:      pointer.FromFloat64(test.RandomFloat64FromRange(3, 5)),
-		VeryLowGlucoseThreshold:  pointer.FromFloat64(test.RandomFloat64FromRange(0, 3)),
+		TotalHours:               test.RandomIntFromRange(0, 2160),
+		HighGlucoseThreshold:     test.RandomFloat64FromRange(5, 10),
+		VeryHighGlucoseThreshold: test.RandomFloat64FromRange(10, 20),
+		LowGlucoseThreshold:      test.RandomFloat64FromRange(3, 5),
+		VeryLowGlucoseThreshold:  test.RandomFloat64FromRange(0, 3),
 	}
 
 	// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-	datum.DailyStats = make([]*summary.Stats, 2)
+	datum.HourlyStats = make([]*summary.Stats, 2)
 	for i := 0; i < 2; i++ {
-		datum.DailyStats[i] = &summary.Stats{
+		datum.HourlyStats[i] = &summary.Stats{
 			Date:            test.RandomTime(),
 			TargetMinutes:   test.RandomIntFromRange(0, 1440),
 			TargetRecords:   test.RandomIntFromRange(0, 288),
@@ -45,28 +45,28 @@ func RandomSummary() *summary.Summary {
 	datum.Periods = make(map[string]*summary.Period)
 	datum.Periods["14d"] = &summary.Period{
 		GlucoseManagementIndicator: pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
-		AverageGlucose: &summary.Glucose{
-			Value: pointer.FromFloat64(test.RandomFloat64FromRange(1, 30)),
-			Units: pointer.FromString("mmol/L"),
+		AverageGlucose: summary.Glucose{
+			Value: test.RandomFloat64FromRange(1, 30),
+			Units: "mmol/L",
 		},
-		TimeCGMUsePercent:     pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-		TimeCGMUseMinutes:     pointer.FromInt(test.RandomIntFromRange(0, 129600)),
-		TimeCGMUseRecords:     pointer.FromInt(test.RandomIntFromRange(0, 25920)),
-		TimeInTargetPercent:   pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-		TimeInTargetMinutes:   pointer.FromInt(test.RandomIntFromRange(0, 129600)),
-		TimeInTargetRecords:   pointer.FromInt(test.RandomIntFromRange(0, 25920)),
-		TimeInLowPercent:      pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-		TimeInLowMinutes:      pointer.FromInt(test.RandomIntFromRange(0, 129600)),
-		TimeInLowRecords:      pointer.FromInt(test.RandomIntFromRange(0, 25920)),
-		TimeInVeryLowPercent:  pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-		TimeInVeryLowMinutes:  pointer.FromInt(test.RandomIntFromRange(0, 129600)),
-		TimeInVeryLowRecords:  pointer.FromInt(test.RandomIntFromRange(0, 25920)),
-		TimeInHighPercent:     pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-		TimeInHighMinutes:     pointer.FromInt(test.RandomIntFromRange(0, 129600)),
-		TimeInHighRecords:     pointer.FromInt(test.RandomIntFromRange(0, 25920)),
-		TimeInVeryHighPercent: pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-		TimeInVeryHighMinutes: pointer.FromInt(test.RandomIntFromRange(0, 129600)),
-		TimeInVeryHighRecords: pointer.FromInt(test.RandomIntFromRange(0, 25920)),
+		TimeCGMUsePercent:     test.RandomFloat64FromRange(0, 1),
+		TimeCGMUseMinutes:     test.RandomIntFromRange(0, 129600),
+		TimeCGMUseRecords:     test.RandomIntFromRange(0, 25920),
+		TimeInTargetPercent:   test.RandomFloat64FromRange(0, 1),
+		TimeInTargetMinutes:   test.RandomIntFromRange(0, 129600),
+		TimeInTargetRecords:   test.RandomIntFromRange(0, 25920),
+		TimeInLowPercent:      test.RandomFloat64FromRange(0, 1),
+		TimeInLowMinutes:      test.RandomIntFromRange(0, 129600),
+		TimeInLowRecords:      test.RandomIntFromRange(0, 25920),
+		TimeInVeryLowPercent:  test.RandomFloat64FromRange(0, 1),
+		TimeInVeryLowMinutes:  test.RandomIntFromRange(0, 129600),
+		TimeInVeryLowRecords:  test.RandomIntFromRange(0, 25920),
+		TimeInHighPercent:     test.RandomFloat64FromRange(0, 1),
+		TimeInHighMinutes:     test.RandomIntFromRange(0, 129600),
+		TimeInHighRecords:     test.RandomIntFromRange(0, 25920),
+		TimeInVeryHighPercent: test.RandomFloat64FromRange(0, 1),
+		TimeInVeryHighMinutes: test.RandomIntFromRange(0, 129600),
+		TimeInVeryHighRecords: test.RandomIntFromRange(0, 25920),
 	}
 
 	return &datum

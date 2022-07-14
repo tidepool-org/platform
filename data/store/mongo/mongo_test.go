@@ -520,7 +520,7 @@ var _ = Describe("Mongo", func() {
 						var newSummary *summary.Summary
 						// make keys match, and remove some days to ensure they also get removed
 						anotherRandomSummary.UserID = randomSummary.UserID
-						anotherRandomSummary.DailyStats = anotherRandomSummary.DailyStats[0:0]
+						anotherRandomSummary.HourlyStats = anotherRandomSummary.HourlyStats[0:0]
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
