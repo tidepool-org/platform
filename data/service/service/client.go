@@ -92,22 +92,22 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		userSummary = summary.New(id)
 	}
 
-	// check status.LastData for going back in time to prevent deleted data from causing issues
-	if status.LastData.Before(*userSummary.LastData) {
-		userSummary.OutdatedSince = nil
-		userSummary.LastUpdatedDate = timestamp
-
-		userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// remove 2 weeks for start time
 	startTime := status.LastData.AddDate(0, 0, -14)
 
-	// if summary already exists with a last data checkpoint, start data pull there
+	// check status.LastData for going back in time to prevent deleted data from causing issues
 	if userSummary.LastData != nil {
+		if status.LastData.Before(*userSummary.LastData) || status.LastData.Equal(*userSummary.LastData) {
+			userSummary.OutdatedSince = nil
+			userSummary.LastUpdatedDate = timestamp
+
+			userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// if summary already exists with a last data checkpoint, start data pull there
 		if startTime.Before(*userSummary.LastData) {
 			startTime = *userSummary.LastData
 		}
