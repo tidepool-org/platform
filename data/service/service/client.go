@@ -92,8 +92,8 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		userSummary = summary.New(id)
 	}
 
-	// remove 2 weeks for start time
-	startTime := status.LastData.AddDate(0, 0, -14)
+	// remove 30 days for start time
+	startTime := status.LastData.AddDate(0, 0, -30)
 
 	// check status.LastData for going back in time to prevent deleted data from causing issues
 	if userSummary.LastData != nil {
