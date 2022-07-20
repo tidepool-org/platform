@@ -260,39 +260,39 @@ var _ = Describe("Summary", func() {
 				Expect(len(userSummary.HourlyStats)).To(Equal(504))
 			})
 
-			It("Returns correct record count when given overlapping records", func() {
-				var doubledCGMData = make([]*continuous.Continuous, 288*2)
-
-				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose)
-				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceID, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
-
-				// interlace the lists
-				for i := 0; i < len(dataSetCGMData); i += 1 {
-					doubledCGMData[i*2] = dataSetCGMData[i]
-					doubledCGMData[i*2+1] = dataSetCGMDataTwo[i]
-				}
-				err = userSummary.CalculateStats(doubledCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.HourlyStats)).To(Equal(24))
-				Expect(userSummary.HourlyStats[0].TotalCGMRecords).To(Equal(12))
-			})
-
-			It("Returns correct record count when given overlapping records across multiple calculations", func() {
-				userSummary = summary.New(userID)
-
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-				Expect(err).ToNot(HaveOccurred())
-
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(len(userSummary.HourlyStats)).To(Equal(24))
-				Expect(userSummary.HourlyStats[0].TotalCGMRecords).To(Equal(12))
-			})
+			//It("Returns correct record count when given overlapping records", func() {
+			//	var doubledCGMData = make([]*continuous.Continuous, 288*2)
+			//
+			//	userSummary = summary.New(userID)
+			//	dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose)
+			//	dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceID, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
+			//
+			//	// interlace the lists
+			//	for i := 0; i < len(dataSetCGMData); i += 1 {
+			//		doubledCGMData[i*2] = dataSetCGMData[i]
+			//		doubledCGMData[i*2+1] = dataSetCGMDataTwo[i]
+			//	}
+			//	err = userSummary.CalculateStats(doubledCGMData)
+			//
+			//	Expect(err).ToNot(HaveOccurred())
+			//	Expect(len(userSummary.HourlyStats)).To(Equal(24))
+			//	Expect(userSummary.HourlyStats[0].TotalCGMRecords).To(Equal(12))
+			//})
+			//
+			//It("Returns correct record count when given overlapping records across multiple calculations", func() {
+			//	userSummary = summary.New(userID)
+			//
+			//	dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose)
+			//	err = userSummary.CalculateStats(dataSetCGMData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//
+			//	dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
+			//	err = userSummary.CalculateStats(dataSetCGMData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//
+			//	Expect(len(userSummary.HourlyStats)).To(Equal(24))
+			//	Expect(userSummary.HourlyStats[0].TotalCGMRecords).To(Equal(12))
+			//})
 
 			It("Returns correct stats when given 1 week, then 1 week more than 2 weeks ahead", func() {
 				var lastRecordTime time.Time
