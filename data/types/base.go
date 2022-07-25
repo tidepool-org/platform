@@ -295,6 +295,14 @@ func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
 
+func (b *Base) GetGUID() *string {
+	return b.GUID
+}
+
+func (b *Base) GetUserID() *string {
+	return b.UserID
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }

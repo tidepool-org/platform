@@ -15,6 +15,7 @@ type (
 		Sample `bson:",inline"`
 		Value  float64 `bson:"value,omitempty"`
 		Units  string  `bson:"units,omitempty"`
+		Guid   string  `bson:"guid,omitempty"`
 	}
 )
 

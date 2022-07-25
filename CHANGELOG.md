@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.19.0 - 2022-07-20
+### Changed
+- YLP-1324 Manage data update
+
 ## 0.18.0 - 2022-06-17
 ### Engineering
 - Build multi-architecture docker images

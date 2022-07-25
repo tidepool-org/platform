@@ -79,7 +79,6 @@ var (
 					{Key: "type", Value: 1},
 				},
 				Options: options.Index().
-					SetBackground(true).
 					SetName("UserIdUploadIdType"),
 			},
 			{
@@ -88,9 +87,17 @@ var (
 				},
 				Options: options.Index().
 					SetUnique(true).
-					SetBackground(true).
 					SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
 					SetName("UniqueUploadId"),
+			},
+			{
+				Keys: bson.D{
+					{Key: "_userId", Value: 1},
+					{Key: "guid", Value: 1},
+				},
+				Options: options.Index().
+					SetPartialFilterExpression(bson.M{"guid": bson.M{"$exists": true}}).
+					SetName("UserIdGUID"),
 			},
 		},
 	}
@@ -405,6 +412,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		datum.SetCreatedTime(&strTimestamp)
 		archive := d.isDatumToArchive(datum)
 		moveToBucket := d.isDatumToBucket(datum)
+		guid := datum.GetGUID()
 
 		if moveToBucket {
 			// Prepare cbg to be pushed into data read db
@@ -433,12 +441,18 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 			d.BucketStore.log.Infof("object ignored %v", datum)
 		}
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
-		if archive {
-			archiveData = append(archiveData, mongo.NewInsertOneModel().SetDocument(datum))
-		} else {
-			insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
-		}
 
+		var writeOp mongo.WriteModel
+		if guid != nil {
+			writeOp = mongo.NewReplaceOneModel().SetFilter(bson.M{"guid": *guid, "_userId": strUserId}).SetReplacement(datum).SetUpsert(true)
+		} else {
+			writeOp = mongo.NewInsertOneModel().SetDocument(datum)
+		}
+		if archive {
+			archiveData = append(archiveData, writeOp)
+		} else {
+			insertData = append(insertData, writeOp)
+		}
 	}
 
 	if d.BucketStoreEnabled {

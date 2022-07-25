@@ -114,7 +114,9 @@ func CloneDataSetData(dataSetData data.Data) data.Data {
 	clonedDataSetData := data.Data{}
 	for _, dataSetDatum := range dataSetData {
 		if datum, ok := dataSetDatum.(*types.Base); ok {
-			clonedDataSetData = append(clonedDataSetData, dataTypesTest.CloneBase(datum))
+			clonedData := dataTypesTest.CloneBase(datum)
+			clonedData.GUID = pointer.FromString(dataTest.RandomID())
+			clonedDataSetData = append(clonedDataSetData, clonedData)
 		}
 	}
 	return clonedDataSetData
@@ -268,16 +270,19 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "uploadId", "type")),
-						"Background": Equal(true),
-						"Name":       Equal("UserIdUploadIdType"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "uploadId", "type")),
+						"Name": Equal("UserIdUploadIdType"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
-						"Background":              Equal(true),
 						"Unique":                  Equal(true),
 						"Name":                    Equal("UniqueUploadId"),
 						"PartialFilterExpression": Equal(bson.D{{Key: "type", Value: "upload"}}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "guid")),
+						"Name":                    Equal("UserIdGUID"),
+						"PartialFilterExpression": Equal(bson.D{{Key: "guid", Value: bson.D{{Key: "$exists", Value: true}}}}),
 					}),
 				))
 			})
@@ -827,6 +832,23 @@ var _ = Describe("Mongo", func() {
 								ValidateDataSetData(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
 								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 								ValidateDataSetData(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
+							})
+
+							It("updates data set data based on guid", func() {
+								dataSetBeforeCreateData := append(append(dataSetExistingOtherData, dataSetExistingOneData...), dataSetExistingTwoData...)
+								ValidateDataSetData(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetBeforeCreateData)
+								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+								ValidateDataSetData(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, dataSetData...))
+
+								var updatedData data.Data
+								for _, data := range dataSetData {
+									datum := dataTypesTest.NewBase()
+									datum.GUID = data.GetGUID()
+									datum.UserID = data.GetUserID()
+									updatedData = append(updatedData, data)
+								}
+								Expect(repository.CreateDataSetData(ctx, dataSet, updatedData)).To(Succeed())
+								ValidateDataSetData(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, append(dataSetBeforeCreateData, updatedData...))
 							})
 
 							It("stores cbg data in archive collection", func() {

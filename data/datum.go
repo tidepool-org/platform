@@ -22,6 +22,8 @@ type Datum interface {
 	GetPayload() *metadata.Metadata
 	GetType() string
 	GetTime() time.Time
+	GetGUID() *string
+	GetUserID() *string
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

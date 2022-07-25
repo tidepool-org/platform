@@ -27,7 +27,9 @@ func (s *BasalSample) MapForAutomatedBasal(event *automated.Automated) error {
 	s.InternalID = event.InternalID
 	strTime := *event.Time
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
-
+	if event.GUID != nil {
+		s.Guid = *event.GUID
+	}
 	if err != nil {
 		return errors.Wrap(err, ErrEventTime)
 	}
@@ -49,6 +51,9 @@ func (s *BasalSample) MapForScheduledBasal(event *scheduled.Scheduled) error {
 	s.InternalID = event.InternalID
 	strTime := *event.Time
 	s.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
+	if event.GUID != nil {
+		s.Guid = *event.GUID
+	}
 
 	if err != nil {
 		return errors.Wrap(err, ErrEventTime)
@@ -67,6 +72,9 @@ func (c *CbgSample) Map(event *continuous.Continuous) error {
 	// what is this mess ???
 	strTime := *event.Time
 	c.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
+	if event.GUID != nil {
+		c.Guid = *event.GUID
+	}
 
 	if err != nil {
 		return errors.Wrap(err, ErrEventTime)

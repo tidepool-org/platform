@@ -147,6 +147,14 @@ func (d *Datum) GetTime() time.Time {
 	return output
 }
 
+func (d *Datum) GetGUID() *string {
+	return nil
+}
+
+func (d *Datum) GetUserID() *string {
+	return nil
+}
+
 func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInvocations++
 

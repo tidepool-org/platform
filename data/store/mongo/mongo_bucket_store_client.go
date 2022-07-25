@@ -9,7 +9,6 @@ import (
 
 	goComMgo "github.com/mdblp/go-common/clients/mongo"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -47,91 +46,7 @@ func NewMongoBucketStoreClient(config *goComMgo.Config, logger *log.Logger) (*Mo
 	return &client, err
 }
 
-func reverse(ss []string) {
-	last := len(ss) - 1
-	for i := 0; i < len(ss)/2; i++ {
-		ss[i], ss[last-i] = ss[last-i], ss[i]
-	}
-}
-
 /* bucket methods */
-
-// Look for a single bucket based on its Id in cold and daily
-func (c *MongoBucketStoreClient) Find(ctx context.Context, bucket schema.IBucket, dataType string) (result *schema.IBucket, err error) {
-
-	if bucket.GetId() != "" {
-		var query bson.M = bson.M{}
-		query["_id"] = bucket.GetId()
-		opts := options.FindOne()
-		opts.SetSort(bson.D{primitive.E{Key: "_id", Value: -1}})
-
-		revertedCollections := dailyPrefixCollections
-		reverse(revertedCollections)
-
-		for _, collectionPrefix := range revertedCollections {
-			collectionName := collectionPrefix + dataType
-			if err = c.Collection(collectionName).FindOne(ctx, query, opts).Decode(&result); err != nil && err != mongo.ErrNoDocuments {
-				c.log.WithError(err)
-				return result, err
-			} else if err != mongo.ErrNoDocuments {
-				return result, nil
-			}
-		}
-	}
-
-	return nil, errors.New("Find called with an empty bucket.Id")
-}
-
-// Update a bucket record if found overwhise it will be created. The bucket is searched by its id.
-func (c *MongoBucketStoreClient) Upsert(ctx context.Context, userId *string, creationTimestamp time.Time, sample schema.ISample, dataType string) error {
-
-	if sample == nil {
-		return errors.New("impossible to upsert a nil sample")
-	}
-
-	if sample.GetTimestamp().IsZero() {
-		return errors.New("impossible to upsert a sample having a incorrect timestamp")
-	}
-
-	if userId == nil {
-		return errors.New("impossible to upsert a sample for an empty user id")
-	}
-
-	// Extrat ISODate from sample timestamp
-	ts := sample.GetTimestamp().Format("2006-01-02")
-	day, err := time.Parse("2006-01-02", ts)
-	if err != nil {
-		return errors.New("unable to parse cbg day time")
-	}
-	valTrue := true
-	strUserId := *userId
-
-	c.log.Info("upsert " + dataType + " sample for: " + strUserId + "_" + ts)
-
-	for _, collectionPrefix := range dailyPrefixCollections {
-		collectionName := collectionPrefix + dataType
-		_, err = c.Collection(collectionName).UpdateOne(
-			ctx,
-			bson.D{{Key: "_id", Value: strUserId + "_" + ts}}, // filter
-			bson.D{ // update
-				{Key: "$addToSet", Value: bson.D{
-					{Key: "samples", Value: sample}}},
-				{Key: "$setOnInsert", Value: bson.D{
-					{Key: "_id", Value: strUserId + "_" + ts},
-					{Key: "creationTimestamp", Value: creationTimestamp},
-					{Key: "day", Value: day},
-					{Key: "userId", Value: strUserId}}},
-			},
-			&options.UpdateOptions{Upsert: &valTrue}, //options
-		)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
-}
 
 // Perform a bulk of operations on bucket records based on the operation argument, update a record if found overwhise created it.
 // The bucket is searched by its id.
@@ -224,25 +139,51 @@ func buildUpdateOneModel(dataType string, sample schema.ISample, userId *string,
 		// Update the basal
 		basalSecondOp := mongo.NewUpdateOneModel()
 		elemfilter := sample.(schema.BasalSample)
-		basalSecondOp.SetFilter(bson.D{
-			{Key: "_id", Value: strUserId + "_" + ts},
-			{Key: "samples", Value: bson.D{
-				{Key: "$elemMatch", Value: bson.D{
-					{Key: "rate", Value: elemfilter.Rate},
-					{Key: "deliveryType", Value: elemfilter.DeliveryType},
-					{Key: "timestamp", Value: elemfilter.Timestamp},
+		if elemfilter.Guid != "" {
+			// All fields update based on guid
+			basalSecondOp.SetFilter(bson.D{
+				{Key: "_id", Value: strUserId + "_" + ts},
+				{Key: "samples", Value: bson.D{
+					{Key: "$elemMatch", Value: bson.D{
+						{Key: "guid", Value: elemfilter.Guid},
+					},
+					},
 				},
 				},
-			},
-			},
-		})
-		basalSecondOp.SetUpdate(bson.D{ // update
-			{Key: "$set", Value: bson.D{
-				{Key: "samples.$.internalId", Value: elemfilter.InternalID},
-				{Key: "samples.$.duration", Value: elemfilter.Duration},
-			},
-			},
-		})
+			})
+			basalSecondOp.SetUpdate(bson.D{ // update
+				{Key: "$set", Value: bson.D{
+					{Key: "samples.$.internalId", Value: elemfilter.InternalID},
+					{Key: "samples.$.duration", Value: elemfilter.Duration},
+					{Key: "samples.$.rate", Value: elemfilter.Rate},
+					{Key: "samples.$.deliveryType", Value: elemfilter.DeliveryType},
+					{Key: "samples.$.timestamp", Value: elemfilter.Timestamp},
+				},
+				},
+			})
+		} else {
+			// Duration update based on rate/deliveryType/timestamp (nil guid)
+			basalSecondOp.SetFilter(bson.D{
+				{Key: "_id", Value: strUserId + "_" + ts},
+				{Key: "samples", Value: bson.D{
+					{Key: "$elemMatch", Value: bson.D{
+						{Key: "guid", Value: nil},
+						{Key: "rate", Value: elemfilter.Rate},
+						{Key: "deliveryType", Value: elemfilter.DeliveryType},
+						{Key: "timestamp", Value: elemfilter.Timestamp},
+					},
+					},
+				},
+				},
+			})
+			basalSecondOp.SetUpdate(bson.D{ // update
+				{Key: "$set", Value: bson.D{
+					{Key: "samples.$.internalId", Value: elemfilter.InternalID},
+					{Key: "samples.$.duration", Value: elemfilter.Duration},
+				},
+				},
+			})
+		}
 
 		// Otherwise we know that we did not update the basal so we guarantee an insertion
 		// in the array
@@ -291,21 +232,6 @@ func (c *MongoBucketStoreClient) UpsertMetaData(ctx context.Context, userId *str
 	}
 
 	return nil
-}
-
-// Deletes a bucket record from the DB
-func (c *MongoBucketStoreClient) Remove(ctx context.Context, bucket *schema.CbgBucket) error {
-
-	if bucket.Id != "" {
-
-		for _, collection := range dailyPrefixCollections {
-			if _, err := c.Collection(collection).DeleteOne(ctx, bson.M{"_id": bucket.Id}); err != nil {
-				return err
-			}
-		}
-	}
-
-	return errors.New("Remove called with an empty bucket.Id")
 }
 
 func (c *MongoBucketStoreClient) BuildUserMetadata(incomingUserMetadata *schema.Metadata, creationTimestamp time.Time, strUserId string, dataTimestamp time.Time) *schema.Metadata {
