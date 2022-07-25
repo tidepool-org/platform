@@ -1,7 +1,9 @@
 @Library('mdblp-library') _
 def builderImage
 pipeline {
-    agent any
+    agent {
+        label 'blp'
+    }
     stages {
         stage('Initialization') {
             steps {

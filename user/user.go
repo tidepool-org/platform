@@ -8,7 +8,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-var idExpression = regexp.MustCompile(`^([0-9a-f]{10}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
+var idExpression = regexp.MustCompile(`^([0-9a-f]{10,32}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
 
 func NewID() string {
 	return id.Must(id.New(5))

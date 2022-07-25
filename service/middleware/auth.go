@@ -1,8 +1,16 @@
 package middleware
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"net/http"
+	"net/url"
+	"os"
 	"strings"
+	"time"
 
+	"github.com/auth0/go-jwt-middleware/v2/jwks"
+	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/mdblp/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
@@ -14,8 +22,9 @@ import (
 )
 
 type Auth struct {
-	serviceSecret string
-	authClient    auth.Client
+	serviceSecret  string
+	authClient     auth.Client
+	tokenValidator *validator.Validator
 }
 
 func NewAuth(serviceSecret string, authClient auth.Client) (*Auth, error) {
@@ -25,10 +34,15 @@ func NewAuth(serviceSecret string, authClient auth.Client) (*Auth, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
+	validator, err := setupAuth0()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Auth{
-		serviceSecret: serviceSecret,
-		authClient:    authClient,
+		serviceSecret:  serviceSecret,
+		authClient:     authClient,
+		tokenValidator: validator,
 	}, nil
 }
 
@@ -105,6 +119,7 @@ func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, er
 }
 
 func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, error) {
+	lgr := log.LoggerFromContext(req.Context())
 	values, found := req.Header[auth.TidepoolAuthorizationHeaderKey]
 	if !found {
 		return nil, nil
@@ -117,12 +132,17 @@ func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, erro
 		return nil, request.ErrorUnauthorized()
 	}
 
-	details, err := a.authClient.ValidateSessionToken(req.Context(), parts[1])
-	if err != nil {
-		return nil, nil
+	//Validate against auth0
+	var parsedToken *validator.ValidatedClaims
+	if t, err := a.tokenValidator.ValidateToken(req.Context(), parts[1]); err != nil {
+		lgr.Error("Error decoding bearer token")
+		return nil, request.ErrorUnauthorized()
+	} else {
+		parsedToken = t.(*validator.ValidatedClaims)
 	}
+	uid := strings.Split(parsedToken.RegisteredClaims.Subject, "|")[1]
 
-	return request.NewDetails(request.MethodAccessToken, details.UserID(), details.Token()), nil
+	return request.NewDetails(request.MethodAccessToken, uid, parts[1]), nil
 }
 
 func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, error) {
@@ -139,4 +159,53 @@ func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, err
 	}
 
 	return details, nil
+}
+
+func setupAuth0() (*validator.Validator, error) {
+	//target audience is used to verify the token was issued for a specific domain or url.
+	//by default it will be empty but we would (in the future) use this to authorize or deny access to some urls
+	targetAudience := []string{}
+	if value, present := os.LookupEnv("AUTH0_AUDIENCE"); present {
+		targetAudience = []string{value}
+	}
+	issuerURL, err := url.Parse(os.Getenv("AUTH0_URL") + "/")
+	if err != nil {
+		return nil, errors.New("Failed to parse the issuer url: " + err.Error())
+	}
+	var keyProvider *jwks.CachingProvider
+	// Use a custom CA cert if it's provided
+	if os.Getenv("SSL_CUSTOM_CA_KEY") != "" {
+		keyProvider = jwks.NewCachingProvider(issuerURL, 5*time.Minute, WithCustomCA(os.Getenv("SSL_CUSTOM_CA_KEY")))
+	} else {
+		keyProvider = jwks.NewCachingProvider(issuerURL, 5*time.Minute)
+	}
+	jwtValidator, err := validator.New(
+		keyProvider.KeyFunc,
+		validator.RS256,
+		issuerURL.String(),
+		targetAudience,
+		validator.WithAllowedClockSkew(time.Minute),
+	)
+	if err != nil {
+		return nil, errors.New("Failed to set up the jwt validator: " + err.Error())
+	}
+
+	return jwtValidator, nil
+}
+
+// WithCustomCa is a Provider Option for our jwks CachingProvider
+// It is used to specify a local CA cert, usefull when using a local OAuth server which use a self-signed cert
+func WithCustomCA(pem string) jwks.ProviderOption {
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM([]byte(pem))
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs: certPool,
+		},
+	}
+
+	return func(p *jwks.Provider) {
+		p.Client.Transport = tr
+	}
 }

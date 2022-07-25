@@ -35,7 +35,7 @@ var _ = Describe("User", func() {
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("has string length out of range (lower)", "01234abcd", auth.ErrorValueStringAsUserIDNotValid("01234abcd")),
 			Entry("has string length in range", test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)),
-			Entry("has string length out of range (upper)", "01234abcdef", auth.ErrorValueStringAsUserIDNotValid("01234abcdef")),
+			Entry("has string length out of range (upper)", "01234abcdef01234abcdef01234abcdef", auth.ErrorValueStringAsUserIDNotValid("01234abcdef01234abcdef01234abcdef")),
 			Entry("has uppercase characters", "01234ABCDE", auth.ErrorValueStringAsUserIDNotValid("01234ABCDE")),
 			Entry("has symbols", "0123$%BCDE", auth.ErrorValueStringAsUserIDNotValid("0123$%BCDE")),
 			Entry("has whitespace", "0123  BCDE", auth.ErrorValueStringAsUserIDNotValid("0123  BCDE")),
