@@ -97,6 +97,9 @@ type WeightingInput struct {
 }
 
 type Period struct {
+	HasTimeCGMUsePercent          bool `json:"hasTimeCGMUsePercent" bson:"hasTimeCGMUsePercent"`
+	HasGlucoseManagementIndicator bool `json:"hasGlucoseManagementIndicator" bson:"hasGlucoseManagementIndicator"`
+
 	TimeCGMUsePercent float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
 	TimeCGMUseMinutes int     `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
 	TimeCGMUseRecords int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
@@ -129,6 +132,8 @@ type Period struct {
 type Summary struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	UserID string             `json:"userId" bson:"userId"`
+
+	HasLastUploadDate bool `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
 
 	HourlyStats []*Stats           `json:"hourlyStats" bson:"hourlyStats"`
 	Periods     map[string]*Period `json:"periods" bson:"periods"`
@@ -412,13 +417,21 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
 	userSummary.TotalHours = len(userSummary.HourlyStats)
 
 	// calculate derived summary stats
-	timeCGMUsePercent = float64(totalStats.TotalCGMMinutes) / totalMinutes
-	timeInTargetPercent = float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInLowPercent = float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInVeryLowPercent = float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInHighPercent = float64(totalStats.HighMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInVeryHighPercent = float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalCGMMinutes)
-	averageGlucose = totalStats.TotalGlucose / float64(totalStats.TotalCGMRecords)
+	if totalMinutes != 0 {
+		timeCGMUsePercent = float64(totalStats.TotalCGMMinutes) / totalMinutes
+	}
+
+	if totalStats.TotalCGMMinutes != 0 {
+		timeInTargetPercent = float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes)
+		timeInLowPercent = float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes)
+		timeInVeryLowPercent = float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes)
+		timeInHighPercent = float64(totalStats.HighMinutes) / float64(totalStats.TotalCGMMinutes)
+		timeInVeryHighPercent = float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalCGMMinutes)
+	}
+
+	if totalStats.TotalCGMRecords != 0 {
+		averageGlucose = totalStats.TotalGlucose / float64(totalStats.TotalCGMRecords)
+	}
 
 	// we only add GMI if cgm use >70%, otherwise clear it
 	glucoseManagementIndicator = nil
@@ -432,6 +445,9 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
 	}
 
 	userSummary.Periods[strconv.Itoa(i)+"d"] = &Period{
+		HasGlucoseManagementIndicator: glucoseManagementIndicator != nil,
+		HasTimeCGMUsePercent:          timeCGMUsePercent != 0,
+
 		TimeCGMUsePercent: timeCGMUsePercent,
 		TimeCGMUseMinutes: totalStats.TotalCGMMinutes,
 		TimeCGMUseRecords: totalStats.TotalCGMRecords,
@@ -479,8 +495,11 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
 	userSummary.LastUpdatedDate = timestamp
-	userSummary.LastUploadDate = status.LastUpload
 	userSummary.OutdatedSince = nil
+	userSummary.LastUploadDate = status.LastUpload
+
+	// technically, this never could be zero, but we check anyway
+	userSummary.HasLastUploadDate = !status.LastUpload.IsZero()
 
 	// remove any past values that squeeze through the string date query that feeds this function
 	// this mostly occurs when different sources use different time precisions (s vs ms vs ns)

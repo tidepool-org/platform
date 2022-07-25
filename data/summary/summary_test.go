@@ -590,6 +590,8 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.TotalHours).To(Equal(336))
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(Equal(expectedGMI))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
 				Expect(userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(20160))
 				Expect(userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(4032))
@@ -609,6 +611,8 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.TotalHours).To(Equal(336))
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(Equal(expectedGMI))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
 				Expect(userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(20160))
 				Expect(userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(4032))
@@ -625,6 +629,8 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.TotalHours).To(Equal(30 * 24)) // 30 days currently capped
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeFalse())
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.0714, 0.001))
 				Expect(userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(1440))
 				Expect(userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(288))
@@ -653,7 +659,9 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.TotalHours).To(Equal(336))
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 
@@ -674,7 +682,9 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.TotalHours).To(Equal(168))
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.5, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeFalse())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 
 				// start the actual test
@@ -692,6 +702,8 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 
@@ -712,8 +724,10 @@ var _ = Describe("Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userSummary.TotalHours).To(Equal(336))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.001))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 
 				// start the actual test
@@ -729,8 +743,10 @@ var _ = Describe("Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userSummary.TotalHours).To(Equal(504))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 
@@ -750,8 +766,10 @@ var _ = Describe("Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userSummary.TotalHours).To(Equal(24))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.07142, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeFalse())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 
 				// start the actual test
@@ -770,8 +788,10 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.TotalHours).To(Equal(648)) // 27 days
 				Expect(userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(3024))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.75, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 
@@ -791,8 +811,10 @@ var _ = Describe("Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userSummary.TotalHours).To(Equal(336))
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeTrue())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 
 				// start the actual test
@@ -811,8 +833,10 @@ var _ = Describe("Summary", func() {
 
 				Expect(userSummary.TotalHours).To(Equal(504)) // 21 days
 				Expect(userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.5, 0.005))
+				Expect(userSummary.Periods["14d"].HasTimeCGMUsePercent).To(BeTrue())
 				Expect(userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", expectedNewAvg, 0.05))
 				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+				Expect(userSummary.Periods["14d"].HasGlucoseManagementIndicator).To(BeFalse())
 				Expect(userSummary.OutdatedSince).To(BeNil())
 			})
 

@@ -9,6 +9,7 @@ import (
 func RandomSummary() *summary.Summary {
 	var datum = summary.Summary{
 		LastUpdatedDate:          test.RandomTime(),
+		HasLastUploadDate:        test.RandomBool(),
 		FirstData:                test.RandomTime(),
 		LastData:                 pointer.FromTime(test.RandomTime()),
 		LastUploadDate:           test.RandomTime(),
@@ -44,7 +45,9 @@ func RandomSummary() *summary.Summary {
 
 	datum.Periods = make(map[string]*summary.Period)
 	datum.Periods["14d"] = &summary.Period{
-		GlucoseManagementIndicator: pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
+		HasGlucoseManagementIndicator: test.RandomBool(),
+		HasTimeCGMUsePercent:          test.RandomBool(),
+		GlucoseManagementIndicator:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
 		AverageGlucose: summary.Glucose{
 			Value: test.RandomFloat64FromRange(1, 30),
 			Units: "mmol/L",
