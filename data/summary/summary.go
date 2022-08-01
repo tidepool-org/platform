@@ -105,7 +105,7 @@ type Period struct {
 	TimeCGMUseRecords int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 
 	// actual values
-	AverageGlucose             Glucose  `json:"avgGlucose" bson:"avgGlucose"`
+	AverageGlucose             Glucose  `json:"averageGlucose" bson:"avgGlucose"`
 	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
 
 	TimeInTargetPercent float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
