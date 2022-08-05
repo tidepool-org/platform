@@ -97,36 +97,42 @@ type WeightingInput struct {
 }
 
 type Period struct {
-	HasTimeCGMUsePercent          bool `json:"hasTimeCGMUsePercent" bson:"hasTimeCGMUsePercent"`
+	HasAverageGlucose             bool `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
 	HasGlucoseManagementIndicator bool `json:"hasGlucoseManagementIndicator" bson:"hasGlucoseManagementIndicator"`
+	HasTimeCGMUsePercent          bool `json:"hasTimeCGMUsePercent" bson:"hasTimeCGMUsePercent"`
+	HasTimeInTargetPercent        bool `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
+	HasTimeInHighPercent          bool `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
+	HasTimeInVeryHighPercent      bool `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
+	HasTimeInLowPercent           bool `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
+	HasTimeInVeryLowPercent       bool `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
 
-	TimeCGMUsePercent float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
-	TimeCGMUseMinutes int     `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
-	TimeCGMUseRecords int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
+	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
+	TimeCGMUseMinutes int      `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
+	TimeCGMUseRecords int      `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 
 	// actual values
-	AverageGlucose             Glucose  `json:"averageGlucose" bson:"avgGlucose"`
+	AverageGlucose             *Glucose `json:"averageGlucose" bson:"avgGlucose"`
 	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
 
-	TimeInTargetPercent float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
-	TimeInTargetMinutes int     `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
-	TimeInTargetRecords int     `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
+	TimeInTargetMinutes int      `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
+	TimeInTargetRecords int      `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
 
-	TimeInLowPercent float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
-	TimeInLowMinutes int     `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
-	TimeInLowRecords int     `json:"timeInLowRecords" bson:"timeInLowRecords"`
+	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
+	TimeInLowMinutes int      `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
+	TimeInLowRecords int      `json:"timeInLowRecords" bson:"timeInLowRecords"`
 
-	TimeInVeryLowPercent float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
-	TimeInVeryLowMinutes int     `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
-	TimeInVeryLowRecords int     `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+	TimeInVeryLowMinutes int      `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
+	TimeInVeryLowRecords int      `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
 
-	TimeInHighPercent float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
-	TimeInHighMinutes int     `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
-	TimeInHighRecords int     `json:"timeInHighRecords" bson:"timeInHighRecords"`
+	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+	TimeInHighMinutes int      `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
+	TimeInHighRecords int      `json:"timeInHighRecords" bson:"timeInHighRecords"`
 
-	TimeInVeryHighPercent float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
-	TimeInVeryHighMinutes int     `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
-	TimeInVeryHighRecords int     `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+	TimeInVeryHighMinutes int      `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
+	TimeInVeryHighRecords int      `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
 type Summary struct {
@@ -395,14 +401,14 @@ func (userSummary *Summary) CalculateSummary() {
 }
 
 func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
-	var timeCGMUsePercent float64
-	var timeInTargetPercent float64
-	var timeInLowPercent float64
-	var timeInVeryLowPercent float64
-	var timeInHighPercent float64
-	var timeInVeryHighPercent float64
+	var timeCGMUsePercent *float64
+	var timeInTargetPercent *float64
+	var timeInLowPercent *float64
+	var timeInVeryLowPercent *float64
+	var timeInHighPercent *float64
+	var timeInVeryHighPercent *float64
 	var glucoseManagementIndicator *float64
-	var averageGlucose float64
+	var averageGlucose *Glucose
 
 	// remove partial hour (data end) from total time for more accurate TimeCGMUse
 	totalMinutes := float64(i * 24 * 60)
@@ -418,25 +424,33 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
 
 	// calculate derived summary stats
 	if totalMinutes != 0 {
-		timeCGMUsePercent = float64(totalStats.TotalCGMMinutes) / totalMinutes
+		timeCGMUsePercent = pointer.FromFloat64(float64(totalStats.TotalCGMMinutes) / totalMinutes)
 	}
 
 	if totalStats.TotalCGMMinutes != 0 {
-		timeInTargetPercent = float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes)
-		timeInLowPercent = float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes)
-		timeInVeryLowPercent = float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes)
-		timeInHighPercent = float64(totalStats.HighMinutes) / float64(totalStats.TotalCGMMinutes)
-		timeInVeryHighPercent = float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalCGMMinutes)
+		// if we are storing under 1d, apply 70% rule to TimeIn*
+		// if we are storing over 1d, check for 24h cgm use
+		if (i <= 1 && *timeCGMUsePercent < 0.7) || (i > 1 && totalStats.TotalCGMMinutes > 1440) {
+			timeInTargetPercent = pointer.FromFloat64(float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes))
+			timeInLowPercent = pointer.FromFloat64(float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes))
+			timeInVeryLowPercent = pointer.FromFloat64(float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes))
+			timeInHighPercent = pointer.FromFloat64(float64(totalStats.HighMinutes) / float64(totalStats.TotalCGMMinutes))
+			timeInVeryHighPercent = pointer.FromFloat64(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalCGMMinutes))
+		}
+
 	}
 
 	if totalStats.TotalCGMRecords != 0 {
-		averageGlucose = totalStats.TotalGlucose / float64(totalStats.TotalCGMRecords)
+		averageGlucose = &Glucose{
+			Value: totalStats.TotalGlucose / float64(totalStats.TotalCGMRecords),
+			Units: summaryGlucoseUnits,
+		}
 	}
 
 	// we only add GMI if cgm use >70%, otherwise clear it
 	glucoseManagementIndicator = nil
-	if timeCGMUsePercent > 0.7 {
-		glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose))
+	if *timeCGMUsePercent > 0.7 {
+		glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose.Value))
 	}
 
 	// ensure periods exists, just in case
@@ -445,17 +459,20 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
 	}
 
 	userSummary.Periods[strconv.Itoa(i)+"d"] = &Period{
+		HasAverageGlucose:             averageGlucose != nil,
 		HasGlucoseManagementIndicator: glucoseManagementIndicator != nil,
-		HasTimeCGMUsePercent:          timeCGMUsePercent != 0,
+		HasTimeCGMUsePercent:          timeCGMUsePercent != nil,
+		HasTimeInTargetPercent:        timeInTargetPercent != nil,
+		HasTimeInLowPercent:           timeInLowPercent != nil,
+		HasTimeInVeryLowPercent:       timeInVeryLowPercent != nil,
+		HasTimeInHighPercent:          timeInHighPercent != nil,
+		HasTimeInVeryHighPercent:      timeInVeryHighPercent != nil,
 
 		TimeCGMUsePercent: timeCGMUsePercent,
 		TimeCGMUseMinutes: totalStats.TotalCGMMinutes,
 		TimeCGMUseRecords: totalStats.TotalCGMRecords,
 
-		AverageGlucose: Glucose{
-			Value: averageGlucose,
-			Units: summaryGlucoseUnits,
-		},
+		AverageGlucose:             averageGlucose,
 		GlucoseManagementIndicator: glucoseManagementIndicator,
 
 		TimeInTargetPercent: timeInTargetPercent,
