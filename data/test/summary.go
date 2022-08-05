@@ -13,7 +13,7 @@ func RandomSummary() *summary.Summary {
 		FirstData:                test.RandomTime(),
 		LastData:                 pointer.FromTime(test.RandomTime()),
 		LastUploadDate:           test.RandomTime(),
-		OutdatedSince:            pointer.FromTime(test.RandomTime()),
+		OutdatedSince:            nil,
 		TotalHours:               test.RandomIntFromRange(0, 2160),
 		HighGlucoseThreshold:     test.RandomFloat64FromRange(5, 10),
 		VeryHighGlucoseThreshold: test.RandomFloat64FromRange(10, 20),
