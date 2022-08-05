@@ -430,7 +430,7 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *Stats) {
 	if totalStats.TotalCGMMinutes != 0 {
 		// if we are storing under 1d, apply 70% rule to TimeIn*
 		// if we are storing over 1d, check for 24h cgm use
-		if (i <= 1 && *timeCGMUsePercent < 0.7) || (i > 1 && totalStats.TotalCGMMinutes > 1440) {
+		if (i <= 1 && *timeCGMUsePercent > 0.7) || (i > 1 && totalStats.TotalCGMMinutes > 1440) {
 			timeInTargetPercent = pointer.FromFloat64(float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes))
 			timeInLowPercent = pointer.FromFloat64(float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes))
 			timeInVeryLowPercent = pointer.FromFloat64(float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes))
