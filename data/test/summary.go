@@ -13,7 +13,7 @@ func RandomSummary() *summary.Summary {
 		FirstData:                test.RandomTime(),
 		LastData:                 pointer.FromTime(test.RandomTime()),
 		LastUploadDate:           test.RandomTime(),
-		OutdatedSince:            nil,
+		OutdatedSince:            pointer.FromTime(test.RandomTime()),
 		TotalHours:               test.RandomIntFromRange(0, 2160),
 		HighGlucoseThreshold:     test.RandomFloat64FromRange(5, 10),
 		VeryHighGlucoseThreshold: test.RandomFloat64FromRange(10, 20),
@@ -44,32 +44,47 @@ func RandomSummary() *summary.Summary {
 	}
 
 	datum.Periods = make(map[string]*summary.Period)
-	datum.Periods["14d"] = &summary.Period{
-		HasGlucoseManagementIndicator: test.RandomBool(),
-		HasTimeCGMUsePercent:          test.RandomBool(),
-		GlucoseManagementIndicator:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
-		AverageGlucose: summary.Glucose{
-			Value: test.RandomFloat64FromRange(1, 30),
-			Units: "mmol/L",
-		},
-		TimeCGMUsePercent:     test.RandomFloat64FromRange(0, 1),
-		TimeCGMUseMinutes:     test.RandomIntFromRange(0, 129600),
-		TimeCGMUseRecords:     test.RandomIntFromRange(0, 25920),
-		TimeInTargetPercent:   test.RandomFloat64FromRange(0, 1),
-		TimeInTargetMinutes:   test.RandomIntFromRange(0, 129600),
-		TimeInTargetRecords:   test.RandomIntFromRange(0, 25920),
-		TimeInLowPercent:      test.RandomFloat64FromRange(0, 1),
-		TimeInLowMinutes:      test.RandomIntFromRange(0, 129600),
-		TimeInLowRecords:      test.RandomIntFromRange(0, 25920),
-		TimeInVeryLowPercent:  test.RandomFloat64FromRange(0, 1),
-		TimeInVeryLowMinutes:  test.RandomIntFromRange(0, 129600),
-		TimeInVeryLowRecords:  test.RandomIntFromRange(0, 25920),
-		TimeInHighPercent:     test.RandomFloat64FromRange(0, 1),
-		TimeInHighMinutes:     test.RandomIntFromRange(0, 129600),
-		TimeInHighRecords:     test.RandomIntFromRange(0, 25920),
-		TimeInVeryHighPercent: test.RandomFloat64FromRange(0, 1),
-		TimeInVeryHighMinutes: test.RandomIntFromRange(0, 129600),
-		TimeInVeryHighRecords: test.RandomIntFromRange(0, 25920),
+	for _, period := range []string{"Foo", "Bar"} {
+		datum.Periods[period] = &summary.Period{
+			GlucoseManagementIndicator:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
+			HasGlucoseManagementIndicator: test.RandomBool(),
+
+			AverageGlucose: &summary.Glucose{
+				Value: test.RandomFloat64FromRange(1, 30),
+				Units: "mmol/L",
+			},
+			HasAverageGlucose: test.RandomBool(),
+
+			TimeCGMUsePercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeCGMUsePercent: test.RandomBool(),
+			TimeCGMUseMinutes:    test.RandomIntFromRange(0, 129600),
+			TimeCGMUseRecords:    test.RandomIntFromRange(0, 25920),
+
+			TimeInTargetPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInTargetPercent: test.RandomBool(),
+			TimeInTargetMinutes:    test.RandomIntFromRange(0, 129600),
+			TimeInTargetRecords:    test.RandomIntFromRange(0, 25920),
+
+			TimeInLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInLowPercent: test.RandomBool(),
+			TimeInLowMinutes:    test.RandomIntFromRange(0, 129600),
+			TimeInLowRecords:    test.RandomIntFromRange(0, 25920),
+
+			TimeInVeryLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInVeryLowPercent: test.RandomBool(),
+			TimeInVeryLowMinutes:    test.RandomIntFromRange(0, 129600),
+			TimeInVeryLowRecords:    test.RandomIntFromRange(0, 25920),
+
+			TimeInHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInHighPercent: test.RandomBool(),
+			TimeInHighMinutes:    test.RandomIntFromRange(0, 129600),
+			TimeInHighRecords:    test.RandomIntFromRange(0, 25920),
+
+			TimeInVeryHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInVeryHighPercent: test.RandomBool(),
+			TimeInVeryHighMinutes:    test.RandomIntFromRange(0, 129600),
+			TimeInVeryHighRecords:    test.RandomIntFromRange(0, 25920),
+		}
 	}
 
 	return &datum
