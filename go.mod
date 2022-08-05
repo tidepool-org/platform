@@ -9,9 +9,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.6.2
-	github.com/fatih/color v1.9.0 // indirect
 	github.com/githubnemo/CompileDaemon v1.4.0
-	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.2.0
 	github.com/gowebpki/jcs v0.0.0-20210215032300-680d9436c864
@@ -29,6 +27,7 @@ require (
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.5.4
 	go.uber.org/fx v1.13.1
+	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
