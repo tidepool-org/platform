@@ -306,9 +306,9 @@ func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
 }
 
-func (b *Base) UpdatesSummary() bool {
-	// two years has a bit of padding, to allow for some calculation delay
-	twoYearsPast := time.Now().UTC().AddDate(0, -23, -20)
+func (b *Base) UpdatesCGMSummary() bool {
+	// one year has a bit of padding, to allow for some calculation delay
+	twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
 	datumTime, err := time.Parse(time.RFC3339Nano, *b.Time)
@@ -322,6 +322,33 @@ func (b *Base) UpdatesSummary() bool {
 	}
 
 	return false
+}
+
+func (b *Base) UpdatesBGMSummary() bool {
+	// one year has a bit of padding, to allow for some calculation delay
+	twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	datumTime, err := time.Parse(time.RFC3339Nano, *b.Time)
+	if err != nil {
+		// play it safe, return false for unparsable date
+		return false
+	}
+
+	if b.Type == "smbg" && datumTime.Before(oneDayFuture) && datumTime.After(twoYearsPast) {
+		return true
+	}
+
+	return false
+}
+
+func (b *Base) UpdatesSummary(updates *data.SummaryTypeUpdates) {
+	if b.UpdatesCGMSummary() {
+		updates.CGM = true
+	}
+	if b.UpdatesBGMSummary() {
+		updates.BGM = true
+	}
 }
 
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

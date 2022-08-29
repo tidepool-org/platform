@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+
 	"github.com/tidepool-org/platform/data/summary"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,7 +14,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -891,9 +892,9 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
-	var dataSetsOld []*continuous.Continuous
-	var dataSets []*continuous.Continuous
+func (d *DataRepository) GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error) {
+	var dataSetsOld []*glucose.Glucose
+	var dataSets []*glucose.Glucose
 
 	// quit early if range is 0
 	if startTime.Equal(endTime) {
@@ -908,7 +909,7 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	selectorOld := bson.M{
 		"_active": true,
 		"_userId": id,
-		"type":    "cbg",
+		"type":    t,
 		"time": bson.M{"$gt": startTime.Format(time.RFC3339Nano),
 			"$lte": endTime.Format(time.RFC3339Nano)},
 	}
@@ -916,7 +917,7 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
-		"type":    "cbg",
+		"type":    t,
 		"time": bson.M{"$gt": startTime,
 			"$lte": endTime},
 	}
@@ -952,11 +953,11 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	return dataSets, nil
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
+func (d *DataRepository) GetCGMLastUpdatedForUser(ctx context.Context, id string) (*summary.UserCGMLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
-	var status summary.UserLastUpdated
-	var dataSet []*continuous.Continuous
+	var status summary.UserCGMLastUpdated
+	var dataSet []*glucose.Glucose
 
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -1030,11 +1031,113 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	return &status, nil
 }
 
-func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
+func (d *DataRepository) GetBGMLastUpdatedForUser(ctx context.Context, id string) (*summary.UserBGMLastUpdated, error) {
+	var err error
+	var cursor *mongo.Cursor
+	var status summary.UserBGMLastUpdated
+	var dataSet []*glucose.Glucose
+
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
+	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
+
+	selectorOld := bson.M{
+		"_active": true,
+		"_userId": id,
+		"type":    "smbg",
+		"time": bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano),
+			"$gte": pastCutoff.Format(time.RFC3339Nano)},
+	}
+
+	selector := bson.M{
+		"_active": true,
+		"_userId": id,
+		"type":    "smbg",
+		"time": bson.M{"$lte": futureCutoff,
+			"$gte": pastCutoff},
+	}
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
+	findOptions.SetLimit(1)
+
+	cursor, err = d.Find(ctx, selector, findOptions)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get last bgm date")
+	}
+
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return nil, errors.Wrap(err, "unable to decode last bgm date")
+	}
+
+	// if we can't find a new format record, instead look for legacy date records
+	if len(dataSet) < 1 {
+		cursor, err = d.Find(ctx, selectorOld, findOptions)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to get last bgm date")
+		}
+		if err = cursor.All(ctx, &dataSet); err != nil {
+			return nil, errors.Wrap(err, "unable to decode last bgm date")
+		}
+
+	}
+
+	// if we still have no record
+	if len(dataSet) < 1 {
+		return nil, nil
+	}
+
+	status.LastUpload, err = time.Parse(time.RFC3339Nano, *dataSet[0].CreatedTime)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
+	}
+	status.LastUpload = status.LastUpload.UTC()
+
+	status.LastData, err = time.Parse(time.RFC3339Nano, *dataSet[0].Time)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse latest Time")
+	}
+	status.LastData = status.LastData.UTC()
+
+	return &status, nil
+}
+
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
+	var status summary.UserLastUpdated
+	var err error
+
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	status.CGM, err = d.GetCGMLastUpdatedForUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	status.BGM, err = d.GetBGMLastUpdatedForUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &status, nil
+}
+
+func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
 	var userIDs []string
 
 	if ctx == nil {
-		return userIDs, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	// allow for a small margin on the pastCutoff to allow for calculation delay
@@ -1043,11 +1146,15 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 
 	// we don't query for users with different time field types, as users with the new types would
 	// not exist before summaries were launched.
+	// $or on type might prove painful for indexing/perf, might need to be split and recombined outside the db
 	selector := bson.M{
 		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
 			"$lte": futureCutoff.Format(time.RFC3339Nano)},
 		"_active": true,
-		"type":    "cbg",
+		"$or": bson.A{
+			bson.M{"type": "smbg"},
+			bson.M{"type": "cbg"},
+		},
 		"_userId": bson.M{"$ne": -1111},
 	}
 

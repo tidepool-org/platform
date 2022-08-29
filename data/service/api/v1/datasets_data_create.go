@@ -91,16 +91,14 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	updatesSummary := false
+	var updatesSummary data.SummaryTypeUpdates
 
 	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		if datum.UpdatesSummary() {
-			updatesSummary = true
-		}
+		datum.UpdatesSummary(&updatesSummary)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -114,8 +112,8 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if updatesSummary {
-		_, err = dataServiceContext.SummaryRepository().SetOutdated(ctx, *dataSet.UserID)
+	if updatesSummary.CGM || updatesSummary.BGM {
+		_, err = dataServiceContext.SummaryRepository().SetOutdated(ctx, *dataSet.UserID, &updatesSummary)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set summary outdated")
 		}

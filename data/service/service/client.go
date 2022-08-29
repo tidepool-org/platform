@@ -55,11 +55,17 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	var status *summary.UserLastUpdated
 	var userSummary *summary.Summary
 	var timestamp time.Time
+	var userData *summary.UserData
 	timestamp = time.Now().UTC()
 	logger := log.LoggerFromContext(ctx)
 	logger.Debugf("Starting summary calculation for %s", id)
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
+
+	userSummary.CGM.OutdatedSince = nil
+	userSummary.CGM.LastUpdatedDate = timestamp
+	userSummary.BGM.OutdatedSince = nil
+	userSummary.BGM.LastUpdatedDate = timestamp
 
 	// we need the original summary object to grab the original for rolling calc
 	userSummary, err = summaryRepository.GetSummary(ctx, id)
@@ -72,13 +78,11 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		return nil, err
 	}
 
-	if status == nil {
+	// this filters out users which require no update, as they have no cgm or bgm data, but have an outdated summary
+	if status.CGM == nil && status.BGM == nil {
 		if userSummary != nil {
 			// user's data is inactive/deleted, or this summary shouldn't have been created
 			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", id)
-			userSummary.OutdatedSince = nil
-			userSummary.LastUpdatedDate = timestamp
-
 			userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 			if err != nil {
 				return nil, err
@@ -92,34 +96,54 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 		userSummary = summary.New(id)
 	}
 
-	// remove 30 days for start time
-	startTime := status.LastData.AddDate(0, 0, -30)
+	if status.CGM != nil {
+		// remove 30 days for start time
+		startTime := status.CGM.LastData.AddDate(0, 0, -30)
+		endTime := status.CGM.LastData
 
-	// check status.LastData for going back in time to prevent deleted data from causing issues
-	if userSummary.LastData != nil {
-		if status.LastData.Before(*userSummary.LastData) || status.LastData.Equal(*userSummary.LastData) {
-			userSummary.OutdatedSince = nil
-			userSummary.LastUpdatedDate = timestamp
+		if userSummary.CGM.LastData != nil {
+			// if summary already exists with a last data checkpoint, start data pull there
+			if startTime.Before(*userSummary.CGM.LastData) {
+				startTime = *userSummary.CGM.LastData
+			}
 
-			userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
-			if err != nil {
-				return nil, err
+			// ensure endTime does not move backwards by capping it at summary LastData
+			if !status.CGM.LastData.After(*userSummary.CGM.LastData) {
+				endTime = *userSummary.CGM.LastData
 			}
 		}
 
-		// if summary already exists with a last data checkpoint, start data pull there
-		if startTime.Before(*userSummary.LastData) {
-			startTime = *userSummary.LastData
+		userData.CGM, err = dataRepository.GetDataRange(ctx, id, "cbg", startTime, endTime)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	userData, err := dataRepository.GetCGMDataRange(ctx, id, startTime, status.LastData)
-	if err != nil {
-		return nil, err
+	if status.BGM != nil {
+		// remove 30 days for start time
+		startTime := status.BGM.LastData.AddDate(0, 0, -30)
+		endTime := status.BGM.LastData
+
+		if userSummary.BGM.LastData != nil {
+			// if summary already exists with a last data checkpoint, start data pull there
+			if startTime.Before(*userSummary.BGM.LastData) {
+				startTime = *userSummary.BGM.LastData
+			}
+
+			// ensure endTime does not move backwards by capping it at summary LastData
+			if !status.BGM.LastData.After(*userSummary.BGM.LastData) {
+				endTime = *userSummary.BGM.LastData
+			}
+		}
+
+		userData.BGM, err = dataRepository.GetDataRange(ctx, id, "smbg", startTime, endTime)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// if there is new data
-	if len(userData) > 0 {
+	if len(userData.CGM) > 0 || len(userData.BGM) > 0 {
 		err = userSummary.Update(ctx, status, userData)
 		if err != nil {
 			return nil, err
@@ -127,8 +151,8 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 	} else {
 		// "new" data must be in the past, don't update, just remove flags and set new date
 		logger.Infof("User %s has an outdated summary with no forward data, skipping calc.", id)
-		userSummary.OutdatedSince = nil
-		userSummary.LastUpdatedDate = timestamp
+		userSummary.CGM.OutdatedSince = nil
+		userSummary.CGM.LastUpdatedDate = timestamp
 	}
 	userSummary, err = summaryRepository.UpdateSummary(ctx, userSummary)
 
@@ -143,7 +167,7 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
 	summaryRepository := c.dataStore.NewSummaryRepository()
 	dataRepository := c.dataStore.NewDataRepository()
 
-	distinctDataUserIDs, err := dataRepository.DistinctCGMUserIDs(ctx)
+	distinctDataUserIDs, err := dataRepository.DistinctUserIDs(ctx)
 	if err != nil {
 		return count, err
 	}

@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+
 	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -45,9 +46,9 @@ type DataRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-	GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error)
+	GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error)
 	GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
-	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
+	DistinctUserIDs(ctx context.Context) ([]string, error)
 }
 
 type Filter struct {
@@ -71,7 +72,7 @@ type SummaryRepository interface {
 
 	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
 	DeleteSummary(ctx context.Context, id string) error
-	SetOutdated(ctx context.Context, id string) (*time.Time, error)
+	SetOutdated(ctx context.Context, id string, updates *data.SummaryTypeUpdates) (*summary.TypeOutdatedTimes, error)
 	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error)
 	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
 	DistinctSummaryIDs(ctx context.Context) ([]string, error)

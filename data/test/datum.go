@@ -50,7 +50,7 @@ type Datum struct {
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
 	UpdatesSummaryInvocations            int
-	UpdatesSummaryOutputs                []bool
+	UpdatesSummaryInputs                 []*data.SummaryTypeUpdates
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -178,14 +178,10 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
-func (d *Datum) UpdatesSummary() bool {
+func (d *Datum) UpdatesSummary(updatesSummary *data.SummaryTypeUpdates) {
 	d.UpdatesSummaryInvocations++
 
-	gomega.Expect(d.UpdatesSummaryOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.UpdatesSummaryOutputs[0]
-	d.UpdatesSummaryOutputs = d.UpdatesSummaryOutputs[1:]
-	return output
+	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

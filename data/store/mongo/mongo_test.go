@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+
 	"github.com/tidepool-org/platform/data/summary"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -384,18 +386,18 @@ var _ = Describe("Mongo", func() {
 
 					Context("GetCGMDataRange", func() {
 						It("returns empty if range is 0", func() {
-							var cgmRecords []*continuous.Continuous
+							var cgmRecords []*glucose.Glucose
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
-							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetFirstData)
+							cgmRecords, err = repository.GetDataRange(ctx, userID, "cbg", dataSetFirstData, dataSetFirstData)
 
 							Expect(err).ToNot(HaveOccurred())
 							Expect(len(cgmRecords)).To(Equal(0))
 						})
 
 						It("returns error if range is backwards", func() {
-							var cgmRecords []*continuous.Continuous
+							var cgmRecords []*glucose.Glucose
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
-							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetLastUpdated, dataSetFirstData)
+							cgmRecords, err = repository.GetDataRange(ctx, userID, "cbg", dataSetLastUpdated, dataSetFirstData)
 
 							Expect(err).To(HaveOccurred())
 							Expect(cgmRecords).To(BeNil())
@@ -406,18 +408,18 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns right count for the requested range", func() {
-							var cgmRecords []*continuous.Continuous
+							var cgmRecords []*glucose.Glucose
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
-							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetLastUpdated)
+							cgmRecords, err = repository.GetDataRange(ctx, userID, "cbg", dataSetFirstData, dataSetLastUpdated)
 
 							Expect(err).ToNot(HaveOccurred())
 							Expect(len(cgmRecords)).To(Equal(576))
 						})
 
 						It("returns right data for the requested range", func() {
-							var cgmRecords []*continuous.Continuous
+							var cgmRecords []*glucose.Glucose
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -3)
-							cgmRecords, err = repository.GetCGMDataRange(ctx, userID, dataSetFirstData, dataSetLastUpdated)
+							cgmRecords, err = repository.GetDataRange(ctx, userID, "cbg", dataSetFirstData, dataSetLastUpdated)
 
 							Expect(err).ToNot(HaveOccurred())
 							Expect(len(cgmRecords)).To(Equal(864))
@@ -435,8 +437,8 @@ var _ = Describe("Mongo", func() {
 							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
 
 							Expect(err).ToNot(HaveOccurred())
-							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
-							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.CGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
 
 						It("returns right lastUpdated for user with no data", func() {
@@ -444,7 +446,7 @@ var _ = Describe("Mongo", func() {
 							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "deadbeef")
 
 							Expect(err).ToNot(HaveOccurred())
-							Expect(userLastUpdated).To(BeNil())
+							Expect(userLastUpdated.CGM).To(BeNil())
 						})
 
 						It("returns right lastUpdated for user with far future data", func() {
@@ -461,14 +463,14 @@ var _ = Describe("Mongo", func() {
 							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
 
 							Expect(err).ToNot(HaveOccurred())
-							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
-							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.CGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
 					})
 
 					Context("DistinctCGMUserIDs", func() {
 						It("returns correct count and IDs of distinct users", func() {
-							resultUserIDs, err := repository.DistinctCGMUserIDs(ctx)
+							resultUserIDs, err := repository.DistinctUserIDs(ctx)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(len(resultUserIDs)).To(Equal(1))
 							Expect(resultUserIDs).To(ConsistOf([1]string{userID}))
@@ -485,7 +487,7 @@ var _ = Describe("Mongo", func() {
 							Expect(err).ToNot(HaveOccurred())
 							Expect(repository.CreateDataSetData(ctx, otherDataSetCGM, otherDataSetCGMData)).To(Succeed())
 
-							resultUserIDs, err := repository.DistinctCGMUserIDs(ctx)
+							resultUserIDs, err := repository.DistinctUserIDs(ctx)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(len(resultUserIDs)).To(Equal(2))
 							Expect(resultUserIDs).To(ConsistOf([2]string{userID, otherUserID}))
@@ -520,7 +522,7 @@ var _ = Describe("Mongo", func() {
 						var newSummary *summary.Summary
 						// make keys match, and remove some days to ensure they also get removed
 						anotherRandomSummary.UserID = randomSummary.UserID
-						anotherRandomSummary.HourlyStats = anotherRandomSummary.HourlyStats[0:0]
+						anotherRandomSummary.CGM.HourlyStats = anotherRandomSummary.CGM.HourlyStats[0:0]
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -650,14 +652,16 @@ var _ = Describe("Mongo", func() {
 
 				Context("SetOutdated", func() {
 					It("returns error if context is empty", func() {
-						_, err := summaryRepository.SetOutdated(nil, randomSummary.UserID)
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
+						_, err := summaryRepository.SetOutdated(nil, randomSummary.UserID, updates)
 
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
 					})
 
 					It("returns error if id is empty", func() {
-						_, err := summaryRepository.SetOutdated(ctx, "")
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
+						_, err := summaryRepository.SetOutdated(ctx, "", updates)
 
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("user id is missing"))
@@ -665,39 +669,42 @@ var _ = Describe("Mongo", func() {
 
 					It("returns and correctly sets outdated", func() {
 						summaries := []*summary.Summary{randomSummary}
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
 						_, err := summaryRepository.CreateSummaries(ctx, summaries)
 						Expect(err).ToNot(HaveOccurred())
 
-						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
 						summary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(timestamp).To(Equal(summary.OutdatedSince))
+						Expect(timestamp.CGM).To(Equal(summary.CGM.OutdatedSince))
 					})
 
 					It("returns and correctly upserts an outdated summary if none existed", func() {
-						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
+						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
 						summary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(timestamp).To(Equal(summary.OutdatedSince))
+						Expect(timestamp.CGM).To(Equal(summary.CGM.OutdatedSince))
 						Expect(randomSummary.UserID).To(Equal(summary.UserID))
 					})
 
 					It("returns and correctly leaves outdated unchanged if already set", func() {
 						summaries := []*summary.Summary{randomSummary}
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
 						_, err := summaryRepository.CreateSummaries(ctx, summaries)
 						Expect(err).ToNot(HaveOccurred())
 
-						timestampOne, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						timestampOne, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
 
-						timestampTwo, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						timestampTwo, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(timestampOne).To(Equal(timestampTwo))
+						Expect(timestampOne.CGM).To(Equal(timestampTwo.CGM))
 					})
 				})
 
@@ -721,12 +728,13 @@ var _ = Describe("Mongo", func() {
 
 					It("returns and correctly gets outdated summaries", func() {
 						pagination = page.NewPagination()
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
 
 						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
 						_, err := summaryRepository.CreateSummaries(ctx, summaries)
 						Expect(err).ToNot(HaveOccurred())
 
-						_, err = summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						_, err = summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
 
 						userIDs, err := summaryRepository.GetOutdatedUserIDs(ctx, pagination)
@@ -739,6 +747,7 @@ var _ = Describe("Mongo", func() {
 				Context("Test full update summary flow", func() {
 					It("ensure an outdated record is no longer outdated after update", func() {
 						userSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userSummary).To(BeNil())
 
@@ -750,21 +759,21 @@ var _ = Describe("Mongo", func() {
 						randomSummary.ID = newSummary.ID
 						Expect(newSummary).To(Equal(randomSummary))
 
-						outdatedTime, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID)
+						outdatedTime, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(outdatedTime).ToNot(BeNil())
+						Expect(outdatedTime.CGM).ToNot(BeNil())
 
 						outdatedSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(outdatedSummary.OutdatedSince).To(Equal(outdatedTime))
+						Expect(outdatedSummary.CGM.OutdatedSince).To(Equal(outdatedTime.CGM))
 
-						outdatedSummary.OutdatedSince = nil
+						outdatedSummary.CGM.OutdatedSince = nil
 						_, err = summaryRepository.UpdateSummary(ctx, outdatedSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						finalSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(finalSummary.OutdatedSince).To(BeNil())
+						Expect(finalSummary.CGM.OutdatedSince).To(BeNil())
 					})
 				})
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
+
 	"github.com/tidepool-org/platform/data/summary"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -95,6 +97,7 @@ func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error 
 	return nil
 }
 
+// TODO return outdated by type
 func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
 	var summaries []*summary.Summary
 
@@ -107,7 +110,7 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 	}
 
 	selector := bson.M{
-		"outdatedSince": bson.M{"$ne": nil},
+		"cgmSummary.outdatedSince": bson.M{"$ne": nil},
 	}
 
 	opts := options.Find()
@@ -154,7 +157,7 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.
 	return summary, err
 }
 
-func (d *SummaryRepository) SetOutdated(ctx context.Context, id string) (*time.Time, error) {
+func (d *SummaryRepository) SetOutdated(ctx context.Context, id string, updates *data.SummaryTypeUpdates) (*summary.TypeOutdatedTimes, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -165,36 +168,49 @@ func (d *SummaryRepository) SetOutdated(ctx context.Context, id string) (*time.T
 
 	// we need to get the summary first, as there is multiple possible operations, and we do not want to replace
 	// the existing field, but also want to upsert if no summary exists.
-	var summary summary.Summary
+	changes := bson.M{}
+	var userSummary summary.Summary
 	opts := options.Update().SetUpsert(true)
 	timestamp := time.Now().UTC().Truncate(time.Millisecond)
-
-	update := bson.M{
-		"$set": bson.M{
-			"outdatedSince": &timestamp,
-		},
-	}
 
 	selector := bson.M{
 		"userId": id,
 	}
 
-	err := d.FindOne(ctx, selector).Decode(&summary)
+	err := d.FindOne(ctx, selector).Decode(&userSummary)
+
+	outdatedTimes := summary.TypeOutdatedTimes{
+		CGM: userSummary.CGM.OutdatedSince,
+		BGM: userSummary.BGM.OutdatedSince,
+	}
 
 	if err != nil && err != mongo.ErrNoDocuments {
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	if summary.OutdatedSince != nil {
-		return summary.OutdatedSince, nil
+	if updates.CGM {
+		if userSummary.CGM.OutdatedSince == nil {
+			changes["cgmSummary.outdatedSince"] = &timestamp
+			outdatedTimes.CGM = &timestamp
+		}
 	}
 
-	_, err = d.UpdateOne(ctx, selector, update, opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to update outdatedSince date")
+	if updates.BGM {
+		if userSummary.BGM.OutdatedSince == nil {
+			changes["bgmSummary.outdatedSince"] = &timestamp
+			outdatedTimes.BGM = &timestamp
+		}
 	}
 
-	return &timestamp, nil
+	if len(changes) > 0 {
+		_, err = d.UpdateOne(ctx, selector, bson.M{"$set": changes}, opts)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to update %s outdatedSince date", changes)
+		}
+		return &outdatedTimes, nil
+	}
+
+	return &outdatedTimes, nil
 }
 
 func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
