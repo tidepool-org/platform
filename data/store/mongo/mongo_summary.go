@@ -97,7 +97,6 @@ func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error 
 	return nil
 }
 
-// TODO return outdated by type
 func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
 	var summaries []*summary.Summary
 
@@ -110,11 +109,16 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 	}
 
 	selector := bson.M{
-		"cgmSummary.outdatedSince": bson.M{"$ne": nil},
-	}
+		"$or": bson.A{
+			bson.M{"cgmSummary.outdatedSince": bson.M{"$ne": nil}},
+			bson.M{"bgmSummary.outdatedSince": bson.M{"$ne": nil}},
+		}}
 
 	opts := options.Find()
-	opts.SetSort(bson.D{{Key: "outdatedSince", Value: 1}})
+	opts.SetSort(bson.D{
+		{Key: "cgmSummary.outdatedSince", Value: 1},
+		{Key: "bgmSummary.outdatedSince", Value: 1},
+	})
 	opts.SetLimit(int64(page.Size))
 
 	cursor, err := d.Find(ctx, selector, opts)

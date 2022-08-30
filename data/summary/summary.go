@@ -31,6 +31,11 @@ type UserLastUpdated struct {
 	BGM *UserBGMLastUpdated
 }
 
+type OutdatedUserIDs struct {
+	CGM []string
+	BGM []string
+}
+
 type UserData struct {
 	CGM []*glucoseDatum.Glucose
 	BGM []*glucoseDatum.Glucose

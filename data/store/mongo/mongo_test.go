@@ -23,8 +23,6 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
@@ -78,25 +76,24 @@ func NewDataSetData(deviceID string) data.Data {
 	return dataSetData
 }
 
-func NewContinuous(units *string) *continuous.Continuous {
-	datum := continuous.New()
-	datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
-	datum.Type = "cbg"
+func NewGlucose(typ *string, units *string) *glucose.Glucose {
+	datum := glucose.New(*typ)
+	datum.Units = units
 
-	return datum
+	return &datum
 }
 
 func NewDataSetCGMData(deviceID string, startTime time.Time, days int) data.Data {
-	requiredRecords := int(days * 288)
+	requiredRecords := days * 288
 	var dataSetData = make([]data.Datum, requiredRecords)
 	var datumTime string
 	unit := "mmol/L"
+	typ := "cbg"
 
-	// generate 2 weeks of data
 	for count := 0; count < requiredRecords; count++ {
 		datumTime = startTime.Add(time.Duration(-count) * time.Minute * 5).Format(time.RFC3339Nano)
 
-		datum := NewContinuous(&unit)
+		datum := NewGlucose(&typ, &unit)
 		datum.Active = true
 		datum.ArchivedDataSetID = nil
 		datum.ArchivedTime = nil
@@ -109,7 +106,38 @@ func NewDataSetCGMData(deviceID string, startTime time.Time, days int) data.Data
 		datum.ModifiedUserID = nil
 		datum.Time = pointer.FromString(datumTime)
 
-		datum.Glucose.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
+		datum.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
+
+		dataSetData[requiredRecords-count-1] = datum
+	}
+
+	return dataSetData
+}
+
+func NewDataSetBGMData(deviceID string, startTime time.Time, days int) data.Data {
+	requiredRecords := days * 6
+	var dataSetData = make([]data.Datum, requiredRecords)
+	var datumTime string
+	unit := "mmol/L"
+	typ := "smbg"
+
+	for count := 0; count < requiredRecords; count++ {
+		datumTime = startTime.Add(time.Duration(-count) * time.Hour * 4).Format(time.RFC3339Nano)
+
+		datum := NewGlucose(&typ, &unit)
+		datum.Active = true
+		datum.ArchivedDataSetID = nil
+		datum.ArchivedTime = nil
+		datum.CreatedTime = nil
+		datum.CreatedUserID = nil
+		datum.DeletedTime = nil
+		datum.DeletedUserID = nil
+		datum.DeviceID = pointer.FromString(deviceID)
+		datum.ModifiedTime = nil
+		datum.ModifiedUserID = nil
+		datum.Time = pointer.FromString(datumTime)
+
+		datum.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
 
 		dataSetData[requiredRecords-count-1] = datum
 	}
@@ -191,7 +219,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if store != nil {
-			store.Terminate(context.Background())
+			_ = store.Terminate(context.Background())
 		}
 	})
 
@@ -227,8 +255,8 @@ var _ = Describe("Mongo", func() {
 
 		AfterEach(func() {
 			if collection != nil {
-				collection.Database().Drop(context.Background())
-				summaryCollection.Database().Drop(context.Background())
+				_ = collection.Database().Drop(context.Background())
+				_ = summaryCollection.Database().Drop(context.Background())
 			}
 		})
 
@@ -335,8 +363,8 @@ var _ = Describe("Mongo", func() {
 
 			AfterEach(func() {
 				if repository != nil {
-					collection.DeleteMany(context.Background(), bson.D{})
-					summaryCollection.DeleteMany(context.Background(), bson.D{})
+					_, _ = collection.DeleteMany(context.Background(), bson.D{})
+					_, _ = summaryCollection.DeleteMany(context.Background(), bson.D{})
 				}
 			})
 
@@ -347,12 +375,14 @@ var _ = Describe("Mongo", func() {
 				var deviceID string
 				var randomSummary *summary.Summary
 				var anotherRandomSummary *summary.Summary
-				var dataSetCGM *upload.Upload
+				var dataSet *upload.Upload
 				var dataSetCGMData data.Data
+				var dataSetBGMData data.Data
 				var dataSetLastUpdated time.Time
 				var dataSetFirstData time.Time
-				var otherDataSetCGM *upload.Upload
+				var otherDataSet *upload.Upload
 				var otherDataSetCGMData data.Data
+				var otherDataSetBGMData data.Data
 				var otherDataSetLastUpdated time.Time
 				var err error
 
@@ -372,16 +402,18 @@ var _ = Describe("Mongo", func() {
 
 				Context("With cgm data", func() {
 					BeforeEach(func() {
-						dataSetCGM = NewDataSet(userID, deviceID)
-						dataSetCGM.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -3, 0).Format(time.RFC3339Nano))
+						dataSet = NewDataSet(userID, deviceID)
+						dataSet.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -3, 0).Format(time.RFC3339Nano))
 
 						dataSetLastUpdated = time.Now().UTC().AddDate(0, -3, 0).Truncate(time.Millisecond)
 						dataSetCGMData = NewDataSetCGMData(deviceID, dataSetLastUpdated, 3)
+						dataSetBGMData = NewDataSetBGMData(deviceID, dataSetLastUpdated, 3)
 
-						_, err = collection.InsertOne(context.Background(), dataSetCGM)
+						_, err = collection.InsertOne(context.Background(), dataSet)
 						Expect(err).ToNot(HaveOccurred())
 
-						Expect(repository.CreateDataSetData(ctx, dataSetCGM, dataSetCGMData)).To(Succeed())
+						Expect(repository.CreateDataSetData(ctx, dataSet, dataSetCGMData)).To(Succeed())
+						Expect(repository.CreateDataSetData(ctx, dataSet, dataSetBGMData)).To(Succeed())
 					})
 
 					Context("GetCGMDataRange", func() {
@@ -407,7 +439,7 @@ var _ = Describe("Mongo", func() {
 							))
 						})
 
-						It("returns right count for the requested range", func() {
+						It("returns right count for the requested range of CGM values", func() {
 							var cgmRecords []*glucose.Glucose
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
 							cgmRecords, err = repository.GetDataRange(ctx, userID, "cbg", dataSetFirstData, dataSetLastUpdated)
@@ -416,7 +448,16 @@ var _ = Describe("Mongo", func() {
 							Expect(len(cgmRecords)).To(Equal(576))
 						})
 
-						It("returns right data for the requested range", func() {
+						It("returns right count for the requested range of BGM values", func() {
+							var bgmRecords []*glucose.Glucose
+							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -2)
+							bgmRecords, err = repository.GetDataRange(ctx, userID, "smbg", dataSetFirstData, dataSetLastUpdated)
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(bgmRecords)).To(Equal(12))
+						})
+
+						It("returns right CGM data for the requested range", func() {
 							var cgmRecords []*glucose.Glucose
 							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -3)
 							cgmRecords, err = repository.GetDataRange(ctx, userID, "cbg", dataSetFirstData, dataSetLastUpdated)
@@ -429,6 +470,20 @@ var _ = Describe("Mongo", func() {
 								Expect(datumTime).To(Equal(dataSetFirstData.Add(time.Duration(i+1) * 5 * time.Minute).Truncate(time.Millisecond)))
 							}
 						})
+
+						It("returns right BGM data for the requested range", func() {
+							var bgmRecords []*glucose.Glucose
+							dataSetFirstData = dataSetLastUpdated.AddDate(0, 0, -3)
+							bgmRecords, err = repository.GetDataRange(ctx, userID, "smbg", dataSetFirstData, dataSetLastUpdated)
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(bgmRecords)).To(Equal(18))
+							var datumTime time.Time
+							for i, bgmDatum := range bgmRecords {
+								datumTime, _ = time.Parse(time.RFC3339Nano, *bgmDatum.Time)
+								Expect(datumTime).To(Equal(dataSetFirstData.Add(time.Duration(i+1) * 4 * time.Hour).Truncate(time.Millisecond)))
+							}
+						})
 					})
 
 					Context("GetLastUpdatedForUser", func() {
@@ -439,6 +494,9 @@ var _ = Describe("Mongo", func() {
 							Expect(err).ToNot(HaveOccurred())
 							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdated))
 							Expect(userLastUpdated.CGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+
+							Expect(userLastUpdated.BGM.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.BGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
 
 						It("returns right lastUpdated for user with no data", func() {
@@ -447,17 +505,55 @@ var _ = Describe("Mongo", func() {
 
 							Expect(err).ToNot(HaveOccurred())
 							Expect(userLastUpdated.CGM).To(BeNil())
+							Expect(userLastUpdated.BGM).To(BeNil())
+						})
+
+						It("returns right lastUpdated for user with changing data", func() {
+							var userLastUpdated *summary.UserLastUpdated
+							dataSetLastUpdatedFuture := time.Now().UTC().Truncate(time.Millisecond)
+							dataSetFuture := NewDataSet(userID, deviceID)
+							dataSetFuture.CreatedTime = pointer.FromString(time.Now().UTC().Format(time.RFC3339Nano))
+							dataSetCGMDataFuture := NewDataSetCGMData(deviceID, dataSetLastUpdatedFuture, 1)
+							dataSetBGMDataFuture := NewDataSetBGMData(deviceID, dataSetLastUpdatedFuture, 1)
+
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+							Expect(err).ToNot(HaveOccurred())
+
+							// original data
+							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.BGM.LastData).To(Equal(dataSetLastUpdated))
+
+							_, err = collection.InsertOne(context.Background(), dataSetFuture)
+							Expect(err).ToNot(HaveOccurred())
+
+							// update only cgm data
+							Expect(repository.CreateDataSetData(ctx, dataSetFuture, dataSetCGMDataFuture)).To(Succeed())
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+							Expect(err).ToNot(HaveOccurred())
+
+							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdatedFuture))
+							Expect(userLastUpdated.BGM.LastData).To(Equal(dataSetLastUpdated))
+
+							// update bgm data now too
+							Expect(repository.CreateDataSetData(ctx, dataSetFuture, dataSetBGMDataFuture)).To(Succeed())
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+							Expect(err).ToNot(HaveOccurred())
+
+							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdatedFuture))
+							Expect(userLastUpdated.BGM.LastData).To(Equal(dataSetLastUpdatedFuture))
 						})
 
 						It("returns right lastUpdated for user with far future data", func() {
 							dataSetLastUpdatedFuture := time.Now().UTC().AddDate(0, 0, 4).Truncate(time.Millisecond)
-							dataSetCGMFuture := NewDataSet(userID, deviceID)
-							dataSetCGMFuture.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, 0, 4).Format(time.RFC3339Nano))
+							dataSetFuture := NewDataSet(userID, deviceID)
+							dataSetFuture.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, 0, 4).Format(time.RFC3339Nano))
 							dataSetCGMDataFuture := NewDataSetCGMData(deviceID, dataSetLastUpdatedFuture, 1)
+							dataSetBGMDataFuture := NewDataSetBGMData(deviceID, dataSetLastUpdatedFuture, 1)
 
-							_, err = collection.InsertOne(context.Background(), dataSetCGMFuture)
+							_, err = collection.InsertOne(context.Background(), dataSetFuture)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(repository.CreateDataSetData(ctx, dataSetCGMFuture, dataSetCGMDataFuture)).To(Succeed())
+							Expect(repository.CreateDataSetData(ctx, dataSetFuture, dataSetCGMDataFuture)).To(Succeed())
+							Expect(repository.CreateDataSetData(ctx, dataSetFuture, dataSetBGMDataFuture)).To(Succeed())
 
 							var userLastUpdated *summary.UserLastUpdated
 							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
@@ -465,10 +561,13 @@ var _ = Describe("Mongo", func() {
 							Expect(err).ToNot(HaveOccurred())
 							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdated))
 							Expect(userLastUpdated.CGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+
+							Expect(userLastUpdated.BGM.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.BGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
 					})
 
-					Context("DistinctCGMUserIDs", func() {
+					Context("DistinctUserIDs", func() {
 						It("returns correct count and IDs of distinct users", func() {
 							resultUserIDs, err := repository.DistinctUserIDs(ctx)
 							Expect(err).ToNot(HaveOccurred())
@@ -476,16 +575,33 @@ var _ = Describe("Mongo", func() {
 							Expect(resultUserIDs).To(ConsistOf([1]string{userID}))
 						})
 
-						It("returns correct count and IDs of distinct users after change", func() {
-							otherDataSetCGM = NewDataSet(otherUserID, deviceID)
-							otherDataSetCGM.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -6, 0).Format(time.RFC3339Nano))
+						It("returns correct count and IDs of distinct users after adding CGM user", func() {
+							otherDataSet = NewDataSet(otherUserID, deviceID)
+							otherDataSet.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -6, 0).Format(time.RFC3339Nano))
 
 							otherDataSetLastUpdated = time.Now().UTC().AddDate(0, -6, 0)
 							otherDataSetCGMData = NewDataSetCGMData(deviceID, otherDataSetLastUpdated, 1)
 
-							_, err = collection.InsertOne(context.Background(), otherDataSetCGM)
+							_, err = collection.InsertOne(context.Background(), otherDataSet)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(repository.CreateDataSetData(ctx, otherDataSetCGM, otherDataSetCGMData)).To(Succeed())
+							Expect(repository.CreateDataSetData(ctx, otherDataSet, otherDataSetCGMData)).To(Succeed())
+
+							resultUserIDs, err := repository.DistinctUserIDs(ctx)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(len(resultUserIDs)).To(Equal(2))
+							Expect(resultUserIDs).To(ConsistOf([2]string{userID, otherUserID}))
+						})
+
+						It("returns correct count and IDs of distinct users after adding BGM user", func() {
+							otherDataSet = NewDataSet(otherUserID, deviceID)
+							otherDataSet.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -6, 0).Format(time.RFC3339Nano))
+
+							otherDataSetLastUpdated = time.Now().UTC().AddDate(0, -6, 0)
+							otherDataSetBGMData = NewDataSetBGMData(deviceID, otherDataSetLastUpdated, 1)
+
+							_, err = collection.InsertOne(context.Background(), otherDataSet)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(repository.CreateDataSetData(ctx, otherDataSet, otherDataSetBGMData)).To(Succeed())
 
 							resultUserIDs, err := repository.DistinctUserIDs(ctx)
 							Expect(err).ToNot(HaveOccurred())
@@ -523,6 +639,7 @@ var _ = Describe("Mongo", func() {
 						// make keys match, and remove some days to ensure they also get removed
 						anotherRandomSummary.UserID = randomSummary.UserID
 						anotherRandomSummary.CGM.HourlyStats = anotherRandomSummary.CGM.HourlyStats[0:0]
+						anotherRandomSummary.BGM.HourlyStats = anotherRandomSummary.BGM.HourlyStats[0:0]
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -549,25 +666,35 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userSummary).To(BeNil())
 
+						randomSummary.Periods["30d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
 						randomSummary.Periods["14d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
-						Expect(randomSummary.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
+						randomSummary.Periods["7d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						randomSummary.Periods["1d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						newSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
+						Expect(newSummary.Periods["30d"].GlucoseManagementIndicator).ToNot(BeNil())
 						Expect(newSummary.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.Periods["7d"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.Periods["1d"].GlucoseManagementIndicator).ToNot(BeNil())
 
+						randomSummary.Periods["30d"].GlucoseManagementIndicator = nil
 						randomSummary.Periods["14d"].GlucoseManagementIndicator = nil
-						Expect(randomSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+						randomSummary.Periods["7d"].GlucoseManagementIndicator = nil
+						randomSummary.Periods["1d"].GlucoseManagementIndicator = nil
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						newSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
+						Expect(newSummary.Periods["30d"].GlucoseManagementIndicator).To(BeNil())
 						Expect(newSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.Periods["7d"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.Periods["1d"].GlucoseManagementIndicator).To(BeNil())
 					})
 				})
 
@@ -609,7 +736,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns error if summaries is empty", func() {
-						summaries := []*summary.Summary{}
+						var summaries []*summary.Summary
 						count, err := summaryRepository.CreateSummaries(ctx, summaries)
 
 						Expect(count).To(Equal(0))
@@ -675,20 +802,41 @@ var _ = Describe("Mongo", func() {
 
 						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
+						Expect(timestamp.CGM).To(Equal(timestamp.BGM))
+
 						summary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(timestamp.CGM).To(Equal(summary.CGM.OutdatedSince))
+						Expect(timestamp.BGM).To(Equal(summary.BGM.OutdatedSince))
 					})
 
-					It("returns and correctly upserts an outdated summary if none existed", func() {
-						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
+					It("returns and correctly upserts an outdated CGM summary if none existed", func() {
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: false}
 						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
+						Expect(timestamp.CGM).To(Not(BeNil()))
+						Expect(timestamp.BGM).To(BeNil())
+
 						summary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 
 						Expect(err).ToNot(HaveOccurred())
-						Expect(timestamp.CGM).To(Equal(summary.CGM.OutdatedSince))
+						Expect(summary.CGM.OutdatedSince).To(Equal(timestamp.CGM))
+						Expect(summary.BGM.OutdatedSince).To(BeNil())
+						Expect(randomSummary.UserID).To(Equal(summary.UserID))
+					})
+
+					It("returns and correctly upserts an outdated BGM summary if none existed", func() {
+						updates := &data.SummaryTypeUpdates{CGM: false, BGM: true}
+						timestamp, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(timestamp.CGM).To(BeNil())
+						Expect(timestamp.BGM).To(Not(BeNil()))
+						summary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(summary.BGM.OutdatedSince).To(Equal(timestamp.BGM))
+						Expect(summary.CGM.OutdatedSince).To(BeNil())
 						Expect(randomSummary.UserID).To(Equal(summary.UserID))
 					})
 
@@ -705,6 +853,7 @@ var _ = Describe("Mongo", func() {
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(timestampOne.CGM).To(Equal(timestampTwo.CGM))
+						Expect(timestampOne.BGM).To(Equal(timestampTwo.BGM))
 					})
 				})
 
@@ -726,9 +875,26 @@ var _ = Describe("Mongo", func() {
 						Expect(err).To(MatchError("pagination is missing"))
 					})
 
-					It("returns and correctly gets outdated summaries", func() {
+					It("returns and correctly gets outdated CGM summaries", func() {
 						pagination = page.NewPagination()
-						updates := &data.SummaryTypeUpdates{CGM: true, BGM: true}
+						updates := &data.SummaryTypeUpdates{CGM: true, BGM: false}
+
+						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
+						_, err := summaryRepository.CreateSummaries(ctx, summaries)
+						Expect(err).ToNot(HaveOccurred())
+
+						_, err = summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
+						Expect(err).ToNot(HaveOccurred())
+
+						userIDs, err := summaryRepository.GetOutdatedUserIDs(ctx, pagination)
+
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userIDs).To(ConsistOf([1]string{randomSummary.UserID}))
+					})
+
+					It("returns and correctly gets outdated BGM summaries", func() {
+						pagination = page.NewPagination()
+						updates := &data.SummaryTypeUpdates{CGM: false, BGM: true}
 
 						summaries := []*summary.Summary{randomSummary, anotherRandomSummary}
 						_, err := summaryRepository.CreateSummaries(ctx, summaries)
@@ -762,18 +928,22 @@ var _ = Describe("Mongo", func() {
 						outdatedTime, err := summaryRepository.SetOutdated(ctx, randomSummary.UserID, updates)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedTime.CGM).ToNot(BeNil())
+						Expect(outdatedTime.BGM).ToNot(BeNil())
 
 						outdatedSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSummary.CGM.OutdatedSince).To(Equal(outdatedTime.CGM))
+						Expect(outdatedSummary.BGM.OutdatedSince).To(Equal(outdatedTime.BGM))
 
 						outdatedSummary.CGM.OutdatedSince = nil
+						outdatedSummary.BGM.OutdatedSince = nil
 						_, err = summaryRepository.UpdateSummary(ctx, outdatedSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						finalSummary, err := summaryRepository.GetSummary(ctx, randomSummary.UserID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(finalSummary.CGM.OutdatedSince).To(BeNil())
+						Expect(finalSummary.BGM.OutdatedSince).To(BeNil())
 					})
 				})
 
