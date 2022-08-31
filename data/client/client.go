@@ -3,14 +3,22 @@ package client
 import (
 	"context"
 	"net/http"
+	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	ExtendedTimeout = 300 * time.Second
 )
 
 // TODO: Move interface to data package once upload dependency broken
@@ -22,10 +30,16 @@ type Client interface {
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
+
+	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
+	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	BackfillSummaries(ctx context.Context) (int, error)
 }
 
 type ClientImpl struct {
-	client *platform.Client
+	client                *platform.Client
+	extendedTimeoutClient *platform.Client
 }
 
 func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
@@ -34,8 +48,15 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, e
 		return nil, err
 	}
 
+	cfg.Timeout = pointer.FromDuration(ExtendedTimeout)
+	extendedTimeoutClient, err := platform.NewClient(cfg, authorizeAs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ClientImpl{
-		client: clnt,
+		client:                clnt,
+		extendedTimeoutClient: extendedTimeoutClient,
 	}, nil
 }
 
@@ -110,6 +131,77 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	}
 
 	return dataSet, nil
+}
+
+func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", id)
+	summary := &summary.Summary{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", id)
+	summary := &summary.Summary{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return summary, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
+	var count int
+	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries")
+
+	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
+		return count, errors.Wrap(err, "backfill request returned an error")
+	}
+
+	return count, nil
+}
+
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	url := c.client.ConstructURL("v1", "summaries")
+
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	userIDs := []string{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return userIDs, err
+	}
+
+	return userIDs, nil
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

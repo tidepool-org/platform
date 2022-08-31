@@ -31,6 +31,8 @@ type Datum interface {
 	SetDeletedTime(deletedTime *time.Time)
 	SetDeletedUserID(deletedUserID *string)
 
+	UpdatesSummary() bool
+
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
 }

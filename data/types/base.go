@@ -307,6 +307,18 @@ func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
 }
 
+func (b *Base) UpdatesSummary() bool {
+	// two years has a bit of padding, to allow for some calculation delay
+	twoYearsPast := time.Now().UTC().AddDate(0, -23, -20)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	if b.Type == "cbg" && b.Time.Before(oneDayFuture) && b.Time.After(twoYearsPast) {
+		return true
+	}
+
+	return false
+}
+
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	return b.Deduplicator
 }

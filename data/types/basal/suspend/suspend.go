@@ -98,7 +98,7 @@ func parseSuppressed(parser structure.ObjectParser) Suppressed {
 		case dataTypesBasalTemporary.DeliveryType:
 			return dataTypesBasalTemporary.ParseSuppressedTemporary(parser)
 		default:
-			parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+			parser.WithReferenceErrorReporter("deliveryType").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
 		}
 	}
 	return nil
@@ -114,7 +114,7 @@ func validateSuppressed(validator structure.Validator, suppressed Suppressed) {
 		case *dataTypesBasalTemporary.SuppressedTemporary:
 			suppressed.Validate(validator)
 		default:
-			validator.ReportError(structureValidator.ErrorValueExists()) // TODO: Better error?
+			validator.ReportError(structureValidator.ErrorValueNotValid())
 		}
 	}
 }

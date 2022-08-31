@@ -2,11 +2,13 @@ package automated
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/types/insulin"
+	dataTypesBasal "github.com/tidepool-org/platform/data/types/basal"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
+	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -18,19 +20,26 @@ const (
 	RateMinimum     = 0.0
 )
 
-type Automated struct {
-	basal.Basal `bson:",inline"`
+type Suppressed interface {
+	Parse(parser structure.ObjectParser)
+	Validate(validator structure.Validator)
+	Normalize(normalizer data.Normalizer)
+}
 
-	Duration           *int                 `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected   *int                 `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Rate               *float64             `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName       *string              `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+type Automated struct {
+	dataTypesBasal.Basal `bson:",inline"`
+
+	Duration           *int                          `json:"duration,omitempty" bson:"duration,omitempty"`
+	DurationExpected   *int                          `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
+	InsulinFormulation *dataTypesInsulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Rate               *float64                      `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName       *string                       `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Suppressed         Suppressed                    `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func New() *Automated {
 	return &Automated{
-		Basal: basal.New(DeliveryType),
+		Basal: dataTypesBasal.New(DeliveryType),
 	}
 }
 
@@ -43,9 +52,10 @@ func (a *Automated) Parse(parser structure.ObjectParser) {
 
 	a.Duration = parser.Int("duration")
 	a.DurationExpected = parser.Int("expectedDuration")
-	a.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	a.InsulinFormulation = dataTypesInsulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 	a.Rate = parser.Float64("rate")
 	a.ScheduleName = parser.String("scheduleName")
+	a.Suppressed = parseSuppressed(parser.WithReferenceObjectParser("suppressed"))
 }
 
 func (a *Automated) Validate(validator structure.Validator) {
@@ -70,7 +80,8 @@ func (a *Automated) Validate(validator structure.Validator) {
 		a.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("rate", a.Rate).Exists().InRange(RateMinimum, RateMaximum)
-	validator.String("scheduleName", a.ScheduleName).NotEmpty()
+	validator.String("scheduleName", a.ScheduleName).NotEmpty().LengthLessThanOrEqualTo(dataTypesBasal.ScheduleNameLengthMaximum)
+	validateSuppressed(validator.WithReference("suppressed"), a.Suppressed)
 }
 
 func (a *Automated) Normalize(normalizer data.Normalizer) {
@@ -83,16 +94,20 @@ func (a *Automated) Normalize(normalizer data.Normalizer) {
 	if a.InsulinFormulation != nil {
 		a.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
 	}
+	if a.Suppressed != nil {
+		a.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
 }
 
 type SuppressedAutomated struct {
 	Type         *string `json:"type,omitempty" bson:"type,omitempty"`
 	DeliveryType *string `json:"deliveryType,omitempty" bson:"deliveryType,omitempty"`
 
-	Annotations        *metadata.MetadataArray `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	InsulinFormulation *insulin.Formulation    `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
-	Rate               *float64                `json:"rate,omitempty" bson:"rate,omitempty"`
-	ScheduleName       *string                 `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Annotations        *metadata.MetadataArray       `json:"annotations,omitempty" bson:"annotations,omitempty"`
+	InsulinFormulation *dataTypesInsulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
+	Rate               *float64                      `json:"rate,omitempty" bson:"rate,omitempty"`
+	ScheduleName       *string                       `json:"scheduleName,omitempty" bson:"scheduleName,omitempty"`
+	Suppressed         Suppressed                    `json:"suppressed,omitempty" bson:"suppressed,omitempty"`
 }
 
 func ParseSuppressedAutomated(parser structure.ObjectParser) *SuppressedAutomated {
@@ -106,7 +121,7 @@ func ParseSuppressedAutomated(parser structure.ObjectParser) *SuppressedAutomate
 
 func NewSuppressedAutomated() *SuppressedAutomated {
 	return &SuppressedAutomated{
-		Type:         pointer.FromString(basal.Type),
+		Type:         pointer.FromString(dataTypesBasal.Type),
 		DeliveryType: pointer.FromString(DeliveryType),
 	}
 }
@@ -116,13 +131,14 @@ func (s *SuppressedAutomated) Parse(parser structure.ObjectParser) {
 	s.DeliveryType = parser.String("deliveryType")
 
 	s.Annotations = metadata.ParseMetadataArray(parser.WithReferenceArrayParser("annotations"))
-	s.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
+	s.InsulinFormulation = dataTypesInsulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 	s.Rate = parser.Float64("rate")
 	s.ScheduleName = parser.String("scheduleName")
+	s.Suppressed = parseSuppressed(parser.WithReferenceObjectParser("suppressed"))
 }
 
 func (s *SuppressedAutomated) Validate(validator structure.Validator) {
-	validator.String("type", s.Type).Exists().EqualTo(basal.Type)
+	validator.String("type", s.Type).Exists().EqualTo(dataTypesBasal.Type)
 	validator.String("deliveryType", s.DeliveryType).Exists().EqualTo(DeliveryType)
 
 	if s.Annotations != nil {
@@ -132,11 +148,42 @@ func (s *SuppressedAutomated) Validate(validator structure.Validator) {
 		s.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 	validator.Float64("rate", s.Rate).Exists().InRange(RateMinimum, RateMaximum)
-	validator.String("scheduleName", s.ScheduleName).NotEmpty()
+	validator.String("scheduleName", s.ScheduleName).NotEmpty().LengthLessThanOrEqualTo(dataTypesBasal.ScheduleNameLengthMaximum)
+	validateSuppressed(validator.WithReference("suppressed"), s.Suppressed)
 }
 
 func (s *SuppressedAutomated) Normalize(normalizer data.Normalizer) {
 	if s.InsulinFormulation != nil {
 		s.InsulinFormulation.Normalize(normalizer.WithReference("insulinFormulation"))
+	}
+	if s.Suppressed != nil {
+		s.Suppressed.Normalize(normalizer.WithReference("suppressed"))
+	}
+}
+
+var suppressedDeliveryTypes = []string{
+	dataTypesBasalScheduled.DeliveryType,
+}
+
+func parseSuppressed(parser structure.ObjectParser) Suppressed {
+	if deliveryType := dataTypesBasal.ParseDeliveryType(parser); deliveryType != nil {
+		switch *deliveryType {
+		case dataTypesBasalScheduled.DeliveryType:
+			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
+		default:
+			parser.WithReferenceErrorReporter("deliveryType").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+		}
+	}
+	return nil
+}
+
+func validateSuppressed(validator structure.Validator, suppressed Suppressed) {
+	if suppressed != nil {
+		switch suppressed := suppressed.(type) {
+		case *dataTypesBasalScheduled.SuppressedScheduled:
+			suppressed.Validate(validator)
+		default:
+			validator.ReportError(structureValidator.ErrorValueNotValid())
+		}
 	}
 }

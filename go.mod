@@ -9,8 +9,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.6.2
-	github.com/fatih/color v1.9.0 // indirect
-	github.com/githubnemo/CompileDaemon v1.2.1
+	github.com/githubnemo/CompileDaemon v1.4.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.2.0
 	github.com/gowebpki/jcs v0.0.0-20210215032300-680d9436c864
@@ -31,6 +30,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/tools v0.1.1
 	google.golang.org/grpc v1.33.1
 	gopkg.in/yaml.v2 v2.3.0

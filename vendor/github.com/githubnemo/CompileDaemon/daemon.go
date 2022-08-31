@@ -46,6 +46,10 @@ There are command line options.
 	-include=XXX      – Include files whose basename matches glob pattern XXX
 	-pattern=XXX      – Include files whose path matches regexp XXX
 
+	FILE WATCH
+	-polling          - Use polling instead of FS notifications to detect changes. Default is false
+	-polling-interval - Milliseconds of interval between polling file changes when polling option is selected
+
 	MISC
 	-color            - Enable colorized output
 	-log-prefix       - Enable/disable stdout/stderr labelling for the child process
@@ -73,11 +77,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/fsnotify/fsnotify"
 )
 
 // Milliseconds to wait for the next job to begin after a file change
@@ -119,6 +121,8 @@ var (
 	flagGracefulKill    = flag.Bool("graceful-kill", false, "Gracefully attempt to kill the child process by sending a SIGTERM first")
 	flagGracefulTimeout = flag.Uint("graceful-timeout", 3, "Duration (in seconds) to wait for graceful kill to complete")
 	flagVerbose         = flag.Bool("verbose", false, "Be verbose about which directories are watched.")
+	flagPolling         = flag.Bool("polling", false, "Use polling method to watch file change instead of fsnotify")
+	flagPollingInterval = flag.Int("polling-interval", 100, "Milliseconds of interval between polling file changes when polling option is selected")
 
 	// initialized in main() due to custom type.
 	flagDirectories   globList
@@ -147,29 +151,37 @@ func failColor(format string, args ...interface{}) string {
 func build() bool {
 	log.Println(okColor("Running build command!"))
 
-	args := strings.Split(*flagBuild, " ")
-	if len(args) == 0 {
-		// If the user has specified and empty then we are done.
-		return true
+	commands := strings.Split(*flagBuild, "&&")
+	success := true
+	for _, c := range commands {
+		c = strings.TrimSpace(c)
+		args := strings.Split(c, " ")
+		if len(args) == 0 {
+			// If the user has specified and empty then we are done.
+			return true
+		}
+
+		cmd := exec.Command(args[0], args[1:]...)
+
+		if *flagBuildDir != "" {
+			cmd.Dir = *flagBuildDir
+		} else if len(flagDirectories) > 0 {
+			cmd.Dir = flagDirectories[0]
+		}
+
+		output, err := cmd.CombinedOutput()
+
+		if err == nil {
+			log.Println(okColor("Build ok."))
+		} else {
+			log.Println(failColor("Error while building:\n"), failColor(string(output)))
+			if success {
+				success = false
+			}
+		}
 	}
 
-	cmd := exec.Command(args[0], args[1:]...)
-
-	if *flagBuildDir != "" {
-		cmd.Dir = *flagBuildDir
-	} else if len(flagDirectories) > 0 {
-		cmd.Dir = flagDirectories[0]
-	}
-
-	output, err := cmd.CombinedOutput()
-
-	if err == nil {
-		log.Println(okColor("Build ok."))
-	} else {
-		log.Println(failColor("Error while building:\n"), failColor(string(output)))
-	}
-
-	return err == nil
+	return success
 }
 
 func matchesPattern(pattern *regexp.Regexp, file string) bool {
@@ -386,7 +398,20 @@ func main() {
 		log.Fatal("Graceful termination is not supported on your platform.")
 	}
 
-	watcher, err := fsnotify.NewWatcher()
+	pattern := regexp.MustCompile(*flagPattern)
+
+	cfg := &WatcherConfig{
+		flagVerbose:         *flagVerbose,
+		flagRecursive:       *flagRecursive,
+		flagPolling:         *flagPolling,
+		flagPollingInterval: *flagPollingInterval,
+		flagDirectories:     flagDirectories,
+		flagExcludedDirs:    flagExcludedDirs,
+		flagExcludedFiles:   flagExcludedFiles,
+		flagIncludedFiles:   flagIncludedFiles,
+		pattern:             pattern,
+	}
+	watcher, err := NewWatcher(cfg)
 
 	if err != nil {
 		log.Fatal(err)
@@ -394,37 +419,11 @@ func main() {
 
 	defer watcher.Close()
 
-	for _, flagDirectory := range flagDirectories {
-		if *flagRecursive == true {
-			err = filepath.Walk(flagDirectory, func(path string, info os.FileInfo, err error) error {
-				if err == nil && info.IsDir() {
-					if flagExcludedDirs.Matches(path) {
-						return filepath.SkipDir
-					} else {
-						if *flagVerbose {
-							log.Printf("Watching directory '%s' for changes.\n", path)
-						}
-						return watcher.Add(path)
-					}
-				}
-				return err
-			})
-
-			if err != nil {
-				log.Fatal("filepath.Walk():", err)
-			}
-
-			if err := watcher.Add(flagDirectory); err != nil {
-				log.Fatal("watcher.Add():", err)
-			}
-		} else {
-			if err := watcher.Add(flagDirectory); err != nil {
-				log.Fatal("watcher.Add():", err)
-			}
-		}
+	err = watcher.AddFiles()
+	if err != nil {
+		log.Fatal("watcher.Addfiles():", err)
 	}
 
-	pattern := regexp.MustCompile(*flagPattern)
 	jobs := make(chan string)
 	buildSuccess := make(chan bool)
 	buildStarted := make(chan string)
@@ -437,32 +436,5 @@ func main() {
 		go flusher(buildStarted, buildSuccess)
 	}
 
-	for {
-		select {
-		case ev := <-watcher.Events:
-			if ev.Op&fsnotify.Remove == fsnotify.Remove || ev.Op&fsnotify.Write == fsnotify.Write || ev.Op&fsnotify.Create == fsnotify.Create {
-				base := filepath.Base(ev.Name)
-
-				// Assume it is a directory and track it.
-				if *flagRecursive == true && !flagExcludedDirs.Matches(ev.Name) {
-					watcher.Add(ev.Name)
-				}
-
-				if flagIncludedFiles.Matches(base) || matchesPattern(pattern, ev.Name) {
-					if !flagExcludedFiles.Matches(base) {
-						jobs <- ev.Name
-					}
-				}
-			}
-
-		case err := <-watcher.Errors:
-			if v, ok := err.(*os.SyscallError); ok {
-				if v.Err == syscall.EINTR {
-					continue
-				}
-				log.Fatal("watcher.Error: SyscallError:", v)
-			}
-			log.Fatal("watcher.Error:", err)
-		}
-	}
+	watcher.Watch(jobs) // start watching files
 }
