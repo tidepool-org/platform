@@ -155,6 +155,10 @@ func (d *Datum) GetUserID() *string {
 	return nil
 }
 
+func (d *Datum) GetDeviceID() *string {
+	return nil
+}
+
 func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInvocations++
 

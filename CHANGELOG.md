@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.19.1 - 2022-09-08
+### Fixed
+- YLP-1736 Updating old data when a terminal is replaced (same guid)
+
 ## 0.19.0 - 2022-07-20
 ### Changed
 - YLP-1324 Manage data update

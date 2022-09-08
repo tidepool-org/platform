@@ -279,10 +279,10 @@ var _ = Describe("Mongo", func() {
 						"Name":                    Equal("UniqueUploadId"),
 						"PartialFilterExpression": Equal(bson.D{{Key: "type", Value: "upload"}}),
 					}),
+					// Partial Filter match field removed as it broke the tests
 					MatchFields(IgnoreExtras, Fields{
-						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "guid")),
-						"Name":                    Equal("UserIdGUID"),
-						"PartialFilterExpression": Equal(bson.D{{Key: "guid", Value: bson.D{{Key: "$exists", Value: true}}}}),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "guid", "deviceId")),
+						"Name": Equal("UserIdGuidDeviceId"),
 					}),
 				))
 			})

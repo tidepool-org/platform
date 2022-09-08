@@ -24,6 +24,7 @@ type Datum interface {
 	GetTime() time.Time
 	GetGUID() *string
 	GetUserID() *string
+	GetDeviceID() *string
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

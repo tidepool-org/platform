@@ -303,6 +303,10 @@ func (b *Base) GetUserID() *string {
 	return b.UserID
 }
 
+func (b *Base) GetDeviceID() *string {
+	return b.DeviceID
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }

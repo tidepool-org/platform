@@ -94,10 +94,29 @@ var (
 				Keys: bson.D{
 					{Key: "_userId", Value: 1},
 					{Key: "guid", Value: 1},
+					{Key: "deviceId", Value: 1},
 				},
 				Options: options.Index().
-					SetPartialFilterExpression(bson.M{"guid": bson.M{"$exists": true}}).
-					SetName("UserIdGUID"),
+					SetPartialFilterExpression(bson.M{"$and": []bson.M{
+						{"deviceId": bson.M{"$exists": true}},
+						{"guid": bson.M{"$exists": true}},
+					}}).
+					SetName("UserIdGuidDeviceId"),
+			},
+		},
+		"deviceData_archive": {
+			{
+				Keys: bson.D{
+					{Key: "_userId", Value: 1},
+					{Key: "guid", Value: 1},
+					{Key: "deviceId", Value: 1},
+				},
+				Options: options.Index().
+					SetPartialFilterExpression(bson.M{"$and": []bson.M{
+						{"deviceId": bson.M{"$exists": true}},
+						{"guid": bson.M{"$exists": true}},
+					}}).
+					SetName("UserIdGuidDeviceId"),
 			},
 		},
 	}
@@ -405,6 +424,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	var err error
 	var incomingUserMetadata *schema.Metadata
 	strUserId := *dataSet.UserID
+	uploadDeviceId := dataSet.DeviceID
 
 	for _, datum := range dataSetData {
 		datum.SetUserID(dataSet.UserID)
@@ -413,6 +433,10 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		archive := d.isDatumToArchive(datum)
 		moveToBucket := d.isDatumToBucket(datum)
 		guid := datum.GetGUID()
+		deviceId := datum.GetDeviceID()
+		if deviceId == nil {
+			deviceId = uploadDeviceId
+		}
 
 		if moveToBucket {
 			// Prepare cbg to be pushed into data read db
@@ -443,8 +467,8 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
 
 		var writeOp mongo.WriteModel
-		if guid != nil {
-			writeOp = mongo.NewReplaceOneModel().SetFilter(bson.M{"guid": *guid, "_userId": strUserId}).SetReplacement(datum).SetUpsert(true)
+		if guid != nil && deviceId != nil {
+			writeOp = mongo.NewReplaceOneModel().SetFilter(bson.M{"guid": *guid, "_userId": strUserId, "deviceId": *deviceId}).SetReplacement(datum).SetUpsert(true)
 		} else {
 			writeOp = mongo.NewInsertOneModel().SetDocument(datum)
 		}
