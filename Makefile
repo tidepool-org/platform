@@ -25,7 +25,7 @@ TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
-TIMESTAMP:=$(date +%s)
+TIMESTAMP:=$(shell date +%s)
 
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
