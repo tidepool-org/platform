@@ -1,3 +1,5 @@
+%: TIMESTAMP := $(shell date +%s)
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
@@ -24,8 +26,6 @@ FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
-
-TIMESTAMP ?= $(shell date +%s)
 
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
