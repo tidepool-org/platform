@@ -7,7 +7,7 @@ RUN apk --no-cache add git make tzdata && \
     adduser -D tidepool && \
     chown -R tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
-COPY . .
+COPY --chown=tidepool . .
 ENV SERVICE=migrations
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
