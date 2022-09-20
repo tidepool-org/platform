@@ -132,9 +132,7 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 
 func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
-		Version:   s.VersionReporter().Long(),
-		AuthStore: s.authStore.Status(ctx),
-		Server:    s.API().Status(),
+		Version: s.VersionReporter().Long(),
 	}
 }
 

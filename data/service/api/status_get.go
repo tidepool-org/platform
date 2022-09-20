@@ -15,9 +15,7 @@ type Status struct {
 
 func (s *Standard) StatusGet(dataServiceContext dataService.Context) {
 	status := &Status{
-		Version:   s.VersionReporter().Long(),
-		DataStore: s.dataStore.Status(dataServiceContext.Request().Context()),
-		Server:    s.Status(),
+		Version: s.VersionReporter().Long(),
 	}
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, status)
 }
