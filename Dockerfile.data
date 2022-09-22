@@ -5,7 +5,7 @@ RUN apk --no-cache add git make tzdata && \
     apk add --no-cache ca-certificates tzdata && \
     go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
     adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform 
+    chown -R tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
 COPY --chown=tidepool . .
 ENV SERVICE=services/data

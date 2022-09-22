@@ -149,7 +149,7 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 		return nil, errors.New("data set id is missing")
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 
 	var dataSet *upload.Upload
 	selector := bson.M{
@@ -178,10 +178,10 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Uplo
 		return err
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 
-	dataSet.CreatedTime = pointer.FromString(timestamp)
+	dataSet.CreatedTime = pointer.FromTime(timestamp)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
@@ -214,8 +214,8 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
 
 	set := bson.M{
@@ -241,7 +241,7 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 		set["_state"] = *update.State
 	}
 	if update.Time != nil {
-		set["time"] = (*update.Time).Format(data.TimeFormat)
+		set["time"] = *update.Time
 	}
 	if update.TimeZoneName != nil {
 		set["timezone"] = *update.TimeZoneName
@@ -266,8 +266,8 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 		return err
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 
 	var err error
 	var removeInfo *mongo.DeleteResult
@@ -320,8 +320,8 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		return nil
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 
 	var insertData []mongo.WriteModel
 
@@ -357,8 +357,8 @@ func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *uploa
 		return err
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -397,8 +397,8 @@ func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload
 		return err
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -437,8 +437,8 @@ func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.
 		return err
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -478,7 +478,7 @@ func (d *DataRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet 
 		return err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
 
 	selector["_userId"] = dataSet.UserID
@@ -534,8 +534,8 @@ func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Con
 		return errors.New("data set device id is missing")
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 
 	var updateInfo *mongo.UpdateResult
 
@@ -584,8 +584,8 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 		return errors.New("data set device id is missing")
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 
 	pipeline := []bson.M{
 		{
@@ -612,9 +612,9 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 
 	result := struct {
 		ID struct {
-			Active            bool   `bson:"_active"`
-			ArchivedDataSetID string `bson:"archivedDatasetId"`
-			ArchivedTime      string `bson:"archivedTime"`
+			Active            bool      `bson:"_active"`
+			ArchivedDataSetID string    `bson:"archivedDatasetId"`
+			ArchivedTime      time.Time `bson:"archivedTime"`
 		} `bson:"_id"`
 		ArchivedHashes []string `bson:"archivedHashes"`
 	}{}
@@ -627,7 +627,7 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 				overallErr = errors.Wrap(err, "unable to decode device data results")
 			}
 		}
-		if result.ID.Active != (result.ID.ArchivedDataSetID == "") || result.ID.Active != (result.ID.ArchivedTime == "") {
+		if result.ID.Active != (result.ID.ArchivedDataSetID == "") || result.ID.Active != (result.ID.ArchivedTime.IsZero()) {
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).Error("Unexpected pipe result for UnarchiveDeviceDataUsingHashesFromDataSet")
 			continue
@@ -687,8 +687,8 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 		return errors.New("data set device id is missing")
 	}
 
-	now := time.Now()
-	timestamp := now.Truncate(time.Millisecond).Format(time.RFC3339Nano)
+	now := time.Now().UTC()
+	timestamp := now.Truncate(time.Millisecond)
 
 	var err error
 	var removeInfo *mongo.DeleteResult
@@ -906,7 +906,7 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 		"_active": true,
 		"_userId": id,
 		"type":    "cbg",
-		"time": bson.M{"$gte": startTime,
+		"time": bson.M{"$gt": startTime,
 			"$lte": endTime},
 	}
 
@@ -1004,13 +1004,13 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 		return nil, nil
 	}
 
-	status.LastUpload, err = time.Parse(time.RFC3339Nano, *dataSet[0].CreatedTime)
+	status.LastUpload = *dataSet[0].CreatedTime
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
 	}
 	status.LastUpload = status.LastUpload.UTC()
 
-	status.LastData, err = time.Parse(time.RFC3339Nano, *dataSet[0].Time)
+	status.LastData = *dataSet[0].Time
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse latest Time")
 	}
@@ -1030,11 +1030,13 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
-	// we don't query for users with different time field types, as users with the new types would
-	// not exist before summaries were launched.
 	selector := bson.M{
-		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
-			"$lte": futureCutoff.Format(time.RFC3339Nano)},
+		"$or": bson.A{
+			bson.M{"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
+				"$lte": futureCutoff.Format(time.RFC3339Nano)}},
+			bson.M{"time": bson.M{"$gte": pastCutoff,
+				"$lte": futureCutoff}},
+		},
 		"_active": true,
 		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},

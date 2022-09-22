@@ -74,8 +74,6 @@ func (s *Service) Terminate() {
 func (s *Service) Status(ctx context.Context) interface{} {
 	return &status{
 		Version: s.VersionReporter().Long(),
-		Server:  s.API().Status(),
-		Store:   s.imageStructuredStore.Status(ctx),
 	}
 }
 

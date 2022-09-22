@@ -256,10 +256,7 @@ func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) er
 			deviceID = ""
 		}
 
-		recordTime, err = time.Parse(time.RFC3339Nano, *r.Time)
-		if err != nil {
-			return errors.Wrap(err, "cannot parse time in record")
-		}
+		recordTime = *r.Time
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
 		currentDay = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
@@ -461,10 +458,7 @@ func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated,
 	if userSummary.LastData != nil {
 		var skip int
 		for i := 0; i < len(userData); i++ {
-			recordTime, err := time.Parse(time.RFC3339Nano, *userData[i].Time)
-			if err != nil {
-				return err
-			}
+			recordTime := *userData[i].Time
 
 			if recordTime.Before(*userSummary.LastData) {
 				skip = i + 1

@@ -138,8 +138,6 @@ github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWo
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
 github.com/getkin/kin-openapi v0.37.0/go.mod h1:ZJSfy1PxJv2QQvH9EdBj3nupRTVvV42mkW6zKUlRBwk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
-github.com/githubnemo/CompileDaemon v1.2.1 h1:yEJ28U3sIsuhCtpqN2Pb5XL8G+hpg7KUNfTGvL7GxL0=
-github.com/githubnemo/CompileDaemon v1.2.1/go.mod h1:lE3EXX1td33uhlkFLp+ImWY9qBaoRcDeA3neh4m8ic0=
 github.com/githubnemo/CompileDaemon v1.4.0 h1:z96Qu4tj+RzRfF+L7f1O6E8ion5JQlisWeXWc2wzwDQ=
 github.com/githubnemo/CompileDaemon v1.4.0/go.mod h1:/G125r3YBIp6rcXtCZfiEHwFzcl7GSsNSwylxSNrkMA=
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
@@ -509,10 +507,6 @@ github.com/tidepool-org/clinic/client v0.0.0-20210604144345-728c47d30b4b h1:olvx
 github.com/tidepool-org/clinic/client v0.0.0-20210604144345-728c47d30b4b/go.mod h1:0yPtFZ0MJZQ6pHgeMw0ft8+KtZ7FIhWZ+SiLHQn0gZs=
 github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30 h1:ztpA/D7FXrqVwbiQoc4v6ZDMmk7jKenc/qJFOkF+9yU=
 github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30/go.mod h1:hiVnAb182K2eV2/ZqZGhi3v3qK7qJhBuDE4bR0HvIcE=
-github.com/tidepool-org/go-common v0.8.2 h1:qBD2d6NG2+0jstOCxSN9FI5AKZmHymFzCDaAscPBwRk=
-github.com/tidepool-org/go-common v0.8.2/go.mod h1:0S1OUe8aQH8bKLyeemNKW4WOPkCXxK5FqN9OXu1as7E=
-github.com/tidepool-org/go-common v0.8.3-0.20211014160932-4757171e3914 h1:Dn/HkT1nxsSFbGOvBXSkOiDFqN/gLQJrj+sSspdVnJo=
-github.com/tidepool-org/go-common v0.8.3-0.20211014160932-4757171e3914/go.mod h1:0S1OUe8aQH8bKLyeemNKW4WOPkCXxK5FqN9OXu1as7E=
 github.com/tidepool-org/go-common v0.9.0 h1:iCQNusSj4kRJC66mDxz8KSibBZG7IgejY0+7Jw3LwRc=
 github.com/tidepool-org/go-common v0.9.0/go.mod h1:0S1OUe8aQH8bKLyeemNKW4WOPkCXxK5FqN9OXu1as7E=
 github.com/tidwall/pretty v1.0.0 h1:HsD+QiTn7sK6flMKIvNmpqz1qrpP3Ps6jOKIKMooyg4=
