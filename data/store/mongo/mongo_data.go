@@ -1020,23 +1020,28 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 }
 
 func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
-	var userIDs []string
+	var distinctUserIDMap = make(map[string]struct{})
+	var empty struct{}
 
 	if ctx == nil {
-		return userIDs, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	// allow for a small margin on the pastCutoff to allow for calculation delay
 	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
+	selectorOld := bson.M{
+		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
+			"$lte": futureCutoff.Format(time.RFC3339Nano)},
+		"_active": true,
+		"type":    "cbg",
+		"_userId": bson.M{"$ne": -1111},
+	}
+
 	selector := bson.M{
-		"$or": bson.A{
-			bson.M{"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
-				"$lte": futureCutoff.Format(time.RFC3339Nano)}},
-			bson.M{"time": bson.M{"$gte": pastCutoff,
-				"$lte": futureCutoff}},
-		},
+		"time": bson.M{"$gte": pastCutoff,
+			"$lte": futureCutoff},
 		"_active": true,
 		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},
@@ -1045,11 +1050,26 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 	// we would prefer to use hints here instead of _userId $ne -1111, but hints are not (yet?) available on distinct opts
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
-		return userIDs, errors.Wrap(err, "error fetching distinct userIDs")
+		return nil, errors.Wrap(err, "error fetching distinct userIDs")
+	}
+
+	resultOld, err := d.Distinct(ctx, "_userId", selectorOld)
+	if err != nil {
+		return nil, errors.Wrap(err, "error fetching distinct userIDs")
 	}
 
 	for _, v := range result {
-		userIDs = append(userIDs, v.(string))
+		distinctUserIDMap[v.(string)] = empty
+	}
+	for _, v := range resultOld {
+		distinctUserIDMap[v.(string)] = empty
+	}
+
+	userIDs := make([]string, len(distinctUserIDMap))
+	offset := 0
+	for k := range distinctUserIDMap {
+		userIDs[offset] = k
+		offset++
 	}
 
 	return userIDs, nil
