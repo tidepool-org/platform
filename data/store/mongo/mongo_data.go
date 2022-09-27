@@ -1017,15 +1017,9 @@ func (d *DataRepository) GetCGMLastUpdatedForUser(ctx context.Context, id string
 	}
 
 	status.LastUpload = *dataSet[0].CreatedTime
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
-	}
 	status.LastUpload = status.LastUpload.UTC()
 
 	status.LastData = *dataSet[0].Time
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse latest Time")
-	}
 	status.LastData = status.LastData.UTC()
 
 	return &status, nil
@@ -1160,7 +1154,10 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) 
 		"time": bson.M{"$gte": pastCutoff,
 			"$lte": futureCutoff},
 		"_active": true,
-		"type":    "cbg",
+		"$or": bson.A{
+			bson.M{"type": "smbg"},
+			bson.M{"type": "cbg"},
+		},
 		"_userId": bson.M{"$ne": -1111},
 	}
 

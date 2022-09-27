@@ -28,10 +28,7 @@ func CalculateGMI(averageGlucose float64) float64 {
 func SkipUntil(date time.Time, userData []*glucoseDatum.Glucose) ([]*glucoseDatum.Glucose, error) {
 	var skip int
 	for i := 0; i < len(userData); i++ {
-		recordTime, err := time.Parse(time.RFC3339Nano, *userData[i].Time)
-		if err != nil {
-			return nil, err
-		}
+		recordTime := *userData[i].Time
 
 		if recordTime.Before(date) {
 			skip = i + 1

@@ -324,11 +324,7 @@ func (b *Base) UpdatesBGMSummary() bool {
 	twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
-	datumTime, err := time.Parse(time.RFC3339Nano, *b.Time)
-	if err != nil {
-		// play it safe, return false for unparsable date
-		return false
-	}
+	datumTime := *b.Time
 
 	if b.Type == "smbg" && datumTime.Before(oneDayFuture) && datumTime.After(twoYearsPast) {
 		return true

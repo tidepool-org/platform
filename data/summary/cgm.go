@@ -200,7 +200,7 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 	}
 
 	for _, r := range userData {
-		recordTime, err = time.Parse(time.RFC3339Nano, *r.Time)
+		recordTime = *r.Time
 		if err != nil {
 			return errors.Wrap(err, "cannot parse time in record")
 		}
