@@ -7,9 +7,8 @@ RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repos
     apk add --no-cache ca-certificates tzdata && \
     go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
     adduser -D tidepool
-COPY . .
-RUN chown -R tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
+COPY --chown=tidepool . .
 ENV SERVICE=tools
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]

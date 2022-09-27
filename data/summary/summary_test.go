@@ -44,7 +44,7 @@ func NewContinuous(units *string, datumTime *time.Time, deviceID *string) *gluco
 	datum.DeviceID = deviceID
 	datum.ModifiedTime = nil
 	datum.ModifiedUserID = nil
-	datum.Time = pointer.FromString(datumTime.Format(time.RFC3339Nano))
+	datum.Time = datumTime
 
 	return &datum
 }

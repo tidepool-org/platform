@@ -56,6 +56,24 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 	return dataSet
 }
 
+func NewLegacyDataSet(userID string, deviceID string) *dataTypesUploadTest.LegacyUpload {
+	dataSet := dataTypesUploadTest.RandomLegacyUpload()
+	dataSet.Active = true
+	dataSet.ArchivedDataSetID = nil
+	dataSet.ArchivedTime = nil
+	dataSet.CreatedTime = nil
+	dataSet.CreatedUserID = nil
+	dataSet.DeletedTime = nil
+	dataSet.DeletedUserID = nil
+	dataSet.DeviceID = pointer.FromString(deviceID)
+	dataSet.Location.GPS.Origin.Time = nil
+	dataSet.ModifiedTime = nil
+	dataSet.ModifiedUserID = nil
+	dataSet.Origin.Time = nil
+	dataSet.UserID = pointer.FromString(userID)
+	return dataSet
+}
+
 func NewDataSetData(deviceID string) data.Data {
 	requiredRecords := test.RandomIntFromRange(4, 6)
 	var dataSetData = make([]data.Datum, requiredRecords)
@@ -86,12 +104,12 @@ func NewGlucose(typ *string, units *string) *glucose.Glucose {
 func NewDataSetCGMData(deviceID string, startTime time.Time, days int) data.Data {
 	requiredRecords := days * 288
 	var dataSetData = make([]data.Datum, requiredRecords)
-	var datumTime string
+	var datumTime time.Time
 	unit := "mmol/L"
 	typ := "cbg"
 
 	for count := 0; count < requiredRecords; count++ {
-		datumTime = startTime.Add(time.Duration(-count) * time.Minute * 5).Format(time.RFC3339Nano)
+		datumTime = startTime.Add(time.Duration(-count) * time.Minute * 5)
 
 		datum := NewGlucose(&typ, &unit)
 		datum.Active = true
@@ -104,7 +122,7 @@ func NewDataSetCGMData(deviceID string, startTime time.Time, days int) data.Data
 		datum.DeviceID = pointer.FromString(deviceID)
 		datum.ModifiedTime = nil
 		datum.ModifiedUserID = nil
-		datum.Time = pointer.FromString(datumTime)
+		datum.Time = pointer.FromTime(datumTime)
 
 		datum.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
 
@@ -117,12 +135,12 @@ func NewDataSetCGMData(deviceID string, startTime time.Time, days int) data.Data
 func NewDataSetBGMData(deviceID string, startTime time.Time, days int) data.Data {
 	requiredRecords := days * 6
 	var dataSetData = make([]data.Datum, requiredRecords)
-	var datumTime string
+	var datumTime time.Time
 	unit := "mmol/L"
 	typ := "smbg"
 
 	for count := 0; count < requiredRecords; count++ {
-		datumTime = startTime.Add(time.Duration(-count) * time.Hour * 4).Format(time.RFC3339Nano)
+		datumTime = startTime.Add(time.Duration(-count) * time.Hour * 4)
 
 		datum := NewGlucose(&typ, &unit)
 		datum.Active = true
@@ -135,7 +153,7 @@ func NewDataSetBGMData(deviceID string, startTime time.Time, days int) data.Data
 		datum.DeviceID = pointer.FromString(deviceID)
 		datum.ModifiedTime = nil
 		datum.ModifiedUserID = nil
-		datum.Time = pointer.FromString(datumTime)
+		datum.Time = pointer.FromTime(datumTime)
 
 		datum.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
 
@@ -403,7 +421,7 @@ var _ = Describe("Mongo", func() {
 				Context("With cgm data", func() {
 					BeforeEach(func() {
 						dataSet = NewDataSet(userID, deviceID)
-						dataSet.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -3, 0).Format(time.RFC3339Nano))
+						dataSet.CreatedTime = pointer.FromTime(time.Now().UTC().AddDate(0, -3, 0))
 
 						dataSetLastUpdated = time.Now().UTC().AddDate(0, -3, 0).Truncate(time.Millisecond)
 						dataSetCGMData = NewDataSetCGMData(deviceID, dataSetLastUpdated, 3)
@@ -464,10 +482,8 @@ var _ = Describe("Mongo", func() {
 
 							Expect(err).ToNot(HaveOccurred())
 							Expect(len(cgmRecords)).To(Equal(864))
-							var datumTime time.Time
 							for i, cgmDatum := range cgmRecords {
-								datumTime, _ = time.Parse(time.RFC3339Nano, *cgmDatum.Time)
-								Expect(datumTime).To(Equal(dataSetFirstData.Add(time.Duration(i+1) * 5 * time.Minute).Truncate(time.Millisecond)))
+								Expect(*cgmDatum.Time).To(Equal(dataSetFirstData.Add(time.Duration(i+1) * 5 * time.Minute).Truncate(time.Millisecond)))
 							}
 						})
 
@@ -480,7 +496,7 @@ var _ = Describe("Mongo", func() {
 							Expect(len(bgmRecords)).To(Equal(18))
 							var datumTime time.Time
 							for i, bgmDatum := range bgmRecords {
-								datumTime, _ = time.Parse(time.RFC3339Nano, *bgmDatum.Time)
+								datumTime = *bgmDatum.Time
 								Expect(datumTime).To(Equal(dataSetFirstData.Add(time.Duration(i+1) * 4 * time.Hour).Truncate(time.Millisecond)))
 							}
 						})
@@ -512,7 +528,7 @@ var _ = Describe("Mongo", func() {
 							var userLastUpdated *summary.UserLastUpdated
 							dataSetLastUpdatedFuture := time.Now().UTC().Truncate(time.Millisecond)
 							dataSetFuture := NewDataSet(userID, deviceID)
-							dataSetFuture.CreatedTime = pointer.FromString(time.Now().UTC().Format(time.RFC3339Nano))
+							dataSetFuture.CreatedTime = pointer.FromTime(time.Now().UTC())
 							dataSetCGMDataFuture := NewDataSetCGMData(deviceID, dataSetLastUpdatedFuture, 1)
 							dataSetBGMDataFuture := NewDataSetBGMData(deviceID, dataSetLastUpdatedFuture, 1)
 
@@ -546,7 +562,8 @@ var _ = Describe("Mongo", func() {
 						It("returns right lastUpdated for user with far future data", func() {
 							dataSetLastUpdatedFuture := time.Now().UTC().AddDate(0, 0, 4).Truncate(time.Millisecond)
 							dataSetFuture := NewDataSet(userID, deviceID)
-							dataSetFuture.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, 0, 4).Format(time.RFC3339Nano))
+							dataSetFuture.CreatedTime = pointer.FromTime(time.Now().UTC().AddDate(0, 0, 4))
+
 							dataSetCGMDataFuture := NewDataSetCGMData(deviceID, dataSetLastUpdatedFuture, 1)
 							dataSetBGMDataFuture := NewDataSetBGMData(deviceID, dataSetLastUpdatedFuture, 1)
 
@@ -577,7 +594,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns correct count and IDs of distinct users after adding CGM user", func() {
 							otherDataSet = NewDataSet(otherUserID, deviceID)
-							otherDataSet.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -6, 0).Format(time.RFC3339Nano))
+							otherDataSet.CreatedTime = pointer.FromTime(time.Now().UTC().AddDate(0, -6, 0))
 
 							otherDataSetLastUpdated = time.Now().UTC().AddDate(0, -6, 0)
 							otherDataSetCGMData = NewDataSetCGMData(deviceID, otherDataSetLastUpdated, 1)
@@ -594,7 +611,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns correct count and IDs of distinct users after adding BGM user", func() {
 							otherDataSet = NewDataSet(otherUserID, deviceID)
-							otherDataSet.CreatedTime = pointer.FromString(time.Now().UTC().AddDate(0, -6, 0).Format(time.RFC3339Nano))
+							otherDataSet.CreatedTime = pointer.FromTime(time.Now().UTC().AddDate(0, -6, 0))
 
 							otherDataSetLastUpdated = time.Now().UTC().AddDate(0, -6, 0)
 							otherDataSetBGMData = NewDataSetBGMData(deviceID, otherDataSetLastUpdated, 1)
@@ -994,17 +1011,20 @@ var _ = Describe("Mongo", func() {
 				var dataSetExistingTwo *upload.Upload
 
 				preparePersistedDataSets := func() {
+					createdTimeOther, _ := time.Parse(time.RFC3339, "2016-09-01T12:00:00Z")
 					collection = store.GetCollection("deviceData")
 					dataSetExistingOther = NewDataSet(userTest.RandomID(), dataTest.NewDeviceID())
-					dataSetExistingOther.CreatedTime = pointer.FromString("2016-09-01T12:00:00Z")
+					dataSetExistingOther.CreatedTime = pointer.FromTime(createdTimeOther)
 					_, err := collection.InsertOne(context.Background(), dataSetExistingOther)
 					Expect(err).ToNot(HaveOccurred())
 					dataSetExistingOne = NewDataSet(userID, deviceID)
-					dataSetExistingOne.CreatedTime = pointer.FromString("2016-09-01T12:30:00Z")
+					createdTimeOne, _ := time.Parse(time.RFC3339, "2016-09-01T12:30:00Z")
+					dataSetExistingOne.CreatedTime = pointer.FromTime(createdTimeOne)
 					_, err = collection.InsertOne(context.Background(), dataSetExistingOne)
 					Expect(err).ToNot(HaveOccurred())
 					dataSetExistingTwo = NewDataSet(userID, deviceID)
-					dataSetExistingTwo.CreatedTime = pointer.FromString("2016-09-01T10:00:00Z")
+					createdTimeTwo, _ := time.Parse(time.RFC3339, "2016-09-01T10:00:00Z")
+					dataSetExistingTwo.CreatedTime = pointer.FromTime(createdTimeTwo)
 					_, err = collection.InsertOne(context.Background(), dataSetExistingTwo)
 					Expect(err).ToNot(HaveOccurred())
 				}
@@ -1016,12 +1036,49 @@ var _ = Describe("Mongo", func() {
 					dataSet = NewDataSet(userID, deviceID)
 				})
 
+				Context("DateUnMarshal", func() {
+					var legacyUpload *dataTypesUploadTest.LegacyUpload
+					var result *upload.Upload
+					var createdTime time.Time
+					var modifiedTime time.Time
+					var deletedTime time.Time
+					var recordTime time.Time
+
+					BeforeEach(func() {
+						legacyUpload = NewLegacyDataSet(userID, deviceID)
+						recordTime = test.PastNearTime()
+						createdTime = test.PastNearTime().AddDate(0, 0, 1)
+						modifiedTime = test.PastNearTime().AddDate(0, 0, 2)
+						deletedTime = test.PastNearTime().AddDate(0, 0, 3)
+					})
+
+					It("ensure string legacy dates are unmarshalled correctly", func() {
+						legacyUpload.Time = legacyUpload.CreatedTime
+						legacyUpload.Time = pointer.FromString(recordTime.Format(time.RFC3339Nano))
+						legacyUpload.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339Nano))
+						legacyUpload.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
+						legacyUpload.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339Nano))
+
+						_, err := collection.InsertOne(context.Background(), legacyUpload)
+						Expect(err).ToNot(HaveOccurred())
+
+						err = collection.FindOne(context.Background(), bson.M{"_userId": userID}).Decode(&result)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(*result.CreatedTime).To(Equal(createdTime))
+						Expect(*result.ModifiedTime).To(Equal(modifiedTime))
+						Expect(*result.DeletedTime).To(Equal(deletedTime))
+						Expect(*result.Time).To(Equal(recordTime))
+					})
+				})
+
 				Context("GetDataSetsForUserByID", func() {
 					var filter *dataStore.Filter
 					var pagination *page.Pagination
 
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						dataSet.CreatedTime = pointer.FromTime(createdTime)
 						filter = dataStore.NewFilter()
 						pagination = page.NewPagination()
 					})
@@ -1092,7 +1149,8 @@ var _ = Describe("Mongo", func() {
 
 						Context("with deleted data set", func() {
 							BeforeEach(func() {
-								dataSet.DeletedTime = pointer.FromString("2016-09-01T13:00:00Z")
+								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T13:00:00Z")
+								dataSet.DeletedTime = pointer.FromTime(createdTime)
 								result := collection.FindOneAndReplace(context.Background(), bson.M{"id": dataSet.ID}, dataSet)
 								Expect(result.Err()).ToNot(HaveOccurred())
 							})
@@ -1111,7 +1169,8 @@ var _ = Describe("Mongo", func() {
 
 				Context("GetDataSetByID", func() {
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						dataSet.CreatedTime = pointer.FromTime(createdTime)
 						err := repository.EnsureIndexes()
 						Expect(err).ToNot(HaveOccurred())
 					})
@@ -1190,7 +1249,6 @@ var _ = Describe("Mongo", func() {
 						It("sets the created time", func() {
 							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
 							Expect(dataSet.CreatedTime).ToNot(BeNil())
-							Expect(*dataSet.CreatedTime).ToNot(BeEmpty())
 							Expect(dataSet.CreatedUserID).To(BeNil())
 							Expect(dataSet.ByUser).To(BeNil())
 						})
@@ -1312,7 +1370,8 @@ var _ = Describe("Mongo", func() {
 					}
 
 					BeforeEach(func() {
-						dataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+						dataSet.CreatedTime = pointer.FromTime(createdTime)
 						dataSetExistingOtherData = NewDataSetData(dataTest.NewDeviceID())
 						dataSetExistingOneData = NewDataSetData(deviceID)
 						dataSetExistingTwoData = NewDataSetData(deviceID)
@@ -1357,7 +1416,6 @@ var _ = Describe("Mongo", func() {
 							It("sets the deleted time on the data set", func() {
 								Expect(repository.DeleteDataSet(ctx, dataSet)).To(Succeed())
 								Expect(dataSet.DeletedTime).ToNot(BeNil())
-								Expect(*dataSet.DeletedTime).ToNot(BeEmpty())
 								Expect(dataSet.DeletedUserID).To(BeNil())
 							})
 
@@ -1446,7 +1504,6 @@ var _ = Describe("Mongo", func() {
 									Expect(ok).To(BeTrue())
 									Expect(baseDatum).ToNot(BeNil())
 									Expect(baseDatum.CreatedTime).ToNot(BeNil())
-									Expect(*baseDatum.CreatedTime).ToNot(BeEmpty())
 									Expect(baseDatum.CreatedUserID).To(BeNil())
 								}
 							})
@@ -2443,7 +2500,8 @@ var _ = Describe("Mongo", func() {
 								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 								destroyDeviceID = dataTest.NewDeviceID()
 								destroyDataSet = NewDataSet(destroyUserID, destroyDeviceID)
-								destroyDataSet.CreatedTime = pointer.FromString("2016-09-01T11:00:00Z")
+								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+								destroyDataSet.CreatedTime = pointer.FromTime(createdTime)
 								_, err := collection.InsertOne(context.Background(), destroyDataSet)
 								Expect(err).ToNot(HaveOccurred())
 								destroyDataSetData = NewDataSetData(destroyDeviceID)

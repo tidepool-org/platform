@@ -858,7 +858,7 @@ func (t *Tool) generateRandomDataSetDatum(deviceID *string) data.Datum {
 		DeviceID: pointer.CloneString(deviceID),
 		ID:       pointer.FromString(data.NewID()),
 		Origin:   origin,
-		Time:     pointer.FromString(time.Now().Add(-timeYear).Add(time.Duration(rand.Int63n(int64(2 * timeYear)))).Format(time.RFC3339Nano)),
+		Time:     pointer.FromTime(time.Now().Add(-timeYear).Add(time.Duration(rand.Int63n(int64(2 * timeYear))))),
 		Type:     "benchmark",
 	}
 }
