@@ -183,7 +183,7 @@ func NewDataSetBGMDataRanges(deviceID string, startTime time.Time, hours float64
 	// generate requiredRecords of data
 	for count := 0; count < requiredRecords; count += 5 {
 		for i, bracket := range glucoseBrackets {
-			datumTime := startTime.Add(time.Duration(-count+i+1) * time.Minute * 12)
+			datumTime := startTime.Add(-time.Duration(count+i+1) * time.Minute * 12)
 
 			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
 			datum.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
@@ -779,7 +779,6 @@ var _ = Describe("Summary", func() {
 				err = userSummary.CalculateBGMStats(dataSetBGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
 
-				fmt.Println(userSummary.BGM.HourlyStats)
 				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(5))
 
 				By("check record counters for insurance")
@@ -1026,12 +1025,8 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
 				for i, period := range periodKeys {
-					if i == 1 {
-						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.0, 0.006))
-					} else {
-						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(
-							BeNumerically("~", 60/(float64(periodInts[i])*1440), 0.006))
-					}
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(
+						BeNumerically("~", 60/(float64(periodInts[i])*1440), 0.006))
 
 					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(12))
 					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(60))
@@ -1188,10 +1183,10 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
 				for i, period := range periodKeys {
-					if i == 1 || i == 2 {
+					if i == 0 || i == 1 {
 						Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(288 * periodInts[i]))
 						Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(1440 * periodInts[i]))
-						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 					} else {
 						Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(7 * 288))
 						Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(7 * 1440))
