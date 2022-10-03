@@ -1,6 +1,12 @@
 # Platform 
 The data platform API
 
+## 0.20.0 - 2022-09-27
+### Changed
+- YLP-1800 Implement Power Saving objects upload
+### Fixed
+- YLP-1799 Unexpected data types
+
 ## 0.19.1 - 2022-09-08
 ### Fixed
 - YLP-1736 Updating old data when a terminal is replaced (same guid)
@@ -12,6 +18,7 @@ The data platform API
 ## 0.18.0 - 2022-06-17
 ### Engineering
 - Build multi-architecture docker images
+
 ### Changed
 - YLP-1326 Implement Loop Mode objects upload
 - YLP-1380 Implement biphasicId instead of eventId

@@ -49,11 +49,17 @@ func CloneMode(datum *mode.Mode) *mode.Mode {
 	return clone
 }
 
+var (
+	validSubTypes = []string{"confidential", "zen", "warmup", "loopMode", "energySaving"}
+)
+
 var _ = Describe("Change", func() {
 	It("SubType is expected", func() {
 		Expect(mode.ConfidentialMode).To(Equal("confidential"))
 		Expect(mode.ZenMode).To(Equal("zen"))
 		Expect(mode.Warmup).To(Equal("warmup"))
+		Expect(mode.LoopMode).To(Equal("loopMode"))
+		Expect(mode.EnergySaving).To(Equal("energySaving"))
 	})
 
 	Context("New", func() {
@@ -76,6 +82,20 @@ var _ = Describe("Change", func() {
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("deviceEvent"))
 			Expect(datum.SubType).To(Equal("warmup"))
+			Expect(datum.InputTime.InputTime).To(BeNil())
+		})
+		It("returns the expected datum with all loopMode values initialized", func() {
+			datum := mode.New(mode.LoopMode)
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Type).To(Equal("deviceEvent"))
+			Expect(datum.SubType).To(Equal("loopMode"))
+			Expect(datum.InputTime.InputTime).To(BeNil())
+		})
+		It("returns the expected datum with all energySaving values initialized", func() {
+			datum := mode.New(mode.EnergySaving)
+			Expect(datum).ToNot(BeNil())
+			Expect(datum.Type).To(Equal("deviceEvent"))
+			Expect(datum.SubType).To(Equal("energySaving"))
 			Expect(datum.InputTime.InputTime).To(BeNil())
 		})
 	})
@@ -109,14 +129,26 @@ var _ = Describe("Change", func() {
 				Entry("sub type missing",
 					func(datum *mode.Mode) { datum.SubType = "" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("", []string{"confidential", "zen", "warmup", "loopMode"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: ""}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("", validSubTypes), "/subType", &device.Meta{Type: "deviceEvent", SubType: ""}),
 				),
 				Entry("sub type invalid",
 					func(datum *mode.Mode) { datum.SubType = "invalidSubType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen", "warmup", "loopMode"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", validSubTypes), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+				),
+				Entry("sub type confidential",
+					func(datum *mode.Mode) { datum.SubType = "confidential" },
 				),
 				Entry("sub type zen",
 					func(datum *mode.Mode) { datum.SubType = "zen" },
+				),
+				Entry("sub type warmup",
+					func(datum *mode.Mode) { datum.SubType = "warmup" },
+				),
+				Entry("sub type loopMode",
+					func(datum *mode.Mode) { datum.SubType = "loopMode" },
+				),
+				Entry("sub type energySaving",
+					func(datum *mode.Mode) { datum.SubType = "energySaving" },
 				),
 				Entry("multiple errors",
 					func(datum *mode.Mode) {
@@ -124,7 +156,7 @@ var _ = Describe("Change", func() {
 						datum.SubType = "invalidSubType"
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen", "warmup", "loopMode"}), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", validSubTypes), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 				Entry("GUID is missing",
 					func(datum *mode.Mode) {
@@ -192,7 +224,7 @@ var _ = Describe("Change", func() {
 				),
 				Entry("sub type invalid",
 					func(datum *mode.Mode) { datum.SubType = "invalidSubType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", []string{"confidential", "zen", "warmup", "loopMode"}), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalidSubType", validSubTypes), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 				),
 			)
 

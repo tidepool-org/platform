@@ -13,6 +13,7 @@ const (
 	ZenMode          = "zen"
 	Warmup           = "warmup"
 	LoopMode         = "loopMode"
+	EnergySaving     = "energySaving"
 )
 
 func Modes() []string {
@@ -21,6 +22,7 @@ func Modes() []string {
 		ZenMode,
 		Warmup,
 		LoopMode,
+		EnergySaving,
 	}
 }
 
