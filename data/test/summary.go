@@ -148,49 +148,5 @@ func RandomSummary() *summary.Summary {
 		}
 	}
 
-	datum.Periods = make(map[string]*summary.Period)
-	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Periods[period] = &summary.Period{
-			GlucoseManagementIndicator:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
-			HasGlucoseManagementIndicator: test.RandomBool(),
-
-			AverageGlucose: &summary.Glucose{
-				Value: test.RandomFloat64FromRange(1, 30),
-				Units: "mmol/L",
-			},
-			HasAverageGlucose: test.RandomBool(),
-
-			TimeCGMUsePercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-			HasTimeCGMUsePercent: test.RandomBool(),
-			TimeCGMUseMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeCGMUseRecords:    test.RandomIntFromRange(0, 25920),
-
-			TimeInTargetPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-			HasTimeInTargetPercent: test.RandomBool(),
-			TimeInTargetMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInTargetRecords:    test.RandomIntFromRange(0, 25920),
-
-			TimeInLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-			HasTimeInLowPercent: test.RandomBool(),
-			TimeInLowMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInLowRecords:    test.RandomIntFromRange(0, 25920),
-
-			TimeInVeryLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-			HasTimeInVeryLowPercent: test.RandomBool(),
-			TimeInVeryLowMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInVeryLowRecords:    test.RandomIntFromRange(0, 25920),
-
-			TimeInHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-			HasTimeInHighPercent: test.RandomBool(),
-			TimeInHighMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInHighRecords:    test.RandomIntFromRange(0, 25920),
-
-			TimeInVeryHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
-			HasTimeInVeryHighPercent: test.RandomBool(),
-			TimeInVeryHighMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInVeryHighRecords:    test.RandomIntFromRange(0, 25920),
-		}
-	}
-
 	return &datum
 }

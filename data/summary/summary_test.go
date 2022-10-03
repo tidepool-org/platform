@@ -30,8 +30,8 @@ const (
 	requestedAvgGlucose  = 7.0
 )
 
-func NewContinuous(units *string, datumTime *time.Time, deviceID *string) *glucose.Glucose {
-	datum := glucose.New("cbg")
+func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string) *glucose.Glucose {
+	datum := glucose.New(*typ)
 	datum.Units = units
 
 	datum.Active = true
@@ -51,10 +51,11 @@ func NewContinuous(units *string, datumTime *time.Time, deviceID *string) *gluco
 
 func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, hours float64, reqAvg float64) []*glucose.Glucose {
 	requiredRecords := int(hours * 12)
+	typ := pointer.FromString("cbg")
 
 	var dataSetData = make([]*glucose.Glucose, requiredRecords)
 
-	// generate X days of data
+	// generate X hours of data
 	for count := 0; count < requiredRecords; count += 2 {
 		randValue := 1 + rand.Float64()*(reqAvg-1)
 		glucoseValues := [2]float64{reqAvg + randValue, reqAvg - randValue}
@@ -63,7 +64,32 @@ func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, hours float64, r
 		for i, glucoseValue := range glucoseValues {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
-			datum := NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
+			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
+			datum.Value = pointer.FromFloat64(glucoseValue)
+
+			dataSetData[requiredRecords-count-i-1] = datum
+		}
+	}
+
+	return dataSetData
+}
+
+func NewDataSetBGMDataAvg(deviceID string, startTime time.Time, hours float64, reqAvg float64) []*glucose.Glucose {
+	requiredRecords := int(hours * 6)
+	typ := pointer.FromString("smbg")
+
+	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+
+	// generate X hours of data
+	for count := 0; count < requiredRecords; count += 2 {
+		randValue := 1 + rand.Float64()*(reqAvg-1)
+		glucoseValues := [2]float64{reqAvg + randValue, reqAvg - randValue}
+
+		// this adds 2 entries, one for each side of the average so that the calculated average is the requested value
+		for i, glucoseValue := range glucoseValues {
+			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 10)
+
+			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
 			datum.Value = pointer.FromFloat64(glucoseValue)
 
 			dataSetData[requiredRecords-count-i-1] = datum
@@ -111,6 +137,7 @@ func NewDataRangesSingle(value float64) DataRanges {
 // NOTE: only generates 98.9% CGMUse, due to needing to be divisible by 5
 func NewDataSetCGMDataRanges(deviceID string, startTime time.Time, hours float64, ranges DataRanges) []*glucose.Glucose {
 	requiredRecords := int(hours * 10)
+	typ := pointer.FromString("cbg")
 	var gapCompensation time.Duration
 
 	var dataSetData = make([]*glucose.Glucose, requiredRecords)
@@ -129,7 +156,36 @@ func NewDataSetCGMDataRanges(deviceID string, startTime time.Time, hours float64
 		for i, bracket := range glucoseBrackets {
 			datumTime := startTime.Add(time.Duration(-(count+i+1))*time.Minute*5 - gapCompensation)
 
-			datum := NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
+			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
+			datum.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
+
+			dataSetData[requiredRecords-count-i-1] = datum
+		}
+	}
+
+	return dataSetData
+}
+
+func NewDataSetBGMDataRanges(deviceID string, startTime time.Time, hours float64, ranges DataRanges) []*glucose.Glucose {
+	requiredRecords := int(hours * 5)
+	typ := pointer.FromString("smbg")
+
+	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+
+	glucoseBrackets := [5][2]float64{
+		{ranges.Min, ranges.VeryLow - ranges.Padding},
+		{ranges.VeryLow, ranges.Low - ranges.Padding},
+		{ranges.Low, ranges.High - ranges.Padding},
+		{ranges.High, ranges.VeryHigh - ranges.Padding},
+		{ranges.VeryHigh, ranges.Max},
+	}
+
+	// generate requiredRecords of data
+	for count := 0; count < requiredRecords; count += 5 {
+		for i, bracket := range glucoseBrackets {
+			datumTime := startTime.Add(time.Duration(-count+i+1) * time.Minute * 12)
+
+			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
 			datum.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
 
 			dataSetData[requiredRecords-count-i-1] = datum
@@ -147,6 +203,7 @@ var _ = Describe("Summary", func() {
 	var deviceID string
 	var err error
 	var dataSetCGMData []*glucose.Glucose
+	var dataSetBGMData []*glucose.Glucose
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -159,9 +216,10 @@ var _ = Describe("Summary", func() {
 	Context("GetDuration", func() {
 		var libreDatum *glucose.Glucose
 		var otherDatum *glucose.Glucose
+		typ := pointer.FromString("cbg")
 
 		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum = NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
+			libreDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
 			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
 
 			duration := summary.GetDuration(libreDatum)
@@ -169,7 +227,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("Returns correct duration for other devices", func() {
-			otherDatum = NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
+			otherDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
 
 			duration := summary.GetDuration(otherDatum)
 			Expect(duration).To(Equal(5))
@@ -232,6 +290,7 @@ var _ = Describe("Summary", func() {
 	Context("Summary calculations requiring datasets", func() {
 		var userSummary *summary.Summary
 		var periodKeys = []string{"1d", "7d", "14d", "30d"}
+		var periodInts = []int{1, 7, 14, 30}
 
 		Context("CalculateCGMStats", func() {
 			It("Returns correct day count when given 2 weeks", func() {
@@ -520,6 +579,256 @@ var _ = Describe("Summary", func() {
 			})
 		})
 
+		Context("CalculateBGMStats", func() {
+			It("Returns correct day count when given 2 weeks", func() {
+				userSummary = summary.New(userID)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(336))
+			})
+
+			It("Returns correct day count when given 1 week", func() {
+				userSummary = summary.New(userID)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(168))
+			})
+
+			It("Returns correct day count when given 3 weeks", func() {
+				userSummary = summary.New(userID)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 504, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(504))
+			})
+
+			It("Returns correct record count when given overlapping records", func() {
+				var doubledBGMData = make([]*glucose.Glucose, 6*2)
+
+				userSummary = summary.New(userID)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose)
+				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceID, datumTime.Add(15*time.Second), 1, requestedAvgGlucose)
+
+				// interlace the lists
+				for i := 0; i < len(dataSetBGMData); i += 1 {
+					doubledBGMData[i*2] = dataSetBGMData[i]
+					doubledBGMData[i*2+1] = dataSetBGMDataTwo[i]
+				}
+				err = userSummary.CalculateBGMStats(doubledBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(1))
+				Expect(userSummary.BGM.HourlyStats[0].TotalRecords).To(Equal(12))
+			})
+
+			It("Returns correct record count when given overlapping records across multiple calculations", func() {
+				userSummary = summary.New(userID)
+
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+				Expect(err).ToNot(HaveOccurred())
+
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime.Add(15*time.Second), 1, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(1))
+				Expect(userSummary.BGM.HourlyStats[0].TotalRecords).To(Equal(12))
+			})
+
+			It("Returns correct stats when given 1 week, then 1 week more than 2 weeks ahead", func() {
+				var lastRecordTime time.Time
+				var hourlyStatsLen int
+				var newHourlyStatsLen int
+				secondDatumTime := datumTime.AddDate(0, 0, 15)
+				secondRequestedAvgGlucose := requestedAvgGlucose - 4
+				userSummary = summary.New(userID)
+
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(168))
+
+				By("check total glucose and dates for first batch")
+				hourlyStatsLen = len(userSummary.BGM.HourlyStats)
+				for i := hourlyStatsLen - 1; i >= 0; i-- {
+					Expect(userSummary.BGM.HourlyStats[i].TotalGlucose).To(Equal(requestedAvgGlucose * 6))
+
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 10*time.Minute)
+					Expect(userSummary.BGM.HourlyStats[i].LastRecordTime).To(Equal(lastRecordTime))
+				}
+
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, secondDatumTime, 168, secondRequestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(528)) // 22 days
+
+				By("check total glucose and dates for second batch")
+				newHourlyStatsLen = len(userSummary.BGM.HourlyStats)
+				expectedNewHourlyStatsLenStart := newHourlyStatsLen - len(dataSetBGMData)/6 // 6 records per hour
+				for i := newHourlyStatsLen - 1; i >= expectedNewHourlyStatsLenStart; i-- {
+					Expect(userSummary.BGM.HourlyStats[i].TotalGlucose).To(Equal(secondRequestedAvgGlucose * 6))
+
+					lastRecordTime = secondDatumTime.Add(-time.Hour*time.Duration(newHourlyStatsLen-i-1) - 10*time.Minute)
+					Expect(userSummary.BGM.HourlyStats[i].LastRecordTime).To(Equal(lastRecordTime))
+				}
+
+				By("check total glucose and dates for gap")
+				expectedGapEnd := newHourlyStatsLen - expectedNewHourlyStatsLenStart
+				for i := hourlyStatsLen; i <= expectedGapEnd; i++ {
+					Expect(userSummary.BGM.HourlyStats[i].TotalGlucose).To(Equal(float64(0)))
+				}
+			})
+
+			It("Returns correct stats when given multiple batches in a day", func() {
+				var incrementalDatumTime time.Time
+				var lastRecordTime time.Time
+				userSummary = summary.New(userID)
+
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 144, requestedAvgGlucose)
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(144))
+
+				// TODO move to 0.5 hour to test more cases
+				for i := 1; i <= 24; i++ {
+					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
+					dataSetBGMData = NewDataSetBGMDataAvg(deviceID, incrementalDatumTime, 1, float64(i))
+
+					err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(userSummary.BGM.HourlyStats)).To(Equal(144 + i))
+					Expect(userSummary.BGM.HourlyStats[i].TotalRecords).To(Equal(6))
+				}
+
+				for i := 144; i < len(userSummary.BGM.HourlyStats); i++ {
+					f := fmt.Sprintf("hour %d", i)
+					By(f)
+					Expect(userSummary.BGM.HourlyStats[i].TotalRecords).To(Equal(6))
+
+					lastRecordTime = datumTime.Add(time.Hour*time.Duration(i-143) - time.Minute*10)
+					Expect(userSummary.BGM.HourlyStats[i].LastRecordTime).To(Equal(lastRecordTime))
+					Expect(userSummary.BGM.HourlyStats[i].TotalGlucose).To(Equal(float64((i - 143) * 6)))
+
+					averageGlucose := userSummary.BGM.HourlyStats[i].TotalGlucose / float64(userSummary.BGM.HourlyStats[i].TotalRecords)
+					Expect(averageGlucose).To(Equal(float64(i - 143)))
+				}
+			})
+
+			It("Returns correct daily stats for days with different averages", func() {
+				var expectedTotalGlucose float64
+				var lastRecordTime time.Time
+				userSummary = summary.New(userID)
+				dataSetBGMDataOne := NewDataSetBGMDataAvg(deviceID, datumTime.AddDate(0, 0, -2), 24, requestedAvgGlucose)
+				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceID, datumTime.AddDate(0, 0, -1), 24, requestedAvgGlucose+1)
+				dataSetBGMDataThree := NewDataSetBGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose+2)
+				dataSetBGMData = append(dataSetBGMDataOne, dataSetBGMDataTwo...)
+				dataSetBGMData = append(dataSetBGMData, dataSetBGMDataThree...)
+
+				err = userSummary.CalculateBGMStats(dataSetBGMData)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(72))
+
+				for i := len(userSummary.BGM.HourlyStats) - 1; i >= 0; i-- {
+					f := fmt.Sprintf("hour %d", i+1)
+					By(f)
+					Expect(userSummary.BGM.HourlyStats[i].TotalRecords).To(Equal(6))
+
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userSummary.BGM.HourlyStats)-i-1) - 10*time.Minute)
+					Expect(userSummary.BGM.HourlyStats[i].LastRecordTime).To(Equal(lastRecordTime))
+
+					expectedTotalGlucose = (requestedAvgGlucose + float64(i/24)) * 6
+					Expect(userSummary.BGM.HourlyStats[i].TotalGlucose).To(Equal(expectedTotalGlucose))
+				}
+			})
+
+			It("Returns correct hourly stats for hours with different Time in Range", func() {
+				var lastRecordTime time.Time
+				userSummary = summary.New(userID)
+				veryLowRange := NewDataRangesSingle(veryLowBloodGlucose - 0.5)
+				lowRange := NewDataRangesSingle(lowBloodGlucose - 0.5)
+				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
+				highRange := NewDataRangesSingle(highBloodGlucose + 0.5)
+				veryHighRange := NewDataRangesSingle(veryHighBloodGlucose + 0.5)
+
+				dataSetBGMDataOne := NewDataSetBGMDataRanges(deviceID, datumTime.Add(-4*time.Hour), 1, veryLowRange)
+				dataSetBGMDataTwo := NewDataSetBGMDataRanges(deviceID, datumTime.Add(-3*time.Hour), 1, lowRange)
+				dataSetBGMDataThree := NewDataSetBGMDataRanges(deviceID, datumTime.Add(-2*time.Hour), 1, inRange)
+				dataSetBGMDataFour := NewDataSetBGMDataRanges(deviceID, datumTime.Add(-1*time.Hour), 1, highRange)
+				dataSetBGMDataFive := NewDataSetBGMDataRanges(deviceID, datumTime, 1, veryHighRange)
+
+				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
+				err = userSummary.CalculateBGMStats(dataSetBGMDataOne)
+				Expect(err).ToNot(HaveOccurred())
+				err = userSummary.CalculateBGMStats(dataSetBGMDataTwo)
+				Expect(err).ToNot(HaveOccurred())
+				err = userSummary.CalculateBGMStats(dataSetBGMDataThree)
+				Expect(err).ToNot(HaveOccurred())
+				err = userSummary.CalculateBGMStats(dataSetBGMDataFour)
+				Expect(err).ToNot(HaveOccurred())
+				err = userSummary.CalculateBGMStats(dataSetBGMDataFive)
+				Expect(err).ToNot(HaveOccurred())
+
+				fmt.Println(userSummary.BGM.HourlyStats)
+				Expect(len(userSummary.BGM.HourlyStats)).To(Equal(5))
+
+				By("check record counters for insurance")
+				for i := len(userSummary.BGM.HourlyStats) - 1; i >= 0; i-- {
+					f := fmt.Sprintf("hour %d", i+1)
+					By(f)
+					Expect(userSummary.BGM.HourlyStats[i].TotalRecords).To(Equal(5))
+
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userSummary.BGM.HourlyStats)-i-1) - time.Minute*12)
+					Expect(userSummary.BGM.HourlyStats[i].LastRecordTime).To(Equal(lastRecordTime))
+				}
+
+				By("very low records")
+				Expect(userSummary.BGM.HourlyStats[0].VeryLowRecords).To(Equal(5))
+				Expect(userSummary.BGM.HourlyStats[0].LowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[0].TargetRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[0].HighRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[0].VeryHighRecords).To(Equal(0))
+
+				By("low records")
+				Expect(userSummary.BGM.HourlyStats[1].VeryLowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[1].LowRecords).To(Equal(5))
+				Expect(userSummary.BGM.HourlyStats[1].TargetRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[1].HighRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[1].VeryHighRecords).To(Equal(0))
+
+				By("in-range records")
+				Expect(userSummary.BGM.HourlyStats[2].VeryLowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[2].LowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[2].TargetRecords).To(Equal(5))
+				Expect(userSummary.BGM.HourlyStats[2].HighRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[2].VeryHighRecords).To(Equal(0))
+
+				By("high records")
+				Expect(userSummary.BGM.HourlyStats[3].VeryLowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[3].LowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[3].TargetRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[3].HighRecords).To(Equal(5))
+				Expect(userSummary.BGM.HourlyStats[3].VeryHighRecords).To(Equal(0))
+
+				By("very high records")
+				Expect(userSummary.BGM.HourlyStats[4].VeryLowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[4].LowRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[4].TargetRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[4].HighRecords).To(Equal(0))
+				Expect(userSummary.BGM.HourlyStats[4].VeryHighRecords).To(Equal(5))
+			})
+		})
+
 		Context("CalculateSummary", func() {
 			It("Returns correct time in range for stats", func() {
 				var expectedCGMUse float64
@@ -586,7 +895,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct average glucose for stats", func() {
 				userSummary = summary.New(userID)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose)
-				//expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -596,41 +905,40 @@ var _ = Describe("Summary", func() {
 
 				Expect(userSummary.CGM.TotalHours).To(Equal(720))
 
-				for _, period := range periodKeys {
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(20160))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(4032))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
 			})
 
 			It("Correctly removes GMI when CGM use drop below 0.7", func() {
 				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose)
-				//expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose)
+				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.CGM.HourlyStats)).To(Equal(336))
+				Expect(len(userSummary.CGM.HourlyStats)).To(Equal(720))
 
 				userSummary.CalculateCGMSummary()
 
-				Expect(userSummary.CGM.TotalHours).To(Equal(336))
+				Expect(userSummary.CGM.TotalHours).To(Equal(720))
 
-				for _, period := range periodKeys {
-					// TODO make dynamic
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(20160))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(4032))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
 
 				// start the real test
@@ -643,16 +951,17 @@ var _ = Describe("Summary", func() {
 				userSummary.CalculateCGMSummary()
 
 				Expect(userSummary.CGM.TotalHours).To(Equal(30 * 24)) // 30 days currently capped
-				for _, period := range periodKeys {
-					// TODO make dynamic
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.0714, 0.001))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(192))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(960))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(
+						BeNumerically("~", 960/(float64(periodInts[i])*1440), 0.005))
+					Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(192))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(960))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 				}
 			})
 
@@ -667,7 +976,7 @@ var _ = Describe("Summary", func() {
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose)
 				userSummary = summary.New(userID)
 				userSummary.CGM.OutdatedSince = &datumTime
-				//expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
 				status = summary.UserLastUpdated{
 					CGM: &summary.UserCGMLastUpdated{
@@ -683,23 +992,24 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.CGM.TotalHours).To(Equal(720))
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
-				for _, period := range periodKeys {
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
 			})
 
 			It("Returns correctly calculated summary with rolling <100% cgm use", func() {
-				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose-4)
+				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose-4)
 				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 7)
+				newDatumTime = datumTime.AddDate(0, 0, 30)
 				userSummary.CGM.OutdatedSince = &datumTime
-				//expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+				expectedGMI := summary.CalculateGMI(requestedAvgGlucose + 4)
 
 				status = summary.UserLastUpdated{
 					CGM: &summary.UserCGMLastUpdated{
@@ -712,22 +1022,28 @@ var _ = Describe("Summary", func() {
 
 				err = userSummary.Update(ctx, &status, &userData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userSummary.CGM.TotalHours).To(Equal(168))
+				Expect(userSummary.CGM.TotalHours).To(Equal(1))
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
-				for _, period := range periodKeys {
-					// TODO make dynamic
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.5, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
+				for i, period := range periodKeys {
+					if i == 1 {
+						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.0, 0.006))
+					} else {
+						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(
+							BeNumerically("~", 60/(float64(periodInts[i])*1440), 0.006))
+					}
+
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(12))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(60))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+					Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 				}
 
 				// start the actual test
-				userData.CGM = NewDataSetCGMDataAvg(deviceID, newDatumTime, 168, requestedAvgGlucose+4)
+				userData.CGM = NewDataSetCGMDataAvg(deviceID, newDatumTime, 720, requestedAvgGlucose+4)
 				userSummary.CGM.OutdatedSince = &datumTime
 
 				status = summary.UserLastUpdated{
@@ -742,87 +1058,86 @@ var _ = Describe("Summary", func() {
 				err = userSummary.Update(ctx, &status, &userData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
-				Expect(userSummary.CGM.TotalHours).To(Equal(336))
+				Expect(userSummary.CGM.TotalHours).To(Equal(720))
 
-				for _, period := range periodKeys {
-					// TODO make dynamic
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
-					//Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
 			})
 
-			It("Returns correctly calculated summary with rolling 100% cgm use", func() {
-				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 7)
-				userSummary.CGM.OutdatedSince = &datumTime
-				//expectedGMIFirst := summary.CalculateGMI(requestedAvgGlucose - 4)
-				//expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose)
-
-				status = summary.UserLastUpdated{
-					CGM: &summary.UserCGMLastUpdated{
-						LastData:   datumTime,
-						LastUpload: datumTime},
-					BGM: &summary.UserBGMLastUpdated{
-						LastData:   datumTime,
-						LastUpload: datumTime},
-				}
-
-				err = userSummary.Update(ctx, &status, &userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userSummary.CGM.TotalHours).To(Equal(336))
-				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
-
-				for _, period := range periodKeys {
-					// TODO
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
-					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
-				}
-
-				// start the actual test
-				userData.CGM = NewDataSetCGMDataAvg(deviceID, newDatumTime, 168, requestedAvgGlucose+4)
-				userSummary.CGM.OutdatedSince = &datumTime
-
-				status = summary.UserLastUpdated{
-					CGM: &summary.UserCGMLastUpdated{
-						LastData:   newDatumTime,
-						LastUpload: newDatumTime},
-					BGM: &summary.UserBGMLastUpdated{
-						LastData:   newDatumTime,
-						LastUpload: newDatumTime},
-				}
-
-				err = userSummary.Update(ctx, &status, &userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userSummary.CGM.TotalHours).To(Equal(504))
-				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
-
-				for _, period := range periodKeys {
-					// TODO make dynamic
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
-					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
-				}
-			})
+			//It("Returns correctly calculated summary with rolling 100% cgm use", func() {
+			//	userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose-4)
+			//	userSummary = summary.New(userID)
+			//	newDatumTime = datumTime.AddDate(0, 0, 7)
+			//	userSummary.CGM.OutdatedSince = &datumTime
+			//	expectedGMIFirst := summary.CalculateGMI(requestedAvgGlucose - 4)
+			//	expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose)
+			//
+			//	status = summary.UserLastUpdated{
+			//		CGM: &summary.UserCGMLastUpdated{
+			//			LastData:   datumTime,
+			//			LastUpload: datumTime},
+			//		BGM: &summary.UserBGMLastUpdated{
+			//			LastData:   datumTime,
+			//			LastUpload: datumTime},
+			//	}
+			//
+			//	err = userSummary.Update(ctx, &status, &userData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//	Expect(userSummary.CGM.TotalHours).To(Equal(336))
+			//	Expect(userSummary.CGM.OutdatedSince).To(BeNil())
+			//
+			//	for _, period := range periodKeys {
+			//		Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+			//		Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+			//		Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+			//		Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
+			//		Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.001))
+			//		Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+			//	}
+			//
+			//	// start the actual test
+			//	userData.CGM = NewDataSetCGMDataAvg(deviceID, newDatumTime, 168, requestedAvgGlucose+4)
+			//	userSummary.CGM.OutdatedSince = &datumTime
+			//
+			//	status = summary.UserLastUpdated{
+			//		CGM: &summary.UserCGMLastUpdated{
+			//			LastData:   newDatumTime,
+			//			LastUpload: newDatumTime},
+			//		BGM: &summary.UserBGMLastUpdated{
+			//			LastData:   newDatumTime,
+			//			LastUpload: newDatumTime},
+			//	}
+			//
+			//	err = userSummary.Update(ctx, &status, &userData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//	Expect(userSummary.CGM.TotalHours).To(Equal(504))
+			//	Expect(userSummary.CGM.OutdatedSince).To(BeNil())
+			//
+			//	for _, period := range periodKeys {
+			//		// TODO make dynamic
+			//		//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+			//		//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+			//		//Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+			//		Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
+			//		//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
+			//		//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+			//	}
+			//})
 
 			It("Returns correctly non-rolling summary with two 30 day windows", func() {
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose-4)
 				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 37)
+				newDatumTime = datumTime.AddDate(0, 0, 31)
 				userSummary.CGM.OutdatedSince = &datumTime
-				//expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose + 4)
+				expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose + 4)
 
 				status = summary.UserLastUpdated{
 					CGM: &summary.UserCGMLastUpdated{
@@ -838,15 +1153,19 @@ var _ = Describe("Summary", func() {
 				Expect(userSummary.CGM.TotalHours).To(Equal(24))
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
-				for _, period := range periodKeys {
-					// TODO
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.07142, 0.001))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1440/(1440*float64(periodInts[i])), 0.005))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(288))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(1440))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+					if *userSummary.CGM.Periods[period].TimeCGMUsePercent > 0.7 {
+						Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					} else {
+						Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+						Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
+					}
 				}
 
 				// start the actual test
@@ -865,27 +1184,39 @@ var _ = Describe("Summary", func() {
 				err = userSummary.Update(ctx, &status, &userData)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(userSummary.CGM.TotalHours).To(Equal(720)) // 27 days
+				Expect(userSummary.CGM.TotalHours).To(Equal(720)) // 30 days
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
-				for _, period := range periodKeys {
-					// TODO
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.75, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					if i == 1 || i == 2 {
+						Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(288 * periodInts[i]))
+						Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(1440 * periodInts[i]))
+						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
+					} else {
+						Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(7 * 288))
+						Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(7 * 1440))
+						Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1440*7/(1440*float64(periodInts[i])), 0.005))
+					}
+
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					if *userSummary.CGM.Periods[period].TimeCGMUsePercent > 0.7 {
+						Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
+						Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					} else {
+						Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+						Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
+					}
 				}
 			})
 
 			It("Returns correctly calculated summary with rolling dropping cgm use", func() {
-				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose-4)
+				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose-4)
 				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 7)
+				newDatumTime = datumTime.AddDate(0, 0, 30)
 				userSummary.CGM.OutdatedSince = &datumTime
-				//expectedGMI := summary.CalculateGMI(requestedAvgGlucose - 4)
+				expectedGMI := summary.CalculateGMI(requestedAvgGlucose - 4)
 
 				status = summary.UserLastUpdated{
 					CGM: &summary.UserCGMLastUpdated{
@@ -898,18 +1229,18 @@ var _ = Describe("Summary", func() {
 
 				err = userSummary.Update(ctx, &status, &userData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userSummary.CGM.TotalHours).To(Equal(336))
+				Expect(userSummary.CGM.TotalHours).To(Equal(720))
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
-				for _, period := range periodKeys {
-					// TODO
-					///Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+				for i, period := range periodKeys {
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
 
 				// start the actual test
@@ -928,20 +1259,18 @@ var _ = Describe("Summary", func() {
 				err = userSummary.Update(ctx, &status, &userData)
 				Expect(err).ToNot(HaveOccurred())
 
-				//expectedNewAvg := (1*(requestedAvgGlucose+4) + 336*(requestedAvgGlucose-4)) / 337
-
-				Expect(userSummary.CGM.TotalHours).To(Equal(504)) // 21 days
+				Expect(userSummary.CGM.TotalHours).To(Equal(720)) // 30 days
 				Expect(userSummary.CGM.OutdatedSince).To(BeNil())
 
 				for _, period := range periodKeys {
-					// TODO
-					//Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.5, 0.005))
-					//Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(3024))
-					//Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", expectedNewAvg, 0.05))
+					Expect(*userSummary.CGM.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.03, 0.03))
+					Expect(userSummary.CGM.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseRecords).To(Equal(12))
+					Expect(userSummary.CGM.Periods[period].TimeCGMUseMinutes).To(Equal(60))
+					Expect(userSummary.CGM.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.05))
 					Expect(userSummary.CGM.Periods[period].HasAverageGlucose).To(BeTrue())
-					//Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
-					//Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+					Expect(userSummary.CGM.Periods[period].GlucoseManagementIndicator).To(BeNil())
+					Expect(userSummary.CGM.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 				}
 			})
 

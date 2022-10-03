@@ -676,42 +676,42 @@ var _ = Describe("Mongo", func() {
 						Expect(firstSummary).ToNot(Equal(newSummary))
 					})
 
-					It("ensure that nil summary fields are correctly removed from the db", func() {
+					It("ensure that nil CGM summary fields are correctly removed from the db", func() {
 						var newSummary *summary.Summary
 						var userSummary *summary.Summary
 						userSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userSummary).To(BeNil())
 
-						randomSummary.Periods["30d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
-						randomSummary.Periods["14d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
-						randomSummary.Periods["7d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
-						randomSummary.Periods["1d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						randomSummary.CGM.Periods["30d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						randomSummary.CGM.Periods["14d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						randomSummary.CGM.Periods["7d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
+						randomSummary.CGM.Periods["1d"].GlucoseManagementIndicator = pointer.FromFloat64(7.5)
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						newSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(newSummary.Periods["30d"].GlucoseManagementIndicator).ToNot(BeNil())
-						Expect(newSummary.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
-						Expect(newSummary.Periods["7d"].GlucoseManagementIndicator).ToNot(BeNil())
-						Expect(newSummary.Periods["1d"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.CGM.Periods["30d"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.CGM.Periods["14d"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.CGM.Periods["7d"].GlucoseManagementIndicator).ToNot(BeNil())
+						Expect(newSummary.CGM.Periods["1d"].GlucoseManagementIndicator).ToNot(BeNil())
 
-						randomSummary.Periods["30d"].GlucoseManagementIndicator = nil
-						randomSummary.Periods["14d"].GlucoseManagementIndicator = nil
-						randomSummary.Periods["7d"].GlucoseManagementIndicator = nil
-						randomSummary.Periods["1d"].GlucoseManagementIndicator = nil
+						randomSummary.CGM.Periods["30d"].GlucoseManagementIndicator = nil
+						randomSummary.CGM.Periods["14d"].GlucoseManagementIndicator = nil
+						randomSummary.CGM.Periods["7d"].GlucoseManagementIndicator = nil
+						randomSummary.CGM.Periods["1d"].GlucoseManagementIndicator = nil
 
 						_, err = summaryRepository.UpdateSummary(ctx, randomSummary)
 						Expect(err).ToNot(HaveOccurred())
 
 						newSummary, err = summaryRepository.GetSummary(ctx, userID)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(newSummary.Periods["30d"].GlucoseManagementIndicator).To(BeNil())
-						Expect(newSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
-						Expect(newSummary.Periods["7d"].GlucoseManagementIndicator).To(BeNil())
-						Expect(newSummary.Periods["1d"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.CGM.Periods["30d"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.CGM.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.CGM.Periods["7d"].GlucoseManagementIndicator).To(BeNil())
+						Expect(newSummary.CGM.Periods["1d"].GlucoseManagementIndicator).To(BeNil())
 					})
 				})
 

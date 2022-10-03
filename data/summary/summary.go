@@ -46,45 +46,6 @@ type TypeOutdatedTimes struct {
 	BGM *time.Time
 }
 
-type Period struct {
-	HasAverageGlucose             bool `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
-	HasGlucoseManagementIndicator bool `json:"hasGlucoseManagementIndicator" bson:"hasGlucoseManagementIndicator"`
-	HasTimeCGMUsePercent          bool `json:"hasTimeCGMUsePercent" bson:"hasTimeCGMUsePercent"`
-	HasTimeInTargetPercent        bool `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
-	HasTimeInHighPercent          bool `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
-	HasTimeInVeryHighPercent      bool `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
-	HasTimeInLowPercent           bool `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
-	HasTimeInVeryLowPercent       bool `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
-
-	// actual values
-	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
-	TimeCGMUseMinutes int      `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
-	TimeCGMUseRecords int      `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
-
-	AverageGlucose             *Glucose `json:"averageGlucose" bson:"avgGlucose"`
-	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
-
-	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
-	TimeInTargetMinutes int      `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
-	TimeInTargetRecords int      `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
-
-	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
-	TimeInLowMinutes int      `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
-	TimeInLowRecords int      `json:"timeInLowRecords" bson:"timeInLowRecords"`
-
-	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
-	TimeInVeryLowMinutes int      `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
-	TimeInVeryLowRecords int      `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
-
-	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
-	TimeInHighMinutes int      `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
-	TimeInHighRecords int      `json:"timeInHighRecords" bson:"timeInHighRecords"`
-
-	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
-	TimeInVeryHighMinutes int      `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
-	TimeInVeryHighRecords int      `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
-}
-
 type Config struct {
 	SchemaVersion string `json:"schemaVersion" bson:"schemaVersion"`
 
@@ -101,8 +62,6 @@ type Summary struct {
 
 	CGM CGMSummary `json:"cgmSummary" bson:"cgmSummary"`
 	BGM BGMSummary `json:"bgmSummary" bson:"bgmSummary"`
-
-	Periods map[string]*Period `json:"periods" bson:"periods"`
 
 	Config Config `json:"config" bson:"config"`
 }
