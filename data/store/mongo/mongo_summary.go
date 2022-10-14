@@ -60,7 +60,7 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 		return nil, errors.New("summary UserID is missing")
 	}
 
-	var userSummary = summary.New(id)
+	var userSummary = summary.New(id, false)
 	selector := bson.M{
 		"userId": id,
 	}

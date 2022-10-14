@@ -1140,28 +1140,20 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) 
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
 	selectorOld := bson.M{
+		"_userId": bson.M{"$ne": -1111},
+		"_active": true,
+		"type":    bson.M{"$ne": -1111},
 		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
 			"$lte": futureCutoff.Format(time.RFC3339Nano)},
-		"_active": true,
-		"$or": bson.A{
-			bson.M{"type": "smbg"},
-			bson.M{"type": "cbg"},
-		},
-		"_userId": bson.M{"$ne": -1111},
 	}
 
 	selector := bson.M{
-		"time": bson.M{"$gte": pastCutoff,
-			"$lte": futureCutoff},
-		"_active": true,
-		"$or": bson.A{
-			bson.M{"type": "smbg"},
-			bson.M{"type": "cbg"},
-		},
 		"_userId": bson.M{"$ne": -1111},
+		"_active": true,
+		"type":    bson.M{"$ne": -1111},
+		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
 	}
 
-	// we would prefer to use hints here instead of _userId $ne -1111, but hints are not (yet?) available on distinct opts
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching distinct userIDs")

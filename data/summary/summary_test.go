@@ -294,7 +294,7 @@ var _ = Describe("Summary", func() {
 
 		Context("CalculateCGMStats", func() {
 			It("Returns correct day count when given 2 weeks", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose)
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
 
@@ -303,7 +303,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct day count when given 1 week", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose)
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
 
@@ -312,7 +312,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct day count when given 3 weeks", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 504, requestedAvgGlucose)
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
 
@@ -323,7 +323,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct record count when given overlapping records", func() {
 				var doubledCGMData = make([]*glucose.Glucose, 288*2)
 
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose)
 				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceID, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
 
@@ -340,7 +340,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct record count when given overlapping records across multiple calculations", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose)
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
@@ -360,7 +360,7 @@ var _ = Describe("Summary", func() {
 				var newHourlyStatsLen int
 				secondDatumTime := datumTime.AddDate(0, 0, 15)
 				secondRequestedAvgGlucose := requestedAvgGlucose - 4
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose)
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
@@ -403,7 +403,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct stats when given multiple batches in a day", func() {
 				var incrementalDatumTime time.Time
 				var lastRecordTime time.Time
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 144, requestedAvgGlucose)
 				err = userSummary.CalculateCGMStats(dataSetCGMData)
@@ -441,7 +441,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct daily stats for days with different averages", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceID, datumTime.AddDate(0, 0, -2), 24, requestedAvgGlucose)
 				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceID, datumTime.AddDate(0, 0, -1), 24, requestedAvgGlucose+1)
 				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose+2)
@@ -469,7 +469,7 @@ var _ = Describe("Summary", func() {
 
 			It("Returns correct hourly stats for hours with different Time in Range", func() {
 				var lastRecordTime time.Time
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				veryLowRange := NewDataRangesSingle(veryLowBloodGlucose - 0.5)
 				lowRange := NewDataRangesSingle(lowBloodGlucose - 0.5)
 				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
@@ -581,7 +581,7 @@ var _ = Describe("Summary", func() {
 
 		Context("CalculateBGMStats", func() {
 			It("Returns correct day count when given 2 weeks", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose)
 				err = userSummary.CalculateBGMStats(dataSetBGMData)
 
@@ -590,7 +590,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct day count when given 1 week", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose)
 				err = userSummary.CalculateBGMStats(dataSetBGMData)
 
@@ -599,7 +599,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct day count when given 3 weeks", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 504, requestedAvgGlucose)
 				err = userSummary.CalculateBGMStats(dataSetBGMData)
 
@@ -610,7 +610,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct record count when given overlapping records", func() {
 				var doubledBGMData = make([]*glucose.Glucose, 6*2)
 
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose)
 				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceID, datumTime.Add(15*time.Second), 1, requestedAvgGlucose)
 
@@ -627,7 +627,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct record count when given overlapping records across multiple calculations", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose)
 				err = userSummary.CalculateBGMStats(dataSetBGMData)
@@ -647,7 +647,7 @@ var _ = Describe("Summary", func() {
 				var newHourlyStatsLen int
 				secondDatumTime := datumTime.AddDate(0, 0, 15)
 				secondRequestedAvgGlucose := requestedAvgGlucose - 4
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 168, requestedAvgGlucose)
 				err = userSummary.CalculateBGMStats(dataSetBGMData)
@@ -690,7 +690,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct stats when given multiple batches in a day", func() {
 				var incrementalDatumTime time.Time
 				var lastRecordTime time.Time
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceID, datumTime, 144, requestedAvgGlucose)
 				err = userSummary.CalculateBGMStats(dataSetBGMData)
@@ -727,7 +727,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correct daily stats for days with different averages", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetBGMDataOne := NewDataSetBGMDataAvg(deviceID, datumTime.AddDate(0, 0, -2), 24, requestedAvgGlucose)
 				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceID, datumTime.AddDate(0, 0, -1), 24, requestedAvgGlucose+1)
 				dataSetBGMDataThree := NewDataSetBGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose+2)
@@ -754,7 +754,7 @@ var _ = Describe("Summary", func() {
 
 			It("Returns correct hourly stats for hours with different Time in Range", func() {
 				var lastRecordTime time.Time
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				veryLowRange := NewDataRangesSingle(veryLowBloodGlucose - 0.5)
 				lowRange := NewDataRangesSingle(lowBloodGlucose - 0.5)
 				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
@@ -831,7 +831,7 @@ var _ = Describe("Summary", func() {
 		Context("CalculateSummary", func() {
 			It("Returns correct time in range for stats", func() {
 				var expectedCGMUse float64
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				ranges := NewDataRanges()
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceID, datumTime, 720, ranges)
 
@@ -892,7 +892,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Returns correct average glucose for stats", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose)
 				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
@@ -917,7 +917,7 @@ var _ = Describe("Summary", func() {
 			})
 
 			It("Correctly removes GMI when CGM use drop below 0.7", func() {
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose)
 				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
@@ -973,7 +973,7 @@ var _ = Describe("Summary", func() {
 
 			It("Returns correctly calculated summary with no rolling", func() {
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose)
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				userSummary.CGM.OutdatedSince = &datumTime
 				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
 
@@ -1005,7 +1005,7 @@ var _ = Describe("Summary", func() {
 
 			It("Returns correctly calculated summary with rolling <100% cgm use", func() {
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
 				userSummary.CGM.OutdatedSince = &datumTime
 				expectedGMI := summary.CalculateGMI(requestedAvgGlucose + 4)
@@ -1069,7 +1069,7 @@ var _ = Describe("Summary", func() {
 
 			//It("Returns correctly calculated summary with rolling 100% cgm use", func() {
 			//	userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose-4)
-			//	userSummary = summary.New(userID)
+			//	userSummary = summary.New(userID, false)
 			//	newDatumTime = datumTime.AddDate(0, 0, 7)
 			//	userSummary.CGM.OutdatedSince = &datumTime
 			//	expectedGMIFirst := summary.CalculateGMI(requestedAvgGlucose - 4)
@@ -1129,7 +1129,7 @@ var _ = Describe("Summary", func() {
 
 			It("Returns correctly non-rolling summary with two 30 day windows", func() {
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 24, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				newDatumTime = datumTime.AddDate(0, 0, 31)
 				userSummary.CGM.OutdatedSince = &datumTime
 				expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose + 4)
@@ -1208,7 +1208,7 @@ var _ = Describe("Summary", func() {
 
 			It("Returns correctly calculated summary with rolling dropping cgm use", func() {
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 720, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
 				userSummary.CGM.OutdatedSince = &datumTime
 				expectedGMI := summary.CalculateGMI(requestedAvgGlucose - 4)
@@ -1272,7 +1272,7 @@ var _ = Describe("Summary", func() {
 			It("Returns correctly calculated summary with userData records before summary LastData", func() {
 				summaryLastData := datumTime.AddDate(0, 0, -7)
 				userData.CGM = NewDataSetCGMDataAvg(deviceID, datumTime, 336, requestedAvgGlucose)
-				userSummary = summary.New(userID)
+				userSummary = summary.New(userID, false)
 				userSummary.CGM.OutdatedSince = &datumTime
 				userSummary.CGM.LastData = &summaryLastData
 

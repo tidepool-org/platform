@@ -47,7 +47,7 @@ type TypeOutdatedTimes struct {
 }
 
 type Config struct {
-	SchemaVersion string `json:"schemaVersion" bson:"schemaVersion"`
+	SchemaVersion int `json:"schemaVersion" bson:"schemaVersion"`
 
 	// these are just constants right now.
 	HighGlucoseThreshold     float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
@@ -66,7 +66,11 @@ type Summary struct {
 	Config Config `json:"config" bson:"config"`
 }
 
-func New(id string) *Summary {
+func New(id string, outdated bool) *Summary {
+	var outdatedSince *time.Time = nil
+	if outdated {
+		outdatedSince = &time.Time{}
+	}
 	return &Summary{
 		UserID: id,
 
@@ -79,7 +83,7 @@ func New(id string) *Summary {
 			LastUpdatedDate:   time.Time{},
 			FirstData:         time.Time{},
 			LastData:          nil,
-			OutdatedSince:     nil,
+			OutdatedSince:     outdatedSince,
 		},
 
 		BGM: BGMSummary{
@@ -91,11 +95,11 @@ func New(id string) *Summary {
 			LastUpdatedDate:   time.Time{},
 			FirstData:         time.Time{},
 			LastData:          nil,
-			OutdatedSince:     nil,
+			OutdatedSince:     outdatedSince,
 		},
 
 		Config: Config{
-			SchemaVersion:            "1",
+			SchemaVersion:            1,
 			HighGlucoseThreshold:     highBloodGlucose,
 			VeryHighGlucoseThreshold: veryHighBloodGlucose,
 			LowGlucoseThreshold:      lowBloodGlucose,

@@ -93,7 +93,7 @@ func (c *Client) UpdateSummary(ctx context.Context, id string) (*summary.Summary
 
 	// user exists (has relevant data), but no summary, create a blank one
 	if userSummary == nil {
-		userSummary = summary.New(id)
+		userSummary = summary.New(id, false)
 	}
 
 	if status.CGM != nil {
@@ -195,7 +195,7 @@ func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
 
 	var summaries = make([]*summary.Summary, len(userIDsReqBackfill))
 	for i, userID := range userIDsReqBackfill {
-		summaries[i] = summary.New(userID)
+		summaries[i] = summary.New(userID, true)
 	}
 
 	if len(summaries) > 0 {
