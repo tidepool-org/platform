@@ -27,7 +27,7 @@ func RandomSummary() *summary.Summary {
 			OutdatedSince:     nil,
 		},
 		Config: summary.Config{
-			SchemaVersion:            "1",
+			SchemaVersion:            1,
 			HighGlucoseThreshold:     test.RandomFloat64FromRange(5, 10),
 			VeryHighGlucoseThreshold: test.RandomFloat64FromRange(10, 20),
 			LowGlucoseThreshold:      test.RandomFloat64FromRange(3, 5),
