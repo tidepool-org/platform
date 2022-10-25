@@ -503,25 +503,38 @@ var _ = Describe("Mongo", func() {
 					})
 
 					Context("GetLastUpdatedForUser", func() {
-						It("returns right lastUpdated for user", func() {
+						It("returns right lastUpdated for cgm user", func() {
 							var userLastUpdated *summary.UserLastUpdated
-							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID)
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID, "cgm")
 
 							Expect(err).ToNot(HaveOccurred())
-							Expect(userLastUpdated.CGM.LastData).To(Equal(dataSetLastUpdated))
-							Expect(userLastUpdated.CGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
-
-							Expect(userLastUpdated.BGM.LastData).To(Equal(dataSetLastUpdated))
-							Expect(userLastUpdated.BGM.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
 						})
 
-						It("returns right lastUpdated for user with no data", func() {
+						It("returns right lastUpdated for bgm user", func() {
 							var userLastUpdated *summary.UserLastUpdated
-							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "deadbeef")
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, userID, "bgm")
 
 							Expect(err).ToNot(HaveOccurred())
-							Expect(userLastUpdated.CGM).To(BeNil())
-							Expect(userLastUpdated.BGM).To(BeNil())
+							Expect(userLastUpdated.LastData).To(Equal(dataSetLastUpdated))
+							Expect(userLastUpdated.LastUpload.After(dataSetLastUpdated)).To(BeTrue())
+						})
+
+						It("returns right lastUpdated for user with no cgm data", func() {
+							var userLastUpdated *summary.UserLastUpdated
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "deadbeef", "cgm")
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(userLastUpdated).To(BeNil())
+						})
+
+						It("returns right lastUpdated for user with no bgm data", func() {
+							var userLastUpdated *summary.UserLastUpdated
+							userLastUpdated, err = repository.GetLastUpdatedForUser(ctx, "deadbeef", "bgm")
+
+							Expect(err).ToNot(HaveOccurred())
+							Expect(userLastUpdated).To(BeNil())
 						})
 
 						It("returns right lastUpdated for user with changing data", func() {

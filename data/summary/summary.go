@@ -1,13 +1,9 @@
 package summary
 
 import (
-	"context"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/errors"
 )
 
 const (
@@ -27,23 +23,8 @@ type Glucose struct {
 }
 
 type UserLastUpdated struct {
-	CGM *UserCGMLastUpdated
-	BGM *UserBGMLastUpdated
-}
-
-type OutdatedUserIDs struct {
-	CGM []string
-	BGM []string
-}
-
-type UserData struct {
-	CGM []*glucoseDatum.Glucose
-	BGM []*glucoseDatum.Glucose
-}
-
-type TypeOutdatedTimes struct {
-	CGM *time.Time
-	BGM *time.Time
+	LastData   time.Time
+	LastUpload time.Time
 }
 
 type Config struct {
@@ -59,44 +40,30 @@ type Config struct {
 type Summary struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	UserID string             `json:"userId" bson:"userId"`
+	Type   string             `json:"type" bson:"type"`
 
-	CGM CGMSummary `json:"cgmSummary" bson:"cgmSummary"`
-	BGM BGMSummary `json:"bgmSummary" bson:"bgmSummary"`
+	// date tracking
+	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
+	LastUploadDate    time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
+	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	FirstData         time.Time  `json:"firstData" bson:"firstData"`
+	LastData          *time.Time `json:"lastData" bson:"lastData"`
+	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
 
 	Config Config `json:"config" bson:"config"`
 }
 
-func New(id string, outdated bool) *Summary {
-	var outdatedSince *time.Time = nil
-	if outdated {
-		outdatedSince = &time.Time{}
-	}
+func NewSummary(id string, typ string) *Summary {
 	return &Summary{
 		UserID: id,
+		Type:   typ,
 
-		CGM: CGMSummary{
-			Periods:           make(map[string]*CGMPeriod),
-			HourlyStats:       make([]*CGMStats, 0),
-			TotalHours:        0,
-			HasLastUploadDate: false,
-			LastUploadDate:    time.Time{},
-			LastUpdatedDate:   time.Time{},
-			FirstData:         time.Time{},
-			LastData:          nil,
-			OutdatedSince:     outdatedSince,
-		},
-
-		BGM: BGMSummary{
-			Periods:           make(map[string]*BGMPeriod),
-			HourlyStats:       make([]*BGMStats, 0),
-			TotalHours:        0,
-			HasLastUploadDate: false,
-			LastUploadDate:    time.Time{},
-			LastUpdatedDate:   time.Time{},
-			FirstData:         time.Time{},
-			LastData:          nil,
-			OutdatedSince:     outdatedSince,
-		},
+		HasLastUploadDate: false,
+		LastUploadDate:    time.Time{},
+		LastUpdatedDate:   time.Time{},
+		FirstData:         time.Time{},
+		LastData:          nil,
+		OutdatedSince:     nil,
 
 		Config: Config{
 			SchemaVersion:            1,
@@ -106,19 +73,4 @@ func New(id string, outdated bool) *Summary {
 			VeryLowGlucoseThreshold:  veryLowBloodGlucose,
 		},
 	}
-}
-
-func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated, userData *UserData) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-
-	if userData == nil {
-		return errors.New("userData is missing")
-	}
-
-	userSummary.UpdateCGM(ctx, status.CGM, userData.CGM)
-	userSummary.UpdateBGM(ctx, status.BGM, userData.BGM)
-
-	return nil
 }

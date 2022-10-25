@@ -47,7 +47,7 @@ type DataRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error)
-	GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
+	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*summary.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context) ([]string, error)
 }
 
@@ -70,11 +70,13 @@ func (f *Filter) Validate(validator structure.Validator) {}
 type SummaryRepository interface {
 	EnsureIndexes() error
 
-	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
-	DeleteSummary(ctx context.Context, id string) error
-	SetOutdated(ctx context.Context, id string, updates *data.SummaryTypeUpdates) (*summary.TypeOutdatedTimes, error)
-	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error)
-	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
+	GetCGMSummary(ctx context.Context, id string) (*summary.CGMSummary, error)
+	GetBGMSummary(ctx context.Context, id string) (*summary.BGMSummary, error)
+	DeleteSummary(ctx context.Context, id string, typ string) error
+	SetOutdated(ctx context.Context, id string, typ string) (*time.Time, error)
+	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([][]string, error)
+	UpdateCGMSummary(ctx context.Context, summary *summary.CGMSummary) (*summary.CGMSummary, error)
+	UpdateBGMSummary(ctx context.Context, summary *summary.BGMSummary) (*summary.BGMSummary, error)
 	DistinctSummaryIDs(ctx context.Context) ([]string, error)
 	CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int, error)
 }

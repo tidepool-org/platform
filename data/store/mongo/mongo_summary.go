@@ -2,9 +2,8 @@ package mongo
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/pointer"
 	"time"
-
-	"github.com/tidepool-org/platform/data"
 
 	"github.com/tidepool-org/platform/data/summary"
 
@@ -29,7 +28,6 @@ func (d *SummaryRepository) EnsureIndexes() error {
 				{Key: "userId", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetUnique(true).
 				SetName("UserID"),
 		},
@@ -38,7 +36,6 @@ func (d *SummaryRepository) EnsureIndexes() error {
 				{Key: "lastUpdatedDate", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("LastUpdatedDate"),
 		},
 		{
@@ -46,13 +43,12 @@ func (d *SummaryRepository) EnsureIndexes() error {
 				{Key: "outdatedSince", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OutdatedSince"),
 		},
 	})
 }
 
-func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
+func (d *SummaryRepository) GetCGMSummary(ctx context.Context, id string) (*summary.CGMSummary, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -60,13 +56,14 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 		return nil, errors.New("summary UserID is missing")
 	}
 
-	var userSummary = summary.New(id, false)
+	var userSummary, _ = summary.NewCGMSummary(id)
+
 	selector := bson.M{
 		"userId": id,
+		"type":   "cgm",
 	}
 
 	err := d.FindOne(ctx, selector).Decode(userSummary)
-
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
@@ -76,7 +73,32 @@ func (d *SummaryRepository) GetSummary(ctx context.Context, id string) (*summary
 	return userSummary, nil
 }
 
-func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error {
+func (d *SummaryRepository) GetBGMSummary(ctx context.Context, id string) (*summary.BGMSummary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("summary UserID is missing")
+	}
+
+	var userSummary, _ = summary.NewBGMSummary(id)
+
+	selector := bson.M{
+		"userId": id,
+		"type":   "bgm",
+	}
+
+	err := d.FindOne(ctx, selector).Decode(userSummary)
+	if err == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get summary")
+	}
+
+	return userSummary, nil
+}
+
+func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string, typ string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -86,6 +108,7 @@ func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error 
 
 	selector := bson.M{
 		"userId": id,
+		"type":   typ,
 	}
 
 	_, err := d.DeleteOne(ctx, selector)
@@ -97,7 +120,8 @@ func (d *SummaryRepository) DeleteSummary(ctx context.Context, id string) error 
 	return nil
 }
 
-func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
+func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([][]string, error) {
+	// we use a summary, instead of a type specific summary as we don't actually care about its extra data
 	var summaries []*summary.Summary
 
 	if ctx == nil {
@@ -108,16 +132,11 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 		return nil, errors.New("pagination is missing")
 	}
 
-	selector := bson.M{
-		"$or": bson.A{
-			bson.M{"cgmSummary.outdatedSince": bson.M{"$ne": nil}},
-			bson.M{"bgmSummary.outdatedSince": bson.M{"$ne": nil}},
-		}}
+	selector := bson.M{"outdatedSince": bson.M{"$ne": nil}}
 
 	opts := options.Find()
 	opts.SetSort(bson.D{
-		{Key: "cgmSummary.outdatedSince", Value: 1},
-		{Key: "bgmSummary.outdatedSince", Value: 1},
+		{Key: "outdatedSince", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
 
@@ -133,15 +152,18 @@ func (d *SummaryRepository) GetOutdatedUserIDs(ctx context.Context, page *page.P
 		return nil, errors.Wrap(err, "unable to decode outdated summaries")
 	}
 
-	var userIDs = make([]string, len(summaries))
+	var userIDs = make([][]string, len(summaries))
 	for i := 0; i < len(summaries); i++ {
-		userIDs[i] = summaries[i].UserID
+		userIDs[i] = make([]string, 2)
+		userIDs[i][0] = summaries[i].UserID
+		userIDs[i][1] = summaries[i].Type
+
 	}
 
 	return userIDs, nil
 }
 
-func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error) {
+func (d *SummaryRepository) UpdateCGMSummary(ctx context.Context, summary *summary.CGMSummary) (*summary.CGMSummary, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -154,14 +176,41 @@ func (d *SummaryRepository) UpdateSummary(ctx context.Context, summary *summary.
 	}
 
 	opts := options.Update().SetUpsert(true)
-	selector := bson.M{"userId": summary.UserID}
+	selector := bson.M{
+		"userId": summary.UserID,
+		"type":   "cgm",
+	}
 
 	_, err := d.UpdateOne(ctx, selector, bson.M{"$set": summary}, opts)
 
 	return summary, err
 }
 
-func (d *SummaryRepository) SetOutdated(ctx context.Context, id string, updates *data.SummaryTypeUpdates) (*summary.TypeOutdatedTimes, error) {
+func (d *SummaryRepository) UpdateBGMSummary(ctx context.Context, summary *summary.BGMSummary) (*summary.BGMSummary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if summary == nil {
+		return nil, errors.New("summary object is missing")
+	}
+
+	if summary.UserID == "" {
+		return nil, errors.New("summary missing UserID")
+	}
+
+	opts := options.Update().SetUpsert(true)
+	selector := bson.M{
+		"userId": summary.UserID,
+		"type":   "bgm",
+	}
+
+	_, err := d.UpdateOne(ctx, selector, bson.M{"$set": summary}, opts)
+
+	return summary, err
+}
+
+func (d *SummaryRepository) SetOutdated(ctx context.Context, id string, typ string) (*time.Time, error) {
+	var outdatedTime *time.Time
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -172,49 +221,30 @@ func (d *SummaryRepository) SetOutdated(ctx context.Context, id string, updates 
 
 	// we need to get the summary first, as there is multiple possible operations, and we do not want to replace
 	// the existing field, but also want to upsert if no summary exists.
-	changes := bson.M{}
 	var userSummary summary.Summary
 	opts := options.Update().SetUpsert(true)
-	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 
 	selector := bson.M{
 		"userId": id,
+		"type":   typ,
 	}
 
 	err := d.FindOne(ctx, selector).Decode(&userSummary)
-
-	outdatedTimes := summary.TypeOutdatedTimes{
-		CGM: userSummary.CGM.OutdatedSince,
-		BGM: userSummary.BGM.OutdatedSince,
-	}
-
 	if err != nil && err != mongo.ErrNoDocuments {
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	if updates.CGM {
-		if userSummary.CGM.OutdatedSince == nil {
-			changes["cgmSummary.outdatedSince"] = &timestamp
-			outdatedTimes.CGM = &timestamp
-		}
-	}
+	outdatedTime = userSummary.OutdatedSince
 
-	if updates.BGM {
-		if userSummary.BGM.OutdatedSince == nil {
-			changes["bgmSummary.outdatedSince"] = &timestamp
-			outdatedTimes.BGM = &timestamp
-		}
-	}
-
-	if len(changes) > 0 {
-		_, err = d.UpdateOne(ctx, selector, bson.M{"$set": changes}, opts)
+	if outdatedTime == nil {
+		outdatedTime = pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond))
+		_, err = d.UpdateOne(ctx, selector, bson.M{"$set": bson.M{"outdatedSince": outdatedTime}}, opts)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to update %s outdatedSince date", changes)
+			return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", id, typ)
 		}
-		return &outdatedTimes, nil
 	}
 
-	return &outdatedTimes, nil
+	return outdatedTime, nil
 }
 
 func (d *SummaryRepository) DistinctSummaryIDs(ctx context.Context) ([]string, error) {

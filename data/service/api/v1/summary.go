@@ -14,8 +14,8 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/:userId", Authenticate(GetSummary)),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId", Authenticate(UpdateSummary)),
+		dataService.MakeRoute("GET", "/v1/summaries/:userId/:type", Authenticate(GetSummary)),
+		dataService.MakeRoute("POST", "/v1/summaries/:userId/:type", Authenticate(UpdateSummary)),
 		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
 		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs)),
 	}
@@ -51,19 +51,32 @@ func GetSummary(dataServiceContext dataService.Context) {
 	responder := request.MustNewResponder(res, req)
 
 	id := req.PathParam("userId")
+	typ := req.PathParam("type")
 
 	if !CheckPermissions(ctx, dataServiceContext, id) {
 		return
 	}
 
-	summary, err := dataClient.GetSummary(ctx, id)
+	if typ == "cgm" {
+		summary, err := dataClient.GetCGMSummary(ctx, id)
 
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
-		responder.Empty(http.StatusNotFound)
-	} else {
-		responder.Data(http.StatusOK, summary)
+		if err != nil {
+			responder.Error(http.StatusInternalServerError, err)
+		} else if summary == nil {
+			responder.Empty(http.StatusNotFound)
+		} else {
+			responder.Data(http.StatusOK, summary)
+		}
+	} else if typ == "bgm" {
+		summary, err := dataClient.GetBGMSummary(ctx, id)
+
+		if err != nil {
+			responder.Error(http.StatusInternalServerError, err)
+		} else if summary == nil {
+			responder.Empty(http.StatusNotFound)
+		} else {
+			responder.Data(http.StatusOK, summary)
+		}
 	}
 }
 
@@ -76,18 +89,30 @@ func UpdateSummary(dataServiceContext dataService.Context) {
 	responder := request.MustNewResponder(res, req)
 
 	id := req.PathParam("userId")
+	typ := req.PathParam("type")
 
 	if !CheckPermissions(ctx, dataServiceContext, id) {
 		return
 	}
 
-	summary, err := dataClient.UpdateSummary(ctx, id)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
-		responder.Empty(http.StatusNotFound)
-	} else {
-		responder.Data(http.StatusOK, summary)
+	if typ == "cgm" {
+		summary, err := dataClient.UpdateCGMSummary(ctx, id)
+		if err != nil {
+			responder.Error(http.StatusInternalServerError, err)
+		} else if summary == nil {
+			responder.Empty(http.StatusNotFound)
+		} else {
+			responder.Data(http.StatusOK, summary)
+		}
+	} else if typ == "bgm" {
+		summary, err := dataClient.UpdateBGMSummary(ctx, id)
+		if err != nil {
+			responder.Error(http.StatusInternalServerError, err)
+		} else if summary == nil {
+			responder.Empty(http.StatusNotFound)
+		} else {
+			responder.Data(http.StatusOK, summary)
+		}
 	}
 }
 

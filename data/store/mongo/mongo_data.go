@@ -953,10 +953,10 @@ func (d *DataRepository) GetDataRange(ctx context.Context, id string, t string, 
 	return dataSets, nil
 }
 
-func (d *DataRepository) GetCGMLastUpdatedForUser(ctx context.Context, id string) (*summary.UserCGMLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*summary.UserLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
-	var status summary.UserCGMLastUpdated
+	var status *summary.UserLastUpdated
 	var dataSet []*glucose.Glucose
 
 	if ctx == nil {
@@ -973,7 +973,7 @@ func (d *DataRepository) GetCGMLastUpdatedForUser(ctx context.Context, id string
 	selectorOld := bson.M{
 		"_active": true,
 		"_userId": id,
-		"type":    "cbg",
+		"type":    typ,
 		"time": bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano),
 			"$gte": pastCutoff.Format(time.RFC3339Nano)},
 	}
@@ -981,7 +981,7 @@ func (d *DataRepository) GetCGMLastUpdatedForUser(ctx context.Context, id string
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
-		"type":    "cbg",
+		"type":    typ,
 		"time": bson.M{"$lte": futureCutoff,
 			"$gte": pastCutoff},
 	}
@@ -1022,109 +1022,7 @@ func (d *DataRepository) GetCGMLastUpdatedForUser(ctx context.Context, id string
 	status.LastData = *dataSet[0].Time
 	status.LastData = status.LastData.UTC()
 
-	return &status, nil
-}
-
-func (d *DataRepository) GetBGMLastUpdatedForUser(ctx context.Context, id string) (*summary.UserBGMLastUpdated, error) {
-	var err error
-	var cursor *mongo.Cursor
-	var status summary.UserBGMLastUpdated
-	var dataSet []*glucose.Glucose
-
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
-	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
-
-	selectorOld := bson.M{
-		"_active": true,
-		"_userId": id,
-		"type":    "smbg",
-		"time": bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano),
-			"$gte": pastCutoff.Format(time.RFC3339Nano)},
-	}
-
-	selector := bson.M{
-		"_active": true,
-		"_userId": id,
-		"type":    "smbg",
-		"time": bson.M{"$lte": futureCutoff,
-			"$gte": pastCutoff},
-	}
-
-	findOptions := options.Find()
-	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
-	findOptions.SetLimit(1)
-
-	cursor, err = d.Find(ctx, selector, findOptions)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get last bgm date")
-	}
-
-	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, errors.Wrap(err, "unable to decode last bgm date")
-	}
-
-	// if we can't find a new format record, instead look for legacy date records
-	if len(dataSet) < 1 {
-		cursor, err = d.Find(ctx, selectorOld, findOptions)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to get last bgm date")
-		}
-		if err = cursor.All(ctx, &dataSet); err != nil {
-			return nil, errors.Wrap(err, "unable to decode last bgm date")
-		}
-
-	}
-
-	// if we still have no record
-	if len(dataSet) < 1 {
-		return nil, nil
-	}
-
-	status.LastUpload = *dataSet[0].CreatedTime
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
-	}
-	status.LastUpload = status.LastUpload.UTC()
-
-	status.LastData = *dataSet[0].Time
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse latest Time")
-	}
-	status.LastData = status.LastData.UTC()
-
-	return &status, nil
-}
-
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
-	var status summary.UserLastUpdated
-	var err error
-
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	status.CGM, err = d.GetCGMLastUpdatedForUser(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	status.BGM, err = d.GetBGMLastUpdatedForUser(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &status, nil
+	return status, nil
 }
 
 func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {

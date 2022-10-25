@@ -12,11 +12,6 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-type UserCGMLastUpdated struct {
-	LastData   time.Time
-	LastUpload time.Time
-}
-
 type CGMStats struct {
 	Date time.Time `json:"date" bson:"date"`
 
@@ -82,17 +77,38 @@ type CGMPeriod struct {
 }
 
 type CGMSummary struct {
+	Summary `json:",inline" bson:",inline"`
+
 	Periods     map[string]*CGMPeriod `json:"periods" bson:"periods"`
 	HourlyStats []*CGMStats           `json:"hourlyStats" bson:"hourlyStats"`
 	TotalHours  int                   `json:"totalHours" bson:"totalHours"`
+}
 
-	// date tracking
-	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
-	LastUploadDate    time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
-	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	FirstData         time.Time  `json:"firstData" bson:"firstData"`
-	LastData          *time.Time `json:"lastData" bson:"lastData"`
-	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+func NewCGMSummary(id string) *CGMSummary {
+	return &CGMSummary{
+		Summary: Summary{
+			UserID: id,
+			Type:   "cgm",
+
+			HasLastUploadDate: false,
+			LastUploadDate:    time.Time{},
+			LastUpdatedDate:   time.Time{},
+			FirstData:         time.Time{},
+			LastData:          nil,
+			OutdatedSince:     nil,
+
+			Config: Config{
+				SchemaVersion:            1,
+				HighGlucoseThreshold:     highBloodGlucose,
+				VeryHighGlucoseThreshold: veryHighBloodGlucose,
+				LowGlucoseThreshold:      lowBloodGlucose,
+				VeryLowGlucoseThreshold:  veryLowBloodGlucose,
+			},
+		},
+		Periods:     make(map[string]*CGMPeriod),
+		HourlyStats: make([]*CGMStats, 0),
+		TotalHours:  0,
+	}
 }
 
 func NewCGMStats(date time.Time) *CGMStats {
@@ -120,7 +136,7 @@ func NewCGMStats(date time.Time) *CGMStats {
 	}
 }
 
-func (userSummary *Summary) AddCGMStats(stats *CGMStats) error {
+func (userSummary *CGMSummary) AddStats(stats *CGMStats) error {
 	var hourCount int
 	var oldestHour time.Time
 	var oldestHourToKeep time.Time
@@ -133,46 +149,46 @@ func (userSummary *Summary) AddCGMStats(stats *CGMStats) error {
 	}
 
 	// update existing hour if one does exist
-	if len(userSummary.CGM.HourlyStats) > 0 {
-		for i := len(userSummary.CGM.HourlyStats) - 1; i >= 0; i-- {
-			if userSummary.CGM.HourlyStats[i].Date.Equal(stats.Date) {
-				userSummary.CGM.HourlyStats[i] = stats
+	if len(userSummary.HourlyStats) > 0 {
+		for i := len(userSummary.HourlyStats) - 1; i >= 0; i-- {
+			if userSummary.HourlyStats[i].Date.Equal(stats.Date) {
+				userSummary.HourlyStats[i] = stats
 				existingDay = true
 				break
 			}
 
 			// we already passed our date, give up
-			if userSummary.CGM.HourlyStats[i].Date.After(stats.Date) {
+			if userSummary.HourlyStats[i].Date.After(stats.Date) {
 				break
 			}
 		}
 
 		// add hours for any gaps that this new stat skipped
-		statsGap = int(stats.Date.Sub(userSummary.CGM.HourlyStats[len(userSummary.CGM.HourlyStats)-1].Date).Hours())
+		statsGap = int(stats.Date.Sub(userSummary.HourlyStats[len(userSummary.HourlyStats)-1].Date).Hours())
 		for i := statsGap; i > 1; i-- {
 			newStatsTime = stats.Date.Add(time.Duration(-i) * time.Hour)
-			userSummary.CGM.HourlyStats = append(userSummary.CGM.HourlyStats, NewCGMStats(newStatsTime))
+			userSummary.HourlyStats = append(userSummary.HourlyStats, NewCGMStats(newStatsTime))
 		}
 	}
 
 	if existingDay == false {
-		userSummary.CGM.HourlyStats = append(userSummary.CGM.HourlyStats, stats)
+		userSummary.HourlyStats = append(userSummary.HourlyStats, stats)
 	}
 
 	// remove extra days to cap at X days of stats
-	hourCount = len(userSummary.CGM.HourlyStats)
+	hourCount = len(userSummary.HourlyStats)
 	if hourCount > hoursAgoToKeep {
-		userSummary.CGM.HourlyStats = userSummary.CGM.HourlyStats[hourCount-hoursAgoToKeep:]
+		userSummary.HourlyStats = userSummary.HourlyStats[hourCount-hoursAgoToKeep:]
 	}
 
 	// remove any stats that are older than X days from the last stat
-	oldestHour = userSummary.CGM.HourlyStats[0].Date
+	oldestHour = userSummary.HourlyStats[0].Date
 	oldestHourToKeep = stats.Date.Add(-hoursAgoToKeep * time.Hour)
 	if oldestHour.Before(oldestHourToKeep) {
 		// we don't check the last entry because we just added/updated it
-		for i := len(userSummary.CGM.HourlyStats) - 2; i >= 0; i-- {
-			if userSummary.CGM.HourlyStats[i].Date.Before(oldestHourToKeep) {
-				userSummary.CGM.HourlyStats = userSummary.CGM.HourlyStats[i+1:]
+		for i := len(userSummary.HourlyStats) - 2; i >= 0; i-- {
+			if userSummary.HourlyStats[i].Date.Before(oldestHourToKeep) {
+				userSummary.HourlyStats = userSummary.HourlyStats[i+1:]
 				break
 			}
 		}
@@ -181,7 +197,7 @@ func (userSummary *Summary) AddCGMStats(stats *CGMStats) error {
 	return nil
 }
 
-func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) error {
+func (userSummary *CGMSummary) CalculateStats(userData []*glucoseDatum.Glucose) error {
 	var normalizedValue float64
 	var duration int
 	var recordTime time.Time
@@ -195,8 +211,8 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 	}
 
 	// skip past data
-	if len(userSummary.CGM.HourlyStats) > 0 {
-		userData, err = SkipUntil(userSummary.CGM.HourlyStats[len(userSummary.CGM.HourlyStats)-1].Date, userData)
+	if len(userSummary.HourlyStats) > 0 {
+		userData, err = SkipUntil(userSummary.HourlyStats[len(userSummary.HourlyStats)-1].Date, userData)
 	}
 
 	for _, r := range userData {
@@ -211,7 +227,7 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 
 		// store stats for the day, if we are now on the next day
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = userSummary.AddCGMStats(stats)
+			err = userSummary.AddStats(stats)
 			if err != nil {
 				return err
 			}
@@ -221,15 +237,15 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 		if stats == nil {
 			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(userSummary.CGM.HourlyStats) > 0 {
-				for i := len(userSummary.CGM.HourlyStats) - 1; i >= 0; i-- {
-					if userSummary.CGM.HourlyStats[i].Date.Equal(currentHour) {
-						stats = userSummary.CGM.HourlyStats[i]
+			if len(userSummary.HourlyStats) > 0 {
+				for i := len(userSummary.HourlyStats) - 1; i >= 0; i-- {
+					if userSummary.HourlyStats[i].Date.Equal(currentHour) {
+						stats = userSummary.HourlyStats[i]
 						break
 					}
 
 					// we already passed our date, give up
-					if userSummary.CGM.HourlyStats[i].Date.After(currentHour) {
+					if userSummary.HourlyStats[i].Date.After(currentHour) {
 						break
 					}
 				}
@@ -243,8 +259,8 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if stats.LastRecordTime.IsZero() && len(userSummary.CGM.HourlyStats) > 0 {
-			stats.LastRecordTime = userSummary.CGM.HourlyStats[len(userSummary.CGM.HourlyStats)-1].LastRecordTime
+		if stats.LastRecordTime.IsZero() && len(userSummary.HourlyStats) > 0 {
+			stats.LastRecordTime = userSummary.HourlyStats[len(userSummary.HourlyStats)-1].LastRecordTime
 		}
 
 		// duration has never been calculated, use current record's duration for this cycle
@@ -284,7 +300,7 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 		}
 	}
 	// store
-	err = userSummary.AddCGMStats(stats)
+	err = userSummary.AddStats(stats)
 	if err != nil {
 		return err
 	}
@@ -292,7 +308,7 @@ func (userSummary *Summary) CalculateCGMStats(userData []*glucoseDatum.Glucose) 
 	return nil
 }
 
-func (userSummary *Summary) CalculateCGMSummary() {
+func (userSummary *CGMSummary) CalculateSummary() {
 	totalStats := NewCGMStats(time.Time{})
 
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
@@ -301,40 +317,40 @@ func (userSummary *Summary) CalculateCGMSummary() {
 	var nextStopPoint int
 	var currentIndex int
 
-	for i := 0; i < len(userSummary.CGM.HourlyStats); i++ {
+	for i := 0; i < len(userSummary.HourlyStats); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
-			userSummary.CalculateCGMPeriod(stopPoints[nextStopPoint], totalStats)
+			userSummary.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
 			nextStopPoint++
 		}
 
-		currentIndex = len(userSummary.CGM.HourlyStats) - 1 - i
-		totalStats.TargetMinutes += userSummary.CGM.HourlyStats[currentIndex].TargetMinutes
-		totalStats.TargetRecords += userSummary.CGM.HourlyStats[currentIndex].TargetRecords
+		currentIndex = len(userSummary.HourlyStats) - 1 - i
+		totalStats.TargetMinutes += userSummary.HourlyStats[currentIndex].TargetMinutes
+		totalStats.TargetRecords += userSummary.HourlyStats[currentIndex].TargetRecords
 
-		totalStats.LowMinutes += userSummary.CGM.HourlyStats[currentIndex].LowMinutes
-		totalStats.LowRecords += userSummary.CGM.HourlyStats[currentIndex].LowRecords
+		totalStats.LowMinutes += userSummary.HourlyStats[currentIndex].LowMinutes
+		totalStats.LowRecords += userSummary.HourlyStats[currentIndex].LowRecords
 
-		totalStats.VeryLowMinutes += userSummary.CGM.HourlyStats[currentIndex].VeryLowMinutes
-		totalStats.VeryLowRecords += userSummary.CGM.HourlyStats[currentIndex].VeryLowRecords
+		totalStats.VeryLowMinutes += userSummary.HourlyStats[currentIndex].VeryLowMinutes
+		totalStats.VeryLowRecords += userSummary.HourlyStats[currentIndex].VeryLowRecords
 
-		totalStats.HighMinutes += userSummary.CGM.HourlyStats[currentIndex].HighMinutes
-		totalStats.HighRecords += userSummary.CGM.HourlyStats[currentIndex].HighRecords
+		totalStats.HighMinutes += userSummary.HourlyStats[currentIndex].HighMinutes
+		totalStats.HighRecords += userSummary.HourlyStats[currentIndex].HighRecords
 
-		totalStats.VeryHighMinutes += userSummary.CGM.HourlyStats[currentIndex].VeryHighMinutes
-		totalStats.VeryHighRecords += userSummary.CGM.HourlyStats[currentIndex].VeryHighRecords
+		totalStats.VeryHighMinutes += userSummary.HourlyStats[currentIndex].VeryHighMinutes
+		totalStats.VeryHighRecords += userSummary.HourlyStats[currentIndex].VeryHighRecords
 
-		totalStats.TotalGlucose += userSummary.CGM.HourlyStats[currentIndex].TotalGlucose
-		totalStats.TotalMinutes += userSummary.CGM.HourlyStats[currentIndex].TotalMinutes
-		totalStats.TotalRecords += userSummary.CGM.HourlyStats[currentIndex].TotalRecords
+		totalStats.TotalGlucose += userSummary.HourlyStats[currentIndex].TotalGlucose
+		totalStats.TotalMinutes += userSummary.HourlyStats[currentIndex].TotalMinutes
+		totalStats.TotalRecords += userSummary.HourlyStats[currentIndex].TotalRecords
 	}
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		userSummary.CalculateCGMPeriod(stopPoints[i], totalStats)
+		userSummary.CalculatePeriod(stopPoints[i], totalStats)
 	}
 }
 
-func (userSummary *Summary) CalculateCGMPeriod(i int, totalStats *CGMStats) {
+func (userSummary *CGMSummary) CalculatePeriod(i int, totalStats *CGMStats) {
 	var timeCGMUsePercent *float64
 	var timeInTargetPercent *float64
 	var timeInLowPercent *float64
@@ -346,15 +362,15 @@ func (userSummary *Summary) CalculateCGMPeriod(i int, totalStats *CGMStats) {
 
 	// remove partial hour (data end) from total time for more accurate TimeCGMUse
 	totalMinutes := float64(i * 24 * 60)
-	lastRecordTime := userSummary.CGM.HourlyStats[len(userSummary.CGM.HourlyStats)-1].LastRecordTime
+	lastRecordTime := userSummary.HourlyStats[len(userSummary.HourlyStats)-1].LastRecordTime
 	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
 		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
 	totalMinutes = totalMinutes - nextHour.Sub(lastRecordTime).Minutes()
 
-	userSummary.CGM.LastData = &lastRecordTime
-	userSummary.CGM.FirstData = userSummary.CGM.HourlyStats[0].Date
+	userSummary.LastData = &lastRecordTime
+	userSummary.FirstData = userSummary.HourlyStats[0].Date
 
-	userSummary.CGM.TotalHours = len(userSummary.CGM.HourlyStats)
+	userSummary.TotalHours = len(userSummary.HourlyStats)
 
 	// calculate derived summary stats
 	if totalMinutes != 0 {
@@ -388,11 +404,11 @@ func (userSummary *Summary) CalculateCGMPeriod(i int, totalStats *CGMStats) {
 	}
 
 	// ensure periods exists, just in case
-	if userSummary.CGM.Periods == nil {
-		userSummary.CGM.Periods = make(map[string]*CGMPeriod)
+	if userSummary.Periods == nil {
+		userSummary.Periods = make(map[string]*CGMPeriod)
 	}
 
-	userSummary.CGM.Periods[strconv.Itoa(i)+"d"] = &CGMPeriod{
+	userSummary.Periods[strconv.Itoa(i)+"d"] = &CGMPeriod{
 		HasAverageGlucose:             averageGlucose != nil,
 		HasGlucoseManagementIndicator: glucoseManagementIndicator != nil,
 		HasTimeCGMUsePercent:          timeCGMUsePercent != nil,
@@ -431,24 +447,24 @@ func (userSummary *Summary) CalculateCGMPeriod(i int, totalStats *CGMStats) {
 	}
 }
 
-func (userSummary *Summary) UpdateCGM(ctx context.Context, status *UserCGMLastUpdated, userCGMData []*glucoseDatum.Glucose) error {
+func (userSummary *CGMSummary) Update(ctx context.Context, status *UserLastUpdated, userCGMData []*glucoseDatum.Glucose) error {
 	var err error
 	logger := log.LoggerFromContext(ctx)
 
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
-	userSummary.CGM.LastUpdatedDate = timestamp
-	userSummary.CGM.OutdatedSince = nil
-	userSummary.CGM.LastUploadDate = status.LastUpload
+	userSummary.LastUpdatedDate = timestamp
+	userSummary.OutdatedSince = nil
+	userSummary.LastUploadDate = status.LastUpload
 
 	// technically, this never could be zero, but we check anyway
-	userSummary.CGM.HasLastUploadDate = !status.LastUpload.IsZero()
+	userSummary.HasLastUploadDate = !status.LastUpload.IsZero()
 
 	// remove any past values that squeeze through the string date query that feeds this function
 	// this mostly occurs when different sources use different time precisions (s vs ms vs ns)
 	// resulting in $gt 00:00:01.275Z pulling in 00:00:01Z, which is before.
-	if userSummary.CGM.LastData != nil {
-		userCGMData, err = SkipUntil(*userSummary.CGM.LastData, userCGMData)
+	if userSummary.LastData != nil {
+		userCGMData, err = SkipUntil(*userSummary.LastData, userCGMData)
 		if err != nil {
 			return err
 		}
@@ -460,12 +476,16 @@ func (userSummary *Summary) UpdateCGM(ctx context.Context, status *UserCGMLastUp
 		return nil
 	}
 
-	err = userSummary.CalculateCGMStats(userCGMData)
+	err = userSummary.CalculateStats(userCGMData)
 	if err != nil {
 		return err
 	}
 
-	userSummary.CalculateCGMSummary()
+	userSummary.CalculateSummary()
 
 	return nil
+}
+
+func (userSummary *CGMSummary) SetOutdated() {
+	userSummary.OutdatedSince = pointer.FromTime(time.Now().UTC())
 }

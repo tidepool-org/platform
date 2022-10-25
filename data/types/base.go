@@ -333,12 +333,12 @@ func (b *Base) UpdatesBGMSummary() bool {
 	return false
 }
 
-func (b *Base) UpdatesSummary(updates *data.SummaryTypeUpdates) {
+func (b *Base) UpdatesSummary(updates map[string]bool) {
 	if b.UpdatesCGMSummary() {
-		updates.CGM = true
+		updates["cgm"] = true
 	}
 	if b.UpdatesBGMSummary() {
-		updates.BGM = true
+		updates["bgm"] = true
 	}
 }
 

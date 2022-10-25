@@ -31,9 +31,11 @@ type Client interface {
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
-	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
-	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
-	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetCGMSummary(ctx context.Context, id string) (*summary.CGMSummary, error)
+	GetBGMSummary(ctx context.Context, id string) (*summary.BGMSummary, error)
+	UpdateCGMSummary(ctx context.Context, id string) (*summary.CGMSummary, error)
+	UpdateBGMSummary(ctx context.Context, id string) (*summary.BGMSummary, error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([][]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
 }
 
@@ -133,7 +135,7 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	return dataSet, nil
 }
 
-func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
+func (c *ClientImpl) GetCGMSummary(ctx context.Context, id string) (*summary.CGMSummary, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -141,8 +143,8 @@ func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summar
 		return nil, errors.New("id is missing")
 	}
 
-	url := c.client.ConstructURL("v1", "summaries", id)
-	summary := &summary.Summary{}
+	url := c.client.ConstructURL("v1", "summaries", id, "cgm")
+	summary := &summary.CGMSummary{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -153,7 +155,7 @@ func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summar
 	return summary, nil
 }
 
-func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
+func (c *ClientImpl) GetBGMSummary(ctx context.Context, id string) (*summary.BGMSummary, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -161,8 +163,48 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 		return nil, errors.New("id is missing")
 	}
 
-	url := c.client.ConstructURL("v1", "summaries", id)
-	summary := &summary.Summary{}
+	url := c.client.ConstructURL("v1", "summaries", id, "bgm")
+	summary := &summary.BGMSummary{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, id string) (*summary.CGMSummary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", id, "cgm")
+	summary := &summary.CGMSummary{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return summary, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, id string) (*summary.BGMSummary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", id, "bgm")
+	summary := &summary.BGMSummary{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -184,7 +226,7 @@ func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([][]string, error) {
 	url := c.client.ConstructURL("v1", "summaries")
 
 	if pagination == nil {
@@ -193,7 +235,7 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pa
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	userIDs := []string{}
+	var userIDs [][]string
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil

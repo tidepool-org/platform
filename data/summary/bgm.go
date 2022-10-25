@@ -12,11 +12,6 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-type UserBGMLastUpdated struct {
-	LastData   time.Time
-	LastUpload time.Time
-}
-
 type BGMStats struct {
 	Date time.Time `json:"date" bson:"date"`
 
@@ -60,17 +55,38 @@ type BGMPeriod struct {
 }
 
 type BGMSummary struct {
+	Summary `json:",inline" bson:",inline"`
+
 	Periods     map[string]*BGMPeriod `json:"periods" bson:"periods"`
 	HourlyStats []*BGMStats           `json:"hourlyStats" bson:"hourlyStats"`
 	TotalHours  int                   `json:"totalHours" bson:"totalHours"`
+}
 
-	// date tracking
-	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
-	LastUploadDate    time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
-	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-	FirstData         time.Time  `json:"firstData" bson:"firstData"`
-	LastData          *time.Time `json:"lastData" bson:"lastData"`
+func NewBGMSummary(id string) *BGMSummary {
+	return &BGMSummary{
+		Summary: Summary{
+			UserID: id,
+			Type:   "bgm",
+
+			HasLastUploadDate: false,
+			LastUploadDate:    time.Time{},
+			LastUpdatedDate:   time.Time{},
+			FirstData:         time.Time{},
+			LastData:          nil,
+			OutdatedSince:     nil,
+
+			Config: Config{
+				SchemaVersion:            1,
+				HighGlucoseThreshold:     highBloodGlucose,
+				VeryHighGlucoseThreshold: veryHighBloodGlucose,
+				LowGlucoseThreshold:      lowBloodGlucose,
+				VeryLowGlucoseThreshold:  veryLowBloodGlucose,
+			},
+		},
+		Periods:     make(map[string]*BGMPeriod),
+		HourlyStats: make([]*BGMStats, 0),
+		TotalHours:  0,
+	}
 }
 
 func NewBGMStats(date time.Time) *BGMStats {
@@ -87,7 +103,7 @@ func NewBGMStats(date time.Time) *BGMStats {
 	}
 }
 
-func (userSummary *Summary) AddBGMStats(stats *BGMStats) error {
+func (summaryData *BGMSummary) AddStats(stats *BGMStats) error {
 	var hourCount int
 	var oldestHour time.Time
 	var oldestHourToKeep time.Time
@@ -100,46 +116,46 @@ func (userSummary *Summary) AddBGMStats(stats *BGMStats) error {
 	}
 
 	// update existing hour if one does exist
-	if len(userSummary.BGM.HourlyStats) > 0 {
-		for i := len(userSummary.BGM.HourlyStats) - 1; i >= 0; i-- {
-			if userSummary.BGM.HourlyStats[i].Date.Equal(stats.Date) {
-				userSummary.BGM.HourlyStats[i] = stats
+	if len(summaryData.HourlyStats) > 0 {
+		for i := len(summaryData.HourlyStats) - 1; i >= 0; i-- {
+			if summaryData.HourlyStats[i].Date.Equal(stats.Date) {
+				summaryData.HourlyStats[i] = stats
 				existingDay = true
 				break
 			}
 
 			// we already passed our date, give up
-			if userSummary.BGM.HourlyStats[i].Date.After(stats.Date) {
+			if summaryData.HourlyStats[i].Date.After(stats.Date) {
 				break
 			}
 		}
 
 		// add hours for any gaps that this new stat skipped
-		statsGap = int(stats.Date.Sub(userSummary.BGM.HourlyStats[len(userSummary.BGM.HourlyStats)-1].Date).Hours())
+		statsGap = int(stats.Date.Sub(summaryData.HourlyStats[len(summaryData.HourlyStats)-1].Date).Hours())
 		for i := statsGap; i > 1; i-- {
 			newStatsTime = stats.Date.Add(time.Duration(-i) * time.Hour)
-			userSummary.BGM.HourlyStats = append(userSummary.BGM.HourlyStats, NewBGMStats(newStatsTime))
+			summaryData.HourlyStats = append(summaryData.HourlyStats, NewBGMStats(newStatsTime))
 		}
 	}
 
 	if existingDay == false {
-		userSummary.BGM.HourlyStats = append(userSummary.BGM.HourlyStats, stats)
+		summaryData.HourlyStats = append(summaryData.HourlyStats, stats)
 	}
 
 	// remove extra days to cap at X days of stats
-	hourCount = len(userSummary.BGM.HourlyStats)
+	hourCount = len(summaryData.HourlyStats)
 	if hourCount > hoursAgoToKeep {
-		userSummary.BGM.HourlyStats = userSummary.BGM.HourlyStats[hourCount-hoursAgoToKeep:]
+		summaryData.HourlyStats = summaryData.HourlyStats[hourCount-hoursAgoToKeep:]
 	}
 
 	// remove any stats that are older than X days from the last stat
-	oldestHour = userSummary.BGM.HourlyStats[0].Date
+	oldestHour = summaryData.HourlyStats[0].Date
 	oldestHourToKeep = stats.Date.Add(-hoursAgoToKeep * time.Hour)
 	if oldestHour.Before(oldestHourToKeep) {
 		// we don't check the last entry because we just added/updated it
-		for i := len(userSummary.BGM.HourlyStats) - 2; i >= 0; i-- {
-			if userSummary.BGM.HourlyStats[i].Date.Before(oldestHourToKeep) {
-				userSummary.BGM.HourlyStats = userSummary.BGM.HourlyStats[i+1:]
+		for i := len(summaryData.HourlyStats) - 2; i >= 0; i-- {
+			if summaryData.HourlyStats[i].Date.Before(oldestHourToKeep) {
+				summaryData.HourlyStats = summaryData.HourlyStats[i+1:]
 				break
 			}
 		}
@@ -148,7 +164,7 @@ func (userSummary *Summary) AddBGMStats(stats *BGMStats) error {
 	return nil
 }
 
-func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) error {
+func (summaryData *BGMSummary) CalculateStats(userData []*glucoseDatum.Glucose) error {
 	var normalizedValue float64
 	var recordTime time.Time
 	var lastHour time.Time
@@ -161,8 +177,8 @@ func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) 
 	}
 
 	// skip past data
-	if len(userSummary.BGM.HourlyStats) > 0 {
-		userData, err = SkipUntil(userSummary.BGM.HourlyStats[len(userSummary.BGM.HourlyStats)-1].Date, userData)
+	if len(summaryData.HourlyStats) > 0 {
+		userData, err = SkipUntil(summaryData.HourlyStats[len(summaryData.HourlyStats)-1].Date, userData)
 	}
 
 	for _, r := range userData {
@@ -177,7 +193,7 @@ func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) 
 
 		// store stats for the day, if we are now on the next day
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = userSummary.AddBGMStats(stats)
+			err = summaryData.AddStats(stats)
 			if err != nil {
 				return err
 			}
@@ -187,15 +203,15 @@ func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) 
 		if stats == nil {
 			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(userSummary.BGM.HourlyStats) > 0 {
-				for i := len(userSummary.BGM.HourlyStats) - 1; i >= 0; i-- {
-					if userSummary.BGM.HourlyStats[i].Date.Equal(currentHour) {
-						stats = userSummary.BGM.HourlyStats[i]
+			if len(summaryData.HourlyStats) > 0 {
+				for i := len(summaryData.HourlyStats) - 1; i >= 0; i-- {
+					if summaryData.HourlyStats[i].Date.Equal(currentHour) {
+						stats = summaryData.HourlyStats[i]
 						break
 					}
 
 					// we already passed our date, give up
-					if userSummary.BGM.HourlyStats[i].Date.After(currentHour) {
+					if summaryData.HourlyStats[i].Date.After(currentHour) {
 						break
 					}
 				}
@@ -209,8 +225,8 @@ func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) 
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if stats.LastRecordTime.IsZero() && len(userSummary.BGM.HourlyStats) > 0 {
-			stats.LastRecordTime = userSummary.BGM.HourlyStats[len(userSummary.BGM.HourlyStats)-1].LastRecordTime
+		if stats.LastRecordTime.IsZero() && len(summaryData.HourlyStats) > 0 {
+			stats.LastRecordTime = summaryData.HourlyStats[len(summaryData.HourlyStats)-1].LastRecordTime
 		}
 
 		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
@@ -232,7 +248,7 @@ func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) 
 		stats.LastRecordTime = recordTime
 	}
 	// store
-	err = userSummary.AddBGMStats(stats)
+	err = summaryData.AddStats(stats)
 	if err != nil {
 		return err
 	}
@@ -240,7 +256,7 @@ func (userSummary *Summary) CalculateBGMStats(userData []*glucoseDatum.Glucose) 
 	return nil
 }
 
-func (userSummary *Summary) CalculateBGMSummary() {
+func (summaryData *BGMSummary) CalculateSummary() {
 	totalStats := NewBGMStats(time.Time{})
 
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
@@ -249,30 +265,30 @@ func (userSummary *Summary) CalculateBGMSummary() {
 	var nextStopPoint int
 	var currentIndex int
 
-	for i := 0; i < len(userSummary.BGM.HourlyStats); i++ {
+	for i := 0; i < len(summaryData.HourlyStats); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
-			userSummary.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
+			summaryData.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
 			nextStopPoint++
 		}
 
-		currentIndex = len(userSummary.BGM.HourlyStats) - 1 - i
-		totalStats.TargetRecords += userSummary.BGM.HourlyStats[currentIndex].TargetRecords
-		totalStats.LowRecords += userSummary.BGM.HourlyStats[currentIndex].LowRecords
-		totalStats.VeryLowRecords += userSummary.BGM.HourlyStats[currentIndex].VeryLowRecords
-		totalStats.HighRecords += userSummary.BGM.HourlyStats[currentIndex].HighRecords
-		totalStats.VeryHighRecords += userSummary.BGM.HourlyStats[currentIndex].VeryHighRecords
+		currentIndex = len(summaryData.HourlyStats) - 1 - i
+		totalStats.TargetRecords += summaryData.HourlyStats[currentIndex].TargetRecords
+		totalStats.LowRecords += summaryData.HourlyStats[currentIndex].LowRecords
+		totalStats.VeryLowRecords += summaryData.HourlyStats[currentIndex].VeryLowRecords
+		totalStats.HighRecords += summaryData.HourlyStats[currentIndex].HighRecords
+		totalStats.VeryHighRecords += summaryData.HourlyStats[currentIndex].VeryHighRecords
 
-		totalStats.TotalGlucose += userSummary.BGM.HourlyStats[currentIndex].TotalGlucose
-		totalStats.TotalRecords += userSummary.BGM.HourlyStats[currentIndex].TotalRecords
+		totalStats.TotalGlucose += summaryData.HourlyStats[currentIndex].TotalGlucose
+		totalStats.TotalRecords += summaryData.HourlyStats[currentIndex].TotalRecords
 	}
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		userSummary.CalculatePeriod(stopPoints[i], totalStats)
+		summaryData.CalculatePeriod(stopPoints[i], totalStats)
 	}
 }
 
-func (userSummary *Summary) CalculatePeriod(i int, totalStats *BGMStats) {
+func (summaryData *BGMSummary) CalculatePeriod(i int, totalStats *BGMStats) {
 	var timeInTargetPercent *float64
 	var timeInLowPercent *float64
 	var timeInVeryLowPercent *float64
@@ -282,15 +298,15 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *BGMStats) {
 
 	// remove partial hour (data end) from total time for more accurate TimeBGMUse
 	totalMinutes := float64(i * 24 * 60)
-	lastRecordTime := userSummary.BGM.HourlyStats[len(userSummary.BGM.HourlyStats)-1].LastRecordTime
+	lastRecordTime := summaryData.HourlyStats[len(summaryData.HourlyStats)-1].LastRecordTime
 	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
 		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
 	totalMinutes = totalMinutes - nextHour.Sub(lastRecordTime).Minutes()
 
-	userSummary.BGM.LastData = &lastRecordTime
-	userSummary.BGM.FirstData = userSummary.BGM.HourlyStats[0].Date
+	summaryData.LastData = &lastRecordTime
+	summaryData.FirstData = summaryData.HourlyStats[0].Date
 
-	userSummary.BGM.TotalHours = len(userSummary.BGM.HourlyStats)
+	summaryData.TotalHours = len(summaryData.HourlyStats)
 
 	if totalStats.TotalRecords != 0 {
 		timeInTargetPercent = pointer.FromFloat64(float64(totalStats.TargetRecords) / float64(totalStats.TotalRecords))
@@ -306,11 +322,11 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *BGMStats) {
 	}
 
 	// ensure periods exists, just in case
-	if userSummary.BGM.Periods == nil {
-		userSummary.BGM.Periods = make(map[string]*BGMPeriod)
+	if summaryData.Periods == nil {
+		summaryData.Periods = make(map[string]*BGMPeriod)
 	}
 
-	userSummary.BGM.Periods[strconv.Itoa(i)+"d"] = &BGMPeriod{
+	summaryData.Periods[strconv.Itoa(i)+"d"] = &BGMPeriod{
 		HasAverageGlucose:        averageGlucose != nil,
 		HasTimeInTargetPercent:   timeInTargetPercent != nil,
 		HasTimeInLowPercent:      timeInLowPercent != nil,
@@ -337,24 +353,24 @@ func (userSummary *Summary) CalculatePeriod(i int, totalStats *BGMStats) {
 	}
 }
 
-func (userSummary *Summary) UpdateBGM(ctx context.Context, status *UserBGMLastUpdated, userBGMData []*glucoseDatum.Glucose) error {
+func (summaryData *BGMSummary) Update(ctx context.Context, status *UserLastUpdated, userBGMData []*glucoseDatum.Glucose) error {
 	var err error
 	logger := log.LoggerFromContext(ctx)
 
 	// prepare state of existing summary
 	timestamp := time.Now().UTC()
-	userSummary.BGM.LastUpdatedDate = timestamp
-	userSummary.BGM.OutdatedSince = nil
-	userSummary.BGM.LastUploadDate = status.LastUpload
+	summaryData.LastUpdatedDate = timestamp
+	summaryData.OutdatedSince = nil
+	summaryData.LastUploadDate = status.LastUpload
 
 	// technically, this never could be zero, but we check anyway
-	userSummary.BGM.HasLastUploadDate = !status.LastUpload.IsZero()
+	summaryData.HasLastUploadDate = !status.LastUpload.IsZero()
 
 	// remove any past values that squeeze through the string date query that feeds this function
 	// this mostly occurs when different sources use different time precisions (s vs ms vs ns)
 	// resulting in $gt 00:00:01.275Z pulling in 00:00:01Z, which is before.
-	if userSummary.BGM.LastData != nil {
-		userBGMData, err = SkipUntil(*userSummary.BGM.LastData, userBGMData)
+	if summaryData.LastData != nil {
+		userBGMData, err = SkipUntil(*summaryData.LastData, userBGMData)
 		if err != nil {
 			return err
 		}
@@ -362,16 +378,16 @@ func (userSummary *Summary) UpdateBGM(ctx context.Context, status *UserBGMLastUp
 
 	// don't recalculate if there is no new data/this was double called
 	if len(userBGMData) < 1 {
-		logger.Debugf("No new records for userid %v summary calculation, aborting.", userSummary.UserID)
+		logger.Debugf("No new records for userid %v summary calculation, aborting.", summaryData.UserID)
 		return nil
 	}
 
-	err = userSummary.CalculateBGMStats(userBGMData)
+	err = summaryData.CalculateStats(userBGMData)
 	if err != nil {
 		return err
 	}
 
-	userSummary.CalculateBGMSummary()
+	summaryData.CalculateSummary()
 
 	return nil
 }

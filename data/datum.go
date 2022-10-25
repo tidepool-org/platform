@@ -8,11 +8,6 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
-type SummaryTypeUpdates struct {
-	CGM bool
-	BGM bool
-}
-
 type Datum interface {
 	Meta() interface{}
 
@@ -36,7 +31,7 @@ type Datum interface {
 	SetDeletedTime(deletedTime *time.Time)
 	SetDeletedUserID(deletedUserID *string)
 
-	UpdatesSummary(updatesSummary *SummaryTypeUpdates)
+	UpdatesSummary(updatesSummary map[string]bool)
 
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
