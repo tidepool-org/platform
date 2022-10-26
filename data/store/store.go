@@ -46,6 +46,7 @@ type DataRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
+	// The return type is incorrect
 	GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error)
 	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*summary.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context) ([]string, error)

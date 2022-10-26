@@ -56,7 +56,7 @@ func (d *SummaryRepository) GetCGMSummary(ctx context.Context, id string) (*summ
 		return nil, errors.New("summary UserID is missing")
 	}
 
-	var userSummary, _ = summary.NewCGMSummary(id)
+	var userSummary = summary.NewCGMSummary(id)
 
 	selector := bson.M{
 		"userId": id,
@@ -81,7 +81,7 @@ func (d *SummaryRepository) GetBGMSummary(ctx context.Context, id string) (*summ
 		return nil, errors.New("summary UserID is missing")
 	}
 
-	var userSummary, _ = summary.NewBGMSummary(id)
+	var userSummary = summary.NewBGMSummary(id)
 
 	selector := bson.M{
 		"userId": id,
