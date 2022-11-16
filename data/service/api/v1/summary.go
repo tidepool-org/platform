@@ -2,9 +2,10 @@ package v1
 
 import (
 	"context"
-	"net/http"
-
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/summary/registry"
+	"github.com/tidepool-org/platform/data/summary/types"
+	"net/http"
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
@@ -14,8 +15,10 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/:userId/:type", Authenticate(GetSummary)),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId/:type", Authenticate(UpdateSummary)),
+		dataService.MakeRoute("GET", "/v1/summaries/:userId/cgm", Authenticate(GetSummary[types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/:userId/bgm", Authenticate(GetSummary[types.BGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/:userId/cgm", Authenticate(UpdateSummary[types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/:userId/bgm", Authenticate(UpdateSummary[types.BGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
 		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs)),
 	}
@@ -42,77 +45,51 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary(dataServiceContext dataService.Context) {
+func GetSummary[T types.Stats](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
 	id := req.PathParam("userId")
-	typ := req.PathParam("type")
 
 	if !CheckPermissions(ctx, dataServiceContext, id) {
 		return
 	}
 
-	if typ == "cgm" {
-		summary, err := dataClient.GetCGMSummary(ctx, id)
-
-		if err != nil {
-			responder.Error(http.StatusInternalServerError, err)
-		} else if summary == nil {
-			responder.Empty(http.StatusNotFound)
-		} else {
-			responder.Data(http.StatusOK, summary)
-		}
-	} else if typ == "bgm" {
-		summary, err := dataClient.GetBGMSummary(ctx, id)
-
-		if err != nil {
-			responder.Error(http.StatusInternalServerError, err)
-		} else if summary == nil {
-			responder.Empty(http.StatusNotFound)
-		} else {
-			responder.Data(http.StatusOK, summary)
-		}
+	summarizer := registry.GetSummarizer[T](dataServiceContext.SummarizerRegistry())
+	summary, err := summarizer.GetSummary(ctx, id)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+	} else if summary == nil {
+		responder.Empty(http.StatusNotFound)
+	} else {
+		responder.Data(http.StatusOK, summary)
 	}
 }
 
-func UpdateSummary(dataServiceContext dataService.Context) {
+func UpdateSummary[T types.Stats](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
 	id := req.PathParam("userId")
-	typ := req.PathParam("type")
 
 	if !CheckPermissions(ctx, dataServiceContext, id) {
 		return
 	}
 
-	if typ == "cgm" {
-		summary, err := dataClient.UpdateCGMSummary(ctx, id)
-		if err != nil {
-			responder.Error(http.StatusInternalServerError, err)
-		} else if summary == nil {
-			responder.Empty(http.StatusNotFound)
-		} else {
-			responder.Data(http.StatusOK, summary)
-		}
-	} else if typ == "bgm" {
-		summary, err := dataClient.UpdateBGMSummary(ctx, id)
-		if err != nil {
-			responder.Error(http.StatusInternalServerError, err)
-		} else if summary == nil {
-			responder.Empty(http.StatusNotFound)
-		} else {
-			responder.Data(http.StatusOK, summary)
-		}
+	summarizer := registry.GetSummarizer[T](dataServiceContext.SummarizerRegistry())
+	summary, err := summarizer.UpdateSummary(ctx, id)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+	} else if summary == nil {
+		responder.Empty(http.StatusNotFound)
+	} else {
+		responder.Data(http.StatusOK, summary)
 	}
 }
 
