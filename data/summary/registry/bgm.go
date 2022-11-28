@@ -12,29 +12,33 @@ import (
 	"time"
 )
 
-type CGMSummarizer struct {
+const (
+	backfillBatch = 100000
+)
+
+type BGMSummarizer struct {
 	deviceData dataStore.DataRepository
-	summaries  *store.Repo[types.CGMStats]
+	summaries  *store.Repo[types.BGMStats]
 }
 
 // Compile time interface check
-var _ Summarizer[types.CGMStats] = &CGMSummarizer{}
+var _ Summarizer[types.BGMStats] = &BGMSummarizer{}
 
-func NewCGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[types.CGMStats] {
-	return &CGMSummarizer{
+func NewBGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[types.BGMStats] {
+	return &BGMSummarizer{
 		deviceData: deviceData,
-		summaries:  store.New[types.CGMStats](collection),
+		summaries:  store.New[types.BGMStats](collection),
 	}
 }
 
-func (c *CGMSummarizer) GetSummary(ctx context.Context, userId string) (*types.Summary[types.CGMStats], error) {
+func (c *BGMSummarizer) GetSummary(ctx context.Context, userId string) (*types.Summary[types.BGMStats], error) {
 	return c.summaries.GetSummary(ctx, userId)
 }
 
-func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*types.Summary[types.CGMStats], error) {
+func (c *BGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*types.Summary[types.BGMStats], error) {
 	var status *types.UserLastUpdated
 	var err error
-	var userSummary *types.Summary[types.CGMStats]
+	var userSummary *types.Summary[types.BGMStats]
 	var userData []*glucoseDatum.Glucose
 
 	timestamp := time.Now().UTC()
@@ -46,9 +50,9 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 
 	logger.Debugf("Starting summary calculation for %s", userId)
 
-	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, "cgm")
+	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, "bgm")
 	if err != nil {
-		return nil, err
+		return userSummary, err
 	}
 
 	// this filters out users which require no update, as they have no cgm data, but have an outdated summary
@@ -58,7 +62,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", userId)
 			userSummary, err = c.summaries.UpsertSummary(ctx, userSummary)
 			if err != nil {
-				return nil, err
+				return userSummary, err
 			}
 		}
 		return userSummary, nil
@@ -66,7 +70,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 
 	// user exists (has relevant data), but no summary, create a blank one
 	if userSummary == nil {
-		userSummary = pointer.FromAny(types.Create[types.CGMStats](userId))
+		userSummary = pointer.FromAny(types.Create[types.BGMStats](userId))
 	}
 
 	if !status.LastData.IsZero() {
@@ -96,7 +100,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 	if len(userData) > 0 {
 		err = userSummary.Stats.CalculateStats(userData)
 		if err != nil {
-			return nil, err
+			return userSummary, err
 		}
 
 		userSummary.Stats.CalculateSummary()
@@ -116,5 +120,53 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 
 	userSummary, err = c.summaries.UpsertSummary(ctx, userSummary)
 
-	return userSummary, err
+	//status *UserLastUpdated, userBGMData []*glucoseDatum.Glucose)
+
+	return userSummary, nil
+}
+
+func (c *BGMSummarizer) BackfillSummaries(ctx context.Context) (int, error) {
+	var empty struct{}
+	var userIDsReqBackfill []string
+	var count = 0
+
+	distinctDataUserIDs, err := c.deviceData.DistinctUserIDs(ctx)
+	if err != nil {
+		return count, err
+	}
+
+	distinctSummaryIDs, err := c.summaries.DistinctSummaryIDs(ctx)
+	if err != nil {
+		return count, err
+	}
+
+	distinctSummaryIDMap := make(map[string]struct{})
+	for _, v := range distinctSummaryIDs {
+		distinctSummaryIDMap[v] = empty
+	}
+
+	for _, userID := range distinctDataUserIDs {
+		if _, exists := distinctSummaryIDMap[userID]; exists {
+		} else {
+			userIDsReqBackfill = append(userIDsReqBackfill, userID)
+		}
+
+		if len(userIDsReqBackfill) >= backfillBatch {
+			break
+		}
+	}
+
+	var summaries = make([]*types.Summary[types.BGMStats], len(userIDsReqBackfill))
+	for i, userId := range userIDsReqBackfill {
+		summaries[i] = pointer.FromAny(types.Create[types.BGMStats](userId))
+	}
+
+	if len(summaries) > 0 {
+		count, err = c.summaries.CreateSummaries(ctx, summaries)
+		if err != nil {
+			return count, err
+		}
+	}
+
+	return count, nil
 }

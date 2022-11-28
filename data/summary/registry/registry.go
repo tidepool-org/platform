@@ -13,6 +13,7 @@ type SummarizerRegistry struct {
 func New(summaryRepository *storeStructuredMongo.Repository, dataRepository dataStore.DataRepository) *SummarizerRegistry {
 	registry := &SummarizerRegistry{summarizers: make(map[string]any)}
 	addSummarizer(registry, NewCGMSummarizer(summaryRepository, dataRepository))
+	addSummarizer(registry, NewBGMSummarizer(summaryRepository, dataRepository))
 	return registry
 }
 
