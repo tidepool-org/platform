@@ -16,7 +16,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-const MaximumExpirationDuration = time.Hour
+const DefaultExpirationDuration = time.Hour
+const MaximumExpirationDuration = time.Hour * 24
 
 var pathExpression = regexp.MustCompile("^/.*$")
 
@@ -53,7 +54,7 @@ type RestrictedTokenCreate struct {
 
 func NewRestrictedTokenCreate() *RestrictedTokenCreate {
 	return &RestrictedTokenCreate{
-		ExpirationTime: pointer.FromTime(time.Now().Add(MaximumExpirationDuration)),
+		ExpirationTime: pointer.FromTime(time.Now().Add(DefaultExpirationDuration)),
 	}
 }
 
@@ -145,7 +146,7 @@ func NewRestrictedToken(userID string, create *RestrictedTokenCreate) (*Restrict
 	if create.ExpirationTime != nil {
 		restrictedToken.ExpirationTime = *create.ExpirationTime
 	} else {
-		restrictedToken.ExpirationTime = time.Now().Add(MaximumExpirationDuration)
+		restrictedToken.ExpirationTime = time.Now().Add(DefaultExpirationDuration)
 	}
 
 	return restrictedToken, nil

@@ -117,7 +117,8 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
-		r.htmlOnRedirect(res, req)
+		html := fmt.Sprintf(htmlOnRedirect, req.BaseUrl(), prvdr.Type(), prvdr.Name(), "declined")
+		r.htmlOnRedirect(res, req, html)
 		return
 	} else if errorCode != "" {
 		r.htmlOnError(res, req, errors.Newf("oauth provider return unexpected error %q", errorCode))
@@ -152,7 +153,8 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	r.htmlOnRedirect(res, req)
+	html := fmt.Sprintf(htmlOnRedirect, req.BaseUrl(), prvdr.Type(), prvdr.Name(), "connected")
+	r.htmlOnRedirect(res, req, html)
 }
 
 func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
@@ -188,8 +190,8 @@ func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Pro
 	return nil, request.ErrorUnauthenticated()
 }
 
-func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request) {
-	request.MustNewResponder(res, req).String(http.StatusOK, htmlOnRedirect, request.NewHeaderMutator("Content-Type", "text/html"))
+func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request, html string) {
+	request.MustNewResponder(res, req).String(http.StatusOK, html, request.NewHeaderMutator("Content-Type", "text/html"))
 }
 
 func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err error, messages ...string) {
@@ -231,7 +233,23 @@ func (r *Router) providerCookiePath(prvdr provider.Provider) string {
 	return fmt.Sprintf("/v1/%s/%s", prvdr.Type(), prvdr.Name())
 }
 
-const htmlOnRedirect = `<html><head/><body onLoad="window.close();"/></html>`
+const htmlOnRedirect = `
+<html>
+	<body onload="closeOrRedirect()">
+		<script>
+			function closeOrRedirect() {
+				var isIframe = window.location !== window.parent.location;
+				if (isIframe) {
+					window.close();
+				} else {
+					window.location.replace('%s/%s/%s/%s');
+				}
+			}
+		</script>
+	</body>
+</html>
+`
+
 const htmlOnError = `
 <!doctype html>
 <html lang="" style="-ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; color: #222; font-size: 1em; height: 100%; line-height: 1.4;">
@@ -276,3 +294,4 @@ const htmlOnError = `
 `
 const unexpectedError = `Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help.`
 const alreadyConnectedError = `This Tidepool account has already been connected to a Dexcom account. If this doesn't sound right, please send an email to support@tidepool.org and we’ll help you out.`
+const dexcomConnectTokenExpiredError = `This Dexcom connect link has expired. Please have your clinic send a new connect invitation. If this doesn't sound right, please send an email to support@tidepool.org and we’ll help you out.`
