@@ -3,11 +3,14 @@ package v1
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -104,20 +107,48 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
+	// redirectURL := path.Join(req.BaseUrl().String(), prvdr.Type(), prvdr.Name())
+	redirectURL := path.Join("http://localhost:3000", prvdr.Type(), prvdr.Name()) // TODO: revert to proper base URL
+	redirectURLAuthorized := path.Join(redirectURL, "authorized")
+	redirectURLDeclined := path.Join(redirectURL, "declined")
+
 	restrictedToken, err := r.oauthProviderRestrictedToken(req.Request, prvdr)
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
 	}
 
-	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
-
-	if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
+	// Include custodial account signup credentials in redirect URL query, if applicable
+	confirmations, err := r.ConfirmationClient().GetAccountSignupConfirmationWithResponse(ctx, confirmationClient.UserId(restrictedToken.UserID))
+	if err != nil {
+		r.htmlOnError(res, req, err)
+		return
 	}
 
+	signupParams := url.Values{}
+	if len(confirmationClient.ConfirmationList(*confirmations.JSON200)) > 0 {
+		confirmation := confirmationClient.ConfirmationList(*confirmations.JSON200)[0]
+		if confirmation.Email != "" {
+			signupParams.Add("inviteEmail", string(confirmation.Email))
+		}
+		if confirmation.Key != "" {
+			signupParams.Add("signupKey", string(confirmation.Key))
+		}
+	}
+
+	if len(signupParams) > 0 {
+		redirectURLAuthorized = redirectURLAuthorized + "?" + signupParams.Encode()
+		redirectURLDeclined = redirectURLDeclined + "?" + signupParams.Encode()
+	}
+
+	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
+
+	// if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
+	// 	log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
+	// }
+
 	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
-		html := fmt.Sprintf(htmlOnRedirect, req.BaseUrl(), prvdr.Type(), prvdr.Name(), "declined")
+		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined)
 		r.htmlOnRedirect(res, req, html)
 		return
 	} else if errorCode != "" {
@@ -137,23 +168,23 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
-	if err != nil {
-		r.htmlOnError(res, req, err)
-		return
-	}
+	// oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
+	// if err != nil {
+	// 	r.htmlOnError(res, req, err)
+	// 	return
+	// }
 
-	providerSessionCreate := auth.NewProviderSessionCreate()
-	providerSessionCreate.Type = prvdr.Type()
-	providerSessionCreate.Name = prvdr.Name()
-	providerSessionCreate.OAuthToken = oauthToken
-	_, err = r.AuthClient().CreateUserProviderSession(ctx, restrictedToken.UserID, providerSessionCreate)
-	if err != nil {
-		r.htmlOnError(res, req, err)
-		return
-	}
+	// providerSessionCreate := auth.NewProviderSessionCreate()
+	// providerSessionCreate.Type = prvdr.Type()
+	// providerSessionCreate.Name = prvdr.Name()
+	// providerSessionCreate.OAuthToken = oauthToken
+	// _, err = r.AuthClient().CreateUserProviderSession(ctx, restrictedToken.UserID, providerSessionCreate)
+	// if err != nil {
+	// 	r.htmlOnError(res, req, err)
+	// 	return
+	// }
 
-	html := fmt.Sprintf(htmlOnRedirect, req.BaseUrl(), prvdr.Type(), prvdr.Name(), "connected")
+	html := fmt.Sprintf(htmlOnRedirect, redirectURLAuthorized)
 	r.htmlOnRedirect(res, req, html)
 }
 
@@ -242,7 +273,7 @@ const htmlOnRedirect = `
 				if (isIframe) {
 					window.close();
 				} else {
-					window.location.replace('%s/%s/%s/%s');
+					window.location.replace('%s');
 				}
 			}
 		</script>
