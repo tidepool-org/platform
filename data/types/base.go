@@ -267,6 +267,10 @@ func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
 
+func (b *Base) GetTime() *time.Time {
+	return b.Time
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }

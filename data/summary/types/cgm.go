@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"math"
 	"strconv"
@@ -36,29 +35,14 @@ type CGMHourlyStat struct {
 	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 }
 
-func NewCGMHourlyStat(date time.Time) *CGMHourlyStat {
-	return &CGMHourlyStat{
-		Date: date,
+type CGMHourlyStats []CGMHourlyStat
 
-		TargetMinutes: 0,
-		TargetRecords: 0,
+func (s CGMHourlyStat) GetDate() time.Time {
+	return s.Date
+}
 
-		LowMinutes: 0,
-		LowRecords: 0,
-
-		VeryLowMinutes: 0,
-		VeryLowRecords: 0,
-
-		HighMinutes: 0,
-		HighRecords: 0,
-
-		VeryHighMinutes: 0,
-		VeryHighRecords: 0,
-
-		TotalGlucose: 0,
-		TotalMinutes: 0,
-		TotalRecords: 0,
-	}
+func (s CGMHourlyStat) SetDate(t time.Time) {
+	s.Date = t
 }
 
 type CGMPeriod struct {
@@ -100,14 +84,22 @@ type CGMPeriod struct {
 	TimeInVeryHighRecords int      `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
+type CGMPeriods map[string]CGMPeriod
+
 type CGMStats struct {
-	Periods     map[string]*CGMPeriod `json:"periods" bson:"periods"`
-	HourlyStats []*CGMHourlyStat      `json:"hourlyStats" bson:"hourlyStats"`
-	TotalHours  int                   `json:"totalHours" bson:"totalHours"`
+	Periods     CGMPeriods     `json:"periods" bson:"periods"`
+	HourlyStats CGMHourlyStats `json:"hourlyStats" bson:"hourlyStats"`
+	TotalHours  int            `json:"totalHours" bson:"totalHours"`
 }
 
 func (CGMStats) GetType() string {
 	return SummaryTypeCGM
+}
+
+func (s CGMStats) Init() {
+	s.HourlyStats = make([]CGMHourlyStat, 0)
+	s.Periods = make(map[string]CGMPeriod)
+	s.TotalHours = 0
 }
 
 // GetDuration assumes all except freestyle is 5 minutes
@@ -127,186 +119,58 @@ func CalculateGMI(averageGlucose float64) float64 {
 	return gmi
 }
 
-func (s CGMStats) PopulateStats() {
-	s.Periods = make(map[string]*CGMPeriod)
-	s.HourlyStats = make([]*CGMHourlyStat, 0)
-	s.TotalHours = 0
-}
-
-func (s CGMStats) AddStats(stats *CGMHourlyStat) error {
-	var hourCount int
-	var oldestHour time.Time
-	var oldestHourToKeep time.Time
-	var existingDay = false
-	var statsGap int
-	var newStatsTime time.Time
-
-	if stats == nil {
-		return errors.New("stats empty")
-	}
-
-	// update existing hour if one does exist
-	if len(s.HourlyStats) > 0 {
-		for i := len(s.HourlyStats) - 1; i >= 0; i-- {
-			if s.HourlyStats[i].Date.Equal(stats.Date) {
-				s.HourlyStats[i] = stats
-				existingDay = true
-				break
-			}
-
-			// we already passed our date, give up
-			if s.HourlyStats[i].Date.After(stats.Date) {
-				break
-			}
-		}
-
-		// add hours for any gaps that this new stat skipped
-		statsGap = int(stats.Date.Sub(s.HourlyStats[len(s.HourlyStats)-1].Date).Hours())
-		for i := statsGap; i > 1; i-- {
-			newStatsTime = stats.Date.Add(time.Duration(-i) * time.Hour)
-			s.HourlyStats = append(s.HourlyStats, NewCGMHourlyStat(newStatsTime))
-		}
-	}
-
-	if existingDay == false {
-		s.HourlyStats = append(s.HourlyStats, stats)
-	}
-
-	// remove extra days to cap at X days of stats
-	hourCount = len(s.HourlyStats)
-	if hourCount > hoursAgoToKeep {
-		s.HourlyStats = s.HourlyStats[hourCount-hoursAgoToKeep:]
-	}
-
-	// remove any stats that are older than X days from the last stat
-	oldestHour = s.HourlyStats[0].Date
-	oldestHourToKeep = stats.Date.Add(-hoursAgoToKeep * time.Hour)
-	if oldestHour.Before(oldestHourToKeep) {
-		// we don't check the last entry because we just added/updated it
-		for i := len(s.HourlyStats) - 2; i >= 0; i-- {
-			if s.HourlyStats[i].Date.Before(oldestHourToKeep) {
-				s.HourlyStats = s.HourlyStats[i+1:]
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s CGMStats) CalculateStats(userData []*glucoseDatum.Glucose) error {
+func (s CGMStats) CalculateStats(r *glucoseDatum.Glucose) error {
 	var normalizedValue float64
 	var duration int
-	var recordTime time.Time
-	var lastHour time.Time
-	var currentHour time.Time
-	var err error
-	var stats *CGMHourlyStat
+	//userData := userDataInterface.([]*glucoseDatum.Glucose)
 
-	if len(userData) < 1 {
-		return errors.New("userData is empty, nothing to calculate stats for")
+	// duration has never been calculated, use current record's duration for this cycle
+	if duration == 0 {
+		duration = GetDuration(r)
 	}
 
-	// skip past data
-	if len(s.HourlyStats) > 0 {
-		userData, err = SkipUntil(s.HourlyStats[len(s.HourlyStats)-1].Date, userData)
-	}
+	// calculate blackoutWindow based on duration of previous value
+	blackoutWindow := time.Duration(duration)*time.Minute - 3*time.Second
 
-	for _, r := range userData {
-		recordTime = *r.Time
-		if err != nil {
-			return errors.Wrap(err, "cannot parse time in record")
+	// if we are too close to the previous value, skip
+	if recordTime.Sub(newStat.LastRecordTime) > blackoutWindow {
+		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
+		duration = GetDuration(r)
+
+		if normalizedValue <= veryLowBloodGlucose {
+			newStat.VeryLowMinutes += duration
+			newStat.VeryLowRecords++
+		} else if normalizedValue >= veryHighBloodGlucose {
+			newStat.VeryHighMinutes += duration
+			newStat.VeryHighRecords++
+		} else if normalizedValue <= lowBloodGlucose {
+			newStat.LowMinutes += duration
+			newStat.LowRecords++
+		} else if normalizedValue >= highBloodGlucose {
+			newStat.HighMinutes += duration
+			newStat.HighRecords++
+		} else {
+			newStat.TargetMinutes += duration
+			newStat.TargetRecords++
 		}
 
-		// truncate time is not timezone/DST safe here, even if we do expect UTC
-		currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
-			recordTime.Hour(), 0, 0, 0, recordTime.Location())
-
-		// store stats for the day, if we are now on the next day
-		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = s.AddStats(stats)
-			if err != nil {
-				return err
-			}
-			stats = nil
-		}
-
-		if stats == nil {
-			// pull stats if they already exist
-			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(s.HourlyStats) > 0 {
-				for i := len(s.HourlyStats) - 1; i >= 0; i-- {
-					if s.HourlyStats[i].Date.Equal(currentHour) {
-						stats = s.HourlyStats[i]
-						break
-					}
-
-					// we already passed our date, give up
-					if s.HourlyStats[i].Date.After(currentHour) {
-						break
-					}
-				}
-			}
-
-			if stats == nil {
-				stats = NewCGMHourlyStat(currentHour)
-			}
-		}
-
-		lastHour = currentHour
-
-		// if on fresh day, pull LastRecordTime from last day if possible
-		if stats.LastRecordTime.IsZero() && len(s.HourlyStats) > 0 {
-			stats.LastRecordTime = s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
-		}
-
-		// duration has never been calculated, use current record's duration for this cycle
-		if duration == 0 {
-			duration = GetDuration(r)
-		}
-
-		// calculate skipWindow based on duration of previous value
-		skipWindow := time.Duration(duration)*time.Minute - 3*time.Second
-
-		// if we are too close to the previous value, skip
-		if recordTime.Sub(stats.LastRecordTime) > skipWindow {
-			normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
-			duration = GetDuration(r)
-
-			if normalizedValue <= veryLowBloodGlucose {
-				stats.VeryLowMinutes += duration
-				stats.VeryLowRecords++
-			} else if normalizedValue >= veryHighBloodGlucose {
-				stats.VeryHighMinutes += duration
-				stats.VeryHighRecords++
-			} else if normalizedValue <= lowBloodGlucose {
-				stats.LowMinutes += duration
-				stats.LowRecords++
-			} else if normalizedValue >= highBloodGlucose {
-				stats.HighMinutes += duration
-				stats.HighRecords++
-			} else {
-				stats.TargetMinutes += duration
-				stats.TargetRecords++
-			}
-
-			stats.TotalMinutes += duration
-			stats.TotalRecords++
-			stats.TotalGlucose += normalizedValue
-			stats.LastRecordTime = recordTime
-		}
-	}
-	// store
-	err = s.AddStats(stats)
-	if err != nil {
-		return err
+		newStat.TotalMinutes += duration
+		newStat.TotalRecords++
+		newStat.TotalGlucose += normalizedValue
+		newStat.LastRecordTime = recordTime
 	}
 
 	return nil
 }
 
 func (s CGMStats) CalculateSummary() {
-	totalStats := NewCGMHourlyStat(time.Time{})
+	totalStats := CreateHourlyStat[CGMHourlyStat](time.Time{})
+	s.TotalHours = len(s.HourlyStats)
+
+	// ensure periods exists, just in case
+	if s.Periods == nil {
+		s.Periods = make(map[string]CGMPeriod)
+	}
 
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
@@ -355,27 +219,12 @@ func (s CGMStats) CalculatePeriod(i int, totalStats *CGMHourlyStat) {
 	var timeInHighPercent *float64
 	var timeInVeryHighPercent *float64
 	var glucoseManagementIndicator *float64
+	var realMinutes float64
 	var averageGlucose *Glucose
 
-	// remove partial hour (data end) from total time for more accurate TimeCGMUse
-	totalMinutes := float64(i * 24 * 60)
-	lastRecordTime := s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
-	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
-		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
-	totalMinutes = totalMinutes - nextHour.Sub(lastRecordTime).Minutes()
-
-	// TODO move
-	//s.LastData = &lastRecordTime
-	//s.FirstData = s.HourlyStats[0].Date
-
-	s.TotalHours = len(s.HourlyStats)
-
-	// calculate derived summary stats
-	if totalMinutes != 0 {
-		timeCGMUsePercent = pointer.FromFloat64(float64(totalStats.TotalMinutes) / totalMinutes)
-	}
-
-	if totalStats.TotalMinutes != 0 {
+	if totalStats.TotalRecords != 0 {
+		realMinutes = CalculateRealMinutes(i, s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime)
+		timeCGMUsePercent = pointer.FromFloat64(float64(totalStats.TotalMinutes) / realMinutes)
 		// if we are storing under 1d, apply 70% rule to TimeIn*
 		// if we are storing over 1d, check for 24h cgm use
 		if (i <= 1 && *timeCGMUsePercent > 0.7) || (i > 1 && totalStats.TotalMinutes > 1440) {
@@ -386,27 +235,18 @@ func (s CGMStats) CalculatePeriod(i int, totalStats *CGMHourlyStat) {
 			timeInVeryHighPercent = pointer.FromFloat64(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalMinutes))
 		}
 
-	}
-
-	if totalStats.TotalRecords != 0 {
 		averageGlucose = &Glucose{
 			Value: totalStats.TotalGlucose / float64(totalStats.TotalRecords),
 			Units: summaryGlucoseUnits,
 		}
+
+		// we only add GMI if cgm use >70%, otherwise clear it
+		if *timeCGMUsePercent > 0.7 {
+			glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose.Value))
+		}
 	}
 
-	// we only add GMI if cgm use >70%, otherwise clear it
-	glucoseManagementIndicator = nil
-	if *timeCGMUsePercent > 0.7 {
-		glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose.Value))
-	}
-
-	// ensure periods exists, just in case
-	if s.Periods == nil {
-		s.Periods = make(map[string]*CGMPeriod)
-	}
-
-	s.Periods[strconv.Itoa(i)+"d"] = &CGMPeriod{
+	s.Periods[strconv.Itoa(i)+"d"] = CGMPeriod{
 		HasAverageGlucose:             averageGlucose != nil,
 		HasGlucoseManagementIndicator: glucoseManagementIndicator != nil,
 		HasTimeCGMUsePercent:          timeCGMUsePercent != nil,

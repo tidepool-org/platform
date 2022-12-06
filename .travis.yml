@@ -5,7 +5,7 @@ dist: focal
 language: go
 
 go:
-  - 1.18
+  - 1.19
 
 go_import_path: github.com/tidepool-org/platform
 

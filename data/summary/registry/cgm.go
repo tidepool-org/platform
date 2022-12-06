@@ -55,6 +55,12 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 	if status.LastData.IsZero() {
 		if userSummary != nil {
 			// user's data is inactive/deleted, or this summary shouldn't have been created
+			// TODO extract this into function and make all nil (maybe, previously moved away from pointers for easier code)
+			userSummary.Dates.LastUpdatedDate = timestamp
+			userSummary.Dates.OutdatedSince = nil
+			userSummary.Dates.LastUploadDate = time.Time{}
+			userSummary.Dates.LastData = nil
+			userSummary.Dates.FirstData = time.Time{}
 			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", userId)
 			userSummary, err = c.summaries.UpsertSummary(ctx, userSummary)
 			if err != nil {
@@ -69,37 +75,38 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 		userSummary = pointer.FromAny(types.Create[types.CGMStats](userId))
 	}
 
-	if !status.LastData.IsZero() {
-		// remove 30 days for start time
-		startTime := status.LastData.AddDate(0, 0, -30)
-		endTime := status.LastData
+	// remove 30 days for start time
+	startTime := status.LastData.AddDate(0, 0, -30)
+	endTime := status.LastData
 
-		if userSummary.Dates.LastData != nil {
-			// if summary already exists with a last data checkpoint, start data pull there
-			if startTime.Before(*userSummary.Dates.LastData) {
-				startTime = *userSummary.Dates.LastData
-			}
-
-			// ensure endTime does not move backwards by capping it at summary LastData
-			if !status.LastData.After(*userSummary.Dates.LastData) {
-				endTime = *userSummary.Dates.LastData
-			}
+	if userSummary.Dates.LastData != nil {
+		// if summary already exists with a last data checkpoint, start data pull there
+		if startTime.Before(*userSummary.Dates.LastData) {
+			startTime = *userSummary.Dates.LastData
 		}
 
-		userData, err = c.deviceData.GetDataRange(ctx, userId, "cgm", startTime, endTime)
-		if err != nil {
-			return nil, err
+		// ensure endTime does not move backwards by capping it at summary LastData
+		if !status.LastData.After(*userSummary.Dates.LastData) {
+			endTime = *userSummary.Dates.LastData
 		}
+	}
+
+	err = c.deviceData.GetDataRange(ctx, userData, userId, "cgm", startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+
+	// skip past data
+	if len(userSummary.Stats.HourlyStats) > 0 {
+		userData, err = SkipUntil(userSummary.Stats.HourlyStats[len(userSummary.Stats.HourlyStats)-1].Date, userData)
 	}
 
 	// if there is new data
 	if len(userData) > 0 {
-		err = userSummary.Stats.CalculateStats(userData)
+		err = types.Update(userSummary.Stats, userData)
 		if err != nil {
 			return nil, err
 		}
-
-		userSummary.Stats.CalculateSummary()
 	} else {
 		// "new" data must be in the past, don't update, just remove flags and set new date
 		logger.Infof("User %s has an outdated summary with no forward data, skipping calc.", userId)

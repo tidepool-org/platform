@@ -24,18 +24,14 @@ type BGMHourlyStat struct {
 	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 }
 
-func NewBGMHourlyStat(date time.Time) *BGMHourlyStat {
-	return &BGMHourlyStat{
-		Date: date,
+type BGMHourlyStats []BGMHourlyStat
 
-		TargetRecords:   0,
-		LowRecords:      0,
-		VeryLowRecords:  0,
-		HighRecords:     0,
-		VeryHighRecords: 0,
+func (s BGMHourlyStat) GetDate() time.Time {
+	return s.Date
+}
 
-		TotalGlucose: 0,
-	}
+func (s BGMHourlyStat) SetDate(t time.Time) {
+	s.Date = t
 }
 
 type BGMPeriod struct {
@@ -65,99 +61,32 @@ type BGMPeriod struct {
 	TimeInVeryHighRecords int      `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
+type BGMPeriods map[string]BGMPeriod
+
 type BGMStats struct {
-	Periods     map[string]*BGMPeriod `json:"periods" bson:"periods"`
-	HourlyStats []*BGMHourlyStat      `json:"hourlyStats" bson:"hourlyStats"`
-	TotalHours  int                   `json:"totalHours" bson:"totalHours"`
+	Periods     BGMPeriods     `json:"periods" bson:"periods"`
+	HourlyStats BGMHourlyStats `json:"hourlyStats" bson:"hourlyStats"`
+	TotalHours  int            `json:"totalHours" bson:"totalHours"`
 }
 
 func (BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (s BGMStats) PopulateStats() {
-	s.Periods = make(map[string]*BGMPeriod)
-	s.HourlyStats = make([]*BGMHourlyStat, 0)
+func (s BGMStats) Init() {
+	s.HourlyStats = make([]BGMHourlyStat, 0)
+	s.Periods = make(map[string]BGMPeriod)
 	s.TotalHours = 0
 }
 
-func (s BGMStats) AddStats(stats *BGMHourlyStat) error {
-	var hourCount int
-	var oldestHour time.Time
-	var oldestHourToKeep time.Time
-	var existingDay = false
-	var statsGap int
-	var newStatsTime time.Time
-
-	if stats == nil {
-		return errors.New("stats empty")
-	}
-
-	// update existing hour if one does exist
-	if len(s.HourlyStats) > 0 {
-		for i := len(s.HourlyStats) - 1; i >= 0; i-- {
-			if s.HourlyStats[i].Date.Equal(stats.Date) {
-				s.HourlyStats[i] = stats
-				existingDay = true
-				break
-			}
-
-			// we already passed our date, give up
-			if s.HourlyStats[i].Date.After(stats.Date) {
-				break
-			}
-		}
-
-		// add hours for any gaps that this new stat skipped
-		statsGap = int(stats.Date.Sub(s.HourlyStats[len(s.HourlyStats)-1].Date).Hours())
-		for i := statsGap; i > 1; i-- {
-			newStatsTime = stats.Date.Add(time.Duration(-i) * time.Hour)
-			s.HourlyStats = append(s.HourlyStats, NewBGMHourlyStat(newStatsTime))
-		}
-	}
-
-	if existingDay == false {
-		s.HourlyStats = append(s.HourlyStats, stats)
-	}
-
-	// remove extra days to cap at X days of stats
-	hourCount = len(s.HourlyStats)
-	if hourCount > hoursAgoToKeep {
-		s.HourlyStats = s.HourlyStats[hourCount-hoursAgoToKeep:]
-	}
-
-	// remove any stats that are older than X days from the last stat
-	oldestHour = s.HourlyStats[0].Date
-	oldestHourToKeep = stats.Date.Add(-hoursAgoToKeep * time.Hour)
-	if oldestHour.Before(oldestHourToKeep) {
-		// we don't check the last entry because we just added/updated it
-		for i := len(s.HourlyStats) - 2; i >= 0; i-- {
-			if s.HourlyStats[i].Date.Before(oldestHourToKeep) {
-				s.HourlyStats = s.HourlyStats[i+1:]
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s BGMStats) CalculateStats(userData []*glucoseDatum.Glucose) error {
+func (s BGMStats) CalculateStats(userDataInterface interface{}) error {
+	userData := userDataInterface.([]*glucoseDatum.Glucose)
 	var normalizedValue float64
 	var recordTime time.Time
 	var lastHour time.Time
 	var currentHour time.Time
 	var err error
-	var stats *BGMHourlyStat
-
-	if len(userData) < 1 {
-		return errors.New("userData is empty, nothing to calculate stats for")
-	}
-
-	// skip past data
-	if len(s.HourlyStats) > 0 {
-		userData, err = SkipUntil(s.HourlyStats[len(s.HourlyStats)-1].Date, userData)
-	}
+	var newStat *BGMHourlyStat
 
 	for _, r := range userData {
 		recordTime = *r.Time
@@ -169,22 +98,22 @@ func (s BGMStats) CalculateStats(userData []*glucoseDatum.Glucose) error {
 		currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
 			recordTime.Hour(), 0, 0, 0, recordTime.Location())
 
-		// store stats for the day, if we are now on the next day
+		// store newStat for the day, if we are now on the next day
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = s.AddStats(stats)
+			err = AddStats(s.HourlyStats, *newStat)
 			if err != nil {
 				return err
 			}
-			stats = nil
+			newStat = nil
 		}
 
-		if stats == nil {
-			// pull stats if they already exist
+		if newStat == nil {
+			// pull newStat if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
 			if len(s.HourlyStats) > 0 {
 				for i := len(s.HourlyStats) - 1; i >= 0; i-- {
 					if s.HourlyStats[i].Date.Equal(currentHour) {
-						stats = s.HourlyStats[i]
+						newStat = &s.HourlyStats[i]
 						break
 					}
 
@@ -195,38 +124,39 @@ func (s BGMStats) CalculateStats(userData []*glucoseDatum.Glucose) error {
 				}
 			}
 
-			if stats == nil {
-				stats = NewBGMHourlyStat(currentHour)
+			if newStat == nil {
+				newStat = CreateHourlyStat[BGMHourlyStat](currentHour)
 			}
 		}
 
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if stats.LastRecordTime.IsZero() && len(s.HourlyStats) > 0 {
-			stats.LastRecordTime = s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
+		if newStat.LastRecordTime.IsZero() && len(s.HourlyStats) > 0 {
+			newStat.LastRecordTime = s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
 		}
 
 		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
 
 		if normalizedValue <= veryLowBloodGlucose {
-			stats.VeryLowRecords++
+			newStat.VeryLowRecords++
 		} else if normalizedValue >= veryHighBloodGlucose {
-			stats.VeryHighRecords++
+			newStat.VeryHighRecords++
 		} else if normalizedValue <= lowBloodGlucose {
-			stats.LowRecords++
+			newStat.LowRecords++
 		} else if normalizedValue >= highBloodGlucose {
-			stats.HighRecords++
+			newStat.HighRecords++
 		} else {
-			stats.TargetRecords++
+			newStat.TargetRecords++
 		}
 
-		stats.TotalRecords++
-		stats.TotalGlucose += normalizedValue
-		stats.LastRecordTime = recordTime
+		newStat.TotalRecords++
+		newStat.TotalGlucose += normalizedValue
+		newStat.LastRecordTime = recordTime
 	}
+
 	// store
-	err = s.AddStats(stats)
+	err = AddStats(s.HourlyStats, *newStat)
 	if err != nil {
 		return err
 	}
@@ -235,7 +165,7 @@ func (s BGMStats) CalculateStats(userData []*glucoseDatum.Glucose) error {
 }
 
 func (s BGMStats) CalculateSummary() {
-	totalStats := NewBGMHourlyStat(time.Time{})
+	totalStats := CreateHourlyStat[BGMHourlyStat](time.Time{})
 
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
@@ -298,10 +228,10 @@ func (s BGMStats) CalculatePeriod(i int, totalStats *BGMHourlyStat) {
 
 	// ensure periods exists, just in case
 	if s.Periods == nil {
-		s.Periods = make(map[string]*BGMPeriod)
+		s.Periods = make(map[string]BGMPeriod)
 	}
 
-	s.Periods[strconv.Itoa(i)+"d"] = &BGMPeriod{
+	s.Periods[strconv.Itoa(i)+"d"] = BGMPeriod{
 		HasAverageGlucose:        averageGlucose != nil,
 		HasTimeInTargetPercent:   timeInTargetPercent != nil,
 		HasTimeInLowPercent:      timeInLowPercent != nil,

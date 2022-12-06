@@ -5,8 +5,6 @@ import (
 	"github.com/tidepool-org/platform/data/summary/types"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
@@ -46,7 +44,7 @@ type DataRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	// The return type is incorrect
-	GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error)
+	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, t string, startTime time.Time, endTime time.Time) error
 	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context) ([]string, error)
 }

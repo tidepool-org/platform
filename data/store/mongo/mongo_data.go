@@ -2,11 +2,10 @@ package mongo
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"time"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-
-	"github.com/tidepool-org/platform/data/summary"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -892,31 +891,21 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error) {
-	var dataSetsOld []*glucose.Glucose
-	var dataSets []*glucose.Glucose
+func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, t string, startTime time.Time, endTime time.Time) error {
 
 	// quit early if range is 0
 	if startTime.Equal(endTime) {
-		return dataSets, nil
+		return nil
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
 	if startTime.After(endTime) {
-		return nil, errors.Newf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, id)
-	}
-
-	selectorOld := bson.M{
-		"_active": true,
-		"_userId": id,
-		"type":    t,
-		"time": bson.M{"$gt": startTime.Format(time.RFC3339Nano),
-			"$lte": endTime.Format(time.RFC3339Nano)},
+		return errors.Newf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
 	}
 
 	selector := bson.M{
 		"_active": true,
-		"_userId": id,
+		"_userId": userId,
 		"type":    t,
 		"time": bson.M{"$gt": startTime,
 			"$lte": endTime},
@@ -925,38 +914,22 @@ func (d *DataRepository) GetDataRange(ctx context.Context, id string, t string, 
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
 
-	cursorOld, err := d.Find(ctx, selectorOld, opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
-	}
-
 	cursor, err := d.Find(ctx, selector, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
+		return errors.Wrap(err, "unable to get cgm data in date range for user")
 	}
 
-	if err = cursorOld.All(ctx, &dataSetsOld); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data sets")
-	}
-	if err = cursor.All(ctx, &dataSets); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data sets")
+	if err = cursor.All(ctx, &dataRecords); err != nil {
+		return errors.Wrap(err, "unable to decode data sets")
 	}
 
-	if len(dataSets) > 0 && len(dataSetsOld) > 0 {
-		// user has old and new format data
-		dataSets = append(dataSetsOld, dataSets...)
-	} else if len(dataSetsOld) > 0 && len(dataSets) == 0 {
-		// user has old format data, but no new data
-		dataSets = dataSetsOld
-	}
-
-	return dataSets, nil
+	return nil
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*summary.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
-	var status *summary.UserLastUpdated
+	var status *types.UserLastUpdated
 	var dataSet []*glucose.Glucose
 
 	if ctx == nil {
