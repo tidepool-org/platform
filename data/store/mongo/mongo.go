@@ -52,20 +52,16 @@ var datumWriteToDeviceDataArchiveStoreMetrics = promauto.NewHistogram(prometheus
 
 type Stores struct {
 	*storeStructuredMongo.Store
-	BucketStore        *MongoBucketStoreClient
-	BucketStoreEnabled bool
-	DataTypesArchived  []string
-	DataTypesBucketed  []string
+	BucketStore           *MongoBucketStoreClient
+	DataTypesArchived     []string
+	DataTypesBucketed     []string
+	DataTypesKeptInLegacy []string
 }
 
 type BucketMigrationConfig struct {
-	EnableBucketStore bool
-	DataTypesArchived []string
-	DataTypesBucketed []string
-}
-
-func (s *Stores) IsEnabled() bool {
-	return s.BucketStoreEnabled
+	DataTypesArchived     []string
+	DataTypesBucketed     []string
+	DataTypesKeptInLegacy []string
 }
 
 var (
@@ -133,39 +129,37 @@ func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr lo
 	}
 
 	bucketStore := &MongoBucketStoreClient{}
-	if migrateConfig.EnableBucketStore {
-		bucketStore, err = NewMongoBucketStoreClient(config, lg)
-		if err != nil {
-			return nil, err
-		}
-		bucketStore.Start()
+	bucketStore, err = NewMongoBucketStoreClient(config, lg)
+	if err != nil {
+		return nil, err
 	}
+	bucketStore.Start()
 
 	return &Stores{
-		Store:              baseStore,
-		BucketStore:        bucketStore,
-		BucketStoreEnabled: migrateConfig.EnableBucketStore,
-		DataTypesArchived:  migrateConfig.DataTypesArchived,
-		DataTypesBucketed:  migrateConfig.DataTypesBucketed,
+		Store:                 baseStore,
+		BucketStore:           bucketStore,
+		DataTypesArchived:     migrateConfig.DataTypesArchived,
+		DataTypesBucketed:     migrateConfig.DataTypesBucketed,
+		DataTypesKeptInLegacy: migrateConfig.DataTypesKeptInLegacy,
 	}, nil
 }
 
 func (s *Stores) NewDataRepository() store.DataRepository {
 	return &DataRepository{
-		Repository:         s.Store.GetRepository("deviceData"),
-		BucketStore:        s.BucketStore,
-		BucketStoreEnabled: s.BucketStoreEnabled,
-		DataTypesArchived:  s.DataTypesArchived,
-		DataTypesBucketed:  s.DataTypesBucketed,
+		Repository:            s.Store.GetRepository("deviceData"),
+		BucketStore:           s.BucketStore,
+		DataTypesArchived:     s.DataTypesArchived,
+		DataTypesBucketed:     s.DataTypesBucketed,
+		DataTypesKeptInLegacy: s.DataTypesKeptInLegacy,
 	}
 }
 
 type DataRepository struct {
 	*storeStructuredMongo.Repository
-	BucketStore        *MongoBucketStoreClient
-	BucketStoreEnabled bool
-	DataTypesArchived  []string
-	DataTypesBucketed  []string
+	BucketStore           *MongoBucketStoreClient
+	DataTypesArchived     []string
+	DataTypesBucketed     []string
+	DataTypesKeptInLegacy []string
 }
 
 func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
@@ -430,15 +424,17 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&strTimestamp)
-		archive := d.isDatumToArchive(datum)
-		moveToBucket := d.isDatumToBucket(datum)
+		writeToArchive := d.isDatumToArchive(datum)
+		writeToBucket := d.isDatumToBucket(datum)
+		writeToLegacy := d.isDatumToLegacy(datum)
 		guid := datum.GetGUID()
 		deviceId := datum.GetDeviceID()
 		if deviceId == nil {
 			deviceId = uploadDeviceId
 		}
 
-		if moveToBucket {
+		/*If data type is in write to bucket ENV VAR, we write it to bucket*/
+		if writeToBucket {
 			// Prepare cbg to be pushed into data read db
 			loggerFields := log.Fields{"datum": datum}
 			switch event := datum.(type) {
@@ -461,9 +457,8 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 			default:
 				d.BucketStore.log.Infof("object ignored %v", event)
 			}
-		} else {
-			d.BucketStore.log.Infof("object ignored %v", datum)
 		}
+
 		incomingUserMetadata = d.BucketStore.BuildUserMetadata(incomingUserMetadata, creationTimestamp, strUserId, datum.GetTime())
 
 		var writeOp mongo.WriteModel
@@ -472,33 +467,35 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		} else {
 			writeOp = mongo.NewInsertOneModel().SetDocument(datum)
 		}
-		if archive {
+
+		/*If data type is in write to archive ENV VAR, we write it to the archive*/
+		if writeToArchive {
 			archiveData = append(archiveData, writeOp)
-		} else {
+		}
+
+		/*If data type is not in write to bucket ENV VAR, we write it to legacy deviceData*/
+		/*We also write it if write to legacy is set alongside write to bucket ENV VAR*/
+		if !writeToBucket || (writeToBucket && writeToLegacy) {
 			insertData = append(insertData, writeOp)
 		}
 	}
 
-	if d.BucketStoreEnabled {
-		for dataType, samples := range allSamples {
-			start := time.Now()
-			err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples, dataType)
+	for dataType, samples := range allSamples {
+		start := time.Now()
+		err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples, dataType)
 
-			if err != nil {
-				return errors.Wrapf(err, "unable to create %v bucket", dataType)
-			}
-			elapsedTime := time.Since(start).Seconds()
-			dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsedTime))
+		if err != nil {
+			return errors.Wrapf(err, "unable to create %v bucket", dataType)
 		}
-		// update meta data
-		if incomingUserMetadata != nil {
-			err = d.BucketStore.UpsertMetaData(ctx, dataSet.UserID, incomingUserMetadata)
-			if err != nil {
-				return errors.Wrap(err, "unable to update metadata")
-			}
+		elapsedTime := time.Since(start).Seconds()
+		dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsedTime))
+	}
+	// update meta data
+	if incomingUserMetadata != nil {
+		err = d.BucketStore.UpsertMetaData(ctx, dataSet.UserID, incomingUserMetadata)
+		if err != nil {
+			return errors.Wrap(err, "unable to update metadata")
 		}
-	} else {
-		d.BucketStore.log.Debug("push to read database is disabled")
 	}
 
 	opts := options.BulkWrite().SetOrdered(false)
@@ -538,6 +535,16 @@ func (d *DataRepository) isDatumToBucket(datum data.Datum) bool {
 	datumType := datum.GetType()
 	for _, bucketedType := range d.DataTypesBucketed {
 		if bucketedType == datumType {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *DataRepository) isDatumToLegacy(datum data.Datum) bool {
+	datumType := datum.GetType()
+	for _, legacyType := range d.DataTypesKeptInLegacy {
+		if legacyType == datumType {
 			return true
 		}
 	}

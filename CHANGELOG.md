@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.21.0 - 2022-12-02
+### Changed
+- YLP-1952 Add the possibility to stop writing in deviceData
+
 ## 0.20.0 - 2022-09-27
 ### Changed
 - YLP-1800 Implement Power Saving objects upload

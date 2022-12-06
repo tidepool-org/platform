@@ -57,5 +57,3 @@ export TIDEPOOL_NOTIFICATION_SERVICE_SECRET="Service secret used for interservic
 export TIDEPOOL_PRESCRIPTION_SERVICE_SECRET="Service secret used for interservice requests with the prescription service"
 export TIDEPOOL_TASK_SERVICE_SECRET="Service secret used for interservice requests with the task service"
 export TIDEPOOL_USER_SERVICE_SECRET="Service secret used for interservice requests with the user service"
-
-export PUSH_TO_READ_STORE_ENABLED=true

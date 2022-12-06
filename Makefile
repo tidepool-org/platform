@@ -5,6 +5,7 @@
 # OPS_DOCKER_REGISTRY
 # OPS_DOCKER_USERNAME
 # OPS_DOCKER_PASSWORD
+# VERSION
 
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
@@ -15,17 +16,13 @@ REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
 
-ifdef TRAVIS_TAG
-	VERSION_BASE:=$(TRAVIS_TAG)
-else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'dblp.0.0.0')
-endif
-VERSION_BASE:=$(VERSION_BASE:dblp.%=%)
+
+
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
-GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
+GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
 FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
@@ -237,7 +234,7 @@ ci-soups: clean-soup-doc generate-soups
 
 generate-soups:
 	@cd $(ROOT_DIRECTORY) && \
-		$(MAKE) service-soup SERVICE_DIRECTORY=data SERVICE=platform TARGET=soup VERSION=${VERSION_BASE}
+		$(MAKE) service-soup SERVICE_DIRECTORY=data SERVICE=platform TARGET=soup
 
 service-soup:
 	@cd ${SERVICE_DIRECTORY} && \
@@ -288,9 +285,9 @@ endif
 endif
 endif
 ifdef TRAVIS_TAG
-	docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION)"
 ifdef OPS_DOCKER_REPOSITORY
-	docker tag "$(DOCKER_REPOSITORY)" "$(OPS_DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker tag "$(DOCKER_REPOSITORY)" "$(OPS_DOCKER_REPOSITORY):$(VERSION)"
 endif
 endif
 endif
@@ -328,13 +325,13 @@ endif
 endif
 endif
 ifdef TRAVIS_TAG
-	docker push "$(DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker push "$(DOCKER_REPOSITORY):$(VERSION)"
 endif
 endif
 ifdef OPS_DOCKER_REPOSITORY
 ifdef TRAVIS_TAG
 	@echo "Pushing to Ops..."
-	docker push "$(OPS_DOCKER_REPOSITORY):$(VERSION_BASE)"
+	docker push "$(OPS_DOCKER_REPOSITORY):$(VERSION)"
 endif
 endif
 endif

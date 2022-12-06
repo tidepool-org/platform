@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/mdblp/go-common/clients/mongo"
@@ -207,9 +205,9 @@ func (s *Standard) initializeDataStore() error {
 	mongoDbReadConfig.Database = "data_read"
 
 	migrateConfig := dataStoreMongo.BucketMigrationConfig{
-		EnableBucketStore: getPushToReadStoreEnv(),
-		DataTypesArchived: getArchivedDataTypesEnv(),
-		DataTypesBucketed: getBucketsDataTypesEnv(),
+		DataTypesArchived:     getArchivedDataTypesEnv(),
+		DataTypesBucketed:     getBucketsDataTypesEnv(),
+		DataTypesKeptInLegacy: getKeptInLegacyDataTypesEnv(),
 	}
 
 	str, err := dataStoreMongo.NewStores(cfg, mongoDbReadConfig, s.Logger(), logrusLogger, migrateConfig)
@@ -310,23 +308,6 @@ func getenvStr(key string) (string, error) {
 	return v, nil
 }
 
-// Retrieve the PUSH_TO_READ_STORE_ENABLED env variable
-// It accepts 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False.
-// Any other value returns true by default.
-func getPushToReadStoreEnv() bool {
-	s, err := getenvStr("PUSH_TO_READ_STORE_ENABLED")
-	if err != nil {
-		logrusLogger.Warn("environment variable PUSH_TO_READ_STORE_ENABLED not exported, set true by default")
-		return true
-	}
-	v, err := strconv.ParseBool(s)
-	if err != nil {
-		logrusLogger.Warn("environment variable PUSH_TO_READ_STORE_ENABLED exported with wrong value,Any other value returns an error. We set true by default")
-		return true
-	}
-	return v
-}
-
 func getArchivedDataTypesEnv() []string {
 	s, err := getenvStr("ARCHIVED_DATA_TYPES")
 	if err != nil {
@@ -350,5 +331,19 @@ func getBucketsDataTypesEnv() []string {
 		dataTypes := strings.Split(s, ",")
 		return dataTypes
 	}
+	return []string{}
+}
+
+func getKeptInLegacyDataTypesEnv() []string {
+	s, err := getenvStr("KEPT_IN_LEGACY_DATA_TYPES")
+	if err != nil {
+		logrusLogger.Warn("environment variable KEPT_IN_LEGACY_DATA_TYPES not exported, set empty by default")
+		return []string{}
+	}
+	if s != "" {
+		dataTypes := strings.Split(s, ",")
+		return dataTypes
+	}
+
 	return []string{}
 }

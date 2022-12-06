@@ -73,14 +73,14 @@ pipeline {
             steps {
                 script {
                     builderImage.inside("") {
+                        sh 'VERSION=' + env.version + ' SERVICE=data make ci-soups'
                         sh """
-                            SERVICE=data make ci-soups
                             ./buildDoc.sh
                             mkdir -p ./ci-doc
-                            mv ./soup/platform/platform-0.0.0-soup.md ./ci-doc/platform-${version}-soup.md
-                            mv ./docs/api/v1/data/swagger.json ./ci-doc/platform-${version}-swagger.json
+                            mv ./soup/platform/platform-${VERSION}-soup.md ./ci-doc/platform-${VERSION}-soup.md
+                            mv ./docs/api/v1/data/swagger.json ./ci-doc/platform-${VERSION}-swagger.json
 
-                            cp ./ci-doc/platform-${version}-swagger.json ./ci-doc/platform-latest-swagger.json
+                            cp ./ci-doc/platform-${VERSION}-swagger.json ./ci-doc/platform-latest-swagger.json
                         """
                         dir("ci-doc") {
                             stash name: "doc", includes: "*", allowEmtpy: true

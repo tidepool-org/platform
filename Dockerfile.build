@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine AS builder
+FROM golang:1.18-alpine AS builder
 ENV GO111MODULE=on
 ENV XDG_CACHE_HOME="/go/src/github.com/mdblp/.cache"
 WORKDIR /go/src/github.com/mdblp/
