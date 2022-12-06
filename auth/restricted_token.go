@@ -17,7 +17,7 @@ import (
 )
 
 const DefaultExpirationDuration = time.Hour
-const MaximumExpirationDuration = time.Hour * 24
+const MaximumExpirationDuration = time.Hour * 24 * 90
 
 var pathExpression = regexp.MustCompile("^/.*$")
 
