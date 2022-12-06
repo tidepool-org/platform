@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -14,7 +15,7 @@ import (
 var (
 	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
-	notMasterCodes          = []int32{10107, 13435}
+	notPrimaryCodes         = []int32{10107, 13435, 10058}
 	nodeIsShuttingDownCodes = []int32{11600, 91}
 
 	unknownReplWriteConcernCode   = int32(79)
@@ -73,7 +74,7 @@ func (e ResponseError) Error() string {
 	if e.Wrapped != nil {
 		return fmt.Sprintf("%s: %s", e.Message, e.Wrapped)
 	}
-	return fmt.Sprintf("%s", e.Message)
+	return e.Message
 }
 
 // WriteCommandError is an error for a write command.
@@ -155,7 +156,8 @@ func (wce WriteConcernError) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "node is recovering")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -165,17 +167,19 @@ func (wce WriteConcernError) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "node is shutting down")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "node is shutting down")
 }
 
-// NotMaster returns true if this error is a not master error.
-func (wce WriteConcernError) NotMaster() bool {
-	for _, code := range notMasterCodes {
+// NotPrimary returns true if this error is a not primary error.
+func (wce WriteConcernError) NotPrimary() bool {
+	for _, code := range notPrimaryCodes {
 		if wce.Code == int64(code) {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "not master")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, internal.LegacyNotPrimary)
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -184,6 +188,7 @@ type WriteError struct {
 	Index   int64
 	Code    int64
 	Message string
+	Details bsoncore.Document
 }
 
 func (we WriteError) Error() string { return we.Message }
@@ -297,7 +302,8 @@ func (e Error) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "node is recovering")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -307,17 +313,19 @@ func (e Error) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "node is shutting down")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "node is shutting down")
 }
 
-// NotMaster returns true if this error is a not master error.
-func (e Error) NotMaster() bool {
-	for _, code := range notMasterCodes {
+// NotPrimary returns true if this error is a not primary error.
+func (e Error) NotPrimary() bool {
+	for _, code := range notPrimaryCodes {
 		if e.Code == code {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "not master")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, internal.LegacyNotPrimary)
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
@@ -325,16 +333,16 @@ func (e Error) NamespaceNotFound() bool {
 	return e.Code == 26 || e.Message == "ns not found"
 }
 
-// helper method to extract an error from a reader if there is one; first returned item is the
-// error if it exists, the second holds parsing errors
-func extractError(rdr bsoncore.Document) error {
+// ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
+// if there is one. Also used in testing for SDAM.
+func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
 	var ok bool
 	var tv *description.TopologyVersion
 	var wcError WriteCommandError
-	elems, err := rdr.Elements()
+	elems, err := doc.Elements()
 	if err != nil {
 		return err
 	}
@@ -404,6 +412,10 @@ func extractError(rdr bsoncore.Document) error {
 				}
 				if msg, exists := doc.Lookup("errmsg").StringValueOK(); exists {
 					we.Message = msg
+				}
+				if info, exists := doc.Lookup("errInfo").DocumentOK(); exists {
+					we.Details = make([]byte, len(info))
+					copy(we.Details, info)
 				}
 				wcError.WriteErrors = append(wcError.WriteErrors, we)
 			}

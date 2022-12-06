@@ -244,7 +244,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 
 	for i, doc := range documents {
 		var err error
-		docs[i], result[i], err = transformAndEnsureIDv2(coll.registry, doc)
+		docs[i], result[i], err = transformAndEnsureID(coll.registry, doc)
 		if err != nil {
 			return nil, err
 		}
@@ -279,7 +279,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true)
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
+		ServerAPI(coll.client.serverAPI)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
@@ -347,7 +348,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // The documents parameter must be a slice of documents to insert. The slice cannot be nil or empty. The elements must
 // all be non-nil. For any document that does not have an _id field when transformed into BSON, one will be added
 // automatically to the marshalled document. The original document will not be modified. The _id values for the inserted
-// documents can be retrieved from the InsertedIDs field of the returnd InsertManyResult.
+// documents can be retrieved from the InsertedIDs field of the returned InsertManyResult.
 //
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
 //
@@ -375,12 +376,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	bwErrors := make([]BulkWriteError, 0, len(writeException.WriteErrors))
 	for _, we := range writeException.WriteErrors {
 		bwErrors = append(bwErrors, BulkWriteError{
-			WriteError{
-				Index:   we.Index,
-				Code:    we.Code,
-				Message: we.Message,
-			},
-			nil,
+			WriteError: we,
+			Request:    nil,
 		})
 	}
 
@@ -452,7 +449,8 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true)
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
+		ServerAPI(coll.client.serverAPI)
 	if do.Hint != nil {
 		op = op.Hint(true)
 	}
@@ -549,7 +547,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
-		ArrayFilters(uo.ArrayFilters != nil).Ordered(true)
+		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI)
 
 	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
@@ -744,7 +742,7 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		a.ctx = context.Background()
 	}
 
-	pipelineArr, hasOutputStage, err := transformAggregatePipelinev2(a.registry, a.pipeline)
+	pipelineArr, hasOutputStage, err := transformAggregatePipeline(a.registry, a.pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -774,9 +772,9 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	selector := makePinnedSelector(sess, a.writeSelector)
-	if !hasOutputStage {
-		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+	selector := makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
+	if hasOutputStage {
+		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
 	ao := options.MergeAggregateOptions(a.opts...)
@@ -786,19 +784,16 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		Session(sess).
 		WriteConcern(wc).
 		ReadConcern(rc).
+		ReadPreference(a.readPreference).
 		CommandMonitor(a.client.monitor).
 		ServerSelector(selector).
 		ClusterClock(a.client.clock).
 		Database(a.db).
 		Collection(a.col).
 		Deployment(a.client.deployment).
-		Crypt(a.client.cryptFLE)
-	if !hasOutputStage {
-		// Only pass the user-specified read preference if the aggregation doesn't have a $out or $merge stage.
-		// Otherwise, the read preference could be forwarded to a mongos, which would error if the aggregation were
-		// executed against a non-primary node.
-		op.ReadPreference(a.readPreference)
-	}
+		Crypt(a.client.cryptFLE).
+		ServerAPI(a.client.serverAPI).
+		HasOutputStage(hasOutputStage)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
@@ -830,6 +825,14 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 			return nil, err
 		}
 		op.Hint(hintVal)
+	}
+	if ao.Let != nil {
+		let, err := transformBsoncoreDocument(a.registry, ao.Let, true, "let")
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Let(let)
 	}
 
 	retry := driver.RetryNone
@@ -898,7 +901,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE)
+		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -980,7 +983,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.cryptFLE)
+		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	co := options.MergeEstimatedDocumentCountOptions(opts...)
 	if co.MaxTime != nil {
@@ -1042,11 +1045,11 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	option := options.MergeDistinctOptions(opts...)
 
-	op := operation.NewDistinct(fieldName, bsoncore.Document(f)).
+	op := operation.NewDistinct(fieldName, f).
 		Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
-		ServerSelector(selector).Crypt(coll.client.cryptFLE)
+		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -1133,7 +1136,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE)
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI)
 
 	fo := options.MergeFindOptions(opts...)
 	cursorOpts := coll.client.createBaseCursorOptions()
@@ -1271,9 +1274,9 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	findOpts := make([]*options.FindOptions, len(opts))
-	for i, opt := range opts {
-		findOpts[i] = &options.FindOptions{
+	findOpts := make([]*options.FindOptions, 0, len(opts))
+	for _, opt := range opts {
+		findOpts = append(findOpts, &options.FindOptions{
 			AllowPartialResults: opt.AllowPartialResults,
 			BatchSize:           opt.BatchSize,
 			Collation:           opt.Collation,
@@ -1292,7 +1295,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 			Skip:                opt.Skip,
 			Snapshot:            opt.Snapshot,
 			Sort:                opt.Sort,
-		}
+		})
 	}
 	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
 	// by the server.
@@ -1375,7 +1378,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		return &SingleResult{err: err}
 	}
 	fod := options.MergeFindOneAndDeleteOptions(opts...)
-	op := operation.NewFindAndModify(f).Remove(true)
+	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI)
 	if fod.Collation != nil {
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
@@ -1437,7 +1440,8 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 
 	fo := options.MergeFindOneAndReplaceOptions(opts...)
-	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r})
+	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r}).
+		ServerAPI(coll.client.serverAPI)
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
@@ -1506,7 +1510,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 
 	fo := options.MergeFindOneAndUpdateOptions(opts...)
-	op := operation.NewFindAndModify(f)
+	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI)
 
 	u, err := transformUpdateValue(coll.registry, update, true)
 	if err != nil {
@@ -1631,7 +1635,8 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE)
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
+		ServerAPI(coll.client.serverAPI)
 	err = op.Execute(ctx)
 
 	// ignore namespace not found erorrs
@@ -1669,5 +1674,18 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 		})
 	}
 
+	return makePinnedSelector(sess, selector)
+}
+
+func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelectorFunc {
+	if sess != nil && sess.TransactionRunning() {
+		// Use current transaction's read preference if available
+		rp = sess.CurrentRp
+	}
+
+	selector := description.CompositeSelector([]description.ServerSelector{
+		description.OutputAggregateSelector(rp),
+		description.LatencySelector(localThreshold),
+	})
 	return makePinnedSelector(sess, selector)
 }
