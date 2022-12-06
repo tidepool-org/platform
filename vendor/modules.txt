@@ -281,7 +281,7 @@ github.com/tidepool-org/go-common/clients/status
 github.com/tidepool-org/go-common/errors
 github.com/tidepool-org/go-common/events
 github.com/tidepool-org/go-common/jepson
-# github.com/tidepool-org/hydrophone v0.9.1-0.20221206164619-07eb051bf162
+# github.com/tidepool-org/hydrophone v0.9.1-0.20221206201423-5366a13bf3e8
 ## explicit
 github.com/tidepool-org/hydrophone/client
 # github.com/urfave/cli v1.22.4

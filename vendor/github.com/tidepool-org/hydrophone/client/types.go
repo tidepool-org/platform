@@ -34,7 +34,7 @@ type Confirmation struct {
 	Context *string `json:"context,omitempty"`
 
 	// [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) / [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) timestamp _with_ timezone information
-	Created string `json:"created"`
+	Created DateTime `json:"created"`
 	Creator *struct {
 		Profile struct {
 			FullName string `json:"fullName"`
@@ -58,12 +58,15 @@ type Confirmation struct {
 	Key   Key          `json:"key"`
 
 	// [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) / [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) timestamp _with_ timezone information
-	Modified *string          `json:"modified,omitempty"`
+	Modified *DateTime        `json:"modified,omitempty"`
 	Type     ConfirmationType `json:"type"`
 }
 
 // ConfirmationType defines model for Confirmation.Type.
 type ConfirmationType string
+
+// [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) / [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) timestamp _with_ timezone information
+type DateTime string
 
 // An email address, as specified by [RFC 5322](https://datatracker.ietf.org/doc/html/rfc5322).
 type EmailAddress string

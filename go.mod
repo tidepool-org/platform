@@ -24,7 +24,7 @@ require (
 	github.com/tidepool-org/clinic/client v0.0.0-20211118205743-020bf46ac989
 	github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
 	github.com/tidepool-org/go-common v0.9.0
-	github.com/tidepool-org/hydrophone v0.9.1-0.20221206164619-07eb051bf162
+	github.com/tidepool-org/hydrophone v0.9.1-0.20221206201423-5366a13bf3e8
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.8.2
 	go.uber.org/fx v1.13.1
