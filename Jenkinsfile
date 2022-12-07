@@ -28,7 +28,7 @@ pipeline {
             steps {
                 script {
                     builderImage.inside("") {
-                        sh "make ci-generate ci-build"
+                        sh " VERSION=" + env.version + " make ci-generate ci-build"
                     }
                 }
             }
