@@ -26,12 +26,21 @@ type BGMHourlyStat struct {
 
 type BGMHourlyStats []BGMHourlyStat
 
+// TODO date management can be made generic?
 func (s BGMHourlyStat) GetDate() time.Time {
 	return s.Date
 }
 
 func (s BGMHourlyStat) SetDate(t time.Time) {
 	s.Date = t
+}
+
+func (s BGMHourlyStat) SetLastRecordTime(t time.Time) {
+	s.LastRecordTime = t
+}
+
+func (s BGMHourlyStat) GetLastRecordTime() time.Time {
+	return s.LastRecordTime
 }
 
 type BGMPeriod struct {

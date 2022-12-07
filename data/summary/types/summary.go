@@ -98,13 +98,12 @@ type Stats interface {
 	BGMStats | CGMStats
 	GetType() string
 	Init()
-	CalculateStats(interface{}) error
 	CalculateSummary()
+	GetHourlyStats() interface{}
 }
 
-func Update[T Stats](s T, userData interface{}) error {
-
-	err := s.CalculateStats(userData)
+func Update[T Stats, R RecordTypes](s T, userData []*R) error {
+	err := CalculateStats(s.GetHourlyStats(), userData)
 	if err != nil {
 		return err
 	}
@@ -136,6 +135,9 @@ type HourlyStat interface {
 	BGMHourlyStat | CGMHourlyStat
 	GetDate() time.Time
 	SetDate(time.Time)
+	GetLastRecordTime() time.Time
+	SetLastRecordTime(time.Time)
+	CalculateStats(interface{}) error
 }
 
 func CreateHourlyStat[T HourlyStat](t time.Time) *T {
@@ -268,11 +270,11 @@ func CalculateStats[T HourlyStat, R RecordTypes](s []T, userData []*R) error {
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if newStat.LastRecordTime.IsZero() && len(s.HourlyStats) > 0 {
-			newStat.LastRecordTime = s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
+		if (*newStat).GetLastRecordTime().IsZero() && len(s) > 0 {
+			(*newStat).SetLastRecordTime(s[len(s)-1].GetLastRecordTime())
 		}
 
-		s.CalculateStats(userData)
+		(*newStat).CalculateStats(userData)
 	}
 
 	// store

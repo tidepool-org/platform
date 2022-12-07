@@ -37,12 +37,21 @@ type CGMHourlyStat struct {
 
 type CGMHourlyStats []CGMHourlyStat
 
+// TODO date management can be made generic?
 func (s CGMHourlyStat) GetDate() time.Time {
 	return s.Date
 }
 
 func (s CGMHourlyStat) SetDate(t time.Time) {
 	s.Date = t
+}
+
+func (s CGMHourlyStat) SetLastRecordTime(t time.Time) {
+	s.LastRecordTime = t
+}
+
+func (s CGMHourlyStat) GetLastRecordTime() time.Time {
+	return s.LastRecordTime
 }
 
 type CGMPeriod struct {
@@ -119,45 +128,45 @@ func CalculateGMI(averageGlucose float64) float64 {
 	return gmi
 }
 
-func (s CGMStats) CalculateStats(r *glucoseDatum.Glucose) error {
+func (s CGMHourlyStat) CalculateStats(r interface{}) error {
+	dataRecord := r.(*glucoseDatum.Glucose)
 	var normalizedValue float64
 	var duration int
-	//userData := userDataInterface.([]*glucoseDatum.Glucose)
 
 	// duration has never been calculated, use current record's duration for this cycle
 	if duration == 0 {
-		duration = GetDuration(r)
+		duration = GetDuration(dataRecord)
 	}
 
 	// calculate blackoutWindow based on duration of previous value
 	blackoutWindow := time.Duration(duration)*time.Minute - 3*time.Second
 
 	// if we are too close to the previous value, skip
-	if recordTime.Sub(newStat.LastRecordTime) > blackoutWindow {
-		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
-		duration = GetDuration(r)
+	if dataRecord.Time.Sub(s.LastRecordTime) > blackoutWindow {
+		normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
+		duration = GetDuration(dataRecord)
 
 		if normalizedValue <= veryLowBloodGlucose {
-			newStat.VeryLowMinutes += duration
-			newStat.VeryLowRecords++
+			s.VeryLowMinutes += duration
+			s.VeryLowRecords++
 		} else if normalizedValue >= veryHighBloodGlucose {
-			newStat.VeryHighMinutes += duration
-			newStat.VeryHighRecords++
+			s.VeryHighMinutes += duration
+			s.VeryHighRecords++
 		} else if normalizedValue <= lowBloodGlucose {
-			newStat.LowMinutes += duration
-			newStat.LowRecords++
+			s.LowMinutes += duration
+			s.LowRecords++
 		} else if normalizedValue >= highBloodGlucose {
-			newStat.HighMinutes += duration
-			newStat.HighRecords++
+			s.HighMinutes += duration
+			s.HighRecords++
 		} else {
-			newStat.TargetMinutes += duration
-			newStat.TargetRecords++
+			s.TargetMinutes += duration
+			s.TargetRecords++
 		}
 
-		newStat.TotalMinutes += duration
-		newStat.TotalRecords++
-		newStat.TotalGlucose += normalizedValue
-		newStat.LastRecordTime = recordTime
+		s.TotalMinutes += duration
+		s.TotalRecords++
+		s.TotalGlucose += normalizedValue
+		s.LastRecordTime = *dataRecord.Time
 	}
 
 	return nil
