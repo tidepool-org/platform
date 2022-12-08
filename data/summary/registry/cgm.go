@@ -46,7 +46,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 
 	logger.Debugf("Starting summary calculation for %s", userId)
 
-	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, "cgm")
+	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, userSummary.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 		}
 	}
 
-	err = c.deviceData.GetDataRange(ctx, userData, userId, "cgm", startTime, endTime)
+	err = c.deviceData.GetDataRange(ctx, userData, userId, userSummary.Type, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}

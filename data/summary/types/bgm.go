@@ -9,9 +9,7 @@ import (
 	"time"
 )
 
-type BGMHourlyStat struct {
-	Date time.Time `json:"date" bson:"date"`
-
+type BGMBucket struct {
 	TargetRecords   int `json:"targetRecords" bson:"targetRecords"`
 	LowRecords      int `json:"lowRecords" bson:"lowRecords"`
 	VeryLowRecords  int `json:"veryLowRecords" bson:"veryLowRecords"`
@@ -20,27 +18,6 @@ type BGMHourlyStat struct {
 
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
-
-	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
-}
-
-type BGMHourlyStats []BGMHourlyStat
-
-// TODO date management can be made generic?
-func (s BGMHourlyStat) GetDate() time.Time {
-	return s.Date
-}
-
-func (s BGMHourlyStat) SetDate(t time.Time) {
-	s.Date = t
-}
-
-func (s BGMHourlyStat) SetLastRecordTime(t time.Time) {
-	s.LastRecordTime = t
-}
-
-func (s BGMHourlyStat) GetLastRecordTime() time.Time {
-	return s.LastRecordTime
 }
 
 type BGMPeriod struct {

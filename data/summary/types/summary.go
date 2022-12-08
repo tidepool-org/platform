@@ -1,8 +1,6 @@
 package types
 
 import (
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -22,7 +20,7 @@ const (
 )
 
 type RecordTypes interface {
-	glucoseDatum.Glucose | insulinDatum.Insulin
+	//glucoseDatum.Glucose | insulinDatum.Insulin
 	GetTime() *time.Time
 }
 
@@ -48,14 +46,48 @@ type Config struct {
 	VeryLowGlucoseThreshold  float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold"`
 }
 
-func NewConfig() Config {
-	return Config{
-		SchemaVersion:            1,
-		HighGlucoseThreshold:     highBloodGlucose,
-		VeryHighGlucoseThreshold: veryHighBloodGlucose,
-		LowGlucoseThreshold:      lowBloodGlucose,
-		VeryLowGlucoseThreshold:  veryLowBloodGlucose,
-	}
+type Dates struct {
+	// date tracking
+	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
+	LastUploadDate    time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
+	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	FirstData         time.Time  `json:"firstData" bson:"firstData"`
+	LastData          *time.Time `json:"lastData" bson:"lastData"`
+	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+}
+
+type BucketData interface {
+	BGMBucket | CGMBucket
+}
+
+type BucketDataPt[T any] interface {
+	*T
+	BucketData
+}
+
+func CreateHourlyBucket[T BucketData, S BucketDataPt[T]](t time.Time) S {
+	stat := new(T)
+	return S(stat)
+	//return stat
+}
+
+type Bucket[T BucketData, S BucketDataPt[T]] struct {
+	Date           time.Time `json:"date" bson:"date"`
+	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
+
+	Data S
+}
+
+type HourlyBuckets[T BucketData, S BucketDataPt[T]] struct {
+	Buckets []Bucket[T, S]
+}
+
+type Stats interface {
+	BGMStats | CGMStats
+	GetType() string
+	Init()
+	CalculateSummary()
+	GetHourlyStats() interface{}
 }
 
 type Summary[T Stats] struct {
@@ -69,18 +101,18 @@ type Summary[T Stats] struct {
 	Stats T
 }
 
-func (s Summary[T]) SetOutdated() {
-	s.Dates.OutdatedSince = pointer.FromTime(time.Now().UTC())
+func NewConfig() Config {
+	return Config{
+		SchemaVersion:            1,
+		HighGlucoseThreshold:     highBloodGlucose,
+		VeryHighGlucoseThreshold: veryHighBloodGlucose,
+		LowGlucoseThreshold:      lowBloodGlucose,
+		VeryLowGlucoseThreshold:  veryLowBloodGlucose,
+	}
 }
 
-type Dates struct {
-	// date tracking
-	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
-	LastUploadDate    time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
-	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	FirstData         time.Time  `json:"firstData" bson:"firstData"`
-	LastData          *time.Time `json:"lastData" bson:"lastData"`
-	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+func (s Summary[T]) SetOutdated() {
+	s.Dates.OutdatedSince = pointer.FromTime(time.Now().UTC())
 }
 
 func NewDates() Dates {
@@ -94,16 +126,8 @@ func NewDates() Dates {
 	}
 }
 
-type Stats interface {
-	BGMStats | CGMStats
-	GetType() string
-	Init()
-	CalculateSummary()
-	GetHourlyStats() interface{}
-}
-
 func Update[T Stats, R RecordTypes](s T, userData []*R) error {
-	err := CalculateStats(s.GetHourlyStats(), userData)
+	err := AddData(s.GetHourlyStats(), userData)
 	if err != nil {
 		return err
 	}
@@ -131,26 +155,11 @@ func GetTypeString[T Stats]() string {
 	return (*t).GetType()
 }
 
-type HourlyStat interface {
-	BGMHourlyStat | CGMHourlyStat
-	GetDate() time.Time
-	SetDate(time.Time)
-	GetLastRecordTime() time.Time
-	SetLastRecordTime(time.Time)
-	CalculateStats(interface{}) error
-}
-
-func CreateHourlyStat[T HourlyStat](t time.Time) *T {
-	stat := new(T)
-	(*stat).SetDate(t)
-	return stat
-}
-
 type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddStats[T HourlyStat](stats []T, newStat T) error {
+func AddStats[T HourlyBucket](stats []T, newStat T) error {
 	var hourCount int
 	var oldestHour time.Time
 	var oldestHourToKeep time.Time
@@ -219,15 +228,15 @@ func CalculateRealMinutes(i int, lastRecordTime time.Time) float64 {
 	return realMinutes
 }
 
-func CalculateStats[T HourlyStat, R RecordTypes](s []T, userData []*R) error {
+func AddData[T any, S HourlyStatPt[T]](s []S, userData []RecordTypes) error {
 	var recordTime *time.Time
 	var lastHour time.Time
 	var currentHour time.Time
 	var err error
-	var newStat *T
+	var newStat S
 
 	for _, r := range userData {
-		recordTime = (*r).GetTime()
+		recordTime = r.GetTime()
 		if err != nil {
 			return errors.Wrap(err, "cannot parse time in record")
 		}
@@ -238,7 +247,7 @@ func CalculateStats[T HourlyStat, R RecordTypes](s []T, userData []*R) error {
 
 		// store stats for the day, if we are now on the next hour
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = AddStats(s, *newStat)
+			err = AddStats(s, newStat)
 			if err != nil {
 				return err
 			}
@@ -251,7 +260,7 @@ func CalculateStats[T HourlyStat, R RecordTypes](s []T, userData []*R) error {
 			if len(s) > 0 {
 				for i := len(s) - 1; i >= 0; i-- {
 					if s[i].GetDate().Equal(currentHour) {
-						newStat = &s[i]
+						newStat = s[i]
 						break
 					}
 
@@ -270,15 +279,15 @@ func CalculateStats[T HourlyStat, R RecordTypes](s []T, userData []*R) error {
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if (*newStat).GetLastRecordTime().IsZero() && len(s) > 0 {
-			(*newStat).SetLastRecordTime(s[len(s)-1].GetLastRecordTime())
+		if newStat.GetLastRecordTime().IsZero() && len(s) > 0 {
+			newStat.SetLastRecordTime(s[len(s)-1].GetLastRecordTime())
 		}
 
-		(*newStat).CalculateStats(userData)
+		newStat.CalculateStats(r)
 	}
 
 	// store
-	err = AddStats(s, *newStat)
+	err = AddStats(s, newStat)
 	if err != nil {
 		return err
 	}
