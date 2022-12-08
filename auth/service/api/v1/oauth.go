@@ -323,5 +323,4 @@ const htmlOnError = `
 </html>
 `
 const unexpectedError = `Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help.`
-const alreadyConnectedError = `This Tidepool account has already been connected to a Dexcom account. If this doesn't sound right, please send an email to support@tidepool.org and we’ll help you out.`
-const dexcomConnectTokenExpiredError = `This Dexcom connect link has expired. Please have your clinic send a new connect invitation. If this doesn't sound right, please send an email to support@tidepool.org and we’ll help you out.`
+const alreadyConnectedError = `This Tidepool account has already been connected to a Dexcom account. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out.`
