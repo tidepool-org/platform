@@ -129,7 +129,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	if len(confirmationClient.ConfirmationList(*confirmations.JSON200)) > 0 {
 		confirmation := confirmationClient.ConfirmationList(*confirmations.JSON200)[0]
 		if confirmation.Email != "" {
-			signupParams.Add("inviteEmail", string(confirmation.Email))
+			signupParams.Add("signupEmail", string(confirmation.Email))
 		}
 		if confirmation.Key != "" {
 			signupParams.Add("signupKey", string(confirmation.Key))
