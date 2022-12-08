@@ -107,8 +107,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	// redirectURL := path.Join(req.BaseUrl().String(), prvdr.Type(), prvdr.Name())
-	redirectURL := path.Join("http://localhost:3000", prvdr.Type(), prvdr.Name()) // TODO: revert to proper base URL
+	redirectURL := path.Join(req.BaseUrl().String(), prvdr.Type(), prvdr.Name())
 	redirectURLAuthorized := path.Join(redirectURL, "authorized")
 	redirectURLDeclined := path.Join(redirectURL, "declined")
 
@@ -143,9 +142,9 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 
 	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
 
-	// if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
-	// 	log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
-	// }
+	if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
+	}
 
 	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
 		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined)
@@ -168,21 +167,21 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	// oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
-	// if err != nil {
-	// 	r.htmlOnError(res, req, err)
-	// 	return
-	// }
+	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
+	if err != nil {
+		r.htmlOnError(res, req, err)
+		return
+	}
 
-	// providerSessionCreate := auth.NewProviderSessionCreate()
-	// providerSessionCreate.Type = prvdr.Type()
-	// providerSessionCreate.Name = prvdr.Name()
-	// providerSessionCreate.OAuthToken = oauthToken
-	// _, err = r.AuthClient().CreateUserProviderSession(ctx, restrictedToken.UserID, providerSessionCreate)
-	// if err != nil {
-	// 	r.htmlOnError(res, req, err)
-	// 	return
-	// }
+	providerSessionCreate := auth.NewProviderSessionCreate()
+	providerSessionCreate.Type = prvdr.Type()
+	providerSessionCreate.Name = prvdr.Name()
+	providerSessionCreate.OAuthToken = oauthToken
+	_, err = r.AuthClient().CreateUserProviderSession(ctx, restrictedToken.UserID, providerSessionCreate)
+	if err != nil {
+		r.htmlOnError(res, req, err)
+		return
+	}
 
 	html := fmt.Sprintf(htmlOnRedirect, redirectURLAuthorized)
 	r.htmlOnRedirect(res, req, html)
