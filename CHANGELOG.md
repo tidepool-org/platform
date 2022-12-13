@@ -3,11 +3,11 @@ The data platform API
 
 ## 0.21.1 - 2022-12-07
 ### Fixed
-- YLP-1966 Service startup failing because of a missing version
+- YLP-1975 Service startup failing because of a missing version
 
 ## 0.21.0 - 2022-12-02
 ### Changed
-- YLP-1952 Add the possibility to stop writing in deviceData
+- YLP-1974 Add the possibility to stop writing in deviceData
 
 ## 0.20.0 - 2022-09-27
 ### Changed
