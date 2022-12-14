@@ -208,7 +208,7 @@ var _ = Describe("Mongo", func() {
 				DataTypesArchived:     []string{"cbg"},
 				DataTypesBucketed:     []string{"cbg", "basal"},
 			}
-			store, err = mongo.NewStores(nil, nil, nil, nil, bucketConfig)
+			store, err = mongo.NewStores(nil, nil, nil, nil, bucketConfig, 2015)
 			Expect(err).To(HaveOccurred())
 			Expect(store).To(BeNil())
 		})
@@ -220,7 +220,7 @@ var _ = Describe("Mongo", func() {
 				DataTypesArchived:     []string{"cbg"},
 				DataTypesBucketed:     []string{"cbg", "basal"},
 			}
-			store, err = mongo.NewStores(config, dbReadConfig, logger, dbReadLogger, bucketConfig)
+			store, err = mongo.NewStores(config, dbReadConfig, logger, dbReadLogger, bucketConfig, 2015)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			store.WaitUntilStarted()
@@ -238,7 +238,7 @@ var _ = Describe("Mongo", func() {
 				DataTypesArchived:     []string{"cbg"},
 				DataTypesBucketed:     []string{"cbg", "basal"},
 			}
-			store, err = mongo.NewStores(config, dbReadConfig, logger, dbReadLogger, bucketConfig)
+			store, err = mongo.NewStores(config, dbReadConfig, logger, dbReadLogger, bucketConfig, 2015)
 			// if any error occured, not needed to wait until the store started
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())

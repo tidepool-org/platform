@@ -118,7 +118,7 @@ var (
 	}
 )
 
-func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, migrateConfig BucketMigrationConfig) (*Stores, error) {
+func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, migrateConfig BucketMigrationConfig, minimalYearSupportedForData int) (*Stores, error) {
 	if config != nil {
 		cfg.Indexes = dataSourcesIndexes
 	}
@@ -129,7 +129,7 @@ func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr lo
 	}
 
 	bucketStore := &MongoBucketStoreClient{}
-	bucketStore, err = NewMongoBucketStoreClient(config, lg)
+	bucketStore, err = NewMongoBucketStoreClient(config, lg, minimalYearSupportedForData)
 	if err != nil {
 		return nil, err
 	}

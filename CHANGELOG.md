@@ -1,8 +1,12 @@
 # Platform 
 The data platform API
 
-## 0.21.1 - 2022-12-07
+## 0.21.2 - 2022-12-13
 ### Fixed
+- YLP-1981 Some data is uploaded with wrong time information
+
+## 0.21.1 - 2022-12-07
+### Engineering
 - YLP-1975 Service startup failing because of a missing version
 
 ## 0.21.0 - 2022-12-02

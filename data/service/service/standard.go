@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/mdblp/go-common/clients/mongo"
@@ -23,6 +24,8 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 )
+
+const DEFAULT_MINIMAL_YEAR = 2015
 
 type Standard struct {
 	*service.DEPRECATEDService
@@ -210,7 +213,7 @@ func (s *Standard) initializeDataStore() error {
 		DataTypesKeptInLegacy: getKeptInLegacyDataTypesEnv(),
 	}
 
-	str, err := dataStoreMongo.NewStores(cfg, mongoDbReadConfig, s.Logger(), logrusLogger, migrateConfig)
+	str, err := dataStoreMongo.NewStores(cfg, mongoDbReadConfig, s.Logger(), logrusLogger, migrateConfig, getMinimalYearSupportedForData())
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store")
 	}
@@ -332,6 +335,24 @@ func getBucketsDataTypesEnv() []string {
 		return dataTypes
 	}
 	return []string{}
+}
+
+func getMinimalYearSupportedForData() int {
+	s, err := getenvStr("MINIMAL_YEAR_SUPPORTED_FOR_DATA")
+	if err != nil {
+		logrusLogger.Warnf("environment variable MINIMAL_YEAR_SUPPORTED_FOR_DATA not exported, set %d by default", DEFAULT_MINIMAL_YEAR)
+		return DEFAULT_MINIMAL_YEAR
+	}
+	if s != "" {
+		intVar, err := strconv.Atoi(s)
+		if err != nil {
+			logrusLogger.Warnf("environment variable MINIMAL_YEAR_SUPPORTED_FOR_DATA=%s is not an integer, set to %d by default", s, DEFAULT_MINIMAL_YEAR)
+			return DEFAULT_MINIMAL_YEAR
+		}
+		return intVar
+	}
+	logrusLogger.Warnf("environment variable MINIMAL_YEAR_SUPPORTED_FOR_DATA is empty, set to %d by default", DEFAULT_MINIMAL_YEAR)
+	return DEFAULT_MINIMAL_YEAR
 }
 
 func getKeptInLegacyDataTypesEnv() []string {
