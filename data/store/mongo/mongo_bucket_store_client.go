@@ -212,7 +212,7 @@ func (c *MongoBucketStoreClient) UpsertMetaData(ctx context.Context, userId *str
 		return err
 	}
 
-	dbUserMetadata, performUpdate = c.refreshUserMetadata(dbUserMetadata, incomingUserMetadata)
+	dbUserMetadata, performUpdate = c.RefreshUserMetadata(dbUserMetadata, incomingUserMetadata)
 	valTrue := true
 
 	if performUpdate {
@@ -244,10 +244,7 @@ func (c *MongoBucketStoreClient) BuildUserMetadata(incomingUserMetadata *schema.
 			NewestDataTimestamp: dataTimestamp,
 		}
 	} else {
-		//Linked to YLP-1981, in some situation the DBLG1 is sending a data with a timestamp in the near 1970's ...
-		//We do not want to update our metadata with this value. The CBG will be recorded with the 1970's date to keep
-		//a trace of it, but it won't be displayed since the data is erroneous.
-		if incomingUserMetadata.OldestDataTimestamp.After(dataTimestamp) && dataTimestamp.Year() > c.minimalYearSupportedForData {
+		if incomingUserMetadata.OldestDataTimestamp.After(dataTimestamp) {
 			incomingUserMetadata.OldestDataTimestamp = dataTimestamp
 		} else if incomingUserMetadata.NewestDataTimestamp.Before(dataTimestamp) {
 			incomingUserMetadata.NewestDataTimestamp = dataTimestamp
@@ -256,10 +253,13 @@ func (c *MongoBucketStoreClient) BuildUserMetadata(incomingUserMetadata *schema.
 	return incomingUserMetadata
 }
 
-func (c *MongoBucketStoreClient) refreshUserMetadata(dbUserMetadata *schema.Metadata, incomingUserMetadata *schema.Metadata) (*schema.Metadata, bool) {
+func (c *MongoBucketStoreClient) RefreshUserMetadata(dbUserMetadata *schema.Metadata, incomingUserMetadata *schema.Metadata) (*schema.Metadata, bool) {
 	if dbUserMetadata != nil {
 		var performUpdate = false
-		if dbUserMetadata.OldestDataTimestamp.After(incomingUserMetadata.OldestDataTimestamp) {
+		//Linked to YLP-1981, in some situation the DBLG1 is sending a data with a timestamp in the near 1970's ...
+		//We do not want to update our metadata with this value. The CBG will be recorded with the 1970's date to keep
+		//a trace of it, but it won't be displayed since the data is erroneous.
+		if dbUserMetadata.OldestDataTimestamp.After(incomingUserMetadata.OldestDataTimestamp) && incomingUserMetadata.OldestDataTimestamp.Year() > c.minimalYearSupportedForData {
 			c.log.WithField("oldestDataTimestamp", incomingUserMetadata.OldestDataTimestamp).Debug("set perform update to true and update OldestDataTimestamp db value")
 			performUpdate = true
 			dbUserMetadata.OldestDataTimestamp = incomingUserMetadata.OldestDataTimestamp

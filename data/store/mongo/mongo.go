@@ -118,7 +118,7 @@ var (
 	}
 )
 
-func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lgr log.Logger, lg *logrus.Logger, migrateConfig BucketMigrationConfig, minimalYearSupportedForData int) (*Stores, error) {
+func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lg *logrus.Logger, migrateConfig BucketMigrationConfig, minimalYearSupportedForData int) (*Stores, error) {
 	if config != nil {
 		cfg.Indexes = dataSourcesIndexes
 	}
