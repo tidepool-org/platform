@@ -107,9 +107,11 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	redirectURL := path.Join(req.BaseUrl().String(), prvdr.Type(), prvdr.Name())
-	redirectURLAuthorized := path.Join(redirectURL, "authorized")
-	redirectURLDeclined := path.Join(redirectURL, "declined")
+	redirectURLAuthorized := req.BaseUrl()
+	redirectURLAuthorized.Path = path.Join(redirectURLAuthorized.Path, prvdr.Type(), prvdr.Name(), "authorized")
+
+	redirectURLDeclined := req.BaseUrl()
+	redirectURLDeclined.Path = path.Join(redirectURLDeclined.Path, prvdr.Type(), prvdr.Name(), "declined")
 
 	restrictedToken, err := r.oauthProviderRestrictedToken(req.Request, prvdr)
 	if err != nil {
@@ -136,8 +138,8 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	if len(signupParams) > 0 {
-		redirectURLAuthorized = redirectURLAuthorized + "?" + signupParams.Encode()
-		redirectURLDeclined = redirectURLDeclined + "?" + signupParams.Encode()
+		redirectURLAuthorized.RawQuery = signupParams.Encode()
+		redirectURLDeclined.RawQuery = signupParams.Encode()
 	}
 
 	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
@@ -147,7 +149,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
-		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined)
+		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined.String())
 		r.htmlOnRedirect(res, req, html)
 		return
 	} else if errorCode != "" {
@@ -183,7 +185,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	html := fmt.Sprintf(htmlOnRedirect, redirectURLAuthorized)
+	html := fmt.Sprintf(htmlOnRedirect, redirectURLAuthorized.String())
 	r.htmlOnRedirect(res, req, html)
 }
 
