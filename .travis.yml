@@ -12,7 +12,6 @@ go_import_path: github.com/tidepool-org/platform
 env:
   global:
     - MONGODB=4.4.14
-    - GO111MODULE=on
 
 before_install:
   - sudo apt-get remove -y mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
