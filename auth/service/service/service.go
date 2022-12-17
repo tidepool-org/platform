@@ -6,12 +6,14 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
+
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/auth"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
 	authEvents "github.com/tidepool-org/platform/auth/events"

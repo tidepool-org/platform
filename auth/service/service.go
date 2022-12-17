@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/apple"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"

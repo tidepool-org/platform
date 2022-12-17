@@ -11,6 +11,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"

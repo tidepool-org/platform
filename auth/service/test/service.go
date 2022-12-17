@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/gomega"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
