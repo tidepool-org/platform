@@ -74,7 +74,7 @@ endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install -mod=vendor .
+	cd vendor/golang.org/x/tools/cmd/goimports && go install .
 endif
 
 golint:
