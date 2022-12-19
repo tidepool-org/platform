@@ -210,12 +210,13 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 
 func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Provider) (*auth.RestrictedToken, error) {
 	state := req.URL.Query().Get("state")
+	errorCode := req.URL.Query().Get("error")
 	cookieName := r.providerCookieName(prvdr)
 	for _, cookie := range req.Cookies() {
 		if cookie.Name == cookieName {
 			if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), cookie.Value); err != nil {
 				return nil, err
-			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID) {
+			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (errorCode == oauth.ErrorAccessDenied || state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID)) {
 				return restrictedToken, nil
 			}
 		}
