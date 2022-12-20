@@ -7,6 +7,7 @@ require (
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.35.3
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/disintegration/imaging v1.6.2
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -15,11 +16,15 @@ require (
 	github.com/gowebpki/jcs v0.0.0-20210215032300-680d9436c864
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mjibson/esc v0.2.0
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
-	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/client_golang v1.11.1
+	github.com/prometheus/client_model v0.3.0 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rinchsan/device-check-go v1.2.3
 	github.com/tidepool-org/clinic/client v0.0.0-20211118205743-020bf46ac989
 	github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
@@ -28,12 +33,15 @@ require (
 	github.com/urfave/cli v1.22.4
 	go.mongodb.org/mongo-driver v1.8.2
 	go.uber.org/fx v1.13.1
+	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
-	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/tools v0.1.10
 	google.golang.org/grpc v1.33.1
+	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.2
 )
