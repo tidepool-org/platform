@@ -121,20 +121,19 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	// Include custodial account signup credentials in redirect URL query, if applicable
-	confirmations, err := r.ConfirmationClient().GetAccountSignupConfirmationWithResponse(ctx, confirmationClient.UserId(restrictedToken.UserID))
+	confirmation, err := r.ConfirmationClient().GetAccountSignupConfirmationWithResponse(ctx, confirmationClient.UserId(restrictedToken.UserID))
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
 	}
 
 	signupParams := url.Values{}
-	if confirmations.JSON200 != nil && len(confirmationClient.ConfirmationList(*confirmations.JSON200)) > 0 {
-		confirmation := confirmationClient.ConfirmationList(*confirmations.JSON200)[0]
-		if confirmation.Email != "" {
-			signupParams.Add("signupEmail", string(confirmation.Email))
+	if confirmation.JSON200 != nil {
+		if confirmation.JSON200.Email != "" {
+			signupParams.Add("signupEmail", string(confirmation.JSON200.Email))
 		}
-		if confirmation.Key != "" {
-			signupParams.Add("signupKey", string(confirmation.Key))
+		if confirmation.JSON200.Key != "" {
+			signupParams.Add("signupKey", string(confirmation.JSON200.Key))
 		}
 	}
 

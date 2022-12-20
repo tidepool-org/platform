@@ -29,6 +29,9 @@ type Acceptance struct {
 // Birthday defines model for Birthday.
 type Birthday string
 
+// Clinic identifier.
+type ClinicId string
+
 // Confirmation defines model for Confirmation.
 type Confirmation struct {
 	Context *string `json:"context,omitempty"`
@@ -107,6 +110,15 @@ type ConfirmationLookup struct {
 	Key Key `json:"key"`
 }
 
+// ConfirmationUpsert defines model for ConfirmationUpsert.
+type ConfirmationUpsert struct {
+	// Clinic identifier.
+	ClinicId *ClinicId `json:"clinicId,omitempty"`
+
+	// String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
+	InvitedBy *TidepoolUserId `json:"invitedBy,omitempty"`
+}
+
 // AcceptPasswordChangeJSONBody defines parameters for AcceptPasswordChange.
 type AcceptPasswordChangeJSONBody Password
 
@@ -141,6 +153,12 @@ type DismissAccountSignupJSONRequestBody ConfirmationLookup
 
 // SendCareTeamInviteJSONRequestBody defines body for SendCareTeamInvite for application/json ContentType.
 type SendCareTeamInviteJSONRequestBody SendCareTeamInviteJSONBody
+
+// SendAccountSignupConfirmationJSONRequestBody defines body for SendAccountSignupConfirmation for application/json ContentType.
+type SendAccountSignupConfirmationJSONRequestBody ConfirmationUpsert
+
+// UpsertAccountSignupConfirmationJSONRequestBody defines body for UpsertAccountSignupConfirmation for application/json ContentType.
+type UpsertAccountSignupConfirmationJSONRequestBody ConfirmationUpsert
 
 // CancelAccountSignupConfirmationJSONRequestBody defines body for CancelAccountSignupConfirmation for application/json ContentType.
 type CancelAccountSignupConfirmationJSONRequestBody ConfirmationLookup

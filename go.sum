@@ -529,8 +529,8 @@ github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30 h1:ztpA/D
 github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30/go.mod h1:hiVnAb182K2eV2/ZqZGhi3v3qK7qJhBuDE4bR0HvIcE=
 github.com/tidepool-org/go-common v0.9.0 h1:iCQNusSj4kRJC66mDxz8KSibBZG7IgejY0+7Jw3LwRc=
 github.com/tidepool-org/go-common v0.9.0/go.mod h1:0S1OUe8aQH8bKLyeemNKW4WOPkCXxK5FqN9OXu1as7E=
-github.com/tidepool-org/hydrophone/client v0.0.0-20221213180241-ab94de457bf2 h1:Rg86R/LK86HYyUQq/kdn5ppAPURL5RXGz70zR9qoCpU=
-github.com/tidepool-org/hydrophone/client v0.0.0-20221213180241-ab94de457bf2/go.mod h1:OTyfLgQuKg7xiU5PLMvxzwwOaUdZsbeIvVxTKrT0n+g=
+github.com/tidepool-org/hydrophone/client v0.0.0-20221219223301-92bd47a8a11c h1:7FZ29OLyLOd7OqhfXA6/Ew/3JYjIip9QePG92C3IE2s=
+github.com/tidepool-org/hydrophone/client v0.0.0-20221219223301-92bd47a8a11c/go.mod h1:OTyfLgQuKg7xiU5PLMvxzwwOaUdZsbeIvVxTKrT0n+g=
 github.com/tidwall/pretty v1.0.0 h1:HsD+QiTn7sK6flMKIvNmpqz1qrpP3Ps6jOKIKMooyg4=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=

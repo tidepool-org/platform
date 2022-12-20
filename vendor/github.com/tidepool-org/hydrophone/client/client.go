@@ -132,11 +132,18 @@ type ClientInterface interface {
 
 	SendCareTeamInvite(ctx context.Context, userId UserId, body SendCareTeamInviteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// SendAccountSignupConfirmation request
-	SendAccountSignupConfirmation(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// SendAccountSignupConfirmation request with any body
+	SendAccountSignupConfirmationWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SendAccountSignupConfirmation(ctx context.Context, userId UserId, body SendAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAccountSignupConfirmation request
 	GetAccountSignupConfirmation(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpsertAccountSignupConfirmation request with any body
+	UpsertAccountSignupConfirmationWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpsertAccountSignupConfirmation(ctx context.Context, userId UserId, body UpsertAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CancelAccountSignupConfirmation request with any body
 	CancelAccountSignupConfirmationWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -339,8 +346,20 @@ func (c *Client) SendCareTeamInvite(ctx context.Context, userId UserId, body Sen
 	return c.Client.Do(req)
 }
 
-func (c *Client) SendAccountSignupConfirmation(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSendAccountSignupConfirmationRequest(c.Server, userId)
+func (c *Client) SendAccountSignupConfirmationWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSendAccountSignupConfirmationRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SendAccountSignupConfirmation(ctx context.Context, userId UserId, body SendAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSendAccountSignupConfirmationRequest(c.Server, userId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -353,6 +372,30 @@ func (c *Client) SendAccountSignupConfirmation(ctx context.Context, userId UserI
 
 func (c *Client) GetAccountSignupConfirmation(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAccountSignupConfirmationRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpsertAccountSignupConfirmationWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpsertAccountSignupConfirmationRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpsertAccountSignupConfirmation(ctx context.Context, userId UserId, body UpsertAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpsertAccountSignupConfirmationRequest(c.Server, userId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -824,8 +867,19 @@ func NewSendCareTeamInviteRequestWithBody(server string, userId UserId, contentT
 	return req, nil
 }
 
-// NewSendAccountSignupConfirmationRequest generates requests for SendAccountSignupConfirmation
-func NewSendAccountSignupConfirmationRequest(server string, userId UserId) (*http.Request, error) {
+// NewSendAccountSignupConfirmationRequest calls the generic SendAccountSignupConfirmation builder with application/json body
+func NewSendAccountSignupConfirmationRequest(server string, userId UserId, body SendAccountSignupConfirmationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSendAccountSignupConfirmationRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewSendAccountSignupConfirmationRequestWithBody generates requests for SendAccountSignupConfirmation with any type of body
+func NewSendAccountSignupConfirmationRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -850,10 +904,12 @@ func NewSendAccountSignupConfirmationRequest(server string, userId UserId) (*htt
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -888,6 +944,53 @@ func NewGetAccountSignupConfirmationRequest(server string, userId UserId) (*http
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewUpsertAccountSignupConfirmationRequest calls the generic UpsertAccountSignupConfirmation builder with application/json body
+func NewUpsertAccountSignupConfirmationRequest(server string, userId UserId, body UpsertAccountSignupConfirmationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpsertAccountSignupConfirmationRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewUpsertAccountSignupConfirmationRequestWithBody generates requests for UpsertAccountSignupConfirmation with any type of body
+func NewUpsertAccountSignupConfirmationRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/confirm/signup/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1065,11 +1168,18 @@ type ClientWithResponsesInterface interface {
 
 	SendCareTeamInviteWithResponse(ctx context.Context, userId UserId, body SendCareTeamInviteJSONRequestBody, reqEditors ...RequestEditorFn) (*SendCareTeamInviteResponse, error)
 
-	// SendAccountSignupConfirmation request
-	SendAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*SendAccountSignupConfirmationResponse, error)
+	// SendAccountSignupConfirmation request with any body
+	SendAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SendAccountSignupConfirmationResponse, error)
+
+	SendAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, body SendAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*SendAccountSignupConfirmationResponse, error)
 
 	// GetAccountSignupConfirmation request
 	GetAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*GetAccountSignupConfirmationResponse, error)
+
+	// UpsertAccountSignupConfirmation request with any body
+	UpsertAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpsertAccountSignupConfirmationResponse, error)
+
+	UpsertAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, body UpsertAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertAccountSignupConfirmationResponse, error)
 
 	// CancelAccountSignupConfirmation request with any body
 	CancelAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CancelAccountSignupConfirmationResponse, error)
@@ -1477,7 +1587,7 @@ func (r SendAccountSignupConfirmationResponse) StatusCode() int {
 type GetAccountSignupConfirmationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]Confirmation
+	JSON200      *Confirmation
 	JSON400      *struct {
 		Code   int32  `json:"code"`
 		Error  *int   `json:"error,omitempty"`
@@ -1510,6 +1620,48 @@ func (r GetAccountSignupConfirmationResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetAccountSignupConfirmationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpsertAccountSignupConfirmationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Confirmation
+	JSON400      *struct {
+		Code   int32  `json:"code"`
+		Error  *int   `json:"error,omitempty"`
+		Reason string `json:"reason"`
+	}
+	JSON403 *struct {
+		Code   int32  `json:"code"`
+		Error  *int   `json:"error,omitempty"`
+		Reason string `json:"reason"`
+	}
+	JSON404 *struct {
+		Code   int32  `json:"code"`
+		Error  *int   `json:"error,omitempty"`
+		Reason string `json:"reason"`
+	}
+	JSON500 *struct {
+		Code   int32  `json:"code"`
+		Error  *int   `json:"error,omitempty"`
+		Reason string `json:"reason"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r UpsertAccountSignupConfirmationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpsertAccountSignupConfirmationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1731,9 +1883,17 @@ func (c *ClientWithResponses) SendCareTeamInviteWithResponse(ctx context.Context
 	return ParseSendCareTeamInviteResponse(rsp)
 }
 
-// SendAccountSignupConfirmationWithResponse request returning *SendAccountSignupConfirmationResponse
-func (c *ClientWithResponses) SendAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*SendAccountSignupConfirmationResponse, error) {
-	rsp, err := c.SendAccountSignupConfirmation(ctx, userId, reqEditors...)
+// SendAccountSignupConfirmationWithBodyWithResponse request with arbitrary body returning *SendAccountSignupConfirmationResponse
+func (c *ClientWithResponses) SendAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SendAccountSignupConfirmationResponse, error) {
+	rsp, err := c.SendAccountSignupConfirmationWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSendAccountSignupConfirmationResponse(rsp)
+}
+
+func (c *ClientWithResponses) SendAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, body SendAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*SendAccountSignupConfirmationResponse, error) {
+	rsp, err := c.SendAccountSignupConfirmation(ctx, userId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1747,6 +1907,23 @@ func (c *ClientWithResponses) GetAccountSignupConfirmationWithResponse(ctx conte
 		return nil, err
 	}
 	return ParseGetAccountSignupConfirmationResponse(rsp)
+}
+
+// UpsertAccountSignupConfirmationWithBodyWithResponse request with arbitrary body returning *UpsertAccountSignupConfirmationResponse
+func (c *ClientWithResponses) UpsertAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpsertAccountSignupConfirmationResponse, error) {
+	rsp, err := c.UpsertAccountSignupConfirmationWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpsertAccountSignupConfirmationResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpsertAccountSignupConfirmationWithResponse(ctx context.Context, userId UserId, body UpsertAccountSignupConfirmationJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertAccountSignupConfirmationResponse, error) {
+	rsp, err := c.UpsertAccountSignupConfirmation(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpsertAccountSignupConfirmationResponse(rsp)
 }
 
 // CancelAccountSignupConfirmationWithBodyWithResponse request with arbitrary body returning *CancelAccountSignupConfirmationResponse
@@ -2372,7 +2549,7 @@ func ParseGetAccountSignupConfirmationResponse(rsp *http.Response) (*GetAccountS
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []Confirmation
+		var dest Confirmation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -2399,6 +2576,76 @@ func ParseGetAccountSignupConfirmationResponse(rsp *http.Response) (*GetAccountS
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest struct {
+			Code   int32  `json:"code"`
+			Error  *int   `json:"error,omitempty"`
+			Reason string `json:"reason"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest struct {
+			Code   int32  `json:"code"`
+			Error  *int   `json:"error,omitempty"`
+			Reason string `json:"reason"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpsertAccountSignupConfirmationResponse parses an HTTP response from a UpsertAccountSignupConfirmationWithResponse call
+func ParseUpsertAccountSignupConfirmationResponse(rsp *http.Response) (*UpsertAccountSignupConfirmationResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpsertAccountSignupConfirmationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Confirmation
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest struct {
+			Code   int32  `json:"code"`
+			Error  *int   `json:"error,omitempty"`
+			Reason string `json:"reason"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest struct {
+			Code   int32  `json:"code"`
+			Error  *int   `json:"error,omitempty"`
+			Reason string `json:"reason"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest struct {
