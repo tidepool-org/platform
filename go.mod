@@ -14,7 +14,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/gowebpki/jcs v0.0.0-20210215032300-680d9436c864
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.14.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
@@ -27,7 +27,7 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rinchsan/device-check-go v1.2.3
 	github.com/tidepool-org/clinic/client v0.0.0-20211118205743-020bf46ac989
-	github.com/tidepool-org/devices/api v0.0.0-20201125143608-d0e358bf4a30
+	github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
 	github.com/tidepool-org/go-common v0.9.0
 	github.com/tidepool-org/hydrophone/client v0.0.0-20221219223301-92bd47a8a11c
 	github.com/urfave/cli v1.22.4
@@ -35,14 +35,13 @@ require (
 	go.uber.org/fx v1.13.1
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
-	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
+	golang.org/x/oauth2 v0.2.0
+	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.1.12
-	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	google.golang.org/grpc v1.33.1
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
+	google.golang.org/grpc v1.51.0
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.2
 )

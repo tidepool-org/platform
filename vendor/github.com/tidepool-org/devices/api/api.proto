@@ -153,11 +153,10 @@ message BasalRateMaximumGuardRail {
 }
 
 message BolusAmountMaximumGuardRail {
+  reserved 2;
+
   // Bolus units
   BolusUnits units = 1;
-
-  // Default value
-  FixedDecimal defaultValue = 2;
 
   // Tidepool recommended bounds
   RecommendedBounds recommendedBounds = 3;
