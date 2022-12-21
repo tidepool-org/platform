@@ -59,7 +59,7 @@ endif
 
 esc:
 ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install .
+	cd vendor/github.com/mjibson/esc && go install -mod=vendor .
 endif
 
 mockgen:
