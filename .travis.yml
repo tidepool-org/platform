@@ -1,6 +1,6 @@
 sudo: false
 
-dist: jammy
+dist: focal
 
 language: go
 
