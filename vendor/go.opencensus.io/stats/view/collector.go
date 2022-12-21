@@ -35,7 +35,7 @@ type collector struct {
 func (c *collector) addSample(s string, v float64, attachments map[string]interface{}, t time.Time) {
 	aggregator, ok := c.signatures[s]
 	if !ok {
-		aggregator = c.a.newData(t)
+		aggregator = c.a.newData()
 		c.signatures[s] = aggregator
 	}
 	aggregator.addSample(v, attachments, t)
@@ -59,15 +59,8 @@ func (c *collector) clearRows() {
 // encodeWithKeys encodes the map by using values
 // only associated with the keys provided.
 func encodeWithKeys(m *tag.Map, keys []tag.Key) []byte {
-	// Compute the buffer length we will need ahead of time to avoid resizing later
-	reqLen := 0
-	for _, k := range keys {
-		s, _ := m.Value(k)
-		// We will store each key + its length
-		reqLen += len(s) + 1
-	}
 	vb := &tagencoding.Values{
-		Buffer: make([]byte, reqLen),
+		Buffer: make([]byte, len(keys)),
 	}
 	for _, k := range keys {
 		v, _ := m.Value(k)
