@@ -42,28 +42,30 @@ type Params struct {
 // This is an example of an application with 3 routers - a health check router and two
 // routers for handling 2 different API version requests.
 //
-// var StatusRouterModule = fx.Provide(fx.Annotated{
-// 	   Group: "routers", // Params requires routers to be tagged with "routers" group
-//	   Target: NewStatusRouter, // "NewStatusRouter(...) service.Router" is a constructor function
-// })
+//	var StatusRouterModule = fx.Provide(fx.Annotated{
+//		   Group: "routers", // Params requires routers to be tagged with "routers" group
+//		   Target: NewStatusRouter, // "NewStatusRouter(...) service.Router" is a constructor function
+//	})
 //
 // fx.New(
-//   fx.Provide(DefaultProvider), // Required by StartApplication(provider application.Provider)
-//   fx.Provide(NewStoreStatusReporter), // Injected to StatusRouterModule
-//   StatusRouterModule,
-//   fx.Provide(fx.Annotated{
-// 	     Group:  "routers",
-//	     Target: V1PrescriptionsRouter, // "V1PrescriptionsRouter(...) service.Router" is a constructor function
-//   }),
-//   fx.Provide(fx.Annotated{
-// 	     Group:  "routers",
-//	     Target: V2PrescriptionsRouter, // "V1PrescriptionsRouter(...) service.Router" is a constructor function
-//   }),
-//   fx.Provide(NewAPIService),
-//   fx.Invoke(Start)
+//
+//	  fx.Provide(DefaultProvider), // Required by StartApplication(provider application.Provider)
+//	  fx.Provide(NewStoreStatusReporter), // Injected to StatusRouterModule
+//	  StatusRouterModule,
+//	  fx.Provide(fx.Annotated{
+//		     Group:  "routers",
+//		     Target: V1PrescriptionsRouter, // "V1PrescriptionsRouter(...) service.Router" is a constructor function
+//	  }),
+//	  fx.Provide(fx.Annotated{
+//		     Group:  "routers",
+//		     Target: V2PrescriptionsRouter, // "V1PrescriptionsRouter(...) service.Router" is a constructor function
+//	  }),
+//	  fx.Provide(NewAPIService),
+//	  fx.Invoke(Start)
+//
 // ).Run()
 func NewAPIService(p Params) (*APIService, error) {
-	if p.Routers == nil || len(p.Routers) == 0 {
+	if len(p.Routers) == 0 {
 		return nil, errors.New("application routers are missing")
 	}
 

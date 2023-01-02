@@ -13,6 +13,8 @@ const (
 	TidepoolRestrictedTokenParameterKey = "restricted_token"
 )
 
+//go:generate mockgen -build_flags=--mod=mod -destination=./auth_client_mock.go -package=auth -mock_names Client=MockAuthClient github.com/tidepool-org/platform/auth Client
+
 type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor

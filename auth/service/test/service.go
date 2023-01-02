@@ -3,17 +3,17 @@ package test
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/apple"
-
 	"github.com/onsi/gomega"
-
+	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
-	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	"github.com/tidepool-org/platform/provider"
+	"github.com/tidepool-org/platform/task"
+
+	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
-	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
 )
 
@@ -66,6 +66,10 @@ func (s *Service) TaskClient() task.Client {
 	s.TaskClientInvocations++
 
 	return s.TaskClientImpl
+}
+
+func (s *Service) AppValidator() *appvalidate.Validator {
+	return &appvalidate.Validator{}
 }
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
