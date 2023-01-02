@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/store"
 )
 
@@ -40,4 +41,8 @@ func (s *Store) Expectations() {
 	s.NewProviderSessionRepositoryImpl.Expectations()
 	s.NewRestrictedTokenRepositoryImpl.Expectations()
 	s.NewDeviceTokenRepositoryImpl.Expectations()
+}
+
+func (s *Store) NewAppValidateRepository() appvalidate.Repository {
+	return nil
 }

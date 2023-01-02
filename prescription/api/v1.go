@@ -147,7 +147,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 		return
 	}
 
-	if prescr == nil || len(prescr) == 0 {
+	if len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
@@ -181,7 +181,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 		return
 	}
 
-	if prescr == nil || len(prescr) == 0 {
+	if len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
