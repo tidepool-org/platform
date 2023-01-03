@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/service"
