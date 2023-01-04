@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
+	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 func (r *Router) AppValidateRoutes() []*rest.Route {
@@ -24,12 +25,16 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
 	err := request.DecodeRequestBody(req.Request, challengeCreate)
-	if responder.RespondIfError(err) {
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	if err := structValidator.New().Validate(challengeCreate); err != nil {
+		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
 	result, err := r.AppValidator().CreateAttestChallenge(ctx, challengeCreate)
-
 	if responder.RespondIfError(err) {
 		return
 	}
@@ -42,7 +47,13 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
-	if responder.RespondIfError(request.DecodeRequestBody(req.Request, challengeCreate)) {
+	err := request.DecodeRequestBody(req.Request, challengeCreate)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	if err := structValidator.New().Validate(challengeCreate); err != nil {
+		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
