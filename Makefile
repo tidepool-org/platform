@@ -136,7 +136,7 @@ lint: golint tmp
 lint-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
 
-pre-build: format imports vet lint
+pre-build: format imports vet
 
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)

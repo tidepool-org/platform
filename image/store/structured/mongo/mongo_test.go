@@ -6,13 +6,13 @@ import (
 	"sort"
 	"time"
 
+	gomegaTypes "github.com/onsi/gomega/types"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	. "github.com/onsi/gomega/types"
 
 	associationTest "github.com/tidepool-org/platform/association/test"
 	"github.com/tidepool-org/platform/errors"
@@ -935,7 +935,7 @@ var _ = Describe("Mongo", func() {
 								})
 
 								It("returns updated result when the id exists", func() {
-									var contentAttributesCreatedTimeMatcher GomegaMatcher
+									var contentAttributesCreatedTimeMatcher gomegaTypes.GomegaMatcher
 									if original.ContentAttributes != nil {
 										contentAttributesCreatedTimeMatcher = Equal(original.ContentAttributes.CreatedTime)
 									} else {

@@ -30,7 +30,7 @@ func RandomUpload() *dataTypesUpload.Upload {
 	return datum
 }
 
-// this is an upload struct, with all time.Time fields replaced with string as they once were
+// LegacyUpload is an upload struct, with all time.Time fields replaced with string as they once were
 type LegacyUpload struct {
 	dataTypesTest.LegacyBase `bson:",inline"`
 

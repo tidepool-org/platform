@@ -128,7 +128,7 @@ var _ = Describe("App Validation", func() {
 			req := newRequest(http.MethodPost, "/v1/attestations/challenges", validSessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
-			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
 
 		It("fails if unauthorized", func() {
