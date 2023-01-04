@@ -91,6 +91,9 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListAllClinicians request
+	ListAllClinicians(ctx context.Context, params *ListAllCliniciansParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListClinicsForClinician request
 	ListClinicsForClinician(ctx context.Context, userId UserId, params *ListClinicsForClinicianParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -146,8 +149,10 @@ type ClientInterface interface {
 
 	AssociateClinicianToUser(ctx context.Context, clinicId ClinicId, inviteId InviteId, body AssociateClinicianToUserJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// TriggerInitialMigration request
-	TriggerInitialMigration(ctx context.Context, clinicId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// TriggerInitialMigration request with any body
+	TriggerInitialMigrationWithBody(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	TriggerInitialMigration(ctx context.Context, clinicId string, body TriggerInitialMigrationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMigrations request
 	ListMigrations(ctx context.Context, clinicId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -165,6 +170,19 @@ type ClientInterface interface {
 
 	UpdateMigration(ctx context.Context, clinicId Id, userId UserId, body UpdateMigrationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreatePatientTag request with any body
+	CreatePatientTagWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreatePatientTag(ctx context.Context, clinicId ClinicId, body CreatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeletePatientTag request
+	DeletePatientTag(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdatePatientTag request with any body
+	UpdatePatientTagWithBody(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdatePatientTag(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, body UpdatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListPatients request
 	ListPatients(ctx context.Context, clinicId ClinicId, params *ListPatientsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -172,6 +190,9 @@ type ClientInterface interface {
 	CreatePatientAccountWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreatePatientAccount(ctx context.Context, clinicId ClinicId, body CreatePatientAccountJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeletePatientTagFromClinicPatients request
+	DeletePatientTagFromClinicPatients(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeletePatient request
 	DeletePatient(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -197,11 +218,52 @@ type ClientInterface interface {
 	// DeletePatientPermission request
 	DeletePatientPermission(ctx context.Context, clinicId ClinicId, patientId PatientId, permission string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// SendDexcomConnectRequest request
+	SendDexcomConnectRequest(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SendUploadReminder request
+	SendUploadReminder(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateTier request with any body
+	UpdateTierWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateTier(ctx context.Context, clinicId ClinicId, body UpdateTierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdatePatientSummary request with any body
+	UpdatePatientSummaryWithBody(ctx context.Context, patientId PatientId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdatePatientSummary(ctx context.Context, patientId PatientId, body UpdatePatientSummaryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListClinicsForPatient request
 	ListClinicsForPatient(ctx context.Context, userId UserId, params *ListClinicsForPatientParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// UpdatePatientDataSources request with any body
+	UpdatePatientDataSourcesWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdatePatientDataSources(ctx context.Context, userId UserId, body UpdatePatientDataSourcesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteUserFromClinics request
 	DeleteUserFromClinics(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateClinicUserDetails request with any body
+	UpdateClinicUserDetailsWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateClinicUserDetails(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeclineDexcomConnectRequest request
+	DeclineDexcomConnectRequest(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) ListAllClinicians(ctx context.Context, params *ListAllCliniciansParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAllCliniciansRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) ListClinicsForClinician(ctx context.Context, userId UserId, params *ListClinicsForClinicianParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -444,8 +506,20 @@ func (c *Client) AssociateClinicianToUser(ctx context.Context, clinicId ClinicId
 	return c.Client.Do(req)
 }
 
-func (c *Client) TriggerInitialMigration(ctx context.Context, clinicId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewTriggerInitialMigrationRequest(c.Server, clinicId)
+func (c *Client) TriggerInitialMigrationWithBody(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTriggerInitialMigrationRequestWithBody(c.Server, clinicId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) TriggerInitialMigration(ctx context.Context, clinicId string, body TriggerInitialMigrationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTriggerInitialMigrationRequest(c.Server, clinicId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -528,6 +602,66 @@ func (c *Client) UpdateMigration(ctx context.Context, clinicId Id, userId UserId
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreatePatientTagWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePatientTagRequestWithBody(c.Server, clinicId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreatePatientTag(ctx context.Context, clinicId ClinicId, body CreatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreatePatientTagRequest(c.Server, clinicId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeletePatientTag(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeletePatientTagRequest(c.Server, clinicId, patientTagId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePatientTagWithBody(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePatientTagRequestWithBody(c.Server, clinicId, patientTagId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePatientTag(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, body UpdatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePatientTagRequest(c.Server, clinicId, patientTagId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListPatients(ctx context.Context, clinicId ClinicId, params *ListPatientsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListPatientsRequest(c.Server, clinicId, params)
 	if err != nil {
@@ -554,6 +688,18 @@ func (c *Client) CreatePatientAccountWithBody(ctx context.Context, clinicId Clin
 
 func (c *Client) CreatePatientAccount(ctx context.Context, clinicId ClinicId, body CreatePatientAccountJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreatePatientAccountRequest(c.Server, clinicId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeletePatientTagFromClinicPatients(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeletePatientTagFromClinicPatientsRequest(c.Server, clinicId, patientTagId)
 	if err != nil {
 		return nil, err
 	}
@@ -672,8 +818,104 @@ func (c *Client) DeletePatientPermission(ctx context.Context, clinicId ClinicId,
 	return c.Client.Do(req)
 }
 
+func (c *Client) SendDexcomConnectRequest(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSendDexcomConnectRequestRequest(c.Server, clinicId, patientId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SendUploadReminder(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSendUploadReminderRequest(c.Server, clinicId, patientId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateTierWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateTierRequestWithBody(c.Server, clinicId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateTier(ctx context.Context, clinicId ClinicId, body UpdateTierJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateTierRequest(c.Server, clinicId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePatientSummaryWithBody(ctx context.Context, patientId PatientId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePatientSummaryRequestWithBody(c.Server, patientId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePatientSummary(ctx context.Context, patientId PatientId, body UpdatePatientSummaryJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePatientSummaryRequest(c.Server, patientId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListClinicsForPatient(ctx context.Context, userId UserId, params *ListClinicsForPatientParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListClinicsForPatientRequest(c.Server, userId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePatientDataSourcesWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePatientDataSourcesRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdatePatientDataSources(ctx context.Context, userId UserId, body UpdatePatientDataSourcesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdatePatientDataSourcesRequest(c.Server, userId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -694,6 +936,137 @@ func (c *Client) DeleteUserFromClinics(ctx context.Context, userId UserId, reqEd
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateClinicUserDetailsWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateClinicUserDetailsRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateClinicUserDetails(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateClinicUserDetailsRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeclineDexcomConnectRequest(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeclineDexcomConnectRequestRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewListAllCliniciansRequest generates requests for ListAllClinicians
+func NewListAllCliniciansRequest(server string, params *ListAllCliniciansParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinicians")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	queryValues := queryURL.Query()
+
+	if params.Offset != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Limit != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.CreatedTimeStart != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdTimeStart", runtime.ParamLocationQuery, *params.CreatedTimeStart); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.CreatedTimeEnd != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdTimeEnd", runtime.ParamLocationQuery, *params.CreatedTimeEnd); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	queryURL.RawQuery = queryValues.Encode()
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewListClinicsForClinicianRequest generates requests for ListClinicsForClinician
@@ -856,6 +1229,38 @@ func NewListClinicsRequest(server string, params *ListClinicsParams) (*http.Requ
 	if params.ShareCode != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "shareCode", runtime.ParamLocationQuery, *params.ShareCode); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.CreatedTimeStart != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdTimeStart", runtime.ParamLocationQuery, *params.CreatedTimeStart); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.CreatedTimeEnd != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdTimeEnd", runtime.ParamLocationQuery, *params.CreatedTimeEnd); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -1471,8 +1876,19 @@ func NewAssociateClinicianToUserRequestWithBody(server string, clinicId ClinicId
 	return req, nil
 }
 
-// NewTriggerInitialMigrationRequest generates requests for TriggerInitialMigration
-func NewTriggerInitialMigrationRequest(server string, clinicId string) (*http.Request, error) {
+// NewTriggerInitialMigrationRequest calls the generic TriggerInitialMigration builder with application/json body
+func NewTriggerInitialMigrationRequest(server string, clinicId string, body TriggerInitialMigrationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTriggerInitialMigrationRequestWithBody(server, clinicId, "application/json", bodyReader)
+}
+
+// NewTriggerInitialMigrationRequestWithBody generates requests for TriggerInitialMigration with any type of body
+func NewTriggerInitialMigrationRequestWithBody(server string, clinicId string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1497,10 +1913,12 @@ func NewTriggerInitialMigrationRequest(server string, clinicId string) (*http.Re
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1681,6 +2099,148 @@ func NewUpdateMigrationRequestWithBody(server string, clinicId Id, userId UserId
 	return req, nil
 }
 
+// NewCreatePatientTagRequest calls the generic CreatePatientTag builder with application/json body
+func NewCreatePatientTagRequest(server string, clinicId ClinicId, body CreatePatientTagJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreatePatientTagRequestWithBody(server, clinicId, "application/json", bodyReader)
+}
+
+// NewCreatePatientTagRequestWithBody generates requests for CreatePatientTag with any type of body
+func NewCreatePatientTagRequestWithBody(server string, clinicId ClinicId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/patient_tags", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeletePatientTagRequest generates requests for DeletePatientTag
+func NewDeletePatientTagRequest(server string, clinicId ClinicId, patientTagId PatientTagId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "patientTagId", runtime.ParamLocationPath, patientTagId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/patient_tags/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdatePatientTagRequest calls the generic UpdatePatientTag builder with application/json body
+func NewUpdatePatientTagRequest(server string, clinicId ClinicId, patientTagId PatientTagId, body UpdatePatientTagJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdatePatientTagRequestWithBody(server, clinicId, patientTagId, "application/json", bodyReader)
+}
+
+// NewUpdatePatientTagRequestWithBody generates requests for UpdatePatientTag with any type of body
+func NewUpdatePatientTagRequestWithBody(server string, clinicId ClinicId, patientTagId PatientTagId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "patientTagId", runtime.ParamLocationPath, patientTagId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/patient_tags/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListPatientsRequest generates requests for ListPatients
 func NewListPatientsRequest(server string, clinicId ClinicId, params *ListPatientsParams) (*http.Request, error) {
 	var err error
@@ -1773,6 +2333,150 @@ func NewListPatientsRequest(server string, clinicId ClinicId, params *ListPatien
 
 	}
 
+	if params.SummaryPeriods14dTimeCGMUsePercent != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.periods.14d.timeCGMUsePercent", runtime.ParamLocationQuery, *params.SummaryPeriods14dTimeCGMUsePercent); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryPeriods14dTimeInVeryLowPercent != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.periods.14d.timeInVeryLowPercent", runtime.ParamLocationQuery, *params.SummaryPeriods14dTimeInVeryLowPercent); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryPeriods14dTimeInLowPercent != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.periods.14d.timeInLowPercent", runtime.ParamLocationQuery, *params.SummaryPeriods14dTimeInLowPercent); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryPeriods14dTimeInTargetPercent != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.periods.14d.timeInTargetPercent", runtime.ParamLocationQuery, *params.SummaryPeriods14dTimeInTargetPercent); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryPeriods14dTimeInHighPercent != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.periods.14d.timeInHighPercent", runtime.ParamLocationQuery, *params.SummaryPeriods14dTimeInHighPercent); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryPeriods14dTimeInVeryHighPercent != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.periods.14d.timeInVeryHighPercent", runtime.ParamLocationQuery, *params.SummaryPeriods14dTimeInVeryHighPercent); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryLastUploadDateFrom != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.lastUploadDateFrom", runtime.ParamLocationQuery, *params.SummaryLastUploadDateFrom); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.SummaryLastUploadDateTo != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "summary.lastUploadDateTo", runtime.ParamLocationQuery, *params.SummaryLastUploadDateTo); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
+	if params.Tags != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "tags", runtime.ParamLocationQuery, *params.Tags); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	queryURL.RawQuery = queryValues.Encode()
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -1826,6 +2530,47 @@ func NewCreatePatientAccountRequestWithBody(server string, clinicId ClinicId, co
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeletePatientTagFromClinicPatientsRequest generates requests for DeletePatientTagFromClinicPatients
+func NewDeletePatientTagFromClinicPatientsRequest(server string, clinicId ClinicId, patientTagId PatientTagId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "patientTagId", runtime.ParamLocationPath, patientTagId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/patients/delete_tag/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2122,6 +2867,182 @@ func NewDeletePatientPermissionRequest(server string, clinicId ClinicId, patient
 	return req, nil
 }
 
+// NewSendDexcomConnectRequestRequest generates requests for SendDexcomConnectRequest
+func NewSendDexcomConnectRequestRequest(server string, clinicId ClinicId, patientId PatientId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "patientId", runtime.ParamLocationPath, patientId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/patients/%s/send_dexcom_connect_request", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSendUploadReminderRequest generates requests for SendUploadReminder
+func NewSendUploadReminderRequest(server string, clinicId ClinicId, patientId PatientId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "patientId", runtime.ParamLocationPath, patientId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/patients/%s/upload_reminder", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateTierRequest calls the generic UpdateTier builder with application/json body
+func NewUpdateTierRequest(server string, clinicId ClinicId, body UpdateTierJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateTierRequestWithBody(server, clinicId, "application/json", bodyReader)
+}
+
+// NewUpdateTierRequestWithBody generates requests for UpdateTier with any type of body
+func NewUpdateTierRequestWithBody(server string, clinicId ClinicId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/tier", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewUpdatePatientSummaryRequest calls the generic UpdatePatientSummary builder with application/json body
+func NewUpdatePatientSummaryRequest(server string, patientId PatientId, body UpdatePatientSummaryJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdatePatientSummaryRequestWithBody(server, patientId, "application/json", bodyReader)
+}
+
+// NewUpdatePatientSummaryRequestWithBody generates requests for UpdatePatientSummary with any type of body
+func NewUpdatePatientSummaryRequestWithBody(server string, patientId PatientId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "patientId", runtime.ParamLocationPath, patientId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/patients/%s/summary", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListClinicsForPatientRequest generates requests for ListClinicsForPatient
 func NewListClinicsForPatientRequest(server string, userId UserId, params *ListClinicsForPatientParams) (*http.Request, error) {
 	var err error
@@ -2192,6 +3113,53 @@ func NewListClinicsForPatientRequest(server string, userId UserId, params *ListC
 	return req, nil
 }
 
+// NewUpdatePatientDataSourcesRequest calls the generic UpdatePatientDataSources builder with application/json body
+func NewUpdatePatientDataSourcesRequest(server string, userId UserId, body UpdatePatientDataSourcesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdatePatientDataSourcesRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewUpdatePatientDataSourcesRequestWithBody generates requests for UpdatePatientDataSources with any type of body
+func NewUpdatePatientDataSourcesRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/patients/%s/data_sources", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewDeleteUserFromClinicsRequest generates requests for DeleteUserFromClinics
 func NewDeleteUserFromClinicsRequest(server string, userId UserId) (*http.Request, error) {
 	var err error
@@ -2219,6 +3187,87 @@ func NewDeleteUserFromClinicsRequest(server string, userId UserId) (*http.Reques
 	}
 
 	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateClinicUserDetailsRequest calls the generic UpdateClinicUserDetails builder with application/json body
+func NewUpdateClinicUserDetailsRequest(server string, userId UserId, body UpdateClinicUserDetailsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateClinicUserDetailsRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewUpdateClinicUserDetailsRequestWithBody generates requests for UpdateClinicUserDetails with any type of body
+func NewUpdateClinicUserDetailsRequestWithBody(server string, userId UserId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/users/%s/clinics", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeclineDexcomConnectRequestRequest generates requests for DeclineDexcomConnectRequest
+func NewDeclineDexcomConnectRequestRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/users/%s/decline_dexcom_connect_request", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2269,6 +3318,9 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListAllClinicians request
+	ListAllCliniciansWithResponse(ctx context.Context, params *ListAllCliniciansParams, reqEditors ...RequestEditorFn) (*ListAllCliniciansResponse, error)
+
 	// ListClinicsForClinician request
 	ListClinicsForClinicianWithResponse(ctx context.Context, userId UserId, params *ListClinicsForClinicianParams, reqEditors ...RequestEditorFn) (*ListClinicsForClinicianResponse, error)
 
@@ -2324,8 +3376,10 @@ type ClientWithResponsesInterface interface {
 
 	AssociateClinicianToUserWithResponse(ctx context.Context, clinicId ClinicId, inviteId InviteId, body AssociateClinicianToUserJSONRequestBody, reqEditors ...RequestEditorFn) (*AssociateClinicianToUserResponse, error)
 
-	// TriggerInitialMigration request
-	TriggerInitialMigrationWithResponse(ctx context.Context, clinicId string, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error)
+	// TriggerInitialMigration request with any body
+	TriggerInitialMigrationWithBodyWithResponse(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error)
+
+	TriggerInitialMigrationWithResponse(ctx context.Context, clinicId string, body TriggerInitialMigrationJSONRequestBody, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error)
 
 	// ListMigrations request
 	ListMigrationsWithResponse(ctx context.Context, clinicId string, reqEditors ...RequestEditorFn) (*ListMigrationsResponse, error)
@@ -2343,6 +3397,19 @@ type ClientWithResponsesInterface interface {
 
 	UpdateMigrationWithResponse(ctx context.Context, clinicId Id, userId UserId, body UpdateMigrationJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMigrationResponse, error)
 
+	// CreatePatientTag request with any body
+	CreatePatientTagWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePatientTagResponse, error)
+
+	CreatePatientTagWithResponse(ctx context.Context, clinicId ClinicId, body CreatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePatientTagResponse, error)
+
+	// DeletePatientTag request
+	DeletePatientTagWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*DeletePatientTagResponse, error)
+
+	// UpdatePatientTag request with any body
+	UpdatePatientTagWithBodyWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePatientTagResponse, error)
+
+	UpdatePatientTagWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, body UpdatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientTagResponse, error)
+
 	// ListPatients request
 	ListPatientsWithResponse(ctx context.Context, clinicId ClinicId, params *ListPatientsParams, reqEditors ...RequestEditorFn) (*ListPatientsResponse, error)
 
@@ -2350,6 +3417,9 @@ type ClientWithResponsesInterface interface {
 	CreatePatientAccountWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePatientAccountResponse, error)
 
 	CreatePatientAccountWithResponse(ctx context.Context, clinicId ClinicId, body CreatePatientAccountJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePatientAccountResponse, error)
+
+	// DeletePatientTagFromClinicPatients request
+	DeletePatientTagFromClinicPatientsWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*DeletePatientTagFromClinicPatientsResponse, error)
 
 	// DeletePatient request
 	DeletePatientWithResponse(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*DeletePatientResponse, error)
@@ -2375,11 +3445,62 @@ type ClientWithResponsesInterface interface {
 	// DeletePatientPermission request
 	DeletePatientPermissionWithResponse(ctx context.Context, clinicId ClinicId, patientId PatientId, permission string, reqEditors ...RequestEditorFn) (*DeletePatientPermissionResponse, error)
 
+	// SendDexcomConnectRequest request
+	SendDexcomConnectRequestWithResponse(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*SendDexcomConnectRequestResponse, error)
+
+	// SendUploadReminder request
+	SendUploadReminderWithResponse(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*SendUploadReminderResponse, error)
+
+	// UpdateTier request with any body
+	UpdateTierWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTierResponse, error)
+
+	UpdateTierWithResponse(ctx context.Context, clinicId ClinicId, body UpdateTierJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTierResponse, error)
+
+	// UpdatePatientSummary request with any body
+	UpdatePatientSummaryWithBodyWithResponse(ctx context.Context, patientId PatientId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePatientSummaryResponse, error)
+
+	UpdatePatientSummaryWithResponse(ctx context.Context, patientId PatientId, body UpdatePatientSummaryJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientSummaryResponse, error)
+
 	// ListClinicsForPatient request
 	ListClinicsForPatientWithResponse(ctx context.Context, userId UserId, params *ListClinicsForPatientParams, reqEditors ...RequestEditorFn) (*ListClinicsForPatientResponse, error)
 
+	// UpdatePatientDataSources request with any body
+	UpdatePatientDataSourcesWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePatientDataSourcesResponse, error)
+
+	UpdatePatientDataSourcesWithResponse(ctx context.Context, userId UserId, body UpdatePatientDataSourcesJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientDataSourcesResponse, error)
+
 	// DeleteUserFromClinics request
 	DeleteUserFromClinicsWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeleteUserFromClinicsResponse, error)
+
+	// UpdateClinicUserDetails request with any body
+	UpdateClinicUserDetailsWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateClinicUserDetailsResponse, error)
+
+	UpdateClinicUserDetailsWithResponse(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateClinicUserDetailsResponse, error)
+
+	// DeclineDexcomConnectRequest request
+	DeclineDexcomConnectRequestWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeclineDexcomConnectRequestResponse, error)
+}
+
+type ListAllCliniciansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]ClinicianClinicRelationship
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAllCliniciansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAllCliniciansResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type ListClinicsForClinicianResponse struct {
@@ -2822,6 +3943,69 @@ func (r UpdateMigrationResponse) StatusCode() int {
 	return 0
 }
 
+type CreatePatientTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r CreatePatientTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreatePatientTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeletePatientTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeletePatientTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeletePatientTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdatePatientTagResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdatePatientTagResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdatePatientTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListPatientsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -2860,6 +4044,27 @@ func (r CreatePatientAccountResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreatePatientAccountResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeletePatientTagFromClinicPatientsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeletePatientTagFromClinicPatientsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeletePatientTagFromClinicPatientsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2996,6 +4201,91 @@ func (r DeletePatientPermissionResponse) StatusCode() int {
 	return 0
 }
 
+type SendDexcomConnectRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Patient
+}
+
+// Status returns HTTPResponse.Status
+func (r SendDexcomConnectRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SendDexcomConnectRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SendUploadReminderResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r SendUploadReminderResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SendUploadReminderResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateTierResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateTierResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateTierResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdatePatientSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdatePatientSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdatePatientSummaryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListClinicsForPatientResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3012,6 +4302,27 @@ func (r ListClinicsForPatientResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListClinicsForPatientResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdatePatientDataSourcesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdatePatientDataSourcesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdatePatientDataSourcesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3037,6 +4348,57 @@ func (r DeleteUserFromClinicsResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+type UpdateClinicUserDetailsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateClinicUserDetailsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateClinicUserDetailsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeclineDexcomConnectRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeclineDexcomConnectRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeclineDexcomConnectRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ListAllCliniciansWithResponse request returning *ListAllCliniciansResponse
+func (c *ClientWithResponses) ListAllCliniciansWithResponse(ctx context.Context, params *ListAllCliniciansParams, reqEditors ...RequestEditorFn) (*ListAllCliniciansResponse, error) {
+	rsp, err := c.ListAllClinicians(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAllCliniciansResponse(rsp)
 }
 
 // ListClinicsForClinicianWithResponse request returning *ListClinicsForClinicianResponse
@@ -3214,9 +4576,17 @@ func (c *ClientWithResponses) AssociateClinicianToUserWithResponse(ctx context.C
 	return ParseAssociateClinicianToUserResponse(rsp)
 }
 
-// TriggerInitialMigrationWithResponse request returning *TriggerInitialMigrationResponse
-func (c *ClientWithResponses) TriggerInitialMigrationWithResponse(ctx context.Context, clinicId string, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error) {
-	rsp, err := c.TriggerInitialMigration(ctx, clinicId, reqEditors...)
+// TriggerInitialMigrationWithBodyWithResponse request with arbitrary body returning *TriggerInitialMigrationResponse
+func (c *ClientWithResponses) TriggerInitialMigrationWithBodyWithResponse(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error) {
+	rsp, err := c.TriggerInitialMigrationWithBody(ctx, clinicId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTriggerInitialMigrationResponse(rsp)
+}
+
+func (c *ClientWithResponses) TriggerInitialMigrationWithResponse(ctx context.Context, clinicId string, body TriggerInitialMigrationJSONRequestBody, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error) {
+	rsp, err := c.TriggerInitialMigration(ctx, clinicId, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -3275,6 +4645,49 @@ func (c *ClientWithResponses) UpdateMigrationWithResponse(ctx context.Context, c
 	return ParseUpdateMigrationResponse(rsp)
 }
 
+// CreatePatientTagWithBodyWithResponse request with arbitrary body returning *CreatePatientTagResponse
+func (c *ClientWithResponses) CreatePatientTagWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePatientTagResponse, error) {
+	rsp, err := c.CreatePatientTagWithBody(ctx, clinicId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreatePatientTagResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreatePatientTagWithResponse(ctx context.Context, clinicId ClinicId, body CreatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*CreatePatientTagResponse, error) {
+	rsp, err := c.CreatePatientTag(ctx, clinicId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreatePatientTagResponse(rsp)
+}
+
+// DeletePatientTagWithResponse request returning *DeletePatientTagResponse
+func (c *ClientWithResponses) DeletePatientTagWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*DeletePatientTagResponse, error) {
+	rsp, err := c.DeletePatientTag(ctx, clinicId, patientTagId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeletePatientTagResponse(rsp)
+}
+
+// UpdatePatientTagWithBodyWithResponse request with arbitrary body returning *UpdatePatientTagResponse
+func (c *ClientWithResponses) UpdatePatientTagWithBodyWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePatientTagResponse, error) {
+	rsp, err := c.UpdatePatientTagWithBody(ctx, clinicId, patientTagId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePatientTagResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdatePatientTagWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, body UpdatePatientTagJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientTagResponse, error) {
+	rsp, err := c.UpdatePatientTag(ctx, clinicId, patientTagId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePatientTagResponse(rsp)
+}
+
 // ListPatientsWithResponse request returning *ListPatientsResponse
 func (c *ClientWithResponses) ListPatientsWithResponse(ctx context.Context, clinicId ClinicId, params *ListPatientsParams, reqEditors ...RequestEditorFn) (*ListPatientsResponse, error) {
 	rsp, err := c.ListPatients(ctx, clinicId, params, reqEditors...)
@@ -3299,6 +4712,15 @@ func (c *ClientWithResponses) CreatePatientAccountWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseCreatePatientAccountResponse(rsp)
+}
+
+// DeletePatientTagFromClinicPatientsWithResponse request returning *DeletePatientTagFromClinicPatientsResponse
+func (c *ClientWithResponses) DeletePatientTagFromClinicPatientsWithResponse(ctx context.Context, clinicId ClinicId, patientTagId PatientTagId, reqEditors ...RequestEditorFn) (*DeletePatientTagFromClinicPatientsResponse, error) {
+	rsp, err := c.DeletePatientTagFromClinicPatients(ctx, clinicId, patientTagId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeletePatientTagFromClinicPatientsResponse(rsp)
 }
 
 // DeletePatientWithResponse request returning *DeletePatientResponse
@@ -3379,6 +4801,58 @@ func (c *ClientWithResponses) DeletePatientPermissionWithResponse(ctx context.Co
 	return ParseDeletePatientPermissionResponse(rsp)
 }
 
+// SendDexcomConnectRequestWithResponse request returning *SendDexcomConnectRequestResponse
+func (c *ClientWithResponses) SendDexcomConnectRequestWithResponse(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*SendDexcomConnectRequestResponse, error) {
+	rsp, err := c.SendDexcomConnectRequest(ctx, clinicId, patientId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSendDexcomConnectRequestResponse(rsp)
+}
+
+// SendUploadReminderWithResponse request returning *SendUploadReminderResponse
+func (c *ClientWithResponses) SendUploadReminderWithResponse(ctx context.Context, clinicId ClinicId, patientId PatientId, reqEditors ...RequestEditorFn) (*SendUploadReminderResponse, error) {
+	rsp, err := c.SendUploadReminder(ctx, clinicId, patientId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSendUploadReminderResponse(rsp)
+}
+
+// UpdateTierWithBodyWithResponse request with arbitrary body returning *UpdateTierResponse
+func (c *ClientWithResponses) UpdateTierWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTierResponse, error) {
+	rsp, err := c.UpdateTierWithBody(ctx, clinicId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateTierResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateTierWithResponse(ctx context.Context, clinicId ClinicId, body UpdateTierJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateTierResponse, error) {
+	rsp, err := c.UpdateTier(ctx, clinicId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateTierResponse(rsp)
+}
+
+// UpdatePatientSummaryWithBodyWithResponse request with arbitrary body returning *UpdatePatientSummaryResponse
+func (c *ClientWithResponses) UpdatePatientSummaryWithBodyWithResponse(ctx context.Context, patientId PatientId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePatientSummaryResponse, error) {
+	rsp, err := c.UpdatePatientSummaryWithBody(ctx, patientId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePatientSummaryResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdatePatientSummaryWithResponse(ctx context.Context, patientId PatientId, body UpdatePatientSummaryJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientSummaryResponse, error) {
+	rsp, err := c.UpdatePatientSummary(ctx, patientId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePatientSummaryResponse(rsp)
+}
+
 // ListClinicsForPatientWithResponse request returning *ListClinicsForPatientResponse
 func (c *ClientWithResponses) ListClinicsForPatientWithResponse(ctx context.Context, userId UserId, params *ListClinicsForPatientParams, reqEditors ...RequestEditorFn) (*ListClinicsForPatientResponse, error) {
 	rsp, err := c.ListClinicsForPatient(ctx, userId, params, reqEditors...)
@@ -3388,6 +4862,23 @@ func (c *ClientWithResponses) ListClinicsForPatientWithResponse(ctx context.Cont
 	return ParseListClinicsForPatientResponse(rsp)
 }
 
+// UpdatePatientDataSourcesWithBodyWithResponse request with arbitrary body returning *UpdatePatientDataSourcesResponse
+func (c *ClientWithResponses) UpdatePatientDataSourcesWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdatePatientDataSourcesResponse, error) {
+	rsp, err := c.UpdatePatientDataSourcesWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePatientDataSourcesResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdatePatientDataSourcesWithResponse(ctx context.Context, userId UserId, body UpdatePatientDataSourcesJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientDataSourcesResponse, error) {
+	rsp, err := c.UpdatePatientDataSources(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdatePatientDataSourcesResponse(rsp)
+}
+
 // DeleteUserFromClinicsWithResponse request returning *DeleteUserFromClinicsResponse
 func (c *ClientWithResponses) DeleteUserFromClinicsWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeleteUserFromClinicsResponse, error) {
 	rsp, err := c.DeleteUserFromClinics(ctx, userId, reqEditors...)
@@ -3395,6 +4886,58 @@ func (c *ClientWithResponses) DeleteUserFromClinicsWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseDeleteUserFromClinicsResponse(rsp)
+}
+
+// UpdateClinicUserDetailsWithBodyWithResponse request with arbitrary body returning *UpdateClinicUserDetailsResponse
+func (c *ClientWithResponses) UpdateClinicUserDetailsWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateClinicUserDetailsResponse, error) {
+	rsp, err := c.UpdateClinicUserDetailsWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateClinicUserDetailsResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateClinicUserDetailsWithResponse(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateClinicUserDetailsResponse, error) {
+	rsp, err := c.UpdateClinicUserDetails(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateClinicUserDetailsResponse(rsp)
+}
+
+// DeclineDexcomConnectRequestWithResponse request returning *DeclineDexcomConnectRequestResponse
+func (c *ClientWithResponses) DeclineDexcomConnectRequestWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeclineDexcomConnectRequestResponse, error) {
+	rsp, err := c.DeclineDexcomConnectRequest(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeclineDexcomConnectRequestResponse(rsp)
+}
+
+// ParseListAllCliniciansResponse parses an HTTP response from a ListAllCliniciansWithResponse call
+func ParseListAllCliniciansResponse(rsp *http.Response) (*ListAllCliniciansResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAllCliniciansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []ClinicianClinicRelationship
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListClinicsForClinicianResponse parses an HTTP response from a ListClinicsForClinicianWithResponse call
@@ -3905,6 +5448,54 @@ func ParseUpdateMigrationResponse(rsp *http.Response) (*UpdateMigrationResponse,
 	return response, nil
 }
 
+// ParseCreatePatientTagResponse parses an HTTP response from a CreatePatientTagWithResponse call
+func ParseCreatePatientTagResponse(rsp *http.Response) (*CreatePatientTagResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreatePatientTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseDeletePatientTagResponse parses an HTTP response from a DeletePatientTagWithResponse call
+func ParseDeletePatientTagResponse(rsp *http.Response) (*DeletePatientTagResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeletePatientTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseUpdatePatientTagResponse parses an HTTP response from a UpdatePatientTagWithResponse call
+func ParseUpdatePatientTagResponse(rsp *http.Response) (*UpdatePatientTagResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdatePatientTagResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseListPatientsResponse parses an HTTP response from a ListPatientsWithResponse call
 func ParseListPatientsResponse(rsp *http.Response) (*ListPatientsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -3952,6 +5543,22 @@ func ParseCreatePatientAccountResponse(rsp *http.Response) (*CreatePatientAccoun
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseDeletePatientTagFromClinicPatientsResponse parses an HTTP response from a DeletePatientTagFromClinicPatientsWithResponse call
+func ParseDeletePatientTagFromClinicPatientsResponse(rsp *http.Response) (*DeletePatientTagFromClinicPatientsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeletePatientTagFromClinicPatientsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -4093,6 +5700,80 @@ func ParseDeletePatientPermissionResponse(rsp *http.Response) (*DeletePatientPer
 	return response, nil
 }
 
+// ParseSendDexcomConnectRequestResponse parses an HTTP response from a SendDexcomConnectRequestWithResponse call
+func ParseSendDexcomConnectRequestResponse(rsp *http.Response) (*SendDexcomConnectRequestResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SendDexcomConnectRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Patient
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSendUploadReminderResponse parses an HTTP response from a SendUploadReminderWithResponse call
+func ParseSendUploadReminderResponse(rsp *http.Response) (*SendUploadReminderResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SendUploadReminderResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseUpdateTierResponse parses an HTTP response from a UpdateTierWithResponse call
+func ParseUpdateTierResponse(rsp *http.Response) (*UpdateTierResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateTierResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseUpdatePatientSummaryResponse parses an HTTP response from a UpdatePatientSummaryWithResponse call
+func ParseUpdatePatientSummaryResponse(rsp *http.Response) (*UpdatePatientSummaryResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdatePatientSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseListClinicsForPatientResponse parses an HTTP response from a ListClinicsForPatientWithResponse call
 func ParseListClinicsForPatientResponse(rsp *http.Response) (*ListClinicsForPatientResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -4119,6 +5800,22 @@ func ParseListClinicsForPatientResponse(rsp *http.Response) (*ListClinicsForPati
 	return response, nil
 }
 
+// ParseUpdatePatientDataSourcesResponse parses an HTTP response from a UpdatePatientDataSourcesWithResponse call
+func ParseUpdatePatientDataSourcesResponse(rsp *http.Response) (*UpdatePatientDataSourcesResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdatePatientDataSourcesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseDeleteUserFromClinicsResponse parses an HTTP response from a DeleteUserFromClinicsWithResponse call
 func ParseDeleteUserFromClinicsResponse(rsp *http.Response) (*DeleteUserFromClinicsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -4128,6 +5825,38 @@ func ParseDeleteUserFromClinicsResponse(rsp *http.Response) (*DeleteUserFromClin
 	}
 
 	response := &DeleteUserFromClinicsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseUpdateClinicUserDetailsResponse parses an HTTP response from a UpdateClinicUserDetailsWithResponse call
+func ParseUpdateClinicUserDetailsResponse(rsp *http.Response) (*UpdateClinicUserDetailsResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateClinicUserDetailsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseDeclineDexcomConnectRequestResponse parses an HTTP response from a DeclineDexcomConnectRequestWithResponse call
+func ParseDeclineDexcomConnectRequestResponse(rsp *http.Response) (*DeclineDexcomConnectRequestResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeclineDexcomConnectRequestResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

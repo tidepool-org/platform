@@ -13,6 +13,13 @@ const (
 	SessionTokenScopes = "sessionToken.Scopes"
 )
 
+// Defines values for AverageGlucoseUnits.
+const (
+	AverageGlucoseUnitsMmolL AverageGlucoseUnits = "mmol/L"
+
+	AverageGlucoseUnitsMmoll AverageGlucoseUnits = "mmol/l"
+)
+
 // Defines values for ClinicClinicSize.
 const (
 	ClinicClinicSizeN0249 ClinicClinicSize = "0-249"
@@ -24,6 +31,37 @@ const (
 	ClinicClinicSizeN500999 ClinicClinicSize = "500-999"
 )
 
+// Defines values for ClinicClinicType.
+const (
+	ClinicClinicTypeHealthcareSystem ClinicClinicType = "healthcare_system"
+
+	ClinicClinicTypeOther ClinicClinicType = "other"
+
+	ClinicClinicTypeProviderPractice ClinicClinicType = "provider_practice"
+
+	ClinicClinicTypeResearcher ClinicClinicType = "researcher"
+
+	ClinicClinicTypeVeterinaryClinic ClinicClinicType = "veterinary_clinic"
+)
+
+// Defines values for ClinicPreferredBgUnits.
+const (
+	ClinicPreferredBgUnitsMgdL ClinicPreferredBgUnits = "mg/dL"
+
+	ClinicPreferredBgUnitsMmolL ClinicPreferredBgUnits = "mmol/L"
+)
+
+// Defines values for DataSourceState.
+const (
+	DataSourceStateConnected DataSourceState = "connected"
+
+	DataSourceStateDisconnected DataSourceState = "disconnected"
+
+	DataSourceStateError DataSourceState = "error"
+
+	DataSourceStatePending DataSourceState = "pending"
+)
+
 // Defines values for MigrationStatus.
 const (
 	MigrationStatusCOMPLETED MigrationStatus = "COMPLETED"
@@ -33,10 +71,32 @@ const (
 	MigrationStatusRUNNING MigrationStatus = "RUNNING"
 )
 
+// Defines values for Tier.
+const (
+	TierTier0100 Tier = "tier0100"
+
+	TierTier0200 Tier = "tier0200"
+
+	TierTier0300 Tier = "tier0300"
+
+	TierTier0400 Tier = "tier0400"
+)
+
 // AssociateClinicianToUser defines model for AssociateClinicianToUser.
 type AssociateClinicianToUser struct {
 	UserId string `json:"userId"`
 }
+
+// Blood glucose value, in `mmol/L`
+type AverageGlucose struct {
+	Units AverageGlucoseUnits `json:"units"`
+
+	// A floating point value representing a `mmol/L` value.
+	Value float32 `json:"value"`
+}
+
+// AverageGlucoseUnits defines model for AverageGlucose.Units.
+type AverageGlucoseUnits string
 
 // Clinic
 type Clinic struct {
@@ -47,35 +107,46 @@ type Clinic struct {
 	// City name.
 	City       *string           `json:"city,omitempty"`
 	ClinicSize *ClinicClinicSize `json:"clinicSize,omitempty"`
-	ClinicType *string           `json:"clinicType,omitempty"`
+	ClinicType *ClinicClinicType `json:"clinicType,omitempty"`
 
 	// Country name.
 	Country     *string   `json:"country,omitempty"`
 	CreatedTime time.Time `json:"createdTime"`
 
 	// Clinic identifier.
-	Id Id `json:"id"`
+	Id                    Id          `json:"id"`
+	LastDeletedPatientTag *PatientTag `json:"lastDeletedPatientTag,omitempty"`
 
 	// Name of the clinic.
-	Name string `json:"name"`
+	Name        string        `json:"name"`
+	PatientTags *[]PatientTag `json:"patientTags,omitempty"`
 
 	// An array of phone numbers.
 	PhoneNumbers *[]PhoneNumber `json:"phoneNumbers,omitempty"`
 
 	// Postal code. In the U.S., typically the zip code such as `94301` or `94301-1704`.
-	PostalCode *string `json:"postalCode,omitempty"`
+	PostalCode       *string                `json:"postalCode,omitempty"`
+	PreferredBgUnits ClinicPreferredBgUnits `json:"preferredBgUnits"`
 
 	// Globally unique share code for a clinic. The share code is 3 groups of 4 uppercase alphanumeric characters in each group. Ambiguous characters such as `I` and `1`, or `O` and `0` are excluded.
 	ShareCode string `json:"shareCode"`
 
 	// State or province. In the U.S., typically something like `CA` or `California`.
-	State       *string   `json:"state,omitempty"`
-	UpdatedTime time.Time `json:"updatedTime"`
-	Website     *string   `json:"website,omitempty"`
+	State           *string   `json:"state,omitempty"`
+	Tier            string    `json:"tier"`
+	TierDescription string    `json:"tierDescription"`
+	UpdatedTime     time.Time `json:"updatedTime"`
+	Website         *string   `json:"website,omitempty"`
 }
 
 // ClinicClinicSize defines model for Clinic.ClinicSize.
 type ClinicClinicSize string
+
+// ClinicClinicType defines model for Clinic.ClinicType.
+type ClinicClinicType string
+
+// ClinicPreferredBgUnits defines model for Clinic.PreferredBgUnits.
+type ClinicPreferredBgUnits string
 
 // The `id` may be empty if the clinician invite has not been accepted.
 type Clinician struct {
@@ -117,12 +188,30 @@ type Clinics []Clinic
 
 // CreatePatient defines model for CreatePatient.
 type CreatePatient struct {
-	IsMigrated *bool `json:"isMigrated,omitempty"`
+	AttestationSubmitted *bool `json:"attestationSubmitted,omitempty"`
+	IsMigrated           *bool `json:"isMigrated,omitempty"`
 
 	// String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
 	LegacyClinicianId *TidepoolUserId     `json:"legacyClinicianId,omitempty"`
 	Permissions       *PatientPermissions `json:"permissions,omitempty"`
 }
+
+// DataSource defines model for DataSource.
+type DataSource struct {
+	// String representation of a resource id
+	DataSourceId *string `json:"dataSourceId,omitempty"`
+
+	// [RFC 3339](https://www.ietf.org/rfc/rfc3339.txt) / [ISO 8601](https://www.iso.org/iso-8601-date-and-time-format.html) timestamp _with_ timezone information
+	ModifiedTime *string         `json:"modifiedTime,omitempty"`
+	ProviderName string          `json:"providerName"`
+	State        DataSourceState `json:"state"`
+}
+
+// DataSourceState defines model for DataSource.State.
+type DataSourceState string
+
+// DataSources defines model for DataSources.
+type DataSources []DataSource
 
 // Error defines model for Error.
 type Error struct {
@@ -140,7 +229,8 @@ type Meta struct {
 
 // Migration defines model for Migration.
 type Migration struct {
-	CreatedTime time.Time `json:"createdTime"`
+	AttestationTime *time.Time `json:"attestationTime,omitempty"`
+	CreatedTime     time.Time  `json:"createdTime"`
 
 	// The current status of the migration
 	Status      *MigrationStatus `json:"status,omitempty"`
@@ -164,19 +254,26 @@ type Migrations []Migration
 
 // Patient defines model for Patient.
 type Patient struct {
-	BirthDate   openapi_types.Date `json:"birthDate"`
-	CreatedTime time.Time          `json:"createdTime"`
-	Email       *string            `json:"email,omitempty"`
+	AttestationSubmitted *bool              `json:"attestationSubmitted,omitempty"`
+	BirthDate            openapi_types.Date `json:"birthDate"`
+	CreatedTime          time.Time          `json:"createdTime"`
+	DataSources          *[]DataSource      `json:"dataSources"`
+	Email                *string            `json:"email,omitempty"`
 
 	// The full name of the patient
 	FullName string `json:"fullName"`
 
 	// String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
-	Id TidepoolUserId `json:"id"`
+	Id                             TidepoolUserId `json:"id"`
+	LastDeclinedDexcomConnectTime  *time.Time     `json:"lastDeclinedDexcomConnectTime,omitempty"`
+	LastRequestedDexcomConnectTime *time.Time     `json:"lastRequestedDexcomConnectTime,omitempty"`
+	LastUploadReminderTime         *time.Time     `json:"lastUploadReminderTime,omitempty"`
 
 	// The medical record number of the patient
 	Mrn           *string             `json:"mrn,omitempty"`
 	Permissions   *PatientPermissions `json:"permissions,omitempty"`
+	Summary       *PatientSummary     `json:"summary,omitempty"`
+	Tags          *[]string           `json:"tags"`
 	TargetDevices *[]string           `json:"targetDevices,omitempty"`
 	UpdatedTime   time.Time           `json:"updatedTime"`
 }
@@ -199,6 +296,60 @@ type PatientPermissions struct {
 	View      *map[string]interface{} `json:"view,omitempty"`
 }
 
+// PatientSummary defines model for PatientSummary.
+type PatientSummary struct {
+	FirstData                *time.Time             `json:"firstData,omitempty"`
+	HighGlucoseThreshold     *float64               `json:"highGlucoseThreshold,omitempty"`
+	LastData                 *time.Time             `json:"lastData,omitempty"`
+	LastUpdatedDate          *time.Time             `json:"lastUpdatedDate,omitempty"`
+	LastUploadDate           *time.Time             `json:"lastUploadDate,omitempty"`
+	LowGlucoseThreshold      *float64               `json:"lowGlucoseThreshold,omitempty"`
+	OutdatedSince            *time.Time             `json:"outdatedSince,omitempty"`
+	Periods                  *PatientSummaryPeriods `json:"periods,omitempty"`
+	TotalDays                *int                   `json:"totalDays,omitempty"`
+	VeryHighGlucoseThreshold *float64               `json:"veryHighGlucoseThreshold,omitempty"`
+	VeryLowGlucoseThreshold  *float64               `json:"veryLowGlucoseThreshold,omitempty"`
+}
+
+// PatientSummaryPeriod defines model for PatientSummaryPeriod.
+type PatientSummaryPeriod struct {
+	// Blood glucose value, in `mmol/L`
+	AverageGlucose             *AverageGlucose `json:"averageGlucose,omitempty"`
+	GlucoseManagementIndicator *float64        `json:"glucoseManagementIndicator,omitempty"`
+	TimeCGMUseMinutes          *int            `json:"timeCGMUseMinutes,omitempty"`
+	TimeCGMUsePercent          *float64        `json:"timeCGMUsePercent,omitempty"`
+	TimeCGMUseRecords          *int            `json:"timeCGMUseRecords,omitempty"`
+	TimeInHighMinutes          *int            `json:"timeInHighMinutes,omitempty"`
+	TimeInHighPercent          *float64        `json:"timeInHighPercent,omitempty"`
+	TimeInHighRecords          *int            `json:"timeInHighRecords,omitempty"`
+	TimeInLowMinutes           *int            `json:"timeInLowMinutes,omitempty"`
+	TimeInLowPercent           *float64        `json:"timeInLowPercent,omitempty"`
+	TimeInLowRecords           *int            `json:"timeInLowRecords,omitempty"`
+	TimeInTargetMinutes        *int            `json:"timeInTargetMinutes,omitempty"`
+	TimeInTargetPercent        *float64        `json:"timeInTargetPercent,omitempty"`
+	TimeInTargetRecords        *int            `json:"timeInTargetRecords,omitempty"`
+	TimeInVeryHighMinutes      *int            `json:"timeInVeryHighMinutes,omitempty"`
+	TimeInVeryHighPercent      *float64        `json:"timeInVeryHighPercent,omitempty"`
+	TimeInVeryHighRecords      *int            `json:"timeInVeryHighRecords,omitempty"`
+	TimeInVeryLowMinutes       *int            `json:"timeInVeryLowMinutes,omitempty"`
+	TimeInVeryLowPercent       *float64        `json:"timeInVeryLowPercent,omitempty"`
+	TimeInVeryLowRecords       *int            `json:"timeInVeryLowRecords,omitempty"`
+}
+
+// PatientSummaryPeriods defines model for PatientSummaryPeriods.
+type PatientSummaryPeriods struct {
+	N14d *PatientSummaryPeriod `json:"14d,omitempty"`
+}
+
+// PatientTag defines model for PatientTag.
+type PatientTag struct {
+	// String representation of a resource id
+	Id string `json:"id"`
+
+	// The tag display name
+	Name string `json:"name"`
+}
+
 // Patients defines model for Patients.
 type Patients []Patient
 
@@ -217,11 +368,35 @@ type PhoneNumber struct {
 // String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
 type TidepoolUserId string
 
+// Tier defines model for Tier.
+type Tier string
+
+// TriggerMigration defines model for TriggerMigration.
+type TriggerMigration struct {
+	AttestationSubmitted *bool `json:"attestationSubmitted,omitempty"`
+}
+
+// UpdateTier defines model for UpdateTier.
+type UpdateTier struct {
+	Tier Tier `json:"tier"`
+}
+
+// UpdateUserDetails defines model for UpdateUserDetails.
+type UpdateUserDetails struct {
+	Email *openapi_types.Email `json:"email,omitempty"`
+}
+
 // ClinicId defines model for clinicId.
 type ClinicId string
 
 // ClinicianId defines model for clinicianId.
 type ClinicianId string
+
+// CreatedTimeEnd defines model for createdTimeEnd.
+type CreatedTimeEnd time.Time
+
+// CreatedTimeStart defines model for createdTimeStart.
+type CreatedTimeStart time.Time
 
 // Email defines model for email.
 type Email openapi_types.Email
@@ -238,6 +413,9 @@ type Offset int
 // PatientId defines model for patientId.
 type PatientId string
 
+// PatientTagId defines model for patientTagId.
+type PatientTagId string
+
 // Role defines model for role.
 type Role string
 
@@ -253,6 +431,18 @@ type Sort string
 // String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
 type UserId TidepoolUserId
 
+// ListAllCliniciansParams defines parameters for ListAllClinicians.
+type ListAllCliniciansParams struct {
+	Offset *Offset `json:"offset,omitempty"`
+	Limit  *Limit  `json:"limit,omitempty"`
+
+	// Return records created after the given date (inclusive)
+	CreatedTimeStart *CreatedTimeStart `json:"createdTimeStart,omitempty"`
+
+	// Return records created before the given date (exclusive)
+	CreatedTimeEnd *CreatedTimeEnd `json:"createdTimeEnd,omitempty"`
+}
+
 // ListClinicsForClinicianParams defines parameters for ListClinicsForClinician.
 type ListClinicsForClinicianParams struct {
 	Offset *Offset `json:"offset,omitempty"`
@@ -264,6 +454,12 @@ type ListClinicsParams struct {
 	Limit     *Limit     `json:"limit,omitempty"`
 	Offset    *Offset    `json:"offset,omitempty"`
 	ShareCode *ShareCode `json:"shareCode,omitempty"`
+
+	// Return records created after the given date (inclusive)
+	CreatedTimeStart *CreatedTimeStart `json:"createdTimeStart,omitempty"`
+
+	// Return records created before the given date (exclusive)
+	CreatedTimeEnd *CreatedTimeEnd `json:"createdTimeEnd,omitempty"`
 }
 
 // CreateClinicJSONBody defines parameters for CreateClinic.
@@ -291,11 +487,20 @@ type UpdateClinicianJSONBody Clinician
 // AssociateClinicianToUserJSONBody defines parameters for AssociateClinicianToUser.
 type AssociateClinicianToUserJSONBody AssociateClinicianToUser
 
+// TriggerInitialMigrationJSONBody defines parameters for TriggerInitialMigration.
+type TriggerInitialMigrationJSONBody TriggerMigration
+
 // MigrateLegacyClinicianPatientsJSONBody defines parameters for MigrateLegacyClinicianPatients.
 type MigrateLegacyClinicianPatientsJSONBody Migration
 
 // UpdateMigrationJSONBody defines parameters for UpdateMigration.
 type UpdateMigrationJSONBody MigrationUpdate
+
+// CreatePatientTagJSONBody defines parameters for CreatePatientTag.
+type CreatePatientTagJSONBody PatientTag
+
+// UpdatePatientTagJSONBody defines parameters for UpdatePatientTag.
+type UpdatePatientTagJSONBody PatientTag
 
 // ListPatientsParams defines parameters for ListPatients.
 type ListPatientsParams struct {
@@ -306,6 +511,33 @@ type ListPatientsParams struct {
 
 	// Sort order and attribute (e.g. +name or -name)
 	Sort *Sort `json:"sort,omitempty"`
+
+	// Percentage of time of CGM use
+	SummaryPeriods14dTimeCGMUsePercent *string `json:"summary.periods.14d.timeCGMUsePercent,omitempty"`
+
+	// Percentage of time below 54 mg/dL
+	SummaryPeriods14dTimeInVeryLowPercent *string `json:"summary.periods.14d.timeInVeryLowPercent,omitempty"`
+
+	// Percentage of time in range 54-70 mg/dL
+	SummaryPeriods14dTimeInLowPercent *string `json:"summary.periods.14d.timeInLowPercent,omitempty"`
+
+	// Percentage of time in range 70-180 mg/dL
+	SummaryPeriods14dTimeInTargetPercent *string `json:"summary.periods.14d.timeInTargetPercent,omitempty"`
+
+	// Percentage of time in range 180-250 mg/dL
+	SummaryPeriods14dTimeInHighPercent *string `json:"summary.periods.14d.timeInHighPercent,omitempty"`
+
+	// Percentage of time above range 250 mg/dL
+	SummaryPeriods14dTimeInVeryHighPercent *string `json:"summary.periods.14d.timeInVeryHighPercent,omitempty"`
+
+	// Inclusive
+	SummaryLastUploadDateFrom *time.Time `json:"summary.lastUploadDateFrom,omitempty"`
+
+	// Exclusive
+	SummaryLastUploadDateTo *time.Time `json:"summary.lastUploadDateTo,omitempty"`
+
+	// Comma-separated list of patient tag IDs
+	Tags *[]string `json:"tags,omitempty"`
 }
 
 // CreatePatientAccountJSONBody defines parameters for CreatePatientAccount.
@@ -320,11 +552,23 @@ type UpdatePatientJSONBody Patient
 // UpdatePatientPermissionsJSONBody defines parameters for UpdatePatientPermissions.
 type UpdatePatientPermissionsJSONBody PatientPermissions
 
+// UpdateTierJSONBody defines parameters for UpdateTier.
+type UpdateTierJSONBody UpdateTier
+
+// UpdatePatientSummaryJSONBody defines parameters for UpdatePatientSummary.
+type UpdatePatientSummaryJSONBody PatientSummary
+
 // ListClinicsForPatientParams defines parameters for ListClinicsForPatient.
 type ListClinicsForPatientParams struct {
 	Offset *Offset `json:"offset,omitempty"`
 	Limit  *Limit  `json:"limit,omitempty"`
 }
+
+// UpdatePatientDataSourcesJSONBody defines parameters for UpdatePatientDataSources.
+type UpdatePatientDataSourcesJSONBody DataSources
+
+// UpdateClinicUserDetailsJSONBody defines parameters for UpdateClinicUserDetails.
+type UpdateClinicUserDetailsJSONBody UpdateUserDetails
 
 // CreateClinicJSONRequestBody defines body for CreateClinic for application/json ContentType.
 type CreateClinicJSONRequestBody CreateClinicJSONBody
@@ -341,11 +585,20 @@ type UpdateClinicianJSONRequestBody UpdateClinicianJSONBody
 // AssociateClinicianToUserJSONRequestBody defines body for AssociateClinicianToUser for application/json ContentType.
 type AssociateClinicianToUserJSONRequestBody AssociateClinicianToUserJSONBody
 
+// TriggerInitialMigrationJSONRequestBody defines body for TriggerInitialMigration for application/json ContentType.
+type TriggerInitialMigrationJSONRequestBody TriggerInitialMigrationJSONBody
+
 // MigrateLegacyClinicianPatientsJSONRequestBody defines body for MigrateLegacyClinicianPatients for application/json ContentType.
 type MigrateLegacyClinicianPatientsJSONRequestBody MigrateLegacyClinicianPatientsJSONBody
 
 // UpdateMigrationJSONRequestBody defines body for UpdateMigration for application/json ContentType.
 type UpdateMigrationJSONRequestBody UpdateMigrationJSONBody
+
+// CreatePatientTagJSONRequestBody defines body for CreatePatientTag for application/json ContentType.
+type CreatePatientTagJSONRequestBody CreatePatientTagJSONBody
+
+// UpdatePatientTagJSONRequestBody defines body for UpdatePatientTag for application/json ContentType.
+type UpdatePatientTagJSONRequestBody UpdatePatientTagJSONBody
 
 // CreatePatientAccountJSONRequestBody defines body for CreatePatientAccount for application/json ContentType.
 type CreatePatientAccountJSONRequestBody CreatePatientAccountJSONBody
@@ -358,4 +611,16 @@ type UpdatePatientJSONRequestBody UpdatePatientJSONBody
 
 // UpdatePatientPermissionsJSONRequestBody defines body for UpdatePatientPermissions for application/json ContentType.
 type UpdatePatientPermissionsJSONRequestBody UpdatePatientPermissionsJSONBody
+
+// UpdateTierJSONRequestBody defines body for UpdateTier for application/json ContentType.
+type UpdateTierJSONRequestBody UpdateTierJSONBody
+
+// UpdatePatientSummaryJSONRequestBody defines body for UpdatePatientSummary for application/json ContentType.
+type UpdatePatientSummaryJSONRequestBody UpdatePatientSummaryJSONBody
+
+// UpdatePatientDataSourcesJSONRequestBody defines body for UpdatePatientDataSources for application/json ContentType.
+type UpdatePatientDataSourcesJSONRequestBody UpdatePatientDataSourcesJSONBody
+
+// UpdateClinicUserDetailsJSONRequestBody defines body for UpdateClinicUserDetails for application/json ContentType.
+type UpdateClinicUserDetailsJSONRequestBody UpdateClinicUserDetailsJSONBody
 

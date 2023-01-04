@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/apple"
 
+	clinicClient "github.com/tidepool-org/clinic/client"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/auth/store"
@@ -23,6 +24,7 @@ type Service interface {
 
 	TaskClient() task.Client
 	ConfirmationClient() confirmationClient.ClientWithResponsesInterface
+	ClinicClient() clinicClient.ClientWithResponsesInterface
 	DeviceCheck() apple.DeviceCheck
 
 	Status(context.Context) *Status

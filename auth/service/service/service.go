@@ -12,6 +12,7 @@ import (
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
+	clinicClient "github.com/tidepool-org/clinic/client"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/application"
@@ -37,6 +38,14 @@ import (
 	taskClient "github.com/tidepool-org/platform/task/client"
 )
 
+type clinicClientConfig struct {
+	ServiceAddress string `envconfig:"TIDEPOOL_CLINIC_CLIENT_ADDRESS"`
+}
+
+func (c *clinicClientConfig) Load() error {
+	return envconfig.Process("", c)
+}
+
 type confirmationClientConfig struct {
 	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
 }
@@ -50,6 +59,7 @@ type Service struct {
 	domain             string
 	authStore          *authMongo.Store
 	dataSourceClient   *dataSourceClient.Client
+	clinicClient       clinicClient.ClientWithResponsesInterface
 	confirmationClient confirmationClient.ClientWithResponsesInterface
 	taskClient         task.Client
 	providerFactory    provider.Factory
@@ -93,6 +103,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeClinicClient(); err != nil {
+		return err
+	}
 	if err := s.initializeConfirmationClient(); err != nil {
 		return err
 	}
@@ -118,6 +131,7 @@ func (s *Service) Terminate() {
 	s.terminateProviderFactory()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
+	s.terminateClinicClient()
 	s.terminateConfirmationClient()
 	s.terminateAuthStore()
 	s.terminateRouter()
@@ -134,6 +148,10 @@ func (s *Service) AuthStore() store.Store {
 
 func (s *Service) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
+}
+
+func (s *Service) ClinicClient() clinicClient.ClientWithResponsesInterface {
+	return s.clinicClient
 }
 
 func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
@@ -264,6 +282,40 @@ func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
 		s.Logger().Debug("Destroying data source client")
 		s.dataSourceClient = nil
+	}
+}
+
+func (s *Service) initializeClinicClient() error {
+	s.Logger().Debug("Loading clinic client config")
+
+	cfg := &clinicClientConfig{}
+	if err := cfg.Load(); err != nil {
+		return err
+	}
+
+	opts := clinicClient.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		token, err := s.authClient.ServerSessionToken()
+		if err != nil {
+			return err
+		}
+
+		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		return nil
+	})
+
+	clnt, err := clinicClient.NewClientWithResponses(cfg.ServiceAddress, opts)
+	if err != nil {
+		return err
+	}
+	s.clinicClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateClinicClient() {
+	if s.clinicClient != nil {
+		s.Logger().Debug("Destroying confirmation client")
+		s.clinicClient = nil
 	}
 }
 

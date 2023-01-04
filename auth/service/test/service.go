@@ -7,6 +7,7 @@ import (
 
 	"github.com/onsi/gomega"
 
+	clinicClient "github.com/tidepool-org/clinic/client"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/auth/service"
@@ -31,6 +32,7 @@ type Service struct {
 	TaskClientImpl             *taskTest.Client
 	StatusInvocations          int
 	StatusOutputs              []*service.Status
+	clinicClient               clinicClient.ClientWithResponsesInterface
 	confirmationClient         confirmationClient.ClientWithResponsesInterface
 }
 
@@ -69,6 +71,10 @@ func (s *Service) TaskClient() task.Client {
 	s.TaskClientInvocations++
 
 	return s.TaskClientImpl
+}
+
+func (s *Service) ClinicClient() clinicClient.ClientWithResponsesInterface {
+	return s.clinicClient
 }
 
 func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {

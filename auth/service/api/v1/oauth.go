@@ -10,6 +10,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	clinicClient "github.com/tidepool-org/clinic/client"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/auth"
@@ -151,6 +152,19 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
 		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined.String())
 		r.htmlOnRedirect(res, req, html)
+
+		if prvdr.Name() == "dexcom" {
+			// Decline dexcom request for any associated patient records
+			response, err := r.ClinicClient().DeclineDexcomConnectRequestWithResponse(ctx, clinicClient.UserId(restrictedToken.UserID))
+
+			if err != nil && response.StatusCode() != http.StatusNotFound {
+				log.LoggerFromContext(ctx).WithError(err).Error("unexpected error declining dexcom connect request")
+			}
+			if !(response.StatusCode() == http.StatusNoContent || response.StatusCode() == http.StatusNotFound) {
+				log.LoggerFromContext(ctx).WithError(err).Errorf("unexpected status code when declining dexcom connect request %v", response.StatusCode())
+			}
+		}
+
 		return
 	} else if errorCode != "" {
 		r.htmlOnError(res, req, errors.Newf("oauth provider return unexpected error %q", errorCode))
