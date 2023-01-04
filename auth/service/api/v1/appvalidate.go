@@ -15,6 +15,7 @@ func (r *Router) AppValidateRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Post("/v1/attestations/challenges", api.RequireUser(r.CreateAttestationChallenge)),
 		rest.Post("/v1/assertions/challenges", api.RequireUser(r.CreateAssertionChallenge)),
+		rest.Post("/v1/attestations/verifications", api.RequireUser(r.VerifyAttestation)),
 	}
 }
 
@@ -62,4 +63,22 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 	responder.Data(http.StatusCreated, result)
+}
+
+func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	details := request.DetailsFromContext(req.Context())
+	ctx := req.Context()
+
+	attestVerify := appvalidate.NewAttestationVerify(details.UserID())
+	err := request.DecodeRequestBody(req.Request, attestVerify)
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	err = r.AppValidator().VerifyAttestation(ctx, attestVerify)
+	if responder.RespondIfError(err) {
+		return
+	}
+	responder.Empty(http.StatusNoContent)
 }

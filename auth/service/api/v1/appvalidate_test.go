@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	gomock "github.com/golang/mock/gomock"
@@ -19,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/middleware"
 
@@ -42,13 +44,49 @@ var _ = Describe("App Validation", func() {
 		Return(logTest.NewLogger()).
 		AnyTimes()
 
-	userID := "user"
-	validSessionToken := "sessionToken"
-	serverSessionToken := "serverSessionToken"
-	details := request.NewDetails(request.MethodSessionToken, userID, validSessionToken)
-	challenge := "challenge"
+	unattestedUser := user{
+		UserID:              "unattested",
+		SessionToken:        "unattestedSessionToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "unattested", "unattestedSessionToken"),
+		AttestationVerified: false,
+	}
+	attestedUser := user{
+		UserID:              "attested",
+		SessionToken:        "attestedSessionToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attested", "attestedSessionToken"),
+		KeyID:               "YWJjZGVmYWJjZGVm",
+		AttestationVerified: false,
+	}
+	attestedVerifiedUser := user{
+		UserID:              "attestedVerified",
+		SessionToken:        "attestedVerifiedSessionToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedSessionToken"),
+		KeyID:               "YWJkZmRlZg=",
+		AttestationVerified: true,
+	}
+	users := []user{
+		unattestedUser,
+		attestedUser,
+		attestedVerifiedUser,
+	}
 
-	repo := newRepository(ctrl)
+	challenge := "challenge"
+	serverSessionToken := "serverSessionToken"
+
+	initialValidations := make([]appvalidate.AppValidation, len(users))
+	for i, user := range users {
+		validation := appvalidate.AppValidation{
+			UserID:               user.UserID,
+			KeyID:                user.KeyID,
+			Verified:             user.AttestationVerified,
+			AttestationChallenge: challenge,
+		}
+		if user.AttestationVerified {
+			validation.AttestationVerifiedTime = pointer.FromTime(time.Date(2023, time.January, 3, 10, 0, 0, 0, time.UTC))
+		}
+		initialValidations[i] = validation
+	}
+	repo := newRepository(ctrl, initialValidations)
 	generator := appvalidate.NewMockChallengeGenerator(ctrl)
 	generator.EXPECT().
 		GenerateChallenge(gomock.Any()).
@@ -73,8 +111,10 @@ var _ = Describe("App Validation", func() {
 	authClient.EXPECT().
 		ValidateSessionToken(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, token string) (request.Details, error) {
-			if token == validSessionToken {
-				return details, nil
+			for _, user := range users {
+				if token == user.SessionToken {
+					return user.Details, nil
+				}
 			}
 			return nil, request.ErrorUnauthorized()
 		}).
@@ -109,7 +149,7 @@ var _ = Describe("App Validation", func() {
 				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
 			}
 
-			req := newRequest(http.MethodPost, "/v1/attestations/challenges", validSessionToken, body)
+			req := newRequest(http.MethodPost, "/v1/attestations/challenges", unattestedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusCreated))
@@ -125,7 +165,7 @@ var _ = Describe("App Validation", func() {
 				KeyID: "",
 			}
 
-			req := newRequest(http.MethodPost, "/v1/attestations/challenges", validSessionToken, body)
+			req := newRequest(http.MethodPost, "/v1/attestations/challenges", unattestedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusBadRequest))
@@ -148,14 +188,117 @@ var _ = Describe("App Validation", func() {
 				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
 			}
 
-			badSessionToken := validSessionToken + "_BAD_TOKEN!"
+			badSessionToken := "BAD_TOKEN!"
 			req := newRequest(http.MethodPost, "/v1/attestations/challenges", badSessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusUnauthorized))
 		})
 	})
+
+	Describe("POST /v1/assertions/challenges", func() {
+		It("fails with an unverified user", func() {
+			body := &appvalidate.ChallengeCreate{
+				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
+			}
+
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+		})
+
+		It("succeeds only with a verified attested user", func() {
+			body := &appvalidate.ChallengeCreate{
+				KeyID: attestedVerifiedUser.KeyID,
+			}
+
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", attestedVerifiedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusCreated))
+			resp := w.Result()
+			var result appvalidate.ChallengeResult
+			err := unmashalBody(resp.Body, &result)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Challenge).To(Equal(challenge))
+		})
+
+		It("fails with empty keyID", func() {
+			body := &appvalidate.ChallengeCreate{
+				KeyID: "",
+			}
+
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+		})
+
+		It("fails if unauthorized", func() {
+			body := &appvalidate.ChallengeCreate{
+				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
+			}
+
+			noSessionToken := ""
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", noSessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusUnauthorized))
+		})
+
+		It("fails with bad session token", func() {
+			body := &appvalidate.ChallengeCreate{
+				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
+			}
+
+			badSessionToken := "BAD_TOKEN!"
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", badSessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusUnauthorized))
+		})
+	})
+
+	Describe("POST /v1/attestations/verifications", func() {
+		// Commented out tests right now because need an actual signed object
+		// to verify - will get once available from actual iOS device.
+		// It("succeeds on valid input", func() {
+		// 	body := &appvalidate.AttestationVerify{
+		// 		KeyID:             attestedUser.KeyID,
+		// 		Challenge:         challenge,
+		// 		AttestationObject: "YWJjZGVmZw==", // base64 encoded string of the binary CBOR data returned from iOS api.
+		// 	}
+
+		// 	req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
+		// 	w := httptest.NewRecorder()
+		// 	handler.ServeHTTP(w, req)
+		// 	Expect(w.Code).To(Equal(http.StatusNoContent))
+		// })
+
+		// It("fails on attestation object that is not base64 encoded", func() {
+		// 	body := &appvalidate.AttestationVerify{
+		// 		KeyID:             attestedUser.KeyID,
+		// 		Challenge:         challenge,
+		// 		AttestationObject: `{"key": "field"}`,
+		// 	}
+
+		// 	req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
+		// 	w := httptest.NewRecorder()
+		// 	handler.ServeHTTP(w, req)
+		// 	Expect(w.Code).To(Equal(http.StatusBadRequest))
+		// })
+	})
 })
+
+// user is a helper user that contains relevant user information for tests.
+type user struct {
+	UserID              string
+	SessionToken        string
+	Details             request.Details
+	KeyID               string
+	AttestationVerified bool
+}
 
 // newRequest wraps httptest.NewRequest w/ a default logger as some of the
 // middleware expect the logger to be present so this prevents a nil pointer
@@ -197,10 +340,16 @@ func unmashalBody(r io.ReadCloser, result interface{}) error {
 	return json.NewDecoder(r).Decode(result)
 }
 
-func newRepository(ctrl *gomock.Controller) *appvalidate.MockRepository {
+func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.AppValidation) *appvalidate.MockRepository {
 	// In memory map for persistence across calls.
 	// [appvalidate.Filter] => *appvalidate.AppValidation
 	mapping := &sync.Map{}
+
+	for _, appValidation := range initialValidations {
+		// Make a copy since storing &appValidation is shared in the range loop.
+		copy := appValidation
+		mapping.Store(appvalidate.Filter{UserID: copy.UserID, KeyID: copy.KeyID}, &copy)
+	}
 
 	repo := appvalidate.NewMockRepository(ctrl)
 	repo.EXPECT().
@@ -252,6 +401,7 @@ func newRepository(ctrl *gomock.Controller) *appvalidate.MockRepository {
 				return errors.New("not found")
 			}
 			verification := verificationRaw.(*appvalidate.AppValidation)
+			// Ignore zero values like the `bson:",omitempty"` tag does
 			if !u.VerifiedTime.IsZero() {
 				verification.AssertionVerifiedTime = &u.VerifiedTime
 			}
@@ -261,6 +411,22 @@ func newRepository(ctrl *gomock.Controller) *appvalidate.MockRepository {
 			if u.Challenge != "" {
 				verification.AssertionChallenge = u.Challenge
 			}
+			return nil
+		}).
+		AnyTimes()
+
+	repo.EXPECT().
+		UpdateAttestation(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, f appvalidate.Filter, u appvalidate.AttestationUpdate) error {
+			verificationRaw, ok := mapping.Load(f)
+			if !ok {
+				return errors.New("not found")
+			}
+			verification := verificationRaw.(*appvalidate.AppValidation)
+			verification.PublicKey = u.PublicKey
+			verification.Verified = u.Verified
+			verification.FraudAssessmentReceipt = u.FraudAssessmentReceipt
+			verification.AttestationVerifiedTime = &u.VerifiedTime
 			return nil
 		}).
 		AnyTimes()

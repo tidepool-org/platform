@@ -2,6 +2,7 @@ package appvalidate
 
 import (
 	"context"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -115,4 +116,39 @@ func (v *Validator) CreateAssertChallenge(ctx context.Context, c *ChallengeCreat
 	}
 
 	return &ChallengeResult{Challenge: challenge}, nil
+}
+
+func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify) error {
+	if err := structValidator.New().Validate(av); err != nil {
+		return err
+	}
+
+	filter := Filter{UserID: av.UserID, KeyID: av.KeyID}
+	challenge, err := v.repo.GetAttestationChallenge(ctx, filter)
+	if err != nil {
+		return err
+	}
+	if challenge == "" {
+		return errors.New("found empty attestation challenge")
+	}
+
+	attestation, err := transformAttestation(av)
+	if err != nil {
+		return errors.Wrap(err, "unable to transform attestation")
+	}
+	pubKey, receipt, err := attestation.Verify(v.appleAppID, v.isProduction)
+	if err != nil {
+		return err
+	}
+	update := AttestationUpdate{
+		PublicKey:              string(pubKey),
+		FraudAssessmentReceipt: string(receipt),
+		Verified:               true,
+		VerifiedTime:           time.Now(),
+	}
+	if err := structValidator.New().Validate(&update); err != nil {
+		return err
+	}
+
+	return v.repo.UpdateAttestation(ctx, filter, update)
 }

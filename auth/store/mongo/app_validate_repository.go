@@ -89,6 +89,21 @@ func (r *AppValidateRepository) IsVerified(ctx context.Context, f appvalidate.Fi
 	return av.Verified, nil
 }
 
+func (r *AppValidateRepository) UpdateAttestation(ctx context.Context, f appvalidate.Filter, u appvalidate.AttestationUpdate) error {
+	selector := selectorFromFilter(f)
+	update := bson.M{
+		"$set": u,
+	}
+	res, err := r.UpdateOne(ctx, selector, update)
+	if err != nil {
+		return err
+	}
+	if res.ModifiedCount == 0 {
+		return errors.New("unable to find app validation object")
+	}
+	return nil
+}
+
 func selectorFromFilter(f appvalidate.Filter) bson.M {
 	return bson.M{
 		"userId": f.UserID,
