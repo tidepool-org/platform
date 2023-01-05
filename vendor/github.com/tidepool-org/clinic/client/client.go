@@ -242,6 +242,9 @@ type ClientInterface interface {
 
 	UpdatePatientDataSources(ctx context.Context, userId UserId, body UpdatePatientDataSourcesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DeclineDexcomConnectRequest request
+	DeclineDexcomConnectRequest(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteUserFromClinics request
 	DeleteUserFromClinics(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -249,9 +252,6 @@ type ClientInterface interface {
 	UpdateClinicUserDetailsWithBody(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateClinicUserDetails(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeclineDexcomConnectRequest request
-	DeclineDexcomConnectRequest(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ListAllClinicians(ctx context.Context, params *ListAllCliniciansParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -926,6 +926,18 @@ func (c *Client) UpdatePatientDataSources(ctx context.Context, userId UserId, bo
 	return c.Client.Do(req)
 }
 
+func (c *Client) DeclineDexcomConnectRequest(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeclineDexcomConnectRequestRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) DeleteUserFromClinics(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteUserFromClinicsRequest(c.Server, userId)
 	if err != nil {
@@ -952,18 +964,6 @@ func (c *Client) UpdateClinicUserDetailsWithBody(ctx context.Context, userId Use
 
 func (c *Client) UpdateClinicUserDetails(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateClinicUserDetailsRequest(c.Server, userId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeclineDexcomConnectRequest(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeclineDexcomConnectRequestRequest(c.Server, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -3160,6 +3160,40 @@ func NewUpdatePatientDataSourcesRequestWithBody(server string, userId UserId, co
 	return req, nil
 }
 
+// NewDeclineDexcomConnectRequestRequest generates requests for DeclineDexcomConnectRequest
+func NewDeclineDexcomConnectRequestRequest(server string, userId UserId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/patients/%s/decline_dexcom_connect_request", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewDeleteUserFromClinicsRequest generates requests for DeleteUserFromClinics
 func NewDeleteUserFromClinicsRequest(server string, userId UserId) (*http.Request, error) {
 	var err error
@@ -3237,40 +3271,6 @@ func NewUpdateClinicUserDetailsRequestWithBody(server string, userId UserId, con
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeclineDexcomConnectRequestRequest generates requests for DeclineDexcomConnectRequest
-func NewDeclineDexcomConnectRequestRequest(server string, userId UserId) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/v1/users/%s/decline_dexcom_connect_request", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -3469,6 +3469,9 @@ type ClientWithResponsesInterface interface {
 
 	UpdatePatientDataSourcesWithResponse(ctx context.Context, userId UserId, body UpdatePatientDataSourcesJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdatePatientDataSourcesResponse, error)
 
+	// DeclineDexcomConnectRequest request
+	DeclineDexcomConnectRequestWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeclineDexcomConnectRequestResponse, error)
+
 	// DeleteUserFromClinics request
 	DeleteUserFromClinicsWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeleteUserFromClinicsResponse, error)
 
@@ -3476,9 +3479,6 @@ type ClientWithResponsesInterface interface {
 	UpdateClinicUserDetailsWithBodyWithResponse(ctx context.Context, userId UserId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateClinicUserDetailsResponse, error)
 
 	UpdateClinicUserDetailsWithResponse(ctx context.Context, userId UserId, body UpdateClinicUserDetailsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateClinicUserDetailsResponse, error)
-
-	// DeclineDexcomConnectRequest request
-	DeclineDexcomConnectRequestWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeclineDexcomConnectRequestResponse, error)
 }
 
 type ListAllCliniciansResponse struct {
@@ -4329,6 +4329,27 @@ func (r UpdatePatientDataSourcesResponse) StatusCode() int {
 	return 0
 }
 
+type DeclineDexcomConnectRequestResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeclineDexcomConnectRequestResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeclineDexcomConnectRequestResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type DeleteUserFromClinicsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4365,27 +4386,6 @@ func (r UpdateClinicUserDetailsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateClinicUserDetailsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeclineDexcomConnectRequestResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r DeclineDexcomConnectRequestResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeclineDexcomConnectRequestResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -4879,6 +4879,15 @@ func (c *ClientWithResponses) UpdatePatientDataSourcesWithResponse(ctx context.C
 	return ParseUpdatePatientDataSourcesResponse(rsp)
 }
 
+// DeclineDexcomConnectRequestWithResponse request returning *DeclineDexcomConnectRequestResponse
+func (c *ClientWithResponses) DeclineDexcomConnectRequestWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeclineDexcomConnectRequestResponse, error) {
+	rsp, err := c.DeclineDexcomConnectRequest(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeclineDexcomConnectRequestResponse(rsp)
+}
+
 // DeleteUserFromClinicsWithResponse request returning *DeleteUserFromClinicsResponse
 func (c *ClientWithResponses) DeleteUserFromClinicsWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeleteUserFromClinicsResponse, error) {
 	rsp, err := c.DeleteUserFromClinics(ctx, userId, reqEditors...)
@@ -4903,15 +4912,6 @@ func (c *ClientWithResponses) UpdateClinicUserDetailsWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseUpdateClinicUserDetailsResponse(rsp)
-}
-
-// DeclineDexcomConnectRequestWithResponse request returning *DeclineDexcomConnectRequestResponse
-func (c *ClientWithResponses) DeclineDexcomConnectRequestWithResponse(ctx context.Context, userId UserId, reqEditors ...RequestEditorFn) (*DeclineDexcomConnectRequestResponse, error) {
-	rsp, err := c.DeclineDexcomConnectRequest(ctx, userId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeclineDexcomConnectRequestResponse(rsp)
 }
 
 // ParseListAllCliniciansResponse parses an HTTP response from a ListAllCliniciansWithResponse call
@@ -5816,6 +5816,22 @@ func ParseUpdatePatientDataSourcesResponse(rsp *http.Response) (*UpdatePatientDa
 	return response, nil
 }
 
+// ParseDeclineDexcomConnectRequestResponse parses an HTTP response from a DeclineDexcomConnectRequestWithResponse call
+func ParseDeclineDexcomConnectRequestResponse(rsp *http.Response) (*DeclineDexcomConnectRequestResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeclineDexcomConnectRequestResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseDeleteUserFromClinicsResponse parses an HTTP response from a DeleteUserFromClinicsWithResponse call
 func ParseDeleteUserFromClinicsResponse(rsp *http.Response) (*DeleteUserFromClinicsResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
@@ -5841,22 +5857,6 @@ func ParseUpdateClinicUserDetailsResponse(rsp *http.Response) (*UpdateClinicUser
 	}
 
 	response := &UpdateClinicUserDetailsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseDeclineDexcomConnectRequestResponse parses an HTTP response from a DeclineDexcomConnectRequestWithResponse call
-func ParseDeclineDexcomConnectRequestResponse(rsp *http.Response) (*DeclineDexcomConnectRequestResponse, error) {
-	bodyBytes, err := ioutil.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeclineDexcomConnectRequestResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
