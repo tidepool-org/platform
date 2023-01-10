@@ -45,7 +45,8 @@ func DeviceTransmitterGenerations() []string {
 }
 
 type DevicesResponse struct {
-	Devices *Devices `json:"devices,omitempty"`
+	Devices       *Devices `json:"devices,omitempty"`
+	IsSandboxData bool
 }
 
 func ParseDevicesResponse(parser structure.ObjectParser) *DevicesResponse {
@@ -67,7 +68,9 @@ func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
 
 func (d *DevicesResponse) Validate(validator structure.Validator) {
 	if devicesValidator := validator.WithReference("devices"); d.Devices != nil {
-		d.Devices.Validate(devicesValidator)
+		if !d.IsSandboxData {
+			d.Devices.Validate(devicesValidator)
+		}
 	} else {
 		devicesValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
