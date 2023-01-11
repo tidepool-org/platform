@@ -6,6 +6,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/appvalidate"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
@@ -37,6 +38,11 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 
 	result, err := r.AppValidator().CreateAttestChallenge(ctx, challengeCreate)
 	if responder.RespondIfError(err) {
+		fields := log.Fields{
+			"userID": details.UserID(),
+			"keyId":  challengeCreate.KeyID,
+		}
+		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to create attestation challenge")
 		return
 	}
 	responder.Data(http.StatusCreated, result)
@@ -60,6 +66,11 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 
 	result, err := r.AppValidator().CreateAssertChallenge(ctx, challengeCreate)
 	if responder.RespondIfError(err) {
+		fields := log.Fields{
+			"userID": details.UserID(),
+			"keyId":  challengeCreate.KeyID,
+		}
+		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to create assertion challenge")
 		return
 	}
 	responder.Data(http.StatusCreated, result)
@@ -78,6 +89,11 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 
 	err = r.AppValidator().VerifyAttestation(ctx, attestVerify)
 	if responder.RespondIfError(err) {
+		fields := log.Fields{
+			"userID": details.UserID(),
+			"keyId":  attestVerify.KeyID,
+		}
+		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to verify attestation")
 		return
 	}
 	responder.Empty(http.StatusNoContent)
