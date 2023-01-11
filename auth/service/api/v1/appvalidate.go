@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
+	"github.com/tidepool-org/platform/structure"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -26,13 +27,7 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
-	err := request.DecodeRequestBody(req.Request, challengeCreate)
-	if err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-	if err := structValidator.New().Validate(challengeCreate); err != nil {
-		responder.Error(http.StatusBadRequest, err)
+	if decodeValidateBodyFailed(responder, req.Request, challengeCreate) {
 		return
 	}
 
@@ -54,13 +49,7 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
-	err := request.DecodeRequestBody(req.Request, challengeCreate)
-	if err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-	if err := structValidator.New().Validate(challengeCreate); err != nil {
-		responder.Error(http.StatusBadRequest, err)
+	if decodeValidateBodyFailed(responder, req.Request, challengeCreate) {
 		return
 	}
 
@@ -82,12 +71,11 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 
 	attestVerify := appvalidate.NewAttestationVerify(details.UserID())
-	err := request.DecodeRequestBody(req.Request, attestVerify)
-	if responder.RespondIfError(err) {
+	if decodeValidateBodyFailed(responder, req.Request, attestVerify) {
 		return
 	}
 
-	err = r.AppValidator().VerifyAttestation(ctx, attestVerify)
+	err := r.AppValidator().VerifyAttestation(ctx, attestVerify)
 	if responder.RespondIfError(err) {
 		fields := log.Fields{
 			"userID": details.UserID(),
@@ -97,4 +85,16 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 	responder.Empty(http.StatusNoContent)
+}
+
+func decodeValidateBodyFailed(responder *request.Responder, req *http.Request, body structure.Validatable) bool {
+	if err := request.DecodeRequestBody(req, body); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return true
+	}
+	if err := structValidator.New().Validate(body); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return true
+	}
+	return false
 }

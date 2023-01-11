@@ -276,18 +276,18 @@ var _ = Describe("App Validation", func() {
 		// 	Expect(w.Code).To(Equal(http.StatusNoContent))
 		// })
 
-		// It("fails on attestation object that is not base64 encoded", func() {
-		// 	body := &appvalidate.AttestationVerify{
-		// 		KeyID:             attestedUser.KeyID,
-		// 		Challenge:         challenge,
-		// 		AttestationObject: `{"key": "field"}`,
-		// 	}
+		It("fails on attestation object that is not base64 encoded", func() {
+			body := &appvalidate.AttestationVerify{
+				KeyID:             attestedUser.KeyID,
+				Challenge:         challenge,
+				AttestationObject: `{"key": "field"}`,
+			}
 
-		// 	req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
-		// 	w := httptest.NewRecorder()
-		// 	handler.ServeHTTP(w, req)
-		// 	Expect(w.Code).To(Equal(http.StatusBadRequest))
-		// })
+			req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
+		})
 	})
 })
 
