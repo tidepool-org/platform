@@ -68,7 +68,7 @@ func (r *AppValidateRepository) Get(ctx context.Context, f appvalidate.Filter) (
 
 	var validation appvalidate.AppValidation
 	err := r.FindOne(ctx, selector).Decode(&validation)
-	loggerFromContext(ctx, f).WithError(err).Debug("GetAssertion")
+	loggerFromContext(ctx, f).WithError(err).Info("GetAssertion")
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (r *AppValidateRepository) UpdateAssertion(ctx context.Context, f appvalida
 		"$set": u,
 	}
 	res, err := r.UpdateOne(ctx, selector, update)
-	loggerFromContext(ctx, f).WithFields(log.Fields{"update": u}).WithError(err).Debug("UpdateAssertion")
+	loggerFromContext(ctx, f).WithFields(log.Fields{"update": u}).WithError(err).Info("UpdateAssertion")
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (r *AppValidateRepository) IsVerified(ctx context.Context, f appvalidate.Fi
 	var av appvalidate.AppValidation
 
 	err := r.FindOne(ctx, selector, opts).Decode(&av)
-	loggerFromContext(ctx, f).WithError(err).Debug("IsVerified")
+	loggerFromContext(ctx, f).WithError(err).Info("IsVerified")
 	if err != nil {
 		return false, err
 	}
@@ -110,7 +110,7 @@ func (r *AppValidateRepository) UpdateAttestation(ctx context.Context, f appvali
 		"$set": u,
 	}
 	res, err := r.UpdateOne(ctx, selector, update)
-	loggerFromContext(ctx, f).WithFields(log.Fields{"update": u}).WithError(err).Debug("UpdateAttestation")
+	loggerFromContext(ctx, f).WithFields(log.Fields{"update": u}).WithError(err).Info("UpdateAttestation")
 	if err != nil {
 		return err
 	}
