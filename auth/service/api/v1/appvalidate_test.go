@@ -205,7 +205,7 @@ var _ = Describe("App Validation", func() {
 			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
-			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
 
 		It("succeeds only with a verified attested user", func() {
@@ -232,7 +232,7 @@ var _ = Describe("App Validation", func() {
 			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
-			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
 
 		It("fails if unauthorized", func() {
@@ -276,14 +276,31 @@ var _ = Describe("App Validation", func() {
 		// 	Expect(w.Code).To(Equal(http.StatusNoContent))
 		// })
 
-		It("fails on attestation object that is not base64 encoded", func() {
+		It("fails on attestation that is not base64 encoded", func() {
 			body := &appvalidate.AttestationVerify{
-				KeyID:             attestedUser.KeyID,
-				Challenge:         challenge,
-				AttestationObject: `{"key": "field"}`,
+				KeyID:       attestedUser.KeyID,
+				Challenge:   challenge,
+				Attestation: `{"key": "field"}`,
 			}
 
 			req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
+		})
+	})
+
+	Describe("POST /v1/assertions/verifications", func() {
+		It("fails on assertion that is not base64 encoded", func() {
+			body := &appvalidate.AssertionVerify{
+				KeyID: attestedVerifiedUser.KeyID,
+				ClientData: appvalidate.AssertionClientData{
+					Challenge: challenge,
+				},
+				Assertion: `{"key": "field"}`,
+			}
+
+			req := newRequest(http.MethodPost, "/v1/assertions/verifications", attestedVerifiedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusBadRequest))

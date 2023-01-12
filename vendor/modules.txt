@@ -62,6 +62,7 @@ github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/bas-d/appattest v0.1.0
 ## explicit; go 1.15
+github.com/bas-d/appattest/assertion
 github.com/bas-d/appattest/attestation
 github.com/bas-d/appattest/authenticator
 github.com/bas-d/appattest/utils

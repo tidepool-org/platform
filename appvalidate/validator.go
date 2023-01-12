@@ -10,6 +10,12 @@ import (
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+var (
+	ErrNotVerified                   = errors.New("attestation is not verified")
+	ErrAssertionVerificationFailed   = errors.New("unable to verify assertion object")
+	ErrAttestationVerificationFailed = errors.New("unable to verify attestation object")
+)
+
 type ValidatorConfig struct {
 	AppleAppID               string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_ID" default:"org.tidepool.app"`
 	UseProductionEnvironment bool   `envconfig:"TIDEPOOL_APPVALIDATION_USE_PRODUCTION" default:"false"`
@@ -97,7 +103,7 @@ func (v *Validator) CreateAssertChallenge(ctx context.Context, c *ChallengeCreat
 	// is verified.
 	// https://developer.apple.com/documentation/devicecheck/establishing_your_app_s_integrity#3561591
 	if !verified {
-		return nil, errors.New("cannot request assertion if attestation is not verified")
+		return nil, ErrNotVerified
 	}
 
 	challenge, err := v.generator.GenerateChallenge(v.challengeSize)
@@ -138,7 +144,7 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	}
 	pubKey, receipt, err := attestation.Verify(v.appleAppID, v.isProduction)
 	if err != nil {
-		return err
+		return errors.Wrap(ErrAttestationVerificationFailed, err.Error())
 	}
 	update := AttestationUpdate{
 		PublicKey:              string(pubKey),
@@ -151,4 +157,46 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	}
 
 	return v.repo.UpdateAttestation(ctx, filter, update)
+}
+
+func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) (*AssertionResult, error) {
+	if err := structValidator.New().Validate(av); err != nil {
+		return nil, err
+	}
+
+	filter := Filter{UserID: av.UserID, KeyID: av.KeyID}
+	validation, err := v.repo.Get(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	// Can only do assertion if attestation is verified.
+	if !validation.Verified {
+		return nil, ErrNotVerified
+	}
+	if validation.AssertionChallenge == "" {
+		return nil, errors.New("found empty assertion challenge")
+	}
+
+	assertion, err := transformAssertion(av)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to transform assertion")
+	}
+	newCounter, err := assertion.Verify(validation.AssertionChallenge, v.appleAppID, validation.AssertionCounter, []byte(validation.PublicKey))
+	if err != nil {
+		return nil, errors.Wrap(ErrAssertionVerificationFailed, err.Error())
+	}
+
+	update := AssertionUpdate{
+		VerifiedTime:     time.Now(),
+		AssertionCounter: newCounter,
+	}
+	if err := v.repo.UpdateAssertion(ctx, filter, update); err != nil {
+		return nil, err
+	}
+
+	// Assertion has succeeded, at this point, we would access some secret
+	// from a DB, partner API, etc, depending on the AssertionVerify object.
+	return &AssertionResult{
+		Secret: "",
+	}, nil
 }
