@@ -46,7 +46,7 @@ func DeviceTransmitterGenerations() []string {
 
 type DevicesResponse struct {
 	Devices       *Devices `json:"devices,omitempty"`
-	IsSandboxData bool
+	IsSandboxData bool     `json:"isSandboxData,omitempty"`
 }
 
 func ParseDevicesResponse(parser structure.ObjectParser) *DevicesResponse {

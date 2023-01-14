@@ -29,9 +29,14 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	// NOTE: Dexcom authorization server does not support HTTP Basic authentication
 	oauth2.RegisterBrokenAuthHeaderProvider(cfg.Address)
 
+	isSandboxData := false
+	if cfg != nil && cfg.Address == "https://sandbox-api.dexcom.com" {
+		isSandboxData = true
+	}
+
 	return &Client{
 		client:        clnt,
-		isSandboxData: cfg.Address == "https://sandbox-api.dexcom.com",
+		isSandboxData: isSandboxData,
 	}, nil
 }
 
