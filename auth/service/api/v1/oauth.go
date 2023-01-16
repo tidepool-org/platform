@@ -165,8 +165,14 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		r.htmlOnError(res, req, err)
 		return
 	} else if len(providerSessions) > 0 {
-		r.htmlOnError(res, req, errors.Newf("provider session already exists for user, type, and name"), alreadyConnectedError)
-		return
+		// Delete existing provider sessions and tasks if matching name and type found for user.
+		// This operation will also reset the data source to a `disconnected` state, and remove any associated tasks
+		// A new provider session and task will be created below which will update the existing data source state to `connected`.
+		for _, session := range providerSessions {
+			if deleteSessionErr := r.AuthClient().DeleteProviderSession(ctx, session.ID); deleteSessionErr != nil {
+				r.htmlOnError(res, req, errors.Newf("could not remove existing provider session"), alreadyConnectedError)
+			}
+		}
 	}
 
 	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
