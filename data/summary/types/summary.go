@@ -21,6 +21,10 @@ const (
 
 type RecordTypes interface {
 	//glucoseDatum.Glucose | insulinDatum.Insulin
+}
+
+type RecordTypesPt[T any] interface {
+	*T
 	GetTime() *time.Time
 }
 
@@ -56,41 +60,35 @@ type Dates struct {
 	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
 }
 
-type BucketData interface {
-	BGMBucket | CGMBucket
-}
-
-type BucketDataPt[T any] interface {
-	*T
-	BucketData
-}
-
-func CreateHourlyBucket[T BucketData, S BucketDataPt[T]](t time.Time) S {
-	stat := new(T)
-	return S(stat)
-	//return stat
-}
-
-type Bucket[T BucketData, S BucketDataPt[T]] struct {
+type Bucket[T any, S BucketDataPt[T]] struct {
 	Date           time.Time `json:"date" bson:"date"`
 	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 
 	Data S
 }
 
-type HourlyBuckets[T BucketData, S BucketDataPt[T]] struct {
-	Buckets []Bucket[T, S]
+type BucketDataPt[T any] interface {
+	*T
+	CalculateStats(interface{}, *time.Time) error
 }
 
-type Stats interface {
-	BGMStats | CGMStats
+func CreateBucket[T any, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
+	bucket := new(Bucket[T, A])
+	bucket.Date = t
+	return bucket
+}
+
+type Buckets[T any, S BucketDataPt[T]] []Bucket[T, S]
+
+type Stats interface{}
+
+type StatsPt[T any] interface {
+	*T
 	GetType() string
 	Init()
-	CalculateSummary()
-	GetHourlyStats() interface{}
 }
 
-type Summary[T Stats] struct {
+type Summary[A Stats] struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	Type   string
 	UserID string
@@ -98,7 +96,7 @@ type Summary[T Stats] struct {
 	Config Config `json:"config" bson:"config"`
 
 	Dates Dates `json:"dates" bson:"dates"`
-	Stats T
+	Stats A
 }
 
 func NewConfig() Config {
@@ -111,7 +109,7 @@ func NewConfig() Config {
 	}
 }
 
-func (s Summary[T]) SetOutdated() {
+func (s Summary[A]) SetOutdated() {
 	s.Dates.OutdatedSince = pointer.FromTime(time.Now().UTC())
 }
 
@@ -126,40 +124,27 @@ func NewDates() Dates {
 	}
 }
 
-func Update[T Stats, R RecordTypes](s T, userData []*R) error {
-	err := AddData(s.GetHourlyStats(), userData)
-	if err != nil {
-		return err
-	}
-	s.CalculateSummary()
-
-	return nil
-}
-
-func Create[T Stats](userId string) Summary[T] {
-	stats := new(T)
-	(*stats).Init()
-	s := Summary[T]{
-		Type:   (*stats).GetType(),
-		UserID: userId,
-		Stats:  *stats,
-		Config: NewConfig(),
-		Dates:  NewDates(),
-	}
+func Create[T any, A StatsPt[T]](userId string) *Summary[A] {
+	s := new(Summary[A])
+	s.UserID = userId
+	s.Stats.Init()
+	s.Type = s.Stats.GetType()
+	s.Config = NewConfig()
+	s.Dates = NewDates()
 
 	return s
 }
 
-func GetTypeString[T Stats]() string {
-	t := new(T)
-	return (*t).GetType()
+func GetTypeString[T any, A StatsPt[T]]() string {
+	s := new(Summary[A])
+	return s.Stats.GetType()
 }
 
 type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddStats[T HourlyBucket](stats []T, newStat T) error {
+func AddBin[T any, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat Bucket[T, A]) error {
 	var hourCount int
 	var oldestHour time.Time
 	var oldestHourToKeep time.Time
@@ -168,48 +153,48 @@ func AddStats[T HourlyBucket](stats []T, newStat T) error {
 	var newStatsTime time.Time
 
 	// update existing hour if one does exist
-	if len(stats) > 0 {
-		for i := len(stats) - 1; i >= 0; i-- {
+	if len(buckets) > 0 {
+		for i := len(buckets) - 1; i >= 0; i-- {
 
-			if (stats[i]).GetDate().Equal(newStat.GetDate()) {
-				stats[i] = newStat
+			if (buckets[i]).Date.Equal(newStat.Date) {
+				buckets[i] = newStat
 				existingDay = true
 				break
 			}
 
 			// we already passed our date, give up
-			if stats[i].GetDate().After(newStat.GetDate()) {
+			if buckets[i].Date.After(newStat.Date) {
 				break
 			}
 		}
 
 		// add hours for any gaps that this new stat skipped
-		statsGap = int(newStat.GetDate().Sub(stats[len(stats)-1].GetDate()).Hours())
+		statsGap = int(newStat.Date.Sub(buckets[len(buckets)-1].Date).Hours())
 		for i := statsGap; i > 1; i-- {
-			newStatsTime = newStat.GetDate().Add(time.Duration(-i) * time.Hour)
+			newStatsTime = newStat.Date.Add(time.Duration(-i) * time.Hour)
 
-			stats = append(stats, *CreateHourlyStat[T](newStatsTime))
+			buckets = append(buckets, *CreateBucket[T, A](newStatsTime))
 		}
 	}
 
 	if existingDay == false {
-		stats = append(stats, newStat)
+		buckets = append(buckets, newStat)
 	}
 
 	// remove extra days to cap at X days of newStat
-	hourCount = len(stats)
+	hourCount = len(buckets)
 	if hourCount > hoursAgoToKeep {
-		stats = stats[hourCount-hoursAgoToKeep:]
+		buckets = buckets[hourCount-hoursAgoToKeep:]
 	}
 
 	// remove any newStat that are older than X days from the last stat
-	oldestHour = stats[0].GetDate()
-	oldestHourToKeep = newStat.GetDate().Add(-hoursAgoToKeep * time.Hour)
+	oldestHour = buckets[0].Date
+	oldestHourToKeep = newStat.Date.Add(-hoursAgoToKeep * time.Hour)
 	if oldestHour.Before(oldestHourToKeep) {
 		// we don't check the last entry because we just added/updated it
-		for i := len(stats) - 2; i >= 0; i-- {
-			if stats[i].GetDate().Before(oldestHourToKeep) {
-				stats = stats[i+1:]
+		for i := len(buckets) - 2; i >= 0; i-- {
+			if buckets[i].Date.Before(oldestHourToKeep) {
+				buckets = buckets[i+1:]
 				break
 			}
 		}
@@ -228,12 +213,12 @@ func CalculateRealMinutes(i int, lastRecordTime time.Time) float64 {
 	return realMinutes
 }
 
-func AddData[T any, S HourlyStatPt[T]](s []S, userData []RecordTypes) error {
+func AddData[T any, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](s S, userData []D) error {
 	var recordTime *time.Time
 	var lastHour time.Time
 	var currentHour time.Time
 	var err error
-	var newStat S
+	var newBucket *Bucket[T, A]
 
 	for _, r := range userData {
 		recordTime = r.GetTime()
@@ -247,47 +232,48 @@ func AddData[T any, S HourlyStatPt[T]](s []S, userData []RecordTypes) error {
 
 		// store stats for the day, if we are now on the next hour
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = AddStats(s, newStat)
+			err = AddBin(s, *newBucket)
 			if err != nil {
 				return err
 			}
-			newStat = nil
+			newBucket = nil
 		}
 
-		if newStat == nil {
+		if newBucket == nil {
 			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
 			if len(s) > 0 {
 				for i := len(s) - 1; i >= 0; i-- {
-					if s[i].GetDate().Equal(currentHour) {
-						newStat = s[i]
+					if s[i].Date.Equal(currentHour) {
+						newBucket = &s[i]
 						break
 					}
 
 					// we already passed our date, give up
-					if s[i].GetDate().After(currentHour) {
+					if s[i].Date.After(currentHour) {
 						break
 					}
 				}
 			}
 
-			if newStat == nil {
-				newStat = CreateHourlyStat[T](currentHour)
+			if newBucket == nil {
+				newBucket = CreateBucket[T, A](currentHour)
 			}
 		}
 
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if newStat.GetLastRecordTime().IsZero() && len(s) > 0 {
-			newStat.SetLastRecordTime(s[len(s)-1].GetLastRecordTime())
+		if newBucket.LastRecordTime.IsZero() && len(s) > 0 {
+			newBucket.LastRecordTime = s[len(s)-1].LastRecordTime
 		}
 
-		newStat.CalculateStats(r)
+		newBucket.Data.CalculateStats(r, recordTime)
+
 	}
 
 	// store
-	err = AddStats(s, newStat)
+	err = AddBin(s, *newBucket)
 	if err != nil {
 		return err
 	}

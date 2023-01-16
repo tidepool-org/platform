@@ -3,13 +3,12 @@ package types
 import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"strconv"
 	"time"
 )
 
-type BGMBucket struct {
+type BGMBucketData struct {
 	TargetRecords   int `json:"targetRecords" bson:"targetRecords"`
 	LowRecords      int `json:"lowRecords" bson:"lowRecords"`
 	VeryLowRecords  int `json:"veryLowRecords" bson:"veryLowRecords"`
@@ -50,108 +49,58 @@ type BGMPeriod struct {
 type BGMPeriods map[string]BGMPeriod
 
 type BGMStats struct {
-	Periods     BGMPeriods     `json:"periods" bson:"periods"`
-	HourlyStats BGMHourlyStats `json:"hourlyStats" bson:"hourlyStats"`
-	TotalHours  int            `json:"totalHours" bson:"totalHours"`
+	Periods    BGMPeriods                             `json:"periods" bson:"periods"`
+	Buckets    Buckets[BGMBucketData, *BGMBucketData] `json:"buckets" bson:"buckets"`
+	TotalHours int                                    `json:"totalHours" bson:"totalHours"`
 }
 
-func (BGMStats) GetType() string {
+func (*BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (s BGMStats) Init() {
-	s.HourlyStats = make([]BGMHourlyStat, 0)
+func (s *BGMStats) Init() {
+	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
 	s.Periods = make(map[string]BGMPeriod)
 	s.TotalHours = 0
 }
 
-func (s BGMStats) CalculateStats(userDataInterface interface{}) error {
-	userData := userDataInterface.([]*glucoseDatum.Glucose)
-	var normalizedValue float64
-	var recordTime time.Time
-	var lastHour time.Time
-	var currentHour time.Time
-	var err error
-	var newStat *BGMHourlyStat
-
-	for _, r := range userData {
-		recordTime = *r.Time
-		if err != nil {
-			return errors.Wrap(err, "cannot parse time in record")
-		}
-
-		// truncate time is not timezone/DST safe here, even if we do expect UTC
-		currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
-			recordTime.Hour(), 0, 0, 0, recordTime.Location())
-
-		// store newStat for the day, if we are now on the next day
-		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = AddStats(s.HourlyStats, *newStat)
-			if err != nil {
-				return err
-			}
-			newStat = nil
-		}
-
-		if newStat == nil {
-			// pull newStat if they already exist
-			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(s.HourlyStats) > 0 {
-				for i := len(s.HourlyStats) - 1; i >= 0; i-- {
-					if s.HourlyStats[i].Date.Equal(currentHour) {
-						newStat = &s.HourlyStats[i]
-						break
-					}
-
-					// we already passed our date, give up
-					if s.HourlyStats[i].Date.After(currentHour) {
-						break
-					}
-				}
-			}
-
-			if newStat == nil {
-				newStat = CreateHourlyStat[BGMHourlyStat](currentHour)
-			}
-		}
-
-		lastHour = currentHour
-
-		// if on fresh day, pull LastRecordTime from last day if possible
-		if newStat.LastRecordTime.IsZero() && len(s.HourlyStats) > 0 {
-			newStat.LastRecordTime = s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
-		}
-
-		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
-
-		if normalizedValue <= veryLowBloodGlucose {
-			newStat.VeryLowRecords++
-		} else if normalizedValue >= veryHighBloodGlucose {
-			newStat.VeryHighRecords++
-		} else if normalizedValue <= lowBloodGlucose {
-			newStat.LowRecords++
-		} else if normalizedValue >= highBloodGlucose {
-			newStat.HighRecords++
-		} else {
-			newStat.TargetRecords++
-		}
-
-		newStat.TotalRecords++
-		newStat.TotalGlucose += normalizedValue
-		newStat.LastRecordTime = recordTime
-	}
-
-	// store
-	err = AddStats(s.HourlyStats, *newStat)
+func (s *BGMStats) Update(userData []*glucoseDatum.Glucose) error {
+	err := AddData(s.Buckets, userData)
 	if err != nil {
 		return err
 	}
 
+	s.CalculateSummary()
+
 	return nil
 }
 
-func (s BGMStats) CalculateSummary() {
-	totalStats := CreateHourlyStat[BGMHourlyStat](time.Time{})
+func (B *BGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time) error {
+	dataRecord := r.(*glucoseDatum.Glucose)
+	var normalizedValue float64
+
+	normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
+
+	if normalizedValue <= veryLowBloodGlucose {
+		B.VeryLowRecords++
+	} else if normalizedValue >= veryHighBloodGlucose {
+		B.VeryHighRecords++
+	} else if normalizedValue <= lowBloodGlucose {
+		B.LowRecords++
+	} else if normalizedValue >= highBloodGlucose {
+		B.HighRecords++
+	} else {
+		B.TargetRecords++
+	}
+
+	B.TotalRecords++
+	B.TotalGlucose += normalizedValue
+
+	return nil
+}
+
+func (s *BGMStats) CalculateSummary() {
+	var totalStats *BGMBucketData
 
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
@@ -159,21 +108,21 @@ func (s BGMStats) CalculateSummary() {
 	var nextStopPoint int
 	var currentIndex int
 
-	for i := 0; i < len(s.HourlyStats); i++ {
+	for i := 0; i < len(s.Buckets); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
 			s.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
 			nextStopPoint++
 		}
 
-		currentIndex = len(s.HourlyStats) - 1 - i
-		totalStats.TargetRecords += s.HourlyStats[currentIndex].TargetRecords
-		totalStats.LowRecords += s.HourlyStats[currentIndex].LowRecords
-		totalStats.VeryLowRecords += s.HourlyStats[currentIndex].VeryLowRecords
-		totalStats.HighRecords += s.HourlyStats[currentIndex].HighRecords
-		totalStats.VeryHighRecords += s.HourlyStats[currentIndex].VeryHighRecords
+		currentIndex = len(s.Buckets) - 1 - i
+		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+		totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+		totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+		totalStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+		totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
 
-		totalStats.TotalGlucose += s.HourlyStats[currentIndex].TotalGlucose
-		totalStats.TotalRecords += s.HourlyStats[currentIndex].TotalRecords
+		totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
+		totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
 	}
 
 	// fill in periods we never reached
@@ -182,7 +131,7 @@ func (s BGMStats) CalculateSummary() {
 	}
 }
 
-func (s BGMStats) CalculatePeriod(i int, totalStats *BGMHourlyStat) {
+func (s *BGMStats) CalculatePeriod(i int, totalStats *BGMBucketData) {
 	var timeInTargetPercent *float64
 	var timeInLowPercent *float64
 	var timeInVeryLowPercent *float64
@@ -192,12 +141,12 @@ func (s BGMStats) CalculatePeriod(i int, totalStats *BGMHourlyStat) {
 
 	// remove partial hour (data end) from total time for more accurate TimeBGMUse
 	totalMinutes := float64(i * 24 * 60)
-	lastRecordTime := s.HourlyStats[len(s.HourlyStats)-1].LastRecordTime
+	lastRecordTime := s.Buckets[len(s.Buckets)-1].LastRecordTime
 	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
 		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
 	totalMinutes = totalMinutes - nextHour.Sub(lastRecordTime).Minutes()
 
-	s.TotalHours = len(s.HourlyStats)
+	s.TotalHours = len(s.Buckets)
 
 	if totalStats.TotalRecords != 0 {
 		timeInTargetPercent = pointer.FromFloat64(float64(totalStats.TargetRecords) / float64(totalStats.TotalRecords))

@@ -17,13 +17,13 @@ func New(summaryRepository *storeStructuredMongo.Repository, dataRepository data
 	return registry
 }
 
-func addSummarizer[T types.Stats](reg *SummarizerRegistry, summarizer Summarizer[T]) {
-	typ := types.GetTypeString[T]()
+func addSummarizer[T any, A types.StatsPt[T]](reg *SummarizerRegistry, summarizer Summarizer[T]) {
+	typ := types.GetTypeString[T, A]()
 	reg.summarizers[typ] = summarizer
 }
 
-func GetSummarizer[T types.Stats](reg *SummarizerRegistry) Summarizer[T] {
-	typ := types.GetTypeString[T]()
+func GetSummarizer[T any, A types.StatsPt[T]](reg *SummarizerRegistry) Summarizer[T] {
+	typ := types.GetTypeString[T, A]()
 	summarizer := reg.summarizers[typ]
 	return summarizer.(Summarizer[T])
 }

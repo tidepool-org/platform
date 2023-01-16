@@ -3,38 +3,38 @@ package registry
 import (
 	"context"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"time"
 )
 
 type CGMSummarizer struct {
 	deviceData dataStore.DataRepository
-	summaries  *store.Repo[types.CGMStats]
+	summaries  *store.Repo[*types.CGMStats]
 }
 
 // Compile time interface check
-var _ Summarizer[types.CGMStats] = &CGMSummarizer{}
+var _ Summarizer[*types.CGMStats] = &CGMSummarizer{}
 
-func NewCGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[types.CGMStats] {
+func NewCGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[*types.CGMStats] {
 	return &CGMSummarizer{
 		deviceData: deviceData,
-		summaries:  store.New[types.CGMStats](collection),
+		summaries:  store.New[*types.CGMStats](collection),
 	}
 }
 
-func (c *CGMSummarizer) GetSummary(ctx context.Context, userId string) (*types.Summary[types.CGMStats], error) {
+func (c *CGMSummarizer) GetSummary(ctx context.Context, userId string) (*types.Summary[*types.CGMStats], error) {
 	return c.summaries.GetSummary(ctx, userId)
 }
 
-func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*types.Summary[types.CGMStats], error) {
+func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*types.Summary[*types.CGMStats], error) {
 	var status *types.UserLastUpdated
 	var err error
-	var userSummary *types.Summary[types.CGMStats]
+	var userSummary *types.Summary[*types.CGMStats]
 	var userData []*glucoseDatum.Glucose
 
 	timestamp := time.Now().UTC()
@@ -72,7 +72,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 
 	// user exists (has relevant data), but no summary, create a blank one
 	if userSummary == nil {
-		userSummary = pointer.FromAny(types.Create[types.CGMStats](userId))
+		userSummary = types.Create[types.CGMStats](userId)
 	}
 
 	// remove 30 days for start time
@@ -97,13 +97,13 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 	}
 
 	// skip past data
-	if len(userSummary.Stats.HourlyStats) > 0 {
-		userData, err = SkipUntil(userSummary.Stats.HourlyStats[len(userSummary.Stats.HourlyStats)-1].Date, userData)
+	if len(userSummary.Stats.Buckets) > 0 {
+		userData, err = summary.SkipUntil(userSummary.Stats.Buckets[len(userSummary.Stats.Buckets)-1].Date, userData)
 	}
 
 	// if there is new data
 	if len(userData) > 0 {
-		err = types.Update(userSummary.Stats, userData)
+		err = userSummary.Stats.Update(userData)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +116,7 @@ func (c *CGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 	userSummary.Dates.OutdatedSince = nil
 	userSummary.Dates.LastUploadDate = status.LastUpload
 	userSummary.Dates.LastData = userData[len(userData)].Time
-	userSummary.Dates.FirstData = userSummary.Stats.HourlyStats[0].Date
+	userSummary.Dates.FirstData = userSummary.Stats.Buckets[0].Date
 
 	// technically, this never could be zero, but we check anyway
 	userSummary.Dates.HasLastUploadDate = !status.LastUpload.IsZero()

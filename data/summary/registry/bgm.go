@@ -7,7 +7,6 @@ import (
 	"github.com/tidepool-org/platform/data/summary/types"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"time"
 )
@@ -18,27 +17,27 @@ const (
 
 type BGMSummarizer struct {
 	deviceData dataStore.DataRepository
-	summaries  *store.Repo[types.BGMStats]
+	summaries  *store.Repo[*types.BGMStats]
 }
 
 // Compile time interface check
-var _ Summarizer[types.BGMStats] = &BGMSummarizer{}
+var _ Summarizer[*types.BGMStats] = &BGMSummarizer{}
 
-func NewBGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[types.BGMStats] {
+func NewBGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[*types.BGMStats] {
 	return &BGMSummarizer{
 		deviceData: deviceData,
-		summaries:  store.New[types.BGMStats](collection),
+		summaries:  store.New[*types.BGMStats](collection),
 	}
 }
 
-func (c *BGMSummarizer) GetSummary(ctx context.Context, userId string) (*types.Summary[types.BGMStats], error) {
+func (c *BGMSummarizer) GetSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMStats], error) {
 	return c.summaries.GetSummary(ctx, userId)
 }
 
-func (c *BGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*types.Summary[types.BGMStats], error) {
+func (c *BGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMStats], error) {
 	var err error
 	var status *types.UserLastUpdated
-	var userSummary *types.Summary[types.BGMStats]
+	var userSummary *types.Summary[*types.BGMStats]
 	var userData []*glucoseDatum.Glucose
 
 	timestamp := time.Now().UTC()
@@ -76,7 +75,7 @@ func (c *BGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 
 	// user exists (has relevant data), but no summary, create a blank one
 	if userSummary == nil {
-		userSummary = pointer.FromAny(types.Create[types.BGMStats](userId))
+		userSummary = types.Create[types.BGMStats](userId)
 	}
 
 	// remove 30 days for start time
@@ -101,13 +100,13 @@ func (c *BGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 	}
 
 	// skip past data
-	if len(userSummary.Stats.HourlyStats) > 0 {
-		userData, err = SkipUntil(userSummary.Stats.HourlyStats[len(userSummary.Stats.HourlyStats)-1].Date, userData)
+	if len(userSummary.Stats.Buckets) > 0 {
+		userData, err = SkipUntil(userSummary.Stats.Buckets[len(userSummary.Stats.Buckets)-1].Date, userData)
 	}
 
 	// if there is new data
 	if len(userData) > 0 {
-		err = types.Update(userSummary.Stats, userData)
+		err = userSummary.Stats.Update(userData)
 		if err != nil {
 			return userSummary, err
 		}
@@ -120,7 +119,7 @@ func (c *BGMSummarizer) UpdateSummary(ctx context.Context, userId string) (*type
 	userSummary.Dates.OutdatedSince = nil
 	userSummary.Dates.LastUploadDate = status.LastUpload
 	userSummary.Dates.LastData = userData[len(userData)].Time
-	userSummary.Dates.FirstData = userSummary.Stats.HourlyStats[0].Date
+	userSummary.Dates.FirstData = userSummary.Stats.Buckets[0].Date
 
 	// technically, this never could be zero, but we check anyway
 	userSummary.Dates.HasLastUploadDate = !status.LastUpload.IsZero()
@@ -161,9 +160,9 @@ func (c *BGMSummarizer) BackfillSummaries(ctx context.Context) (int, error) {
 		}
 	}
 
-	var summaries = make([]*types.Summary[types.BGMStats], len(userIDsReqBackfill))
+	var summaries = make([]*types.Summary[*types.BGMStats], len(userIDsReqBackfill))
 	for i, userId := range userIDsReqBackfill {
-		summaries[i] = pointer.FromAny(types.Create[types.BGMStats](userId))
+		summaries[i] = types.Create[types.BGMStats](userId)
 	}
 
 	if len(summaries) > 0 {
