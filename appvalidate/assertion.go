@@ -33,12 +33,6 @@ type AssertionClientData struct {
 	Challenge string `json:"challenge"`
 }
 
-// AssertionResult is the response to a successful assertion. On success, a
-// secret of some kind will be returned to the user - key, passphrase, etc.
-type AssertionResult struct {
-	Secret string `json:"secret"`
-}
-
 func NewAssertionVerify(userID string) *AssertionVerify {
 	return &AssertionVerify{
 		UserID: userID,
