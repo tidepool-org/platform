@@ -159,31 +159,31 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	return v.repo.UpdateAttestation(ctx, filter, update)
 }
 
-func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) (*AssertionResult, error) {
+func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) error {
 	if err := structValidator.New().Validate(av); err != nil {
-		return nil, err
+		return err
 	}
 
 	filter := Filter{UserID: av.UserID, KeyID: av.KeyID}
 	validation, err := v.repo.Get(ctx, filter)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// Can only do assertion if attestation is verified.
 	if !validation.Verified {
-		return nil, ErrNotVerified
+		return ErrNotVerified
 	}
 	if validation.AssertionChallenge == "" {
-		return nil, errors.New("found empty assertion challenge")
+		return errors.New("found empty assertion challenge")
 	}
 
 	assertion, err := transformAssertion(av)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to transform assertion")
+		return errors.Wrap(err, "unable to transform assertion")
 	}
 	newCounter, err := assertion.Verify(validation.AssertionChallenge, v.appleAppID, validation.AssertionCounter, []byte(validation.PublicKey))
 	if err != nil {
-		return nil, errors.Wrap(ErrAssertionVerificationFailed, err.Error())
+		return errors.Wrap(ErrAssertionVerificationFailed, err.Error())
 	}
 
 	update := AssertionUpdate{
@@ -191,12 +191,8 @@ func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) (*
 		AssertionCounter: newCounter,
 	}
 	if err := v.repo.UpdateAssertion(ctx, filter, update); err != nil {
-		return nil, err
+		return err
 	}
 
-	// Assertion has succeeded, at this point, we would access some secret
-	// from a DB, partner API, etc, depending on the AssertionVerify object.
-	return &AssertionResult{
-		Secret: "",
-	}, nil
+	return nil
 }

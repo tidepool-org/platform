@@ -19,6 +19,8 @@ func (r *Router) AppValidateRoutes() []*rest.Route {
 		rest.Post("/v1/attestations/challenges", api.RequireUser(r.CreateAttestationChallenge)),
 		rest.Post("/v1/attestations/verifications", api.RequireUser(r.VerifyAttestation)),
 		rest.Post("/v1/assertions/challenges", api.RequireUser(r.CreateAssertionChallenge)),
+
+		// Rename this route to show actual intent of retrieving secret?
 		rest.Post("/v1/assertions/verifications", api.RequireUser(r.VerifyAssertion)),
 	}
 }
@@ -110,8 +112,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	result, err := r.AppValidator().VerifyAssertion(ctx, assertVerify)
-	if err != nil {
+	if err := r.AppValidator().VerifyAssertion(ctx, assertVerify); err != nil {
 		fields := log.Fields{
 			"userID": details.UserID(),
 			"keyId":  assertVerify.KeyID,
@@ -125,7 +126,10 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		responder.RespondIfError(err)
 		return
 	}
-	responder.Data(http.StatusOK, result)
+	// Assertion has succeeded, at this point, we would access some secret
+	// from a DB, partner API, etc, depending on the AssertionVerify object.
+	// r.SecretGetter.GetSecret(...)
+	responder.Empty(http.StatusOK)
 }
 
 func decodeValidateBodyFailed(responder *request.Responder, req *http.Request, body structure.Validatable) bool {
