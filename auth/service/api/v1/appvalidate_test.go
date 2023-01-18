@@ -46,21 +46,28 @@ var _ = Describe("App Validation", func() {
 
 	unattestedUser := user{
 		UserID:              "unattested",
-		SessionToken:        "unattestedSessionToken",
-		Details:             request.NewDetails(request.MethodSessionToken, "unattested", "unattestedSessionToken"),
+		SessionToken:        "unattestedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "unattested", "unattestedToken"),
 		AttestationVerified: false,
 	}
 	attestedUser := user{
 		UserID:              "attested",
-		SessionToken:        "attestedSessionToken",
-		Details:             request.NewDetails(request.MethodSessionToken, "attested", "attestedSessionToken"),
+		SessionToken:        "attestedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attested", "attestedToken"),
 		KeyID:               "YWJjZGVmYWJjZGVm",
+		AttestationVerified: false,
+	}
+	attestedUnverifiedUser := user{
+		UserID:              "attestedUnverified",
+		SessionToken:        "attestedUnverifiedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attestedUnverified", "attestedUnverified"),
+		KeyID:               "YWRzZmFkZg==",
 		AttestationVerified: false,
 	}
 	attestedVerifiedUser := user{
 		UserID:              "attestedVerified",
-		SessionToken:        "attestedVerifiedSessionToken",
-		Details:             request.NewDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedSessionToken"),
+		SessionToken:        "attestedVerifiedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedToken"),
 		KeyID:               "YWJkZmRlZg=",
 		AttestationVerified: true,
 	}
@@ -68,10 +75,11 @@ var _ = Describe("App Validation", func() {
 		unattestedUser,
 		attestedUser,
 		attestedVerifiedUser,
+		attestedUnverifiedUser,
 	}
 
 	challenge := "challenge"
-	serverSessionToken := "serverSessionToken"
+	serverSessionToken := "serverToken"
 
 	initialValidations := make([]appvalidate.AppValidation, len(users))
 	for i, user := range users {
@@ -199,10 +207,10 @@ var _ = Describe("App Validation", func() {
 	Describe("POST /v1/assertions/challenges", func() {
 		It("fails with an unverified user", func() {
 			body := &appvalidate.ChallengeCreate{
-				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
+				KeyID: attestedUnverifiedUser.KeyID,
 			}
 
-			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", attestedUnverifiedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusBadRequest))

@@ -19,8 +19,7 @@ func (r *Router) AppValidateRoutes() []*rest.Route {
 		rest.Post("/v1/attestations/challenges", api.RequireUser(r.CreateAttestationChallenge)),
 		rest.Post("/v1/attestations/verifications", api.RequireUser(r.VerifyAttestation)),
 		rest.Post("/v1/assertions/challenges", api.RequireUser(r.CreateAssertionChallenge)),
-
-		// Rename this route to show actual intent of retrieving secret?
+		// Rename this route to show actual intent of retrieving secret when secret retrieval is implemented.
 		rest.Post("/v1/assertions/verifications", api.RequireUser(r.VerifyAssertion)),
 	}
 }
