@@ -31,10 +31,10 @@ type Client interface {
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
-	GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats], error)
-	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats], error)
-	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats], error)
-	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats], error)
+	GetCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
+	GetBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
+	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
+	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([][]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
 }
@@ -135,7 +135,7 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	return dataSet, nil
 }
 
-func (c *ClientImpl) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats], error) {
+func (c *ClientImpl) GetCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -144,7 +144,7 @@ func (c *ClientImpl) GetCGMSummary(ctx context.Context, id string) (*types.Summa
 	}
 
 	url := c.client.ConstructURL("v1", "summaries", id, "cgm")
-	summary := &types.Summary[*types.CGMStats]{}
+	summary := &types.Summary[types.CGMStats, *types.CGMStats]{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -155,7 +155,7 @@ func (c *ClientImpl) GetCGMSummary(ctx context.Context, id string) (*types.Summa
 	return summary, nil
 }
 
-func (c *ClientImpl) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats], error) {
+func (c *ClientImpl) GetBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -164,7 +164,7 @@ func (c *ClientImpl) GetBGMSummary(ctx context.Context, id string) (*types.Summa
 	}
 
 	url := c.client.ConstructURL("v1", "summaries", id, "bgm")
-	summary := &types.Summary[*types.BGMStats]{}
+	summary := &types.Summary[types.BGMStats, *types.BGMStats]{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -175,7 +175,7 @@ func (c *ClientImpl) GetBGMSummary(ctx context.Context, id string) (*types.Summa
 	return summary, nil
 }
 
-func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats], error) {
+func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -184,7 +184,7 @@ func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, id string) (*types.Su
 	}
 
 	url := c.client.ConstructURL("v1", "summaries", id, "cgm")
-	summary := &types.Summary[*types.CGMStats]{}
+	summary := &types.Summary[types.CGMStats, *types.CGMStats]{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -195,7 +195,7 @@ func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, id string) (*types.Su
 	return summary, nil
 }
 
-func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats], error) {
+func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -204,7 +204,7 @@ func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, id string) (*types.Su
 	}
 
 	url := c.client.ConstructURL("v1", "summaries", id, "bgm")
-	summary := &types.Summary[*types.BGMStats]{}
+	summary := &types.Summary[types.BGMStats, *types.BGMStats]{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil

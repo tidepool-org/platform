@@ -15,10 +15,10 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/:userId/cgm", Authenticate(GetSummary[types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/:userId/bgm", Authenticate(GetSummary[types.BGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId/cgm", Authenticate(UpdateSummary[types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId/bgm", Authenticate(UpdateSummary[types.BGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/:userId/cgm", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/:userId/bgm", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/:userId/cgm", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/:userId/bgm", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
 		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs)),
 	}
