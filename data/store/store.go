@@ -17,6 +17,7 @@ type Store interface {
 
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
+	NewBareSummaryRepository() *storeStructuredMongo.Repository
 }
 
 type DataRepository interface {

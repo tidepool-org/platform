@@ -64,8 +64,17 @@ func (s *BGMStats) Init() {
 	s.TotalHours = 0
 }
 
-func (s *BGMStats) Update(userData []*glucoseDatum.Glucose) error {
-	err := AddData(s.Buckets, userData)
+func (s *BGMStats) GetBucketsLen() int {
+	return len(s.Buckets)
+}
+
+func (s *BGMStats) GetBucketDate(i int) time.Time {
+	return s.Buckets[i].Date
+}
+
+func (s *BGMStats) Update(userData any) error {
+	userDataTyped := userData.([]*glucoseDatum.Glucose)
+	err := AddData(s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}

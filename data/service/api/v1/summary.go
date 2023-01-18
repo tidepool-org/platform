@@ -3,7 +3,7 @@ package v1
 import (
 	"context"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary/registry"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"net/http"
 
@@ -45,7 +45,7 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary[T types.Stats](dataServiceContext dataService.Context) {
+func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -58,7 +58,7 @@ func GetSummary[T types.Stats](dataServiceContext dataService.Context) {
 		return
 	}
 
-	summarizer := registry.GetSummarizer[T](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
 	summary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -69,7 +69,7 @@ func GetSummary[T types.Stats](dataServiceContext dataService.Context) {
 	}
 }
 
-func UpdateSummary[T types.Stats](dataServiceContext dataService.Context) {
+func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -82,7 +82,7 @@ func UpdateSummary[T types.Stats](dataServiceContext dataService.Context) {
 		return
 	}
 
-	summarizer := registry.GetSummarizer[T](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
 	summary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)

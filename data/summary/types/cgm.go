@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/summary"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
 	"strconv"
@@ -87,8 +86,17 @@ func (s *CGMStats) Init() {
 	s.TotalHours = 0
 }
 
-func (s *CGMStats) Update(userData []*glucoseDatum.Glucose) error {
-	err := AddData(s.Buckets, userData)
+func (s *CGMStats) GetBucketsLen() int {
+	return len(s.Buckets)
+}
+
+func (s *CGMStats) GetBucketDate(i int) time.Time {
+	return s.Buckets[i].Date
+}
+
+func (s *CGMStats) Update(userData any) error {
+	userDataTyped := userData.([]*glucoseDatum.Glucose)
+	err := AddData(s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}
@@ -105,7 +113,7 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 
 	// duration has never been calculated, use current record's duration for this cycle
 	if duration == 0 {
-		duration = summary.GetDuration(dataRecord)
+		duration = GetDuration(dataRecord)
 	}
 
 	// calculate blackoutWindow based on duration of previous value
@@ -114,7 +122,7 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 	// if we are too close to the previous value, skip
 	if dataRecord.Time.Sub(*lastRecordTime) > blackoutWindow {
 		normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
-		duration = summary.GetDuration(dataRecord)
+		duration = GetDuration(dataRecord)
 
 		if normalizedValue <= veryLowBloodGlucose {
 			B.VeryLowMinutes += duration
@@ -220,7 +228,7 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 
 		// we only add GMI if cgm use >70%, otherwise clear it
 		if *timeCGMUsePercent > 0.7 {
-			glucoseManagementIndicator = pointer.FromFloat64(summary.CalculateGMI(averageGlucose.Value))
+			glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose.Value))
 		}
 	}
 

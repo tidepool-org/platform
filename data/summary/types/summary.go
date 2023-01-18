@@ -1,6 +1,8 @@
 package types
 
 import (
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,11 +21,15 @@ const (
 	hoursAgoToKeep       = 30 * 24
 )
 
-type RecordTypes interface {
-	//glucoseDatum.Glucose | insulinDatum.Insulin
+type BucketData interface {
+	CGMBucketData | BGMBucketData
 }
 
-type RecordTypesPt[T any] interface {
+type RecordTypes interface {
+	glucoseDatum.Glucose | insulinDatum.Insulin
+}
+
+type RecordTypesPt[T RecordTypes] interface {
 	*T
 	GetTime() *time.Time
 }
@@ -60,35 +66,40 @@ type Dates struct {
 	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
 }
 
-type Bucket[T any, S BucketDataPt[T]] struct {
+type Bucket[T BucketData, S BucketDataPt[T]] struct {
 	Date           time.Time `json:"date" bson:"date"`
 	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 
 	Data S
 }
 
-type BucketDataPt[T any] interface {
+type BucketDataPt[T BucketData] interface {
 	*T
 	CalculateStats(interface{}, *time.Time) error
 }
 
-func CreateBucket[T any, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
+func CreateBucket[T BucketData, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
 	bucket := new(Bucket[T, A])
 	bucket.Date = t
 	return bucket
 }
 
-type Buckets[T any, S BucketDataPt[T]] []Bucket[T, S]
+type Buckets[T BucketData, S BucketDataPt[T]] []Bucket[T, S]
 
-type Stats interface{}
+type Stats interface {
+	CGMStats | BGMStats
+}
 
-type StatsPt[T any] interface {
+type StatsPt[T Stats] interface {
 	*T
 	GetType() string
 	Init()
+	GetBucketsLen() int
+	GetBucketDate(int) time.Time
+	Update(any) error
 }
 
-type Summary[A Stats] struct {
+type Summary[T Stats, A StatsPt[T]] struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	Type   string
 	UserID string
@@ -109,7 +120,7 @@ func NewConfig() Config {
 	}
 }
 
-func (s Summary[A]) SetOutdated() {
+func (s Summary[T, A]) SetOutdated() {
 	s.Dates.OutdatedSince = pointer.FromTime(time.Now().UTC())
 }
 
@@ -124,8 +135,8 @@ func NewDates() Dates {
 	}
 }
 
-func Create[T any, A StatsPt[T]](userId string) *Summary[A] {
-	s := new(Summary[A])
+func Create[T Stats, A StatsPt[T]](userId string) *Summary[T, A] {
+	s := new(Summary[T, A])
 	s.UserID = userId
 	s.Stats.Init()
 	s.Type = s.Stats.GetType()
@@ -135,8 +146,8 @@ func Create[T any, A StatsPt[T]](userId string) *Summary[A] {
 	return s
 }
 
-func GetTypeString[T any, A StatsPt[T]]() string {
-	s := new(Summary[A])
+func GetTypeString[T Stats, A StatsPt[T]]() string {
+	s := new(Summary[T, A])
 	return s.Stats.GetType()
 }
 
@@ -144,7 +155,7 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T any, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat Bucket[T, A]) error {
+func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat Bucket[T, A]) error {
 	var hourCount int
 	var oldestHour time.Time
 	var oldestHourToKeep time.Time
@@ -203,17 +214,7 @@ func AddBin[T any, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat Bucket
 	return nil
 }
 
-// CalculateRealMinutes remove partial hour (data end) from total time for more accurate TimeCGMUse
-func CalculateRealMinutes(i int, lastRecordTime time.Time) float64 {
-	realMinutes := float64(i * 24 * 60)
-	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
-		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
-	realMinutes = realMinutes - nextHour.Sub(lastRecordTime).Minutes()
-
-	return realMinutes
-}
-
-func AddData[T any, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](s S, userData []D) error {
+func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](s S, userData []D) error {
 	var recordTime *time.Time
 	var lastHour time.Time
 	var currentHour time.Time

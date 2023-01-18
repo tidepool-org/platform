@@ -6,7 +6,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary/registry"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
@@ -26,7 +26,7 @@ type Context interface {
 	SummaryRepository() dataStore.SummaryRepository
 	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 
-	SummarizerRegistry() *registry.SummarizerRegistry
+	SummarizerRegistry() *summary.SummarizerRegistry
 	DataClient() dataClient.Client
 	DataSourceClient() dataSource.Client
 }

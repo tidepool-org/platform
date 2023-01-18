@@ -45,3 +45,7 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 		s.Store.GetRepository("summary"),
 	}
 }
+
+func (s *Store) NewBareSummaryRepository() *storeStructuredMongo.Repository {
+	return s.Store.GetRepository("summary")
+}

@@ -14,22 +14,22 @@ import (
 	"time"
 )
 
-type Repo[T types.Stats] struct {
+type Repo[T types.Stats, A types.StatsPt[T]] struct {
 	*storeStructuredMongo.Repository
 }
 
-func New[T types.Stats](delegate *storeStructuredMongo.Repository) *Repo[T] {
-	return &Repo[T]{
+func New[T types.Stats, A types.StatsPt[T]](delegate *storeStructuredMongo.Repository) *Repo[T, A] {
+	return &Repo[T, A]{
 		delegate,
 	}
 }
 
-func (r *Repo[T]) GetSummary(ctx context.Context, userId string) (*types.Summary[T], error) {
+func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 
-	summary := types.Create[T](userId)
+	summary := types.Create[T, A](userId)
 	selector := bson.M{
 		"userId": userId,
 		"type":   summary.Type,
@@ -42,10 +42,10 @@ func (r *Repo[T]) GetSummary(ctx context.Context, userId string) (*types.Summary
 		return nil, errors.Wrap(err, "unable to get summary")
 	}
 
-	return &summary, nil
+	return summary, nil
 }
 
-func (r *Repo[T]) DeleteSummary(ctx context.Context, userId string) error {
+func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -62,7 +62,7 @@ func (r *Repo[T]) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T]) UpsertSummary(ctx context.Context, summary *types.Summary[T]) (*types.Summary[T], error) {
+func (r *Repo[T, A]) UpsertSummary(ctx context.Context, summary *types.Summary[T, A]) (*types.Summary[T, A], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -71,7 +71,7 @@ func (r *Repo[T]) UpsertSummary(ctx context.Context, summary *types.Summary[T]) 
 	}
 
 	// TODO do we need s here?
-	s := types.Create[T](summary.UserID)
+	s := types.Create[T, A](summary.UserID)
 	if summary.Type != s.Type {
 		return nil, fmt.Errorf("invalid summary type %v, expected %v", summary.Type, s.Type)
 	}
@@ -91,7 +91,7 @@ func (r *Repo[T]) UpsertSummary(ctx context.Context, summary *types.Summary[T]) 
 	return summary, err
 }
 
-func (r *Repo[T]) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
+func (r *Repo[T, A]) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
 	var userIDs []string
 
 	if ctx == nil {
@@ -112,7 +112,7 @@ func (r *Repo[T]) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
 	return userIDs, nil
 }
 
-func (r *Repo[T]) CreateSummaries(ctx context.Context, summaries []*types.Summary[T]) (int, error) {
+func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Summary[T, A]) (int, error) {
 	if ctx == nil {
 		return 0, errors.New("context is missing")
 	}
@@ -140,7 +140,7 @@ func (r *Repo[T]) CreateSummaries(ctx context.Context, summaries []*types.Summar
 	return count, nil
 }
 
-func (r *Repo[T]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
+func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
 	var outdatedTime *time.Time
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -152,7 +152,7 @@ func (r *Repo[T]) SetOutdated(ctx context.Context, userId string) (*time.Time, e
 
 	// we need to get the summary first, as there is multiple possible operations, and we do not want to replace
 	// the existing field, but also want to upsert if no summary exists.
-	s := types.Create[T](userId)
+	s := types.Create[T, A](userId)
 	opts := options.Update().SetUpsert(true)
 
 	selector := bson.M{
@@ -178,9 +178,9 @@ func (r *Repo[T]) SetOutdated(ctx context.Context, userId string) (*time.Time, e
 	return outdatedTime, nil
 }
 
-func (r *Repo[T]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
+func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
 	// we use a summary, instead of a type specific summary as we don't actually care about its extra data
-	var summaries []*types.Summary[T]
+	var summaries []*types.Summary[T, A]
 
 	if ctx == nil {
 		return nil, errors.New("context is missing")

@@ -1,14 +1,13 @@
-package summary
+package types
 
 import (
-	"github.com/tidepool-org/platform/data/summary/types"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"math"
 	"strings"
 	"time"
 )
 
-func SkipUntil[T types.RecordTypes, A types.RecordTypesPt[T]](date time.Time, userData []A) ([]A, error) {
+func SkipUntil[T RecordTypes, A RecordTypesPt[T]](date time.Time, userData []A) ([]A, error) {
 	var skip int
 	for i := 0; i < len(userData); i++ {
 		recordTime := userData[i].GetTime()
@@ -42,4 +41,14 @@ func CalculateGMI(averageGlucose float64) float64 {
 	gmi = (0.09148 * gmi) + 2.152
 	gmi = math.Round(gmi*10) / 10
 	return gmi
+}
+
+// CalculateRealMinutes remove partial hour (data end) from total time for more accurate TimeCGMUse
+func CalculateRealMinutes(i int, lastRecordTime time.Time) float64 {
+	realMinutes := float64(i * 24 * 60)
+	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
+		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
+	realMinutes = realMinutes - nextHour.Sub(lastRecordTime).Minutes()
+
+	return realMinutes
 }

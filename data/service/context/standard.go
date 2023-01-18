@@ -1,7 +1,7 @@
 package context
 
 import (
-	"github.com/tidepool-org/platform/data/summary/registry"
+	"github.com/tidepool-org/platform/data/summary"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -28,7 +28,7 @@ type Standard struct {
 	dataStore               dataStore.Store
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
-	summarizerRegistry      *registry.SummarizerRegistry
+	summarizerRegistry      *summary.SummarizerRegistry
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
@@ -144,11 +144,15 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 	return s.summaryRepository
 }
 
-func (s *Standard) SummarizerRegistry() *registry.SummarizerRegistry {
+func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
+	dataRepo := s.DataRepository()
+	summaryRepo := s.dataStore.NewBareSummaryRepository()
+
 	if s.summarizerRegistry == nil {
-		// Initialize the registry correctly
-		s.summarizerRegistry = registry.New()
+		s.summarizerRegistry = summary.New(summaryRepo, dataRepo)
 	}
+
+	return s.summarizerRegistry
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
