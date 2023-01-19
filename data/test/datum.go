@@ -17,42 +17,42 @@ type IdentityFieldsOutput struct {
 }
 
 type Datum struct {
-	MetaInvocations                      int
-	MetaOutputs                          []interface{}
-	ParseInvocations                     int
-	ParseInputs                          []structure.ObjectParser
-	ValidateInvocations                  int
-	ValidateInputs                       []structure.Validator
-	NormalizeInvocations                 int
-	NormalizeInputs                      []data.Normalizer
-	IdentityFieldsInvocations            int
-	IdentityFieldsOutputs                []IdentityFieldsOutput
-	GetPayloadInvocations                int
-	GetPayloadOutputs                    []*metadata.Metadata
-	GetOriginInvocations                 int
-	GetOriginOutputs                     []*origin.Origin
-	SetUserIDInvocations                 int
-	SetUserIDInputs                      []*string
-	SetDataSetIDInvocations              int
-	SetDataSetIDInputs                   []*string
-	SetActiveInvocations                 int
-	SetActiveInputs                      []bool
-	SetDeviceIDInvocations               int
-	SetDeviceIDInputs                    []*string
-	SetCreatedTimeInvocations            int
-	SetCreatedTimeInputs                 []*time.Time
-	SetCreatedUserIDInvocations          int
-	SetCreatedUserIDInputs               []*string
-	SetModifiedTimeInvocations           int
-	SetModifiedTimeInputs                []*time.Time
-	SetModifiedUserIDInvocations         int
-	SetModifiedUserIDInputs              []*string
-	SetDeletedTimeInvocations            int
-	SetDeletedTimeInputs                 []*time.Time
-	SetDeletedUserIDInvocations          int
-	SetDeletedUserIDInputs               []*string
-	UpdatesSummaryInvocations            int
-	UpdatesSummaryInputs                 []*data.SummaryTypeUpdates
+	MetaInvocations              int
+	MetaOutputs                  []interface{}
+	ParseInvocations             int
+	ParseInputs                  []structure.ObjectParser
+	ValidateInvocations          int
+	ValidateInputs               []structure.Validator
+	NormalizeInvocations         int
+	NormalizeInputs              []data.Normalizer
+	IdentityFieldsInvocations    int
+	IdentityFieldsOutputs        []IdentityFieldsOutput
+	GetPayloadInvocations        int
+	GetPayloadOutputs            []*metadata.Metadata
+	GetOriginInvocations         int
+	GetOriginOutputs             []*origin.Origin
+	SetUserIDInvocations         int
+	SetUserIDInputs              []*string
+	SetDataSetIDInvocations      int
+	SetDataSetIDInputs           []*string
+	SetActiveInvocations         int
+	SetActiveInputs              []bool
+	SetDeviceIDInvocations       int
+	SetDeviceIDInputs            []*string
+	SetCreatedTimeInvocations    int
+	SetCreatedTimeInputs         []*time.Time
+	SetCreatedUserIDInvocations  int
+	SetCreatedUserIDInputs       []*string
+	SetModifiedTimeInvocations   int
+	SetModifiedTimeInputs        []*time.Time
+	SetModifiedUserIDInvocations int
+	SetModifiedUserIDInputs      []*string
+	SetDeletedTimeInvocations    int
+	SetDeletedTimeInputs         []*time.Time
+	SetDeletedUserIDInvocations  int
+	SetDeletedUserIDInputs       []*string
+	UpdatesSummaryInvocations    int
+	//UpdatesSummaryInputs                 []*data.SummaryTypeUpdates
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -180,11 +180,11 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
-func (d *Datum) UpdatesSummary(updatesSummary *data.SummaryTypeUpdates) {
-	d.UpdatesSummaryInvocations++
-
-	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
-}
+//func (d *Datum) UpdatesSummary(updatesSummary *data.SummaryTypeUpdates) {
+//	d.UpdatesSummaryInvocations++
+//
+//	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
+//}
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	d.DeduplicatorDescriptorInvocations++

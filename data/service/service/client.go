@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 )
@@ -49,5 +50,29 @@ func (c *Client) CreateDataSetsData(ctx context.Context, dataSetID string, datum
 }
 
 func (c *Client) DestroyDataForUserByID(ctx context.Context, userID string) error {
+	panic("Not Implemented!")
+}
+
+func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
+	panic("Not Implemented!")
+}
+
+func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
+	panic("Not Implemented!")
+}
+
+func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
+	panic("Not Implemented!")
+}
+
+func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
+	panic("Not Implemented!")
+}
+
+func (c *Client) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([][]string, error) {
+	panic("Not Implemented!")
+}
+
+func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
 	panic("Not Implemented!")
 }
