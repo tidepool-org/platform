@@ -93,6 +93,20 @@ func (mr *MockRepositoryMockRecorder) UpdateAssertion(arg0, arg1, arg2 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAssertion", reflect.TypeOf((*MockRepository)(nil).UpdateAssertion), arg0, arg1, arg2)
 }
 
+// UpdateAttestation mocks base method.
+func (m *MockRepository) UpdateAttestation(arg0 context.Context, arg1 Filter, arg2 AttestationUpdate) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAttestation", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateAttestation indicates an expected call of UpdateAttestation.
+func (mr *MockRepositoryMockRecorder) UpdateAttestation(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAttestation", reflect.TypeOf((*MockRepository)(nil).UpdateAttestation), arg0, arg1, arg2)
+}
+
 // Upsert mocks base method.
 func (m *MockRepository) Upsert(arg0 context.Context, arg1 *AppValidation) error {
 	m.ctrl.T.Helper()
