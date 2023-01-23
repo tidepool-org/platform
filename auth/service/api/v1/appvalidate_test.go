@@ -46,21 +46,28 @@ var _ = Describe("App Validation", func() {
 
 	unattestedUser := user{
 		UserID:              "unattested",
-		SessionToken:        "unattestedSessionToken",
-		Details:             request.NewDetails(request.MethodSessionToken, "unattested", "unattestedSessionToken"),
+		SessionToken:        "unattestedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "unattested", "unattestedToken"),
 		AttestationVerified: false,
 	}
 	attestedUser := user{
 		UserID:              "attested",
-		SessionToken:        "attestedSessionToken",
-		Details:             request.NewDetails(request.MethodSessionToken, "attested", "attestedSessionToken"),
+		SessionToken:        "attestedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attested", "attestedToken"),
 		KeyID:               "YWJjZGVmYWJjZGVm",
+		AttestationVerified: false,
+	}
+	attestedUnverifiedUser := user{
+		UserID:              "attestedUnverified",
+		SessionToken:        "attestedUnverifiedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attestedUnverified", "attestedUnverified"),
+		KeyID:               "YWRzZmFkZg==",
 		AttestationVerified: false,
 	}
 	attestedVerifiedUser := user{
 		UserID:              "attestedVerified",
-		SessionToken:        "attestedVerifiedSessionToken",
-		Details:             request.NewDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedSessionToken"),
+		SessionToken:        "attestedVerifiedToken",
+		Details:             request.NewDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedToken"),
 		KeyID:               "YWJkZmRlZg=",
 		AttestationVerified: true,
 	}
@@ -68,10 +75,11 @@ var _ = Describe("App Validation", func() {
 		unattestedUser,
 		attestedUser,
 		attestedVerifiedUser,
+		attestedUnverifiedUser,
 	}
 
 	challenge := "challenge"
-	serverSessionToken := "serverSessionToken"
+	serverSessionToken := "serverToken"
 
 	initialValidations := make([]appvalidate.AppValidation, len(users))
 	for i, user := range users {
@@ -199,13 +207,13 @@ var _ = Describe("App Validation", func() {
 	Describe("POST /v1/assertions/challenges", func() {
 		It("fails with an unverified user", func() {
 			body := &appvalidate.ChallengeCreate{
-				KeyID: "YWJjZGVmZ2hpamFiY2RlZmdoaWphYmNkZWZnaGlq",
+				KeyID: attestedUnverifiedUser.KeyID,
 			}
 
-			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
+			req := newRequest(http.MethodPost, "/v1/assertions/challenges", attestedUnverifiedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
-			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
 
 		It("succeeds only with a verified attested user", func() {
@@ -232,7 +240,7 @@ var _ = Describe("App Validation", func() {
 			req := newRequest(http.MethodPost, "/v1/assertions/challenges", unattestedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
-			Expect(w.Code).ToNot(Equal(http.StatusCreated))
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
 
 		It("fails if unauthorized", func() {
@@ -261,29 +269,34 @@ var _ = Describe("App Validation", func() {
 	})
 
 	Describe("POST /v1/attestations/verifications", func() {
-		// Commented out tests right now because need an actual signed object
-		// to verify - will get once available from actual iOS device.
-		// It("succeeds on valid input", func() {
-		// 	body := &appvalidate.AttestationVerify{
-		// 		KeyID:             attestedUser.KeyID,
-		// 		Challenge:         challenge,
-		// 		AttestationObject: "YWJjZGVmZw==", // base64 encoded string of the binary CBOR data returned from iOS api.
-		// 	}
-
-		// 	req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
-		// 	w := httptest.NewRecorder()
-		// 	handler.ServeHTTP(w, req)
-		// 	Expect(w.Code).To(Equal(http.StatusNoContent))
-		// })
-
-		It("fails on attestation object that is not base64 encoded", func() {
+		// Was going to use an actual signed object from apple
+		// but unfortunately the expiration time for that is only
+		// a few days so there is no integration test for that.
+		It("fails on attestation that is not base64 encoded", func() {
 			body := &appvalidate.AttestationVerify{
-				KeyID:             attestedUser.KeyID,
-				Challenge:         challenge,
-				AttestationObject: `{"key": "field"}`,
+				KeyID:       attestedUser.KeyID,
+				Challenge:   challenge,
+				Attestation: `{"key": "field"}`,
 			}
 
 			req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
+		})
+	})
+
+	Describe("POST /v1/assertions/verifications", func() {
+		It("fails on assertion that is not base64 encoded", func() {
+			body := &appvalidate.AssertionVerify{
+				KeyID: attestedVerifiedUser.KeyID,
+				ClientData: appvalidate.AssertionClientData{
+					Challenge: challenge,
+				},
+				Assertion: `{"key": "field"}`,
+			}
+
+			req := newRequest(http.MethodPost, "/v1/assertions/verifications", attestedVerifiedUser.SessionToken, body)
 			w := httptest.NewRecorder()
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusBadRequest))
