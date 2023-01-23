@@ -67,6 +67,19 @@ github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/ssooidc
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
+<<<<<<< HEAD
+=======
+# github.com/aymerick/douceur v0.2.0
+## explicit
+github.com/aymerick/douceur/css
+github.com/aymerick/douceur/parser
+# github.com/bas-d/appattest v0.1.0
+## explicit; go 1.15
+github.com/bas-d/appattest/assertion
+github.com/bas-d/appattest/attestation
+github.com/bas-d/appattest/authenticator
+github.com/bas-d/appattest/utils
+>>>>>>> 51843a5ee ([BACK-2164] Add attestation verification route. (#618))
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile

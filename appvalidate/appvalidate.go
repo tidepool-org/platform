@@ -3,6 +3,7 @@
 package appvalidate
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
@@ -11,6 +12,11 @@ import (
 )
 
 //go:generate mockgen -build_flags=--mod=mod -destination=./mock.go -package=appvalidate github.com/tidepool-org/platform/appvalidate Repository,ChallengeGenerator
+
+var (
+	// base64 regex that supports base64.URLEncoding ("+/" replaced by "-_") or base64.StdEncoding. Used for base64 payloads like the attestation and assertion object.
+	base64Chars = regexp.MustCompile("^(?:[A-Za-z0-9+/\\-_]{4})*(?:[A-Za-z0-9+/\\-_]{2}==|[A-Za-z0-9+/\\-_]{3}=)?$")
+)
 
 // AppValidation represents the entire state of a person's attestation /
 // assertion status that determines if they are using a legitimate instance
