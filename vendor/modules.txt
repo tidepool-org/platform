@@ -91,6 +91,12 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 ## explicit
 github.com/aymerick/douceur/css
 github.com/aymerick/douceur/parser
+# github.com/bas-d/appattest v0.1.0
+## explicit; go 1.15
+github.com/bas-d/appattest/assertion
+github.com/bas-d/appattest/attestation
+github.com/bas-d/appattest/authenticator
+github.com/bas-d/appattest/utils
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile

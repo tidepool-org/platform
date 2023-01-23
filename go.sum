@@ -29,6 +29,8 @@ github.com/aws/aws-sdk-go v1.50.6 h1:FaXvNwHG3Ri1paUEW16Ahk9zLVqSAdqa1M3phjZR35Q
 github.com/aws/aws-sdk-go v1.50.6/go.mod h1:LF8svs817+Nz+DmiMQKTO3ubZ/6IaTpq3TjupRn3Eqk=
 github.com/aymerick/douceur v0.2.0 h1:Mv+mAeH1Q+n9Fr+oyamOlAkUNPWPlA8PPGR0QAaYuPk=
 github.com/aymerick/douceur v0.2.0/go.mod h1:wlT5vV2O3h55X9m7iVYN0TBM0NH/MmbLnd30/FjWUq4=
+github.com/bas-d/appattest v0.1.0 h1:dCqa0VPSaROwgUhq5lP1ZWEQo/x89k9G8tZr/hetPq8=
+github.com/bas-d/appattest v0.1.0/go.mod h1:2v0eTfzcAU+zVbv6ooTIKdNN92jnXuqzOCQ526MXviE=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/benbjohnson/clock v1.3.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -312,6 +314,8 @@ github.com/tidepool-org/hydrophone/client v0.0.0-20240412013722-bff995d59e73 h1:
 github.com/tidepool-org/hydrophone/client v0.0.0-20240412013722-bff995d59e73/go.mod h1:VcQtoC+i0cRZJCejCzD80rQIboCqoN9f19pn0Z5Y62I=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
+github.com/ugorji/go v1.2.4/go.mod h1:EuaSCk8iZMdIspsu6HXH7X2UGKw1ezO4wCfGszGmmo4=
+github.com/ugorji/go/codec v1.2.4/go.mod h1:bWBu1+kIRWcF8uMklKaJrR6fTWQOwAlrIzX22pHwryA=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/urfave/cli v1.22.14 h1:ebbhrRiGK2i4naQJr+1Xj92HXZCrK7MsyTS/ob3HnAk=

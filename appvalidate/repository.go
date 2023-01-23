@@ -10,9 +10,10 @@ type Filter struct {
 }
 
 type Repository interface {
-	Upsert(ctx context.Context, v *AppValidation) error
 	IsVerified(ctx context.Context, f Filter) (bool, error)
 	Get(ctx context.Context, f Filter) (*AppValidation, error)
 	GetAttestationChallenge(ctx context.Context, f Filter) (string, error)
+	Upsert(ctx context.Context, v *AppValidation) error
+	UpdateAttestation(ctx context.Context, f Filter, u AttestationUpdate) error
 	UpdateAssertion(ctx context.Context, f Filter, u AssertionUpdate) error
 }
