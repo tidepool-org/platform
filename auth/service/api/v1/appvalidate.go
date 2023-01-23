@@ -67,7 +67,7 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 			responder.Error(http.StatusBadRequest, err)
 			return
 		}
-		responder.RespondIfError(err)
+		responder.InternalServerError(err)
 		return
 	}
 	responder.Data(http.StatusCreated, result)
@@ -94,7 +94,7 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 			responder.Error(http.StatusBadRequest, err)
 			return
 		}
-		responder.RespondIfError(err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 			responder.Error(http.StatusBadRequest, err)
 			return
 		}
-		responder.RespondIfError(err)
+		responder.InternalServerError(err)
 		return
 	}
 	// Assertion has succeeded, at this point, we would access some secret
