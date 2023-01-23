@@ -2,6 +2,7 @@ package appvalidate
 
 import (
 	"context"
+	"encoding/base64"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -17,8 +18,8 @@ var (
 )
 
 type ValidatorConfig struct {
-	AppleAppID                string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_ID" default:"org.tidepool.app"`
-	UseDevelopmentEnvironment bool   `envconfig:"TIDEPOOL_APPVALIDATION_USE_DEVELOPMENT" default:"false"`
+	AppleAppID                string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_ID" default:"75U4X84TEG.org.tidepool.coastal.Loop"`
+	UseDevelopmentEnvironment bool   `envconfig:"TIDEPOOL_APPVALIDATION_USE_DEVELOPMENT" default:"true"`
 	ChallengeSize             int    `envconfig:"TIDEPOOL_APPVALIDATION_CHALLENGE_SIZE" default:"16"`
 }
 
@@ -113,7 +114,6 @@ func (v *Validator) CreateAssertChallenge(ctx context.Context, c *ChallengeCreat
 	if challenge == "" {
 		return nil, errors.New("empty challenge generated")
 	}
-
 	update := AssertionUpdate{
 		Challenge: challenge,
 	}
@@ -147,8 +147,8 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 		return errors.Wrap(ErrAttestationVerificationFailed, err.Error())
 	}
 	update := AttestationUpdate{
-		PublicKey:              string(pubKey),
-		FraudAssessmentReceipt: string(receipt),
+		PublicKey:              base64.StdEncoding.EncodeToString(pubKey),
+		FraudAssessmentReceipt: base64.StdEncoding.EncodeToString(receipt),
 		Verified:               true,
 		VerifiedTime:           time.Now(),
 	}
@@ -181,7 +181,11 @@ func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) er
 	if err != nil {
 		return errors.Wrap(err, "unable to transform assertion")
 	}
-	newCounter, err := assertion.Verify(validation.AssertionChallenge, v.appleAppID, validation.AssertionCounter, []byte(validation.PublicKey))
+	pubKey, err := base64.StdEncoding.DecodeString(validation.PublicKey)
+	if err != nil {
+		return errors.Wrap(err, "unable to decode public key")
+	}
+	newCounter, err := assertion.Verify(validation.AssertionChallenge, v.appleAppID, validation.AssertionCounter, pubKey)
 	if err != nil {
 		return errors.Wrap(ErrAssertionVerificationFailed, err.Error())
 	}

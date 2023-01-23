@@ -44,6 +44,9 @@ var _ = Describe("App Validation", func() {
 		Return(logTest.NewLogger()).
 		AnyTimes()
 
+	challenge := "challenge"
+	serverSessionToken := "serverToken"
+
 	unattestedUser := user{
 		UserID:              "unattested",
 		SessionToken:        "unattestedToken",
@@ -51,6 +54,7 @@ var _ = Describe("App Validation", func() {
 		AttestationVerified: false,
 	}
 	attestedUser := user{
+<<<<<<< HEAD
 		UserID:              "attested",
 		SessionToken:        "attestedToken",
 		Details:             request.NewAuthDetails(request.MethodSessionToken, "attested", "attestedToken"),
@@ -70,6 +74,31 @@ var _ = Describe("App Validation", func() {
 		Details:             request.NewAuthDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedToken"),
 		KeyID:               "YWJkZmRlZg=",
 		AttestationVerified: true,
+=======
+		UserID:               "attested",
+		SessionToken:         "attestedToken",
+		Details:              request.NewDetails(request.MethodSessionToken, "attested", "attestedToken"),
+		KeyID:                "YWJjZGVmYWJjZGVm",
+		AttestationVerified:  false,
+		AttestationChallenge: challenge,
+	}
+	attestedUnverifiedUser := user{
+		UserID:               "attestedUnverified",
+		SessionToken:         "attestedUnverifiedToken",
+		Details:              request.NewDetails(request.MethodSessionToken, "attestedUnverified", "attestedUnverified"),
+		KeyID:                "YWRzZmFkZg==",
+		AttestationVerified:  false,
+		AttestationChallenge: challenge,
+	}
+	attestedVerifiedUser := user{
+		UserID:               "attestedVerified",
+		SessionToken:         "attestedVerifiedToken",
+		Details:              request.NewDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedToken"),
+		KeyID:                "YWJkZmRlZg=",
+		AttestationVerified:  true,
+		AttestationChallenge: challenge,
+		AssertionChallenge:   challenge,
+>>>>>>> c190d336 (Save public key and fraud assestment receipt in base64.)
 	}
 	users := []user{
 		unattestedUser,
@@ -78,16 +107,14 @@ var _ = Describe("App Validation", func() {
 		attestedUnverifiedUser,
 	}
 
-	challenge := "challenge"
-	serverSessionToken := "serverToken"
-
 	initialValidations := make([]appvalidate.AppValidation, len(users))
 	for i, user := range users {
 		validation := appvalidate.AppValidation{
 			UserID:               user.UserID,
 			KeyID:                user.KeyID,
 			Verified:             user.AttestationVerified,
-			AttestationChallenge: challenge,
+			AttestationChallenge: user.AttestationChallenge,
+			AssertionChallenge:   user.AssertionChallenge,
 		}
 		if user.AttestationVerified {
 			validation.AttestationVerifiedTime = pointer.FromTime(time.Date(2023, time.January, 3, 10, 0, 0, 0, time.UTC))
@@ -283,6 +310,18 @@ var _ = Describe("App Validation", func() {
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
+		It("fails on incorrect attestation", func() {
+			body := &appvalidate.AttestationVerify{
+				KeyID:       attestedUser.KeyID,
+				Challenge:   challenge,
+				Attestation: `YWJjZGVm`,
+			}
+
+			req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
+		})
 	})
 
 	Describe("POST /v1/assertions/verifications", func() {
@@ -300,16 +339,40 @@ var _ = Describe("App Validation", func() {
 			handler.ServeHTTP(w, req)
 			Expect(w.Code).To(Equal(http.StatusBadRequest))
 		})
+		It("fails on incorrect assertion", func() {
+			body := &appvalidate.AssertionVerify{
+				KeyID: attestedVerifiedUser.KeyID,
+				ClientData: appvalidate.AssertionClientData{
+					Challenge: challenge,
+				},
+				Assertion: `YWJjZGVm`,
+			}
+
+			req := newRequest(http.MethodPost, "/v1/assertions/verifications", attestedVerifiedUser.SessionToken, body)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
+		})
 	})
 })
 
 // user is a helper user that contains relevant user information for tests.
 type user struct {
+<<<<<<< HEAD
 	UserID              string
 	SessionToken        string
 	Details             request.AuthDetails
 	KeyID               string
 	AttestationVerified bool
+=======
+	UserID               string
+	SessionToken         string
+	Details              request.Details
+	KeyID                string
+	AttestationVerified  bool
+	AttestationChallenge string
+	AssertionChallenge   string
+>>>>>>> c190d336 (Save public key and fraud assestment receipt in base64.)
 }
 
 // newRequest wraps httptest.NewRequest w/ a default logger as some of the
