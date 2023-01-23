@@ -269,21 +269,9 @@ var _ = Describe("App Validation", func() {
 	})
 
 	Describe("POST /v1/attestations/verifications", func() {
-		// Commented out tests right now because need an actual signed object
-		// to verify - will get once available from actual iOS device.
-		// It("succeeds on valid input", func() {
-		// 	body := &appvalidate.AttestationVerify{
-		// 		KeyID:             attestedUser.KeyID,
-		// 		Challenge:         challenge,
-		// 		AttestationObject: "YWJjZGVmZw==", // base64 encoded string of the binary CBOR data returned from iOS api.
-		// 	}
-
-		// 	req := newRequest(http.MethodPost, "/v1/attestations/verifications", attestedUser.SessionToken, body)
-		// 	w := httptest.NewRecorder()
-		// 	handler.ServeHTTP(w, req)
-		// 	Expect(w.Code).To(Equal(http.StatusNoContent))
-		// })
-
+		// Was going to use an actual signed object from apple
+		// but unfortunately the expiration time for that is only
+		// a few days so there is no integration test for that.
 		It("fails on attestation that is not base64 encoded", func() {
 			body := &appvalidate.AttestationVerify{
 				KeyID:       attestedUser.KeyID,

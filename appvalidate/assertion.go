@@ -48,13 +48,14 @@ func (av *AssertionVerify) Validate(v structure.Validator) {
 }
 
 func transformAssertion(av *AssertionVerify) (*appAssert.AuthenticatorAssertionResponse, error) {
-	var assertion appUtils.URLEncodedBase64
 	clientDataRaw, err := json.Marshal(av.ClientData)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := assertion.UnmarshalJSON([]byte(av.Assertion)); err != nil {
+	var assertion appUtils.URLEncodedBase64
+	assertionRaw := b64StdEncodingToURLEncoding(av.Assertion)
+	if err := assertion.UnmarshalJSON([]byte(assertionRaw)); err != nil {
 		return nil, err
 	}
 

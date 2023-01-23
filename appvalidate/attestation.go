@@ -50,10 +50,7 @@ func (au *AttestationUpdate) Validate(v structure.Validator) {
 }
 
 func transformAttestation(av *AttestationVerify) (*appAttest.AuthenticatorAttestationResponse, error) {
-	// The appattest library expects all the data to be base64 encoded but for
-	// convenience, the AttestationVerify struct only expects the
-	// Attestation to be base64 encoded. So this converts to the
-	// expected format.
+	// The appattest library expects all the data to use base64 URLEncoding when the data from IOS is base64 StdEncoding so convert first.
 
 	clientDataRaw := make([]byte, base64.RawURLEncoding.EncodedLen(len([]byte(av.Challenge))))
 	base64.RawURLEncoding.Encode(clientDataRaw, []byte(av.Challenge))
@@ -62,16 +59,15 @@ func transformAttestation(av *AttestationVerify) (*appAttest.AuthenticatorAttest
 		return nil, err
 	}
 
+	attestationRaw := b64StdEncodingToURLEncoding(av.Attestation)
 	var attestation appUtils.URLEncodedBase64
-	if err := attestation.UnmarshalJSON([]byte(av.Attestation)); err != nil {
+	if err := attestation.UnmarshalJSON([]byte(attestationRaw)); err != nil {
 		return nil, err
 	}
 
-	keyID := base64.StdEncoding.EncodeToString([]byte(av.KeyID))
-
 	return &appAttest.AuthenticatorAttestationResponse{
 		ClientData:        clientData,
-		KeyID:             keyID,
+		KeyID:             av.KeyID,
 		AttestationObject: attestation,
 	}, nil
 }

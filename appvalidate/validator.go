@@ -17,9 +17,9 @@ var (
 )
 
 type ValidatorConfig struct {
-	AppleAppID               string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_ID" default:"org.tidepool.app"`
-	UseProductionEnvironment bool   `envconfig:"TIDEPOOL_APPVALIDATION_USE_PRODUCTION" default:"false"`
-	ChallengeSize            int    `envconfig:"TIDEPOOL_APPVALIDATION_CHALLENGE_SIZE" default:"12"`
+	AppleAppID                string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_ID" default:"org.tidepool.app"`
+	UseDevelopmentEnvironment bool   `envconfig:"TIDEPOOL_APPVALIDATION_USE_DEVELOPMENT" default:"false"`
+	ChallengeSize             int    `envconfig:"TIDEPOOL_APPVALIDATION_CHALLENGE_SIZE" default:"16"`
 }
 
 // Validator is the "service" that performs every flow or action associated
@@ -58,7 +58,7 @@ func NewValidator(r Repository, g ChallengeGenerator, cfg ValidatorConfig) (*Val
 		repo:          r,
 		generator:     g,
 		appleAppID:    cfg.AppleAppID,
-		isProduction:  cfg.UseProductionEnvironment,
+		isProduction:  !cfg.UseDevelopmentEnvironment,
 		challengeSize: cfg.ChallengeSize,
 	}, nil
 }
