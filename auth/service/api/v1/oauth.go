@@ -171,6 +171,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		for _, session := range providerSessions {
 			if deleteSessionErr := r.AuthClient().DeleteProviderSession(ctx, session.ID); deleteSessionErr != nil {
 				r.htmlOnError(res, req, errors.Newf("could not remove existing provider session"), alreadyConnectedError)
+				return
 			}
 		}
 	}
