@@ -38,7 +38,7 @@ var (
 	resumableErrorLabel                = "ResumableChangeStreamError"
 	errorCursorNotFound          int32 = 43 // CursorNotFound error code
 
-	// Whitelist of error codes that are considered resumable.
+	// Allowlist of error codes that are considered resumable.
 	resumableChangeStreamErrors = map[int32]struct{}{
 		6:     {}, // HostUnreachable
 		7:     {}, // HostNotFound
@@ -47,11 +47,11 @@ var (
 		189:   {}, // PrimarySteppedDown
 		262:   {}, // ExceededTimeLimit
 		9001:  {}, // SocketException
-		10107: {}, // NotMaster
+		10107: {}, // NotPrimary
 		11600: {}, // InterruptedAtShutdown
 		11602: {}, // InterruptedDueToReplStateChange
-		13435: {}, // NotMasterNoSlaveOk
-		13436: {}, // NotMasterOrSecondary
+		13435: {}, // NotPrimaryNoSecondaryOK
+		13436: {}, // NotPrimaryOrSecondary
 		63:    {}, // StaleShardVersion
 		150:   {}, // StaleEpoch
 		13388: {}, // StaleConfig
@@ -61,7 +61,8 @@ var (
 )
 
 // ChangeStream is used to iterate over a stream of events. Each event can be decoded into a Go type via the Decode
-// method or accessed as raw BSON via the Current field. For more information about change streams, see
+// method or accessed as raw BSON via the Current field. This type is not goroutine safe and must not be used
+// concurrently by multiple goroutines. For more information about change streams, see
 // https://docs.mongodb.com/manual/changeStreams/.
 type ChangeStream struct {
 	// Current is the BSON bytes of the current event. This property is only valid until the next call to Next or
@@ -93,7 +94,7 @@ type changeStreamConfig struct {
 	streamType     StreamType
 	collectionName string
 	databaseName   string
-	crypt          *driver.Crypt
+	crypt          driver.Crypt
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
@@ -103,11 +104,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cs := &ChangeStream{
-		client:        config.client,
-		registry:      config.registry,
-		streamType:    config.streamType,
-		options:       options.MergeChangeStreamOptions(opts...),
-		selector:      description.ReadPrefSelector(config.readPreference),
+		client:     config.client,
+		registry:   config.registry,
+		streamType: config.streamType,
+		options:    options.MergeChangeStreamOptions(opts...),
+		selector: description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(config.readPreference),
+			description.LatencySelector(config.client.localThreshold),
+		}),
 		cursorOptions: config.client.createBaseCursorOptions(),
 	}
 
@@ -127,7 +131,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
-		Crypt(config.crypt)
+		ServerAPI(cs.client.serverAPI).Crypt(config.crypt)
 
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
@@ -137,7 +141,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
-		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
+		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
 	}
 
 	switch cs.streamType {
@@ -600,7 +604,7 @@ func (cs *ChangeStream) isResumableError() bool {
 		return commandErr.HasErrorLabel(resumableErrorLabel)
 	}
 
-	// For wire versions below 9, a server error is resumable if its code is on the whitelist.
+	// For wire versions below 9, a server error is resumable if its code is on the allowlist.
 	_, resumable := resumableChangeStreamErrors[commandErr.Code]
 	return resumable
 }

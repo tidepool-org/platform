@@ -1,24 +1,24 @@
 ./association/association.go:78:6: type name will be used as association.AssociationArray by other packages, and that stutters; consider calling this Array
 ./blob/blob.go:132:6: type name will be used as blob.BlobArray by other packages, and that stutters; consider calling this Array
-./confirmation/confirmation.go:5:6: type name will be used as confirmation.ConfirmationAccessor by other packages, and that stutters; consider calling this Accessor
-./data/client/client.go:27:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
+./blob/store/structured/mongo/mongo.go:437:1: receiver name c should be consistent with previous receiver name b for BlobRepository
+./data/client/client.go:40:6: type name will be used as client.ClientImpl by other packages, and that stutters; consider calling this Impl
 ./data/data_set.go:24:6: type name will be used as data.DataSetAccessor by other packages, and that stutters; consider calling this SetAccessor
-./data/data_set.go:53:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
-./data/data_set.go:60:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
-./data/data_set.go:86:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
-./data/data_set.go:113:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
-./data/data_set.go:148:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
-./data/data_set.go:220:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
-./data/data_set.go:288:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
-./data/data_set.go:330:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
+./data/data_set.go:52:6: func name will be used as data.DataSetTypes by other packages, and that stutters; consider calling this SetTypes
+./data/data_set.go:59:6: func name will be used as data.DataSetStates by other packages, and that stutters; consider calling this SetStates
+./data/data_set.go:85:6: type name will be used as data.DataSetClient by other packages, and that stutters; consider calling this SetClient
+./data/data_set.go:112:6: type name will be used as data.DataSetFilter by other packages, and that stutters; consider calling this SetFilter
+./data/data_set.go:147:6: type name will be used as data.DataSetCreate by other packages, and that stutters; consider calling this SetCreate
+./data/data_set.go:219:6: type name will be used as data.DataSetUpdate by other packages, and that stutters; consider calling this SetUpdate
+./data/data_set.go:287:6: type name will be used as data.DataSet by other packages, and that stutters; consider calling this Set
+./data/data_set.go:328:6: type name will be used as data.DataSets by other packages, and that stutters; consider calling this Sets
 ./data/source/source.go:253:6: type name will be used as source.SourceArray by other packages, and that stutters; consider calling this Array
-./data/storeDEPRECATED/storeDEPRECATED_suite_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
-./data/storeDEPRECATED/store.go:1:1: don't use MixedCaps in package name; storeDEPRECATED should be storedeprecated
-./data/storeDEPRECATED/store_test.go:1:1: don't use MixedCaps in package name; storeDEPRECATED_test should be storedeprecated_test
 ./data/types/device/alarm/alarm.go:25:6: func name will be used as alarm.AlarmTypes by other packages, and that stutters; consider calling this Types
+./data/types/upload/test/upload.go:33:1: comment on exported type LegacyUpload should be of the form "LegacyUpload ..." (with optional leading article)
+./errors/errors.go:401:10: should replace errors.New(fmt.Sprintf(...)) with fmt.Errorf(...)
 ./image/image.go:526:6: type name will be used as image.ImageArray by other packages, and that stutters; consider calling this Array
 ./metadata/metadata.go:65:6: type name will be used as metadata.MetadataArray by other packages, and that stutters; consider calling this Array
-./profile/profile.go:17:6: type name will be used as profile.ProfileArray by other packages, and that stutters; consider calling this Array
+./migrations/back-1572/back-1572.go:203:37: method parameter objectId should be objectID
+./migrations/back-1572/back-1572.go:230:9: if block ends with a return statement, so drop this else and outdent its block
 ./request/mutator.go:9:6: type name will be used as request.RequestMutator by other packages, and that stutters; consider calling this Mutator
 ./service/response_test.go:27:30: method WriteJson should be WriteJSON
 ./service/response_test.go:31:30: method EncodeJson should be EncodeJSON
@@ -27,6 +27,8 @@
 ./task/task.go:46:6: type name will be used as task.TaskFilter by other packages, and that stutters; consider calling this Filter
 ./task/task.go:82:6: type name will be used as task.TaskCreate by other packages, and that stutters; consider calling this Create
 ./task/task.go:120:6: type name will be used as task.TaskUpdate by other packages, and that stutters; consider calling this Update
+./task/task.go:329:5: error var AlreadyClaimedTask should have name of the form ErrFoo
+./task/task.go:329:37: error strings should not be capitalized or end with punctuation or a newline
 ./test/rest/response_writer.go:9:6: type EncodeJsonOutput should be EncodeJSONOutput
 ./test/rest/response_writer.go:30:2: struct field WriteJsonInvocations should be WriteJSONInvocations
 ./test/rest/response_writer.go:31:2: struct field WriteJsonInputs should be WriteJSONInputs
@@ -40,4 +42,4 @@
 ./test/rest/response_writer.go:39:2: struct field EncodeJsonOutput should be EncodeJSONOutput
 ./test/rest/response_writer.go:80:26: method WriteJson should be WriteJSON
 ./test/rest/response_writer.go:97:26: method EncodeJson should be EncodeJSON
-./user/user.go:103:6: type name will be used as user.UserArray by other packages, and that stutters; consider calling this Array
+./user/user.go:81:6: type name will be used as user.UserArray by other packages, and that stutters; consider calling this Array

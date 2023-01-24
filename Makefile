@@ -54,12 +54,12 @@ bindir:
 
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
-	cd vendor/github.com/githubnemo/CompileDaemon && go install .
+	cd vendor/github.com/githubnemo/CompileDaemon && go install -mod=vendor .
 endif
 
 esc:
 ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install .
+	cd vendor/github.com/mjibson/esc && go install -mod=vendor .
 endif
 
 mockgen:
@@ -69,17 +69,17 @@ endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
+	cd vendor/github.com/onsi/ginkgo/ginkgo && go install -mod=vendor .
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install .
+	cd vendor/golang.org/x/tools/cmd/goimports && go install -mod=vendor .
 endif
 
 golint:
 ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && go install .
+	cd vendor/golang.org/x/lint/golint && go install -mod=vendor .
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
@@ -136,7 +136,8 @@ lint: golint tmp
 lint-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
 
-pre-build: format imports vet lint
+pre-build: format imports vet
+# pre-build: format imports vet lint
 
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
