@@ -19,8 +19,10 @@ func SummaryRoutes() []dataService.Route {
 		dataService.MakeRoute("GET", "/v1/summaries/:userId/bgm", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/:userId/cgm", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/:userId/bgm", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
-		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs)),
+		dataService.MakeRoute("POST", "/v1/summaries/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
 	}
 }
 
@@ -93,11 +95,10 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 	}
 }
 
-func BackfillSummaries(dataServiceContext dataService.Context) {
+func BackfillSummaries[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -106,7 +107,8 @@ func BackfillSummaries(dataServiceContext dataService.Context) {
 		return
 	}
 
-	status, err := dataClient.BackfillSummaries(ctx)
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	status, err := summarizer.BackfillSummaries(ctx)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -115,11 +117,10 @@ func BackfillSummaries(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, status)
 }
 
-func GetOutdatedUserIDs(dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -134,7 +135,8 @@ func GetOutdatedUserIDs(dataServiceContext dataService.Context) {
 		return
 	}
 
-	userIDs, err := dataClient.GetOutdatedUserIDs(ctx, pagination)
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	userIDs, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

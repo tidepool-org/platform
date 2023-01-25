@@ -311,26 +311,14 @@ func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
 }
 
-func (b *Base) UpdatesCGMSummary() bool {
-	// one year has a bit of padding, to allow for some calculation delay
-	twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	if b.Type == "cbg" && b.Time.Before(oneDayFuture) && b.Time.After(twoYearsPast) {
-		return true
-	}
-
-	return false
-}
-
-func (b *Base) UpdatesBGMSummary() bool {
+func (b *Base) UpdatesTypeSummary(t string) bool {
 	// one year has a bit of padding, to allow for some calculation delay
 	twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
 	datumTime := *b.Time
 
-	if b.Type == "smbg" && datumTime.Before(oneDayFuture) && datumTime.After(twoYearsPast) {
+	if b.Type == t && datumTime.Before(oneDayFuture) && datumTime.After(twoYearsPast) {
 		return true
 	}
 
@@ -338,10 +326,10 @@ func (b *Base) UpdatesBGMSummary() bool {
 }
 
 func (b *Base) UpdatesSummary(updates map[string]bool) {
-	if b.UpdatesCGMSummary() {
+	if b.UpdatesTypeSummary("cgm") {
 		updates["cgm"] = true
 	}
-	if b.UpdatesBGMSummary() {
+	if b.UpdatesTypeSummary("smbg") {
 		updates["bgm"] = true
 	}
 }

@@ -7,6 +7,7 @@ import (
 
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	summaryStore "github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )
@@ -46,7 +47,7 @@ func (u *userDeletionEventsHandler) HandleDeleteUserEvent(payload ev.DeleteUserE
 	}
 
 	logger.Infof("Deleting summary for user")
-	summaryRepository := u.dataStore.NewSummaryRepository()
+	summaryRepository := summaryStore.NewTypeless(u.dataStore.NewBareSummaryRepository())
 	if err := summaryRepository.DeleteSummary(u.ctx, payload.UserID); err != nil {
 		errs = append(errs, err)
 		logger.WithError(err).Error("unable to delete summary for user")

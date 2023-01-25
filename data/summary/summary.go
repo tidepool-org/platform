@@ -7,8 +7,13 @@ import (
 	"github.com/tidepool-org/platform/data/summary/types"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"time"
+)
+
+const (
+	backfillBatch = 100000
 )
 
 type SummarizerRegistry struct {
@@ -35,7 +40,10 @@ func GetSummarizer[T types.Stats, A types.StatsPt[T]](reg *SummarizerRegistry) S
 
 type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
+	SetOutdated(ctx context.Context, userId string) error
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	BackfillSummaries(ctx context.Context) (int, error)
 }
 
 // Compile time interface check
@@ -63,6 +71,61 @@ func NewCGMSummarizer(collection *storeStructuredMongo.Repository, deviceData da
 
 func (c *GlucoseSummarizer[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error) {
 	return c.summaries.GetSummary(ctx, userId)
+}
+
+func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId string) error {
+	_, err := c.summaries.SetOutdated(ctx, userId)
+	return err
+}
+
+func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	return c.summaries.GetOutdatedUserIDs(ctx, pagination)
+}
+
+func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, error) {
+	var empty struct{}
+	var userIDsReqBackfill []string
+	var count = 0
+
+	distinctDataUserIDs, err := c.deviceData.DistinctUserIDs(ctx)
+	if err != nil {
+		return count, err
+	}
+
+	distinctSummaryIDs, err := c.summaries.DistinctSummaryIDs(ctx)
+	if err != nil {
+		return count, err
+	}
+
+	distinctSummaryIDMap := make(map[string]struct{})
+	for _, v := range distinctSummaryIDs {
+		distinctSummaryIDMap[v] = empty
+	}
+
+	for _, userID := range distinctDataUserIDs {
+		if _, exists := distinctSummaryIDMap[userID]; exists {
+		} else {
+			userIDsReqBackfill = append(userIDsReqBackfill, userID)
+		}
+
+		if len(userIDsReqBackfill) >= backfillBatch {
+			break
+		}
+	}
+
+	var summaries = make([]*types.Summary[T, A], len(userIDsReqBackfill))
+	for i, userID := range userIDsReqBackfill {
+		summaries[i] = types.Create[T, A](userID)
+	}
+
+	if len(summaries) > 0 {
+		count, err = c.summaries.CreateSummaries(ctx, summaries)
+		if err != nil {
+			return count, err
+		}
+	}
+
+	return count, nil
 }
 
 func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error) {

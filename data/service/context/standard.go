@@ -2,6 +2,7 @@ package context
 
 import (
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/store/structured/mongo"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -28,6 +29,7 @@ type Standard struct {
 	dataStore               dataStore.Store
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
+	bareSummaryRepository   *mongo.Repository
 	summarizerRegistry      *summary.SummarizerRegistry
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
@@ -112,6 +114,15 @@ func (s *Standard) Close() {
 	if s.summaryRepository != nil {
 		s.summaryRepository = nil
 	}
+	if s.summaryRepository != nil {
+		s.summaryRepository = nil
+	}
+	if s.bareSummaryRepository != nil {
+		s.bareSummaryRepository = nil
+	}
+	if s.summarizerRegistry != nil {
+		s.summarizerRegistry = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -144,14 +155,20 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 	return s.summaryRepository
 }
 
+func (s *Standard) BareSummaryRepository() *mongo.Repository {
+	if s.bareSummaryRepository == nil {
+		s.bareSummaryRepository = s.dataStore.NewBareSummaryRepository()
+	}
+	return s.bareSummaryRepository
+}
+
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	dataRepo := s.DataRepository()
-	summaryRepo := s.dataStore.NewBareSummaryRepository()
+	summaryRepo := s.BareSummaryRepository()
 
 	if s.summarizerRegistry == nil {
 		s.summarizerRegistry = summary.New(summaryRepo, dataRepo)
 	}
-
 	return s.summarizerRegistry
 }
 

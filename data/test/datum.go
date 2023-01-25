@@ -180,11 +180,11 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
-//func (d *Datum) UpdatesSummary(updatesSummary *data.SummaryTypeUpdates) {
-//	d.UpdatesSummaryInvocations++
-//
-//	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
-//}
+func (d *Datum) UpdatesSummary(updatesSummary *data.SummaryTypeUpdates) {
+	d.UpdatesSummaryInvocations++
+
+	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
+}
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	d.DeduplicatorDescriptorInvocations++

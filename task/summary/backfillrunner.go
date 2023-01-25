@@ -117,14 +117,19 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	t.context = ctx
 	t.validator = structureValidator.New()
 
-	t.logger.Debug("Starting User Summary Creation")
-
-	count, err := t.dataClient.BackfillSummaries(t.context)
+	t.logger.Debug("Starting User CGM Summary Creation")
+	count, err := t.dataClient.BackfillSummaries(t.context, "cgm")
 	if err != nil {
 		return err
 	}
+	t.logger.Info(fmt.Sprintf("Backfilled %d CGM summaries", count))
 
-	t.logger.Info(fmt.Sprintf("Backfilled %d summaries", count))
+	t.logger.Debug("Starting User BGM Summary Creation")
+	count, err = t.dataClient.BackfillSummaries(t.context, "bgm")
+	if err != nil {
+		return err
+	}
+	t.logger.Info(fmt.Sprintf("Backfilled %d BGM summaries", count))
 
 	return nil
 }

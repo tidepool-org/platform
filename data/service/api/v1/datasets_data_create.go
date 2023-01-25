@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"net/http"
 	"strconv"
 
@@ -91,14 +93,14 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	var updatesSummary data.SummaryTypeUpdates
+	var updatesSummary = make(map[string]bool)
 
 	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		datum.UpdatesSummary(&updatesSummary)
+		datum.UpdatesSummary(updatesSummary)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -112,10 +114,19 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if updatesSummary.CGM || updatesSummary.BGM {
-		_, err = dataServiceContext.SummaryRepository().SetOutdated(ctx, *dataSet.UserID, &updatesSummary)
+	if val, ok := updatesSummary["cgm"]; ok && val == true {
+		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](dataServiceContext.SummarizerRegistry())
+		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
 		if err != nil {
-			lgr.WithError(err).Error("Unable to set summary outdated")
+			lgr.WithError(err).Error("Unable to set cgm summary outdated")
+		}
+	}
+
+	if val, ok := updatesSummary["bgm"]; ok && val == true {
+		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](dataServiceContext.SummarizerRegistry())
+		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set cgm summary outdated")
 		}
 	}
 

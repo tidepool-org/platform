@@ -18,8 +18,18 @@ type Repo[T types.Stats, A types.StatsPt[T]] struct {
 	*storeStructuredMongo.Repository
 }
 
+type TypelessRepo struct {
+	*storeStructuredMongo.Repository
+}
+
 func New[T types.Stats, A types.StatsPt[T]](delegate *storeStructuredMongo.Repository) *Repo[T, A] {
 	return &Repo[T, A]{
+		delegate,
+	}
+}
+
+func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessRepo {
+	return &TypelessRepo{
 		delegate,
 	}
 }
@@ -45,7 +55,7 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 	return summary, nil
 }
 
-func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
+func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -54,7 +64,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 		"userId": userId,
 	}
 
-	_, err := r.DeleteOne(ctx, selector)
+	_, err := r.DeleteMany(ctx, selector)
 	if err != nil {
 		return errors.Wrap(err, "unable to delete summary")
 	}
