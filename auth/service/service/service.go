@@ -131,6 +131,9 @@ func (s *Service) Domain() string {
 }
 
 func (s *Service) AuthStore() store.Store {
+	if s.authStore == nil {
+		return nil
+	}
 	return s.authStore
 }
 
@@ -444,7 +447,11 @@ func (s *Service) initializeAppValidate() error {
 	if err != nil {
 		return err
 	}
-	validator, err := appvalidate.NewValidator(s.AuthStore().NewAppValidateRepository(), appvalidate.NewChallengeGenerator(), *cfg)
+	authStore := s.AuthStore()
+	if authStore == nil {
+		return errors.New("auth store should be initialized before app validate")
+	}
+	validator, err := appvalidate.NewValidator(authStore.NewAppValidateRepository(), appvalidate.NewChallengeGenerator(), *cfg)
 	if err != nil {
 		return err
 	}
