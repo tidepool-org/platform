@@ -25,6 +25,12 @@ func (r *AppValidateRepository) EnsureIndexes() error {
 				SetUnique(true).
 				SetBackground(true),
 		},
+		{
+			Keys: bson.D{{Key: "keyId", Value: 1}},
+			Options: options.Index().
+				SetUnique(true).
+				SetBackground(true),
+		},
 	})
 }
 
