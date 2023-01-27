@@ -35,12 +35,17 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 	}
 
 	result, err := r.AppValidator().CreateAttestChallenge(ctx, challengeCreate)
-	if responder.RespondIfError(err) {
+	if err != nil {
 		fields := log.Fields{
 			"userID": details.UserID(),
 			"keyId":  challengeCreate.KeyID,
 		}
 		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to create attestation challenge")
+		if errors.Is(err, appvalidate.ErrDuplicateKeyId) {
+			responder.Error(http.StatusBadRequest, errors.New("invalid key id"))
+			return
+		}
+		responder.InternalServerError(err)
 		return
 	}
 	responder.Data(http.StatusCreated, result)
