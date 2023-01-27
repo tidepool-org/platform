@@ -4,6 +4,7 @@ import (
 	"context"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/store"
