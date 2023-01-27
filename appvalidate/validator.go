@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
+	"golang.org/x/exp/slices"
 
 	"github.com/tidepool-org/platform/errors"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
@@ -18,9 +19,9 @@ var (
 )
 
 type ValidatorConfig struct {
-	AppleAppID                string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_ID" default:"75U4X84TEG.org.tidepool.coastal.Loop"`
-	UseDevelopmentEnvironment bool   `envconfig:"TIDEPOOL_APPVALIDATION_USE_DEVELOPMENT" default:"true"`
-	ChallengeSize             int    `envconfig:"TIDEPOOL_APPVALIDATION_CHALLENGE_SIZE" default:"16"`
+	AppleAppIDs               []string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_IDS" default:"75U4X84TEG.org.tidepool.coastal.Loop"`
+	UseDevelopmentEnvironment bool     `envconfig:"TIDEPOOL_APPVALIDATION_USE_DEVELOPMENT" default:"true"`
+	ChallengeSize             int      `envconfig:"TIDEPOOL_APPVALIDATION_CHALLENGE_SIZE" default:"16"`
 }
 
 // Validator is the "service" that performs every flow or action associated
@@ -30,7 +31,7 @@ type Validator struct {
 	repo          Repository
 	generator     ChallengeGenerator
 	isProduction  bool
-	appleAppID    string
+	appleAppIDs   []string
 	challengeSize int
 }
 
@@ -43,8 +44,8 @@ func NewValidatorConfig() (*ValidatorConfig, error) {
 }
 
 func NewValidator(r Repository, g ChallengeGenerator, cfg ValidatorConfig) (*Validator, error) {
-	if cfg.AppleAppID == "" {
-		return nil, errors.New("app id cannot be empty")
+	if len(cfg.AppleAppIDs) == 0 || slices.IndexFunc(cfg.AppleAppIDs, nonEmptyString) == -1 {
+		return nil, errors.New("app ids cannot be empty")
 	}
 	if cfg.ChallengeSize <= 0 {
 		return nil, errors.New("challenge size must be a postive integer")
@@ -58,7 +59,7 @@ func NewValidator(r Repository, g ChallengeGenerator, cfg ValidatorConfig) (*Val
 	return &Validator{
 		repo:          r,
 		generator:     g,
-		appleAppID:    cfg.AppleAppID,
+		appleAppIDs:   cfg.AppleAppIDs,
 		isProduction:  !cfg.UseDevelopmentEnvironment,
 		challengeSize: cfg.ChallengeSize,
 	}, nil
@@ -142,10 +143,24 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	if err != nil {
 		return errors.Wrap(err, "unable to transform attestation")
 	}
-	pubKey, receipt, err := attestation.Verify(v.appleAppID, v.isProduction)
-	if err != nil {
-		return errors.Wrap(ErrAttestationVerificationFailed, err.Error())
+
+	// Since we can support multiple App IDs, try them all Possibly in the
+	// future we can decode the object manually and see if the app id is one
+	// of Validator.appleAppIDs to not have to go through each one.
+	var vErr error
+	var pubKey []byte
+	var receipt []byte
+	for _, appleAppID := range v.appleAppIDs {
+		pubKey, receipt, vErr = attestation.Verify(appleAppID, v.isProduction)
+		// Stop at first working Apple App Id
+		if vErr == nil {
+			break
+		}
 	}
+	if vErr != nil {
+		return errors.Wrap(ErrAttestationVerificationFailed, vErr.Error())
+	}
+
 	update := AttestationUpdate{
 		PublicKey:              base64.StdEncoding.EncodeToString(pubKey),
 		FraudAssessmentReceipt: base64.StdEncoding.EncodeToString(receipt),
@@ -185,9 +200,18 @@ func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) er
 	if err != nil {
 		return errors.Wrap(err, "unable to decode public key")
 	}
-	newCounter, err := assertion.Verify(validation.AssertionChallenge, v.appleAppID, validation.AssertionCounter, pubKey)
-	if err != nil {
-		return errors.Wrap(ErrAssertionVerificationFailed, err.Error())
+
+	var newCounter uint32
+	var vErr error
+	// Try every configured apple App Id
+	for _, appleAppID := range v.appleAppIDs {
+		newCounter, vErr = assertion.Verify(validation.AssertionChallenge, appleAppID, validation.AssertionCounter, pubKey)
+		if err == nil {
+			break
+		}
+	}
+	if vErr != nil {
+		return errors.Wrap(ErrAssertionVerificationFailed, vErr.Error())
 	}
 
 	update := AssertionUpdate{
@@ -199,4 +223,8 @@ func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) er
 	}
 
 	return nil
+}
+
+func nonEmptyString(s string) bool {
+	return s != ""
 }

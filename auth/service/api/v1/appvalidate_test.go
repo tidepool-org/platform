@@ -106,7 +106,7 @@ var _ = Describe("App Validation", func() {
 		Return(challenge, nil).
 		AnyTimes()
 	validator, err := appvalidate.NewValidator(repo, generator, appvalidate.ValidatorConfig{
-		AppleAppID:    "org.tidepool.app",
+		AppleAppIDs:   []string{"org.tidepool.app"},
 		ChallengeSize: 10,
 	})
 	Expect(err).ToNot(HaveOccurred())
