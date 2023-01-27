@@ -206,7 +206,7 @@ func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) er
 	// Try every configured apple App Id
 	for _, appleAppID := range v.appleAppIDs {
 		newCounter, vErr = assertion.Verify(validation.AssertionChallenge, appleAppID, validation.AssertionCounter, pubKey)
-		if err == nil {
+		if vErr == nil {
 			break
 		}
 	}
