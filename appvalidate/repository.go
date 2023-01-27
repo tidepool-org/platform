@@ -2,6 +2,12 @@ package appvalidate
 
 import (
 	"context"
+
+	"github.com/tidepool-org/platform/errors"
+)
+
+var (
+	ErrDuplicateKeyId = errors.New("duplicate key id")
 )
 
 type Filter struct {

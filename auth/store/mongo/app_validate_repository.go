@@ -48,6 +48,9 @@ func (r *AppValidateRepository) Upsert(ctx context.Context, v *appvalidate.AppVa
 	loggerFromContext(ctx, f).
 		WithError(err).
 		Debug("UpsertAppValidation")
+	if storeStructuredMongo.IsDup(err) {
+		return appvalidate.ErrDuplicateKeyId
+	}
 	return err
 }
 
