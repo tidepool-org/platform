@@ -19,7 +19,7 @@ var (
 )
 
 type ValidatorConfig struct {
-	AppleAppIDs               []string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_IDS" default:"75U4X84TEG.org.tidepool.coastal.Loop"`
+	AppleAppIDs               []string `envconfig:"TIDEPOOL_APPVALIDATION_APPLE_APP_IDS" default:"75U4X84TEG.org.tidepool.coastal.Loop,75U4X84TEG.org.tidepool.Loop"`
 	UseDevelopmentEnvironment bool     `envconfig:"TIDEPOOL_APPVALIDATION_USE_DEVELOPMENT" default:"true"`
 	ChallengeSize             int      `envconfig:"TIDEPOOL_APPVALIDATION_CHALLENGE_SIZE" default:"16"`
 }
