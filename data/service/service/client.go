@@ -69,10 +69,10 @@ func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summar
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([][]string, error) {
+func (c *Client) GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) BackfillSummaries(ctx context.Context) (int, error) {
+func (c *Client) BackfillSummaries(ctx context.Context, t string) (int, error) {
 	panic("Not Implemented!")
 }

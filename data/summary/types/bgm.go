@@ -29,6 +29,7 @@ type BGMPeriod struct {
 
 	// actual values
 	AverageGlucose *Glucose `json:"averageGlucose" bson:"avgGlucose"`
+	TotalRecords   int      `json:"totalRecords" bson:"totalRecords"`
 
 	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
 	TimeInTargetRecords int      `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
@@ -184,6 +185,7 @@ func (s *BGMStats) CalculatePeriod(i int, totalStats *BGMBucketData) {
 		HasTimeInVeryHighPercent: timeInVeryHighPercent != nil,
 
 		AverageGlucose: averageGlucose,
+		TotalRecords:   totalStats.TotalRecords,
 
 		TimeInTargetPercent: timeInTargetPercent,
 		TimeInTargetRecords: totalStats.TargetRecords,

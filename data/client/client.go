@@ -226,7 +226,7 @@ func (c *ClientImpl) BackfillSummaries(ctx context.Context, t string) (int, erro
 	return count, nil
 }
 
-func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([][]string, error) {
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -241,7 +241,7 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, t string, paginatio
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	var userIDs [][]string
+	var userIDs []string
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil

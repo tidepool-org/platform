@@ -21,8 +21,8 @@ func SummaryRoutes() []dataService.Route {
 		dataService.MakeRoute("POST", "/v1/summaries/:userId/bgm", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
 	}
 }
 

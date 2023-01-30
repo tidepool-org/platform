@@ -269,8 +269,9 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 			newBucket.LastRecordTime = s[len(s)-1].LastRecordTime
 		}
 
-		newBucket.Data.CalculateStats(r, recordTime)
+		newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
 
+		newBucket.LastRecordTime = *recordTime
 	}
 
 	// store
@@ -278,6 +279,6 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 	if err != nil {
 		return err
 	}
-
+	
 	return nil
 }
