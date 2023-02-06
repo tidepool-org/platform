@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrDuplicateKeyId = errors.New("duplicate key id")
+	ErrKeyIdNotFound  = errors.New("key id not found")
 )
 
 type Filter struct {
