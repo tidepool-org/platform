@@ -67,6 +67,9 @@ func (r *AppValidateRepository) GetAttestationChallenge(ctx context.Context, f a
 		WithError(err).
 		Debug("GetAttestationChallenge")
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return "", appvalidate.ErrKeyIdNotFound
+		}
 		return "", err
 	}
 	return av.AttestationChallenge, nil
@@ -124,7 +127,7 @@ func (r *AppValidateRepository) UpdateAttestation(ctx context.Context, f appvali
 		return err
 	}
 	if res.ModifiedCount == 0 {
-		return errors.New("unable to find app validation object")
+		return appvalidate.ErrKeyIdNotFound
 	}
 	return nil
 }
