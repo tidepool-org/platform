@@ -95,6 +95,10 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 			"keyId":  attestVerify.KeyID,
 		}
 		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to verify attestation")
+		if errors.Is(err, appvalidate.ErrKeyIdNotFound) {
+			responder.Error(http.StatusNotFound, err)
+			return
+		}
 		if errors.Is(err, appvalidate.ErrAttestationVerificationFailed) {
 			responder.Error(http.StatusBadRequest, err)
 			return
