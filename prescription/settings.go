@@ -19,8 +19,8 @@ type InitialSettings struct {
 	InsulinSensitivitySchedule         *pump.InsulinSensitivityStartArray `json:"insulinSensitivitySchedule,omitempty" bson:"insulinSensitivitySchedule,omitempty"`
 	BasalRateMaximum                   *pump.BasalRateMaximum             `json:"basalRateMaximum,omitempty" bson:"basalRateMaximum,omitempty"`
 	BolusAmountMaximum                 *pump.BolusAmountMaximum           `json:"bolusAmountMaximum,omitempty" bson:"bolusAmountMaximum,omitempty"`
-	PumpID                             string                             `json:"pumpId,omitempty" bson:"pumpId,omitempty"`
-	CgmID                              string                             `json:"cgmId,omitempty" bson:"cgmId,omitempty"`
+	PumpID                             *string                            `json:"pumpId,omitempty" bson:"pumpId,omitempty"`
+	CgmID                              *string                            `json:"cgmId,omitempty" bson:"cgmId,omitempty"`
 }
 
 func AllowedInsulinModels() []string {
@@ -56,7 +56,7 @@ func (i *InitialSettings) Validate(validator structure.Validator) {
 		i.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbohydrateRatioSchedule"))
 	}
 	if i.GlucoseSafetyLimit != nil {
-		pump.ValidateBloodGlucoseSuspendThreshold(i.GlucoseSafetyLimit, &i.BloodGlucoseUnits, "glucoseSafetyLimit", validator)
+		pump.ValidateBloodGlucoseSafetyLimit(i.GlucoseSafetyLimit, &i.BloodGlucoseUnits, "glucoseSafetyLimit", validator)
 	}
 	if i.InsulinModel != nil {
 		validator.String("insulinModel", i.InsulinModel).OneOf(AllowedInsulinModels()...)
@@ -91,10 +91,10 @@ func (i *InitialSettings) ValidateSubmittedPrescription(validator structure.Vali
 	if i.BolusAmountMaximum == nil {
 		validator.WithReference("bolusAmountMaximum").ReportError(structureValidator.ErrorValueEmpty())
 	}
-	if i.PumpID == "" {
+	if i.PumpID == nil {
 		validator.WithReference("pumpId").ReportError(structureValidator.ErrorValueEmpty())
 	}
-	if i.CgmID == "" {
+	if i.CgmID == nil {
 		validator.WithReference("cgmId").ReportError(structureValidator.ErrorValueEmpty())
 	}
 }

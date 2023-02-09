@@ -25,10 +25,10 @@ func NewMeta() interface{} {
 
 func NewInsulin() *insulin.Insulin {
 	datum := insulin.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "insulin"
 	datum.Dose = dataTypesInsulinTest.NewDose()
-	datum.Formulation = dataTypesInsulinTest.NewFormulation(3)
+	datum.Formulation = dataTypesInsulinTest.RandomFormulation(3)
 	datum.Site = pointer.FromString(test.RandomStringFromRange(1, 100))
 	return datum
 }
@@ -107,7 +107,7 @@ var _ = Describe("Insulin", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/formulation/name", NewMeta()),
 				),
 				Entry("formulation valid",
-					func(datum *insulin.Insulin) { datum.Formulation = dataTypesInsulinTest.NewFormulation(3) },
+					func(datum *insulin.Insulin) { datum.Formulation = dataTypesInsulinTest.RandomFormulation(3) },
 				),
 				Entry("site missing",
 					func(datum *insulin.Insulin) { datum.Site = nil },

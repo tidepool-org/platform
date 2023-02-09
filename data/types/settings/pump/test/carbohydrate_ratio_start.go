@@ -49,7 +49,7 @@ func CloneCarbohydrateRatioStartArray(datumArray *pump.CarbohydrateRatioStartArr
 
 func NewCarbohydrateRatioStartArrayMap() *pump.CarbohydrateRatioStartArrayMap {
 	datum := pump.NewCarbohydrateRatioStartArrayMap()
-	datum.Set(dataTypesBasalTest.NewScheduleName(), NewCarbohydrateRatioStartArray())
+	datum.Set(dataTypesBasalTest.RandomScheduleName(), NewCarbohydrateRatioStartArray())
 	return datum
 }
 

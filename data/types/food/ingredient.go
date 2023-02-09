@@ -3,7 +3,6 @@ package food
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -61,18 +60,6 @@ func (i *Ingredient) Validate(validator structure.Validator) {
 	}
 }
 
-func (i *Ingredient) Normalize(normalizer data.Normalizer) {
-	if i.Amount != nil {
-		i.Amount.Normalize(normalizer.WithReference("amount"))
-	}
-	if i.Ingredients != nil {
-		i.Ingredients.Normalize(normalizer.WithReference("ingredients"))
-	}
-	if i.Nutrition != nil {
-		i.Nutrition.Normalize(normalizer.WithReference("nutrition"))
-	}
-}
-
 type IngredientArray []*Ingredient
 
 func ParseIngredientArray(parser structure.ArrayParser) *IngredientArray {
@@ -105,14 +92,6 @@ func (i *IngredientArray) Validate(validator structure.Validator) {
 			datum.Validate(datumValidator)
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
-		}
-	}
-}
-
-func (i *IngredientArray) Normalize(normalizer data.Normalizer) {
-	for index, datum := range *i {
-		if datum != nil {
-			datum.Normalize(normalizer.WithReference(strconv.Itoa(index)))
 		}
 	}
 }

@@ -40,11 +40,15 @@ var _ = Describe("Device", func() {
 		Expect(dexcom.DeviceTransmitterGenerationG6).To(Equal("g6"))
 	})
 
+	It("DeviceTransmitterGenerationG6Pro is expected", func() {
+		Expect(dexcom.DeviceTransmitterGenerationG6Pro).To(Equal("g6 pro"))
+	})
+
 	It("DeviceDisplayDevices returns expected", func() {
 		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
 	})
 
 	It("DeviceTransmitterGenerations returns expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"g4", "g5", "g6"}))
+		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"g4", "g5", "g6", "g6 pro"}))
 	})
 })

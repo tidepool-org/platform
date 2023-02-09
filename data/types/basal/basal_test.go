@@ -1,6 +1,8 @@
 package basal_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -13,6 +15,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+const ExpectedTimeFormat = time.RFC3339Nano
 
 var _ = Describe("Basal", func() {
 	It("Type is expected", func() {
@@ -52,7 +56,7 @@ var _ = Describe("Basal", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *basal.Basal), expectedErrors ...error) {
-					datum := dataTypesBasalTest.NewBasal()
+					datum := dataTypesBasalTest.RandomBasal()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -92,7 +96,7 @@ var _ = Describe("Basal", func() {
 			var datum *basal.Basal
 
 			BeforeEach(func() {
-				datum = dataTypesBasalTest.NewBasal()
+				datum = dataTypesBasalTest.RandomBasal()
 			})
 
 			It("returns error if user id is missing", func() {
@@ -119,7 +123,7 @@ var _ = Describe("Basal", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, datum.DeliveryType}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.DeliveryType}))
 			})
 		})
 	})

@@ -19,9 +19,10 @@ const (
 	DeviceDisplayDeviceShareReceiver       = "shareReceiver"
 	DeviceDisplayDeviceTouchscreenReceiver = "touchscreenReceiver"
 
-	DeviceTransmitterGenerationG4 = "g4"
-	DeviceTransmitterGenerationG5 = "g5"
-	DeviceTransmitterGenerationG6 = "g6"
+	DeviceTransmitterGenerationG4    = "g4"
+	DeviceTransmitterGenerationG5    = "g5"
+	DeviceTransmitterGenerationG6    = "g6"
+	DeviceTransmitterGenerationG6Pro = "g6 pro"
 )
 
 func DeviceDisplayDevices() []string {
@@ -39,11 +40,13 @@ func DeviceTransmitterGenerations() []string {
 		DeviceTransmitterGenerationG4,
 		DeviceTransmitterGenerationG5,
 		DeviceTransmitterGenerationG6,
+		DeviceTransmitterGenerationG6Pro,
 	}
 }
 
 type DevicesResponse struct {
-	Devices *Devices `json:"devices,omitempty"`
+	Devices       *Devices `json:"devices,omitempty"`
+	IsSandboxData bool     `json:"isSandboxData,omitempty"`
 }
 
 func ParseDevicesResponse(parser structure.ObjectParser) *DevicesResponse {
@@ -65,7 +68,9 @@ func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
 
 func (d *DevicesResponse) Validate(validator structure.Validator) {
 	if devicesValidator := validator.WithReference("devices"); d.Devices != nil {
-		d.Devices.Validate(devicesValidator)
+		if !d.IsSandboxData {
+			d.Devices.Validate(devicesValidator)
+		}
 	} else {
 		devicesValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}

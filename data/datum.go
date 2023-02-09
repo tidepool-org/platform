@@ -1,6 +1,8 @@
 package data
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
@@ -22,12 +24,14 @@ type Datum interface {
 	SetDataSetID(dataSetID *string)
 	SetActive(active bool)
 	SetDeviceID(deviceID *string)
-	SetCreatedTime(createdTime *string)
+	SetCreatedTime(createdTime *time.Time)
 	SetCreatedUserID(createdUserID *string)
-	SetModifiedTime(modifiedTime *string)
+	SetModifiedTime(modifiedTime *time.Time)
 	SetModifiedUserID(modifiedUserID *string)
-	SetDeletedTime(deletedTime *string)
+	SetDeletedTime(deletedTime *time.Time)
 	SetDeletedUserID(deletedUserID *string)
+
+	UpdatesSummary() bool
 
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)

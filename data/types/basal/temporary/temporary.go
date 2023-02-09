@@ -3,6 +3,7 @@ package temporary
 import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/basal"
+	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
 	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/metadata"
@@ -164,16 +165,19 @@ func (s *SuppressedTemporary) Normalize(normalizer data.Normalizer) {
 }
 
 var suppressedDeliveryTypes = []string{
+	dataTypesBasalAutomated.DeliveryType,
 	dataTypesBasalScheduled.DeliveryType,
 }
 
 func parseSuppressed(parser structure.ObjectParser) Suppressed {
 	if deliveryType := basal.ParseDeliveryType(parser); deliveryType != nil {
 		switch *deliveryType {
+		case dataTypesBasalAutomated.DeliveryType:
+			return dataTypesBasalAutomated.ParseSuppressedAutomated(parser)
 		case dataTypesBasalScheduled.DeliveryType:
 			return dataTypesBasalScheduled.ParseSuppressedScheduled(parser)
 		default:
-			parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
+			parser.WithReferenceErrorReporter("deliveryType").ReportError(structureValidator.ErrorValueStringNotOneOf(*deliveryType, suppressedDeliveryTypes))
 		}
 	}
 	return nil
@@ -182,10 +186,12 @@ func parseSuppressed(parser structure.ObjectParser) Suppressed {
 func validateSuppressed(validator structure.Validator, suppressed Suppressed) {
 	if suppressed != nil {
 		switch suppressed := suppressed.(type) {
+		case *dataTypesBasalAutomated.SuppressedAutomated:
+			suppressed.Validate(validator)
 		case *dataTypesBasalScheduled.SuppressedScheduled:
 			suppressed.Validate(validator)
 		default:
-			validator.ReportError(structureValidator.ErrorValueExists()) // TODO: Better error?
+			validator.ReportError(structureValidator.ErrorValueNotValid())
 		}
 	}
 }

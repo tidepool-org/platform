@@ -17,7 +17,7 @@ func NewMeta() interface{} {
 
 func RandomTimeChange(deprecated bool) *dataTypesDeviceTimechange.TimeChange {
 	datum := dataTypesDeviceTimechange.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "timeChange"
 	if !deprecated {
 		datum.From = RandomInfo()

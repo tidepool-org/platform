@@ -4,8 +4,6 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// NOTE: This file is maintained by hand because operationgen cannot generate it.
-
 package operation
 
 import (
@@ -39,7 +37,8 @@ type Update struct {
 	writeConcern             *writeconcern.WriteConcern
 	retry                    *driver.RetryMode
 	result                   UpdateResult
-	crypt                    *driver.Crypt
+	crypt                    driver.Crypt
+	serverAPI                *driver.ServerAPIOptions
 }
 
 // Upsert contains the information for an upsert in an Update operation.
@@ -66,26 +65,22 @@ func buildUpdateResult(response bsoncore.Document, srvr driver.Server) (UpdateRe
 	ur := UpdateResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
 		case "nModified":
 			var ok bool
 			ur.NModified, ok = element.Value().Int32OK()
 			if !ok {
-				err = fmt.Errorf("response field 'nModified' is type int32, but received BSON type %s", element.Value().Type)
+				return ur, fmt.Errorf("response field 'nModified' is type int32, but received BSON type %s", element.Value().Type)
 			}
-
 		case "n":
 			var ok bool
 			ur.N, ok = element.Value().Int32OK()
 			if !ok {
-				err = fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
+				return ur, fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
 			}
-
 		case "upserted":
 			arr, ok := element.Value().ArrayOK()
 			if !ok {
-				err = fmt.Errorf("response field 'upserted' is type array, but received BSON type %s", element.Value().Type)
-				break
+				return ur, fmt.Errorf("response field 'upserted' is type array, but received BSON type %s", element.Value().Type)
 			}
 
 			var values []bsoncore.Value
@@ -97,12 +92,11 @@ func buildUpdateResult(response bsoncore.Document, srvr driver.Server) (UpdateRe
 			for _, val := range values {
 				valDoc, ok := val.DocumentOK()
 				if !ok {
-					err = fmt.Errorf("upserted value is type document, but received BSON type %s", val.Type)
-					break
+					return ur, fmt.Errorf("upserted value is type document, but received BSON type %s", val.Type)
 				}
 				var upsert Upsert
 				if err = bson.Unmarshal(valDoc, &upsert); err != nil {
-					break
+					return ur, err
 				}
 				ur.Upserted = append(ur.Upserted, upsert)
 			}
@@ -121,14 +115,14 @@ func NewUpdate(updates ...bsoncore.Document) *Update {
 // Result returns the result of executing this operation.
 func (u *Update) Result() UpdateResult { return u.result }
 
-func (u *Update) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server, currIndex int) error {
-	ur, err := buildUpdateResult(response, srvr)
+func (u *Update) processResponse(info driver.ResponseInfo) error {
+	ur, err := buildUpdateResult(info.ServerResponse, info.Server)
 
 	u.result.N += ur.N
 	u.result.NModified += ur.NModified
-	if currIndex > 0 {
+	if info.CurrentIndex > 0 {
 		for ind := range ur.Upserted {
-			ur.Upserted[ind].Index += int64(currIndex)
+			ur.Upserted[ind].Index += int64(info.CurrentIndex)
 		}
 	}
 	u.result.Upserted = append(u.result.Upserted, ur.Upserted...)
@@ -161,6 +155,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		Selector:          u.selector,
 		WriteConcern:      u.writeConcern,
 		Crypt:             u.crypt,
+		ServerAPI:         u.serverAPI,
 	}.Execute(ctx, nil)
 
 }
@@ -344,11 +339,21 @@ func (u *Update) Retry(retry driver.RetryMode) *Update {
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (u *Update) Crypt(crypt *driver.Crypt) *Update {
+func (u *Update) Crypt(crypt driver.Crypt) *Update {
 	if u == nil {
 		u = new(Update)
 	}
 
 	u.crypt = crypt
+	return u
+}
+
+// ServerAPI sets the server API version for this operation.
+func (u *Update) ServerAPI(serverAPI *driver.ServerAPIOptions) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.serverAPI = serverAPI
 	return u
 }

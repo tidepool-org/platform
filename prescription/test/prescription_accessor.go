@@ -54,6 +54,16 @@ type AddRevisionOutput struct {
 	Err    error
 }
 
+type GetClaimablePrescriptionInput struct {
+	Ctx   context.Context
+	Claim *prescription.Claim
+}
+
+type GetClaimablePrescriptionOutput struct {
+	Prescr *prescription.Prescription
+	Err    error
+}
+
 type ClaimPrescriptionInput struct {
 	Ctx   context.Context
 	Claim *prescription.Claim
@@ -76,24 +86,27 @@ type UpdatePrescriptionStateOutput struct {
 }
 
 type PrescriptionAccessor struct {
-	CreatePrescriptionInvocations      int
-	CreatePrescriptionInputs           []CreatePrescriptionInput
-	CreatePrescriptionOutputs          []CreatePrescriptionOutput
-	ListPrescriptionsInvocations       int
-	ListPrescriptionsInputs            []ListPrescriptionsInput
-	ListPrescriptionOutputs            []ListPrescriptionsOutput
-	DeletePrescriptionInvocations      int
-	DeletePrescriptionInputs           []DeletePrescriptionInput
-	DeletePrescriptionOutputs          []DeletePrescriptionOutput
-	AddRevisionInvocations             int
-	AddRevisionInputs                  []AddRevisionInput
-	AddRevisionOutputs                 []AddRevisionOutput
-	ClaimPrescriptionInvocations       int
-	ClaimPrescriptionInputs            []ClaimPrescriptionInput
-	ClaimPrescriptionOutputs           []ClaimPrescriptionOutput
-	UpdatePrescriptionStateInvocations int
-	UpdatePrescriptionStateInputs      []UpdatePrescriptionStateInput
-	UpdatePrescriptionStateOutputs     []UpdatePrescriptionStateOutput
+	CreatePrescriptionInvocations       int
+	CreatePrescriptionInputs            []CreatePrescriptionInput
+	CreatePrescriptionOutputs           []CreatePrescriptionOutput
+	ListPrescriptionsInvocations        int
+	ListPrescriptionsInputs             []ListPrescriptionsInput
+	ListPrescriptionOutputs             []ListPrescriptionsOutput
+	DeletePrescriptionInvocations       int
+	DeletePrescriptionInputs            []DeletePrescriptionInput
+	DeletePrescriptionOutputs           []DeletePrescriptionOutput
+	AddRevisionInvocations              int
+	AddRevisionInputs                   []AddRevisionInput
+	AddRevisionOutputs                  []AddRevisionOutput
+	ClaimPrescriptionInvocations        int
+	ClaimPrescriptionInputs             []ClaimPrescriptionInput
+	ClaimPrescriptionOutputs            []ClaimPrescriptionOutput
+	GetClaimablePrescriptionInvocations int
+	GetClaimablePrescriptionInputs      []GetClaimablePrescriptionInput
+	GetClaimablePrescriptionOutputs     []GetClaimablePrescriptionOutput
+	UpdatePrescriptionStateInvocations  int
+	UpdatePrescriptionStateInputs       []UpdatePrescriptionStateInput
+	UpdatePrescriptionStateOutputs      []UpdatePrescriptionStateOutput
 }
 
 func NewPrescriptionAccessor() *PrescriptionAccessor {
@@ -160,6 +173,18 @@ func (p *PrescriptionAccessor) ClaimPrescription(ctx context.Context, claim *pre
 	return output.Prescr, output.Err
 }
 
+func (p *PrescriptionAccessor) GetClaimablePrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
+	p.GetClaimablePrescriptionInvocations++
+
+	p.GetClaimablePrescriptionInputs = append(p.GetClaimablePrescriptionInputs, GetClaimablePrescriptionInput{Ctx: ctx, Claim: claim})
+
+	gomega.Expect(p.GetClaimablePrescriptionOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.GetClaimablePrescriptionOutputs[0]
+	p.GetClaimablePrescriptionOutputs = p.GetClaimablePrescriptionOutputs[1:]
+	return output.Prescr, output.Err
+}
+
 func (p *PrescriptionAccessor) UpdatePrescriptionState(ctx context.Context, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
 	p.UpdatePrescriptionStateInvocations++
 
@@ -177,6 +202,7 @@ func (p *PrescriptionAccessor) Expectations() {
 	gomega.Expect(p.ListPrescriptionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.DeletePrescriptionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.AddRevisionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.GetClaimablePrescriptionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.ClaimPrescriptionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.UpdatePrescriptionStateOutputs).To(gomega.BeEmpty())
 }

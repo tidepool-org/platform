@@ -24,7 +24,7 @@ func NewMeta() interface{} {
 
 func NewPhysical() *physical.Physical {
 	datum := physical.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "physicalActivity"
 	datum.ActivityType = pointer.FromString(test.RandomStringFromArray(physical.ActivityTypes()))
 	if datum.ActivityType != nil && *datum.ActivityType == physical.ActivityTypeOther {

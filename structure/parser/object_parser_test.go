@@ -533,9 +533,10 @@ var _ = Describe("Object", func() {
 		BeforeEach(func() {
 			now = time.Now()
 			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
-				"zero": false,
-				"one":  "abc",
-				"two":  now.Format(time.RFC3339Nano),
+				"zero":  false,
+				"one":   "abc",
+				"two":   now.Format(time.RFC3339Nano),
+				"three": now,
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -559,6 +560,13 @@ var _ = Describe("Object", func() {
 
 		It("with key with string type returns value", func() {
 			value := parser.Time("two", time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with time type returns value", func() {
+			value := parser.Time("three", time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).ToNot(HaveOccurred())

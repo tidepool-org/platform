@@ -16,7 +16,8 @@ import (
 )
 
 type Client struct {
-	client *oauthClient.Client
+	client        *oauthClient.Client
+	isSandboxData bool
 }
 
 func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
@@ -28,14 +29,25 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	// NOTE: Dexcom authorization server does not support HTTP Basic authentication
 	oauth2.RegisterBrokenAuthHeaderProvider(cfg.Address)
 
+	isSandboxData := false
+	if cfg != nil && cfg.Address == "https://sandbox-api.dexcom.com" {
+		isSandboxData = true
+	}
+
 	return &Client{
-		client: clnt,
+		client:        clnt,
+		isSandboxData: isSandboxData,
 	}, nil
 }
 
 func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error) {
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "calibrations"), calibrationsResponse, tokenSource); err != nil {
+	paths := []string{"p", "v2", "users", "self", "calibrations"}
+	if c.isSandboxData {
+		paths = paths[1:]
+	}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), calibrationsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get calibrations")
 	}
 
@@ -43,8 +55,13 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 }
 
 func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DevicesResponse, error) {
-	devicesResponse := &dexcom.DevicesResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "devices"), devicesResponse, tokenSource); err != nil {
+	devicesResponse := &dexcom.DevicesResponse{IsSandboxData: c.isSandboxData}
+	paths := []string{"p", "v2", "users", "self", "devices"}
+	if c.isSandboxData {
+		paths = paths[1:]
+	}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), devicesResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get devices")
 	}
 
@@ -53,7 +70,12 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "egvs"), egvsResponse, tokenSource); err != nil {
+	paths := []string{"p", "v2", "users", "self", "egvs"}
+	if c.isSandboxData {
+		paths = paths[1:]
+	}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), egvsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get egvs")
 	}
 
@@ -62,7 +84,12 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "events"), eventsResponse, tokenSource); err != nil {
+	paths := []string{"p", "v2", "users", "self", "events"}
+	if c.isSandboxData {
+		paths = paths[1:]
+	}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get events")
 	}
 

@@ -51,9 +51,8 @@ func NewObjectFromInt(value int, objectFormat ObjectFormat) interface{} {
 	case ObjectFormatBSON:
 		if value < math.MinInt32 || value > math.MaxInt32 {
 			return int64(value)
-		} else {
-			return int32(value)
 		}
+		return int32(value)
 	}
 	return value
 }

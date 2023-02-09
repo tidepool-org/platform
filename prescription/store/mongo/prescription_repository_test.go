@@ -663,25 +663,27 @@ var _ = Describe("PrescriptionRepository", func() {
 							ClinicID:    prescr.ClinicID,
 							ClinicianID: prescr.CreatedUserID,
 							DataAttributes: prescription.DataAttributes{
-								AccountType:             "",
-								CaregiverFirstName:      "",
-								CaregiverLastName:       "",
-								FirstName:               "",
-								LastName:                "",
-								Birthday:                "",
-								MRN:                     "",
-								Email:                   "",
-								Sex:                     "",
+								AccountType:             nil,
+								CaregiverFirstName:      nil,
+								CaregiverLastName:       nil,
+								FirstName:               nil,
+								LastName:                nil,
+								Birthday:                nil,
+								MRN:                     nil,
+								Email:                   nil,
+								Sex:                     nil,
 								Weight:                  nil,
-								YearOfDiagnosis:         0,
+								YearOfDiagnosis:         nil,
 								PhoneNumber:             nil,
 								InitialSettings:         nil,
-								Training:                "",
-								TherapySettings:         "",
-								PrescriberTermsAccepted: false,
+								Training:                nil,
+								TherapySettings:         nil,
+								PrescriberTermsAccepted: nil,
 								State:                   prescription.StateDraft,
 							},
 						}
+						hash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevisionCreate(*create))
+						create.RevisionHash = hash.Hash
 						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
@@ -704,7 +706,8 @@ var _ = Describe("PrescriptionRepository", func() {
 					prescr.State = prescription.StateSubmitted
 					claim = prescription.NewPrescriptionClaim(*usr.UserID)
 					claim.AccessCode = prescr.AccessCode
-					claim.Birthday = prescr.LatestRevision.Attributes.Birthday
+					claim.Birthday = *prescr.LatestRevision.Attributes.Birthday
+					claim.RevisionHash = prescr.LatestRevision.IntegrityHash.Hash
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -735,6 +738,20 @@ var _ = Describe("PrescriptionRepository", func() {
 
 					It("returns nil if the birthday is incorrect", func() {
 						claim.Birthday = "1900-01-01"
+						result, err := repository.ClaimPrescription(ctx, claim)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error if the claim doesn't have revision hash", func() {
+						claim.RevisionHash = ""
+						result, err := repository.ClaimPrescription(ctx, claim)
+						Expect(err).To(HaveOccurred())
+						Expect(result).To(BeNil())
+					})
+
+					It("doesn't return the prescription if the revision hash is invalid", func() {
+						claim.RevisionHash = "invalid"
 						result, err := repository.ClaimPrescription(ctx, claim)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(BeNil())
@@ -776,7 +793,8 @@ var _ = Describe("PrescriptionRepository", func() {
 						second.State = prescription.StateSubmitted
 						claim = prescription.NewPrescriptionClaim(*usr.UserID)
 						claim.AccessCode = second.AccessCode
-						claim.Birthday = second.LatestRevision.Attributes.Birthday
+						claim.Birthday = *second.LatestRevision.Attributes.Birthday
+						claim.RevisionHash = second.LatestRevision.IntegrityHash.Hash
 
 						_, err = collection.InsertOne(nil, second)
 						Expect(err).ToNot(HaveOccurred())

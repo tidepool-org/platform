@@ -26,6 +26,7 @@ type Standard struct {
 	dataDeduplicatorFactory deduplicator.Factory
 	dataStore               dataStore.Store
 	dataRepository          dataStore.DataRepository
+	summaryRepository       dataStore.SummaryRepository
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
@@ -106,6 +107,9 @@ func (s *Standard) Close() {
 	if s.dataRepository != nil {
 		s.dataRepository = nil
 	}
+	if s.summaryRepository != nil {
+		s.summaryRepository = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -129,6 +133,13 @@ func (s *Standard) DataRepository() dataStore.DataRepository {
 		s.dataRepository = s.dataStore.NewDataRepository()
 	}
 	return s.dataRepository
+}
+
+func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
+	if s.summaryRepository == nil {
+		s.summaryRepository = s.dataStore.NewSummaryRepository()
+	}
+	return s.summaryRepository
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {

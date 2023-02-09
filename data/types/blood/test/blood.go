@@ -11,7 +11,7 @@ import (
 
 func NewBlood() *blood.Blood {
 	datum := &blood.Blood{}
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Units = pointer.FromString(dataTypesTest.NewType())
 	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
 	return datum

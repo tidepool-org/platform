@@ -5,9 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/kelseyhightower/envconfig"
+
 	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/auth"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
+
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
@@ -32,16 +37,25 @@ import (
 	taskClient "github.com/tidepool-org/platform/task/client"
 )
 
+type confirmationClientConfig struct {
+	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
+}
+
+func (c *confirmationClientConfig) Load() error {
+	return envconfig.Process("", c)
+}
+
 type Service struct {
 	*serviceService.Service
-	domain            string
-	authStore         *authMongo.Store
-	dataSourceClient  *dataSourceClient.Client
-	taskClient        task.Client
-	providerFactory   provider.Factory
-	authClient        *Client
-	userEventsHandler events.Runner
-	deviceCheck       apple.DeviceCheck
+	domain             string
+	authStore          *authMongo.Store
+	dataSourceClient   *dataSourceClient.Client
+	confirmationClient confirmationClient.ClientWithResponsesInterface
+	taskClient         task.Client
+	providerFactory    provider.Factory
+	authClient         *Client
+	userEventsHandler  events.Runner
+	deviceCheck        apple.DeviceCheck
 }
 
 func New() *Service {
@@ -79,6 +93,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeConfirmationClient(); err != nil {
+		return err
+	}
 	if err := s.initializeTaskClient(); err != nil {
 		return err
 	}
@@ -101,6 +118,7 @@ func (s *Service) Terminate() {
 	s.terminateProviderFactory()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
+	s.terminateConfirmationClient()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
@@ -118,6 +136,10 @@ func (s *Service) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
 }
 
+func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
+	return s.confirmationClient
+}
+
 func (s *Service) TaskClient() task.Client {
 	return s.taskClient
 }
@@ -132,9 +154,7 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 
 func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
-		Version:   s.VersionReporter().Long(),
-		AuthStore: s.authStore.Status(ctx),
-		Server:    s.API().Status(),
+		Version: s.VersionReporter().Long(),
 	}
 }
 
@@ -244,6 +264,40 @@ func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
 		s.Logger().Debug("Destroying data source client")
 		s.dataSourceClient = nil
+	}
+}
+
+func (s *Service) initializeConfirmationClient() error {
+	s.Logger().Debug("Loading confirmation client config")
+
+	cfg := &confirmationClientConfig{}
+	if err := cfg.Load(); err != nil {
+		return err
+	}
+
+	opts := confirmationClient.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		token, err := s.authClient.ServerSessionToken()
+		if err != nil {
+			return err
+		}
+
+		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		return nil
+	})
+
+	clnt, err := confirmationClient.NewClientWithResponses(cfg.ServiceAddress, opts)
+	if err != nil {
+		return err
+	}
+	s.confirmationClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateConfirmationClient() {
+	if s.confirmationClient != nil {
+		s.Logger().Debug("Destroying confirmation client")
+		s.confirmationClient = nil
 	}
 }
 

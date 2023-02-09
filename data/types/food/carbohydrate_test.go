@@ -5,189 +5,204 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types/food"
+	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
+	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewCarbohydrate() *food.Carbohydrate {
-	datum := food.NewCarbohydrate()
-	datum.DietaryFiber = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateDietaryFiberGramsMinimum, food.CarbohydrateDietaryFiberGramsMaximum))
-	datum.Net = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateNetGramsMinimum, food.CarbohydrateNetGramsMaximum))
-	datum.Sugars = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateSugarsGramsMinimum, food.CarbohydrateSugarsGramsMaximum))
-	datum.Total = pointer.FromFloat64(test.RandomFloat64FromRange(food.CarbohydrateTotalGramsMinimum, food.CarbohydrateTotalGramsMaximum))
-	datum.Units = pointer.FromString(test.RandomStringFromArray(food.CarbohydrateUnits()))
-	return datum
-}
-
-func CloneCarbohydrate(datum *food.Carbohydrate) *food.Carbohydrate {
-	if datum == nil {
-		return nil
-	}
-	clone := food.NewCarbohydrate()
-	clone.DietaryFiber = pointer.CloneFloat64(datum.DietaryFiber)
-	clone.Net = pointer.CloneFloat64(datum.Net)
-	clone.Sugars = pointer.CloneFloat64(datum.Sugars)
-	clone.Total = pointer.CloneFloat64(datum.Total)
-	clone.Units = pointer.CloneString(datum.Units)
-	return clone
-}
-
 var _ = Describe("Carbohydrate", func() {
-
 	It("CarbohydrateDietaryFiberGramsMaximum is expected", func() {
-		Expect(food.CarbohydrateDietaryFiberGramsMaximum).To(Equal(1000.0))
+		Expect(dataTypesFood.CarbohydrateDietaryFiberGramsMaximum).To(Equal(1000.0))
 	})
 
 	It("CarbohydrateDietaryFiberGramsMinimum is expected", func() {
-		Expect(food.CarbohydrateDietaryFiberGramsMinimum).To(Equal(0.0))
+		Expect(dataTypesFood.CarbohydrateDietaryFiberGramsMinimum).To(Equal(0.0))
 	})
 
 	It("CarbohydrateNetGramsMaximum is expected", func() {
-		Expect(food.CarbohydrateNetGramsMaximum).To(Equal(1000.0))
+		Expect(dataTypesFood.CarbohydrateNetGramsMaximum).To(Equal(1000.0))
 	})
 
 	It("CarbohydrateNetGramsMinimum is expected", func() {
-		Expect(food.CarbohydrateNetGramsMinimum).To(Equal(0.0))
+		Expect(dataTypesFood.CarbohydrateNetGramsMinimum).To(Equal(0.0))
 	})
 
 	It("CarbohydrateSugarsGramsMaximum is expected", func() {
-		Expect(food.CarbohydrateSugarsGramsMaximum).To(Equal(1000.0))
+		Expect(dataTypesFood.CarbohydrateSugarsGramsMaximum).To(Equal(1000.0))
 	})
 
 	It("CarbohydrateSugarsGramsMinimum is expected", func() {
-		Expect(food.CarbohydrateSugarsGramsMinimum).To(Equal(0.0))
+		Expect(dataTypesFood.CarbohydrateSugarsGramsMinimum).To(Equal(0.0))
 	})
 
 	It("CarbohydrateTotalGramsMaximum is expected", func() {
-		Expect(food.CarbohydrateTotalGramsMaximum).To(Equal(1000.0))
+		Expect(dataTypesFood.CarbohydrateTotalGramsMaximum).To(Equal(1000.0))
 	})
 
 	It("CarbohydrateTotalGramsMinimum is expected", func() {
-		Expect(food.CarbohydrateTotalGramsMinimum).To(Equal(0.0))
+		Expect(dataTypesFood.CarbohydrateTotalGramsMinimum).To(Equal(0.0))
 	})
 
 	It("CarbohydrateUnitsGrams is expected", func() {
-		Expect(food.CarbohydrateUnitsGrams).To(Equal("grams"))
+		Expect(dataTypesFood.CarbohydrateUnitsGrams).To(Equal("grams"))
 	})
 
 	It("CarbohydrateUnits returns expected", func() {
-		Expect(food.CarbohydrateUnits()).To(Equal([]string{"grams"}))
-	})
-
-	Context("ParseCarbohydrate", func() {
-		// TODO
-	})
-
-	Context("NewCarbohydrate", func() {
-		It("is successful", func() {
-			Expect(food.NewCarbohydrate()).To(Equal(&food.Carbohydrate{}))
-		})
+		Expect(dataTypesFood.CarbohydrateUnits()).To(Equal([]string{"grams"}))
 	})
 
 	Context("Carbohydrate", func() {
-		Context("Parse", func() {
-			// TODO
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataTypesFood.Carbohydrate)) {
+				datum := dataTypesFoodTest.RandomCarbohydrate()
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataTypesFoodTest.NewObjectFromCarbohydrate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesFoodTest.NewObjectFromCarbohydrate(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataTypesFood.Carbohydrate) {},
+			),
+			Entry("empty",
+				func(datum *dataTypesFood.Carbohydrate) {
+					*datum = *dataTypesFood.NewCarbohydrate()
+				},
+			),
+			Entry("all",
+				func(datum *dataTypesFood.Carbohydrate) {
+					datum.DietaryFiber = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesFood.CarbohydrateDietaryFiberGramsMinimum, dataTypesFood.CarbohydrateDietaryFiberGramsMaximum))
+					datum.Net = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesFood.CarbohydrateNetGramsMinimum, dataTypesFood.CarbohydrateNetGramsMaximum))
+					datum.Sugars = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesFood.CarbohydrateSugarsGramsMinimum, dataTypesFood.CarbohydrateSugarsGramsMaximum))
+					datum.Total = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesFood.CarbohydrateTotalGramsMinimum, dataTypesFood.CarbohydrateTotalGramsMaximum))
+					datum.Units = pointer.FromString(test.RandomStringFromArray(dataTypesFood.CarbohydrateUnits()))
+				},
+			),
+		)
+
+		Context("ParseCarbohydrate", func() {
+			It("returns nil when the object is missing", func() {
+				Expect(dataTypesFood.ParseCarbohydrate(structureParser.NewObject(nil))).To(BeNil())
+			})
+
+			It("returns new datum when the object is valid", func() {
+				datum := dataTypesFoodTest.RandomCarbohydrate()
+				object := dataTypesFoodTest.NewObjectFromCarbohydrate(datum, test.ObjectFormatJSON)
+				parser := structureParser.NewObject(&object)
+				Expect(dataTypesFood.ParseCarbohydrate(parser)).To(Equal(datum))
+				Expect(parser.Error()).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("NewCarbohydrate", func() {
+			It("returns the expected datum with all values initialized", func() {
+				datum := dataTypesFood.NewCarbohydrate()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.DietaryFiber).To(BeNil())
+				Expect(datum.Net).To(BeNil())
+				Expect(datum.Sugars).To(BeNil())
+				Expect(datum.Total).To(BeNil())
+				Expect(datum.Units).To(BeNil())
+			})
 		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *food.Carbohydrate), expectedErrors ...error) {
-					datum := NewCarbohydrate()
+				func(mutator func(datum *dataTypesFood.Carbohydrate), expectedErrors ...error) {
+					datum := dataTypesFoodTest.RandomCarbohydrate()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *food.Carbohydrate) {},
+					func(datum *dataTypesFood.Carbohydrate) {},
 				),
 
 				Entry("dietary fiber missing",
-					func(datum *food.Carbohydrate) { datum.DietaryFiber = nil },
+					func(datum *dataTypesFood.Carbohydrate) { datum.DietaryFiber = nil },
 				),
 				Entry("dietary fiber out of range (lower)",
-					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(-0.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/dietaryFiber"),
 				),
 				Entry("dietary fiber in range (lower)",
-					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(0.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(0.0) },
 				),
 				Entry("dietary fiber in range (upper)",
-					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(1000.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(1000.0) },
 				),
 				Entry("dietary fiber out of range (upper)",
-					func(datum *food.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(1000.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.DietaryFiber = pointer.FromFloat64(1000.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/dietaryFiber"),
 				),
 				Entry("net missing",
-					func(datum *food.Carbohydrate) { datum.Net = nil },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Net = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/net"),
 				),
 				Entry("net out of range (lower)",
-					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(-0.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Net = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/net"),
 				),
 				Entry("net in range (lower)",
-					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(0.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Net = pointer.FromFloat64(0.0) },
 				),
 				Entry("net in range (upper)",
-					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(1000.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Net = pointer.FromFloat64(1000.0) },
 				),
 				Entry("net out of range (upper)",
-					func(datum *food.Carbohydrate) { datum.Net = pointer.FromFloat64(1000.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Net = pointer.FromFloat64(1000.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/net"),
 				),
 				Entry("sugars missing",
-					func(datum *food.Carbohydrate) { datum.Sugars = nil },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Sugars = nil },
 				),
 				Entry("sugars out of range (lower)",
-					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(-0.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Sugars = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
 				),
 				Entry("sugars in range (lower)",
-					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(0.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Sugars = pointer.FromFloat64(0.0) },
 				),
 				Entry("sugars in range (upper)",
-					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(1000.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Sugars = pointer.FromFloat64(1000.0) },
 				),
 				Entry("sugars out of range (upper)",
-					func(datum *food.Carbohydrate) { datum.Sugars = pointer.FromFloat64(1000.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Sugars = pointer.FromFloat64(1000.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/sugars"),
 				),
 				Entry("total missing",
-					func(datum *food.Carbohydrate) { datum.Total = nil },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Total = nil },
 				),
 				Entry("total out of range (lower)",
-					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(-0.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Total = pointer.FromFloat64(-0.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
 				),
 				Entry("total in range (lower)",
-					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(0.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Total = pointer.FromFloat64(0.0) },
 				),
 				Entry("total in range (upper)",
-					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(1000.0) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Total = pointer.FromFloat64(1000.0) },
 				),
 				Entry("total out of range (upper)",
-					func(datum *food.Carbohydrate) { datum.Total = pointer.FromFloat64(1000.1) },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Total = pointer.FromFloat64(1000.1) },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/total"),
 				),
 				Entry("units missing",
-					func(datum *food.Carbohydrate) { datum.Units = nil },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Units = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
 				),
 				Entry("units invalid",
-					func(datum *food.Carbohydrate) { datum.Units = pointer.FromString("invalid") },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Units = pointer.FromString("invalid") },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"grams"}), "/units"),
 				),
 				Entry("units grams",
-					func(datum *food.Carbohydrate) { datum.Units = pointer.FromString("grams") },
+					func(datum *dataTypesFood.Carbohydrate) { datum.Units = pointer.FromString("grams") },
 				),
 				Entry("multiple errors",
-					func(datum *food.Carbohydrate) {
+					func(datum *dataTypesFood.Carbohydrate) {
 						datum.DietaryFiber = pointer.FromFloat64(-0.1)
 						datum.Net = pointer.FromFloat64(-0.1)
 						datum.Sugars = pointer.FromFloat64(-0.1)
@@ -199,42 +214,6 @@ var _ = Describe("Carbohydrate", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/sugars"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 1000.0), "/total"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/units"),
-				),
-			)
-		})
-
-		Context("Normalize", func() {
-			DescribeTable("normalizes the datum",
-				func(mutator func(datum *food.Carbohydrate)) {
-					for _, origin := range structure.Origins() {
-						datum := NewCarbohydrate()
-						mutator(datum)
-						expectedDatum := CloneCarbohydrate(datum)
-						normalizer := dataNormalizer.New()
-						Expect(normalizer).ToNot(BeNil())
-						datum.Normalize(normalizer.WithOrigin(origin))
-						Expect(normalizer.Error()).To(BeNil())
-						Expect(normalizer.Data()).To(BeEmpty())
-						Expect(datum).To(Equal(expectedDatum))
-					}
-				},
-				Entry("does not modify the datum",
-					func(datum *food.Carbohydrate) {},
-				),
-				Entry("does not modify the datum; dietary fiber missing",
-					func(datum *food.Carbohydrate) { datum.DietaryFiber = nil },
-				),
-				Entry("does not modify the datum; net missing",
-					func(datum *food.Carbohydrate) { datum.Net = nil },
-				),
-				Entry("does not modify the datum; sugars missing",
-					func(datum *food.Carbohydrate) { datum.Sugars = nil },
-				),
-				Entry("does not modify the datum; total missing",
-					func(datum *food.Carbohydrate) { datum.Total = nil },
-				),
-				Entry("does not modify the datum; units missing",
-					func(datum *food.Carbohydrate) { datum.Units = nil },
 				),
 			)
 		})

@@ -12,7 +12,51 @@ import (
 
 func RandomUpload() *dataTypesUpload.Upload {
 	datum := dataTypesUpload.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
+	datum.Type = "upload"
+	datum.ByUser = pointer.FromString(userTest.RandomID())
+	datum.Client = NewClient()
+	datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
+	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.DataSetTypes()))
+	datum.DataState = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
+	datum.Deduplicator = dataTest.RandomDeduplicatorDescriptor()
+	datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16), test.RandomStringFromRange(1, 16)})
+	datum.DeviceModel = pointer.FromString(test.RandomStringFromRange(1, 32))
+	datum.DeviceSerialNumber = pointer.FromString(test.RandomStringFromRange(1, 16))
+	datum.DeviceTags = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesUpload.DeviceTags()), dataTypesUpload.DeviceTags()))
+	datum.State = pointer.FromString(test.RandomStringFromArray(dataTypesUpload.States()))
+	datum.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingUTCBootstrapping)
+	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
+	return datum
+}
+
+// this is an upload struct, with all time.Time fields replaced with string as they once were
+type LegacyUpload struct {
+	dataTypesTest.LegacyBase `bson:",inline"`
+
+	ByUser              *string                 `json:"byUser,omitempty" bson:"byUser,omitempty"` // TODO: Deprecate in favor of CreatedUserID
+	Client              *dataTypesUpload.Client `json:"client,omitempty" bson:"client,omitempty"`
+	ComputerTime        *string                 `json:"computerTime,omitempty" bson:"computerTime,omitempty"` // TODO: Do we really need this? CreatedTime should suffice.
+	DataSetType         *string                 `json:"dataSetType,omitempty" bson:"dataSetType,omitempty"`   // TODO: Migrate to "type" after migration to DataSet (not based on Base)
+	DataState           *string                 `json:"-" bson:"_dataState,omitempty"`                        // TODO: Deprecated! (remove after data migration)
+	DeviceManufacturers *[]string               `json:"deviceManufacturers,omitempty" bson:"deviceManufacturers,omitempty"`
+	DeviceModel         *string                 `json:"deviceModel,omitempty" bson:"deviceModel,omitempty"`
+	DeviceSerialNumber  *string                 `json:"deviceSerialNumber,omitempty" bson:"deviceSerialNumber,omitempty"`
+	DeviceTags          *[]string               `json:"deviceTags,omitempty" bson:"deviceTags,omitempty"`
+	State               *string                 `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
+	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
+	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
+}
+
+func NewLegacy() *LegacyUpload {
+	return &LegacyUpload{
+		LegacyBase: dataTypesTest.NewLegacy("upload"),
+	}
+}
+
+func RandomLegacyUpload() *LegacyUpload {
+	datum := NewLegacy()
+	datum.LegacyBase = *dataTypesTest.RandomLegacyBase()
 	datum.Type = "upload"
 	datum.ByUser = pointer.FromString(userTest.RandomID())
 	datum.Client = NewClient()

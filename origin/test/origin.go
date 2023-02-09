@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/pointer"
@@ -67,7 +69,7 @@ func RandomName() string {
 }
 
 func RandomTime() string {
-	return test.RandomTime().Format(origin.TimeFormat)
+	return test.RandomTime().Format(time.RFC3339Nano)
 }
 
 func RandomType() string {

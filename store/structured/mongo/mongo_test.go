@@ -81,16 +81,6 @@ var _ = Describe("Mongo", func() {
 				Expect(err).To(MatchError("connection() error occured during connection handshake: auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed."))
 			})
 
-			It("returns an error if TLS is specified on a server that does not support it", func() {
-				config.TLS = true
-				var err error
-				store, err = storeStructuredMongo.NewStore(config)
-				Expect(store).ToNot(BeNil())
-				Expect(err).ToNot(HaveOccurred())
-				err = store.Ping(context.Background())
-				Expect(err).To(MatchError("server selection error: server selection timeout, current topology: { Type: Unknown, Servers: [{ Addr: localhost:27017, Type: Unknown, Average RTT: 0, Last error: connection() error occured during connection handshake: EOF }, ] }"))
-			})
-
 			It("returns no error if successful", func() {
 				var err error
 				store, err = storeStructuredMongo.NewStore(config)

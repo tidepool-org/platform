@@ -26,7 +26,7 @@ func LoadConfig() (*Config, error) {
 	return cfg, err
 }
 
-//Config describe parameters need to make a connection to a Mongo database
+// Config describe parameters need to make a connection to a Mongo database
 type Config struct {
 	Scheme           string        `json:"scheme" envconfig:"TIDEPOOL_STORE_SCHEME"`
 	Addresses        []string      `json:"addresses" envconfig:"TIDEPOOL_STORE_ADDRESSES" required:"true"`

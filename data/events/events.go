@@ -45,6 +45,13 @@ func (u *userDeletionEventsHandler) HandleDeleteUserEvent(payload ev.DeleteUserE
 		logger.WithError(err).Error("unable to delete data sources for user")
 	}
 
+	logger.Infof("Deleting summary for user")
+	summaryRepository := u.dataStore.NewSummaryRepository()
+	if err := summaryRepository.DeleteSummary(u.ctx, payload.UserID); err != nil {
+		errs = append(errs, err)
+		logger.WithError(err).Error("unable to delete summary for user")
+	}
+
 	if len(errs) != 0 {
 		return errors.New("Unable to delete device data for user")
 	}

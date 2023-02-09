@@ -1,24 +1,24 @@
 sudo: false
 
-dist: bionic
+dist: focal
 
 language: go
 
 go:
-  - 1.15
+  - 1.18
 
 go_import_path: github.com/tidepool-org/platform
 
 env:
   global:
-    - MONGODB=4.2.14
+    - MONGODB=4.4.14
 
 before_install:
   - sudo apt-get remove -y mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
-  - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1804-${MONGODB}.tgz -O /tmp/mongodb.tgz
+  - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-${MONGODB}.tgz -O /tmp/mongodb.tgz
   - tar -xf /tmp/mongodb.tgz
   - mkdir /tmp/data
-  - ${PWD}/mongodb-linux-x86_64-ubuntu1804-${MONGODB}/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
+  - ${PWD}/mongodb-linux-x86_64-ubuntu2004-${MONGODB}/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
 
 addons:

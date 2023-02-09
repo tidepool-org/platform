@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -38,17 +40,19 @@ type Datum struct {
 	SetDeviceIDInvocations               int
 	SetDeviceIDInputs                    []*string
 	SetCreatedTimeInvocations            int
-	SetCreatedTimeInputs                 []*string
+	SetCreatedTimeInputs                 []*time.Time
 	SetCreatedUserIDInvocations          int
 	SetCreatedUserIDInputs               []*string
 	SetModifiedTimeInvocations           int
-	SetModifiedTimeInputs                []*string
+	SetModifiedTimeInputs                []*time.Time
 	SetModifiedUserIDInvocations         int
 	SetModifiedUserIDInputs              []*string
 	SetDeletedTimeInvocations            int
-	SetDeletedTimeInputs                 []*string
+	SetDeletedTimeInputs                 []*time.Time
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
+	UpdatesSummaryInvocations            int
+	UpdatesSummaryOutputs                []bool
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -140,7 +144,7 @@ func (d *Datum) SetDeviceID(deviceID *string) {
 	d.SetDeviceIDInputs = append(d.SetDeviceIDInputs, deviceID)
 }
 
-func (d *Datum) SetCreatedTime(createdTime *string) {
+func (d *Datum) SetCreatedTime(createdTime *time.Time) {
 	d.SetCreatedTimeInvocations++
 
 	d.SetCreatedTimeInputs = append(d.SetCreatedTimeInputs, createdTime)
@@ -152,7 +156,7 @@ func (d *Datum) SetCreatedUserID(createdUserID *string) {
 	d.SetCreatedUserIDInputs = append(d.SetCreatedUserIDInputs, createdUserID)
 }
 
-func (d *Datum) SetModifiedTime(modifiedTime *string) {
+func (d *Datum) SetModifiedTime(modifiedTime *time.Time) {
 	d.SetModifiedTimeInvocations++
 
 	d.SetModifiedTimeInputs = append(d.SetModifiedTimeInputs, modifiedTime)
@@ -164,7 +168,7 @@ func (d *Datum) SetModifiedUserID(modifiedUserID *string) {
 	d.SetModifiedUserIDInputs = append(d.SetModifiedUserIDInputs, modifiedUserID)
 }
 
-func (d *Datum) SetDeletedTime(deletedTime *string) {
+func (d *Datum) SetDeletedTime(deletedTime *time.Time) {
 	d.SetDeletedTimeInvocations++
 
 	d.SetDeletedTimeInputs = append(d.SetDeletedTimeInputs, deletedTime)
@@ -174,6 +178,16 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInvocations++
 
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
+}
+
+func (d *Datum) UpdatesSummary() bool {
+	d.UpdatesSummaryInvocations++
+
+	gomega.Expect(d.UpdatesSummaryOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.UpdatesSummaryOutputs[0]
+	d.UpdatesSummaryOutputs = d.UpdatesSummaryOutputs[1:]
+	return output
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

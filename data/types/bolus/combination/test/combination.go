@@ -9,7 +9,7 @@ import (
 
 func NewCombination() *combination.Combination {
 	datum := combination.New()
-	datum.Bolus = *dataTypesBolusTest.NewBolus()
+	datum.Bolus = *dataTypesBolusTest.RandomBolus()
 	datum.SubType = "dual/square"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(combination.DurationMinimum, combination.DurationMaximum))
 	datum.Extended = pointer.FromFloat64(test.RandomFloat64FromRange(combination.ExtendedMinimum, combination.ExtendedMaximum))

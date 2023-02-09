@@ -1,6 +1,8 @@
 *.coverprofile
+*.test
 /_bin
 /_data
 /_log
 /_tmp
 /deploy
+/.idea
