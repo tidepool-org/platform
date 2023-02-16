@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -193,6 +194,7 @@ func ParseDigestMD5Header(header http.Header, key string) (*string, error) {
 	} else if parts := strings.SplitN(*stringValue, "=", 2); len(parts) == 2 {
 		if algorithm := strings.ToUpper(parts[0]); algorithm == "MD5" {
 			if value := parts[1]; crypto.IsValidBase64EncodedMD5Hash(value) {
+				log.Println("ParseDigestMD5Header: ", value)
 				return &value, nil
 			}
 		}

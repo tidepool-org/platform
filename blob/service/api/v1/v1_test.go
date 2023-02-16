@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -80,6 +81,7 @@ var _ = Describe("V1", func() {
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/users/:userId/blobs")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/device-logs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id/content")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/blobs/:id")})),
@@ -551,6 +553,263 @@ var _ = Describe("V1", func() {
 
 									digestAssertions()
 								})
+							})
+						})
+					})
+				})
+
+				Context("CreateDeviceLogs", func() {
+					BeforeEach(func() {
+						req.Method = http.MethodPost
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/device-logs", userID)
+					})
+
+					It("panics when the response is missing", func() {
+						Expect(func() { router.Create(nil, req) }).To(Panic())
+					})
+
+					It("panics when the request is missing", func() {
+						Expect(func() { router.Create(res, nil) }).To(Panic())
+					})
+
+					Context("responds with JSON", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
+						AfterEach(func() {
+							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+						})
+
+						When("the path does not contain a user id", func() {
+							BeforeEach(func() {
+								req.URL.Path = "/v1/users//device-logs"
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterMissing("userId"), res.WriteInputs[0])
+							})
+						})
+
+						When("the path contains an invalid user id", func() {
+							BeforeEach(func() {
+								req.URL.Path = "/v1/users/invalid/device-logs"
+							})
+
+							It("responds with bad request and expected error in body", func() {
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+								Expect(res.WriteInputs).To(HaveLen(1))
+								errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("userId"), res.WriteInputs[0])
+							})
+						})
+
+						Context("with content", func() {
+							var content *blob.DeviceLogsContent
+
+							BeforeEach(func() {
+								content = blobTest.DeviceLogsContent()
+							})
+
+							JustBeforeEach(func() {
+								req.Body = ioutil.NopCloser(content.Body)
+								if content.DigestMD5 != nil {
+									req.Header.Set("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
+								}
+								if content.MediaType != nil {
+									req.Header.Set("Content-Type", *content.MediaType)
+								}
+								if content.EndAt != nil {
+									req.Header.Set("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339))
+								}
+								if content.StartAt != nil {
+									req.Header.Set("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339))
+								}
+							})
+
+							When("the digest header is invalid", func() {
+								BeforeEach(func() {
+									content.DigestMD5 = pointer.FromString("invalid")
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
+								})
+							})
+
+							When("the digest header is invalid with multiple values", func() {
+								JustBeforeEach(func() {
+									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
+								})
+							})
+
+							When("the content type header is missing", func() {
+								BeforeEach(func() {
+									content.MediaType = nil
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderMissing("Content-Type"), res.WriteInputs[0])
+								})
+							})
+
+							When("the content type header is invalid", func() {
+								BeforeEach(func() {
+									content.MediaType = pointer.FromString("/")
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
+								})
+							})
+
+							When("the content type header is not json", func() {
+								BeforeEach(func() {
+									content.MediaType = pointer.FromString("text/html; charset=utf-8")
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
+								})
+							})
+
+							When("the content type header is invalid with multiple values", func() {
+								JustBeforeEach(func() {
+									req.Header.Add("Content-Type", *content.MediaType)
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
+								})
+							})
+
+							Context("with clients", func() {
+								var authClient *authTest.Client
+								var client *blobTest.Client
+
+								BeforeEach(func() {
+									authClient = authTest.NewClient()
+									client = blobTest.NewClient()
+									provider.BlobClientOutputs = []blob.Client{client}
+									provider.AuthClientOutputs = []auth.Client{authClient}
+								})
+
+								BeforeEach(func() {
+									authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{
+										AuthorizedUserID: userID,
+										Error:            nil,
+									}}
+								})
+
+								AfterEach(func() {
+									Expect(authClient.EnsureAuthorizedUserInputs[0].TargetUserID).To(Equal(userID))
+									Expect(authClient.EnsureAuthorizedUserInputs[0].AuthorizedPermission).To(Equal(permission.Write))
+									authClient.AssertOutputsEmpty()
+									client.AssertOutputsEmpty()
+								})
+
+								When("the client returns an unauthorized error", func() {
+									It("responds with an unauthorized error", func() {
+										provider.BlobClientOutputs = nil
+										authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{
+											AuthorizedUserID: "",
+											Error:            request.ErrorUnauthorized(),
+										}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+									})
+								})
+
+								digestAssertions := func() {
+									// It("responds with a bad request error when the client returns a digests not equal error", func() {
+									// 	err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
+									// 	client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: err}}
+									// 	handlerFunc(res, req)
+									// 	Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									// 	Expect(res.WriteInputs).To(HaveLen(1))
+									// 	errorsTest.ExpectErrorJSON(err, res.WriteInputs[0])
+									// })
+
+									It("responds with an internal server error when the client returns an unknown error", func() {
+										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: errorsTest.RandomError()}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+									})
+
+									// It("responds successfully", func() {
+									// 	responseResult := blobTest.RandomBlob()
+									// 	client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: responseResult, Error: nil}}
+									// 	handlerFunc(res, req)
+									// 	Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
+									// 	Expect(res.WriteInputs).To(HaveLen(1))
+									// 	Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
+									// })
+								}
+
+								When("the digest header is not specified", func() {
+									BeforeEach(func() {
+										content.DigestMD5 = nil
+									})
+									AfterEach(func() {
+										Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
+											UserID: userID,
+											Content: &blob.DeviceLogsContent{
+												Body:      ioutil.NopCloser(content.Body),
+												DigestMD5: nil,
+												MediaType: content.MediaType,
+												StartAt:   content.StartAt,
+												EndAt:     content.EndAt,
+											},
+										}}))
+									})
+									digestAssertions()
+								})
+
+								// When("the digest header is specified", func() {
+								// 	AfterEach(func() {
+								// 		Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
+								// 			UserID: userID,
+								// 			Content: &blob.DeviceLogsContent{
+								// 				Body:      ioutil.NopCloser(content.Body),
+								// 				DigestMD5: content.DigestMD5,
+								// 				MediaType: content.MediaType,
+								// 				StartAt:   content.StartAt,
+								// 				EndAt:     content.EndAt,
+								// 			},
+								// 		}}))
+								// 	})
+
+								// 	digestAssertions()
+								// })
 							})
 						})
 					})

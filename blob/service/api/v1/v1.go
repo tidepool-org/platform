@@ -42,6 +42,10 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Get("/v1/users/:userId/blobs", r.List),
 		rest.Post("/v1/users/:userId/blobs", r.Create),
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
+
+		//rest.Get("/v1/users/:userId/device-logs"),
+		rest.Post("/v1/users/:userId/device-logs", r.CreateDeviceLogs),
+
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
 		rest.Delete("/v1/blobs/:id", r.Delete),
@@ -145,11 +149,12 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Content-Type"))
 		return
 	}
+
 	startAtTime, err := request.ParseTimeHeader(req.Header, "X-Logs-Start-At-Time", time.RFC3339)
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
-	} else if mediaType == nil {
+	} else if startAtTime == nil {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("X-Logs-Start-At-Time"))
 		return
 	}
@@ -157,7 +162,7 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
-	} else if mediaType == nil {
+	} else if endAtTime == nil {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("X-Logs-End-At-Time"))
 		return
 	}
