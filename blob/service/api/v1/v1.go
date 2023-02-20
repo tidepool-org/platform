@@ -43,7 +43,6 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Post("/v1/users/:userId/blobs", r.Create),
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 
-		//rest.Get("/v1/users/:userId/device-logs"),
 		rest.Post("/v1/users/:userId/device-logs", r.CreateDeviceLogs),
 
 		rest.Get("/v1/blobs/:id", r.Get),
@@ -191,7 +190,6 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 			return
 		}
 	}
-
 	responder.Data(http.StatusCreated, result)
 }
 
