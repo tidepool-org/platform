@@ -623,10 +623,10 @@ var _ = Describe("V1", func() {
 									req.Header.Set("Content-Type", *content.MediaType)
 								}
 								if content.EndAt != nil {
-									req.Header.Set("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339))
+									req.Header.Set("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339Nano))
 								}
 								if content.StartAt != nil {
-									req.Header.Set("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339))
+									req.Header.Set("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339Nano))
 								}
 							})
 
@@ -748,14 +748,14 @@ var _ = Describe("V1", func() {
 								})
 
 								digestAssertions := func() {
-									// It("responds with a bad request error when the client returns a digests not equal error", func() {
-									// 	err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
-									// 	client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: err}}
-									// 	handlerFunc(res, req)
-									// 	Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									// 	Expect(res.WriteInputs).To(HaveLen(1))
-									// 	errorsTest.ExpectErrorJSON(err, res.WriteInputs[0])
-									// })
+									It("responds with a bad request error when the client returns a digests not equal error", func() {
+										err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
+										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: err}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(err, res.WriteInputs[0])
+									})
 
 									It("responds with an internal server error when the client returns an unknown error", func() {
 										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: errorsTest.RandomError()}}
@@ -765,14 +765,14 @@ var _ = Describe("V1", func() {
 										errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
 									})
 
-									// It("responds successfully", func() {
-									// 	responseResult := blobTest.RandomBlob()
-									// 	client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: responseResult, Error: nil}}
-									// 	handlerFunc(res, req)
-									// 	Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
-									// 	Expect(res.WriteInputs).To(HaveLen(1))
-									// 	Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
-									// })
+									It("responds successfully", func() {
+										responseResult := blobTest.DeviceLogsBlob()
+										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: responseResult, Error: nil}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
+									})
 								}
 
 								When("the digest header is not specified", func() {
@@ -794,22 +794,22 @@ var _ = Describe("V1", func() {
 									digestAssertions()
 								})
 
-								// When("the digest header is specified", func() {
-								// 	AfterEach(func() {
-								// 		Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
-								// 			UserID: userID,
-								// 			Content: &blob.DeviceLogsContent{
-								// 				Body:      ioutil.NopCloser(content.Body),
-								// 				DigestMD5: content.DigestMD5,
-								// 				MediaType: content.MediaType,
-								// 				StartAt:   content.StartAt,
-								// 				EndAt:     content.EndAt,
-								// 			},
-								// 		}}))
-								// 	})
+								When("the digest header is specified", func() {
+									AfterEach(func() {
+										Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
+											UserID: userID,
+											Content: &blob.DeviceLogsContent{
+												Body:      ioutil.NopCloser(content.Body),
+												DigestMD5: content.DigestMD5,
+												MediaType: content.MediaType,
+												StartAt:   content.StartAt,
+												EndAt:     content.EndAt,
+											},
+										}}))
+									})
 
-								// 	digestAssertions()
-								// })
+									digestAssertions()
+								})
 							})
 						})
 					})

@@ -148,6 +148,9 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	} else if mediaType == nil {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Content-Type"))
 		return
+	} else if *mediaType != "application/json; charset=utf-8" {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderInvalid("Content-Type"))
+		return
 	}
 
 	startAtTime, err := request.ParseTimeHeader(req.Header, "X-Logs-Start-At-Time", time.RFC3339)

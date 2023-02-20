@@ -58,7 +58,7 @@ func RandomContent() *blob.Content {
 }
 
 func DeviceLogsContent() *blob.DeviceLogsContent {
-	content := []byte(`{"data":"some data","isTrue":false}`)
+	content := []byte(`{data:"some data",isTrue:false}`)
 	datum := &blob.DeviceLogsContent{}
 	datum.Body = ioutil.NopCloser(bytes.NewReader(content))
 	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
@@ -66,6 +66,18 @@ func DeviceLogsContent() *blob.DeviceLogsContent {
 	now := time.Now()
 	datum.StartAt = pointer.FromTime(now.UTC())
 	datum.EndAt = pointer.FromTime(now.Add(5 * time.Minute).UTC())
+	return datum
+}
+
+func DeviceLogsBlob() *blob.DeviceLogsBlob {
+	datum := &blob.DeviceLogsBlob{}
+	datum.UserID = pointer.FromString(userTest.RandomID())
+	datum.ID = pointer.FromString(RandomID())
+	datum.UserID = pointer.FromString(userTest.RandomID())
+	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+	datum.MediaType = pointer.FromString("application/json; charset=utf-8")
+	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
+	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 	return datum
 }
 
