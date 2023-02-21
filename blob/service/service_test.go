@@ -41,7 +41,6 @@ var _ = Describe("Service", func() {
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
-
 			serverSecret = authTest.NewServiceSecret()
 			sessionToken = authTest.NewSessionToken()
 			server = NewServer()
@@ -73,6 +72,10 @@ var _ = Describe("Service", func() {
 					"bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				},
+				"logs_bucket": map[string]interface{}{
+					"logs_bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+					"prefix":      test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+				},
 			}
 			blobServiceConfig = map[string]interface{}{
 				"auth": map[string]interface{}{
@@ -91,7 +94,6 @@ var _ = Describe("Service", func() {
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = blobServiceConfig
-
 			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 			service = blobService.New()
 			Expect(service).ToNot(BeNil())

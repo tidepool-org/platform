@@ -24,7 +24,6 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	storeUnstructuredFactory "github.com/tidepool-org/platform/store/unstructured/factory"
-	storeUnstructuredS3 "github.com/tidepool-org/platform/store/unstructured/s3"
 )
 
 type Service struct {
@@ -164,9 +163,10 @@ func (s *Service) getAWSUnstructuredStore(bucketKey *string) (*blobStoreUnstruct
 
 	var unstructuredStore storeUnstructured.Store
 	if bucketKey == nil {
-		unstructuredStore, err = storeUnstructuredFactory.NewStore(s.ConfigReporter().WithScopes("unstructured", "store"), api)
+		configReporter := s.ConfigReporter().WithScopes("unstructured", "store")
+		unstructuredStore, err = storeUnstructuredFactory.NewStore(configReporter, api)
 	} else {
-		configReporter := s.ConfigReporter().WithScopes(storeUnstructuredS3.Type).WithScopes("unstructured", "store")
+		configReporter := s.ConfigReporter().WithScopes("unstructured", "store", "logs_bucket")
 		unstructuredStore, err = storeUnstructuredFactory.NewS3StoreWithBucket(configReporter, *bucketKey, api)
 	}
 	if err != nil {
