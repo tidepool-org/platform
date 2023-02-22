@@ -161,7 +161,7 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 	update.DigestMD5 = pointer.FromString(digestMD5)
 	update.Size = pointer.FromInt(size)
 	update.StartAt = pointer.FromTime(*content.StartAt)
-	update.StartAt = pointer.FromTime(*content.EndAt)
+	update.EndAt = pointer.FromTime(*content.EndAt)
 	return repository.Update(ctx, *result.ID, nil, update)
 }
 

@@ -7,6 +7,11 @@ type Store struct {
 	NewRepositoryStub        func() blobStoreStructured.BlobRepository
 	NewRepositoryOutputs     []blobStoreStructured.BlobRepository
 	NewRepositoryOutput      *blobStoreStructured.BlobRepository
+
+	NewDeviceLogsRepositoryInvocations int
+	NewDeviceLogsRepositoryStub        func() blobStoreStructured.DeviceLogsRepository
+	NewDeviceLogsRepositoryOutputs     []blobStoreStructured.DeviceLogsRepository
+	NewDeviceLogsRepositoryOutput      *blobStoreStructured.DeviceLogsRepository
 }
 
 func NewStore() *Store {
@@ -30,7 +35,19 @@ func (s *Store) NewBlobRepository() blobStoreStructured.BlobRepository {
 }
 
 func (s *Store) NewDeviceLogsRepository() blobStoreStructured.DeviceLogsRepository {
-	return nil
+	s.NewDeviceLogsRepositoryInvocations++
+	if s.NewDeviceLogsRepositoryStub != nil {
+		return s.NewDeviceLogsRepositoryStub()
+	}
+	if len(s.NewDeviceLogsRepositoryOutputs) > 0 {
+		output := s.NewDeviceLogsRepositoryOutputs[0]
+		s.NewDeviceLogsRepositoryOutputs = s.NewDeviceLogsRepositoryOutputs[1:]
+		return output
+	}
+	if s.NewDeviceLogsRepositoryOutput != nil {
+		return *s.NewDeviceLogsRepositoryOutput
+	}
+	panic("NewDeviceLogsRepository has no output")
 }
 
 func (s *Store) AssertOutputsEmpty() {
