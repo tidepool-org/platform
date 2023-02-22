@@ -159,6 +159,12 @@ func (d *DeviceLogsRepository) Update(ctx context.Context, id string, condition 
 		if update.Size != nil {
 			set["size"] = *update.Size
 		}
+		if update.StartAt != nil {
+			set["startAtTime"] = *update.StartAt
+		}
+		if update.EndAt != nil {
+			set["endAtTime"] = *update.EndAt
+		}
 		changeInfo, err := d.UpdateMany(ctx, query, d.ConstructUpdate(set, unset))
 		if err != nil {
 			logger.WithError(err).Error("Unable to update blob")
