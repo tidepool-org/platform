@@ -211,7 +211,7 @@ func (s *Service) terminateBlobUnstructuredStore() {
 
 func (s *Service) terminateDeviceLogsUnstructuredStore() {
 	if s.deviceLogsUnstructuredStore != nil {
-		s.Logger().Debug("Destroying blob unstructured store")
+		s.Logger().Debug("Destroying device logs unstructured store")
 		s.deviceLogsUnstructuredStore = nil
 	}
 }
