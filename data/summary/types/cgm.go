@@ -124,16 +124,16 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 		normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
 		duration = GetDuration(dataRecord)
 
-		if normalizedValue <= veryLowBloodGlucose {
+		if normalizedValue < veryLowBloodGlucose {
 			B.VeryLowMinutes += duration
 			B.VeryLowRecords++
-		} else if normalizedValue >= veryHighBloodGlucose {
+		} else if normalizedValue > veryHighBloodGlucose {
 			B.VeryHighMinutes += duration
 			B.VeryHighRecords++
-		} else if normalizedValue <= lowBloodGlucose {
+		} else if normalizedValue < lowBloodGlucose {
 			B.LowMinutes += duration
 			B.LowRecords++
-		} else if normalizedValue >= highBloodGlucose {
+		} else if normalizedValue > highBloodGlucose {
 			B.HighMinutes += duration
 			B.HighRecords++
 		} else {
@@ -143,7 +143,7 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 
 		B.TotalMinutes += duration
 		B.TotalRecords++
-		B.TotalGlucose += normalizedValue
+		B.TotalGlucose += normalizedValue * float64(duration)
 	}
 
 	return nil
@@ -222,7 +222,7 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 		}
 
 		averageGlucose = &Glucose{
-			Value: totalStats.TotalGlucose / float64(totalStats.TotalRecords),
+			Value: totalStats.TotalGlucose / float64(totalStats.TotalMinutes),
 			Units: summaryGlucoseUnits,
 		}
 

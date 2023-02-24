@@ -70,7 +70,7 @@ type Bucket[T BucketData, S BucketDataPt[T]] struct {
 	Date           time.Time `json:"date" bson:"date"`
 	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 
-	Data S
+	Data S `json:"data" bson:"data"`
 }
 
 type BucketDataPt[T BucketData] interface {
@@ -101,13 +101,13 @@ type StatsPt[T Stats] interface {
 
 type Summary[T Stats, A StatsPt[T]] struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
-	Type   string
-	UserID string
+	Type   string             `json:"type" bson:"type"`
+	UserID string             `json:"userId" bson:"userId"`
 
 	Config Config `json:"config" bson:"config"`
 
 	Dates Dates `json:"dates" bson:"dates"`
-	Stats A
+	Stats A     `json:"stats" bson:"stats"`
 }
 
 func NewConfig() Config {
@@ -279,6 +279,6 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 
 type BGMBucketData struct {
 	TargetRecords   int `json:"targetRecords" bson:"targetRecords"`
+	AverageReadings int `json:"averageReadings" bson:"averageReadings"`
 	LowRecords      int `json:"lowRecords" bson:"lowRecords"`
 	VeryLowRecords  int `json:"veryLowRecords" bson:"veryLowRecords"`
 	HighRecords     int `json:"highRecords" bson:"highRecords"`
@@ -91,13 +92,13 @@ func (B *BGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 
 	normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
 
-	if normalizedValue <= veryLowBloodGlucose {
+	if normalizedValue < veryLowBloodGlucose {
 		B.VeryLowRecords++
-	} else if normalizedValue >= veryHighBloodGlucose {
+	} else if normalizedValue > veryHighBloodGlucose {
 		B.VeryHighRecords++
-	} else if normalizedValue <= lowBloodGlucose {
+	} else if normalizedValue < lowBloodGlucose {
 		B.LowRecords++
-	} else if normalizedValue >= highBloodGlucose {
+	} else if normalizedValue > highBloodGlucose {
 		B.HighRecords++
 	} else {
 		B.TargetRecords++
@@ -133,6 +134,7 @@ func (s *BGMStats) CalculateSummary() {
 
 		totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 		totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+		totalStats.AverageReadings = totalStats.TotalRecords / i
 	}
 
 	// fill in periods we never reached

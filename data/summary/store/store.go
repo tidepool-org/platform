@@ -80,10 +80,9 @@ func (r *Repo[T, A]) UpsertSummary(ctx context.Context, summary *types.Summary[T
 		return nil, errors.New("summary object is missing")
 	}
 
-	// TODO do we need s here?
-	s := types.Create[T, A](summary.UserID)
-	if summary.Type != s.Type {
-		return nil, fmt.Errorf("invalid summary type %v, expected %v", summary.Type, s.Type)
+	expectedType := types.GetTypeString[T, A]()
+	if summary.Type != expectedType {
+		return nil, fmt.Errorf("invalid summary type %v, expected %v", summary.Type, expectedType)
 	}
 
 	if summary.UserID == "" {
