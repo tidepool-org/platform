@@ -78,7 +78,10 @@ type DeviceLogsUpdate struct {
 }
 
 func NewDeviceLogsUpdate() *DeviceLogsUpdate {
-	return &DeviceLogsUpdate{}
+	return &DeviceLogsUpdate{
+		StartAt: &time.Time{},
+		EndAt:   &time.Time{},
+	}
 }
 
 func (u *DeviceLogsUpdate) Validate(validator structure.Validator) {
@@ -90,5 +93,5 @@ func (u *DeviceLogsUpdate) Validate(validator structure.Validator) {
 }
 
 func (u *DeviceLogsUpdate) IsEmpty() bool {
-	return u.DigestMD5 == nil && u.MediaType == nil && u.Size == nil && u.StartAt == nil && u.EndAt == nil
+	return u.DigestMD5 == nil && u.MediaType == nil && u.Size == nil && u.StartAt.IsZero() && u.EndAt.IsZero()
 }

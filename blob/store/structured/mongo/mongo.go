@@ -160,10 +160,10 @@ func (d *DeviceLogsRepository) Update(ctx context.Context, id string, condition 
 		if update.Size != nil {
 			set["size"] = *update.Size
 		}
-		if update.StartAt != nil {
+		if update.StartAt != nil && !update.StartAt.IsZero() {
 			set["startAtTime"] = *update.StartAt
 		}
-		if update.EndAt != nil {
+		if update.EndAt != nil && !update.EndAt.IsZero() {
 			set["endAtTime"] = *update.EndAt
 		}
 		changeInfo, err := d.UpdateMany(ctx, query, d.ConstructUpdate(set, unset))

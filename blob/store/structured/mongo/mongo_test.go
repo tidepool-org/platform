@@ -1341,21 +1341,20 @@ var _ = Describe("Mongo", func() {
 							})
 						})
 
-						// TODO: sort these
-						// Context("without updates", func() {
-						// 	BeforeEach(func() {
-						// 		update = blobStoreStructured.NewDeviceLogsUpdate()
-						// 	})
+						Context("without updates", func() {
+							BeforeEach(func() {
+								update = blobStoreStructured.NewDeviceLogsUpdate()
+							})
 
-						// 	It("returns original when the id exists", func() {
-						// 		Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(Equal(original))
-						// 	})
+							It("returns original when the id exists", func() {
+								Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(Equal(original))
+							})
 
-						// 	It("returns nil when the id does not exist", func() {
-						// 		id = blobTest.RandomID()
-						// 		Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
-						// 	})
-						// })
+							It("returns nil when the id does not exist", func() {
+								id = blobTest.RandomID()
+								Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
+							})
+						})
 					}
 
 					When("the condition is missing", func() {
