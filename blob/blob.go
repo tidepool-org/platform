@@ -165,6 +165,8 @@ type DeviceLogsBlob struct {
 	EndAtTime   *time.Time `json:"endAtTime,omitempty" bson:"endAtTime,omitempty"`
 }
 
+type DeviceLogsBlobArray []*DeviceLogsBlob
+
 func (b *DeviceLogsBlob) Parse(parser structure.ObjectParser) {
 	b.ID = parser.String("id")
 	b.UserID = parser.String("userId")
