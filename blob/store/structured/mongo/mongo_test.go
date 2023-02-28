@@ -1384,7 +1384,7 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
-			/* Context("Destroy", func() {
+			Context("Destroy", func() {
 				var id string
 				var condition *request.Condition
 
@@ -1422,10 +1422,10 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("with data", func() {
-					var original *blob.Blob
+					var original *blob.DeviceLogsBlob
 
 					BeforeEach(func() {
-						original = blobTest.RandomBlob()
+						original = blobTest.DeviceLogsBlob()
 						original.ID = pointer.FromString(id)
 						_, err := deviceLogsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
@@ -1469,7 +1469,7 @@ var _ = Describe("Mongo", func() {
 						Expect(deviceLogsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 				})
-			})*/
+			})
 		})
 	})
 })
