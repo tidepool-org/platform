@@ -83,6 +83,7 @@ func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create
 		UserID:      pointer.FromString(userID),
 		MediaType:   create.MediaType,
 		CreatedTime: pointer.FromTime(now.Truncate(time.Millisecond)),
+		Revision:    pointer.FromInt(0),
 	}
 
 	var id string

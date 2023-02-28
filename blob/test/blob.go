@@ -78,6 +78,7 @@ func DeviceLogsBlob() *blob.DeviceLogsBlob {
 	datum.MediaType = pointer.FromString("application/json; charset=utf-8")
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
 }
 

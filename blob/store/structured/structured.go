@@ -90,5 +90,5 @@ func (u *DeviceLogsUpdate) Validate(validator structure.Validator) {
 }
 
 func (u *DeviceLogsUpdate) IsEmpty() bool {
-	return u.DigestMD5 == nil && u.MediaType == nil && u.Size == nil
+	return u.DigestMD5 == nil && u.MediaType == nil && u.Size == nil && u.StartAt == nil && u.EndAt == nil
 }

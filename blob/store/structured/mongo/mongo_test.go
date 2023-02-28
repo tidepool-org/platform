@@ -1191,6 +1191,7 @@ var _ = Describe("Mongo", func() {
 							"CreatedTime": PointTo(BeTemporally("~", time.Now(), time.Second)),
 							"StartAtTime": BeNil(),
 							"EndAtTime":   BeNil(),
+							"Revision":    PointTo(Equal(0)),
 						})
 						result, err := deviceLogsRepository.Create(ctx, userID, create)
 						Expect(err).ToNot(HaveOccurred())
@@ -1206,37 +1207,36 @@ var _ = Describe("Mongo", func() {
 						logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
 					})
 
-					// It("returns the result after creating without media type", func() {
-					// 	create.MediaType = nil
-					// 	matchAllFields := MatchAllFields(Fields{
-					// 		"ID":           PointTo(Not(BeEmpty())),
-					// 		"UserID":       PointTo(Equal(userID)),
-					// 		"DigestMD5":    BeNil(),
-					// 		"MediaType":    BeNil(),
-					// 		"Size":         BeNil(),
-					// 		"Status":       PointTo(Equal(blob.StatusCreated)),
-					// 		"CreatedTime":  PointTo(BeTemporally("~", time.Now(), time.Second)),
-					// 		"ModifiedTime": BeNil(),
-					// 		"DeletedTime":  BeNil(),
-					// 		"Revision":     PointTo(Equal(0)),
-					// 	})
-					// 	result, err := deviceLogsRepository.Create(ctx, userID, create)
-					// 	Expect(err).ToNot(HaveOccurred())
-					// 	Expect(result).ToNot(BeNil())
-					// 	Expect(*result).To(matchAllFields)
-					// 	storeResult := blob.BlobArray{}
-					// 	cursor, err := deviceLogsCollection.Find(context.Background(), bson.M{"id": result.ID})
-					// 	Expect(err).ToNot(HaveOccurred())
-					// 	Expect(cursor).ToNot(BeNil())
-					// 	Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
-					// 	Expect(storeResult).To(HaveLen(1))
-					// 	Expect(*storeResult[0]).To(matchAllFields)
-					// 	logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
-					// })
+					It("returns the result after creating without media type", func() {
+						create.MediaType = nil
+						matchAllFields := MatchAllFields(Fields{
+							"ID":          PointTo(Not(BeEmpty())),
+							"UserID":      PointTo(Equal(userID)),
+							"DigestMD5":   BeNil(),
+							"MediaType":   BeNil(),
+							"Size":        BeNil(),
+							"CreatedTime": PointTo(BeTemporally("~", time.Now(), time.Second)),
+							"StartAtTime": BeNil(),
+							"EndAtTime":   BeNil(),
+							"Revision":    PointTo(Equal(0)),
+						})
+						result, err := deviceLogsRepository.Create(ctx, userID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(*result).To(matchAllFields)
+						storeResult := blob.DeviceLogsBlobArray{}
+						cursor, err := deviceLogsCollection.Find(context.Background(), bson.M{"id": result.ID})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(cursor).ToNot(BeNil())
+						Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
+						Expect(storeResult).To(HaveLen(1))
+						Expect(*storeResult[0]).To(matchAllFields)
+						logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
+					})
 				})
 			})
 
-			/* Context("Update", func() {
+			Context("Update", func() {
 				var id string
 				var condition *request.Condition
 				var update *blobStoreStructured.DeviceLogsUpdate
@@ -1283,17 +1283,18 @@ var _ = Describe("Mongo", func() {
 				})
 
 				It("returns an error when the update is invalid", func() {
-					update.DigestMD5 = pointer.FromString("")
+					update.StartAt = nil
 					result, err := deviceLogsRepository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("update is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				Context("with data", func() {
-					var original *blob.Blob
+					var original *blob.DeviceLogsBlob
 
 					BeforeEach(func() {
-						original = blobTest.RandomBlob()
+						update = blobStoreStructuredTest.RandomDeviceLogsUpdate()
+						original = blobTest.DeviceLogsBlob()
 						original.ID = pointer.FromString(id)
 						_, err := deviceLogsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
@@ -1307,37 +1308,25 @@ var _ = Describe("Mongo", func() {
 						}
 					})
 
-					When("the condition revision does not match", func() {
-						BeforeEach(func() {
-							condition.Revision = pointer.FromInt(*original.Revision + 1)
-						})
-
-						It("returns nil", func() {
-							Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
-						})
-					})
-
 					conditionAssertions := func() {
 						Context("with updates", func() {
 							It("returns updated result when the id exists", func() {
 								matchAllFields := MatchAllFields(Fields{
-									"ID":           PointTo(Equal(id)),
-									"UserID":       Equal(original.UserID),
-									"DigestMD5":    Equal(update.DigestMD5),
-									"MediaType":    Equal(update.MediaType),
-									"Size":         Equal(update.Size),
-									"StartAt":      Equal(update.StartAt),
-									"EndAt":        Equal(update.EndAt),
-									"CreatedTime":  Equal(original.CreatedTime),
-									"ModifiedTime": PointTo(BeTemporally("~", time.Now(), time.Second)),
-									"DeletedTime":  BeNil(),
-									"Revision":     PointTo(Equal(*original.Revision + 1)),
+									"ID":          PointTo(Equal(id)),
+									"UserID":      Equal(original.UserID),
+									"DigestMD5":   Equal(update.DigestMD5),
+									"MediaType":   Equal(update.MediaType),
+									"Size":        Equal(update.Size),
+									"StartAtTime": Equal(update.StartAt),
+									"EndAtTime":   Equal(update.EndAt),
+									"CreatedTime": Equal(original.CreatedTime),
+									"Revision":    PointTo(Equal(*original.Revision + 1)),
 								})
 								result, err := deviceLogsRepository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
-								storeResult := blob.BlobArray{}
+								storeResult := blob.DeviceLogsBlobArray{}
 								cursor, err := deviceLogsCollection.Find(context.Background(), bson.M{"id": id})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(cursor).ToNot(BeNil())
@@ -1352,20 +1341,21 @@ var _ = Describe("Mongo", func() {
 							})
 						})
 
-						Context("without updates", func() {
-							BeforeEach(func() {
-								update = blobStoreStructured.NewDeviceLogsUpdate()
-							})
+						// TODO: sort these
+						// Context("without updates", func() {
+						// 	BeforeEach(func() {
+						// 		update = blobStoreStructured.NewDeviceLogsUpdate()
+						// 	})
 
-							It("returns original when the id exists", func() {
-								Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(Equal(original))
-							})
+						// 	It("returns original when the id exists", func() {
+						// 		Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(Equal(original))
+						// 	})
 
-							It("returns nil when the id does not exist", func() {
-								id = blobTest.RandomID()
-								Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
-							})
-						})
+						// 	It("returns nil when the id does not exist", func() {
+						// 		id = blobTest.RandomID()
+						// 		Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
+						// 	})
+						// })
 					}
 
 					When("the condition is missing", func() {
@@ -1392,7 +1382,7 @@ var _ = Describe("Mongo", func() {
 						conditionAssertions()
 					})
 				})
-			}) */
+			})
 
 			/* Context("Destroy", func() {
 				var id string

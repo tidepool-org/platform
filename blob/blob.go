@@ -163,6 +163,7 @@ type DeviceLogsBlob struct {
 	CreatedTime *time.Time `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
 	StartAtTime *time.Time `json:"startAtTime,omitempty" bson:"startAtTime,omitempty"`
 	EndAtTime   *time.Time `json:"endAtTime,omitempty" bson:"endAtTime,omitempty"`
+	Revision    *int       `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
 type DeviceLogsBlobArray []*DeviceLogsBlob
@@ -176,6 +177,7 @@ func (b *DeviceLogsBlob) Parse(parser structure.ObjectParser) {
 	b.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
 	b.StartAtTime = parser.Time("startAtTime", time.RFC3339Nano)
 	b.EndAtTime = parser.Time("endAtTime", time.RFC3339Nano)
+	b.Revision = parser.Int("revision")
 }
 
 func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
@@ -187,6 +189,7 @@ func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("startAtTime", b.StartAtTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("endAtTime", b.EndAtTime).Exists().NotZero().BeforeNow(time.Second)
+	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
 func NewID() string {
