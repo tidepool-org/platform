@@ -24,7 +24,8 @@ func TransmitterIDValidator(value string, errorReporter structure.ErrorReporter)
 
 func ValidateTransmitterID(value string) error {
 	if value == "" {
-		return structureValidator.ErrorValueEmpty()
+		// as of g7 we no longer require a transmitterId
+		return nil
 	} else if !transmitterIDExpression.MatchString(value) {
 		return ErrorValueStringAsTransmitterIDNotValid(value)
 	}
