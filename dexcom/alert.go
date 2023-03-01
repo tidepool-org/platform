@@ -158,22 +158,22 @@ func (a *AlertSchedules) Parse(parser structure.ArrayParser) {
 }
 
 func (a *AlertSchedules) Validate(validator structure.Validator) {
-	if len(*a) == 0 {
-		validator.ReportError(structureValidator.ErrorValueEmpty())
-	}
-	var hasDefault bool
-	for index, alertSchedule := range *a {
-		if alertScheduleValidator := validator.WithReference(strconv.Itoa(index)); alertSchedule != nil {
-			alertSchedule.Validate(alertScheduleValidator)
-			if alertSchedule.IsDefault() {
-				if !hasDefault {
-					hasDefault = true
-				} else {
-					alertScheduleValidator.ReportError(structureValidator.ErrorValueDuplicate())
+	// it is valid for a receiver to send an empty list
+	if len(*a) != 0 {
+		var hasDefault bool
+		for index, alertSchedule := range *a {
+			if alertScheduleValidator := validator.WithReference(strconv.Itoa(index)); alertSchedule != nil {
+				alertSchedule.Validate(alertScheduleValidator)
+				if alertSchedule.IsDefault() {
+					if !hasDefault {
+						hasDefault = true
+					} else {
+						alertScheduleValidator.ReportError(structureValidator.ErrorValueDuplicate())
+					}
 				}
+			} else {
+				alertScheduleValidator.ReportError(structureValidator.ErrorValueNotExists())
 			}
-		} else {
-			alertScheduleValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
 }
@@ -660,19 +660,3 @@ func ErrorValueStringAsAlertScheduleSettingsTimeNotValid(value string) error {
 }
 
 var alertScheduleSettingsTimeExpression = regexp.MustCompile("^([0-9][0-9]):([0-9][0-9])$")
-
-func generateFloatRange(min float64, max float64, step float64) []float64 {
-	r := []float64{}
-	for v := min; v <= max; v += step {
-		r = append(r, v)
-	}
-	return r
-}
-
-func generateIntegerRange(min int, max int, step int) []int {
-	r := []int{}
-	for v := min; v <= max; v += step {
-		r = append(r, v)
-	}
-	return r
-}
