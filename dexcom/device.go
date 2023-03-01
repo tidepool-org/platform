@@ -23,6 +23,7 @@ const (
 	DeviceTransmitterGenerationG5    = "g5"
 	DeviceTransmitterGenerationG6    = "g6"
 	DeviceTransmitterGenerationG6Pro = "g6 pro"
+	DeviceTransmitterGenerationG7    = "g7"
 )
 
 func DeviceDisplayDevices() []string {
@@ -41,6 +42,7 @@ func DeviceTransmitterGenerations() []string {
 		DeviceTransmitterGenerationG5,
 		DeviceTransmitterGenerationG6,
 		DeviceTransmitterGenerationG6Pro,
+		DeviceTransmitterGenerationG7,
 	}
 }
 
