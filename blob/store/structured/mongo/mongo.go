@@ -22,7 +22,12 @@ func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
 
 func (s *Store) EnsureIndexes() error {
 	repository := s.newRepository()
-	return repository.EnsureIndexes()
+	err := repository.EnsureIndexes()
+	if err != nil {
+		return err
+	}
+	deviceLogsrepository := s.newDeviceLogsRepository()
+	return deviceLogsrepository.EnsureIndexes()
 }
 
 func (s *Store) NewBlobRepository() blobStoreStructured.BlobRepository {
@@ -36,6 +41,10 @@ func (s *Store) newRepository() *BlobRepository {
 }
 
 func (s *Store) NewDeviceLogsRepository() blobStoreStructured.DeviceLogsRepository {
+	return s.newDeviceLogsRepository()
+}
+
+func (s *Store) newDeviceLogsRepository() *DeviceLogsRepository {
 	return &DeviceLogsRepository{
 		s.Store.GetRepository("deviceLogs"),
 	}

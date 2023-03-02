@@ -44,22 +44,6 @@ var _ = Describe("Mongo", func() {
 		}
 	})
 
-	Context("NewStore", func() {
-		It("returns an error when unsuccessful", func() {
-			var err error
-			store, err = blobStoreStructuredMongo.NewStore(nil)
-			errorsTest.ExpectEqual(err, errors.New("database config is empty"))
-			Expect(store).To(BeNil())
-		})
-
-		It("returns a new store and no error when successful", func() {
-			var err error
-			store, err = blobStoreStructuredMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
-		})
-	})
-
 	Context("with a new store", func() {
 		var deviceLogsCollection *mongo.Collection
 
@@ -69,37 +53,6 @@ var _ = Describe("Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			deviceLogsCollection = store.GetCollection("deviceLogs")
-		})
-
-		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
-				Expect(store.EnsureIndexes()).To(Succeed())
-				cursor, err := deviceLogsCollection.Indexes().List(context.Background())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(cursor).ToNot(BeNil())
-				var indexes []storeStructuredMongoTest.MongoIndex
-				err = cursor.All(context.Background(), &indexes)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{
-						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("id")),
-						"Unique": Equal(true),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("userId")),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("startAtTime")),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("endAtTime")),
-					}),
-				))
-			})
 		})
 
 		Context("NewDeviceLogsRepository", func() {

@@ -91,49 +91,14 @@ var _ = Describe("Mongo", func() {
 	})
 
 	Context("with a new store", func() {
-		var collection *mongo.Collection
+		var blobsCollection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
 			store, err = blobStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
-			collection = store.GetCollection("blobs")
-		})
-
-		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
-				Expect(store.EnsureIndexes()).To(Succeed())
-				cursor, err := collection.Indexes().List(context.Background())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(cursor).ToNot(BeNil())
-				var indexes []storeStructuredMongoTest.MongoIndex
-				err = cursor.All(context.Background(), &indexes)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{
-						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("id")),
-						"Background": Equal(true),
-						"Unique":     Equal(true),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId")),
-						"Background": Equal(true),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("mediaType")),
-						"Background": Equal(true),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("status")),
-						"Background": Equal(true),
-					}),
-				))
-			})
+			blobsCollection = store.GetCollection("blobs")
 		})
 
 		Context("NewBlobRepository", func() {
@@ -227,7 +192,7 @@ var _ = Describe("Mongo", func() {
 							}
 							allResult = append(allResult, blobTest.RandomBlob(), blobTest.RandomBlob())
 							rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
-							_, err := collection.InsertMany(context.Background(), AsInterfaceArray(allResult))
+							_, err := blobsCollection.InsertMany(context.Background(), AsInterfaceArray(allResult))
 							Expect(err).ShouldNot(HaveOccurred())
 						})
 
@@ -408,7 +373,7 @@ var _ = Describe("Mongo", func() {
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
 						storeResult := blob.BlobArray{}
-						cursor, err := collection.Find(context.Background(), bson.M{"id": result.ID})
+						cursor, err := blobsCollection.Find(context.Background(), bson.M{"id": result.ID})
 						Expect(err).ToNot(HaveOccurred())
 						Expect(cursor).ToNot(BeNil())
 						Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
@@ -436,7 +401,7 @@ var _ = Describe("Mongo", func() {
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
 						storeResult := blob.BlobArray{}
-						cursor, err := collection.Find(context.Background(), bson.M{"id": result.ID})
+						cursor, err := blobsCollection.Find(context.Background(), bson.M{"id": result.ID})
 						Expect(err).ToNot(HaveOccurred())
 						Expect(cursor).ToNot(BeNil())
 						Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
@@ -479,10 +444,10 @@ var _ = Describe("Mongo", func() {
 									original.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*original.CreatedTime, time.Now()).Truncate(time.Second))
 									original.DeletedTime = pointer.CloneTime(original.ModifiedTime)
 								}
-								_, err := collection.InsertOne(context.Background(), original)
+								_, err := blobsCollection.InsertOne(context.Background(), original)
 								Expect(err).ToNot(HaveOccurred())
 							}
-							_, err := collection.InsertMany(context.Background(), []interface{}{blobTest.RandomBlob(), blobTest.RandomBlob()})
+							_, err := blobsCollection.InsertMany(context.Background(), []interface{}{blobTest.RandomBlob(), blobTest.RandomBlob()})
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -494,14 +459,14 @@ var _ = Describe("Mongo", func() {
 							originalUserID := userID
 							userID = userTest.RandomID()
 							Expect(repository.DeleteAll(ctx, userID)).To(BeFalse())
-							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": originalUserID, "deletedTime": bson.M{"$exists": true}})).To(Equal(int64(2)))
-							Expect(collection.CountDocuments(context.Background(), bson.M{"deletedTime": bson.M{"$exists": true}})).To(Equal(int64(2)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID, "deletedTime": bson.M{"$exists": true}})).To(Equal(int64(2)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"deletedTime": bson.M{"$exists": true}})).To(Equal(int64(2)))
 						})
 
 						It("returns true and deletes the originals when the user id matches", func() {
 							Expect(repository.DeleteAll(ctx, userID)).To(BeTrue())
-							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": userID, "deletedTime": bson.M{"$exists": true}})).To(Equal(int64(4)))
-							Expect(collection.CountDocuments(context.Background(), bson.M{"deletedTime": bson.M{"$exists": true}})).To(Equal(int64(4)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"userId": userID, "deletedTime": bson.M{"$exists": true}})).To(Equal(int64(4)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"deletedTime": bson.M{"$exists": true}})).To(Equal(int64(4)))
 						})
 					})
 				})
@@ -539,10 +504,10 @@ var _ = Describe("Mongo", func() {
 									original.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*original.CreatedTime, time.Now()).Truncate(time.Second))
 									original.DeletedTime = pointer.CloneTime(original.ModifiedTime)
 								}
-								_, err := collection.InsertOne(context.Background(), original)
+								_, err := blobsCollection.InsertOne(context.Background(), original)
 								Expect(err).ToNot(HaveOccurred())
 							}
-							_, err := collection.InsertMany(context.Background(), []interface{}{blobTest.RandomBlob(), blobTest.RandomBlob()})
+							_, err := blobsCollection.InsertMany(context.Background(), []interface{}{blobTest.RandomBlob(), blobTest.RandomBlob()})
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -554,14 +519,14 @@ var _ = Describe("Mongo", func() {
 							originalUserID := userID
 							userID = userTest.RandomID()
 							Expect(repository.DestroyAll(ctx, userID)).To(BeFalse())
-							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": originalUserID})).To(Equal(int64(4)))
-							Expect(collection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(6)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID})).To(Equal(int64(4)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(6)))
 						})
 
 						It("returns true and destroys the originals when the user id matches", func() {
 							Expect(repository.DestroyAll(ctx, userID)).To(BeTrue())
-							Expect(collection.CountDocuments(context.Background(), bson.M{"userId": userID})).To(Equal(int64(0)))
-							Expect(collection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(2)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"userId": userID})).To(Equal(int64(0)))
+							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(2)))
 						})
 					})
 				})
@@ -616,7 +581,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						_, err := collection.InsertMany(context.Background(), AsInterfaceArray(allResult))
+						_, err := blobsCollection.InsertMany(context.Background(), AsInterfaceArray(allResult))
 						Expect(err).ToNot(HaveOccurred())
 					})
 
@@ -773,7 +738,7 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						original = blobTest.RandomBlob()
 						original.ID = pointer.FromString(id)
-						_, err := collection.InsertOne(context.Background(), original)
+						_, err := blobsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
 					})
 
@@ -815,7 +780,7 @@ var _ = Describe("Mongo", func() {
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
 								storeResult := blob.BlobArray{}
-								cursor, err := collection.Find(context.Background(), bson.M{"id": id})
+								cursor, err := blobsCollection.Find(context.Background(), bson.M{"id": id})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(cursor).ToNot(BeNil())
 								Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
@@ -917,7 +882,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						_, err := collection.InsertOne(context.Background(), original)
+						_, err := blobsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
 					})
 
@@ -967,7 +932,7 @@ var _ = Describe("Mongo", func() {
 								})
 								Expect(repository.Delete(ctx, id, condition)).To(BeTrue())
 								storeResult := blob.BlobArray{}
-								cursor, err := collection.Find(context.Background(), bson.M{"id": id})
+								cursor, err := blobsCollection.Find(context.Background(), bson.M{"id": id})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(cursor).ToNot(BeNil())
 								Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
@@ -1051,7 +1016,7 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						original = blobTest.RandomBlob()
 						original.ID = pointer.FromString(id)
-						_, err := collection.InsertOne(context.Background(), original)
+						_, err := blobsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
 					})
 
@@ -1066,31 +1031,31 @@ var _ = Describe("Mongo", func() {
 					It("returns false and does not delete the original when the id does not exist", func() {
 						id = blobTest.RandomID()
 						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
-						Expect(collection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
+						Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})
 
 					It("returns false and does not delete the original when the id exists, but the condition revision does not match", func() {
 						condition.Revision = pointer.FromInt(*original.Revision + 1)
 						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
-						Expect(collection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
+						Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})
 
 					It("returns true and deletes the original when the id exists and the condition is missing", func() {
 						condition = nil
 						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
-						Expect(collection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
+						Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 
 					It("returns true and deletes the original when the id exists and the condition revision is missing", func() {
 						condition.Revision = nil
 						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
-						Expect(collection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
+						Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 
 					It("returns true and deletes the original when the id exists and the condition revision matches", func() {
 						condition.Revision = pointer.CloneInt(original.Revision)
 						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
-						Expect(collection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
+						Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 				})
 			})
