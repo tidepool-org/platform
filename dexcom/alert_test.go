@@ -269,4 +269,16 @@ var _ = Describe("Alert", func() {
 			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with non-empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("XX:XX"), "value-not-valid", "value is not valid", `value "XX:XX" is not valid as alert schedule settings time`),
 		)
 	})
+	Context("AlertSchedules can be", func() {
+		DescribeTable("empty",
+			func(value *dexcom.AlertSchedules) {
+				Expect(value).ToNot(BeNil())
+				testValidator := structureValidator.New()
+				value.Validate(testValidator)
+				Expect(testValidator.HasError()).To(BeFalse())
+				Expect(len(*value)).To(Equal(0))
+			},
+			Entry("valid if empty", dexcom.NewAlertSchedules()),
+		)
+	})
 })
