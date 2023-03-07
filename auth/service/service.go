@@ -28,6 +28,7 @@ type Service interface {
 	Status(context.Context) *Status
 
 	AppValidator() *appvalidate.Validator
+	CoastalSecrets() *appvalidate.CoastalSecrets
 }
 
 type Status struct {

@@ -55,6 +55,7 @@ type Service struct {
 	userEventsHandler  events.Runner
 	deviceCheck        apple.DeviceCheck
 	appValidator       *appvalidate.Validator
+	coastalSecrets     *appvalidate.CoastalSecrets
 }
 
 func New() *Service {
@@ -110,6 +111,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAppValidate(); err != nil {
 		return err
 	}
+	if err := s.initializeCoastalSecrets(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -159,6 +163,10 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 
 func (s *Service) AppValidator() *appvalidate.Validator {
 	return s.appValidator
+}
+
+func (s *Service) CoastalSecrets() *appvalidate.CoastalSecrets {
+	return s.coastalSecrets
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -456,6 +464,17 @@ func (s *Service) initializeAppValidate() error {
 		return err
 	}
 	s.appValidator = validator
+	return nil
+}
+
+func (s *Service) initializeCoastalSecrets() error {
+	cfg, err := appvalidate.NewCoastalSecretsConfig()
+	if err != nil {
+		return err
+	}
+	s.coastalSecrets = &appvalidate.CoastalSecrets{
+		Config: *cfg,
+	}
 	return nil
 }
 

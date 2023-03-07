@@ -30,7 +30,9 @@ type AssertionUpdate struct {
 }
 
 type AssertionClientData struct {
-	Challenge string `json:"challenge"`
+	Challenge string   `json:"challenge"`
+	Partner   string   `json:"partner"` // Which partner are we requesting a secret from
+	CSRs      []string `json:"csrs"`    // Slice of certificate signing requests to pass to partner.
 }
 
 func NewAssertionVerify(userID string) *AssertionVerify {

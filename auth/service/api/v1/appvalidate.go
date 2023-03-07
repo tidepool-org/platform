@@ -2,7 +2,9 @@ package v1
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -120,12 +122,13 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
+	logFields := log.Fields{
+		"userID": details.UserID(),
+		"keyId":  assertVerify.KeyID,
+	}
+
 	if err := r.AppValidator().VerifyAssertion(ctx, assertVerify); err != nil {
-		fields := log.Fields{
-			"userID": details.UserID(),
-			"keyId":  assertVerify.KeyID,
-		}
-		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to verify assertion")
+		log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to verify assertion")
 
 		if errors.Is(err, appvalidate.ErrAssertionVerificationFailed) || errors.Is(err, appvalidate.ErrNotVerified) {
 			responder.Error(http.StatusBadRequest, err)
@@ -136,8 +139,19 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	}
 	// Assertion has succeeded, at this point, we would access some secret
 	// from a DB, partner API, etc, depending on the AssertionVerify object.
-	// r.SecretGetter.GetSecret(...)
-	responder.Empty(http.StatusOK)
+	switch strings.ToLower(assertVerify.ClientData.Partner) {
+	case "Coastal":
+		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.CSRs[0]), nil)
+		if err != nil {
+			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch coastal secrets")
+			responder.InternalServerError(err)
+			return
+		}
+		responder.Data(http.StatusOK, secret)
+	default:
+		responder.Error(http.StatusBadRequest, fmt.Errorf("unknown partner, %s", assertVerify.ClientData.Partner))
+	}
+
 }
 
 func decodeValidateBodyFailed(responder *request.Responder, req *http.Request, body structure.Validatable) bool {
