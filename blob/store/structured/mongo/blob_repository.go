@@ -57,10 +57,11 @@ func (b *BlobRepository) List(ctx context.Context, userID string, filter *blob.F
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return nil, errors.New("user id is invalid")
+	if !user.IsValidID(userID) {
+		if userID == "" {
+			return nil, errorUserIDMissing
+		}
+		return nil, errorUserIDNotValid
 	}
 	if filter == nil {
 		filter = blob.NewFilter()
@@ -119,10 +120,11 @@ func (b *BlobRepository) Create(ctx context.Context, userID string, create *blob
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return nil, errors.New("user id is invalid")
+	if !user.IsValidID(userID) {
+		if userID == "" {
+			return nil, errorUserIDMissing
+		}
+		return nil, errorUserIDNotValid
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
@@ -173,10 +175,11 @@ func (b *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, er
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
-	if userID == "" {
-		return false, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return false, errors.New("user id is invalid")
+	if !user.IsValidID(userID) {
+		if userID == "" {
+			return false, errorUserIDMissing
+		}
+		return false, errorUserIDNotValid
 	}
 
 	now := time.Now()
@@ -205,10 +208,11 @@ func (b *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, e
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
-	if userID == "" {
-		return false, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return false, errors.New("user id is invalid")
+	if !user.IsValidID(userID) {
+		if userID == "" {
+			return false, errorUserIDMissing
+		}
+		return false, errorUserIDNotValid
 	}
 
 	now := time.Now()
@@ -232,10 +236,11 @@ func (b *BlobRepository) Get(ctx context.Context, id string, condition *request.
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	} else if !blob.IsValidID(id) {
-		return nil, errors.New("id is invalid")
+	if !blob.IsValidID(id) {
+		if id == "" {
+			return nil, errorBlobIDMissing
+		}
+		return nil, errorBlobIDNotValid
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -260,10 +265,11 @@ func (b *BlobRepository) Update(ctx context.Context, id string, condition *reque
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	} else if !blob.IsValidID(id) {
-		return nil, errors.New("id is invalid")
+	if !blob.IsValidID(id) {
+		if id == "" {
+			return nil, errorBlobIDMissing
+		}
+		return nil, errorBlobIDNotValid
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -335,10 +341,11 @@ func (b *BlobRepository) Delete(ctx context.Context, id string, condition *reque
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
-	if id == "" {
-		return false, errors.New("id is missing")
-	} else if !blob.IsValidID(id) {
-		return false, errors.New("id is invalid")
+	if !blob.IsValidID(id) {
+		if id == "" {
+			return false, errorBlobIDMissing
+		}
+		return false, errorBlobIDNotValid
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -375,10 +382,11 @@ func (b *BlobRepository) Destroy(ctx context.Context, id string, condition *requ
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
-	if id == "" {
-		return false, errors.New("id is missing")
-	} else if !blob.IsValidID(id) {
-		return false, errors.New("id is invalid")
+	if !blob.IsValidID(id) {
+		if id == "" {
+			return false, errorBlobIDMissing
+		}
+		return false, errorBlobIDNotValid
 	}
 	if condition == nil {
 		condition = request.NewCondition()

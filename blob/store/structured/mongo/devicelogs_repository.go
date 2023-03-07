@@ -49,10 +49,11 @@ func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return nil, errors.New("user id is invalid")
+	if !user.IsValidID(userID) {
+		if userID == "" {
+			return nil, errorUserIDMissing
+		}
+		return nil, errorUserIDNotValid
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
@@ -102,10 +103,11 @@ func (d *DeviceLogsRepository) Update(ctx context.Context, id string, condition 
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	} else if !blob.IsValidID(id) {
-		return nil, errors.New("id is invalid")
+	if !blob.IsValidID(id) {
+		if id == "" {
+			return nil, errorBlobIDMissing
+		}
+		return nil, errorBlobIDNotValid
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -180,10 +182,11 @@ func (d *DeviceLogsRepository) Destroy(ctx context.Context, id string, condition
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
-	if id == "" {
-		return false, errors.New("id is missing")
-	} else if !blob.IsValidID(id) {
-		return false, errors.New("id is invalid")
+	if !blob.IsValidID(id) {
+		if id == "" {
+			return false, errorBlobIDMissing
+		}
+		return false, errorBlobIDNotValid
 	}
 	if condition == nil {
 		condition = request.NewCondition()
