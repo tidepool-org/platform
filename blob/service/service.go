@@ -166,7 +166,7 @@ func (s *Service) getAWSUnstructuredStore(bucketKey *string) (*blobStoreUnstruct
 		configReporter := s.ConfigReporter().WithScopes("unstructured", "store")
 		unstructuredStore, err = storeUnstructuredFactory.NewStore(configReporter, api)
 	} else {
-		configReporter := s.ConfigReporter().WithScopes("unstructured", "store", "logs_bucket")
+		configReporter := s.ConfigReporter().WithScopes("unstructured", "store", "s3")
 		unstructuredStore, err = storeUnstructuredFactory.NewS3StoreWithBucket(configReporter, *bucketKey, api)
 	}
 	if err != nil {

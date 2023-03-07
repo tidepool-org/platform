@@ -69,12 +69,9 @@ var _ = Describe("Service", func() {
 			blobUnstructuredStoreConfig = map[string]interface{}{
 				"type": "s3",
 				"s3": map[string]interface{}{
-					"bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
-					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
-				},
-				"logs_bucket": map[string]interface{}{
-					"logs_bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+					"bucket":      test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 					"prefix":      test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+					"logs_bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				},
 			}
 			blobServiceConfig = map[string]interface{}{
