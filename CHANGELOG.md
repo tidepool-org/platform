@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## Unreleased
+### Fixed
+- YLP-2168 Store temp basals in bucket basal store
+
 ## 0.21.2 - 2022-12-13
 ### Fixed
 - YLP-1981 Some data is uploaded with wrong time information

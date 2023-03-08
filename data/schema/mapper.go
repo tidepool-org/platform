@@ -5,15 +5,17 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/automated"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
+	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/errors"
 )
 
 const ErrEventTime = "unable to parse event time"
 
-func (s *BasalSample) MapForAutomatedBasal(event *automated.Automated) error {
+func (s *BasalSample) mapForBasal(event *basal.Basal) error {
 	var err error
 	// assign an uuid for keeping a link between the two collection
 	event.InternalID = uuid.New().String()
@@ -37,29 +39,16 @@ func (s *BasalSample) MapForAutomatedBasal(event *automated.Automated) error {
 	return nil
 }
 
+func (s *BasalSample) MapForAutomatedBasal(event *automated.Automated) error {
+	return s.mapForBasal(&event.Basal)
+}
+
 func (s *BasalSample) MapForScheduledBasal(event *scheduled.Scheduled) error {
-	var err error
-	// assign an uuid for keeping a link between the two collection
-	event.InternalID = uuid.New().String()
+	return s.mapForBasal(&event.Basal)
+}
 
-	// map
-	s.DeliveryType = event.DeliveryType
-	s.Duration = *event.Duration
-	s.Rate = *event.Rate
-	s.Timezone = *event.TimeZoneName
-	s.TimezoneOffset = *event.TimeZoneOffset
-	s.InternalID = event.InternalID
-	strTime := *event.Time
-	s.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
-	if event.GUID != nil {
-		s.Guid = *event.GUID
-	}
-
-	if err != nil {
-		return errors.Wrap(err, ErrEventTime)
-	}
-
-	return nil
+func (s *BasalSample) MapForTempBasal(event *temporary.Temporary) error {
+	return s.mapForBasal(&event.Basal)
 }
 
 func (c *CbgSample) Map(event *continuous.Continuous) error {

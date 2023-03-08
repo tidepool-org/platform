@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/basal/automated"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
+	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -453,6 +454,11 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a scheduled basal entry")
 				var s = &schema.BasalSample{}
 				s.MapForScheduledBasal(event)
+				allSamples["Basal"] = append(allSamples["Basal"], *s)
+			case *temporary.Temporary:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a temp basal entry")
+				var s = &schema.BasalSample{}
+				s.MapForTempBasal(event)
 				allSamples["Basal"] = append(allSamples["Basal"], *s)
 			default:
 				d.BucketStore.log.Infof("object ignored %v", event)
