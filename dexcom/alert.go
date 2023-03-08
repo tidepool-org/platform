@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
+	"time"
 
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/errors"
@@ -627,15 +629,17 @@ func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 }
 
 func ParseAlertScheduleSettingsTime(value string) (int, int, bool) {
-	if submatch := alertScheduleSettingsTimeExpression.FindStringSubmatch(value); len(submatch) != 3 {
-		return 0, 0, false
-	} else if hour, hourErr := strconv.Atoi(submatch[1]); hourErr != nil || hour < 0 || hour > 23 {
-		return 0, 0, false
-	} else if minute, minuteErr := strconv.Atoi(submatch[2]); minuteErr != nil || minute < 0 || minute > 59 {
-		return 0, 0, false
-	} else {
-		return hour, minute, true
+	timeFormat := "15:04"
+	value = strings.ToUpper(value)
+	if strings.Contains(value, "AM") || strings.Contains(value, "PM") {
+		timeFormat = "3:04PM"
+		value = strings.ReplaceAll(value, " ", "")
 	}
+	t, err := time.Parse(timeFormat, value)
+	if err != nil {
+		return 0, 0, false
+	}
+	return t.Hour(), t.Minute(), true
 }
 
 func IsValidAlertScheduleSettingsTime(value string) bool {
