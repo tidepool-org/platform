@@ -1,7 +1,9 @@
 # Platform 
 The data platform API
 
-## Unreleased
+## 0.22.0 - 2022-03-08
+### Added
+- YLP-2214 Implement data-upload for UMM bolus
 ### Fixed
 - YLP-2168 Store temp basals in bucket basal store
 

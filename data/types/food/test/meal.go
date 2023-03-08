@@ -11,6 +11,7 @@ func NewMeal() *food.Meal {
 	datum.Meal = pointer.FromString(test.RandomStringFromArray(food.MealSize()))
 	datum.Snack = pointer.FromString(test.RandomStringFromArray(food.IsASnack()))
 	datum.Fat = pointer.FromString(test.RandomStringFromArray(food.IsFat()))
+	datum.Source = pointer.FromString(test.RandomStringFromArray(food.MealSource()))
 	return datum
 }
 
@@ -22,5 +23,6 @@ func CloneMeal(datum *food.Meal) *food.Meal {
 	clone.Meal = pointer.CloneString(datum.Meal)
 	clone.Snack = pointer.CloneString(datum.Snack)
 	clone.Fat = pointer.CloneString(datum.Fat)
+	clone.Source = pointer.CloneString(datum.Source)
 	return clone
 }

@@ -55,6 +55,12 @@ var _ = Describe("Meal", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"yes", "no"}), "/fat"),
 				),
+				Entry("source invalid",
+					func(datum *food.Meal) {
+						datum.Source = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"umm", "manual"}), "/source"),
+				),
 			)
 		})
 

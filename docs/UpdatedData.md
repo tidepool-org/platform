@@ -35,8 +35,9 @@ And the additional field we would need:
 - `inputTime` is a UTC string timestamp that defines at what time the patient has entered the meal. This field is optional. It takes the same format as `time` field.
 - `inputMeal` is a structure describing the meal
   - `inputMeal.meal`: type of meal as defined on the handset, `small | medium | large`. This field is optional.
-  - `inputMeal.snack`: is is defined as a snack by the user on the handset, `yes | no`. This field is optional.
-  - `inputMeal.fat`: is is defined as a fat meal by the user on the handset, `yes | no`. This field is optional.
+  - `inputMeal.snack`: is defined as a snack by the user on the handset, `yes | no`. This field is optional.
+  - `inputMeal.fat`: is defined as a fat meal by the user on the handset, `yes | no`. This field is optional.
+  - `inputMeal.source`: is defined as the source of the meal input: umm for unnannounced meals automatically detected by umm algorithm or manual for manual meal declaration, `umm | manual`. This field is optional.
 
 ```json
 {
@@ -47,7 +48,8 @@ And the additional field we would need:
   "inputMeal": {
     "meal": "small",
     "snack": "yes",
-    "fat": "no"
+    "fat": "no",
+    "source": "manual"
   },
   "deviceId": "IdOfTheDevice",
   "type": "wizard",
