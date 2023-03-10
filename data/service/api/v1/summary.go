@@ -15,6 +15,8 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
+		// TODO: these urls overlap, and while userids of cgm or bgm cant exist, its a remnant of the old api that
+		// should be repathed
 		dataService.MakeRoute("GET", "/v1/summaries/:userId/cgm", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
 		dataService.MakeRoute("GET", "/v1/summaries/:userId/bgm", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/:userId/cgm", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),

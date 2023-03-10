@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	UpdateAvailableAfterDurationMaximum = 4 * time.Minute
-	UpdateAvailableAfterDurationMinimum = 2 * time.Minute
+	UpdateAvailableAfterDurationMaximum = 3 * time.Minute
+	UpdateAvailableAfterDurationMinimum = 3 * time.Minute
 	UpdateTaskDurationMaximum           = 5 * time.Minute
 	UpdateWorkerCount                   = 8
 	UpdateWorkerBatchSize               = 500

@@ -44,8 +44,11 @@ type CGMPeriod struct {
 	TimeCGMUseMinutes int      `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
 	TimeCGMUseRecords int      `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 
-	AverageGlucose             *Glucose `json:"averageGlucose" bson:"avgGlucose"`
+	AverageGlucose             *Glucose `json:"averageGlucose" bson:"averageGlucose"`
 	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
+
+	TotalRecords        int     `json:"totalRecords" bson:"totalRecords"`
+	AverageDailyRecords float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
 
 	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
 	TimeInTargetMinutes int      `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
@@ -248,6 +251,9 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 
 		AverageGlucose:             averageGlucose,
 		GlucoseManagementIndicator: glucoseManagementIndicator,
+
+		TotalRecords:        totalStats.TotalRecords,
+		AverageDailyRecords: float64(totalStats.TotalRecords) / float64(i),
 
 		TimeInTargetPercent: timeInTargetPercent,
 		TimeInTargetMinutes: totalStats.TargetMinutes,
