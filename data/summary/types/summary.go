@@ -184,7 +184,7 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat
 		// add hours for any gaps that this new stat skipped
 		statsGap = int(newStat.Date.Sub(buckets[len(buckets)-1].Date).Hours())
 		for i := statsGap; i > 1; i-- {
-			newStatsTime = newStat.Date.Add(time.Duration(-i) * time.Hour)
+			newStatsTime = newStat.Date.Add(time.Duration(-i+1) * time.Hour)
 
 			buckets = append(buckets, *CreateBucket[T, A](newStatsTime))
 		}
