@@ -2,9 +2,8 @@ package test
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"time"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
 
 	"github.com/onsi/gomega"
 
@@ -136,37 +135,28 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
-//type CalculateSummaryInput struct {
-//	Context context.Context
-//	Summary *summary.Summary
-//}
-//
-//type CalculateSummaryOutput struct {
-//	Summary *summary.Summary
-//	Error   error
-//}
-//
-//type GetLastUpdatedForUserInput struct {
-//	Context context.Context
-//	ID      string
-//}
-//
-//type GetLastUpdatedForUserOutput struct {
-//	UserLastUpdated *summary.UserLastUpdated
-//	Error           error
-//}
+type GetLastUpdatedForUserInput struct {
+	Context context.Context
+	ID      string
+	Typ     string
+}
+
+type GetLastUpdatedForUserOutput struct {
+	UserLastUpdated *types.UserLastUpdated
+	Error           error
+}
 
 type GetDataRangeInput struct {
-	Context   context.Context
-	ID        string
-	Type      string
-	StartTime time.Time
-	EndTime   time.Time
+	Context     context.Context
+	DataRecords interface{}
+	ID          string
+	Type        string
+	StartTime   time.Time
+	EndTime     time.Time
 }
 
 type GetDataRangeOutput struct {
-	Continuous []*glucose.Glucose
-	Error      error
+	Error error
 }
 
 type GetUsersWithBGDataSinceInput struct {
@@ -249,10 +239,10 @@ type DataRepository struct {
 	//CalculateSummaryInvocations int
 	//CalculateSummaryInputs      []CalculateSummaryInput
 	//CalculateSummaryOutputs     []CalculateSummaryOutput
-	//
-	//GetLastUpdatedForUserInvocations int
-	//GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
-	//GetLastUpdatedForUserOutputs     []GetLastUpdatedForUserOutput
+
+	GetLastUpdatedForUserInvocations int
+	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
+	GetLastUpdatedForUserOutputs     []GetLastUpdatedForUserOutput
 
 	GetUsersWithBGDataSinceInvocations int
 	GetUsersWithBGDataSinceInputs      []GetUsersWithBGDataSinceInput
@@ -478,41 +468,41 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-//func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
-//	d.GetLastUpdatedForUserInvocations++
-//
-//	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, ID: id})
-//
-//	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
-//
-//	output := d.GetLastUpdatedForUserOutputs[0]
-//	d.GetLastUpdatedForUserOutputs = d.GetLastUpdatedForUserOutputs[1:]
-//	return output.UserLastUpdated, output.Error
-//}
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
+	d.GetLastUpdatedForUserInvocations++
 
-//func (d *DataRepository) GetDataRange(ctx context.Context, id string, t string, startTime time.Time, endTime time.Time) ([]*glucose.Glucose, error) {
-//	d.GetDataRangeInvocations++
-//
-//	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, ID: id, Type: t, StartTime: startTime, EndTime: endTime})
-//
-//	gomega.Expect(d.GetDataRangeOutputs).ToNot(gomega.BeEmpty())
-//
-//	output := d.GetDataRangeOutputs[0]
-//	d.GetDataRangeOutputs = d.GetDataRangeOutputs[1:]
-//	return output.Continuous, output.Error
-//}
-//
-//func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {
-//	d.GetUsersWithBGDataSinceInvocations++
-//
-//	d.GetUsersWithBGDataSinceInputs = append(d.GetUsersWithBGDataSinceInputs, GetUsersWithBGDataSinceInput{Context: ctx, LastUpdated: lastUpdated})
-//
-//	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).ToNot(gomega.BeEmpty())
-//
-//	output := d.GetUsersWithBGDataSinceOutputs[0]
-//	d.GetUsersWithBGDataSinceOutputs = d.GetUsersWithBGDataSinceOutputs[1:]
-//	return output.UserIDs, output.Error
-//}
+	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, ID: id, Typ: typ})
+
+	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetLastUpdatedForUserOutputs[0]
+	d.GetLastUpdatedForUserOutputs = d.GetLastUpdatedForUserOutputs[1:]
+	return output.UserLastUpdated, output.Error
+}
+
+func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, id string, t string, startTime time.Time, endTime time.Time) error {
+	d.GetDataRangeInvocations++
+
+	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, DataRecords: dataRecords, ID: id, Type: t, StartTime: startTime, EndTime: endTime})
+
+	gomega.Expect(d.GetDataRangeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDataRangeOutputs[0]
+	d.GetDataRangeOutputs = d.GetDataRangeOutputs[1:]
+	return output.Error
+}
+
+func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {
+	d.GetUsersWithBGDataSinceInvocations++
+
+	d.GetUsersWithBGDataSinceInputs = append(d.GetUsersWithBGDataSinceInputs, GetUsersWithBGDataSinceInput{Context: ctx, LastUpdated: lastUpdated})
+
+	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetUsersWithBGDataSinceOutputs[0]
+	d.GetUsersWithBGDataSinceOutputs = d.GetUsersWithBGDataSinceOutputs[1:]
+	return output.UserIDs, output.Error
+}
 
 func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
 	d.DistinctUserIDsInvocations++
@@ -545,8 +535,7 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
-	//gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DistinctUserIDsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
-	//gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
 }

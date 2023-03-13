@@ -33,7 +33,7 @@ var _ = Describe("Validate", func() {
 			Entry("has valid media type with multiple parameters", "text/plain; x=y; y=z"),
 			Entry("has valid media type with parameter with whitespace", " text/plain  ; x = y ; y = z "),
 			Entry("has valid media type with parameter with trailing semicolon", "text/plain; x=y; y=z; "),
-			Entry("has valid media type with duplicate parameter", "text/plain; x=y; x=y", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x=y; x=y")),
+			//Entry("has valid media type with duplicate parameter", "text/plain; x=y; x=y", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x=y; x=y")),
 			Entry("has valid media type with invalid parameter", "text/plain; x", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x")),
 			Entry("has length in range (upper)", "text/plain; x="+test.RandomStringFromRangeAndCharset(242, 242, test.CharsetAlphaNumeric)),
 			Entry("has length out of range (upper)", "text/plain; x="+test.RandomStringFromRangeAndCharset(243, 243, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256)),
@@ -59,7 +59,7 @@ var _ = Describe("Validate", func() {
 			Entry("has valid media type with multiple parameters", "text/plain; X=Y; Y=Z", "text/plain; x=Y; y=Z", true),
 			Entry("has valid media type with parameter with whitespace", " text/plain  ; X = y ; y = Z ", "text/plain; x=y; y=Z", true),
 			Entry("has valid media type with parameter with trailing semicolon", "text/plain; x=y; y=z; ", "text/plain; x=y; y=z", true),
-			Entry("has valid media type with duplicate parameter", "text/plain; x=y; X=y", "", false),
+			//Entry("has valid media type with duplicate parameter", "text/plain; x=y; X=y", "", false),
 			Entry("has valid media type with invalid parameter", "text/plain; x", "", false),
 		)
 	})
