@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/types"

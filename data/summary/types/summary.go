@@ -1,12 +1,14 @@
 package types
 
 import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 const (

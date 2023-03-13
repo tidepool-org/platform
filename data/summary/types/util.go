@@ -1,10 +1,11 @@
 package types
 
 import (
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"math"
 	"strings"
 	"time"
+
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 )
 
 func SkipUntil[T RecordTypes, A RecordTypesPt[T]](date time.Time, userData []A) ([]A, error) {

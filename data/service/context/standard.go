@@ -1,9 +1,10 @@
 package context
 
 import (
+	"net/http"
+
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/store/structured/mongo"
-	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 

@@ -2,8 +2,9 @@ package store
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"

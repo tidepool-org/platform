@@ -1,10 +1,11 @@
 package v1
 
 import (
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"net/http"
 	"strconv"
+
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"

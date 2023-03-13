@@ -2,8 +2,10 @@ package mongo
 
 import (
 	"context"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+
 	"go.mongodb.org/mongo-driver/mongo"
+
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 type SummaryRepository struct {

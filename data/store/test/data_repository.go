@@ -2,8 +2,9 @@ package test
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/onsi/gomega"
 

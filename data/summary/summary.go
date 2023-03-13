@@ -2,6 +2,8 @@ package summary
 
 import (
 	"context"
+	"time"
+
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -9,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	"time"
 )
 
 const (

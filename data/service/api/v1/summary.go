@@ -2,10 +2,11 @@ package v1
 
 import (
 	"context"
+	"net/http"
+
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
-	"net/http"
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"

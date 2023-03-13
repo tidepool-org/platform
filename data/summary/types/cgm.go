@@ -1,11 +1,12 @@
 package types
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
-	"strconv"
-	"time"
 )
 
 type CGMBucketData struct {
