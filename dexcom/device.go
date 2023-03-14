@@ -19,10 +19,14 @@ const (
 	DeviceDisplayDeviceShareReceiver       = "shareReceiver"
 	DeviceDisplayDeviceTouchscreenReceiver = "touchscreenReceiver"
 
-	DeviceTransmitterGenerationG4    = "g4"
-	DeviceTransmitterGenerationG5    = "g5"
-	DeviceTransmitterGenerationG6    = "g6"
-	DeviceTransmitterGenerationG6Pro = "g6 pro"
+	DeviceTransmitterGenerationUnknown = "unknown"
+	DeviceTransmitterGenerationG4      = "g4"
+	DeviceTransmitterGenerationG5      = "g5"
+	DeviceTransmitterGenerationG6      = "g6"
+	DeviceTransmitterGenerationG6Pro   = "g6 pro"
+	DeviceTransmitterGenerationG6Plus  = "g6+"
+	DeviceTransmitterGenerationPro     = "dexcomPro"
+	DeviceTransmitterGenerationG7      = "g7"
 )
 
 func DeviceDisplayDevices() []string {
@@ -37,10 +41,13 @@ func DeviceDisplayDevices() []string {
 
 func DeviceTransmitterGenerations() []string {
 	return []string{
+		DeviceTransmitterGenerationUnknown,
 		DeviceTransmitterGenerationG4,
 		DeviceTransmitterGenerationG5,
 		DeviceTransmitterGenerationG6,
-		DeviceTransmitterGenerationG6Pro,
+		DeviceTransmitterGenerationG6Plus,
+		DeviceTransmitterGenerationPro,
+		DeviceTransmitterGenerationG7,
 	}
 }
 

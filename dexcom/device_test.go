@@ -8,47 +8,28 @@ import (
 )
 
 var _ = Describe("Device", func() {
-	It("DeviceDisplayDeviceAndroid is expected", func() {
-		Expect(dexcom.DeviceDisplayDeviceAndroid).To(Equal("android"))
-	})
-
-	It("DeviceDisplayDeviceIOS is expected", func() {
-		Expect(dexcom.DeviceDisplayDeviceIOS).To(Equal("iOS"))
-	})
-
-	It("DeviceDisplayDeviceReceiver is expected", func() {
-		Expect(dexcom.DeviceDisplayDeviceReceiver).To(Equal("receiver"))
-	})
-
-	It("DeviceDisplayDeviceShareReceiver is expected", func() {
-		Expect(dexcom.DeviceDisplayDeviceShareReceiver).To(Equal("shareReceiver"))
-	})
-
-	It("DeviceDisplayDeviceTouchscreenReceiver is expected", func() {
-		Expect(dexcom.DeviceDisplayDeviceTouchscreenReceiver).To(Equal("touchscreenReceiver"))
-	})
-
-	It("DeviceTransmitterGenerationG4 is expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerationG4).To(Equal("g4"))
-	})
-
-	It("DeviceTransmitterGenerationG5 is expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerationG5).To(Equal("g5"))
-	})
-
-	It("DeviceTransmitterGenerationG6 is expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerationG6).To(Equal("g6"))
-	})
-
-	It("DeviceTransmitterGenerationG6Pro is expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerationG6Pro).To(Equal("g6 pro"))
-	})
 
 	It("DeviceDisplayDevices returns expected", func() {
 		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
+		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{
+			dexcom.DeviceDisplayDeviceAndroid,
+			dexcom.DeviceDisplayDeviceIOS,
+			dexcom.DeviceDisplayDeviceReceiver,
+			dexcom.DeviceDisplayDeviceShareReceiver,
+			dexcom.DeviceDisplayDeviceTouchscreenReceiver,
+		}))
 	})
 
 	It("DeviceTransmitterGenerations returns expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"g4", "g5", "g6", "g6 pro"}))
+		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"unknown", "g4", "g5", "g6", "g6+", "dexcomPro", "g7"}))
+		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{
+			dexcom.DeviceTransmitterGenerationUnknown,
+			dexcom.DeviceTransmitterGenerationG4,
+			dexcom.DeviceTransmitterGenerationG5,
+			dexcom.DeviceTransmitterGenerationG6,
+			dexcom.DeviceTransmitterGenerationG6Plus,
+			dexcom.DeviceTransmitterGenerationPro,
+			dexcom.DeviceTransmitterGenerationG7,
+		}))
 	})
 })
