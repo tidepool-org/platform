@@ -166,7 +166,7 @@ type Event struct {
 	Value                 *float64 `json:"value,omitempty"`
 	ID                    *string  `json:"recordId,omitempty"`
 	Status                *string  `json:"eventStatus,omitempty"`
-	TransmitterId         *string  `json:"transmitterId,omitempty"`
+	TransmitterID         *string  `json:"transmitterId,omitempty"`
 	TransmitterGeneration *string  `json:"transmitterGeneration,omitempty"`
 	DisplayDevice         *string  `json:"displayDevice,omitempty"`
 }
@@ -194,7 +194,7 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.ID = parser.String("recordId")
 	e.Status = parser.String("eventStatus")
 	e.TransmitterGeneration = parser.String("transmitterGeneration")
-	e.TransmitterId = parser.String("transmitterId")
+	e.TransmitterID = parser.String("transmitterId")
 	e.DisplayDevice = parser.String("displayDevice")
 }
 
@@ -218,9 +218,9 @@ func (e *Event) Validate(validator structure.Validator) {
 	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.String("eventStatus", e.Status).Exists().OneOf(EventStatuses()...)
 
-	validator.String("transmitterId", e.TransmitterId).Exists().NotEmpty()
-	validator.String("transmitterGeneration", e.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
-	validator.String("displayDevice", e.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
+	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
+	validator.String("transmitterGeneration", e.TransmitterGeneration).OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", e.DisplayDevice).OneOf(DeviceDisplayDevices()...)
 }
 
 func (e *Event) validateCarbs(validator structure.Validator) {
