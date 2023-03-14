@@ -12,20 +12,13 @@ import (
 )
 
 var _ = Describe("Event", func() {
-	It("EventTypeCarbs is expected", func() {
-		Expect(dexcom.EventTypeCarbs).To(Equal("carbs"))
+
+	It("EventUnitUnknown is expected", func() {
+		Expect(dexcom.EventUnitUnknown).To(Equal("unknown"))
 	})
 
-	It("EventTypeExercise is expected", func() {
-		Expect(dexcom.EventTypeExercise).To(Equal("exercise"))
-	})
-
-	It("EventTypeHealth is expected", func() {
-		Expect(dexcom.EventTypeHealth).To(Equal("health"))
-	})
-
-	It("EventTypeInsulin is expected", func() {
-		Expect(dexcom.EventTypeInsulin).To(Equal("insulin"))
+	It("EventUnitMgdL is expected", func() {
+		Expect(dexcom.EventUnitMgdL).To(Equal("mg/dL"))
 	})
 
 	It("EventUnitCarbsGrams is expected", func() {
@@ -64,38 +57,6 @@ var _ = Describe("Event", func() {
 		Expect(dexcom.EventValueExerciseMinutesMinimum).To(Equal(0.0))
 	})
 
-	It("EventSubTypeHealthAlcohol is expected", func() {
-		Expect(dexcom.EventSubTypeHealthAlcohol).To(Equal("alcohol"))
-	})
-
-	It("EventSubTypeHealthCycle is expected", func() {
-		Expect(dexcom.EventSubTypeHealthCycle).To(Equal("cycle"))
-	})
-
-	It("EventSubTypeHealthHighSymptoms is expected", func() {
-		Expect(dexcom.EventSubTypeHealthHighSymptoms).To(Equal("highSymptoms"))
-	})
-
-	It("EventSubTypeHealthIllness is expected", func() {
-		Expect(dexcom.EventSubTypeHealthIllness).To(Equal("illness"))
-	})
-
-	It("EventSubTypeHealthLowSymptoms is expected", func() {
-		Expect(dexcom.EventSubTypeHealthLowSymptoms).To(Equal("lowSymptoms"))
-	})
-
-	It("EventSubTypeHealthStress is expected", func() {
-		Expect(dexcom.EventSubTypeHealthStress).To(Equal("stress"))
-	})
-
-	It("EventSubTypeInsulinFastActing is expected", func() {
-		Expect(dexcom.EventSubTypeInsulinFastActing).To(Equal("fastActing"))
-	})
-
-	It("EventSubTypeInsulinLongActing is expected", func() {
-		Expect(dexcom.EventSubTypeInsulinLongActing).To(Equal("longActing"))
-	})
-
 	It("EventUnitInsulinUnits is expected", func() {
 		Expect(dexcom.EventUnitInsulinUnits).To(Equal("units"))
 	})
@@ -108,32 +69,55 @@ var _ = Describe("Event", func() {
 		Expect(dexcom.EventValueInsulinUnitsMinimum).To(Equal(0.0))
 	})
 
-	It("EventStatusCreated is expected", func() {
-		Expect(dexcom.EventStatusCreated).To(Equal("created"))
-	})
-
-	It("EventStatusDeleted is expected", func() {
-		Expect(dexcom.EventStatusDeleted).To(Equal("deleted"))
+	It("EventStatuses is expected", func() {
+		Expect(dexcom.EventStatuses()).To(Equal([]string{"created", "updated", "deleted"}))
+		Expect(dexcom.EventStatuses()).To(Equal([]string{
+			dexcom.EventStatusCreated,
+			dexcom.EventStatusUpdated,
+			dexcom.EventStatusDeleted,
+		}))
 	})
 
 	It("EventTypes returns expected", func() {
-		Expect(dexcom.EventTypes()).To(Equal([]string{"carbs", "exercise", "health", "insulin"}))
+		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "notes", "unknown"}))
+		Expect(dexcom.EventTypes()).To(Equal([]string{
+			dexcom.EventTypeBG,
+			dexcom.EventTypeCarbs,
+			dexcom.EventTypeExercise,
+			dexcom.EventTypeHealth,
+			dexcom.EventTypeInsulin,
+			dexcom.EventTypeNotes,
+			dexcom.EventTypeUnknown,
+		}))
 	})
 
 	It("EventSubTypesExercise returns expected", func() {
 		Expect(dexcom.EventSubTypesExercise()).To(Equal([]string{"light", "medium", "heavy"}))
+		Expect(dexcom.EventSubTypesExercise()).To(Equal([]string{
+			dexcom.EventSubTypeExerciseLight,
+			dexcom.EventSubTypeExerciseMedium,
+			dexcom.EventSubTypeExerciseHeavy,
+		}))
 	})
 
 	It("EventSubTypesHealth returns expected", func() {
 		Expect(dexcom.EventSubTypesHealth()).To(Equal([]string{"alcohol", "cycle", "highSymptoms", "illness", "lowSymptoms", "stress"}))
+		Expect(dexcom.EventSubTypesHealth()).To(Equal([]string{
+			dexcom.EventSubTypeHealthAlcohol,
+			dexcom.EventSubTypeHealthCycle,
+			dexcom.EventSubTypeHealthHighSymptoms,
+			dexcom.EventSubTypeHealthIllness,
+			dexcom.EventSubTypeHealthLowSymptoms,
+			dexcom.EventSubTypeHealthStress,
+		}))
 	})
 
 	It("EventSubTypesInsulin returns expected", func() {
 		Expect(dexcom.EventSubTypesInsulin()).To(Equal([]string{"fastActing", "longActing"}))
-	})
-
-	It("EventStatuses returns expected", func() {
-		Expect(dexcom.EventStatuses()).To(Equal([]string{"created", "deleted"}))
+		Expect(dexcom.EventSubTypesInsulin()).To(Equal([]string{
+			dexcom.EventSubTypeInsulinFastActing,
+			dexcom.EventSubTypeInsulinLongActing,
+		}))
 	})
 
 	Describe("Validate", func() {

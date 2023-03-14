@@ -15,6 +15,12 @@ const (
 	EventTypeExercise = "exercise"
 	EventTypeHealth   = "health"
 	EventTypeInsulin  = "insulin"
+	EventTypeUnknown  = "unknown"
+	EventTypeBG       = "bloodGlucose"
+	EventTypeNotes    = "notes"
+
+	EventUnitUnknown = "unknown"
+	EventUnitMgdL    = "mg/dL"
 
 	EventUnitCarbsGrams         = "grams"
 	EventValueCarbsGramsMaximum = dataTypesFood.CarbohydrateNetGramsMaximum
@@ -41,15 +47,19 @@ const (
 	EventValueInsulinUnitsMinimum = dataTypesInsulin.DoseTotalUnitsMinimum
 
 	EventStatusCreated = "created"
+	EventStatusUpdated = "updated"
 	EventStatusDeleted = "deleted"
 )
 
 func EventTypes() []string {
 	return []string{
+		EventTypeBG,
 		EventTypeCarbs,
 		EventTypeExercise,
 		EventTypeHealth,
 		EventTypeInsulin,
+		EventTypeNotes,
+		EventTypeUnknown,
 	}
 }
 
@@ -82,6 +92,7 @@ func EventSubTypesInsulin() []string {
 func EventStatuses() []string {
 	return []string{
 		EventStatusCreated,
+		EventStatusUpdated,
 		EventStatusDeleted,
 	}
 }
