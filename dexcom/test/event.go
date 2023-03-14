@@ -62,6 +62,9 @@ func RandomEvent() *dexcom.Event {
 	}
 	datum.ID = pointer.FromString(RandomEventID())
 	datum.Status = pointer.FromString(test.RandomStringFromArray(dexcom.EventStatuses()))
+	datum.DisplayDevice = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayDevices()))
+	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))
+	datum.TransmitterId = pointer.FromString(RandomTransmitterID())
 	return datum
 }
 

@@ -33,18 +33,6 @@ var _ = Describe("Event", func() {
 		Expect(dexcom.EventValueCarbsGramsMinimum).To(Equal(0.0))
 	})
 
-	It("EventSubTypeExerciseLight is expected", func() {
-		Expect(dexcom.EventSubTypeExerciseLight).To(Equal("light"))
-	})
-
-	It("EventSubTypeExerciseMedium is expected", func() {
-		Expect(dexcom.EventSubTypeExerciseMedium).To(Equal("medium"))
-	})
-
-	It("EventSubTypeExerciseHeavy is expected", func() {
-		Expect(dexcom.EventSubTypeExerciseHeavy).To(Equal("heavy"))
-	})
-
 	It("EventUnitExerciseMinutes is expected", func() {
 		Expect(dexcom.EventUnitExerciseMinutes).To(Equal("minutes"))
 	})

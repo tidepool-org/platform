@@ -98,7 +98,7 @@ func EventStatuses() []string {
 }
 
 type EventsResponse struct {
-	Events *Events `json:"events,omitempty"`
+	Events *Events `json:"records,omitempty"`
 }
 
 func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
@@ -115,11 +115,11 @@ func NewEventsResponse() *EventsResponse {
 }
 
 func (e *EventsResponse) Parse(parser structure.ObjectParser) {
-	e.Events = ParseEvents(parser.WithReferenceArrayParser("events"))
+	e.Events = ParseEvents(parser.WithReferenceArrayParser("records"))
 }
 
 func (e *EventsResponse) Validate(validator structure.Validator) {
-	if eventsValidator := validator.WithReference("events"); e.Events != nil {
+	if eventsValidator := validator.WithReference("records"); e.Events != nil {
 		e.Events.Validate(eventsValidator)
 	} else {
 		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
@@ -158,14 +158,17 @@ func (e *Events) Validate(validator structure.Validator) {
 }
 
 type Event struct {
-	SystemTime  *Time    `json:"systemTime,omitempty"`
-	DisplayTime *Time    `json:"displayTime,omitempty"`
-	Type        *string  `json:"eventType,omitempty"`
-	SubType     *string  `json:"eventSubType,omitempty"`
-	Unit        *string  `json:"unit,omitempty"`
-	Value       *float64 `json:"value,omitempty"`
-	ID          *string  `json:"eventId,omitempty"`
-	Status      *string  `json:"eventStatus,omitempty"`
+	SystemTime            *Time    `json:"systemTime,omitempty"`
+	DisplayTime           *Time    `json:"displayTime,omitempty"`
+	Type                  *string  `json:"eventType,omitempty"`
+	SubType               *string  `json:"eventSubType,omitempty"`
+	Unit                  *string  `json:"unit,omitempty"`
+	Value                 *float64 `json:"value,omitempty"`
+	ID                    *string  `json:"recordId,omitempty"`
+	Status                *string  `json:"eventStatus,omitempty"`
+	TransmitterId         *string  `json:"transmitterId,omitempty"`
+	TransmitterGeneration *string  `json:"transmitterGeneration,omitempty"`
+	DisplayDevice         *string  `json:"displayDevice,omitempty"`
 }
 
 func ParseEvent(parser structure.ObjectParser) *Event {
@@ -188,8 +191,11 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.SubType = parser.String("eventSubType")
 	e.Unit = parser.String("unit")
 	e.Value = parser.Float64("value")
-	e.ID = parser.String("eventId")
+	e.ID = parser.String("recordId")
 	e.Status = parser.String("eventStatus")
+	e.TransmitterGeneration = parser.String("transmitterGeneration")
+	e.TransmitterId = parser.String("transmitterId")
+	e.DisplayDevice = parser.String("displayDevice")
 }
 
 func (e *Event) Validate(validator structure.Validator) {
@@ -209,8 +215,12 @@ func (e *Event) Validate(validator structure.Validator) {
 			e.validateInsulin(validator)
 		}
 	}
-	validator.String("eventId", e.ID).Exists().NotEmpty()
+	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.String("eventStatus", e.Status).Exists().OneOf(EventStatuses()...)
+
+	validator.String("transmitterId", e.TransmitterId).Exists().NotEmpty()
+	validator.String("transmitterGeneration", e.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", e.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
 }
 
 func (e *Event) validateCarbs(validator structure.Validator) {
