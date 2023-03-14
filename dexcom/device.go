@@ -52,7 +52,7 @@ func DeviceTransmitterGenerations() []string {
 }
 
 type DevicesResponse struct {
-	Devices       *Devices `json:"devices,omitempty"`
+	Devices       *Devices `json:"records,omitempty"`
 	IsSandboxData bool     `json:"isSandboxData,omitempty"`
 }
 
@@ -70,11 +70,11 @@ func NewDevicesResponse() *DevicesResponse {
 }
 
 func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
-	d.Devices = ParseDevices(parser.WithReferenceArrayParser("devices"))
+	d.Devices = ParseDevices(parser.WithReferenceArrayParser("records"))
 }
 
 func (d *DevicesResponse) Validate(validator structure.Validator) {
-	if devicesValidator := validator.WithReference("devices"); d.Devices != nil {
+	if devicesValidator := validator.WithReference("records"); d.Devices != nil {
 		if !d.IsSandboxData {
 			d.Devices.Validate(devicesValidator)
 		}
@@ -85,7 +85,7 @@ func (d *DevicesResponse) Validate(validator structure.Validator) {
 
 func (d *DevicesResponse) Normalize(normalizer structure.Normalizer) {
 	if d.Devices != nil {
-		d.Devices.Normalize(normalizer.WithReference("devices"))
+		d.Devices.Normalize(normalizer.WithReference("records"))
 	}
 }
 
@@ -128,12 +128,13 @@ func (d *Devices) Normalize(normalizer structure.Normalizer) {
 
 type Device struct {
 	LastUploadDate        *Time           `json:"lastUploadDate,omitempty" yaml:"-"`
-	AlertScheduleList     *AlertSchedules `json:"alertScheduleList,omitempty" yaml:"alertScheduleList,omitempty"`
+	AlertScheduleList     *AlertSchedules `json:"alertSchedules,omitempty" yaml:"alertSchedules,omitempty"`
 	UDI                   *string         `json:"udi,omitempty" yaml:"udi,omitempty"`
 	SerialNumber          *string         `json:"serialNumber,omitempty" yaml:"serialNumber,omitempty"`
 	TransmitterID         *string         `json:"transmitterId,omitempty" yaml:"transmitterId,omitempty"`
 	TransmitterGeneration *string         `json:"transmitterGeneration,omitempty" yaml:"transmitterGeneration,omitempty"`
 	DisplayDevice         *string         `json:"displayDevice,omitempty" yaml:"displayDevice,omitempty"`
+	DisplayApp            *string         `json:"displayApp,omitempty" yaml:"displayApp,omitempty"`
 	SoftwareVersion       *string         `json:"softwareVersion,omitempty" yaml:"softwareVersion,omitempty"`
 	SoftwareNumber        *string         `json:"softwareNumber,omitempty" yaml:"softwareNumber,omitempty"`
 	Language              *string         `json:"language,omitempty" yaml:"language,omitempty"`
@@ -159,12 +160,13 @@ func NewDevice() *Device {
 
 func (d *Device) Parse(parser structure.ObjectParser) {
 	d.LastUploadDate = TimeFromRaw(parser.Time("lastUploadDate", TimeFormat))
-	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertScheduleList"))
+	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertSchedules"))
 	d.UDI = parser.String("udi")
 	d.SerialNumber = parser.String("serialNumber")
 	d.TransmitterID = parser.String("transmitterId")
 	d.TransmitterGeneration = parser.String("transmitterGeneration")
 	d.DisplayDevice = parser.String("displayDevice")
+	d.DisplayApp = parser.String("displayApp")
 	d.SoftwareVersion = parser.String("softwareVersion")
 	d.SoftwareNumber = parser.String("softwareNumber")
 	d.Language = parser.String("language")
@@ -178,7 +180,7 @@ func (d *Device) Parse(parser structure.ObjectParser) {
 func (d *Device) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(d)
 	validator.Time("lastUploadDate", d.LastUploadDate.Raw()).Exists().NotZero()
-	if alertScheduleListValidator := validator.WithReference("alertScheduleList"); d.AlertScheduleList != nil {
+	if alertScheduleListValidator := validator.WithReference("alertSchedules"); d.AlertScheduleList != nil {
 		d.AlertScheduleList.Validate(alertScheduleListValidator)
 	} else {
 		alertScheduleListValidator.ReportError(structureValidator.ErrorValueNotExists())
@@ -195,7 +197,7 @@ func (d *Device) Validate(validator structure.Validator) {
 
 func (d *Device) Normalize(normalizer structure.Normalizer) {
 	if d.AlertScheduleList != nil {
-		d.AlertScheduleList.Normalize(normalizer.WithReference("alertScheduleList"))
+		d.AlertScheduleList.Normalize(normalizer.WithReference("alertSchedules"))
 	}
 }
 

@@ -20,66 +20,6 @@ var _ = Describe("Alert", func() {
 		Expect(dexcom.AlertScheduleSettingsEndTimeDefault).To(Equal("00:00"))
 	})
 
-	It("AlertScheduleSettingsDaySunday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDaySunday).To(Equal("sunday"))
-	})
-
-	It("AlertScheduleSettingsDayMonday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayMonday).To(Equal("monday"))
-	})
-
-	It("AlertScheduleSettingsDayTuesday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayTuesday).To(Equal("tuesday"))
-	})
-
-	It("AlertScheduleSettingsDayWednesday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayWednesday).To(Equal("wednesday"))
-	})
-
-	It("AlertScheduleSettingsDayThursday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayThursday).To(Equal("thursday"))
-	})
-
-	It("AlertScheduleSettingsDayFriday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayFriday).To(Equal("friday"))
-	})
-
-	It("AlertScheduleSettingsDaySaturday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDaySaturday).To(Equal("saturday"))
-	})
-
-	It("AlertSettingAlertNameFall is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameFall).To(Equal("fall"))
-	})
-
-	It("AlertSettingAlertNameHigh is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameHigh).To(Equal("high"))
-	})
-
-	It("AlertSettingAlertNameLow is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameLow).To(Equal("low"))
-	})
-
-	It("AlertSettingAlertNameNoReadings is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameNoReadings).To(Equal("noReadings"))
-	})
-
-	It("AlertSettingAlertNameOutOfRange is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameOutOfRange).To(Equal("outOfRange"))
-	})
-
-	It("AlertSettingAlertNameRise is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameRise).To(Equal("rise"))
-	})
-
-	It("AlertSettingAlertNameUrgentLow is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameUrgentLow).To(Equal("urgentLow"))
-	})
-
-	It("AlertSettingAlertNameUrgentLowSoon is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameUrgentLowSoon).To(Equal("urgentLowSoon"))
-	})
-
 	It("AlertSettingSnoozeMinutesMaximum is expected", func() {
 		Expect(dexcom.AlertSettingSnoozeMinutesMaximum).To(Equal(600.0))
 	})
@@ -166,6 +106,15 @@ var _ = Describe("Alert", func() {
 
 	It("AlertScheduleSettingsDays returns expected", func() {
 		Expect(dexcom.AlertScheduleSettingsDays()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
+		Expect(dexcom.AlertScheduleSettingsDays()).To(Equal([]string{
+			dexcom.AlertScheduleSettingsDaySunday,
+			dexcom.AlertScheduleSettingsDayMonday,
+			dexcom.AlertScheduleSettingsDayTuesday,
+			dexcom.AlertScheduleSettingsDayWednesday,
+			dexcom.AlertScheduleSettingsDayThursday,
+			dexcom.AlertScheduleSettingsDayFriday,
+			dexcom.AlertScheduleSettingsDaySaturday,
+		}))
 	})
 
 	Context("AlertScheduleSettingsDayIndex", func() {
@@ -186,7 +135,38 @@ var _ = Describe("Alert", func() {
 	})
 
 	It("AlertSettingAlertNames returns expected", func() {
-		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{"fall", "high", "low", "noReadings", "outOfRange", "rise", "urgentLow", "urgentLowSoon"}))
+		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{"unknown", "fall", "high", "low", "noReadings", "outOfRange", "rise", "urgentLow", "urgentLowSoon", "fixedLow"}))
+		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{
+			dexcom.AlertSettingAlertNameUnknown,
+			dexcom.AlertSettingAlertNameFall,
+			dexcom.AlertSettingAlertNameHigh,
+			dexcom.AlertSettingAlertNameLow,
+			dexcom.AlertSettingAlertNameNoReadings,
+			dexcom.AlertSettingAlertNameOutOfRange,
+			dexcom.AlertSettingAlertNameRise,
+			dexcom.AlertSettingAlertNameUrgentLow,
+			dexcom.AlertSettingAlertNameUrgentLowSoon,
+			dexcom.AlertSettingAlertNameFixedLow,
+		}))
+	})
+
+	It("AlertSettingSoundThemes returns expected", func() {
+		Expect(dexcom.AlertSettingSoundThemes()).To(Equal([]string{"unknown", "modern", "classic"}))
+		Expect(dexcom.AlertSettingSoundThemes()).To(Equal([]string{
+			dexcom.AlertSettingSoundThemeUnknown,
+			dexcom.AlertSettingSoundThemeModern,
+			dexcom.AlertSettingSoundThemeClassic,
+		}))
+	})
+
+	It("AlertSettingSoundOutputModes returns expected", func() {
+		Expect(dexcom.AlertSettingSoundOutputModes()).To(Equal([]string{"unknown", "sound", "vibrate", "match"}))
+		Expect(dexcom.AlertSettingSoundOutputModes()).To(Equal([]string{
+			dexcom.AlertSettingSoundOutputModeUnknown,
+			dexcom.AlertSettingSoundOutputModeSound,
+			dexcom.AlertSettingSoundOutputModeVibrate,
+			dexcom.AlertSettingSoundOutputModeMatch,
+		}))
 	})
 
 	It("AlertSettingUnitFalls returns expected", func() {
@@ -280,5 +260,10 @@ var _ = Describe("Alert", func() {
 			},
 			Entry("valid if empty", dexcom.NewAlertSchedules()),
 		)
+	})
+
+	It("AlertScheduleSettingsOverrideModes returns expected", func() {
+		Expect(dexcom.AlertScheduleSettingsOverrideModes()).To(Equal([]string{"unknown", "quiet", "vibrate"}))
+		Expect(dexcom.AlertScheduleSettingsOverrideModes()).To(Equal([]string{dexcom.AlertScheduleSettingsOverrideModeUnknown, dexcom.AlertScheduleSettingsOverrideModeQuiet, dexcom.AlertScheduleSettingsOverrideModeVibrate}))
 	})
 })
