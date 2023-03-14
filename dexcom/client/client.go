@@ -42,7 +42,7 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 
 func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error) {
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
-	paths := []string{"p", "v2", "users", "self", "calibrations"}
+	paths := []string{"v3", "users", "self", "calibrations"}
 	if c.isSandboxData {
 		paths = paths[1:]
 	}
@@ -56,7 +56,7 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 
 func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DevicesResponse, error) {
 	devicesResponse := &dexcom.DevicesResponse{IsSandboxData: c.isSandboxData}
-	paths := []string{"p", "v2", "users", "self", "devices"}
+	paths := []string{"v3", "users", "self", "devices"}
 	if c.isSandboxData {
 		paths = paths[1:]
 	}
@@ -70,7 +70,7 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
-	paths := []string{"p", "v2", "users", "self", "egvs"}
+	paths := []string{"v3", "users", "self", "egvs"}
 	if c.isSandboxData {
 		paths = paths[1:]
 	}
@@ -84,7 +84,7 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
-	paths := []string{"p", "v2", "users", "self", "events"}
+	paths := []string{"v3", "users", "self", "events"}
 	if c.isSandboxData {
 		paths = paths[1:]
 	}
