@@ -143,7 +143,7 @@ func (s *Service) terminateBlobStructuredStore() {
 	}
 }
 
-func (s *Service) getAWSUnstructuredStore(bucketGroup *string) (*blobStoreUnstructured.StoreImpl, error) {
+func (s *Service) getAWSUnstructuredStore(group *string) (*blobStoreUnstructured.StoreImpl, error) {
 	s.Logger().Debug("Creating aws session")
 
 	session, err := awsSdkGoAwsSession.NewSession() // FUTURE: Session pooling
@@ -160,7 +160,7 @@ func (s *Service) getAWSUnstructuredStore(bucketGroup *string) (*blobStoreUnstru
 
 	s.Logger().Debug("Creating unstructured store")
 
-	configReporter := s.ConfigReporter().WithScopes("unstructured", "store", *bucketGroup)
+	configReporter := s.ConfigReporter().WithScopes("unstructured", *group, "store")
 	unstructuredStore, err := storeUnstructuredFactory.NewStore(configReporter, api)
 
 	if err != nil {
@@ -188,8 +188,8 @@ func (s *Service) initializeBlobUnstructuredStore() error {
 }
 
 func (s *Service) initializeDeviceLogsUnstructuredStore() error {
-	deviceLogs := "device_logs"
-	store, err := s.getAWSUnstructuredStore(&deviceLogs)
+	logs := "logs"
+	store, err := s.getAWSUnstructuredStore(&logs)
 	if err != nil {
 		return err
 	}
