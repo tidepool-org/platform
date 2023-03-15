@@ -4,24 +4,31 @@ import (
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	EGVUnitMgdL       = "mg/dL"
-	EGVUnitMgdLMinute = "mg/dL/min"
+	EGVUnitUnknown     = "unknown"
+	EGVUnitMgdL        = "mg/dL"
+	EGVUnitMgdLMinute  = "mg/dL/min"
+	EGVUnitMmolL       = "mmol/L"
+	EGVUnitMmolLMinute = "mmol/L/min"
 
-	EGVValueMgdLMaximum       = dataBloodGlucose.MgdLMaximum
-	EGVValueMgdLMinimum       = dataBloodGlucose.MgdLMinimum
-	EGVValuePinnedMgdLMaximum = 400.0
-	EGVValuePinnedMgdLMinimum = 40.0
+	EGVValueMgdLMaximum        = dataBloodGlucose.MgdLMaximum
+	EGVValueMgdLMinimum        = dataBloodGlucose.MgdLMinimum
+	EGVValuePinnedMgdLMaximum  = 400.0
+	EGVValuePinnedMgdLMinimum  = 40.0
+	EGVValueMmolLMaximum       = dataBloodGlucose.MmolLMaximum
+	EGVValueMmolLMinimum       = dataBloodGlucose.MmolLMinimum
+	EGVValuePinnedMmolLMaximum = cgm.HighAlertLevelMmolLMaximum
+	EGVValuePinnedMmolLMinimum = cgm.UrgentLowAlertLevelMmolLMinimum
 
-	EGVStatusHigh             = "high"
-	EGVStatusLow              = "low"
-	EGVStatusOK               = "ok"
-	EGVStatusOutOfCalibration = "outOfCalibration"
-	EGVStatusSensorNoise      = "sensorNoise"
+	EGVStatusUnknown = "unknown"
+	EGVStatusHigh    = "high"
+	EGVStatusLow     = "low"
+	EGVStatusOK      = "ok"
 
 	EGVTrendDoubleUp       = "doubleUp"
 	EGVTrendSingleUp       = "singleUp"
@@ -39,23 +46,26 @@ const (
 
 func EGVsResponseRateUnits() []string {
 	return []string{
+		EGVUnitUnknown,
 		EGVUnitMgdLMinute,
+		EGVUnitMmolLMinute,
 	}
 }
 
 func EGVsResponseUnits() []string {
 	return []string{
+		EGVUnitUnknown,
 		EGVUnitMgdL,
+		EGVUnitMmolL,
 	}
 }
 
 func EGVStatuses() []string {
 	return []string{
+		EGVStatusUnknown,
 		EGVStatusHigh,
 		EGVStatusLow,
 		EGVStatusOK,
-		EGVStatusOutOfCalibration,
-		EGVStatusSensorNoise,
 	}
 }
 
@@ -142,17 +152,20 @@ func (e *EGVs) Validate(validator structure.Validator) {
 }
 
 type EGV struct {
-	SystemTime       *Time    `json:"systemTime,omitempty"`
-	DisplayTime      *Time    `json:"displayTime,omitempty"`
-	Unit             *string  `json:"unit,omitempty"`
-	Value            *float64 `json:"value,omitempty"`
-	RealTimeValue    *float64 `json:"realtimeValue,omitempty"`
-	SmoothedValue    *float64 `json:"smoothedValue,omitempty"`
-	Status           *string  `json:"status,omitempty"`
-	Trend            *string  `json:"trend,omitempty"`
-	TrendRate        *float64 `json:"trendRate,omitempty"`
-	TransmitterID    *string  `json:"transmitterId,omitempty"`
-	TransmitterTicks *int     `json:"transmitterTicks,omitempty"`
+	ID                    *string  `json:"recordId,omitempty"`
+	SystemTime            *Time    `json:"systemTime,omitempty"`
+	DisplayTime           *Time    `json:"displayTime,omitempty"`
+	Unit                  *string  `json:"unit,omitempty"`
+	Value                 *float64 `json:"value,omitempty"`
+	RealTimeValue         *float64 `json:"realtimeValue,omitempty"`
+	SmoothedValue         *float64 `json:"smoothedValue,omitempty"`
+	Status                *string  `json:"status,omitempty"`
+	Trend                 *string  `json:"trend,omitempty"`
+	TrendRate             *float64 `json:"trendRate,omitempty"`
+	TransmitterID         *string  `json:"transmitterId,omitempty"`
+	TransmitterTicks      *int     `json:"transmitterTicks,omitempty"`
+	TransmitterGeneration *string  `json:"transmitterGeneration,omitempty"`
+	DisplayDevice         *string  `json:"displayDevice,omitempty"`
 }
 
 func ParseEGV(parser structure.ObjectParser, unit *string) *EGV {
@@ -171,6 +184,7 @@ func NewEGV(unit *string) *EGV {
 }
 
 func (e *EGV) Parse(parser structure.ObjectParser) {
+	e.ID = parser.String("recordId")
 	e.SystemTime = TimeFromRaw(parser.ForgivingTime("systemTime", TimeFormat))
 	e.DisplayTime = TimeFromRaw(parser.ForgivingTime("displayTime", TimeFormat))
 	e.Value = parser.Float64("value")
@@ -181,10 +195,13 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.TrendRate = parser.Float64("trendRate")
 	e.TransmitterID = parser.String("transmitterId")
 	e.TransmitterTicks = parser.Int("transmitterTicks")
+	e.TransmitterGeneration = parser.String("transmitterGeneration")
+	e.DisplayDevice = parser.String("displayDevice")
 }
 
 func (e *EGV) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
+	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
 	validator.String("unit", e.Unit).OneOf(EGVsResponseUnits()...)
@@ -194,10 +211,16 @@ func (e *EGV) Validate(validator structure.Validator) {
 			validator.Float64("value", e.Value).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
+		case EGVUnitMmolL:
+			validator.Float64("value", e.Value).Exists().InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
+			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
+			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
 		}
 	}
 	validator.String("status", e.Status).OneOf(EGVStatuses()...)
 	validator.String("trend", e.Trend).OneOf(EGVTrends()...)
 	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
 	validator.Int("transmitterTicks", e.TransmitterTicks).GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
+	validator.String("transmitterGeneration", e.TransmitterGeneration).OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", e.DisplayDevice).OneOf(DeviceDisplayDevices()...)
 }

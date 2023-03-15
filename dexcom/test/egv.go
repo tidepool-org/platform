@@ -48,6 +48,7 @@ func CloneEGVs(datum *dexcom.EGVs) *dexcom.EGVs {
 
 func RandomEGV(unit *string) *dexcom.EGV {
 	datum := dexcom.NewEGV(unit)
+	datum.ID = pointer.FromString(test.RandomString())
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
 	switch *datum.Unit {
@@ -55,12 +56,18 @@ func RandomEGV(unit *string) *dexcom.EGV {
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
 		datum.RealTimeValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
 		datum.SmoothedValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
+	case dexcom.EGVUnitMmolL:
+		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
+		datum.RealTimeValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
+		datum.SmoothedValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
 	}
 	datum.Status = pointer.FromString(test.RandomStringFromArray(dexcom.EGVStatuses()))
 	datum.Trend = pointer.FromString(test.RandomStringFromArray(dexcom.EGVTrends()))
 	datum.TrendRate = pointer.FromFloat64(test.RandomFloat64())
 	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
 	datum.TransmitterTicks = pointer.FromInt(test.RandomIntFromRange(dexcom.EGVTransmitterTickMinimum, math.MaxInt32))
+	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))
+	datum.DisplayDevice = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayDevices()))
 	return datum
 }
 
@@ -69,6 +76,7 @@ func CloneEGV(datum *dexcom.EGV) *dexcom.EGV {
 		return nil
 	}
 	clone := dexcom.NewEGV(datum.Unit)
+	clone.ID = pointer.CloneString(datum.ID)
 	clone.SystemTime = CloneTime(datum.SystemTime)
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.Unit = pointer.CloneString(datum.Unit)
@@ -80,5 +88,7 @@ func CloneEGV(datum *dexcom.EGV) *dexcom.EGV {
 	clone.TrendRate = pointer.CloneFloat64(datum.TrendRate)
 	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
 	clone.TransmitterTicks = pointer.CloneInt(datum.TransmitterTicks)
+	clone.TransmitterGeneration = pointer.CloneString(datum.TransmitterGeneration)
+	clone.DisplayDevice = pointer.CloneString(datum.DisplayDevice)
 	return clone
 }
