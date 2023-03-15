@@ -85,6 +85,7 @@ type BucketDataPt[T BucketData] interface {
 func CreateBucket[T BucketData, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
 	bucket := new(Bucket[T, A])
 	bucket.Date = t
+	bucket.Data = new(T)
 	return bucket
 }
 

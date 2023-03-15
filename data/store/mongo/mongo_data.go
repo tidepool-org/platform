@@ -2,10 +2,7 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 
 	baseDatum "github.com/tidepool-org/platform/data/types"
 
@@ -895,6 +892,8 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
+// GetDataRange be careful when calling this, as if dataRecords isn't a pointer underneath, it will silently not
+// result in any results being returned.
 func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, t string, startTime time.Time, endTime time.Time) error {
 
 	// quit early if range is 0
@@ -926,8 +925,6 @@ func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface
 	if err = cursor.All(ctx, dataRecords); err != nil {
 		return errors.Wrap(err, "unable to decode data sets")
 	}
-
-	fmt.Println("Document count before passing back:", len(*dataRecords.(*[]*glucoseDatum.Glucose)))
 
 	return nil
 }

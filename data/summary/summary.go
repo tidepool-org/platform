@@ -2,7 +2,6 @@ package summary
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -200,8 +199,6 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	if bucketsLen > 0 {
 		userData, err = types.SkipUntil(userSummary.Stats.GetBucketDate(bucketsLen-1), userData)
 	}
-
-	fmt.Println("\nTotal userData rows:", len(userData))
 
 	// if there is new data
 	var lastData *time.Time
