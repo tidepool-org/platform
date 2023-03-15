@@ -1,11 +1,13 @@
 package summary_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"math/rand"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 
