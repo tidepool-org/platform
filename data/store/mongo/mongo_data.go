@@ -3,8 +3,9 @@ package mongo
 import (
 	"context"
 	"fmt"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"time"
+
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 
 	baseDatum "github.com/tidepool-org/platform/data/types"
 
