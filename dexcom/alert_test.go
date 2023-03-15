@@ -231,13 +231,19 @@ var _ = Describe("Alert", func() {
 			},
 			Entry("is an empty string", "", 0, 0, false),
 			Entry("contains non-numbers", "a$: b", 0, 0, false),
-			Entry("does not exactly match format", "1:23", 0, 0, false),
+			Entry("does not exactly match format", "1;23", 0, 0, false),
 			Entry("has hour in range (lower)", "00:00", 0, 0, true),
 			Entry("has hour in range (upper)", "23:59", 23, 59, true),
 			Entry("has hour out of range (upper)", "24:00", 0, 0, false),
 			Entry("has minute in range (lower)", "00:00", 0, 0, true),
 			Entry("has minute in range (upper)", "23:59", 23, 59, true),
 			Entry("has minute out of range (upper)", "23:60", 0, 0, false),
+
+			Entry("is 12hr format with AM postfix", "8:00 Am", 8, 0, true),
+			Entry("is 12hr format with AM postfix", "08:00 aM", 8, 0, true),
+			Entry("is 12hr format with PM postfix", "9:00 Pm", 21, 0, true),
+			Entry("is 12hr format with PM postfix and extra padding", "09:00   pm", 21, 0, true),
+			Entry("is 12hr format with minutes", "11:59   pM", 23, 59, true),
 		)
 	})
 
@@ -252,7 +258,7 @@ var _ = Describe("Alert", func() {
 			},
 			Entry("is an empty string", "", structureValidator.ErrorValueEmpty()),
 			Entry("contains non-numbers", "a$: b", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("a$: b")),
-			Entry("does not exactly match format", "1:23", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("1:23")),
+			Entry("does not exactly match format", "1;23", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("1;23")),
 			Entry("has hour in range (lower)", "00:00"),
 			Entry("has hour in range (upper)", "23:59"),
 			Entry("has hour out of range (upper)", "24:00", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("24:00")),
