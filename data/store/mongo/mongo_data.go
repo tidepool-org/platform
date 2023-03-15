@@ -2,6 +2,8 @@ package mongo
 
 import (
 	"context"
+	"fmt"
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"time"
 
 	baseDatum "github.com/tidepool-org/platform/data/types"
@@ -920,9 +922,11 @@ func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface
 		return errors.Wrap(err, "unable to get cgm data in date range for user")
 	}
 
-	if err = cursor.All(ctx, &dataRecords); err != nil {
+	if err = cursor.All(ctx, dataRecords); err != nil {
 		return errors.Wrap(err, "unable to decode data sets")
 	}
+
+	fmt.Println("Document count before passing back:", len(*dataRecords.(*[]*glucoseDatum.Glucose)))
 
 	return nil
 }
