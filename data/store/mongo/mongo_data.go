@@ -2,11 +2,10 @@ package mongo
 
 import (
 	"context"
+	baseDatum "github.com/tidepool-org/platform/data/types"
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary/types"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -930,8 +929,8 @@ func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface
 func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
-	var status *types.UserLastUpdated
-	var dataSet []*glucose.Glucose
+	var status = &types.UserLastUpdated{}
+	var dataSet []*baseDatum.Base
 
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -970,7 +969,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, t
 		return status, nil
 	}
 
-	status.LastUpload = *dataSet[0].CreatedTime
+	status.LastUpload = *dataSet[0].CreatedTime // nil pointer?
 	status.LastUpload = status.LastUpload.UTC()
 
 	status.LastData = *dataSet[0].Time
