@@ -12,8 +12,10 @@ import (
 )
 
 const (
-	SummaryTypeCGM = "cgm"
-	SummaryTypeBGM = "bgm"
+	SummaryTypeCGM    = "cgm"
+	DeviceDataTypeCGM = "cbg"
+	SummaryTypeBGM    = "bgm"
+	DeviceDataTypeBGM = "smbg"
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0
@@ -95,6 +97,7 @@ type Stats interface {
 type StatsPt[T Stats] interface {
 	*T
 	GetType() string
+	GetDeviceDataType() string
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
@@ -152,6 +155,11 @@ func Create[T Stats, A StatsPt[T]](userId string) *Summary[T, A] {
 func GetTypeString[T Stats, A StatsPt[T]]() string {
 	s := new(Summary[T, A])
 	return s.Stats.GetType()
+}
+
+func GetDeviceDataTypeString[T Stats, A StatsPt[T]]() string {
+	s := new(Summary[T, A])
+	return s.Stats.GetDeviceDataType()
 }
 
 type Period interface {

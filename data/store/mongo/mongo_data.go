@@ -944,14 +944,6 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, t
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
 
-	selectorOld := bson.M{
-		"_active": true,
-		"_userId": id,
-		"type":    typ,
-		"time": bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano),
-			"$gte": pastCutoff.Format(time.RFC3339Nano)},
-	}
-
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
@@ -966,28 +958,16 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, t
 
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get last cbg date")
+		return nil, errors.Wrapf(err, "unable to get last %s date", typ)
 	}
 
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, errors.Wrap(err, "unable to decode last cbg date")
+		return nil, errors.Wrapf(err, "unable to decode last %s date", typ)
 	}
 
-	// if we can't find a new format record, instead look for legacy date records
+	// if we have no record
 	if len(dataSet) < 1 {
-		cursor, err = d.Find(ctx, selectorOld, findOptions)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to get last cbg date")
-		}
-		if err = cursor.All(ctx, &dataSet); err != nil {
-			return nil, errors.Wrap(err, "unable to decode last cbg date")
-		}
-
-	}
-
-	// if we still have no record
-	if len(dataSet) < 1 {
-		return nil, nil
+		return status, nil
 	}
 
 	status.LastUpload = *dataSet[0].CreatedTime
@@ -1011,14 +991,6 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) 
 	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
-	selectorOld := bson.M{
-		"_userId": bson.M{"$ne": -1111},
-		"_active": true,
-		"type":    bson.M{"$ne": -1111},
-		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
-			"$lte": futureCutoff.Format(time.RFC3339Nano)},
-	}
-
 	selector := bson.M{
 		"_userId": bson.M{"$ne": -1111},
 		"_active": true,
@@ -1031,15 +1003,7 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) 
 		return nil, errors.Wrap(err, "error fetching distinct userIDs")
 	}
 
-	resultOld, err := d.Distinct(ctx, "_userId", selectorOld)
-	if err != nil {
-		return nil, errors.Wrap(err, "error fetching distinct userIDs")
-	}
-
 	for _, v := range result {
-		distinctUserIDMap[v.(string)] = empty
-	}
-	for _, v := range resultOld {
 		distinctUserIDMap[v.(string)] = empty
 	}
 

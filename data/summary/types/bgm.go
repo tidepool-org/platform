@@ -63,6 +63,10 @@ func (*BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
+func (*BGMStats) GetDeviceDataType() string {
+	return DeviceDataTypeBGM
+}
+
 func (s *BGMStats) Init() {
 	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
 	s.Periods = make(map[string]BGMPeriod)

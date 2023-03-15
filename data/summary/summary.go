@@ -144,12 +144,12 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 
 	logger.Debugf("Starting summary calculation for %s", userId)
 
-	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetTypeString[T, A]())
+	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A]())
 	if err != nil {
 		return nil, err
 	}
 
-	// this filters out users which require no update, as they have no cgm data, but have an outdated summary
+	// this filters out users which require no update, as they have no data of type T, but have an outdated summary
 	if status.LastData.IsZero() {
 		if userSummary != nil {
 			// user's data is inactive/deleted, or this summary shouldn't have been created

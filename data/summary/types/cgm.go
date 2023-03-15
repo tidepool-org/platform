@@ -83,6 +83,9 @@ type CGMStats struct {
 func (*CGMStats) GetType() string {
 	return SummaryTypeCGM
 }
+func (*CGMStats) GetDeviceDataType() string {
+	return DeviceDataTypeCGM
+}
 
 func (s *CGMStats) Init() {
 	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
