@@ -47,3 +47,28 @@ func (r *runner) Terminate() error {
 	}
 	return nil
 }
+
+type noopRunner struct {
+	terminate chan struct{}
+}
+
+func (n *noopRunner) Initialize() error {
+	n.terminate = make(chan struct{}, 0)
+	return nil
+}
+
+func (n *noopRunner) Run() error {
+	<-n.terminate
+	return nil
+}
+
+func (n *noopRunner) Terminate() error {
+	n.terminate <- struct{}{}
+	return nil
+}
+
+var _ Runner = &noopRunner{}
+
+func NewNoopRunner() Runner {
+	return &noopRunner{}
+}
