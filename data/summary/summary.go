@@ -141,6 +141,9 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	if err != nil {
 		return userSummary, err
 	}
+	if userSummary == nil {
+		userSummary = types.Create[T, A](userId)
+	}
 
 	logger.Debugf("Starting summary calculation for %s", userId)
 
