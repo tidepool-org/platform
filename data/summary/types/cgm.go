@@ -157,7 +157,7 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 }
 
 func (s *CGMStats) CalculateSummary() {
-	var totalStats *CGMBucketData
+	var totalStats = &CGMBucketData{}
 	s.TotalHours = len(s.Buckets)
 
 	// ensure periods exists, just in case
