@@ -1,6 +1,9 @@
 package summary_test
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"math/rand"
 	"time"
 
@@ -183,24 +186,33 @@ func NewDataSetBGMDataRanges(deviceID string, startTime time.Time, hours float64
 	return dataSetData
 }
 
-//
-//var _ = Describe("Summary", func() {
-//	var ctx context.Context
-//	var logger *logTest.Logger
-//	var userID string
-//	var datumTime time.Time
-//	var deviceID string
-//	var err error
-//	var dataSetCGMData []*glucose.Glucose
-//	var dataSetBGMData []*glucose.Glucose
-//
-//	BeforeEach(func() {
-//		logger = logTest.NewLogger()
-//		ctx = log.NewContextWithLogger(context.Background(), logger)
-//		userID = userTest.RandomID()
-//		deviceID = "SummaryTestDevice"
-//		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-//	})
+var _ = Describe("Summary", func() {
+	//	var ctx context.Context
+	//	var logger *logTest.Logger
+	//	var userID string
+	//	var datumTime time.Time
+	//	var deviceID string
+	//	var err error
+	//	var dataSetCGMData []*glucose.Glucose
+	//	var dataSetBGMData []*glucose.Glucose
+	//
+	//	BeforeEach(func() {
+	//		logger = logTest.NewLogger()
+	//		ctx = log.NewContextWithLogger(context.Background(), logger)
+	//		userID = userTest.RandomID()
+	//		deviceID = "SummaryTestDevice"
+	//		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+	//	})
+
+	Context("CreateCGMSummary", func() {
+		It("Correctly initializes a cgm summary", func() {
+			summary := types.Create[types.CGMStats, *types.CGMStats]("1234")
+			Expect(summary).To(Not(BeNil()))
+			Expect(summary.Type).To(Equal("cgm"))
+		})
+	})
+})
+
 //
 //	Context("GetDuration", func() {
 //		var libreDatum *glucose.Glucose

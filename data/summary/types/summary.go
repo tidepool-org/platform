@@ -140,6 +140,7 @@ func NewDates() Dates {
 func Create[T Stats, A StatsPt[T]](userId string) *Summary[T, A] {
 	s := new(Summary[T, A])
 	s.UserID = userId
+	s.Stats = new(T)
 	s.Stats.Init()
 	s.Type = s.Stats.GetType()
 	s.Config = NewConfig()
