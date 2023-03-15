@@ -2,8 +2,9 @@ package mongo
 
 import (
 	"context"
-	baseDatum "github.com/tidepool-org/platform/data/types"
 	"time"
+
+	baseDatum "github.com/tidepool-org/platform/data/types"
 
 	"github.com/tidepool-org/platform/data/summary/types"
 
