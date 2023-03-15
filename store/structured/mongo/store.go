@@ -62,7 +62,10 @@ func AppendLifecycleHooksToStore(store *Store, lifecycle fx.Lifecycle) {
 }
 
 func (o *Store) GetRepository(collection string) *Repository {
-	return NewRepository(o.GetCollection(collection))
+	config := RepositoryConfig{
+		DisableIndexCreation: o.config.DisableIndexCreation,
+	}
+	return NewRepository(o.GetCollection(collection), config)
 }
 
 func (o *Store) GetCollection(collection string) *mongoDriver.Collection {
