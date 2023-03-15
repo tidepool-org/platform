@@ -9,20 +9,27 @@ import (
 )
 
 const (
-	CalibrationUnitMgdL = "mg/dL"
+	CalibrationUnitUnknown = "unknown"
+	CalibrationUnitMgdL    = "mg/dL"
+	CalibrationUnitMmolL   = "mmol/L"
 
 	CalibrationValueMgdLMaximum = dataBloodGlucose.MgdLMaximum
 	CalibrationValueMgdLMinimum = dataBloodGlucose.MgdLMinimum
+
+	CalibrationValueMmolLMaximum = dataBloodGlucose.MmolLMaximum
+	CalibrationValueMmolLMinimum = dataBloodGlucose.MmolLMinimum
 )
 
 func CalibrationUnits() []string {
 	return []string{
+		CalibrationUnitUnknown,
 		CalibrationUnitMgdL,
+		CalibrationUnitMmolL,
 	}
 }
 
 type CalibrationsResponse struct {
-	Calibrations *Calibrations `json:"calibrations,omitempty"`
+	Calibrations *Calibrations `json:"records,omitempty"`
 }
 
 func ParseCalibrationsResponse(parser structure.ObjectParser) *CalibrationsResponse {
@@ -39,11 +46,11 @@ func NewCalibrationsResponse() *CalibrationsResponse {
 }
 
 func (c *CalibrationsResponse) Parse(parser structure.ObjectParser) {
-	c.Calibrations = ParseCalibrations(parser.WithReferenceArrayParser("calibrations"))
+	c.Calibrations = ParseCalibrations(parser.WithReferenceArrayParser("records"))
 }
 
 func (c *CalibrationsResponse) Validate(validator structure.Validator) {
-	if calibrationsValidator := validator.WithReference("calibrations"); c.Calibrations != nil {
+	if calibrationsValidator := validator.WithReference("records"); c.Calibrations != nil {
 		c.Calibrations.Validate(calibrationsValidator)
 	} else {
 		calibrationsValidator.ReportError(structureValidator.ErrorValueNotExists())
@@ -82,11 +89,16 @@ func (c *Calibrations) Validate(validator structure.Validator) {
 }
 
 type Calibration struct {
+	ID            *string  `json:"recordId,omitempty"`
 	SystemTime    *Time    `json:"systemTime,omitempty"`
 	DisplayTime   *Time    `json:"displayTime,omitempty"`
 	Unit          *string  `json:"unit,omitempty"`
 	Value         *float64 `json:"value,omitempty"`
 	TransmitterID *string  `json:"transmitterId,omitempty"`
+
+	TransmitterGeneration *string `json:"transmitterGeneration,omitempty"`
+	DisplayDevice         *string `json:"displayDevice,omitempty"`
+	TransmitterTicks      *int    `json:"transmitterTicks,omitempty"`
 }
 
 func ParseCalibration(parser structure.ObjectParser) *Calibration {
@@ -103,15 +115,20 @@ func NewCalibration() *Calibration {
 }
 
 func (c *Calibration) Parse(parser structure.ObjectParser) {
+	c.ID = parser.String("recordId")
 	c.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
 	c.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
 	c.Unit = parser.String("unit")
 	c.Value = parser.Float64("value")
 	c.TransmitterID = parser.String("transmitterId")
+	c.TransmitterGeneration = parser.String("transmitterGeneration")
+	c.DisplayDevice = parser.String("displayDevice")
+	c.TransmitterTicks = parser.Int("transmitterTicks")
 }
 
 func (c *Calibration) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(c)
+	validator.String("recordId", c.ID).Exists().NotEmpty()
 	validator.Time("systemTime", c.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", c.DisplayTime.Raw()).Exists().NotZero()
 	validator.String("unit", c.Unit).Exists().OneOf(CalibrationUnits()...)
@@ -119,7 +136,12 @@ func (c *Calibration) Validate(validator structure.Validator) {
 		switch *c.Unit {
 		case CalibrationUnitMgdL:
 			validator.Float64("value", c.Value).Exists().InRange(CalibrationValueMgdLMinimum, CalibrationValueMgdLMaximum)
+		case CalibrationUnitMmolL:
+			validator.Float64("value", c.Value).Exists().InRange(CalibrationValueMmolLMinimum, CalibrationValueMmolLMaximum)
 		}
 	}
 	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
+	validator.Int("transmitterTicks", c.TransmitterTicks).Exists().GreaterThan(0)
+	validator.String("displayDevice", c.DisplayDevice).Exists().NotEmpty()
+	validator.String("transmitterGeneration", c.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
 }

@@ -8,9 +8,6 @@ import (
 )
 
 var _ = Describe("Calibration", func() {
-	It("CalibrationUnitMgdL is expected", func() {
-		Expect(dexcom.CalibrationUnitMgdL).To(Equal("mg/dL"))
-	})
 
 	It("CalibrationValueMgdLMaximum is expected", func() {
 		Expect(dexcom.CalibrationValueMgdLMaximum).To(Equal(1000.0))
@@ -20,7 +17,16 @@ var _ = Describe("Calibration", func() {
 		Expect(dexcom.CalibrationValueMgdLMinimum).To(Equal(0.0))
 	})
 
+	It("CalibrationValueMmolLMaximum is expected", func() {
+		Expect(dexcom.CalibrationValueMmolLMaximum).To(Equal(55.0))
+	})
+
+	It("CalibrationValueMmolLMinimum is expected", func() {
+		Expect(dexcom.CalibrationValueMmolLMinimum).To(Equal(0.0))
+	})
+
 	It("CalibrationUnits returns expected", func() {
-		Expect(dexcom.CalibrationUnits()).To(Equal([]string{"mg/dL"}))
+		Expect(dexcom.CalibrationUnits()).To(Equal([]string{"unknown", "mg/dL", "mmol/L"}))
+		Expect(dexcom.CalibrationUnits()).To(Equal([]string{dexcom.CalibrationUnitUnknown, dexcom.CalibrationUnitMgdL, dexcom.CalibrationUnitMmolL}))
 	})
 })
