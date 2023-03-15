@@ -118,7 +118,7 @@ func (B *BGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 }
 
 func (s *BGMStats) CalculateSummary() {
-	var totalStats *BGMBucketData
+	var totalStats = &BGMBucketData{}
 
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
