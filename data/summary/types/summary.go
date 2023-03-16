@@ -167,7 +167,7 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat Bucket[T, A]) error {
+func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat Bucket[T, A]) (S, error) {
 	var hourCount int
 	var oldestHour time.Time
 	var oldestHourToKeep time.Time
@@ -223,10 +223,10 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets S, newStat
 		}
 	}
 
-	return nil
+	return buckets, nil
 }
 
-func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](s S, userData []D) error {
+func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](buckets S, userData []D) (S, error) {
 	var recordTime *time.Time
 	var lastHour time.Time
 	var currentHour time.Time
@@ -236,7 +236,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 	for _, r := range userData {
 		recordTime = r.GetTime()
 		if err != nil {
-			return errors.Wrap(err, "cannot parse time in record")
+			return nil, errors.Wrap(err, "cannot parse time in record")
 		}
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
@@ -245,9 +245,9 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 		// store stats for the day, if we are now on the next hour
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = AddBin(s, *newBucket)
+			buckets, err = AddBin(buckets, *newBucket)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			newBucket = nil
 		}
@@ -255,15 +255,15 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 		if newBucket == nil {
 			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(s) > 0 {
-				for i := len(s) - 1; i >= 0; i-- {
-					if s[i].Date.Equal(currentHour) {
-						newBucket = &s[i]
+			if len(buckets) > 0 {
+				for i := len(buckets) - 1; i >= 0; i-- {
+					if buckets[i].Date.Equal(currentHour) {
+						newBucket = &buckets[i]
 						break
 					}
 
 					// we already passed our date, give up
-					if s[i].Date.After(currentHour) {
+					if buckets[i].Date.After(currentHour) {
 						break
 					}
 				}
@@ -277,8 +277,8 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 		lastHour = currentHour
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if newBucket.LastRecordTime.IsZero() && len(s) > 0 {
-			newBucket.LastRecordTime = s[len(s)-1].LastRecordTime
+		if newBucket.LastRecordTime.IsZero() && len(buckets) > 0 {
+			newBucket.LastRecordTime = buckets[len(buckets)-1].LastRecordTime
 		}
 
 		newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
@@ -287,10 +287,10 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 	}
 
 	// store
-	err = AddBin(s, *newBucket)
+	buckets, err = AddBin(buckets, *newBucket)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return buckets, nil
 }
