@@ -142,7 +142,6 @@ func (s *BGMStats) CalculateSummary() {
 
 		totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 		totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
-		totalStats.AverageReadings = totalStats.TotalRecords / i
 	}
 
 	// fill in periods we never reached
