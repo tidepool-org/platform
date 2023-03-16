@@ -104,7 +104,7 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 func (s *CGMStats) Update(userData any) error {
 	var err error
 	userDataTyped := userData.([]*glucoseDatum.Glucose)
-	s.Buckets, err = AddData(s.Buckets, userDataTyped)
+	err = AddData(&s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}
