@@ -597,6 +597,10 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 					datumArray = append(datumArray, translateEventHealthToDatum(e))
 				case dexcom.EventTypeInsulin:
 					datumArray = append(datumArray, translateEventInsulinToDatum(e))
+				case dexcom.EventTypeBG:
+					datumArray = append(datumArray, translateEventBGToDatum(e))
+				case dexcom.EventTypeNotes:
+					datumArray = append(datumArray, translateEventNoteToDatum(e))
 				}
 			}
 		case dexcom.EventStatusUpdated:

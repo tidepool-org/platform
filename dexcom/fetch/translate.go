@@ -8,6 +8,8 @@ import (
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+
+	dataTypesBloodGlucoseSelfMonitored "github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
@@ -88,7 +90,18 @@ func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
 	if calibration.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *calibration.TransmitterID
 	}
-
+	if calibration.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *calibration.DisplayDevice
+	}
+	if calibration.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *calibration.TransmitterGeneration
+	}
+	if calibration.TransmitterTicks != nil {
+		(*datum.Payload)["transmitterTicks"] = *calibration.TransmitterTicks
+	}
+	if calibration.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(calibration.ID)}
+	}
 	translateTime(calibration.SystemTime, calibration.DisplayTime, &datum.Base)
 	return datum
 }
@@ -186,7 +199,6 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 	if device.SystemTimeOffset != nil {
 		(*datum.Payload)["systemTimeOffset"] = *device.SystemTimeOffset
 	}
-
 	datum.Time = pointer.FromTime(device.LastUploadDate.Time)
 	return datum
 }
@@ -370,6 +382,12 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 	if egv.TransmitterTicks != nil {
 		(*datum.Payload)["transmitterTicks"] = *egv.TransmitterTicks
 	}
+	if egv.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *egv.DisplayDevice
+	}
+	if egv.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *egv.TransmitterGeneration
+	}
 
 	switch *datum.Units {
 	case dexcom.EGVUnitMgdL:
@@ -388,8 +406,26 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 				"threshold": dexcom.EGVValuePinnedMgdLMaximum,
 			}}
 		}
+	case dexcom.EGVUnitMmolL:
+		if *datum.Value < dexcom.EGVValuePinnedMmolLMinimum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMinimum - 0.1) //check this
+			datum.Annotations = &metadata.MetadataArray{{
+				"code":      "bg/out-of-range",
+				"value":     "low",
+				"threshold": dexcom.EGVValuePinnedMmolLMinimum,
+			}}
+		} else if *datum.Value > dexcom.EGVValuePinnedMgdLMaximum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMgdLMaximum + 0.1) //check this
+			datum.Annotations = &metadata.MetadataArray{{
+				"code":      "bg/out-of-range",
+				"value":     "high",
+				"threshold": dexcom.EGVValuePinnedMmolLMaximum,
+			}}
+		}
 	}
-
+	if egv.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(egv.ID)}
+	}
 	translateTime(egv.SystemTime, egv.DisplayTime, &datum.Base)
 	return datum
 }
@@ -502,6 +538,63 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 	}
 	if event.ID != nil {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	}
+
+	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	return datum
+}
+
+func translateEventBGToDatum(event *dexcom.Event) data.Datum {
+	datum := dataTypesBloodGlucoseSelfMonitored.New()
+
+	// TODO: Refactor so we don't have to clear these here
+	datum.ID = nil
+	datum.GUID = nil
+
+	if event.Value != nil && event.Unit != nil {
+		datum.Value = pointer.CloneFloat64(event.Value)
+		datum.Units = pointer.CloneString(event.Unit)
+	}
+
+	if event.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	}
+
+	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	return datum
+}
+
+func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
+	datum := dataTypesStateReported.New()
+
+	// TODO: Refactor so we don't have to clear these here
+	datum.ID = nil
+	datum.GUID = nil
+
+	//TODO: jhbate question, note has a subtype?
+	if event.SubType != nil {
+		switch *event.SubType {
+		case dexcom.EventSubTypeHealthIllness:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateIllness)}}
+		case dexcom.EventSubTypeHealthStress:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateStress)}}
+		case dexcom.EventSubTypeHealthHighSymptoms:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateHyperglycemiaSymptoms)}}
+		case dexcom.EventSubTypeHealthLowSymptoms:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateHypoglycemiaSymptoms)}}
+		case dexcom.EventSubTypeHealthCycle:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateCycle)}}
+		case dexcom.EventSubTypeHealthAlcohol:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateAlcohol)}}
+		}
+	}
+	if event.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	}
+
+	//TODO: jhbate question, value should now be string??
+	if event.Value != nil {
+		datum.Notes = pointer.FromStringArray([]string{})
 	}
 
 	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
