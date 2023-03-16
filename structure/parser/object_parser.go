@@ -196,29 +196,15 @@ func (o *Object) StringArray(reference string) *[]string {
 }
 
 func (o *Object) Time(reference string, layout string) *time.Time {
-	var timeValue time.Time
-	var err error
-
 	rawValue, ok := o.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	switch rawValue.(type) {
-	case time.Time:
-		timeValue = rawValue.(time.Time)
-	default:
-		stringValue, ok := rawValue.(string)
-		if !ok {
-			o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
-			return nil
-		}
-
-		timeValue, err = time.Parse(layout, stringValue)
-		if err != nil {
-			o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
-			return nil
-		}
+	timeValue, ok := rawValue.(time.Time)
+	if !ok {
+		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+		return nil
 	}
 
 	return &timeValue

@@ -17,13 +17,9 @@ import (
 )
 
 const (
-	ArchivedTimeFormat      = time.RFC3339Nano
 	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
 	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	CreatedTimeFormat       = time.RFC3339Nano
-	DeletedTimeFormat       = time.RFC3339Nano
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	ModifiedTimeFormat      = time.RFC3339Nano
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	TagLengthMaximum        = 100

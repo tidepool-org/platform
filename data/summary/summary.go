@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/pointer"
 	"time"
 
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -117,6 +118,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 	var summaries = make([]*types.Summary[T, A], len(userIDsReqBackfill))
 	for i, userID := range userIDsReqBackfill {
 		summaries[i] = types.Create[T, A](userID)
+		summaries[i].Dates.OutdatedSince = pointer.FromAny(time.Now().UTC())
 	}
 
 	if len(summaries) > 0 {
