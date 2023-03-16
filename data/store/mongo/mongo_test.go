@@ -330,7 +330,22 @@ var _ = Describe("Mongo", func() {
 				err = cursor.All(context.Background(), &indexes)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(indexes).To(ConsistOf())
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId", "type")),
+						"Background": Equal(false),
+						"Unique":     Equal(true),
+						"Name":       Equal("UserIDTypeUnique"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("dates.outdatedSince")),
+						"Background": Equal(false),
+						"Name":       Equal("DatesOutdatedSince"),
+					}),
+				))
 			})
 		})
 

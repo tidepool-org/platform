@@ -172,6 +172,7 @@ type GetUsersWithBGDataSinceOutput struct {
 
 type DistinctUserIDsInput struct {
 	Context context.Context
+	Typ     string
 }
 
 type DistinctUserIDsOutput struct {
@@ -505,10 +506,10 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
 	d.DistinctUserIDsInvocations++
 
-	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx})
+	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})
 
 	gomega.Expect(d.DistinctUserIDsOutputs).ToNot(gomega.BeEmpty())
 
