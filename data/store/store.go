@@ -48,7 +48,7 @@ type DataRepository interface {
 	// The return type is incorrect
 	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, t string, startTime time.Time, endTime time.Time) error
 	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error)
-	DistinctUserIDs(ctx context.Context) ([]string, error)
+	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
 }
 
 type Filter struct {

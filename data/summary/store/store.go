@@ -109,7 +109,7 @@ func (r *Repo[T, A]) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
 		return userIDs, errors.New("context is missing")
 	}
 
-	selector := bson.M{}
+	selector := bson.M{"type": types.GetTypeString[T, A]()}
 
 	result, err := r.Distinct(ctx, "userId", selector)
 	if err != nil {
@@ -190,7 +190,6 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time
 }
 
 func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
-	// we use a summary, instead of a type specific summary as we don't actually care about its extra data
 	var summaries []*types.Summary[T, A]
 
 	if ctx == nil {
@@ -201,7 +200,10 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		return nil, errors.New("pagination is missing")
 	}
 
-	selector := bson.M{"dates.outdatedSince": bson.M{"$ne": nil}}
+	selector := bson.M{
+		"dates.outdatedSince": bson.M{"$ne": nil},
+		"type":                types.GetTypeString[T, A](),
+	}
 
 	opts := options.Find()
 	opts.SetSort(bson.D{

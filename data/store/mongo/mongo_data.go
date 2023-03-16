@@ -981,7 +981,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, t
 	return status, nil
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
 	var distinctUserIDMap = make(map[string]struct{})
 	var empty struct{}
 
@@ -996,7 +996,7 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context) ([]string, error) 
 	selector := bson.M{
 		"_userId": bson.M{"$ne": -1111},
 		"_active": true,
-		"type":    bson.M{"$ne": -1111},
+		"type":    typ,
 		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
 	}
 

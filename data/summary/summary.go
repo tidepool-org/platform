@@ -88,7 +88,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 	var userIDsReqBackfill []string
 	var count = 0
 
-	distinctDataUserIDs, err := c.deviceData.DistinctUserIDs(ctx)
+	distinctDataUserIDs, err := c.deviceData.DistinctUserIDs(ctx, types.GetDeviceDataTypeString[T, A]())
 	if err != nil {
 		return count, err
 	}
