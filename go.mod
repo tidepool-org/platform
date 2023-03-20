@@ -29,10 +29,10 @@ require (
 	go.uber.org/fx v1.13.1
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
-	golang.org/x/oauth2 v0.2.0
+	golang.org/x/oauth2 v0.4.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.1.12
-	google.golang.org/grpc v1.51.0
+	google.golang.org/grpc v1.53.0
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.2
 )
@@ -90,13 +90,13 @@ require (
 	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/term v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/term v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
+	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
 	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
