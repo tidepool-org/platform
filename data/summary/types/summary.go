@@ -126,7 +126,7 @@ func NewConfig() Config {
 	}
 }
 
-func (s Summary[T, A]) SetOutdated() {
+func (s *Summary[T, A]) SetOutdated() {
 	s.Dates.OutdatedSince = pointer.FromTime(time.Now().UTC())
 }
 
