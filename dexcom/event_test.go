@@ -109,17 +109,113 @@ var _ = Describe("Event", func() {
 	})
 
 	Describe("Validate", func() {
-		It("Allows health events value to be 0", func() {
+		It("Allows health events to have no units", func() {
 			event := test.RandomEvent()
 			event.Type = pointer.FromString(dexcom.EventTypeHealth)
 			event.SubType = pointer.FromString(dexcom.EventSubTypeHealthIllness)
 			event.Unit = nil
-			event.Value = pointer.FromFloat64(0)
-
+			event.Value = pointer.FromString("stuff")
 			validator := validator.New()
 			event.Validate(validator)
-
 			Expect(validator.Error()).ToNot(HaveOccurred())
+		})
+		Describe("requires", func() {
+			It("systemTime", func() {
+				event := test.RandomEvent()
+				event.SystemTime = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("displayTime", func() {
+				event := test.RandomEvent()
+				event.DisplayTime = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("recordId", func() {
+				event := test.RandomEvent()
+				event.ID = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("eventStatus", func() {
+				event := test.RandomEvent()
+				event.Status = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("eventType", func() {
+				event := test.RandomEvent()
+				event.Type = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("value", func() {
+				event := test.RandomEvent()
+				event.Value = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("transmitterId", func() {
+				event := test.RandomEvent()
+				event.TransmitterID = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("transmitterGeneration", func() {
+				event := test.RandomEvent()
+				event.TransmitterGeneration = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("displayDevice", func() {
+				event := test.RandomEvent()
+				event.DisplayDevice = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+		})
+		Describe("does not require", func() {
+			It("eventSubType", func() {
+				event := test.RandomEvent()
+				event.SubType = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("unit when type unknown", func() {
+				event := test.RandomEvent()
+				event.Type = pointer.FromString(dexcom.EventTypeUnknown)
+				event.Unit = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("unit when type notes", func() {
+				event := test.RandomEvent()
+				event.Type = pointer.FromString(dexcom.EventTypeNotes)
+				event.Unit = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("unit when type health", func() {
+				event := test.RandomEvent()
+				event.Type = pointer.FromString(dexcom.EventTypeHealth)
+				event.Unit = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
 		})
 	})
 })

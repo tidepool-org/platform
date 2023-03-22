@@ -129,20 +129,10 @@ func (d *Devices) Normalize(normalizer structure.Normalizer) {
 type Device struct {
 	LastUploadDate        *Time           `json:"lastUploadDate,omitempty" yaml:"-"`
 	AlertScheduleList     *AlertSchedules `json:"alertSchedules,omitempty" yaml:"alertSchedules,omitempty"`
-	UDI                   *string         `json:"udi,omitempty" yaml:"udi,omitempty"`
-	SerialNumber          *string         `json:"serialNumber,omitempty" yaml:"serialNumber,omitempty"`
 	TransmitterID         *string         `json:"transmitterId,omitempty" yaml:"transmitterId,omitempty"`
 	TransmitterGeneration *string         `json:"transmitterGeneration,omitempty" yaml:"transmitterGeneration,omitempty"`
 	DisplayDevice         *string         `json:"displayDevice,omitempty" yaml:"displayDevice,omitempty"`
 	DisplayApp            *string         `json:"displayApp,omitempty" yaml:"displayApp,omitempty"`
-	SoftwareVersion       *string         `json:"softwareVersion,omitempty" yaml:"softwareVersion,omitempty"`
-	SoftwareNumber        *string         `json:"softwareNumber,omitempty" yaml:"softwareNumber,omitempty"`
-	Language              *string         `json:"language,omitempty" yaml:"language,omitempty"`
-	IsMmolDisplayMode     *bool           `json:"isMmolDisplayMode,omitempty" yaml:"isMmolDisplayMode,omitempty"`
-	IsBlindedMode         *bool           `json:"isBlindedMode,omitempty" yaml:"isBlindedMode,omitempty"`
-	Is24HourMode          *bool           `json:"is24HourMode,omitempty" yaml:"is24HourMode,omitempty"`
-	DisplayTimeOffset     *int            `json:"displayTimeOffset,omitempty" yaml:"displayTimeOffset,omitempty"`
-	SystemTimeOffset      *int            `json:"systemTimeOffset,omitempty" yaml:"systemTimeOffset,omitempty"`
 }
 
 func ParseDevice(parser structure.ObjectParser) *Device {
@@ -161,20 +151,10 @@ func NewDevice() *Device {
 func (d *Device) Parse(parser structure.ObjectParser) {
 	d.LastUploadDate = TimeFromRaw(parser.Time("lastUploadDate", TimeFormat))
 	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertSchedules"))
-	d.UDI = parser.String("udi")
-	d.SerialNumber = parser.String("serialNumber")
 	d.TransmitterID = parser.String("transmitterId")
 	d.TransmitterGeneration = parser.String("transmitterGeneration")
 	d.DisplayDevice = parser.String("displayDevice")
 	d.DisplayApp = parser.String("displayApp")
-	d.SoftwareVersion = parser.String("softwareVersion")
-	d.SoftwareNumber = parser.String("softwareNumber")
-	d.Language = parser.String("language")
-	d.IsMmolDisplayMode = parser.Bool("isMmolDisplayMode")
-	d.IsBlindedMode = parser.Bool("isBlindedMode")
-	d.Is24HourMode = parser.Bool("is24HourMode")
-	d.DisplayTimeOffset = parser.Int("displayTimeOffset")
-	d.SystemTimeOffset = parser.Int("systemTimeOffset")
 }
 
 func (d *Device) Validate(validator structure.Validator) {
@@ -185,14 +165,9 @@ func (d *Device) Validate(validator structure.Validator) {
 	} else {
 		alertScheduleListValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("udi", d.UDI).NotEmpty()
-	validator.String("serialNumber", d.SerialNumber).Exists().NotEmpty()
 	validator.String("transmitterId", d.TransmitterID).Using(TransmitterIDValidator)
-	validator.String("transmitterGeneration", d.TransmitterGeneration).OneOf(DeviceTransmitterGenerations()...)
-	validator.String("displayDevice", d.DisplayDevice).OneOf(DeviceDisplayDevices()...)
-	validator.String("softwareVersion", d.SoftwareVersion).Exists().NotEmpty()
-	validator.String("softwareNumber", d.SoftwareNumber).Exists().NotEmpty()
-	validator.String("language", d.Language).Exists().NotEmpty()
+	validator.String("transmitterGeneration", d.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", d.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
 }
 
 func (d *Device) Normalize(normalizer structure.Normalizer) {

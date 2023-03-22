@@ -157,8 +157,6 @@ type EGV struct {
 	DisplayTime           *Time    `json:"displayTime,omitempty"`
 	Unit                  *string  `json:"unit,omitempty"`
 	Value                 *float64 `json:"value,omitempty"`
-	RealTimeValue         *float64 `json:"realtimeValue,omitempty"`
-	SmoothedValue         *float64 `json:"smoothedValue,omitempty"`
 	Status                *string  `json:"status,omitempty"`
 	Trend                 *string  `json:"trend,omitempty"`
 	TrendRate             *float64 `json:"trendRate,omitempty"`
@@ -188,8 +186,6 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.SystemTime = TimeFromRaw(parser.ForgivingTime("systemTime", TimeFormat))
 	e.DisplayTime = TimeFromRaw(parser.ForgivingTime("displayTime", TimeFormat))
 	e.Value = parser.Float64("value")
-	e.RealTimeValue = parser.Float64("realtimeValue")
-	e.SmoothedValue = parser.Float64("smoothedValue")
 	e.Status = parser.String("status")
 	e.Trend = parser.String("trend")
 	e.TrendRate = parser.Float64("trendRate")
@@ -201,26 +197,24 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 
 func (e *EGV) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
+	// required
 	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
-	validator.String("unit", e.Unit).OneOf(EGVsResponseUnits()...)
+	validator.String("unit", e.Unit).Exists().OneOf(EGVsResponseUnits()...)
 	if e.Unit != nil {
 		switch *e.Unit {
 		case EGVUnitMgdL:
 			validator.Float64("value", e.Value).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
-			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
-			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 		case EGVUnitMmolL:
 			validator.Float64("value", e.Value).Exists().InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
-			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
-			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
 		}
 	}
+	validator.Int("transmitterTicks", e.TransmitterTicks).Exists().GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
+	validator.String("transmitterGeneration", e.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", e.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
+	// optional
+	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("status", e.Status).OneOf(EGVStatuses()...)
 	validator.String("trend", e.Trend).OneOf(EGVTrends()...)
-	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
-	validator.Int("transmitterTicks", e.TransmitterTicks).GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
-	validator.String("transmitterGeneration", e.TransmitterGeneration).OneOf(DeviceTransmitterGenerations()...)
-	validator.String("displayDevice", e.DisplayDevice).OneOf(DeviceDisplayDevices()...)
 }

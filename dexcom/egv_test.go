@@ -5,6 +5,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
+	"github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure/validator"
+	platform_test "github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("EGV", func() {
@@ -71,5 +75,91 @@ var _ = Describe("EGV", func() {
 			dexcom.EGVTrendNotComputable,
 			dexcom.EGVTrendRateOutOfRange,
 		}))
+	})
+	Describe("Validate", func() {
+		var event *dexcom.EGV
+		BeforeEach(func() {
+			event = test.RandomEGV(pointer.FromString(platform_test.RandomStringFromArray(dexcom.EGVsResponseUnits())))
+		})
+
+		Describe("requires", func() {
+			It("systemTime", func() {
+				event.SystemTime = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("displayTime", func() {
+				event.DisplayTime = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("recordId", func() {
+				event.ID = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("transmitterTicks", func() {
+				event.TransmitterTicks = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("unit", func() {
+				event.Unit = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("transmitterGeneration", func() {
+				event := test.RandomEvent()
+				event.TransmitterGeneration = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+			It("displayDevice", func() {
+				event := test.RandomEvent()
+				event.DisplayDevice = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			})
+		})
+		Describe("does not require", func() {
+			It("transmitterId", func() {
+				event.TransmitterID = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("value if unknown units", func() {
+				event.Unit = pointer.FromString(dexcom.EGVUnitUnknown)
+				event.Value = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("trendRate", func() {
+				event.TrendRate = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("trend", func() {
+				event.Trend = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+			It("status", func() {
+				event.Status = nil
+				validator := validator.New()
+				event.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			})
+		})
 	})
 })

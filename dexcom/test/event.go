@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -48,17 +50,35 @@ func RandomEvent() *dexcom.Event {
 	switch *datum.Type {
 	case dexcom.EventTypeCarbs:
 		datum.Unit = pointer.FromString(dexcom.EventUnitCarbsGrams)
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EventValueCarbsGramsMinimum, dexcom.EventValueCarbsGramsMaximum))
+		datum.Value = pointer.FromString(
+			fmt.Sprintf("%f", test.RandomFloat64FromRange(dexcom.EventValueCarbsGramsMinimum, dexcom.EventValueCarbsGramsMaximum)),
+		)
 	case dexcom.EventTypeExercise:
 		datum.SubType = pointer.FromString(test.RandomStringFromArray(dexcom.EventSubTypesExercise()))
 		datum.Unit = pointer.FromString(dexcom.EventUnitExerciseMinutes)
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EventValueExerciseMinutesMinimum, dexcom.EventValueExerciseMinutesMaximum))
+		datum.Value = pointer.FromString(
+			fmt.Sprintf("%f", test.RandomFloat64FromRange(dexcom.EventValueExerciseMinutesMinimum, dexcom.EventValueExerciseMinutesMaximum)),
+		)
 	case dexcom.EventTypeHealth:
 		datum.SubType = pointer.FromString(test.RandomStringFromArray(dexcom.EventSubTypesHealth()))
+		datum.Value = pointer.FromString(test.RandomString())
 	case dexcom.EventTypeInsulin:
 		datum.SubType = pointer.FromString(test.RandomStringFromArray(dexcom.EventSubTypesInsulin()))
 		datum.Unit = pointer.FromString(dexcom.EventUnitInsulinUnits)
-		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EventValueInsulinUnitsMinimum, dexcom.EventValueInsulinUnitsMaximum))
+		datum.Value = pointer.FromString(
+			fmt.Sprintf("%f", test.RandomFloat64FromRange(dexcom.EventValueInsulinUnitsMinimum, dexcom.EventValueInsulinUnitsMaximum)),
+		)
+	case dexcom.EventTypeBG:
+		datum.Unit = pointer.FromString(dexcom.EventUnitMgdL)
+		datum.Value = pointer.FromString(
+			fmt.Sprintf("%f", test.RandomFloat64FromRange(dexcom.EventValueMgdLMinimum, dexcom.EventValueMgdLMaximum)),
+		)
+	case dexcom.EventTypeNotes:
+		datum.Unit = nil
+		datum.Value = pointer.FromString(test.RandomString())
+	case dexcom.EventTypeUnknown:
+		datum.Unit = nil
+		datum.Value = pointer.FromString(test.RandomString())
 	}
 	datum.ID = pointer.FromString(RandomEventID())
 	datum.Status = pointer.FromString(test.RandomStringFromArray(dexcom.EventStatuses()))
@@ -78,7 +98,7 @@ func CloneEvent(datum *dexcom.Event) *dexcom.Event {
 	clone.Type = pointer.CloneString(datum.Type)
 	clone.SubType = pointer.CloneString(datum.SubType)
 	clone.Unit = pointer.CloneString(datum.Unit)
-	clone.Value = pointer.CloneFloat64(datum.Value)
+	clone.Value = pointer.CloneString(datum.Value)
 	clone.ID = pointer.CloneString(datum.ID)
 	clone.Status = pointer.CloneString(datum.Status)
 	return clone

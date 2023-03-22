@@ -54,12 +54,8 @@ func RandomEGV(unit *string) *dexcom.EGV {
 	switch *datum.Unit {
 	case dexcom.EGVUnitMgdL:
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
-		datum.RealTimeValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
-		datum.SmoothedValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
 	case dexcom.EGVUnitMmolL:
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
-		datum.RealTimeValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
-		datum.SmoothedValue = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
 	}
 	datum.Status = pointer.FromString(test.RandomStringFromArray(dexcom.EGVStatuses()))
 	datum.Trend = pointer.FromString(test.RandomStringFromArray(dexcom.EGVTrends()))
@@ -81,8 +77,6 @@ func CloneEGV(datum *dexcom.EGV) *dexcom.EGV {
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.Unit = pointer.CloneString(datum.Unit)
 	clone.Value = pointer.CloneFloat64(datum.Value)
-	clone.RealTimeValue = pointer.CloneFloat64(datum.RealTimeValue)
-	clone.SmoothedValue = pointer.CloneFloat64(datum.SmoothedValue)
 	clone.Status = pointer.CloneString(datum.Status)
 	clone.Trend = pointer.CloneString(datum.Trend)
 	clone.TrendRate = pointer.CloneFloat64(datum.TrendRate)

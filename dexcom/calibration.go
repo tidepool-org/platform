@@ -89,16 +89,15 @@ func (c *Calibrations) Validate(validator structure.Validator) {
 }
 
 type Calibration struct {
-	ID            *string  `json:"recordId,omitempty"`
-	SystemTime    *Time    `json:"systemTime,omitempty"`
-	DisplayTime   *Time    `json:"displayTime,omitempty"`
-	Unit          *string  `json:"unit,omitempty"`
-	Value         *float64 `json:"value,omitempty"`
-	TransmitterID *string  `json:"transmitterId,omitempty"`
-
-	TransmitterGeneration *string `json:"transmitterGeneration,omitempty"`
-	DisplayDevice         *string `json:"displayDevice,omitempty"`
-	TransmitterTicks      *int    `json:"transmitterTicks,omitempty"`
+	ID                    *string  `json:"recordId,omitempty"`
+	SystemTime            *Time    `json:"systemTime,omitempty"`
+	DisplayTime           *Time    `json:"displayTime,omitempty"`
+	Unit                  *string  `json:"unit,omitempty"`
+	Value                 *float64 `json:"value,omitempty"`
+	TransmitterID         *string  `json:"transmitterId,omitempty"`
+	TransmitterGeneration *string  `json:"transmitterGeneration,omitempty"`
+	DisplayDevice         *string  `json:"displayDevice,omitempty"`
+	TransmitterTicks      *int     `json:"transmitterTicks,omitempty"`
 }
 
 func ParseCalibration(parser structure.ObjectParser) *Calibration {
@@ -131,17 +130,19 @@ func (c *Calibration) Validate(validator structure.Validator) {
 	validator.String("recordId", c.ID).Exists().NotEmpty()
 	validator.Time("systemTime", c.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", c.DisplayTime.Raw()).Exists().NotZero()
-	validator.String("unit", c.Unit).Exists().OneOf(CalibrationUnits()...)
+	validator.String("transmitterId", c.TransmitterID).Exists().Using(TransmitterIDValidator)
+	validator.Int("transmitterTicks", c.TransmitterTicks).Exists().GreaterThan(0)
+	validator.String("displayDevice", c.DisplayDevice).Exists().NotEmpty()
+	validator.String("transmitterGeneration", c.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("unit", c.Unit).OneOf(CalibrationUnits()...)
 	if c.Unit != nil {
 		switch *c.Unit {
 		case CalibrationUnitMgdL:
 			validator.Float64("value", c.Value).Exists().InRange(CalibrationValueMgdLMinimum, CalibrationValueMgdLMaximum)
 		case CalibrationUnitMmolL:
 			validator.Float64("value", c.Value).Exists().InRange(CalibrationValueMmolLMinimum, CalibrationValueMmolLMaximum)
+		case CalibrationUnitUnknown:
+			validator.Float64("value", c.Value).Exists()
 		}
 	}
-	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
-	validator.Int("transmitterTicks", c.TransmitterTicks).Exists().GreaterThan(0)
-	validator.String("displayDevice", c.DisplayDevice).Exists().NotEmpty()
-	validator.String("transmitterGeneration", c.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
 }

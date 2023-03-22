@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
@@ -114,8 +115,8 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 	datum.GUID = nil
 
 	datum.Manufacturers = pointer.FromStringArray([]string{"Dexcom"})
-	datum.SerialNumber = pointer.CloneString(device.SerialNumber)
 	datum.TransmitterID = pointer.CloneString(device.TransmitterID)
+	//TODO jhbate potenially not true
 	datum.Units = pointer.FromString(dataBloodGlucose.MgdL)
 
 	defaultAlertSchedule := device.AlertScheduleList.Default()
@@ -166,39 +167,14 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 	}
 
 	datum.Payload = metadata.NewMetadata()
-	if device.UDI != nil {
-		(*datum.Payload)["udi"] = *device.UDI
-	}
+
 	if device.TransmitterGeneration != nil {
 		(*datum.Payload)["transmitterGeneration"] = *device.TransmitterGeneration
 	}
 	if device.DisplayDevice != nil {
 		(*datum.Payload)["displayDevice"] = *device.DisplayDevice
 	}
-	if device.SoftwareVersion != nil {
-		(*datum.Payload)["softwareVersion"] = *device.SoftwareVersion
-	}
-	if device.SoftwareNumber != nil {
-		(*datum.Payload)["softwareNumber"] = *device.SoftwareNumber
-	}
-	if device.Language != nil {
-		(*datum.Payload)["language"] = *device.Language
-	}
-	if device.IsMmolDisplayMode != nil {
-		(*datum.Payload)["isMmolDisplayMode"] = *device.IsMmolDisplayMode
-	}
-	if device.IsBlindedMode != nil {
-		(*datum.Payload)["isBlindedMode"] = *device.IsBlindedMode
-	}
-	if device.Is24HourMode != nil {
-		(*datum.Payload)["is24HourMode"] = *device.Is24HourMode
-	}
-	if device.DisplayTimeOffset != nil {
-		(*datum.Payload)["displayTimeOffset"] = *device.DisplayTimeOffset
-	}
-	if device.SystemTimeOffset != nil {
-		(*datum.Payload)["systemTimeOffset"] = *device.SystemTimeOffset
-	}
+
 	datum.Time = pointer.FromTime(device.LastUploadDate.Time)
 	return datum
 }
@@ -360,12 +336,6 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 	datum.Value = pointer.CloneFloat64(egv.Value)
 	datum.Units = pointer.CloneString(unit)
 	datum.Payload = metadata.NewMetadata()
-	if egv.RealTimeValue != nil {
-		(*datum.Payload)["realTimeValue"] = *egv.RealTimeValue
-	}
-	if egv.SmoothedValue != nil {
-		(*datum.Payload)["smoothedValue"] = *egv.SmoothedValue
-	}
 	if egv.Status != nil {
 		(*datum.Payload)["status"] = *egv.Status
 	}
@@ -438,9 +408,10 @@ func translateEventCarbsToDatum(event *dexcom.Event) data.Datum {
 	datum.GUID = nil
 
 	if event.Value != nil && event.Unit != nil {
+		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
 		datum.Nutrition = &dataTypesFood.Nutrition{
 			Carbohydrate: &dataTypesFood.Carbohydrate{
-				Net:   pointer.CloneFloat64(event.Value),
+				Net:   pointer.CloneFloat64(&floatVal),
 				Units: pointer.CloneString(event.Unit),
 			},
 		}
@@ -471,9 +442,10 @@ func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
+		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
 		datum.Duration = &dataTypesActivityPhysical.Duration{
 			Units: pointer.CloneString(event.Unit),
-			Value: pointer.CloneFloat64(event.Value),
+			Value: pointer.CloneFloat64(&floatVal),
 		}
 	}
 	if event.ID != nil {
@@ -531,8 +503,11 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
+
+		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
+
 		datum.Dose = &dataTypesInsulin.Dose{
-			Total: pointer.CloneFloat64(event.Value),
+			Total: pointer.CloneFloat64(&floatVal),
 			Units: pointer.FromString(dataTypesInsulin.DoseUnitsUnits),
 		}
 	}
@@ -552,7 +527,8 @@ func translateEventBGToDatum(event *dexcom.Event) data.Datum {
 	datum.GUID = nil
 
 	if event.Value != nil && event.Unit != nil {
-		datum.Value = pointer.CloneFloat64(event.Value)
+		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
+		datum.Value = pointer.CloneFloat64(&floatVal)
 		datum.Units = pointer.CloneString(event.Unit)
 	}
 

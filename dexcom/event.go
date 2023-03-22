@@ -3,6 +3,7 @@ package dexcom
 import (
 	"strconv"
 
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
@@ -20,7 +21,10 @@ const (
 	EventTypeNotes    = "notes"
 
 	EventUnitUnknown = "unknown"
-	EventUnitMgdL    = "mg/dL"
+
+	EventUnitMgdL         = dataBloodGlucose.MgdL
+	EventValueMgdLMaximum = dataBloodGlucose.MgdLMaximum
+	EventValueMgdLMinimum = dataBloodGlucose.MgdLMinimum
 
 	EventUnitCarbsGrams         = "grams"
 	EventValueCarbsGramsMaximum = dataTypesFood.CarbohydrateNetGramsMaximum
@@ -158,17 +162,17 @@ func (e *Events) Validate(validator structure.Validator) {
 }
 
 type Event struct {
-	SystemTime            *Time    `json:"systemTime,omitempty"`
-	DisplayTime           *Time    `json:"displayTime,omitempty"`
-	Type                  *string  `json:"eventType,omitempty"`
-	SubType               *string  `json:"eventSubType,omitempty"`
-	Unit                  *string  `json:"unit,omitempty"`
-	Value                 *float64 `json:"value,omitempty"`
-	ID                    *string  `json:"recordId,omitempty"`
-	Status                *string  `json:"eventStatus,omitempty"`
-	TransmitterID         *string  `json:"transmitterId,omitempty"`
-	TransmitterGeneration *string  `json:"transmitterGeneration,omitempty"`
-	DisplayDevice         *string  `json:"displayDevice,omitempty"`
+	ID                    *string `json:"recordId,omitempty"`
+	SystemTime            *Time   `json:"systemTime,omitempty"`
+	DisplayTime           *Time   `json:"displayTime,omitempty"`
+	Type                  *string `json:"eventType,omitempty"`
+	SubType               *string `json:"eventSubType,omitempty"`
+	Unit                  *string `json:"unit,omitempty"`
+	Value                 *string `json:"value,omitempty"`
+	Status                *string `json:"eventStatus,omitempty"`
+	TransmitterID         *string `json:"transmitterId,omitempty"`
+	TransmitterGeneration *string `json:"transmitterGeneration,omitempty"`
+	DisplayDevice         *string `json:"displayDevice,omitempty"`
 }
 
 func ParseEvent(parser structure.ObjectParser) *Event {
@@ -190,7 +194,7 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.Type = parser.String("eventType")
 	e.SubType = parser.String("eventSubType")
 	e.Unit = parser.String("unit")
-	e.Value = parser.Float64("value")
+	e.Value = parser.String("value")
 	e.ID = parser.String("recordId")
 	e.Status = parser.String("eventStatus")
 	e.TransmitterGeneration = parser.String("transmitterGeneration")
@@ -213,48 +217,69 @@ func (e *Event) Validate(validator structure.Validator) {
 			e.validateHealth(validator)
 		case EventTypeInsulin:
 			e.validateInsulin(validator)
+		case EventTypeNotes:
+			e.validateNote(validator)
+		case EventTypeBG:
+			e.validateBG(validator)
+		case EventTypeUnknown:
+			e.validateUnkown(validator)
 		}
 	}
 	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.String("eventStatus", e.Status).Exists().OneOf(EventStatuses()...)
-
-	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
-	validator.String("transmitterGeneration", e.TransmitterGeneration).OneOf(DeviceTransmitterGenerations()...)
-	validator.String("displayDevice", e.DisplayDevice).OneOf(DeviceDisplayDevices()...)
+	validator.String("transmitterId", e.TransmitterID).Exists().Using(TransmitterIDValidator)
+	validator.String("transmitterGeneration", e.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("displayDevice", e.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
 }
 
 func (e *Event) validateCarbs(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).NotExists()
-	if e.Unit != nil || e.Value != nil {
-		validator.String("unit", e.Unit).Exists().OneOf(EventUnitCarbsGrams)
-		validator.Float64("value", e.Value).Exists().InRange(EventValueCarbsGramsMinimum, EventValueCarbsGramsMaximum)
+	validator.String("unit", e.Unit).Exists().OneOf(EventUnitCarbsGrams)
+	validator.String("value", e.Value).Exists().NotEmpty()
+	if e.Value != nil {
+		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		validator.Float64("value", &floatVal).Exists().InRange(EventValueCarbsGramsMinimum, EventValueCarbsGramsMaximum)
 	}
 }
 
 func (e *Event) validateExercise(validator structure.Validator) {
-	// HACK: Dexcom - value of -1 is invalid; ignore unit and value instead (per Dexcom)
-	if e.Value != nil && *e.Value == -1.0 {
-		e.Unit = nil
-		e.Value = nil
-	}
-
 	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesExercise()...)
-	if e.Unit != nil || e.Value != nil {
-		validator.String("unit", e.Unit).Exists().OneOf(EventUnitExerciseMinutes)
-		validator.Float64("value", e.Value).Exists().InRange(EventValueExerciseMinutesMinimum, EventValueExerciseMinutesMaximum)
+	validator.String("unit", e.Unit).Exists().OneOf(EventUnitExerciseMinutes)
+	validator.String("value", e.Value).Exists().NotEmpty()
+	if e.Value != nil {
+		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		validator.Float64("value", &floatVal).Exists().InRange(EventValueExerciseMinutesMinimum, EventValueExerciseMinutesMaximum)
 	}
 }
 
 func (e *Event) validateHealth(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesHealth()...)
-	validator.String("unit", e.Unit).NotExists()
-	validator.Float64("value", e.Value).EqualTo(0)
+	validator.String("value", e.Value).Exists().NotEmpty()
+}
+
+func (e *Event) validateNote(validator structure.Validator) {
+	validator.String("value", e.Value).Exists().NotEmpty()
+}
+
+func (e *Event) validateUnkown(validator structure.Validator) {
+	validator.String("value", e.Value).Exists().NotEmpty()
 }
 
 func (e *Event) validateInsulin(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesInsulin()...)
-	if e.Unit != nil || e.Value != nil {
-		validator.String("unit", e.Unit).Exists().OneOf(EventUnitInsulinUnits)
-		validator.Float64("value", e.Value).Exists().InRange(EventValueInsulinUnitsMinimum, EventValueInsulinUnitsMaximum)
+	validator.String("unit", e.Unit).Exists().OneOf(EventUnitInsulinUnits)
+	validator.String("value", e.Value).Exists().NotEmpty()
+	if e.Value != nil {
+		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		validator.Float64("value", &floatVal).Exists().InRange(EventValueInsulinUnitsMinimum, EventValueInsulinUnitsMaximum)
+	}
+}
+
+func (e *Event) validateBG(validator structure.Validator) {
+	validator.String("unit", e.Unit).Exists().OneOf(EventUnitMgdL)
+	validator.String("value", e.Value).Exists().NotEmpty()
+	if e.Value != nil {
+		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		validator.Float64("value", &floatVal).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 	}
 }

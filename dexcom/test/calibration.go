@@ -53,6 +53,8 @@ func RandomCalibration() *dexcom.Calibration {
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.CalibrationValueMgdLMinimum, dexcom.CalibrationValueMgdLMaximum))
 	case dexcom.CalibrationUnitMmolL:
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.CalibrationValueMmolLMinimum, dexcom.CalibrationValueMmolLMaximum))
+	case dexcom.CalibrationUnitUnknown:
+		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.CalibrationValueMmolLMinimum, dexcom.CalibrationValueMmolLMaximum))
 	}
 	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
 	datum.TransmitterTicks = pointer.FromInt(test.RandomIntFromRange(dexcom.EGVTransmitterTickMinimum, math.MaxInt32))

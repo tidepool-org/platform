@@ -363,8 +363,9 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 		t.deviceHashes = map[string]string{}
 	}
 
-	if device.SerialNumber != nil && t.deviceHashes[*device.SerialNumber] != deviceHash {
-		t.deviceHashes[*device.SerialNumber] = deviceHash
+	// TODO: SerialNumber is no longer sent, use transmitterId instead?
+	if device.TransmitterID != nil && t.deviceHashes[*device.TransmitterID] != deviceHash {
+		t.deviceHashes[*device.TransmitterID] = deviceHash
 		return true
 	}
 
