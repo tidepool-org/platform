@@ -384,8 +384,8 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 				"value":     "low",
 				"threshold": dexcom.EGVValuePinnedMmolLMinimum,
 			}}
-		} else if *datum.Value > dexcom.EGVValuePinnedMgdLMaximum {
-			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMgdLMaximum + 0.1) //check this
+		} else if *datum.Value > dexcom.EGVValuePinnedMmolLMaximum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMaximum + 0.1) //check this
 			datum.Annotations = &metadata.MetadataArray{{
 				"code":      "bg/out-of-range",
 				"value":     "high",
