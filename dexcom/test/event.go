@@ -26,7 +26,7 @@ func CloneEventsResponse(datum *dexcom.EventsResponse) *dexcom.EventsResponse {
 func RandomEvents(minimumLength int, maximumLength int) *dexcom.Events {
 	datum := make(dexcom.Events, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
-		datum[index] = RandomEvent()
+		datum[index] = RandomEvent(nil)
 	}
 	return &datum
 }
@@ -42,11 +42,15 @@ func CloneEvents(datum *dexcom.Events) *dexcom.Events {
 	return &clone
 }
 
-func RandomEvent() *dexcom.Event {
+func RandomEvent(ofType *string) *dexcom.Event {
 	datum := dexcom.NewEvent()
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
-	datum.Type = pointer.FromString(test.RandomStringFromArray(dexcom.EventTypes()))
+	if ofType != nil {
+		datum.Type = ofType
+	} else {
+		datum.Type = pointer.FromString(test.RandomStringFromArray(dexcom.EventTypes()))
+	}
 	switch *datum.Type {
 	case dexcom.EventTypeCarbs:
 		datum.Unit = pointer.FromString(dexcom.EventUnitCarbsGrams)

@@ -2,6 +2,7 @@ package dexcom_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
@@ -36,51 +37,51 @@ var _ = Describe("Device", func() {
 	})
 
 	Describe("Validate", func() {
-		Describe("requires", func() {
-			It("lastUploadDate", func() {
+		DescribeTable("errors when",
+			func(setupDeviceFunc func() *dexcom.Device) {
+				testDevice := setupDeviceFunc()
+				validator := validator.New()
+				testDevice.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			},
+			Entry("required lastUploadDate is not set", func() *dexcom.Device {
 				device := test.RandomDevice()
 				device.LastUploadDate = nil
-				validator := validator.New()
-				device.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("transmitterGeneration", func() {
-				device := test.RandomDevice()
-				device.TransmitterGeneration = nil
-				validator := validator.New()
-				device.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("displayDevice", func() {
-				device := test.RandomDevice()
-				device.DisplayDevice = nil
-				validator := validator.New()
-				device.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("alertSchedules", func() {
+				return device
+			}),
+			Entry("required alertSchedules is not set", func() *dexcom.Device {
 				device := test.RandomDevice()
 				device.AlertScheduleList = nil
+				return device
+			}),
+			Entry("required transmitterGeneration is not set", func() *dexcom.Device {
+				device := test.RandomDevice()
+				device.TransmitterGeneration = nil
+				return device
+			}),
+			Entry("required displayDevice is not set", func() *dexcom.Device {
+				device := test.RandomDevice()
+				device.DisplayDevice = nil
+				return device
+			}),
+		)
+		DescribeTable("does not error when",
+			func(setupDeviceFunc func() *dexcom.Device) {
+				testDevice := setupDeviceFunc()
 				validator := validator.New()
-				device.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-		})
-		Describe("does not require", func() {
-			It("transmitterId", func() {
+				testDevice.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			},
+			Entry("transmitterID is not set", func() *dexcom.Device {
 				device := test.RandomDevice()
 				device.TransmitterID = nil
-				validator := validator.New()
-				device.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("displayApp", func() {
+				return device
+			}),
+			Entry("displayApp is not set", func() *dexcom.Device {
 				device := test.RandomDevice()
 				device.DisplayApp = nil
-				validator := validator.New()
-				device.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-		})
+				return device
+			}),
+		)
 	})
 })

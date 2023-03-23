@@ -84,7 +84,7 @@ func CloneAlertScheduleSettings(datum *dexcom.AlertScheduleSettings) *dexcom.Ale
 func RandomAlertSettings(minimumLength int, maximumLength int) *dexcom.AlertSettings {
 	datum := make(dexcom.AlertSettings, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
-		datum[index] = RandomAlertSetting()
+		datum[index] = RandomAlertSetting(nil)
 	}
 	datum.Deduplicate()
 	return &datum
@@ -101,11 +101,15 @@ func CloneAlertSettings(datum *dexcom.AlertSettings) *dexcom.AlertSettings {
 	return &clone
 }
 
-func RandomAlertSetting() *dexcom.AlertSetting {
+func RandomAlertSetting(withName *string) *dexcom.AlertSetting {
 	datum := dexcom.NewAlertSetting()
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
-	datum.AlertName = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingAlertNames()))
+	if withName != nil {
+		datum.AlertName = withName
+	} else {
+		datum.AlertName = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingAlertNames()))
+	}
 	switch *datum.AlertName {
 	case dexcom.AlertSettingAlertNameFall:
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitFalls()))
@@ -170,6 +174,9 @@ func RandomAlertSetting() *dexcom.AlertSetting {
 			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueUrgentLowSoonMgdLMinimum, dexcom.AlertSettingValueUrgentLowSoonMgdLMaximum))
 		}
 		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
+		datum.Enabled = pointer.FromBool(test.RandomBool())
+	case dexcom.AlertSettingAlertNameUnknown:
+		datum.Unit = pointer.FromString(dexcom.AlertSettingUnitUnknown)
 		datum.Enabled = pointer.FromBool(test.RandomBool())
 	}
 	return datum

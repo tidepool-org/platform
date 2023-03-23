@@ -2,6 +2,7 @@ package dexcom_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
@@ -77,89 +78,85 @@ var _ = Describe("EGV", func() {
 		}))
 	})
 	Describe("Validate", func() {
-		var event *dexcom.EGV
-		BeforeEach(func() {
-			event = test.RandomEGV(pointer.FromString(platform_test.RandomStringFromArray(dexcom.EGVsResponseUnits())))
-		})
-
-		Describe("requires", func() {
-			It("systemTime", func() {
-				event.SystemTime = nil
+		var getTestEVG = func() *dexcom.EGV {
+			return test.RandomEGV(pointer.FromString(platform_test.RandomStringFromArray(dexcom.EGVsResponseUnits())))
+		}
+		DescribeTable("requires",
+			func(setupEGVFunc func() *dexcom.EGV) {
+				testEGV := setupEGVFunc()
 				validator := validator.New()
-				event.Validate(validator)
+				testEGV.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("displayTime", func() {
-				event.DisplayTime = nil
+			},
+			Entry("systemTime to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.SystemTime = nil
+				return egv
+			}),
+			Entry("displayTime to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.DisplayTime = nil
+				return egv
+			}),
+			Entry("id to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.ID = nil
+				return egv
+			}),
+			Entry("transmitterTicks to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.TransmitterTicks = nil
+				return egv
+			}),
+			Entry("transmitterGeneration to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.TransmitterGeneration = nil
+				return egv
+			}),
+			Entry("unit to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.Unit = nil
+				return egv
+			}),
+			Entry("displayDevice to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.DisplayDevice = nil
+				return egv
+			}),
+		)
+		DescribeTable("does not require",
+			func(setupEGVFunc func() *dexcom.EGV) {
+				testEGV := setupEGVFunc()
 				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("recordId", func() {
-				event.ID = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("transmitterTicks", func() {
-				event.TransmitterTicks = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("unit", func() {
-				event.Unit = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("transmitterGeneration", func() {
-				event := test.RandomEvent()
-				event.TransmitterGeneration = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("displayDevice", func() {
-				event := test.RandomEvent()
-				event.DisplayDevice = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-		})
-		Describe("does not require", func() {
-			It("transmitterId", func() {
-				event.TransmitterID = nil
-				validator := validator.New()
-				event.Validate(validator)
+				testEGV.Validate(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("value if unknown units", func() {
-				event.Unit = pointer.FromString(dexcom.EGVUnitUnknown)
-				event.Value = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("trendRate", func() {
-				event.TrendRate = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("trend", func() {
-				event.Trend = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("status", func() {
-				event.Status = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-		})
+			},
+			Entry("transmitterID to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.TransmitterID = nil
+				return egv
+			}),
+			Entry("value to be set if unknown units", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.Unit = pointer.FromString(dexcom.EGVUnitUnknown)
+				egv.Value = nil
+				return egv
+			}),
+			Entry("trendRate to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.TrendRate = nil
+				return egv
+			}),
+			Entry("trend to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.Trend = nil
+				return egv
+			}),
+			Entry("status to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.Status = nil
+				return egv
+			}),
+		)
 	})
 })

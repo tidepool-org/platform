@@ -2,6 +2,7 @@ package dexcom_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom/test"
@@ -110,112 +111,93 @@ var _ = Describe("Event", func() {
 
 	Describe("Validate", func() {
 		It("Allows health events to have no units", func() {
-			event := test.RandomEvent()
-			event.Type = pointer.FromString(dexcom.EventTypeHealth)
-			event.SubType = pointer.FromString(dexcom.EventSubTypeHealthIllness)
+			event := test.RandomEvent(pointer.FromString(dexcom.EventTypeHealth))
 			event.Unit = nil
 			event.Value = pointer.FromString("stuff")
 			validator := validator.New()
 			event.Validate(validator)
 			Expect(validator.Error()).ToNot(HaveOccurred())
 		})
-		Describe("requires", func() {
-			It("systemTime", func() {
-				event := test.RandomEvent()
-				event.SystemTime = nil
+		DescribeTable("requires",
+			func(setupEventFunc func() *dexcom.Event) {
+				testEvent := setupEventFunc()
 				validator := validator.New()
-				event.Validate(validator)
+				testEvent.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("displayTime", func() {
-				event := test.RandomEvent()
-				event.DisplayTime = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("recordId", func() {
-				event := test.RandomEvent()
-				event.ID = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("eventStatus", func() {
-				event := test.RandomEvent()
-				event.Status = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("eventType", func() {
-				event := test.RandomEvent()
-				event.Type = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("value", func() {
-				event := test.RandomEvent()
-				event.Value = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("transmitterId", func() {
-				event := test.RandomEvent()
-				event.TransmitterID = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("transmitterGeneration", func() {
-				event := test.RandomEvent()
-				event.TransmitterGeneration = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-			It("displayDevice", func() {
-				event := test.RandomEvent()
+			},
+			Entry("displayDevice to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
 				event.DisplayDevice = nil
+				return event
+			}),
+			Entry("transmitterGeneration to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.TransmitterGeneration = nil
+				return event
+			}),
+			Entry("transmitterId to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.TransmitterID = nil
+				return event
+			}),
+			Entry("systemTime to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.SystemTime = nil
+				return event
+			}),
+			Entry("displayTime to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.DisplayTime = nil
+				return event
+			}),
+			Entry("id to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.ID = nil
+				return event
+			}),
+			Entry("status to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.Status = nil
+				return event
+			}),
+			Entry("type to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.Type = nil
+				return event
+			}),
+			Entry("value to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
+				event.Value = nil
+				return event
+			}),
+		)
+		DescribeTable("does not require",
+			func(setupEventFunc func() *dexcom.Event) {
+				testEvent := setupEventFunc()
 				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).To(HaveOccurred())
-			})
-		})
-		Describe("does not require", func() {
-			It("eventSubType", func() {
-				event := test.RandomEvent()
+				testEvent.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			},
+			Entry("eventSubType to be set", func() *dexcom.Event {
+				event := test.RandomEvent(nil)
 				event.SubType = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("unit when type unknown", func() {
-				event := test.RandomEvent()
-				event.Type = pointer.FromString(dexcom.EventTypeUnknown)
+				return event
+			}),
+			Entry("unit  to be set when type is unknown", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeUnknown))
 				event.Unit = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("unit when type notes", func() {
-				event := test.RandomEvent()
-				event.Type = pointer.FromString(dexcom.EventTypeNotes)
+				return event
+			}),
+			Entry("unit  to be set when type is notes", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNotes))
 				event.Unit = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-			It("unit when type health", func() {
-				event := test.RandomEvent()
-				event.Type = pointer.FromString(dexcom.EventTypeHealth)
+				return event
+			}),
+			Entry("unit  to be set when type is health", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeHealth))
 				event.Unit = nil
-				validator := validator.New()
-				event.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			})
-		})
+				return event
+			}),
+		)
 	})
 })

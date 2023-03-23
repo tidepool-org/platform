@@ -6,7 +6,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
+	"github.com/tidepool-org/platform/dexcom/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -259,6 +261,273 @@ var _ = Describe("Alert", func() {
 				Expect(len(*value)).To(Equal(0))
 			},
 			Entry("valid if empty", dexcom.NewAlertSchedules()),
+		)
+		DescribeTable("AlertScheduleSettings",
+			func(setupFunc func() *dexcom.AlertScheduleSettings) {
+				val := setupFunc()
+				testValidator := structureValidator.New()
+				val.Validate(testValidator)
+				Expect(testValidator.HasError()).To(BeFalse())
+			},
+			Entry("valid if active not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Active = nil
+				return settings
+			}),
+			Entry("valid if active not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Active = nil
+				return settings
+			}),
+			Entry("valid if override not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = nil
+				return settings
+			}),
+			Entry("valid if override not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = nil
+				return settings
+			}),
+			Entry("valid if override.Enabled not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: nil,
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}),
+			Entry("valid if override.Enabled not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: nil,
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}),
+			Entry("valid if override.Mode not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    nil,
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}),
+			Entry("valid if override.Mode not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    nil,
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}),
+			Entry("valid if override.EndTime not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime: nil,
+				}
+				return settings
+			}),
+			Entry("valid if override.EndTime not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime: nil,
+				}
+				return settings
+			}),
+		)
+		DescribeTable("AlertScheduleSettings",
+			func(setupFunc func() *dexcom.AlertScheduleSettings, expectError bool) {
+				val := setupFunc()
+				testValidator := structureValidator.New()
+				val.Validate(testValidator)
+				Expect(testValidator.HasError()).To(Equal(expectError))
+			},
+			Entry("valid if active not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Active = nil
+				return settings
+			}, false),
+			Entry("valid if active not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Active = nil
+				return settings
+			}, false),
+			Entry("valid if override not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = nil
+				return settings
+			}, false),
+			Entry("valid if override not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = nil
+				return settings
+			}, false),
+			Entry("valid if override.Enabled not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: nil,
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}, false),
+			Entry("valid if override.Enabled not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: nil,
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}, false),
+			Entry("valid if override.Mode not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    nil,
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}, false),
+			Entry("valid if override.Mode not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    nil,
+					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				}
+				return settings
+			}, false),
+			Entry("valid if override.EndTime not set when default", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(true)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime: nil,
+				}
+				return settings
+			}, false),
+			Entry("valid if override.EndTime not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Override = &dexcom.OverrideSetting{
+					Enabled: pointer.FromBool(true),
+					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime: nil,
+				}
+				return settings
+			}, false),
+			Entry("errors if name not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Name = nil
+				return settings
+			}, true),
+			Entry("errors if enabled not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Enabled = nil
+				return settings
+			}, true),
+			Entry("errors if default not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.Default = nil
+				return settings
+			}, true),
+			Entry("errors if startTime not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.StartTime = nil
+				return settings
+			}, true),
+			Entry("errors if endTime not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.EndTime = nil
+				return settings
+			}, true),
+			Entry("errors if daysOfWeek not set", func() *dexcom.AlertScheduleSettings {
+				settings := test.RandomAlertScheduleSettings(false)
+				settings.DaysOfWeek = nil
+				return settings
+			}, true),
+		)
+		DescribeTable("AlertSetting",
+			func(setupFunc func() *dexcom.AlertSetting, expectError bool) {
+				val := setupFunc()
+				testValidator := structureValidator.New()
+				val.Validate(testValidator)
+				Expect(testValidator.HasError()).To(Equal(expectError))
+			},
+			Entry("errors if alertName not set", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(nil)
+				settings.AlertName = nil
+				return settings
+			}, true),
+			Entry("errors if enabled not set", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(nil)
+				settings.Enabled = nil
+				return settings
+			}, true),
+			Entry("errors if name urgentLow has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameUrgentLow))
+				settings.Snooze = nil
+				return settings
+			}, true),
+			Entry("errors if name urgentLowSoon has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameUrgentLowSoon))
+				settings.Snooze = nil
+				return settings
+			}, true),
+			Entry("errors if name low has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameLow))
+				settings.Snooze = nil
+				return settings
+			}, true),
+			Entry("errors if name high has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameHigh))
+				settings.Snooze = nil
+				return settings
+			}, true),
+			Entry("valid if soundTheme not set", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(nil)
+				settings.SoundTheme = nil
+				return settings
+			}, false),
+			Entry("valid if soundOutputMode not set", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(nil)
+				settings.SoundOutputMode = nil
+				return settings
+			}, false),
+			Entry("valid name noReadings has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameNoReadings))
+				settings.Snooze = nil
+				return settings
+			}, false),
+			Entry("valid name noReadings has no delay", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameNoReadings))
+				settings.Delay = nil
+				return settings
+			}, false),
+			Entry("valid name rise has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameRise))
+				settings.Snooze = nil
+				return settings
+			}, false),
+			Entry("valid name outOfRange has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameOutOfRange))
+				settings.Snooze = nil
+				return settings
+			}, false),
+			Entry("valid name fall has no snooze", func() *dexcom.AlertSetting {
+				settings := test.RandomAlertSetting(pointer.FromString(dexcom.AlertSettingAlertNameFall))
+				settings.Snooze = nil
+				return settings
+			}, false),
 		)
 	})
 

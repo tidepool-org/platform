@@ -42,6 +42,7 @@ const (
 	AlertSettingSnoozeMinutesMaximum = dataTypesSettingsCgm.SnoozeDurationMinutesMaximum
 	AlertSettingSnoozeMinutesMinimum = dataTypesSettingsCgm.SnoozeDurationMinutesMinimum
 
+	AlertSettingUnitUnknown    = "unknown"
 	AlertSettingUnitMinutes    = "minutes"
 	AlertSettingUnitMgdL       = "mg/dL"
 	AlertSettingUnitMgdLMinute = "mg/dL/min"
@@ -562,8 +563,12 @@ func (a *AlertSetting) Parse(parser structure.ObjectParser) {
 
 func (a *AlertSetting) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(a)
-	validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
-	validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
+	if a.SystemTime != nil {
+		validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
+	}
+	if a.DisplayTime != nil {
+		validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
+	}
 	validator.String("alertName", a.AlertName).Exists().OneOf(AlertSettingAlertNames()...)
 
 	if a.AlertName != nil {
@@ -584,6 +589,8 @@ func (a *AlertSetting) Validate(validator structure.Validator) {
 			a.validateUrgentLow(validator)
 		case AlertSettingAlertNameUrgentLowSoon:
 			a.validateUrgentLowSoon(validator)
+		case AlertSettingAlertNameUnknown:
+			a.validateUnkown(validator)
 		}
 	}
 
@@ -701,6 +708,11 @@ func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 		}
 	}
 	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
+	validator.Bool("enabled", a.Enabled).Exists()
+}
+
+func (a *AlertSetting) validateUnkown(validator structure.Validator) {
+	validator.String("unit", a.Unit).OneOf(AlertSettingUnitUnknown)
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
