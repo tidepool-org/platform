@@ -78,7 +78,7 @@ var _ = Describe("Mongo", func() {
 				Expect(store).ToNot(BeNil())
 				Expect(err).ToNot(HaveOccurred())
 				err = store.Ping(context.Background())
-				Expect(err).To(MatchError("connection() error occured during connection handshake: auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed."))
+				Expect(err).To(MatchError(`connection() error occurred during connection handshake: auth error: sasl conversation error: unable to authenticate using mechanism "SCRAM-SHA-1": (AuthenticationFailed) Authentication failed.`))
 			})
 
 			It("returns no error if successful", func() {
