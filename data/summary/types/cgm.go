@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 )
 
 type CGMBucketData struct {
+	LastRecordDuration int `json:"LastRecordDuration" bson:"LastRecordDuration"`
+
 	TargetMinutes int `json:"targetMinutes" bson:"targetMinutes"`
 	TargetRecords int `json:"targetRecords" bson:"targetRecords"`
 
@@ -115,19 +118,23 @@ func (s *CGMStats) Update(userData any) error {
 }
 
 func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time) error {
-	dataRecord := r.(*glucoseDatum.Glucose)
 	var normalizedValue float64
 	var duration int
 
-	// duration has never been calculated, use current record's duration for this cycle
-	if duration == 0 {
-		duration = GetDuration(dataRecord)
+	dataRecord, ok := r.(*glucoseDatum.Glucose)
+	if !ok {
+		return errors.New("CGM record for calculation is not compatible with Glucose type")
+	}
+
+	// this is a new bucket, use current record as duration reference
+	if B.LastRecordDuration == 0 {
+		B.LastRecordDuration = GetDuration(dataRecord)
 	}
 
 	// calculate blackoutWindow based on duration of previous value
-	blackoutWindow := time.Duration(duration)*time.Minute - 3*time.Second
+	blackoutWindow := time.Duration(B.LastRecordDuration)*time.Minute - 10*time.Second
 
-	// if we are too close to the previous value, skip
+	// Skip record unless we are beyond the blackout window
 	if dataRecord.Time.Sub(*lastRecordTime) > blackoutWindow {
 		normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
 		duration = GetDuration(dataRecord)
@@ -152,6 +159,7 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 		B.TotalMinutes += duration
 		B.TotalRecords++
 		B.TotalGlucose += normalizedValue * float64(duration)
+		B.LastRecordDuration = duration
 	}
 
 	return nil

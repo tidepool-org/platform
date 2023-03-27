@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
@@ -94,8 +95,11 @@ func (s *BGMStats) Update(userData any) error {
 	return nil
 }
 
-func (B *BGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time) error {
-	dataRecord := r.(*glucoseDatum.Glucose)
+func (B *BGMBucketData) CalculateStats(r interface{}, _ *time.Time) error {
+	dataRecord, ok := r.(*glucoseDatum.Glucose)
+	if !ok {
+		return errors.New("BGM record for calculation is not compatible with Glucose type")
+	}
 	var normalizedValue float64
 
 	normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))

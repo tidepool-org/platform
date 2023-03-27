@@ -1009,11 +1009,9 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 		distinctUserIDMap[v.(string)] = empty
 	}
 
-	userIDs := make([]string, len(distinctUserIDMap))
-	offset := 0
+	userIDs := make([]string, 0, len(distinctUserIDMap))
 	for k := range distinctUserIDMap {
-		userIDs[offset] = k
-		offset++
+		userIDs = append(userIDs, k)
 	}
 
 	return userIDs, nil

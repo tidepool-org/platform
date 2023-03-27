@@ -7,7 +7,6 @@ import (
 
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -235,9 +234,6 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 	for _, r := range userData {
 		recordTime = r.GetTime()
-		if err != nil {
-			return errors.Wrap(err, "cannot parse time in record")
-		}
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
 		currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
