@@ -251,20 +251,19 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 		if newBucket == nil {
 			// pull stats if they already exist
 			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			if len(*buckets) > 0 {
-				for i := len(*buckets) - 1; i >= 0; i-- {
-					if (*buckets)[i].Date.Equal(currentHour) {
-						newBucket = &(*buckets)[i]
-						break
-					}
+			for i := len(*buckets) - 1; i >= 0; i-- {
+				if (*buckets)[i].Date.Equal(currentHour) {
+					newBucket = &(*buckets)[i]
+					break
+				}
 
-					// we already passed our date, give up
-					if (*buckets)[i].Date.After(currentHour) {
-						break
-					}
+				// we already passed our date, give up
+				if (*buckets)[i].Date.After(currentHour) {
+					break
 				}
 			}
 
+			// we still don't have a bucket, make a new one.
 			if newBucket == nil {
 				newBucket = CreateBucket[T, A](currentHour)
 			}
