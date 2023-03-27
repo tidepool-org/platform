@@ -183,17 +183,17 @@ var _ = Describe("Event", func() {
 				event.SubType = nil
 				return event
 			}),
-			Entry("unit  to be set when type is unknown", func() *dexcom.Event {
+			Entry("unit to be set when type is unknown", func() *dexcom.Event {
 				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeUnknown))
 				event.Unit = nil
 				return event
 			}),
-			Entry("unit  to be set when type is notes", func() *dexcom.Event {
+			Entry("unit to be set when type is notes", func() *dexcom.Event {
 				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNotes))
 				event.Unit = nil
 				return event
 			}),
-			Entry("unit  to be set when type is health", func() *dexcom.Event {
+			Entry("unit to be set when type is health", func() *dexcom.Event {
 				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeHealth))
 				event.Unit = nil
 				return event
