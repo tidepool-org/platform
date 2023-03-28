@@ -44,7 +44,7 @@ var _ = Describe("EGV", func() {
 
 	It("EGVsResponseRateUnits returns expected", func() {
 		Expect(dexcom.EGVsResponseRateUnits()).To(Equal([]string{"unknown", "mg/dL/min", "mmol/L/min"}))
-		Expect(dexcom.EGVsResponseRateUnits()).To(Equal([]string{dexcom.EGVUnitUnknown, dexcom.EGVUnitMgdLMinute, dexcom.EGVUnitMmolLMinute}))
+		Expect(dexcom.EGVsResponseRateUnits()).To(Equal([]string{dexcom.EGVRateUnitUnknown, dexcom.EGVRateUnitMgdLMinute, dexcom.EGVRateUnitMmolLMinute}))
 	})
 
 	It("EGVsResponseUnits returns expected", func() {
@@ -116,6 +116,21 @@ var _ = Describe("EGV", func() {
 			Entry("unit to be set", func() *dexcom.EGV {
 				egv := getTestEVG()
 				egv.Unit = nil
+				return egv
+			}),
+			Entry("unit to be set to an allowed value", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.Unit = pointer.FromString("")
+				return egv
+			}),
+			Entry("rateUnit to be set", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.RateUnit = nil
+				return egv
+			}),
+			Entry("rateUnit to be set to an allowed value", func() *dexcom.EGV {
+				egv := getTestEVG()
+				egv.RateUnit = pointer.FromString("")
 				return egv
 			}),
 			Entry("displayDevice to be set", func() *dexcom.EGV {

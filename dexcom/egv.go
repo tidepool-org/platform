@@ -10,11 +10,13 @@ import (
 )
 
 const (
-	EGVUnitUnknown     = "unknown"
-	EGVUnitMgdL        = "mg/dL"
-	EGVUnitMgdLMinute  = "mg/dL/min"
-	EGVUnitMmolL       = "mmol/L"
-	EGVUnitMmolLMinute = "mmol/L/min"
+	EGVUnitUnknown = "unknown"
+	EGVUnitMgdL    = "mg/dL"
+	EGVUnitMmolL   = "mmol/L"
+
+	EGVRateUnitUnknown     = "unknown"
+	EGVRateUnitMgdLMinute  = "mg/dL/min"
+	EGVRateUnitMmolLMinute = "mmol/L/min"
 
 	EGVValueMgdLMaximum        = dataBloodGlucose.MgdLMaximum
 	EGVValueMgdLMinimum        = dataBloodGlucose.MgdLMinimum
@@ -46,9 +48,9 @@ const (
 
 func EGVsResponseRateUnits() []string {
 	return []string{
-		EGVUnitUnknown,
-		EGVUnitMgdLMinute,
-		EGVUnitMmolLMinute,
+		EGVRateUnitUnknown,
+		EGVRateUnitMgdLMinute,
+		EGVRateUnitMmolLMinute,
 	}
 }
 
@@ -85,9 +87,7 @@ func EGVTrends() []string {
 }
 
 type EGVsResponse struct {
-	RateUnit *string `json:"rateUnit,omitempty"`
-	Unit     *string `json:"unit,omitempty"`
-	EGVs     *EGVs   `json:"egvs,omitempty"`
+	EGVs *EGVs `json:"records,omitempty"`
 }
 
 func ParseEGVsResponse(parser structure.ObjectParser) *EGVsResponse {
@@ -104,15 +104,11 @@ func NewEGVsResponse() *EGVsResponse {
 }
 
 func (e *EGVsResponse) Parse(parser structure.ObjectParser) {
-	e.RateUnit = parser.String("rateUnit")
-	e.Unit = parser.String("unit")
-	e.EGVs = ParseEGVs(parser.WithReferenceArrayParser("egvs"), e.Unit)
+	e.EGVs = ParseEGVs(parser.WithReferenceArrayParser("records"))
 }
 
 func (e *EGVsResponse) Validate(validator structure.Validator) {
-	validator.String("rateUnit", e.RateUnit).Exists().OneOf(EGVsResponseRateUnits()...)
-	validator.String("unit", e.Unit).Exists().OneOf(EGVsResponseUnits()...)
-	if egvsValidator := validator.WithReference("egvs"); e.EGVs != nil {
+	if egvsValidator := validator.WithReference("records"); e.EGVs != nil {
 		e.EGVs.Validate(egvsValidator)
 	} else {
 		egvsValidator.ReportError(structureValidator.ErrorValueNotExists())
@@ -121,13 +117,12 @@ func (e *EGVsResponse) Validate(validator structure.Validator) {
 
 type EGVs []*EGV
 
-func ParseEGVs(parser structure.ArrayParser, unit *string) *EGVs {
+func ParseEGVs(parser structure.ArrayParser) *EGVs {
 	if !parser.Exists() {
 		return nil
 	}
 	datum := NewEGVs()
-	datum.Parse(parser, unit)
-	parser.NotParsed()
+	parser.Parse(datum)
 	return datum
 }
 
@@ -135,9 +130,9 @@ func NewEGVs() *EGVs {
 	return &EGVs{}
 }
 
-func (e *EGVs) Parse(parser structure.ArrayParser, unit *string) {
+func (e *EGVs) Parse(parser structure.ArrayParser) {
 	for _, reference := range parser.References() {
-		*e = append(*e, ParseEGV(parser.WithReferenceObjectParser(reference), unit))
+		*e = append(*e, ParseEGV(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
@@ -156,6 +151,7 @@ type EGV struct {
 	SystemTime            *Time    `json:"systemTime,omitempty"`
 	DisplayTime           *Time    `json:"displayTime,omitempty"`
 	Unit                  *string  `json:"unit,omitempty"`
+	RateUnit              *string  `json:"rateUnit,omitempty"`
 	Value                 *float64 `json:"value,omitempty"`
 	Status                *string  `json:"status,omitempty"`
 	Trend                 *string  `json:"trend,omitempty"`
@@ -166,25 +162,25 @@ type EGV struct {
 	DisplayDevice         *string  `json:"displayDevice,omitempty"`
 }
 
-func ParseEGV(parser structure.ObjectParser, unit *string) *EGV {
+func ParseEGV(parser structure.ObjectParser) *EGV {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewEGV(unit)
+	datum := NewEGV()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewEGV(unit *string) *EGV {
-	return &EGV{
-		Unit: unit,
-	}
+func NewEGV() *EGV {
+	return &EGV{}
 }
 
 func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.ID = parser.String("recordId")
 	e.SystemTime = TimeFromRaw(parser.ForgivingTime("systemTime", TimeFormat))
 	e.DisplayTime = TimeFromRaw(parser.ForgivingTime("displayTime", TimeFormat))
+	e.Unit = parser.String("unit")
+	e.RateUnit = parser.String("rateUnit")
 	e.Value = parser.Float64("value")
 	e.Status = parser.String("status")
 	e.Trend = parser.String("trend")
@@ -197,11 +193,11 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 
 func (e *EGV) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
-	// required
 	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
 	validator.String("unit", e.Unit).Exists().OneOf(EGVsResponseUnits()...)
+	validator.String("rateUnit", e.RateUnit).Exists().OneOf(EGVsResponseRateUnits()...)
 	if e.Unit != nil {
 		switch *e.Unit {
 		case EGVUnitMgdL:
@@ -213,7 +209,6 @@ func (e *EGV) Validate(validator structure.Validator) {
 	validator.Int("transmitterTicks", e.TransmitterTicks).Exists().GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
 	validator.String("transmitterGeneration", e.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
 	validator.String("displayDevice", e.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
-	// optional
 	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("status", e.Status).OneOf(EGVStatuses()...)
 	validator.String("trend", e.Trend).OneOf(EGVTrends()...)

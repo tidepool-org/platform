@@ -71,6 +71,7 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
 	paths := []string{"v3", "users", "self", "egvs"}
+
 	if c.isSandboxData {
 		paths = paths[1:]
 	}

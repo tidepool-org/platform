@@ -222,7 +222,7 @@ func (e *Event) Validate(validator structure.Validator) {
 		case EventTypeBG:
 			e.validateBG(validator)
 		case EventTypeUnknown:
-			e.validateUnkown(validator)
+			e.validateUnknown(validator)
 		}
 	}
 	validator.String("recordId", e.ID).Exists().NotEmpty()
@@ -261,7 +261,7 @@ func (e *Event) validateNote(validator structure.Validator) {
 	validator.String("value", e.Value).Exists().NotEmpty()
 }
 
-func (e *Event) validateUnkown(validator structure.Validator) {
+func (e *Event) validateUnknown(validator structure.Validator) {
 	validator.String("value", e.Value).Exists().NotEmpty()
 }
 

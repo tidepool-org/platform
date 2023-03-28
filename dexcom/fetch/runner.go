@@ -563,7 +563,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
+			datumArray = append(datumArray, translateEGVToDatum(e))
 		}
 	}
 

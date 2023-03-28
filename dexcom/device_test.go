@@ -24,12 +24,13 @@ var _ = Describe("Device", func() {
 	})
 
 	It("DeviceTransmitterGenerations returns expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"unknown", "g4", "g5", "g6", "g6+", "dexcomPro", "g7"}))
+		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"unknown", "g4", "g5", "g6", "g6 pro", "g6+", "dexcomPro", "g7"}))
 		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{
 			dexcom.DeviceTransmitterGenerationUnknown,
 			dexcom.DeviceTransmitterGenerationG4,
 			dexcom.DeviceTransmitterGenerationG5,
 			dexcom.DeviceTransmitterGenerationG6,
+			dexcom.DeviceTransmitterGenerationG6Pro,
 			dexcom.DeviceTransmitterGenerationG6Plus,
 			dexcom.DeviceTransmitterGenerationPro,
 			dexcom.DeviceTransmitterGenerationG7,
