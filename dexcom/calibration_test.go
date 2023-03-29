@@ -45,11 +45,6 @@ var _ = Describe("Calibration", func() {
 				device.ID = nil
 				return device
 			}),
-			Entry("required id is not set", func() *dexcom.Calibration {
-				device := test.RandomCalibration()
-				device.ID = nil
-				return device
-			}),
 			Entry("required systemTime is not set", func() *dexcom.Calibration {
 				device := test.RandomCalibration()
 				device.SystemTime = nil
