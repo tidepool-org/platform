@@ -47,3 +47,23 @@ func (r *runner) Terminate() error {
 	}
 	return nil
 }
+
+type noopRunner struct{}
+
+func (n noopRunner) Initialize() error {
+	return nil
+}
+
+func (n noopRunner) Run() error {
+	return nil
+}
+
+func (n noopRunner) Terminate() error {
+	return nil
+}
+
+var _ Runner = &noopRunner{}
+
+func NewNoopRunner() Runner {
+	return &noopRunner{}
+}
