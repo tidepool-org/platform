@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
