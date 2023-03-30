@@ -52,7 +52,7 @@ type Datum struct {
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
 	UpdatesSummaryInvocations            int
-	UpdatesSummaryInputs                 []map[string]bool
+	UpdatesSummaryInputs                 []*map[string]bool
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -180,7 +180,7 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
-func (d *Datum) UpdatesSummary(updatesSummary map[string]bool) {
+func (d *Datum) UpdatesSummary(updatesSummary *map[string]bool) {
 	d.UpdatesSummaryInvocations++
 
 	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
