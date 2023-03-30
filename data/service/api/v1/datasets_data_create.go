@@ -101,7 +101,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		datum.UpdatesSummary(updatesSummary)
+		datum.UpdatesSummary(&updatesSummary)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
