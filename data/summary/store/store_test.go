@@ -2,8 +2,12 @@ package store_test
 
 import (
 	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -12,8 +16,6 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	userTest "github.com/tidepool-org/platform/user/test"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var _ = Describe("Mongo", func() {

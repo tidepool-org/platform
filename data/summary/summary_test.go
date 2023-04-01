@@ -2,10 +2,11 @@ package summary_test
 
 import (
 	"fmt"
-	userTest "github.com/tidepool-org/platform/user/test"
 	"math/rand"
 	"strconv"
 	"time"
+
+	userTest "github.com/tidepool-org/platform/user/test"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
