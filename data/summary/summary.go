@@ -161,7 +161,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 			userSummary.Dates.LastData = nil
 			userSummary.Dates.FirstData = time.Time{}
 			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", userId)
-			userSummary, err = c.summaries.UpsertSummary(ctx, userSummary)
+			err = c.summaries.UpsertSummary(ctx, userSummary)
 			if err != nil {
 				return nil, err
 			}
@@ -224,7 +224,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	// technically, this never could be zero, but we check anyway
 	userSummary.Dates.HasLastUploadDate = !status.LastUpload.IsZero()
 
-	userSummary, err = c.summaries.UpsertSummary(ctx, userSummary)
+	err = c.summaries.UpsertSummary(ctx, userSummary)
 
 	return userSummary, err
 }
