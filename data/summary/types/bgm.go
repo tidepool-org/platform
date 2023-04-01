@@ -95,10 +95,10 @@ func (s *BGMStats) Update(userData any) error {
 	return nil
 }
 
-func (B *BGMBucketData) CalculateStats(r interface{}, _ *time.Time) error {
+func (B *BGMBucketData) CalculateStats(r interface{}, _ *time.Time) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
-		return errors.New("BGM record for calculation is not compatible with Glucose type")
+		return false, errors.New("BGM record for calculation is not compatible with Glucose type")
 	}
 	var normalizedValue float64
 
@@ -119,7 +119,7 @@ func (B *BGMBucketData) CalculateStats(r interface{}, _ *time.Time) error {
 	B.TotalRecords++
 	B.TotalGlucose += normalizedValue
 
-	return nil
+	return false, nil
 }
 
 func (s *BGMStats) CalculateSummary() {

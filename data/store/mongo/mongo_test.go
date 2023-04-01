@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -53,24 +51,6 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 	return dataSet
 }
 
-func NewLegacyDataSet(userID string, deviceID string) *dataTypesUploadTest.LegacyUpload {
-	dataSet := dataTypesUploadTest.RandomLegacyUpload()
-	dataSet.Active = true
-	dataSet.ArchivedDataSetID = nil
-	dataSet.ArchivedTime = nil
-	dataSet.CreatedTime = nil
-	dataSet.CreatedUserID = nil
-	dataSet.DeletedTime = nil
-	dataSet.DeletedUserID = nil
-	dataSet.DeviceID = pointer.FromString(deviceID)
-	dataSet.Location.GPS.Origin.Time = nil
-	dataSet.ModifiedTime = nil
-	dataSet.ModifiedUserID = nil
-	dataSet.Origin.Time = nil
-	dataSet.UserID = pointer.FromString(userID)
-	return dataSet
-}
-
 func NewDataSetData(deviceID string) data.Data {
 	requiredRecords := test.RandomIntFromRange(4, 6)
 	var dataSetData = make([]data.Datum, requiredRecords)
@@ -88,75 +68,6 @@ func NewDataSetData(deviceID string) data.Data {
 		datum.ModifiedUserID = nil
 		dataSetData[count] = datum
 	}
-	return dataSetData
-}
-
-func NewGlucose(typ *string, units *string) *glucose.Glucose {
-	datum := glucose.New(*typ)
-	datum.Units = units
-
-	return &datum
-}
-
-func NewDataSetCGMData(deviceID string, startTime time.Time, days int) data.Data {
-	requiredRecords := days * 288
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var datumTime time.Time
-	unit := "mmol/L"
-	typ := "cbg"
-
-	for count := 0; count < requiredRecords; count++ {
-		datumTime = startTime.Add(time.Duration(-count) * time.Minute * 5)
-
-		datum := NewGlucose(&typ, &unit)
-		datum.Active = true
-		datum.ArchivedDataSetID = nil
-		datum.ArchivedTime = nil
-		datum.CreatedTime = nil
-		datum.CreatedUserID = nil
-		datum.DeletedTime = nil
-		datum.DeletedUserID = nil
-		datum.DeviceID = pointer.FromString(deviceID)
-		datum.ModifiedTime = nil
-		datum.ModifiedUserID = nil
-		datum.Time = pointer.FromTime(datumTime)
-
-		datum.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
-
-		dataSetData[requiredRecords-count-1] = datum
-	}
-
-	return dataSetData
-}
-
-func NewDataSetBGMData(deviceID string, startTime time.Time, days int) data.Data {
-	requiredRecords := days * 6
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var datumTime time.Time
-	unit := "mmol/L"
-	typ := "smbg"
-
-	for count := 0; count < requiredRecords; count++ {
-		datumTime = startTime.Add(time.Duration(-count) * time.Hour * 4)
-
-		datum := NewGlucose(&typ, &unit)
-		datum.Active = true
-		datum.ArchivedDataSetID = nil
-		datum.ArchivedTime = nil
-		datum.CreatedTime = nil
-		datum.CreatedUserID = nil
-		datum.DeletedTime = nil
-		datum.DeletedUserID = nil
-		datum.DeviceID = pointer.FromString(deviceID)
-		datum.ModifiedTime = nil
-		datum.ModifiedUserID = nil
-		datum.Time = pointer.FromTime(datumTime)
-
-		datum.Value = pointer.FromFloat64(1 + (25-1)*rand.Float64())
-
-		dataSetData[requiredRecords-count-1] = datum
-	}
-
 	return dataSetData
 }
 
@@ -411,42 +322,6 @@ var _ = Describe("Mongo", func() {
 					userID = userTest.RandomID()
 					deviceID = dataTest.NewDeviceID()
 					dataSet = NewDataSet(userID, deviceID)
-				})
-
-				Context("DateUnMarshal", func() {
-					var legacyUpload *dataTypesUploadTest.LegacyUpload
-					var result *upload.Upload
-					var createdTime time.Time
-					var modifiedTime time.Time
-					var deletedTime time.Time
-					var recordTime time.Time
-
-					BeforeEach(func() {
-						legacyUpload = NewLegacyDataSet(userID, deviceID)
-						recordTime = test.PastNearTime()
-						createdTime = test.PastNearTime().AddDate(0, 0, 1)
-						modifiedTime = test.PastNearTime().AddDate(0, 0, 2)
-						deletedTime = test.PastNearTime().AddDate(0, 0, 3)
-					})
-
-					It("ensure string legacy dates are unmarshalled correctly", func() {
-						legacyUpload.Time = legacyUpload.CreatedTime
-						legacyUpload.Time = pointer.FromString(recordTime.Format(time.RFC3339Nano))
-						legacyUpload.CreatedTime = pointer.FromString(createdTime.Format(time.RFC3339Nano))
-						legacyUpload.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
-						legacyUpload.DeletedTime = pointer.FromString(deletedTime.Format(time.RFC3339Nano))
-
-						_, err := collection.InsertOne(context.Background(), legacyUpload)
-						Expect(err).ToNot(HaveOccurred())
-
-						err = collection.FindOne(context.Background(), bson.M{"_userId": userID}).Decode(&result)
-						Expect(err).ToNot(HaveOccurred())
-
-						Expect(*result.CreatedTime).To(Equal(createdTime))
-						Expect(*result.ModifiedTime).To(Equal(modifiedTime))
-						Expect(*result.DeletedTime).To(Equal(deletedTime))
-						Expect(*result.Time).To(Equal(recordTime))
-					})
 				})
 
 				Context("GetDataSetsForUserByID", func() {

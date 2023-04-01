@@ -117,13 +117,13 @@ func (s *CGMStats) Update(userData any) error {
 	return nil
 }
 
-func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time) error {
+func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time) (bool, error) {
 	var normalizedValue float64
 	var duration int
 
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
-		return errors.New("CGM record for calculation is not compatible with Glucose type")
+		return false, errors.New("CGM record for calculation is not compatible with Glucose type")
 	}
 
 	// this is a new bucket, use current record as duration reference
@@ -160,9 +160,11 @@ func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time)
 		B.TotalRecords++
 		B.TotalGlucose += normalizedValue * float64(duration)
 		B.LastRecordDuration = duration
+
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (s *CGMStats) CalculateSummary() {

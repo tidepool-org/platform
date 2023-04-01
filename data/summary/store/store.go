@@ -74,21 +74,21 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) UpsertSummary(ctx context.Context, summary *types.Summary[T, A]) (*types.Summary[T, A], error) {
+func (r *Repo[T, A]) UpsertSummary(ctx context.Context, summary *types.Summary[T, A]) error {
 	if ctx == nil {
-		return nil, errors.New("context is missing")
+		return errors.New("context is missing")
 	}
 	if summary == nil {
-		return nil, errors.New("summary object is missing")
+		return errors.New("summary object is missing")
 	}
 
 	expectedType := types.GetTypeString[T, A]()
 	if summary.Type != expectedType {
-		return nil, fmt.Errorf("invalid summary type %v, expected %v", summary.Type, expectedType)
+		return fmt.Errorf("invalid summary type %v, expected %v", summary.Type, expectedType)
 	}
 
 	if summary.UserID == "" {
-		return nil, errors.New("summary missing UserID")
+		return errors.New("summary missing UserID")
 	}
 
 	opts := options.Update().SetUpsert(true)
@@ -99,7 +99,7 @@ func (r *Repo[T, A]) UpsertSummary(ctx context.Context, summary *types.Summary[T
 
 	_, err := r.UpdateOne(ctx, selector, bson.M{"$set": summary}, opts)
 
-	return summary, err
+	return err
 }
 
 func (r *Repo[T, A]) DistinctSummaryIDs(ctx context.Context) ([]string, error) {

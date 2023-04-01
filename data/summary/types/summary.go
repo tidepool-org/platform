@@ -78,7 +78,7 @@ type Bucket[T BucketData, S BucketDataPt[T]] struct {
 
 type BucketDataPt[T BucketData] interface {
 	*T
-	CalculateStats(interface{}, *time.Time) error
+	CalculateStats(interface{}, *time.Time) (bool, error)
 }
 
 func CreateBucket[T BucketData, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
@@ -185,7 +185,7 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 			}
 
 			// we already passed our date, give up
-			if (*buckets)[i].Date.After(newStat.Date) {
+			if (*buckets)[i].Date.Before(newStat.Date) {
 				break
 			}
 		}
@@ -230,6 +230,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 	var lastHour time.Time
 	var currentHour time.Time
 	var err error
+	var skipped bool
 	var newBucket *Bucket[T, A]
 
 	for _, r := range userData {
@@ -258,7 +259,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 				}
 
 				// we already passed our date, give up
-				if (*buckets)[i].Date.After(currentHour) {
+				if (*buckets)[i].Date.Before(currentHour) {
 					break
 				}
 			}
@@ -276,9 +277,13 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 			newBucket.LastRecordTime = (*buckets)[len(*buckets)-1].LastRecordTime
 		}
 
-		newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
-
-		newBucket.LastRecordTime = *recordTime
+		skipped, err = newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
+		if err != nil {
+			return err
+		}
+		if !skipped {
+			newBucket.LastRecordTime = *recordTime
+		}
 	}
 
 	// store
