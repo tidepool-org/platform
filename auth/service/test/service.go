@@ -7,6 +7,8 @@ import (
 
 	"github.com/onsi/gomega"
 
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
@@ -29,6 +31,7 @@ type Service struct {
 	TaskClientImpl             *taskTest.Client
 	StatusInvocations          int
 	StatusOutputs              []*service.Status
+	confirmationClient         confirmationClient.ClientWithResponsesInterface
 }
 
 func NewService() *Service {
@@ -66,6 +69,10 @@ func (s *Service) TaskClient() task.Client {
 	s.TaskClientInvocations++
 
 	return s.TaskClientImpl
+}
+
+func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
+	return s.confirmationClient
 }
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {

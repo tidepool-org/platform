@@ -1,6 +1,7 @@
 package httprule
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -45,9 +46,7 @@ func tokenize(path string) (tokens []string, verb string) {
 		field
 		nested
 	)
-	var (
-		st = init
-	)
+	st := init
 	for path != "" {
 		var idx int
 		switch st {
@@ -80,8 +79,30 @@ func tokenize(path string) (tokens []string, verb string) {
 	}
 
 	l := len(tokens)
+	// See
+	// https://github.com/grpc-ecosystem/grpc-gateway/pull/1947#issuecomment-774523693 ;
+	// although normal and backwards-compat logic here is to use the last index
+	// of a colon, if the final segment is a variable followed by a colon, the
+	// part following the colon must be a verb. Hence if the previous token is
+	// an end var marker, we switch the index we're looking for to Index instead
+	// of LastIndex, so that we correctly grab the remaining part of the path as
+	// the verb.
+	var penultimateTokenIsEndVar bool
+	switch l {
+	case 0, 1:
+		// Not enough to be variable so skip this logic and don't result in an
+		// invalid index
+	default:
+		penultimateTokenIsEndVar = tokens[l-2] == "}"
+	}
 	t := tokens[l-1]
-	if idx := strings.LastIndex(t, ":"); idx == 0 {
+	var idx int
+	if penultimateTokenIsEndVar {
+		idx = strings.Index(t, ":")
+	} else {
+		idx = strings.LastIndex(t, ":")
+	}
+	if idx == 0 {
 		tokens, verb = tokens[:l-1], t[1:]
 	} else if idx > 0 {
 		tokens[l-1], verb = t[:idx], t[idx+1:]
@@ -98,6 +119,10 @@ type parser struct {
 
 // topLevelSegments is the target of this parser.
 func (p *parser) topLevelSegments() ([]segment, error) {
+	if _, err := p.accept(typeEOF); err == nil {
+		p.tokens = p.tokens[:0]
+		return []segment{literal(eof)}, nil
+	}
 	segs, err := p.segments()
 	if err != nil {
 		return nil, err
@@ -140,7 +165,7 @@ func (p *parser) segment() (segment, error) {
 
 	v, err := p.variable()
 	if err != nil {
-		return nil, fmt.Errorf("segment neither wildcards, literal or variable: %v", err)
+		return nil, fmt.Errorf("segment neither wildcards, literal or variable: %w", err)
 	}
 	return v, err
 }
@@ -189,7 +214,7 @@ func (p *parser) fieldPath() (string, error) {
 	}
 	components := []string{c}
 	for {
-		if _, err = p.accept("."); err != nil {
+		if _, err := p.accept("."); err != nil {
 			return strings.Join(components, "."), nil
 		}
 		c, err := p.accept(typeIdent)
@@ -213,10 +238,8 @@ const (
 	typeEOF     = termType("$")
 )
 
-const (
-	// eof is the terminal symbol which always appears at the end of token sequence.
-	eof = "\u0000"
-)
+// eof is the terminal symbol which always appears at the end of token sequence.
+const eof = "\u0000"
 
 // accept tries to accept a token in "p".
 // This function consumes a token and returns it if it matches to the specified "term".
@@ -251,11 +274,12 @@ func (p *parser) accept(term termType) (string, error) {
 // expectPChars determines if "t" consists of only pchars defined in RFC3986.
 //
 // https://www.ietf.org/rfc/rfc3986.txt, P.49
-//   pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
-//   unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
-//   sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
-//                 / "*" / "+" / "," / ";" / "="
-//   pct-encoded   = "%" HEXDIG HEXDIG
+//
+//	pchar         = unreserved / pct-encoded / sub-delims / ":" / "@"
+//	unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+//	sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+//	              / "*" / "+" / "," / ";" / "="
+//	pct-encoded   = "%" HEXDIG HEXDIG
 func expectPChars(t string) error {
 	const (
 		init = iota
@@ -309,7 +333,7 @@ func expectPChars(t string) error {
 // expectIdent determines if "ident" is a valid identifier in .proto schema ([[:alpha:]_][[:alphanum:]_]*).
 func expectIdent(ident string) error {
 	if ident == "" {
-		return fmt.Errorf("empty identifier")
+		return errors.New("empty identifier")
 	}
 	for pos, r := range ident {
 		switch {

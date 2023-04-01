@@ -10,7 +10,6 @@ import (
 	"github.com/tidepool-org/platform/dexcom"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureTest "github.com/tidepool-org/platform/structure/test"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -32,9 +31,9 @@ var _ = Describe("Dexcom", func() {
 				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
 				errorsTest.ExpectEqual(dexcom.ValidateTransmitterID(value), expectedErrors...)
 			},
-			Entry("is an empty string", "", structureValidator.ErrorValueEmpty()),
-			Entry("has string length out of range (lower)", "0123", dexcom.ErrorValueStringAsTransmitterIDNotValid("0123")),
+			Entry("is an empty string", ""),
 			Entry("has string length in range", test.RandomStringFromRangeAndCharset(5, 6, test.CharsetNumeric+test.CharsetUppercase)),
+			Entry("has string length out of range (lower)", "0123", dexcom.ErrorValueStringAsTransmitterIDNotValid("0123")),
 			Entry("has string length out of range (upper)", "0123456", dexcom.ErrorValueStringAsTransmitterIDNotValid("0123456")),
 			Entry("has lowercase characters", "abcdef", dexcom.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
 			Entry("has symbols", "$%^&*(", dexcom.ErrorValueStringAsTransmitterIDNotValid("$%^&*(")),
