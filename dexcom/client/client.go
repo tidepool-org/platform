@@ -47,6 +47,8 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
 	paths := []string{"v3", "users", "self", "calibrations"}
 
+	debug.Println(" ##API GetCalibrations ", c.client.ConstructURL(paths...))
+
 	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), calibrationsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get calibrations")
 	}
@@ -57,9 +59,8 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DevicesResponse, error) {
 	devicesResponse := &dexcom.DevicesResponse{IsSandboxData: c.isSandboxData}
 	paths := []string{"v3", "users", "self", "devices"}
-	// if c.isSandboxData {
-	// 	paths = paths[1:]
-	// }
+
+	debug.Println(" ##API GetDevices ", c.client.ConstructURL(paths...))
 
 	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), devicesResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get devices")
@@ -71,9 +72,8 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
 	paths := []string{"v3", "users", "self", "egvs"}
-	// if c.isSandboxData {
-	// 	paths = paths[1:]
-	// }
+
+	debug.Println(" ##API GetEGVs ", c.client.ConstructURL(paths...))
 
 	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), egvsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get egvs")
@@ -85,9 +85,8 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
 	paths := []string{"v3", "users", "self", "events"}
-	// if c.isSandboxData {
-	// 	paths = paths[1:]
-	// }
+
+	debug.Println(" ##API GetEvents ", c.client.ConstructURL(paths...))
 
 	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get events")
