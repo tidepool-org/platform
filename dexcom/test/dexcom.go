@@ -2,8 +2,8 @@ package test
 
 import "github.com/tidepool-org/platform/test"
 
-const CharsetTransmitterID = test.CharsetNumeric + test.CharsetUppercase
+const CharsetTransmitterID = test.CharsetNumeric + test.CharsetLowercase
 
 func RandomTransmitterID() string {
-	return test.RandomStringFromRangeAndCharset(5, 6, CharsetTransmitterID)
+	return test.RandomStringFromRangeAndCharset(64, 64, CharsetTransmitterID)
 }

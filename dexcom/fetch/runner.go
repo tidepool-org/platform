@@ -588,6 +588,8 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	for _, e := range *response.Events {
 		switch *e.Status {
 		case dexcom.EventStatusCreated:
+
+			t.Logger().WithField("##eventType", *e.Type)
 			if t.afterLatestDataTime(e.SystemTime.Raw()) {
 				switch *e.Type {
 				case dexcom.EventTypeCarbs:
