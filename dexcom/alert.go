@@ -592,7 +592,7 @@ func (a *AlertSetting) Validate(validator structure.Validator) {
 		case AlertSettingAlertNameUrgentLowSoon:
 			a.validateUrgentLowSoon(validator)
 		case AlertSettingAlertNameUnknown:
-			a.validateUnkown(validator)
+			a.validateUnknown(validator)
 		}
 	}
 
@@ -713,7 +713,7 @@ func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
-func (a *AlertSetting) validateUnkown(validator structure.Validator) {
+func (a *AlertSetting) validateUnknown(validator structure.Validator) {
 	validator.String("unit", a.Unit).OneOf(AlertSettingUnitUnknown)
 	validator.Bool("enabled", a.Enabled).Exists()
 }

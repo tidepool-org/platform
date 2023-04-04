@@ -24,14 +24,6 @@ import (
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
-func prepareEGVsResponse(egvsResponse *dexcom.EGVsResponse) *dexcom.EGVsResponse {
-	egvsResponse = dexcomTest.CloneEGVsResponse(egvsResponse)
-	for _, egv := range *egvsResponse.EGVs {
-		egv.Unit = nil
-	}
-	return egvsResponse
-}
-
 var _ = Describe("Client", func() {
 	var userAgent string
 	var config *client.Config
@@ -737,7 +729,7 @@ var _ = Describe("Client", func() {
 									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
-									RespondWith(http.StatusOK, test.MarshalResponseBody(prepareEGVsResponse(responseEGVsResponse)), responseHeaders),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseEGVsResponse), responseHeaders),
 								),
 							)
 						})

@@ -327,16 +327,16 @@ func translateAlertSettingUnitToRateAlertUnits(unit *string) *string {
 	return nil
 }
 
-func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.Datum {
+func translateEGVToDatum(egv *dexcom.EGV) data.Datum {
 	datum := dataTypesBloodGlucoseContinuous.New()
-
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
 	datum.GUID = nil
 
 	datum.Value = pointer.CloneFloat64(egv.Value)
-	datum.Units = pointer.CloneString(unit)
+	datum.Units = pointer.CloneString(egv.Unit)
 	datum.Payload = metadata.NewMetadata()
+
 	if egv.Status != nil {
 		(*datum.Payload)["status"] = *egv.Status
 	}
@@ -345,7 +345,7 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 	}
 	if egv.TrendRate != nil {
 		(*datum.Payload)["trendRate"] = *egv.TrendRate
-		(*datum.Payload)["trendRateUnits"] = *rateUnit
+		(*datum.Payload)["trendRateUnits"] = *egv.RateUnit
 	}
 	if egv.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *egv.TransmitterID
@@ -556,7 +556,6 @@ func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
 	datum.ID = nil
 	datum.GUID = nil
 
-	//TODO: jhbate question, note has a subtype?
 	if event.SubType != nil {
 		switch *event.SubType {
 		case dexcom.EventSubTypeHealthIllness:
@@ -577,7 +576,6 @@ func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	//TODO: jhbate question, value should now be string??
 	if event.Value != nil {
 		datum.Notes = pointer.FromStringArray([]string{})
 	}

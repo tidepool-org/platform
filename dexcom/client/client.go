@@ -79,8 +79,6 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 		return nil, errors.Wrap(err, "unable to get egvs")
 	}
 
-	debug.Printf("egv count %d", len(egvsResponse.EGVs))
-
 	return egvsResponse, nil
 }
 

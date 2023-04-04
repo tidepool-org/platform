@@ -10,9 +10,8 @@ import (
 
 func RandomEGVsResponse() *dexcom.EGVsResponse {
 	datum := dexcom.NewEGVsResponse()
-	datum.RateUnit = pointer.FromString(test.RandomStringFromArray(dexcom.EGVsResponseRateUnits()))
-	datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.EGVsResponseUnits()))
-	datum.EGVs = RandomEGVs(datum.Unit, 0, 3)
+	unit := pointer.FromString(test.RandomStringFromArray(dexcom.EGVsResponseUnits()))
+	datum.EGVs = RandomEGVs(unit, 0, 3)
 	return datum
 }
 
@@ -21,8 +20,6 @@ func CloneEGVsResponse(datum *dexcom.EGVsResponse) *dexcom.EGVsResponse {
 		return nil
 	}
 	clone := dexcom.NewEGVsResponse()
-	clone.RateUnit = pointer.CloneString(datum.RateUnit)
-	clone.Unit = pointer.CloneString(datum.Unit)
 	clone.EGVs = CloneEGVs(datum.EGVs)
 	return clone
 }
@@ -47,15 +44,21 @@ func CloneEGVs(datum *dexcom.EGVs) *dexcom.EGVs {
 }
 
 func RandomEGV(unit *string) *dexcom.EGV {
-	datum := dexcom.NewEGV(unit)
+	datum := dexcom.NewEGV()
+	datum.Unit = unit
 	datum.ID = pointer.FromString(test.RandomString())
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
 	switch *datum.Unit {
 	case dexcom.EGVUnitMgdL:
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMgdLMinimum, dexcom.EGVValueMgdLMaximum))
+		datum.RateUnit = pointer.FromString(dexcom.EGVRateUnitMgdLMinute)
 	case dexcom.EGVUnitMmolL:
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.EGVValueMmolLMinimum, dexcom.EGVValueMmolLMaximum))
+		datum.RateUnit = pointer.FromString(dexcom.EGVRateUnitMmolLMinute)
+	case dexcom.EGVUnitUnknown:
+		datum.Value = nil
+		datum.RateUnit = pointer.FromString(dexcom.EGVRateUnitUnknown)
 	}
 	datum.Status = pointer.FromString(test.RandomStringFromArray(dexcom.EGVStatuses()))
 	datum.Trend = pointer.FromString(test.RandomStringFromArray(dexcom.EGVTrends()))
@@ -71,11 +74,12 @@ func CloneEGV(datum *dexcom.EGV) *dexcom.EGV {
 	if datum == nil {
 		return nil
 	}
-	clone := dexcom.NewEGV(datum.Unit)
+	clone := dexcom.NewEGV()
 	clone.ID = pointer.CloneString(datum.ID)
 	clone.SystemTime = CloneTime(datum.SystemTime)
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.Unit = pointer.CloneString(datum.Unit)
+	clone.RateUnit = pointer.CloneString(datum.RateUnit)
 	clone.Value = pointer.CloneFloat64(datum.Value)
 	clone.Status = pointer.CloneString(datum.Status)
 	clone.Trend = pointer.CloneString(datum.Trend)
