@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	TimeFormat = "2006-01-02T15:04:05.999Z"
+	TimeFormat = "2006-01-02T15:04:05.999"
 
 	SystemTimeNowThreshold = 24 * time.Hour
 )
