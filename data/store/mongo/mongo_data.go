@@ -182,6 +182,7 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Uplo
 	timestamp := now.Truncate(time.Millisecond)
 
 	dataSet.CreatedTime = pointer.FromTime(timestamp)
+	dataSet.ModifiedTime = pointer.FromTime(timestamp)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
@@ -288,6 +289,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 			"deletedUserId": bson.M{"$exists": false},
 		}
 		set := bson.M{
+			// this upload's records has been deleted but we don't need to set the modifiedTime of the upload
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
@@ -329,6 +331,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&timestamp)
+		datum.SetModifiedTime(&timestamp)
 		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 	}
 
@@ -711,6 +714,7 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 			"deletedUserId": bson.M{"$exists": false},
 		}
 		set := bson.M{
+			// this upload's records has been deleted but we don't need to set the modifiedTime of the upload
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
