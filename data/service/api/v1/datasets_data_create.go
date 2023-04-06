@@ -115,7 +115,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if val, ok := updatesSummary["cgm"]; ok && val == true {
+	if _, ok := updatesSummary["cgm"]; ok {
 		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](dataServiceContext.SummarizerRegistry())
 		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
 		if err != nil {
@@ -123,7 +123,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if val, ok := updatesSummary["bgm"]; ok && val == true {
+	if _, ok := updatesSummary["bgm"]; ok {
 		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](dataServiceContext.SummarizerRegistry())
 		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
 		if err != nil {

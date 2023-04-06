@@ -41,6 +41,10 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 		return nil, errors.New("context is missing")
 	}
 
+	if userId == "" {
+		return nil, errors.New("userId is missing")
+	}
+
 	summary := types.Create[T, A](userId)
 	selector := bson.M{
 		"userId": userId,
@@ -61,6 +65,9 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
+	if userId == "" {
+		return errors.New("userId is missing")
+	}
 
 	selector := bson.M{
 		"userId": userId,
@@ -74,30 +81,51 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) UpsertSummary(ctx context.Context, summary *types.Summary[T, A]) error {
+func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if summary == nil {
+	if userId == "" {
+		return errors.New("userId is missing")
+	}
+
+	selector := bson.M{
+		"userId": userId,
+		"type":   types.GetTypeString[T, A](),
+	}
+
+	_, err := r.DeleteMany(ctx, selector)
+	if err != nil {
+		return errors.Wrap(err, "unable to delete summary")
+	}
+
+	return nil
+}
+
+func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summary[T, A]) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userSummary == nil {
 		return errors.New("summary object is missing")
 	}
 
-	expectedType := types.GetTypeString[T, A]()
-	if summary.Type != expectedType {
-		return fmt.Errorf("invalid summary type %v, expected %v", summary.Type, expectedType)
+	var expectedType = types.GetTypeString[T, A]()
+	if userSummary.Type != expectedType {
+		return fmt.Errorf("invalid summary type '%v', expected '%v'", userSummary.Type, expectedType)
 	}
 
-	if summary.UserID == "" {
-		return errors.New("summary missing UserID")
+	if userSummary.UserID == "" {
+		return errors.New("summary is missing UserID")
 	}
 
 	opts := options.Update().SetUpsert(true)
 	selector := bson.M{
-		"userId": summary.UserID,
-		"type":   summary.Type,
+		"userId": userSummary.UserID,
+		"type":   userSummary.Type,
 	}
 
-	_, err := r.UpdateOne(ctx, selector, bson.M{"$set": summary}, opts)
+	_, err := r.UpdateOne(ctx, selector, bson.M{"$set": userSummary}, opts)
 
 	return err
 }
@@ -131,10 +159,19 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 		return 0, errors.New("summaries for create missing")
 	}
 
-	insertData := make([]interface{}, len(summaries))
+	var expectedType = types.GetTypeString[T, A]()
 
-	for i := 0; i < len(summaries); i++ {
-		insertData[i] = *summaries[i]
+	insertData := make([]interface{}, 0, len(summaries))
+
+	for i, userSummary := range summaries {
+		// we don't guard against duplicates, as they fail to insert safely, we only worry about unfilled fields
+		if userSummary.UserID == "" {
+			return 0, errors.Errorf("userId is missing at index %d", i)
+		} else if userSummary.Type != expectedType {
+			return 0, fmt.Errorf("invalid summary type '%v', expected '%v' at index %d", userSummary.Type, expectedType, i)
+		}
+
+		insertData = append(insertData, *userSummary)
 	}
 
 	opts := options.InsertMany().SetOrdered(false)
@@ -153,36 +190,36 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 
 func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
 	var outdatedTime *time.Time
+	var userSummary *types.Summary[T, A]
+	var err error
+
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 
 	if userId == "" {
-		return nil, errors.New("user id is missing")
+		return nil, errors.New("userId is missing")
 	}
 
 	// we need to get the summary first, as there is multiple possible operations, and we do not want to replace
 	// the existing field, but also want to upsert if no summary exists.
-	s := types.Create[T, A](userId)
-	opts := options.Update().SetUpsert(true)
-
-	selector := bson.M{
-		"userId": userId,
-		"type":   s.Type,
+	userSummary, err = r.GetSummary(ctx, userId)
+	if err != nil {
+		return nil, err
 	}
 
-	err := r.FindOne(ctx, selector).Decode(&s)
-	if err != nil && err != mongo.ErrNoDocuments {
-		return nil, errors.Wrap(err, "unable to get summary")
+	if userSummary != nil {
+		outdatedTime = userSummary.Dates.OutdatedSince
+	} else {
+		userSummary = types.Create[T, A](userId)
 	}
-
-	outdatedTime = s.Dates.OutdatedSince
 
 	if outdatedTime == nil {
 		outdatedTime = pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond))
-		_, err = r.UpdateOne(ctx, selector, bson.M{"$set": bson.M{"dates.outdatedSince": outdatedTime}}, opts)
+		userSummary.Dates.OutdatedSince = outdatedTime
+		err = r.UpsertSummary(ctx, userSummary)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", userId, s.Type)
+			return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", userId, userSummary.Type)
 		}
 	}
 
