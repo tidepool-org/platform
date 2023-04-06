@@ -1,7 +1,6 @@
 package dexcom
 
 import (
-	"regexp"
 	"strings"
 	"time"
 )
@@ -51,8 +50,6 @@ func TimeFromString(raw *string) *Time {
 		return nil
 	}
 
-	tzRegex := "(?:Z|[+-](?:2[0-3]|[01][0-9]):[0-5][0-9])$"
-
 	stringValue := *raw
 	var err error
 	var timeValue time.Time
@@ -63,14 +60,10 @@ func TimeFromString(raw *string) *Time {
 			return nil
 		}
 	} else {
-		hasZone, _ := regexp.MatchString(tzRegex, stringValue)
-		if hasZone {
+		//most common and seems to be used largly in system and display time
+		timeValue, err = time.Parse(TimeFormatMilli, stringValue)
+		if err != nil {
 			timeValue, err = time.Parse(TimeFormatMilliZ, stringValue)
-			if err != nil {
-				return nil
-			}
-		} else {
-			timeValue, err = time.Parse(TimeFormatMilli, stringValue)
 			if err != nil {
 				return nil
 			}

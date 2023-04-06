@@ -85,7 +85,7 @@ var _ = Describe("Client", func() {
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 			startTime = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
 			endTime = test.RandomTimeFromRange(startTime, time.Now())
-			requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.TimeFormatMilli), endTime.UTC().Format(dexcom.TimeFormatMilli))
+			requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.TimeFormat), endTime.UTC().Format(dexcom.TimeFormat))
 			tokenSource = oauthTest.NewTokenSource()
 		})
 
