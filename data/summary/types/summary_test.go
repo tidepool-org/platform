@@ -1,13 +1,15 @@
 package types_test
 
 import (
+	"math"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
-	"math"
-	"time"
 )
 
 const (

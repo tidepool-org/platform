@@ -1,8 +1,9 @@
 package types_test
 
 import (
-	"github.com/tidepool-org/platform/test"
 	"testing"
+
+	"github.com/tidepool-org/platform/test"
 )
 
 func TestSuite(t *testing.T) {
