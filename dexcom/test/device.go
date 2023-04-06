@@ -42,7 +42,7 @@ func CloneDevices(datum *dexcom.Devices) *dexcom.Devices {
 
 func RandomDevice() *dexcom.Device {
 	datum := dexcom.NewDevice()
-	datum.LastUploadDate = RandomTime()
+	datum.LastUploadDate = RandomTimeUTC()
 	datum.AlertScheduleList = RandomAlertSchedules(1, 3)
 	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
 	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))

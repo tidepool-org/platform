@@ -15,7 +15,11 @@ import (
 
 var _ = Describe("Dexcom", func() {
 	It("TimeFormat is expected", func() {
-		Expect(dexcom.TimeFormat).To(Equal("2006-01-02T15:04:05.999"))
+		Expect(dexcom.TimeFormatMilli).To(Equal("2006-01-02T15:04:05.999"))
+	})
+
+	It("TimeFormatUTC is expected", func() {
+		Expect(dexcom.TimeFormatMilliUTC).To(Equal("2006-01-02T15:04:05.999Z"))
 	})
 
 	It("SystemTimeNowThreshold is expected", func() {
@@ -24,7 +28,8 @@ var _ = Describe("Dexcom", func() {
 
 	Context("IsValidTransmitterID, TransmitterIDValidator, and ValidateTransmitterID", func() {
 
-		const validTransmitterId = "cdb4f8eea4392295413c64d5bc7a9e0e0ee9b215fb43c5a6d71d4431e540046b"
+		//const validTransmitterId = "cdb4f8eea4392295413c64d5bc7a9e0e0ee9b215fb43c5a6d71d4431e540046b"
+		const validTransmitterId = "6f1c584eb070e0e7ec3f8a9af313c34028374eee50928be47d807f333891369f"
 
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
@@ -36,7 +41,7 @@ var _ = Describe("Dexcom", func() {
 			},
 			Entry("is an empty string", ""),
 			Entry("has string length in range", validTransmitterId),
-			Entry("has string length out of range (lower)", strings.TrimSuffix(validTransmitterId, "46b"), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.TrimSuffix(validTransmitterId, "46b"))),
+			Entry("has string length out of range (lower)", validTransmitterId[:40], dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterId[:40])),
 			Entry("has string length out of range (upper)", validTransmitterId+"a", dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterId+"a")),
 			Entry("has uppercase characters", strings.ToUpper(validTransmitterId), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ToUpper(validTransmitterId))),
 			Entry("has symbols", strings.ReplaceAll(validTransmitterId, "a", "$"), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterId, "a", "$"))),

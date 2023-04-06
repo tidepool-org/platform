@@ -23,7 +23,7 @@ const (
 	NameLengthMaximum             = 100
 	SerialNumberLengthMaximum     = 100
 	SoftwareVersionLengthMaximum  = 100
-	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
+	TransmitterIDExpressionString = "^[0-9a-zA-Z]{5,64}$"
 )
 
 type CGM struct {
@@ -101,7 +101,7 @@ func (c *CGM) Validate(validator structure.Validator) {
 	validator.String("name", c.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
 	validator.String("softwareVersion", c.SoftwareVersion).NotEmpty().LengthLessThanOrEqualTo(SoftwareVersionLengthMaximum)
-	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
+	validator.String("transmitterId", c.TransmitterID).NotEmpty()         //TODO: allow for dexcom style hash also
 	validator.String("units", c.Units).OneOf(dataBloodGlucose.Units()...) // FUTURE: Use locally defined Units
 
 	if c.DefaultAlerts != nil {

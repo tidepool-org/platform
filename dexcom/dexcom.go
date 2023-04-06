@@ -10,7 +10,10 @@ import (
 )
 
 const (
-	TimeFormat = "2006-01-02T15:04:05.999"
+	TimeFormat         = "2006-01-02T15:04:05"
+	TimeFormatMilli    = "2006-01-02T15:04:05.999"
+	TimeFormatMilliUTC = "2006-01-02T15:04:05.999Z"
+	TimeFormatMilliZ   = "2006-01-02T15:04:05.999-07:00"
 
 	SystemTimeNowThreshold = 24 * time.Hour
 )

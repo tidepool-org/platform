@@ -102,7 +102,10 @@ func EventStatuses() []string {
 }
 
 type EventsResponse struct {
-	Events *Events `json:"records,omitempty"`
+	RecordType    *string `json:"recordType,omitempty"`
+	RecordVersion *string `json:"recordVersion,omitempty"`
+	UserID        *string `json:"userId,omitempty"`
+	Events        *Events `json:"records,omitempty"`
 }
 
 func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
@@ -119,6 +122,9 @@ func NewEventsResponse() *EventsResponse {
 }
 
 func (e *EventsResponse) Parse(parser structure.ObjectParser) {
+	e.UserID = parser.String("userId")
+	e.RecordType = parser.String("recordType")
+	e.RecordVersion = parser.String("recordVersion")
 	e.Events = ParseEvents(parser.WithReferenceArrayParser("records"))
 }
 
@@ -189,8 +195,8 @@ func NewEvent() *Event {
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {
-	e.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
-	e.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
+	e.SystemTime = TimeFromString(parser.String("systemTime"))
+	e.DisplayTime = TimeFromString(parser.String("displayTime"))
 	e.Type = parser.String("eventType")
 	e.SubType = parser.String("eventSubType")
 	e.Unit = parser.String("unit")

@@ -54,6 +54,9 @@ func DeviceTransmitterGenerations() []string {
 }
 
 type DevicesResponse struct {
+	RecordType    *string  `json:"recordType,omitempty"`
+	RecordVersion *string  `json:"recordVersion,omitempty"`
+	UserID        *string  `json:"userId,omitempty"`
 	Devices       *Devices `json:"records,omitempty"`
 	IsSandboxData bool     `json:"isSandboxData,omitempty"`
 }
@@ -72,6 +75,9 @@ func NewDevicesResponse() *DevicesResponse {
 }
 
 func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
+	d.UserID = parser.String("userId")
+	d.RecordType = parser.String("recordType")
+	d.RecordVersion = parser.String("recordVersion")
 	d.Devices = ParseDevices(parser.WithReferenceArrayParser("records"))
 }
 
@@ -151,7 +157,7 @@ func NewDevice() *Device {
 }
 
 func (d *Device) Parse(parser structure.ObjectParser) {
-	d.LastUploadDate = TimeFromRaw(parser.Time("lastUploadDate", TimeFormat))
+	d.LastUploadDate = TimeFromString(parser.String("lastUploadDate"))
 	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertSchedules"))
 	d.TransmitterID = parser.String("transmitterId")
 	d.TransmitterGeneration = parser.String("transmitterGeneration")

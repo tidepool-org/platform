@@ -694,8 +694,11 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 }
 
 func (t *TaskRunner) storeDevicesDatumArray(devicesDatumArray data.Data) error {
+	t.logger.Info("## storing device data")
 	if len(devicesDatumArray) > 0 {
 		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, devicesDatumArray); err != nil {
+
+			t.logger.Infof("## devicesDatumArray %v", devicesDatumArray)
 			return errors.Wrap(err, "unable to create data set data")
 		}
 

@@ -87,7 +87,10 @@ func EGVTrends() []string {
 }
 
 type EGVsResponse struct {
-	EGVs *EGVs `json:"records,omitempty"`
+	RecordType    *string `json:"recordType,omitempty"`
+	RecordVersion *string `json:"recordVersion,omitempty"`
+	UserID        *string `json:"userId,omitempty"`
+	EGVs          *EGVs   `json:"records,omitempty"`
 }
 
 func ParseEGVsResponse(parser structure.ObjectParser) *EGVsResponse {
@@ -104,6 +107,9 @@ func NewEGVsResponse() *EGVsResponse {
 }
 
 func (e *EGVsResponse) Parse(parser structure.ObjectParser) {
+	e.UserID = parser.String("userId")
+	e.RecordType = parser.String("recordType")
+	e.RecordVersion = parser.String("recordVersion")
 	e.EGVs = ParseEGVs(parser.WithReferenceArrayParser("records"))
 }
 
@@ -177,8 +183,8 @@ func NewEGV() *EGV {
 
 func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.ID = parser.String("recordId")
-	e.SystemTime = TimeFromRaw(parser.ForgivingTime("systemTime", TimeFormat))
-	e.DisplayTime = TimeFromRaw(parser.ForgivingTime("displayTime", TimeFormat))
+	e.SystemTime = TimeFromString(parser.String("systemTime"))
+	e.DisplayTime = TimeFromString(parser.String("displayTime"))
 	e.Unit = parser.String("unit")
 	e.RateUnit = parser.String("rateUnit")
 	e.Value = parser.Float64("value")

@@ -29,7 +29,10 @@ func CalibrationUnits() []string {
 }
 
 type CalibrationsResponse struct {
-	Calibrations *Calibrations `json:"records,omitempty"`
+	RecordType    *string       `json:"recordType,omitempty"`
+	RecordVersion *string       `json:"recordVersion,omitempty"`
+	UserID        *string       `json:"userId,omitempty"`
+	Calibrations  *Calibrations `json:"records,omitempty"`
 }
 
 func ParseCalibrationsResponse(parser structure.ObjectParser) *CalibrationsResponse {
@@ -46,6 +49,9 @@ func NewCalibrationsResponse() *CalibrationsResponse {
 }
 
 func (c *CalibrationsResponse) Parse(parser structure.ObjectParser) {
+	c.UserID = parser.String("userId")
+	c.RecordType = parser.String("recordType")
+	c.RecordVersion = parser.String("recordVersion")
 	c.Calibrations = ParseCalibrations(parser.WithReferenceArrayParser("records"))
 }
 
@@ -115,8 +121,8 @@ func NewCalibration() *Calibration {
 
 func (c *Calibration) Parse(parser structure.ObjectParser) {
 	c.ID = parser.String("recordId")
-	c.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
-	c.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
+	c.SystemTime = TimeFromString(parser.String("systemTime"))
+	c.DisplayTime = TimeFromString(parser.String("displayTime"))
 	c.Unit = parser.String("unit")
 	c.Value = parser.Float64("value")
 	c.TransmitterID = parser.String("transmitterId")
