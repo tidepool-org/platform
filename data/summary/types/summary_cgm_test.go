@@ -241,7 +241,7 @@ var _ = Describe("CGM Summary", func() {
 
 					lastRecordTime = datumTime.Add(time.Hour*time.Duration(i-143) - time.Minute*5)
 					Expect(userCGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
-					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(Equal(float64((i - 143) * 12 * 5)))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", float64((i-143)*12*5), 0.001))
 
 					averageGlucose := userCGMSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes)
 					Expect(averageGlucose).To(BeNumerically("~", i-143))
@@ -533,7 +533,6 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correctly calculated summary with no rolling", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose)
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				//userCGMSummary.Dates.OutdatedSince = &datumTime
 				expectedGMI := types.CalculateGMI(requestedAvgGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
@@ -560,7 +559,6 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 1, requestedAvgGlucose-4)
 				userCGMSummary = types.Create[types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
-				//userCGMSummary.Dates.OutdatedSince = &datumTime
 				expectedGMI := types.CalculateGMI(requestedAvgGlucose + 4)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
