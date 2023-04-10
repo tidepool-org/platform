@@ -137,7 +137,7 @@ func (c *Calibration) Validate(validator structure.Validator) {
 	validator.Time("systemTime", c.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", c.DisplayTime.Raw()).Exists().NotZero()
 	validator.String("transmitterId", c.TransmitterID).Exists().Using(TransmitterIDValidator)
-	validator.Int("transmitterTicks", c.TransmitterTicks).Exists().GreaterThan(0)
+	validator.Int("transmitterTicks", c.TransmitterTicks).Exists()
 	validator.String("displayDevice", c.DisplayDevice).Exists().NotEmpty()
 	validator.String("transmitterGeneration", c.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
 	validator.String("unit", c.Unit).OneOf(CalibrationUnits()...)

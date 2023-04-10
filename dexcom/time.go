@@ -1,7 +1,6 @@
 package dexcom
 
 import (
-	"strings"
 	"time"
 )
 
@@ -54,20 +53,11 @@ func TimeFromString(raw *string) *Time {
 	var err error
 	var timeValue time.Time
 
-	if strings.HasSuffix(stringValue, "Z") {
-		timeValue, err = time.Parse(TimeFormatMilliUTC, stringValue)
-		if err != nil {
-			return nil
-		}
-	} else {
-		//most common and seems to be used largly in system and display time
-		timeValue, err = time.Parse(TimeFormatMilli, stringValue)
-		if err != nil {
-			timeValue, err = time.Parse(TimeFormatMilliZ, stringValue)
-			if err != nil {
-				return nil
-			}
-		}
+	format := GetTimeFormat(stringValue)
+
+	timeValue, err = time.Parse(format, stringValue)
+	if err != nil {
+		return nil
 	}
 
 	return &Time{
