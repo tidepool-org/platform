@@ -25,12 +25,6 @@ func RandomTime() *dexcom.Time {
 	return datum
 }
 
-func RandomTimeUTC() *dexcom.Time {
-	datum := dexcom.NewTime()
-	datum.Time = test.RandomTime().UTC()
-	return datum
-}
-
 func CloneTime(datum *dexcom.Time) *dexcom.Time {
 	if datum == nil {
 		return nil
