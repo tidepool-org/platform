@@ -10,12 +10,17 @@ import (
 )
 
 const (
-	TimeFormatMilli    = "2006-01-02T15:04:05.999"
+	TimeFormatMilli = "2006-01-02T15:04:05.999"
+	//
 	TimeFormatMilliUTC = "2006-01-02T15:04:05.999Z"
 	TimeFormatMilliZ   = "2006-01-02T15:04:05.999-07:00"
 
-	TimeFormat    = "2006-01-02T15:04:05"
-	TimeFormatZ   = "2006-01-02T15:04:05-07:00"
+	// systemTime
+	TimeMinimalFormat = "2006-01-02T15:04"
+	// displayTime, systemTime
+	TimeFormat  = "2006-01-02T15:04:05"
+	TimeFormatZ = "2006-01-02T15:04:05-07:00"
+	// lastUploadDate
 	TimeFormatUTC = "2006-01-02T15:04:05Z"
 
 	SystemTimeNowThreshold = 24 * time.Hour
@@ -23,6 +28,7 @@ const (
 
 func timeFormats() map[int]string {
 	return map[int]string{
+		len(TimeMinimalFormat):  TimeMinimalFormat,
 		len(TimeFormat):         TimeFormat,
 		len(TimeFormatMilli):    TimeFormatMilli,
 		len(TimeFormatZ):        TimeFormatZ,

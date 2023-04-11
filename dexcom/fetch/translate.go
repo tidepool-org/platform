@@ -1,7 +1,6 @@
 package fetch
 
 import (
-	debug "log"
 	"strconv"
 	"time"
 
@@ -495,10 +494,6 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 	datum.ID = nil
 	datum.GUID = nil
 
-	// DEBUG:
-	debug.Printf("## Insulin Event ## %v ", event)
-	//
-
 	if event.SubType != nil {
 		switch *event.SubType {
 		case dexcom.EventSubTypeInsulinFastActing:
@@ -508,7 +503,6 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
-
 		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
 
 		datum.Dose = &dataTypesInsulin.Dose{
@@ -521,9 +515,6 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 	}
 
 	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
-
-	// DEBUG:
-	debug.Printf("## Insulin event datum ## %v ", datum)
 
 	return datum
 }

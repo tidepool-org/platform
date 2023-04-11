@@ -30,6 +30,10 @@ var _ = Describe("Dexcom", func() {
 		Expect(dexcom.TimeFormat).To(Equal("2006-01-02T15:04:05"))
 	})
 
+	It("TimeMinimalFormat is expected", func() {
+		Expect(dexcom.TimeMinimalFormat).To(Equal("2006-01-02T15:04"))
+	})
+
 	It("SystemTimeNowThreshold is expected", func() {
 		Expect(dexcom.SystemTimeNowThreshold).To(Equal(24 * time.Hour))
 	})
