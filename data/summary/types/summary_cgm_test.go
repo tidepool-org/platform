@@ -412,38 +412,56 @@ var _ = Describe("CGM Summary", func() {
 					f := fmt.Sprintf("period %s", periodKey)
 					By(f)
 
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInTargetMinutes).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInTargetRecords).To(Equal(48 * v))
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetPercent).To(Equal(0.200))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInTargetMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetMinutes).To(Equal(240 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInTargetRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetRecords).To(Equal(48 * v))
+
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInTargetPercent).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetPercent).To(Equal(0.200))
 
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowMinutes).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowRecords).To(Equal(48 * v))
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowMinutes).To(Equal(240 * v))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowMinutes).To(BeTrue())
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowRecords).To(Equal(48 * v))
+
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowPercent).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(0.200))
 
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInLowMinutes).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInLowRecords).To(Equal(48 * v))
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowPercent).To(Equal(0.200))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInLowMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowMinutes).To(Equal(240 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInLowRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowRecords).To(Equal(48 * v))
+
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInLowPercent).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowPercent).To(Equal(0.200))
 
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInHighMinutes).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInHighRecords).To(Equal(48 * v))
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighPercent).To(Equal(0.200))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInHighMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighMinutes).To(Equal(240 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInHighRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighRecords).To(Equal(48 * v))
+
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInHighPercent).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighPercent).To(Equal(0.200))
 
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighMinutes).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(48 * v))
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(0.200))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighMinutes).To(Equal(240 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(48 * v))
+
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighPercent).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(0.200))
 
-					// ranges calc only generates 83.3% of an hour, each hour needs to be divisible by 5
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeCGMUseMinutes).To(Equal(1200 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].TimeCGMUseRecords).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUsePercent).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTotalRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(240 * v))
 
-					Expect(userCGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(240 * v))
-					Expect(userCGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 240))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasAverageDailyRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 240))
 
 					// this value is a bit funny, its 83.3%, but the missing end of the final day gets compensated off
 					// resulting in 83.6% only on the first day
@@ -453,6 +471,14 @@ var _ = Describe("CGM Summary", func() {
 						expectedCGMUse = 0.833
 					}
 
+					// ranges calc only generates 83.3% of an hour, each hour needs to be divisible by 5
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseMinutes).To(Equal(1200 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseRecords).To(Equal(240 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUsePercent).To(BeNumerically("~", expectedCGMUse, 0.001))
 				}
 			})
@@ -471,14 +497,20 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
 				}
 			})
 
@@ -496,14 +528,20 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
 				}
 
 				// start the real test
@@ -517,16 +555,21 @@ var _ = Describe("CGM Summary", func() {
 
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(30 * 24)) // 30 days currently capped
 				for i, period := range periodKeys {
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(
 						BeNumerically("~", 960/(float64(periodInts[i])*1440), 0.005))
-					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
-					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(192))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(960))
-					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(192))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(960))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
 				}
 			})
 
@@ -544,14 +587,20 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
 				}
 			})
 
@@ -569,14 +618,19 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(1))
 
 				for i, period := range periodKeys {
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(
 						BeNumerically("~", 60/(float64(periodInts[i])*1440), 0.006))
 
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(12))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
-					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(12))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 				}
@@ -592,14 +646,20 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
 				}
 			})
 
@@ -616,11 +676,19 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary.Stats.CalculateSummary()
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
-				for _, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+				for i, period := range periodKeys {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.005))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.005))
+
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
@@ -638,10 +706,18 @@ var _ = Describe("CGM Summary", func() {
 				for i, period := range periodKeys {
 					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, requestedAvgGlucose+4, requestedAvgGlucose-4)
 					expectedGMI := types.CalculateGMI(expectedAverage)
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", expectedAverage, 0.005))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", expectedAverage, 0.005))
+
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
@@ -661,12 +737,18 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(24))
 
 				for i, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1440/(1440*float64(periodInts[i])), 0.005))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(288))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(1440))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1440/(1440*float64(periodInts[i])), 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(288))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(1440))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+
 					if *userCGMSummary.Stats.Periods[period].TimeCGMUsePercent > 0.7 {
 						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					} else {
@@ -688,24 +770,28 @@ var _ = Describe("CGM Summary", func() {
 
 				for i, period := range periodKeys {
 					if i == 0 || i == 1 {
-						Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(288 * periodInts[i]))
-						Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(1440 * periodInts[i]))
+						Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(288 * periodInts[i]))
+						Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(1440 * periodInts[i]))
 						Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 					} else {
-						Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(7 * 288))
-						Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(7 * 1440))
+						Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(7 * 288))
+						Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(7 * 1440))
 						Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1440*7/(1440*float64(periodInts[i])), 0.005))
 					}
 
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+
 					if *userCGMSummary.Stats.Periods[period].TimeCGMUsePercent > 0.7 {
-						Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
 						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+						Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
 					} else {
-						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 						Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
+						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 					}
 				}
 			})
@@ -724,14 +810,20 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
 				}
 
 				// start the actual test
@@ -743,14 +835,20 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720)) // 30 days
 
 				for _, period := range periodKeys {
-					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.03, 0.03))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(12))
-					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.05))
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 0.03, 0.03))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(12))
+
+					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.05))
+
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
+					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
 				}
 			})
 		})

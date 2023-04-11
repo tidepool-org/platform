@@ -34,45 +34,71 @@ type CGMBucketData struct {
 }
 
 type CGMPeriod struct {
-	HasAverageGlucose             bool `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
-	HasGlucoseManagementIndicator bool `json:"hasGlucoseManagementIndicator" bson:"hasGlucoseManagementIndicator"`
-	HasTimeCGMUsePercent          bool `json:"hasTimeCGMUsePercent" bson:"hasTimeCGMUsePercent"`
-	HasTimeInTargetPercent        bool `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
-	HasTimeInHighPercent          bool `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
-	HasTimeInVeryHighPercent      bool `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
-	HasTimeInLowPercent           bool `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
-	HasTimeInVeryLowPercent       bool `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
+	HasTimeCGMUsePercent bool     `json:"hasTimeCGMUsePercent" bson:"hasTimeCGMUsePercent"`
+	TimeCGMUsePercent    *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
 
-	// actual values
-	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
-	TimeCGMUseMinutes int      `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
-	TimeCGMUseRecords int      `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
+	HasTimeCGMUseMinutes bool `json:"hasTimeCGMUseMinutes" bson:"hasTimeCGMUseMinutes"`
+	TimeCGMUseMinutes    *int `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
 
-	AverageGlucose             *Glucose `json:"averageGlucose" bson:"averageGlucose"`
-	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
+	HasTimeCGMUseRecords bool `json:"hasTimeCGMUseRecords" bson:"hasTimeCGMUseRecords"`
+	TimeCGMUseRecords    *int `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 
-	TotalRecords        int     `json:"totalRecords" bson:"totalRecords"`
-	AverageDailyRecords float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
+	HasAverageGlucose bool     `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
+	AverageGlucose    *Glucose `json:"averageGlucose" bson:"averageGlucose"`
 
-	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
-	TimeInTargetMinutes int      `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
-	TimeInTargetRecords int      `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+	HasGlucoseManagementIndicator bool     `json:"hasGlucoseManagementIndicator" bson:"hasGlucoseManagementIndicator"`
+	GlucoseManagementIndicator    *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
 
-	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
-	TimeInLowMinutes int      `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
-	TimeInLowRecords int      `json:"timeInLowRecords" bson:"timeInLowRecords"`
+	HasTotalRecords bool `json:"hasTotalRecords" bson:"hasTotalRecords"`
+	TotalRecords    *int `json:"totalRecords" bson:"totalRecords"`
 
-	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
-	TimeInVeryLowMinutes int      `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
-	TimeInVeryLowRecords int      `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+	HasAverageDailyRecords bool     `json:"hasAverageDailyRecords" bson:"hasAverageDailyRecords"`
+	AverageDailyRecords    *float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
 
-	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
-	TimeInHighMinutes int      `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
-	TimeInHighRecords int      `json:"timeInHighRecords" bson:"timeInHighRecords"`
+	HasTimeInTargetPercent bool     `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
+	TimeInTargetPercent    *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
 
-	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
-	TimeInVeryHighMinutes int      `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
-	TimeInVeryHighRecords int      `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+	HasTimeInTargetMinutes bool `json:"hasTimeInTargetMinutes" bson:"hasTimeInTargetMinutes"`
+	TimeInTargetMinutes    *int `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
+
+	HasTimeInTargetRecords bool `json:"hasTimeInTargetRecords" bson:"hasTimeInTargetRecords"`
+	TimeInTargetRecords    *int `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+
+	HasTimeInLowPercent bool     `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
+	TimeInLowPercent    *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
+
+	HasTimeInLowMinutes bool `json:"hasTimeInLowMinutes" bson:"hasTimeInLowMinutes"`
+	TimeInLowMinutes    *int `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
+
+	HasTimeInLowRecords bool `json:"hasTimeInLowRecords" bson:"hasTimeInLowRecords"`
+	TimeInLowRecords    *int `json:"timeInLowRecords" bson:"timeInLowRecords"`
+
+	HasTimeInVeryLowPercent bool     `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
+	TimeInVeryLowPercent    *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+
+	HasTimeInVeryLowMinutes bool `json:"hasTimeInVeryLowMinutes" bson:"hasTimeInVeryLowMinutes"`
+	TimeInVeryLowMinutes    *int `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
+
+	HasTimeInVeryLowRecords bool `json:"hasTimeInVeryLowRecords" bson:"hasTimeInVeryLowRecords"`
+	TimeInVeryLowRecords    *int `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+
+	HasTimeInHighPercent bool     `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
+	TimeInHighPercent    *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+
+	HasTimeInHighMinutes bool `json:"hasTimeInHighMinutes" bson:"hasTimeInHighMinutes"`
+	TimeInHighMinutes    *int `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
+
+	HasTimeInHighRecords bool `json:"hasTimeInHighRecords" bson:"hasTimeInHighRecords"`
+	TimeInHighRecords    *int `json:"timeInHighRecords" bson:"timeInHighRecords"`
+
+	HasTimeInVeryHighPercent bool     `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
+	TimeInVeryHighPercent    *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+
+	HasTimeInVeryHighMinutes bool `json:"hasTimeInVeryHighMinutes" bson:"hasTimeInVeryHighMinutes"`
+	TimeInVeryHighMinutes    *int `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
+
+	HasTimeInVeryHighRecords bool `json:"hasTimeInVeryHighRecords" bson:"hasTimeInVeryHighRecords"`
+	TimeInVeryHighRecords    *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
 type CGMPeriods map[string]CGMPeriod
@@ -251,43 +277,70 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 	}
 
 	s.Periods[strconv.Itoa(i)+"d"] = CGMPeriod{
-		HasAverageGlucose:             averageGlucose != nil,
+		HasTimeCGMUsePercent: timeCGMUsePercent != nil,
+		TimeCGMUsePercent:    timeCGMUsePercent,
+
+		HasTimeCGMUseMinutes: true,
+		TimeCGMUseMinutes:    pointer.FromAny(totalStats.TotalMinutes),
+
+		HasTimeCGMUseRecords: true,
+		TimeCGMUseRecords:    pointer.FromAny(totalStats.TotalRecords),
+
+		HasAverageGlucose: averageGlucose != nil,
+		AverageGlucose:    averageGlucose,
+
 		HasGlucoseManagementIndicator: glucoseManagementIndicator != nil,
-		HasTimeCGMUsePercent:          timeCGMUsePercent != nil,
-		HasTimeInTargetPercent:        timeInTargetPercent != nil,
-		HasTimeInLowPercent:           timeInLowPercent != nil,
-		HasTimeInVeryLowPercent:       timeInVeryLowPercent != nil,
-		HasTimeInHighPercent:          timeInHighPercent != nil,
-		HasTimeInVeryHighPercent:      timeInVeryHighPercent != nil,
+		GlucoseManagementIndicator:    glucoseManagementIndicator,
 
-		TimeCGMUsePercent: timeCGMUsePercent,
-		TimeCGMUseMinutes: totalStats.TotalMinutes,
-		TimeCGMUseRecords: totalStats.TotalRecords,
+		HasTotalRecords: true,
+		TotalRecords:    pointer.FromAny(totalStats.TotalRecords),
 
-		AverageGlucose:             averageGlucose,
-		GlucoseManagementIndicator: glucoseManagementIndicator,
+		HasAverageDailyRecords: true,
+		AverageDailyRecords:    pointer.FromAny(float64(totalStats.TotalRecords) / float64(i)),
 
-		TotalRecords:        totalStats.TotalRecords,
-		AverageDailyRecords: float64(totalStats.TotalRecords) / float64(i),
+		HasTimeInTargetPercent: timeInTargetPercent != nil,
+		TimeInTargetPercent:    timeInTargetPercent,
 
-		TimeInTargetPercent: timeInTargetPercent,
-		TimeInTargetMinutes: totalStats.TargetMinutes,
-		TimeInTargetRecords: totalStats.TargetRecords,
+		HasTimeInTargetMinutes: true,
+		TimeInTargetMinutes:    pointer.FromAny(totalStats.TargetMinutes),
 
-		TimeInLowPercent: timeInLowPercent,
-		TimeInLowMinutes: totalStats.LowMinutes,
-		TimeInLowRecords: totalStats.LowRecords,
+		HasTimeInTargetRecords: true,
+		TimeInTargetRecords:    pointer.FromAny(totalStats.TargetRecords),
 
-		TimeInVeryLowPercent: timeInVeryLowPercent,
-		TimeInVeryLowMinutes: totalStats.VeryLowMinutes,
-		TimeInVeryLowRecords: totalStats.VeryLowRecords,
+		HasTimeInLowPercent: timeInLowPercent != nil,
+		TimeInLowPercent:    timeInLowPercent,
 
-		TimeInHighPercent: timeInHighPercent,
-		TimeInHighMinutes: totalStats.HighMinutes,
-		TimeInHighRecords: totalStats.HighRecords,
+		HasTimeInLowMinutes: true,
+		TimeInLowMinutes:    pointer.FromAny(totalStats.LowMinutes),
 
-		TimeInVeryHighPercent: timeInVeryHighPercent,
-		TimeInVeryHighMinutes: totalStats.VeryHighMinutes,
-		TimeInVeryHighRecords: totalStats.VeryHighRecords,
+		HasTimeInLowRecords: true,
+		TimeInLowRecords:    pointer.FromAny(totalStats.LowRecords),
+
+		HasTimeInVeryLowPercent: timeInVeryLowPercent != nil,
+		TimeInVeryLowPercent:    timeInVeryLowPercent,
+
+		HasTimeInVeryLowMinutes: true,
+		TimeInVeryLowMinutes:    pointer.FromAny(totalStats.VeryLowMinutes),
+
+		HasTimeInVeryLowRecords: true,
+		TimeInVeryLowRecords:    pointer.FromAny(totalStats.VeryLowRecords),
+
+		HasTimeInHighPercent: timeInHighPercent != nil,
+		TimeInHighPercent:    timeInHighPercent,
+
+		HasTimeInHighMinutes: true,
+		TimeInHighMinutes:    pointer.FromAny(totalStats.HighMinutes),
+
+		HasTimeInHighRecords: true,
+		TimeInHighRecords:    pointer.FromAny(totalStats.HighRecords),
+
+		HasTimeInVeryHighPercent: timeInVeryHighPercent != nil,
+		TimeInVeryHighPercent:    timeInVeryHighPercent,
+
+		HasTimeInVeryHighMinutes: true,
+		TimeInVeryHighMinutes:    pointer.FromAny(totalStats.VeryHighMinutes),
+
+		HasTimeInVeryHighRecords: true,
+		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 	}
 }

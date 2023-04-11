@@ -59,8 +59,8 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
 		datum.Stats.Periods[period] = types.CGMPeriod{
-			GlucoseManagementIndicator:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 20)),
 			HasGlucoseManagementIndicator: test.RandomBool(),
+			GlucoseManagementIndicator:    pointer.FromAny(test.RandomFloat64FromRange(0, 20)),
 
 			AverageGlucose: &types.Glucose{
 				Value: test.RandomFloat64FromRange(1, 30),
@@ -68,35 +68,65 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 			},
 			HasAverageGlucose: test.RandomBool(),
 
-			TimeCGMUsePercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTotalRecords: test.RandomBool(),
+			TotalRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
+			HasAverageDailyRecords: test.RandomBool(),
+			AverageDailyRecords:    pointer.FromAny(test.RandomFloat64FromRange(0, 25920)),
+
 			HasTimeCGMUsePercent: test.RandomBool(),
-			TimeCGMUseMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeCGMUseRecords:    test.RandomIntFromRange(0, 25920),
+			TimeCGMUsePercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInTargetPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeCGMUseMinutes: test.RandomBool(),
+			TimeCGMUseMinutes:    pointer.FromAny(test.RandomIntFromRange(0, 129600)),
+
+			HasTimeCGMUseRecords: test.RandomBool(),
+			TimeCGMUseRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInTargetPercent: test.RandomBool(),
-			TimeInTargetMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInTargetRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInTargetPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInTargetMinutes: test.RandomBool(),
+			TimeInTargetMinutes:    pointer.FromAny(test.RandomIntFromRange(0, 129600)),
+
+			HasTimeInTargetRecords: test.RandomBool(),
+			TimeInTargetRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInLowPercent: test.RandomBool(),
-			TimeInLowMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInLowRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInLowPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInVeryLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInLowMinutes: test.RandomBool(),
+			TimeInLowMinutes:    pointer.FromAny(test.RandomIntFromRange(0, 129600)),
+
+			HasTimeInLowRecords: test.RandomBool(),
+			TimeInLowRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInVeryLowPercent: test.RandomBool(),
-			TimeInVeryLowMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInVeryLowRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInVeryLowPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInVeryLowMinutes: test.RandomBool(),
+			TimeInVeryLowMinutes:    pointer.FromAny(test.RandomIntFromRange(0, 129600)),
+
+			HasTimeInVeryLowRecords: test.RandomBool(),
+			TimeInVeryLowRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInHighPercent: test.RandomBool(),
-			TimeInHighMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInHighRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInHighPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInVeryHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInHighMinutes: test.RandomBool(),
+			TimeInHighMinutes:    pointer.FromAny(test.RandomIntFromRange(0, 129600)),
+
+			HasTimeInHighRecords: test.RandomBool(),
+			TimeInHighRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInVeryHighPercent: test.RandomBool(),
-			TimeInVeryHighMinutes:    test.RandomIntFromRange(0, 129600),
-			TimeInVeryHighRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInVeryHighPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
+
+			HasTimeInVeryHighMinutes: test.RandomBool(),
+			TimeInVeryHighMinutes:    pointer.FromAny(test.RandomIntFromRange(0, 129600)),
+
+			HasTimeInVeryHighRecords: test.RandomBool(),
+			TimeInVeryHighRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
 		}
 	}
 
@@ -155,25 +185,41 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 			},
 			HasAverageGlucose: test.RandomBool(),
 
-			TimeInTargetPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTotalRecords: test.RandomBool(),
+			TotalRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
+			HasAverageDailyRecords: test.RandomBool(),
+			AverageDailyRecords:    pointer.FromAny(test.RandomFloat64FromRange(0, 25920)),
+
 			HasTimeInTargetPercent: test.RandomBool(),
-			TimeInTargetRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInTargetPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInTargetRecords: test.RandomBool(),
+			TimeInTargetRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInLowPercent: test.RandomBool(),
-			TimeInLowRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInLowPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInVeryLowPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInLowRecords: test.RandomBool(),
+			TimeInLowRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInVeryLowPercent: test.RandomBool(),
-			TimeInVeryLowRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInVeryLowPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInVeryLowRecords: test.RandomBool(),
+			TimeInVeryLowRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInHighPercent: test.RandomBool(),
-			TimeInHighRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInHighPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
 
-			TimeInVeryHighPercent:    pointer.FromFloat64(test.RandomFloat64FromRange(0, 1)),
+			HasTimeInHighRecords: test.RandomBool(),
+			TimeInHighRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+
 			HasTimeInVeryHighPercent: test.RandomBool(),
-			TimeInVeryHighRecords:    test.RandomIntFromRange(0, 25920),
+			TimeInVeryHighPercent:    pointer.FromAny(test.RandomFloat64FromRange(0, 1)),
+
+			HasTimeInVeryHighRecords: test.RandomBool(),
+			TimeInVeryHighRecords:    pointer.FromAny(test.RandomIntFromRange(0, 25920)),
 		}
 	}
 

@@ -23,33 +23,44 @@ type BGMBucketData struct {
 }
 
 type BGMPeriod struct {
-	HasAverageGlucose        bool `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
-	HasTimeInTargetPercent   bool `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
-	HasTimeInHighPercent     bool `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
-	HasTimeInVeryHighPercent bool `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
-	HasTimeInLowPercent      bool `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
-	HasTimeInVeryLowPercent  bool `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
+	HasAverageGlucose bool     `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
+	AverageGlucose    *Glucose `json:"averageGlucose" bson:"averageGlucose"`
 
-	// actual values
-	AverageGlucose *Glucose `json:"averageGlucose" bson:"averageGlucose"`
+	HasTotalRecords bool `json:"hasTotalRecords" bson:"hasTotalRecords"`
+	TotalRecords    *int `json:"totalRecords" bson:"totalRecords"`
 
-	TotalRecords        int     `json:"totalRecords" bson:"totalRecords"`
-	AverageDailyRecords float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
+	HasAverageDailyRecords bool     `json:"hasAverageDailyRecords" bson:"hasAverageDailyRecords"`
+	AverageDailyRecords    *float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
 
-	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
-	TimeInTargetRecords int      `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+	HasTimeInTargetPercent bool     `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
+	TimeInTargetPercent    *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
 
-	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
-	TimeInLowRecords int      `json:"timeInLowRecords" bson:"timeInLowRecords"`
+	HasTimeInTargetRecords bool `json:"hasTimeInTargetRecords" bson:"hasTimeInTargetRecords"`
+	TimeInTargetRecords    *int `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
 
-	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
-	TimeInVeryLowRecords int      `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+	HasTimeInLowPercent bool     `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
+	TimeInLowPercent    *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
 
-	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
-	TimeInHighRecords int      `json:"timeInHighRecords" bson:"timeInHighRecords"`
+	HasTimeInLowRecords bool `json:"hasTimeInLowRecords" bson:"hasTimeInLowRecords"`
+	TimeInLowRecords    *int `json:"timeInLowRecords" bson:"timeInLowRecords"`
 
-	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
-	TimeInVeryHighRecords int      `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+	HasTimeInVeryLowPercent bool     `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
+	TimeInVeryLowPercent    *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+
+	HasTimeInVeryLowRecords bool `json:"hasTimeInVeryLowRecords" bson:"hasTimeInVeryLowRecords"`
+	TimeInVeryLowRecords    *int `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+
+	HasTimeInHighPercent bool     `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
+	TimeInHighPercent    *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+
+	HasTimeInHighRecords bool `json:"hasTimeInHighRecords" bson:"hasTimeInHighRecords"`
+	TimeInHighRecords    *int `json:"timeInHighRecords" bson:"timeInHighRecords"`
+
+	HasTimeInVeryHighPercent bool     `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
+	TimeInVeryHighPercent    *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+
+	HasTimeInVeryHighRecords bool `json:"hasTimeInVeryHighRecords" bson:"hasTimeInVeryHighRecords"`
+	TimeInVeryHighRecords    *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
 type BGMPeriods map[string]BGMPeriod
@@ -190,31 +201,44 @@ func (s *BGMStats) CalculatePeriod(i int, totalStats *BGMBucketData) {
 	}
 
 	s.Periods[strconv.Itoa(i)+"d"] = BGMPeriod{
-		HasAverageGlucose:        averageGlucose != nil,
-		HasTimeInTargetPercent:   timeInTargetPercent != nil,
-		HasTimeInLowPercent:      timeInLowPercent != nil,
-		HasTimeInVeryLowPercent:  timeInVeryLowPercent != nil,
-		HasTimeInHighPercent:     timeInHighPercent != nil,
+
+		HasAverageGlucose: averageGlucose != nil,
+		AverageGlucose:    averageGlucose,
+
+		HasTotalRecords: true,
+		TotalRecords:    pointer.FromAny(totalStats.TotalRecords),
+
+		HasAverageDailyRecords: true,
+		AverageDailyRecords:    pointer.FromAny(float64(totalStats.TotalRecords) / float64(i)),
+
+		HasTimeInTargetPercent: timeInTargetPercent != nil,
+		TimeInTargetPercent:    timeInTargetPercent,
+
+		HasTimeInTargetRecords: true,
+		TimeInTargetRecords:    pointer.FromAny(totalStats.TargetRecords),
+
+		HasTimeInLowPercent: timeInLowPercent != nil,
+		TimeInLowPercent:    timeInLowPercent,
+
+		HasTimeInLowRecords: true,
+		TimeInLowRecords:    pointer.FromAny(totalStats.LowRecords),
+
+		HasTimeInVeryLowPercent: timeInVeryLowPercent != nil,
+		TimeInVeryLowPercent:    timeInVeryLowPercent,
+
+		HasTimeInVeryLowRecords: true,
+		TimeInVeryLowRecords:    pointer.FromAny(totalStats.VeryLowRecords),
+
+		HasTimeInHighPercent: timeInHighPercent != nil,
+		TimeInHighPercent:    timeInHighPercent,
+
+		HasTimeInHighRecords: true,
+		TimeInHighRecords:    pointer.FromAny(totalStats.HighRecords),
+
 		HasTimeInVeryHighPercent: timeInVeryHighPercent != nil,
+		TimeInVeryHighPercent:    timeInVeryHighPercent,
 
-		AverageGlucose: averageGlucose,
-
-		TotalRecords:        totalStats.TotalRecords,
-		AverageDailyRecords: float64(totalStats.TotalRecords) / float64(i),
-
-		TimeInTargetPercent: timeInTargetPercent,
-		TimeInTargetRecords: totalStats.TargetRecords,
-
-		TimeInLowPercent: timeInLowPercent,
-		TimeInLowRecords: totalStats.LowRecords,
-
-		TimeInVeryLowPercent: timeInVeryLowPercent,
-		TimeInVeryLowRecords: totalStats.VeryLowRecords,
-
-		TimeInHighPercent: timeInHighPercent,
-		TimeInHighRecords: totalStats.HighRecords,
-
-		TimeInVeryHighPercent: timeInVeryHighPercent,
-		TimeInVeryHighRecords: totalStats.VeryHighRecords,
+		HasTimeInVeryHighRecords: true,
+		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 	}
 }

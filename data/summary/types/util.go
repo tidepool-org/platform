@@ -30,6 +30,9 @@ func SkipUntil[T RecordTypes, A RecordTypesPt[T]](date time.Time, userData []A) 
 // GetDuration assumes all except freestyle is 5 minutes
 func GetDuration(dataSet *glucoseDatum.Glucose) int {
 	if dataSet.DeviceID != nil {
+		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre3") {
+			return 5
+		}
 		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
 			return 15
 		}
