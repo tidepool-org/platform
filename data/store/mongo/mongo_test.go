@@ -1225,7 +1225,7 @@ var _ = Describe("Mongo", func() {
 								Expect(repository.UpdateDataSet(ctx, id, update)).To(BeNil())
 							})
 
-							It("updates .modifiedTime when updated", func() {
+							It("updates modified time when updated", func() {
 								newTime, err := time.Parse(time.RFC3339, "2022-01-01T11:00:00Z")
 								Expect(err).ToNot(HaveOccurred())
 								dataSet.Time = pointer.FromTime(newTime)
