@@ -9,7 +9,6 @@ import (
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -136,7 +135,8 @@ func (e *EventsResponse) Validate(validator structure.Validator) {
 		e.Events = e.Events.Validate2(eventsValidator)
 		log.Println("## after EventsResponse.Validate")
 	} else {
-		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
+		log.Println("## EventsResponse.Validate missing ")
+		//eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
@@ -186,7 +186,8 @@ func (e *Events) Validate2(validator structure.Validator) *Events {
 			}
 			*valid = append(*valid, event)
 		} else {
-			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
+			log.Printf("## missing event [%d]", index)
+			//eventValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
 	return valid

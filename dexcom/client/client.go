@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	debug "log"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -76,10 +77,11 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
 	paths := []string{"v3", "users", "self", "events"}
-
 	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get events")
 	}
+
+	debug.Printf("got [%d] events and returning ", len(*eventsResponse.Events))
 
 	return eventsResponse, nil
 }
