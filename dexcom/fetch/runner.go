@@ -576,6 +576,7 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	t.logger.Info("## fetching device events")
 
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
+	t.logger.Info("## after fetching device events")
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
 	}
@@ -586,6 +587,8 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 			return nil, err
 		}
 	}
+
+	t.logger.Info("## before validation")
 
 	// JHB report errors but still process valid events
 	validatedEvents := response.Events.Validate2(t.validator)
