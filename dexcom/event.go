@@ -9,6 +9,7 @@ import (
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -109,7 +110,7 @@ type EventsResponse struct {
 }
 
 func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
-	log.Println("## parsing events response")
+	//log.Println("## parsing events response")
 	if !parser.Exists() {
 		return nil
 	}
@@ -129,14 +130,14 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 	e.Events = ParseEvents(parser.WithReferenceArrayParser("records"))
 }
 
-func (e *EventsResponse) Validate(validator structure.Validator) {
-	log.Println("## EventsResponse.Validate")
+func (e *EventsResponse) ValidateOnly(validator structure.Validator) {
+	log.Println("## EventsResponse.ValidateOnly")
 	if eventsValidator := validator.WithReference("records"); e.Events != nil {
-		e.Events = e.Events.Validate2(eventsValidator)
-		log.Println("## after EventsResponse.Validate")
+		e.Events = e.Events.GetValidated(eventsValidator)
+		log.Println("## after EventsResponse.ValidateOnly")
 	} else {
-		log.Println("## EventsResponse.Validate missing ")
-		//eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
+		log.Println("## EventsResponse.ValidateOnly missing ")
+		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
@@ -156,30 +157,18 @@ func NewEvents() *Events {
 }
 
 func (e *Events) Parse(parser structure.ArrayParser) {
-	log.Println("## Events.Parse")
+	// log.Println("## Events.Parse")
 	for _, reference := range parser.References() {
 		*e = append(*e, ParseEvent(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
-func (e *Events) Validate(validator structure.Validator) {
-	log.Println("## Events.Validate no-op")
-	// log.Println("## Events.Validate")
-	// for index, event := range *e {
-	// 	if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
-	// 		event.Validate(eventValidator)
-	// 	} else {
-	// 		eventValidator.ReportError(structureValidator.ErrorValueNotExists())
-	// 	}
-	// }
-}
-
-func (e *Events) Validate2(validator structure.Validator) *Events {
-	log.Println("## Events.Validate2")
+func (e *Events) GetValidated(validator structure.Validator) *Events {
+	log.Println("## Events.GetValidated")
 	valid := NewEvents()
 	for index, event := range *e {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
-			event.Validate(eventValidator)
+			event.ValidateOnly(eventValidator)
 			if eventValidator.HasError() {
 				log.Printf("## error validating event [%d] [%s] ", index, *event.Type)
 				continue
@@ -234,7 +223,7 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.DisplayDevice = parser.String("displayDevice")
 }
 
-func (e *Event) Validate(validator structure.Validator) {
+func (e *Event) ValidateOnly(validator structure.Validator) {
 	validator = validator.WithMeta(e)
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()

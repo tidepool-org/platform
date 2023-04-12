@@ -115,14 +115,14 @@ var _ = Describe("Event", func() {
 			event.Unit = nil
 			event.Value = pointer.FromString("stuff")
 			validator := validator.New()
-			event.Validate(validator)
+			event.ValidateOnly(validator)
 			Expect(validator.Error()).ToNot(HaveOccurred())
 		})
 		DescribeTable("requires",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
 				validator := validator.New()
-				testEvent.Validate(validator)
+				testEvent.ValidateOnly(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
 			Entry("displayDevice to be set", func() *dexcom.Event {
@@ -175,7 +175,7 @@ var _ = Describe("Event", func() {
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
 				validator := validator.New()
-				testEvent.Validate(validator)
+				testEvent.ValidateOnly(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
 			},
 			Entry("eventSubType to be set", func() *dexcom.Event {

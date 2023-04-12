@@ -58,6 +58,10 @@ func (v *Validator) Validate(validatable structure.Validatable) error {
 	return v.Error()
 }
 
+func (v *Validator) ValidateOnly(validatable structure.Validatable) {
+	validatable.Validate(v)
+}
+
 func (v *Validator) Bool(reference string, value *bool) structure.Bool {
 	return NewBool(v.base.WithReference(reference), value)
 }

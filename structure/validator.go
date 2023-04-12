@@ -17,6 +17,7 @@ type Validator interface {
 	ErrorReporter
 
 	Validate(validatable Validatable) error
+	ValidateOnly(validatable Validatable)
 
 	Bool(reference string, value *bool) Bool
 	Float64(reference string, value *float64) Float64

@@ -591,12 +591,14 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	t.logger.Info("## before validation")
 
 	// JHB report errors but still process valid events
-	validatedEvents := response.Events.Validate2(t.validator)
+	validatedEvents := response.Events.GetValidated(t.validator)
 	if err = t.validator.Error(); err != nil {
 		t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
 	}
 
 	datumArray := data.Data{}
+
+	t.logger.Info(fmt.Sprintf("## before processing [%d] valid events", len(*validatedEvents)))
 
 	for _, e := range *validatedEvents {
 
