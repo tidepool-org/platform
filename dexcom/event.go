@@ -133,7 +133,7 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 
 func (e *EventsResponse) Validate(validator structure.Validator) {
 	if eventsValidator := validator.WithReference("records"); e.Events != nil {
-		e.Events.Validate(eventsValidator)
+		e.Events = e.Events.Validate2(eventsValidator)
 	} else {
 		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
@@ -162,14 +162,15 @@ func (e *Events) Parse(parser structure.ArrayParser) {
 }
 
 func (e *Events) Validate(validator structure.Validator) {
-	log.Println("## Events.Validate")
-	for index, event := range *e {
-		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
-			event.Validate(eventValidator)
-		} else {
-			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
-		}
-	}
+	log.Println("## Events.Validate no-op")
+	// log.Println("## Events.Validate")
+	// for index, event := range *e {
+	// 	if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
+	// 		event.Validate(eventValidator)
+	// 	} else {
+	// 		eventValidator.ReportError(structureValidator.ErrorValueNotExists())
+	// 	}
+	// }
 }
 
 func (e *Events) Validate2(validator structure.Validator) *Events {
