@@ -2,7 +2,7 @@ package fetch
 
 import (
 	"context"
-	debug "log"
+	"fmt"
 	"math/rand"
 	"sort"
 	"time"
@@ -514,6 +514,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
 	if err != nil {
+		t.logger.Info(fmt.Sprintf("## error fetching events as part of data [%s]", err.Error()))
 		return nil, err
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
@@ -572,18 +573,21 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 }
 
 func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.Data, error) {
+	t.logger.Info("## fetching device events")
+
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
 	}
 	if err != nil {
+		t.logger.Info(fmt.Sprintf("## error getting events [%s]", err.Error()))
 		return nil, err
 	}
 
 	// JHB report errors but still process valid events
 	validatedEvents := response.Events.Validate2(t.validator)
 	if err = t.validator.Error(); err != nil {
-		debug.Printf("## event validation error [%s]", err.Error())
+		t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
 	}
 
 	datumArray := data.Data{}
@@ -591,8 +595,6 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 
 		switch *e.Status {
 		case dexcom.EventStatusCreated:
-
-			t.Logger().WithField("##eventType", *e.Type)
 			if t.afterLatestDataTime(e.SystemTime.Raw()) {
 				switch *e.Type {
 				case dexcom.EventTypeCarbs:
@@ -697,17 +699,12 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 }
 
 func (t *TaskRunner) storeDevicesDatumArray(devicesDatumArray data.Data) error {
-	t.logger.Info("## storing device data")
 	if len(devicesDatumArray) > 0 {
 		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, devicesDatumArray); err != nil {
-
-			t.logger.Infof("## devicesDatumArray %v", devicesDatumArray)
 			return errors.Wrap(err, "unable to create data set data")
 		}
-
 		t.task.Data["deviceHashes"] = t.deviceHashes
 	}
-
 	return nil
 }
 
