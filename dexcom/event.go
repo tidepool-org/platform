@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"log"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -109,6 +110,7 @@ type EventsResponse struct {
 }
 
 func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
+	log.Println("## parsing events response")
 	if !parser.Exists() {
 		return nil
 	}
@@ -125,6 +127,7 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 	e.UserID = parser.String("userId")
 	e.RecordType = parser.String("recordType")
 	e.RecordVersion = parser.String("recordVersion")
+	log.Println("## parsing events from records")
 	e.Events = ParseEvents(parser.WithReferenceArrayParser("records"))
 }
 
@@ -152,12 +155,14 @@ func NewEvents() *Events {
 }
 
 func (e *Events) Parse(parser structure.ArrayParser) {
+	log.Println("## Events.Parse")
 	for _, reference := range parser.References() {
 		*e = append(*e, ParseEvent(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
 func (e *Events) Validate(validator structure.Validator) {
+	log.Println("## Events.Validate")
 	for index, event := range *e {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
 			event.Validate(eventValidator)
@@ -168,6 +173,7 @@ func (e *Events) Validate(validator structure.Validator) {
 }
 
 func (e *Events) Validate2(validator structure.Validator) *Events {
+	log.Println("## Events.Validate2")
 	valid := NewEvents()
 	for index, event := range *e {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
