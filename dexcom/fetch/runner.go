@@ -127,7 +127,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
 				tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
 			} else if tErr = taskRunner.Run(ctx); tErr != nil {
-				tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+				r.Logger().Infof("error running task [%s]", tErr.Error())
 			}
 		}
 	}
@@ -592,11 +592,12 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 
 	// JHB report errors but still process valid events
 	validatedEvents := response.Events.Validate2(t.validator)
-	//if err = t.validator.Error(); err != nil {
-	//	t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
-	//}
+	if err = t.validator.Error(); err != nil {
+		t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
+	}
 
 	datumArray := data.Data{}
+
 	for _, e := range *validatedEvents {
 
 		switch *e.Status {

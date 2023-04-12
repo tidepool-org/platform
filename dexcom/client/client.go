@@ -78,6 +78,7 @@ func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime tim
 	eventsResponse := &dexcom.EventsResponse{}
 	paths := []string{"v3", "users", "self", "events"}
 	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
+		debug.Println("errored! doh")
 		return nil, errors.Wrap(err, "unable to get events")
 	}
 
