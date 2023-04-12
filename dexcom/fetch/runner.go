@@ -581,7 +581,10 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	}
 	if err != nil {
 		t.logger.Info(fmt.Sprintf("## error getting events [%s]", err.Error()))
-		return nil, err
+		if response == nil {
+			t.logger.Info("## bailing as no response given")
+			return nil, err
+		}
 	}
 
 	// JHB report errors but still process valid events
