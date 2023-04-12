@@ -167,6 +167,21 @@ func (e *Events) Validate(validator structure.Validator) {
 	}
 }
 
+func (e *Events) Validate2(validator structure.Validator) *Events {
+	valid := NewEvents()
+	for index, event := range *e {
+		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
+			event.Validate(eventValidator)
+			if !eventValidator.HasError() {
+				*valid = append(*valid, event)
+			}
+		} else {
+			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
+	return valid
+}
+
 type Event struct {
 	ID                    *string `json:"recordId,omitempty"`
 	SystemTime            *Time   `json:"systemTime,omitempty"`

@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"context"
+	debug "log"
 	"math/rand"
 	"sort"
 	"time"
@@ -579,13 +580,15 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 		return nil, err
 	}
 
-	t.validator.Validate(response)
+	// JHB report errors but still process valid events
+	validatedEvents := response.Events.Validate2(t.validator)
 	if err = t.validator.Error(); err != nil {
-		return nil, err
+		debug.Printf("## event validation error [%s]", err.Error())
 	}
 
 	datumArray := data.Data{}
-	for _, e := range *response.Events {
+	for _, e := range *validatedEvents {
+
 		switch *e.Status {
 		case dexcom.EventStatusCreated:
 
