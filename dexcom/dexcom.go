@@ -23,6 +23,7 @@ const (
 )
 
 func timeFormats() map[int]string {
+	// NOTE: we are optimistically matching the incoming date string length to the date format length.
 	return map[int]string{
 		len(TimeMinimalFormat):  TimeMinimalFormat,
 		len(TimeFormat):         TimeFormat,
