@@ -289,8 +289,8 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 			"deletedUserId": bson.M{"$exists": false},
 		}
 		set := bson.M{
-			// this upload's records has been deleted but we don't need to set the modifiedTime of the upload
-			"deletedTime": timestamp,
+			"deletedTime":  timestamp,
+			"modifiedTime": timestamp,
 		}
 		unset := bson.M{}
 		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
@@ -304,6 +304,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 	}
 
 	dataSet.SetDeletedTime(&timestamp)
+	dataSet.SetModifiedTime(&timestamp)
 	return nil
 }
 

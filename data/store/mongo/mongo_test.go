@@ -1327,10 +1327,12 @@ var _ = Describe("Mongo", func() {
 								Expect(repository.DeleteDataSet(ctx, dataSet)).To(Succeed())
 							})
 
-							It("sets the deleted time on the data set", func() {
+							It("sets the deleted and modified time on the data set", func() {
 								Expect(repository.DeleteDataSet(ctx, dataSet)).To(Succeed())
 								Expect(dataSet.DeletedTime).ToNot(BeNil())
+								Expect(dataSet.ModifiedTime).ToNot(BeNil())
 								Expect(dataSet.DeletedUserID).To(BeNil())
+								Expect(*dataSet.ModifiedTime).Should(BeTemporally("~", time.Now(), time.Second))
 							})
 
 							It("has the correct stored data sets", func() {
