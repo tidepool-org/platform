@@ -514,7 +514,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
 	if err != nil {
-		t.logger.Info(fmt.Sprintf("## error fetching events as part of data [%s]", err.Error()))
+		t.logger.WithError(err).Info("## error fetching events as part of data")
 		return nil, err
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
@@ -578,6 +578,7 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
 	t.logger.Info("## after fetching device events")
 	if updateErr := t.updateProviderSession(); updateErr != nil {
+		t.logger.Info("## err updateProviderSession fetching device events")
 		return nil, updateErr
 	}
 	if err != nil {
@@ -592,9 +593,9 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 
 	// JHB report errors but still process valid events
 	validatedEvents := response.Events.GetValidated(t.validator)
-	if err = t.validator.Error(); err != nil {
-		t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
-	}
+	// if err = t.validator.Error(); err != nil {
+	// 	t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
+	// }
 
 	datumArray := data.Data{}
 

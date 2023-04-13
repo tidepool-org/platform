@@ -175,6 +175,8 @@ func RandomAlertSetting(withName *string) *dexcom.AlertSetting {
 		}
 		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
+	case dexcom.AlertSettingAlertNameFixedLow:
+		datum.Enabled = pointer.FromBool(test.RandomBool())
 	case dexcom.AlertSettingAlertNameUnknown:
 		datum.Unit = pointer.FromString(dexcom.AlertSettingUnitUnknown)
 		datum.Enabled = pointer.FromBool(test.RandomBool())

@@ -591,6 +591,8 @@ func (a *AlertSetting) Validate(validator structure.Validator) {
 			a.validateUrgentLow(validator)
 		case AlertSettingAlertNameUrgentLowSoon:
 			a.validateUrgentLowSoon(validator)
+		case AlertSettingAlertNameFixedLow:
+			a.validateFixedLow(validator)
 		case AlertSettingAlertNameUnknown:
 			a.validateUnknown(validator)
 		}
@@ -715,6 +717,10 @@ func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 
 func (a *AlertSetting) validateUnknown(validator structure.Validator) {
 	validator.String("unit", a.Unit).OneOf(AlertSettingUnitUnknown)
+	validator.Bool("enabled", a.Enabled).Exists()
+}
+
+func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 

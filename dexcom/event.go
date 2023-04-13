@@ -110,7 +110,6 @@ type EventsResponse struct {
 }
 
 func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
-	//log.Println("## parsing events response")
 	if !parser.Exists() {
 		return nil
 	}
@@ -136,7 +135,6 @@ func (e *EventsResponse) ValidateOnly(validator structure.Validator) {
 		e.Events = e.Events.GetValidated(eventsValidator)
 		log.Println("## after EventsResponse.ValidateOnly")
 	} else {
-		log.Println("## EventsResponse.ValidateOnly missing ")
 		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
@@ -157,7 +155,6 @@ func NewEvents() *Events {
 }
 
 func (e *Events) Parse(parser structure.ArrayParser) {
-	// log.Println("## Events.Parse")
 	for _, reference := range parser.References() {
 		*e = append(*e, ParseEvent(parser.WithReferenceObjectParser(reference)))
 	}
@@ -175,8 +172,7 @@ func (e *Events) GetValidated(validator structure.Validator) *Events {
 			}
 			*valid = append(*valid, event)
 		} else {
-			log.Printf("## missing event [%d]", index)
-			//eventValidator.ReportError(structureValidator.ErrorValueNotExists())
+			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
 	return valid
