@@ -10,18 +10,14 @@ import (
 )
 
 const (
-	TimeFormatMilli = "2006-01-02T15:04:05.999"
-	//
+	TimeFormatMilli    = "2006-01-02T15:04:05.999"
 	TimeFormatMilliUTC = "2006-01-02T15:04:05.999Z"
 	TimeFormatMilliZ   = "2006-01-02T15:04:05.999-07:00"
 
-	// systemTime
 	TimeMinimalFormat = "2006-01-02T15:04"
-	// displayTime, systemTime
-	TimeFormat  = "2006-01-02T15:04:05"
-	TimeFormatZ = "2006-01-02T15:04:05-07:00"
-	// lastUploadDate
-	TimeFormatUTC = "2006-01-02T15:04:05Z"
+	TimeFormat        = "2006-01-02T15:04:05"
+	TimeFormatZ       = "2006-01-02T15:04:05-07:00"
+	TimeFormatUTC     = "2006-01-02T15:04:05Z"
 
 	SystemTimeNowThreshold = 24 * time.Hour
 )

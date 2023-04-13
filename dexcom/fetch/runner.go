@@ -2,7 +2,6 @@ package fetch
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sort"
 	"time"
@@ -127,7 +126,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
 				tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
 			} else if tErr = taskRunner.Run(ctx); tErr != nil {
-				r.Logger().Infof("error running task [%s]", tErr.Error())
+				tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
 			}
 		}
 	}
@@ -364,7 +363,6 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 		t.deviceHashes = map[string]string{}
 	}
 
-	// TODO: SerialNumber is no longer sent, use transmitterId instead?
 	if device.TransmitterID != nil && t.deviceHashes[*device.TransmitterID] != deviceHash {
 		t.deviceHashes[*device.TransmitterID] = deviceHash
 		return true
@@ -514,7 +512,6 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
 	if err != nil {
-		t.logger.WithError(err).Info("## error fetching events as part of data")
 		return nil, err
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
@@ -573,35 +570,21 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 }
 
 func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.Data, error) {
-	t.logger.Info("## fetching device events")
-
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
-	t.logger.Info("## after fetching device events")
 	if updateErr := t.updateProviderSession(); updateErr != nil {
-		t.logger.Info("## err updateProviderSession fetching device events")
 		return nil, updateErr
 	}
 	if err != nil {
-		t.logger.Info(fmt.Sprintf("## error getting events [%s]", err.Error()))
-		if response == nil {
-			t.logger.Info("## bailing as no response given")
-			return nil, err
-		}
+		return nil, err
 	}
 
-	t.logger.Info("## before validation")
-
-	// JHB report errors but still process valid events
-	validatedEvents := response.Events.GetValidated(t.validator)
-	// if err = t.validator.Error(); err != nil {
-	// 	t.logger.Info(fmt.Sprintf("## error validating events [%s]", err.Error()))
-	// }
+	t.validator.Validate(response)
+	if err = t.validator.Error(); err != nil {
+		return nil, err
+	}
 
 	datumArray := data.Data{}
-
-	t.logger.Info(fmt.Sprintf("## before processing [%d] valid events", len(*validatedEvents)))
-
-	for _, e := range *validatedEvents {
+	for _, e := range *response.Events {
 
 		switch *e.Status {
 		case dexcom.EventStatusCreated:

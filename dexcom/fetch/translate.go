@@ -116,7 +116,7 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 
 	datum.Manufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	datum.TransmitterID = pointer.CloneString(device.TransmitterID)
-	//TODO jhbate potenially not true
+	//TODO: potenially not true in the future. Currently the v3 API returns only MgdL but it does also have MmolL as valid units although it doesn't return them
 	datum.Units = pointer.FromString(dataBloodGlucose.MgdL)
 
 	defaultAlertSchedule := device.AlertScheduleList.Default()
@@ -378,14 +378,14 @@ func translateEGVToDatum(egv *dexcom.EGV) data.Datum {
 		}
 	case dexcom.EGVUnitMmolL:
 		if *datum.Value < dexcom.EGVValuePinnedMmolLMinimum {
-			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMinimum - 0.1) //check this
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMinimum - 0.1)
 			datum.Annotations = &metadata.MetadataArray{{
 				"code":      "bg/out-of-range",
 				"value":     "low",
 				"threshold": dexcom.EGVValuePinnedMmolLMinimum,
 			}}
 		} else if *datum.Value > dexcom.EGVValuePinnedMmolLMaximum {
-			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMaximum + 0.1) //check this
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMaximum + 0.1)
 			datum.Annotations = &metadata.MetadataArray{{
 				"code":      "bg/out-of-range",
 				"value":     "high",
@@ -442,10 +442,12 @@ func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
-		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
-		datum.Duration = &dataTypesActivityPhysical.Duration{
-			Units: pointer.CloneString(event.Unit),
-			Value: pointer.CloneFloat64(&floatVal),
+		floatVal, err := strconv.ParseFloat(*event.Value, 64)
+		if err == nil {
+			datum.Duration = &dataTypesActivityPhysical.Duration{
+				Units: pointer.CloneString(event.Unit),
+				Value: pointer.CloneFloat64(&floatVal),
+			}
 		}
 	}
 	if event.ID != nil {
@@ -503,11 +505,12 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
-		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
-
-		datum.Dose = &dataTypesInsulin.Dose{
-			Total: pointer.CloneFloat64(&floatVal),
-			Units: pointer.FromString(dataTypesInsulin.DoseUnitsUnits),
+		floatVal, err := strconv.ParseFloat(*event.Value, 64)
+		if err == nil {
+			datum.Dose = &dataTypesInsulin.Dose{
+				Total: pointer.CloneFloat64(&floatVal),
+				Units: pointer.FromString(dataTypesInsulin.DoseUnitsUnits),
+			}
 		}
 	}
 	if event.ID != nil {
@@ -527,8 +530,10 @@ func translateEventBGToDatum(event *dexcom.Event) data.Datum {
 	datum.GUID = nil
 
 	if event.Value != nil && event.Unit != nil {
-		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
-		datum.Value = pointer.CloneFloat64(&floatVal)
+		floatVal, err := strconv.ParseFloat(*event.Value, 64)
+		if err == nil {
+			datum.Value = pointer.CloneFloat64(&floatVal)
+		}
 		datum.Units = pointer.CloneString(event.Unit)
 	}
 

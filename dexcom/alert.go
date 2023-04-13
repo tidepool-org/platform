@@ -1,7 +1,6 @@
 package dexcom
 
 import (
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -758,5 +757,3 @@ func ValidateAlertScheduleSettingsTime(value string) error {
 func ErrorValueStringAsAlertScheduleSettingsTimeNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as alert schedule settings time", value)
 }
-
-var alertScheduleSettingsTimeExpression = regexp.MustCompile("^([0-9][0-9]):([0-9][0-9])$")

@@ -115,14 +115,14 @@ var _ = Describe("Event", func() {
 			event.Unit = nil
 			event.Value = pointer.FromString("stuff")
 			validator := validator.New()
-			event.ValidateOnly(validator)
+			event.Validate(validator)
 			Expect(validator.Error()).ToNot(HaveOccurred())
 		})
 		DescribeTable("requires",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
 				validator := validator.New()
-				testEvent.ValidateOnly(validator)
+				testEvent.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
 			Entry("displayDevice to be set", func() *dexcom.Event {
@@ -171,11 +171,39 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 		)
+		DescribeTable("expects value to be valid",
+			func(setupEventFunc func() *dexcom.Event) {
+				testEvent := setupEventFunc()
+				validator := validator.New()
+				testEvent.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			},
+			Entry("when EventTypeBG", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeBG))
+				event.Value = pointer.FromString("10s")
+				return event
+			}),
+			Entry("when EventTypeCarbs", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeCarbs))
+				event.Value = pointer.FromString("99.s")
+				return event
+			}),
+			Entry("when EventTypeInsulin", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeInsulin))
+				event.Value = pointer.FromString("10s")
+				return event
+			}),
+			Entry("when EventTypeExercise", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeExercise))
+				event.Value = pointer.FromString("100m")
+				return event
+			}),
+		)
 		DescribeTable("does not require",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
 				validator := validator.New()
-				testEvent.ValidateOnly(validator)
+				testEvent.Validate(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
 			},
 			Entry("eventSubType to be set", func() *dexcom.Event {

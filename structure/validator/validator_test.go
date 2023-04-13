@@ -138,26 +138,6 @@ var _ = Describe("Validator", func() {
 			})
 		})
 
-		Context("ValidateOnly", func() {
-			var validatable *structureTest.Validatable
-
-			BeforeEach(func() {
-				validatable = structureTest.NewValidatable()
-			})
-
-			AfterEach(func() {
-				validatable.Expectations()
-			})
-
-			It("invokes normalize and returns no errors", func() {
-				err := errorsTest.RandomError()
-				base.ReportError(err)
-				validator.ValidateOnly(validatable)
-				Expect(validator.Error()).To(Equal(errors.Normalize(err)))
-				Expect(validatable.ValidateInputs).To(Equal([]structure.Validator{validator}))
-			})
-		})
-
 		Context("Bool", func() {
 			It("returns a validator when called with nil value", func() {
 				Expect(validator.Bool("reference", nil)).ToNot(BeNil())

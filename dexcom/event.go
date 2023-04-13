@@ -1,7 +1,6 @@
 package dexcom
 
 import (
-	"log"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -54,6 +53,8 @@ const (
 	EventStatusCreated = "created"
 	EventStatusUpdated = "updated"
 	EventStatusDeleted = "deleted"
+
+	eventErrorValue = -100
 )
 
 func EventTypes() []string {
@@ -129,11 +130,9 @@ func (e *EventsResponse) Parse(parser structure.ObjectParser) {
 	e.Events = ParseEvents(parser.WithReferenceArrayParser("records"))
 }
 
-func (e *EventsResponse) ValidateOnly(validator structure.Validator) {
-	log.Println("## EventsResponse.ValidateOnly")
+func (e *EventsResponse) Validate(validator structure.Validator) {
 	if eventsValidator := validator.WithReference("records"); e.Events != nil {
-		e.Events = e.Events.GetValidated(eventsValidator)
-		log.Println("## after EventsResponse.ValidateOnly")
+		e.Events.Validate(eventsValidator)
 	} else {
 		eventsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
@@ -160,22 +159,14 @@ func (e *Events) Parse(parser structure.ArrayParser) {
 	}
 }
 
-func (e *Events) GetValidated(validator structure.Validator) *Events {
-	log.Println("## Events.GetValidated")
-	valid := NewEvents()
+func (e *Events) Validate(validator structure.Validator) {
 	for index, event := range *e {
 		if eventValidator := validator.WithReference(strconv.Itoa(index)); event != nil {
-			event.ValidateOnly(eventValidator)
-			if eventValidator.HasError() {
-				log.Printf("## error validating event [%d] [%s] ", index, *event.Type)
-				continue
-			}
-			*valid = append(*valid, event)
+			event.Validate(eventValidator)
 		} else {
 			eventValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
-	return valid
 }
 
 type Event struct {
@@ -219,7 +210,7 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.DisplayDevice = parser.String("displayDevice")
 }
 
-func (e *Event) ValidateOnly(validator structure.Validator) {
+func (e *Event) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
@@ -254,7 +245,10 @@ func (e *Event) validateCarbs(validator structure.Validator) {
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitCarbsGrams)
 	validator.String("value", e.Value).Exists().NotEmpty()
 	if e.Value != nil {
-		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		floatVal, err := strconv.ParseFloat(*e.Value, 64)
+		if err != nil {
+			floatVal = eventErrorValue
+		}
 		validator.Float64("value", &floatVal).Exists().InRange(EventValueCarbsGramsMinimum, EventValueCarbsGramsMaximum)
 	}
 }
@@ -264,7 +258,10 @@ func (e *Event) validateExercise(validator structure.Validator) {
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitExerciseMinutes)
 	validator.String("value", e.Value).Exists().NotEmpty()
 	if e.Value != nil {
-		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		floatVal, err := strconv.ParseFloat(*e.Value, 64)
+		if err != nil {
+			floatVal = eventErrorValue
+		}
 		validator.Float64("value", &floatVal).Exists().InRange(EventValueExerciseMinutesMinimum, EventValueExerciseMinutesMaximum)
 	}
 }
@@ -287,7 +284,10 @@ func (e *Event) validateInsulin(validator structure.Validator) {
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitInsulinUnits)
 	validator.String("value", e.Value).Exists().NotEmpty()
 	if e.Value != nil {
-		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		floatVal, err := strconv.ParseFloat(*e.Value, 64)
+		if err != nil {
+			floatVal = eventErrorValue
+		}
 		validator.Float64("value", &floatVal).Exists().InRange(EventValueInsulinUnitsMinimum, EventValueInsulinUnitsMaximum)
 	}
 }
@@ -296,7 +296,10 @@ func (e *Event) validateBG(validator structure.Validator) {
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitMgdL)
 	validator.String("value", e.Value).Exists().NotEmpty()
 	if e.Value != nil {
-		floatVal, _ := strconv.ParseFloat(*e.Value, 64)
+		floatVal, err := strconv.ParseFloat(*e.Value, 64)
+		if err != nil {
+			floatVal = eventErrorValue
+		}
 		validator.Float64("value", &floatVal).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 	}
 }
