@@ -101,7 +101,7 @@ func (c *CGM) Validate(validator structure.Validator) {
 	validator.String("name", c.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	validator.String("serialNumber", c.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
 	validator.String("softwareVersion", c.SoftwareVersion).NotEmpty().LengthLessThanOrEqualTo(SoftwareVersionLengthMaximum)
-	validator.String("transmitterId", c.TransmitterID).NotEmpty()         //TODO: allow for dexcom style hash also
+	validator.String("transmitterId", c.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("units", c.Units).OneOf(dataBloodGlucose.Units()...) // FUTURE: Use locally defined Units
 
 	if c.DefaultAlerts != nil {
@@ -166,7 +166,8 @@ func TransmitterIDValidator(value string, errorReporter structure.ErrorReporter)
 
 func ValidateTransmitterID(value string) error {
 	if value == "" {
-		return structureValidator.ErrorValueEmpty()
+		// transmitterId is no longer guaranteed from dexcom
+		return nil
 	} else if !transmitterIDExpression.MatchString(value) {
 		return ErrorValueStringAsTransmitterIDNotValid(value)
 	}
