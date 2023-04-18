@@ -2,7 +2,6 @@ package summary
 
 import (
 	"context"
-	"time"
 
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
@@ -136,7 +135,6 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	var userSummary *types.Summary[T, A]
 	var userData []*glucoseDatum.Glucose
 
-	timestamp := time.Now().UTC()
 	logger := log.LoggerFromContext(ctx)
 	userSummary, err = c.GetSummary(ctx, userId)
 	if err != nil {
@@ -154,12 +152,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	if status.LastData.IsZero() {
 		if userSummary != nil {
 			// user's data is inactive/deleted, or this summary shouldn't have been created
-			// TODO extract this into function and make all nil (maybe, previously moved away from pointers for easier code)
-			userSummary.Dates.LastUpdatedDate = timestamp
-			userSummary.Dates.OutdatedSince = nil
-			userSummary.Dates.LastUploadDate = time.Time{}
-			userSummary.Dates.LastData = nil
-			userSummary.Dates.FirstData = time.Time{}
+			userSummary.Dates.ZeroOut()
 			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", userId)
 			err = c.summaries.UpsertSummary(ctx, userSummary)
 			if err != nil {
@@ -176,7 +169,6 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 
 	// remove 30 days for start time
 	startTime := status.LastData.AddDate(0, 0, -30)
-	endTime := status.LastData
 
 	if userSummary.Dates.LastData != nil {
 		// if summary already exists with a last data checkpoint, start data pull there
@@ -184,13 +176,13 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 			startTime = *userSummary.Dates.LastData
 		}
 
-		// ensure endTime does not move backwards by capping it at summary LastData
-		if !status.LastData.After(*userSummary.Dates.LastData) {
-			endTime = *userSummary.Dates.LastData
+		// ensure LastData does not move backwards by capping it at summary LastData
+		if status.LastData.Before(*userSummary.Dates.LastData) {
+			status.LastData = *userSummary.Dates.LastData
 		}
 	}
 
-	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, endTime)
+	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, status.LastData)
 	if err != nil {
 		return nil, err
 	}
@@ -201,28 +193,17 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		userData, err = types.SkipUntil(userSummary.Stats.GetBucketDate(bucketsLen-1), userData)
 	}
 
-	// if there is new data
-	var lastData *time.Time
-	if len(userData) > 0 {
-		err = userSummary.Stats.Update(userData)
-		lastData = userData[len(userData)-1].Time
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// "new" data must be in the past, don't update, just remove flags and set new date
-		logger.Infof("User %s has an outdated summary with no forward data, skipping calc.", userId)
-		lastData = &time.Time{}
+	// if there is no new data
+	if len(userData) < 0 {
+		logger.Infof("User %s has an outdated summary with no forward data, summary will not be calculated.", userId)
 	}
 
-	userSummary.Dates.LastUpdatedDate = timestamp
-	userSummary.Dates.OutdatedSince = nil
-	userSummary.Dates.LastUploadDate = status.LastUpload
-	userSummary.Dates.LastData = lastData
-	userSummary.Dates.FirstData = userSummary.Stats.GetBucketDate(0)
+	err = userSummary.Stats.Update(userData)
+	if err != nil {
+		return nil, err
+	}
 
-	// technically, this never could be zero, but we check anyway
-	userSummary.Dates.HasLastUploadDate = !status.LastUpload.IsZero()
+	userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
 
 	err = c.summaries.UpsertSummary(ctx, userSummary)
 

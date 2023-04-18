@@ -112,6 +112,7 @@ type CGMStats struct {
 func (*CGMStats) GetType() string {
 	return SummaryTypeCGM
 }
+
 func (*CGMStats) GetDeviceDataType() string {
 	return DeviceDataTypeCGM
 }
@@ -143,7 +144,7 @@ func (s *CGMStats) Update(userData any) error {
 	return nil
 }
 
-func (B *CGMBucketData) CalculateStats(r interface{}, lastRecordTime *time.Time) (bool, error) {
+func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, error) {
 	var normalizedValue float64
 	var duration int
 

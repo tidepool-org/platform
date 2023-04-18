@@ -106,7 +106,7 @@ func (s *BGMStats) Update(userData any) error {
 	return nil
 }
 
-func (B *BGMBucketData) CalculateStats(r interface{}, _ *time.Time) (bool, error) {
+func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("BGM record for calculation is not compatible with Glucose type")

@@ -60,13 +60,51 @@ type Config struct {
 }
 
 type Dates struct {
-	// date tracking
+	LastUpdatedDate time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+
 	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
-	LastUploadDate    time.Time  `json:"lastUploadDate" bson:"lastUploadDate"`
-	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	FirstData         time.Time  `json:"firstData" bson:"firstData"`
-	LastData          *time.Time `json:"lastData" bson:"lastData"`
-	OutdatedSince     *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+	LastUploadDate    *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
+
+	HasFirstData bool       `json:"hasFirstData" bson:"hasFirstData"`
+	FirstData    *time.Time `json:"firstData" bson:"firstData"`
+
+	HasLastData bool       `json:"hasLastData" bson:"hasLastData"`
+	LastData    *time.Time `json:"lastData" bson:"lastData"`
+
+	HasOutdatedSince bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
+	OutdatedSince    *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+}
+
+func (d *Dates) ZeroOut() {
+	d.LastUpdatedDate = time.Now().UTC()
+
+	d.HasLastUploadDate = false
+	d.LastUploadDate = nil
+
+	d.HasFirstData = false
+	d.FirstData = nil
+
+	d.HasLastData = false
+	d.LastData = nil
+
+	d.HasOutdatedSince = false
+	d.OutdatedSince = nil
+}
+
+func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
+	d.LastUpdatedDate = time.Now().UTC()
+
+	d.HasLastUploadDate = true
+	d.LastUploadDate = &status.LastUpload
+
+	d.HasFirstData = true
+	d.FirstData = &firstData
+
+	d.HasLastData = true
+	d.LastData = &status.LastData
+
+	d.HasOutdatedSince = false
+	d.OutdatedSince = nil
 }
 
 type Bucket[T BucketData, S BucketDataPt[T]] struct {
@@ -131,12 +169,19 @@ func (s *Summary[T, A]) SetOutdated() {
 
 func NewDates() Dates {
 	return Dates{
+		LastUpdatedDate: time.Time{},
+
 		HasLastUploadDate: false,
-		LastUploadDate:    time.Time{},
-		LastUpdatedDate:   time.Time{},
-		FirstData:         time.Time{},
-		LastData:          nil,
-		OutdatedSince:     nil,
+		LastUploadDate:    nil,
+
+		HasFirstData: false,
+		FirstData:    nil,
+
+		HasLastData: false,
+		LastData:    nil,
+
+		HasOutdatedSince: false,
+		OutdatedSince:    nil,
 	}
 }
 
@@ -287,9 +332,11 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 	}
 
 	// store
-	err = AddBin(buckets, *newBucket)
-	if err != nil {
-		return err
+	if newBucket != nil {
+		err = AddBin(buckets, *newBucket)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
