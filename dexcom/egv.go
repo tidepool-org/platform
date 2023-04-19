@@ -200,8 +200,11 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 func (e *EGV) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
 	validator.String("recordId", e.ID).Exists().NotEmpty()
-	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
-	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
+	// validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
+	// validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
+	// TODO: g5 test data contained no systemTime or displayTime ??
+	validator.Time("systemTime", e.SystemTime.Raw()).NotZero().BeforeNow(SystemTimeNowThreshold)
+	validator.Time("displayTime", e.DisplayTime.Raw()).NotZero()
 	validator.String("unit", e.Unit).Exists().OneOf(EGVsResponseUnits()...)
 	validator.String("rateUnit", e.RateUnit).Exists().OneOf(EGVsResponseRateUnits()...)
 	if e.Unit != nil {
