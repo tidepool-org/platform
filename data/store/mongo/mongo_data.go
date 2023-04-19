@@ -42,6 +42,17 @@ func (d *DataRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "modifiedTime", Value: -1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetName("ModifiedTime"),
+		},
+		{
+			Keys: bson.D{
 				{Key: "origin.id", Value: 1},
 				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
