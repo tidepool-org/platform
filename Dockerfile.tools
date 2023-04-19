@@ -15,7 +15,7 @@ RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
-FROM mongo:4.2.14 AS production
+FROM mongo:6.0.5 AS production
 ENV ENV="/home/tidepool/.bashrc" DEBIAN_FRONTEND="noninteractive"
 RUN apt -y update && \
     apt -y install ca-certificates tzdata && \
