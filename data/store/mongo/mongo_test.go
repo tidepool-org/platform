@@ -363,6 +363,11 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-modifiedTime")),
+						"Background": Equal(true),
+						"Name":       Equal("ModifiedTime"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
 						"Background": Equal(true),
 						"Name":       Equal("OriginId"),
