@@ -1436,6 +1436,7 @@ var _ = Describe("Mongo", func() {
 									Expect(baseDatum).ToNot(BeNil())
 									Expect(baseDatum.CreatedTime).ToNot(BeNil())
 									Expect(baseDatum.ModifiedTime).ToNot(BeNil())
+									Expect(*baseDatum.CreatedTime).To(Equal(*baseDatum.ModifiedTime))
 									Expect(baseDatum.CreatedUserID).To(BeNil())
 								}
 							})
