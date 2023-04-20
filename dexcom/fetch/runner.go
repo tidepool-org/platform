@@ -463,8 +463,6 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexc
 		return nil, nil, err
 	}
 
-	t.logger.Infof("## fetchDevices [%d]", len(*response.Devices))
-
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
 		return nil, nil, err
@@ -505,7 +503,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 		t.logger.Infof("## fetchCalibrations error [%w]", err)
 		return nil, err
 	}
-	t.logger.Infof("## fetchCalibrations [%v]", fetchDatumArray)
+	t.logger.Infof("## fetchCalibrations [%d]", len(fetchDatumArray))
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
@@ -514,7 +512,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 		return nil, err
 	}
 
-	t.logger.Infof("## fetchEGVs [%v]", fetchDatumArray)
+	t.logger.Infof("## fetchEGVs [%d]", len(fetchDatumArray))
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
@@ -522,7 +520,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 		t.logger.Infof("## fetchEvents error [%w]", err)
 		return nil, err
 	}
-	t.logger.Infof("## fetchEvents [%v]", fetchDatumArray)
+	t.logger.Infof("## fetchEvents [%d]", len(fetchDatumArray))
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	sort.Sort(BySystemTime(datumArray))
@@ -538,8 +536,6 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	if err != nil {
 		return nil, err
 	}
-
-	t.logger.Infof("## fetchCalibrations [%d]", len(*response.Calibrations))
 
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
@@ -566,8 +562,6 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 		return nil, err
 	}
 
-	t.logger.Infof("## fetchEGVs [%d]", len(*response.EGVs))
-
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
 		return nil, err
@@ -591,8 +585,6 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	if err != nil {
 		return nil, err
 	}
-
-	t.logger.Infof("## fetchEvents [%d]", len(*response.Events))
 
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
