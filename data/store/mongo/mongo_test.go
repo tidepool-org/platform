@@ -1152,8 +1152,18 @@ var _ = Describe("Mongo", func() {
 							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
 							Expect(dataSet.CreatedTime).ToNot(BeNil())
 							Expect(dataSet.ModifiedTime).ToNot(BeNil())
+							Expect(*dataSet.CreatedTime).To(Equal(*dataSet.ModifiedTime))
 							Expect(dataSet.CreatedUserID).To(BeNil())
 							Expect(dataSet.ByUser).To(BeNil())
+
+							// Make sure the values are set in the db as well.
+							var result *upload.Upload
+							err := collection.FindOne(context.Background(), bson.M{"uploadId": dataSet.UploadID}).Decode(&result)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(*result.CreatedTime).To(Equal(*dataSet.CreatedTime))
+							Expect(*result.ModifiedTime).To(Equal(*dataSet.ModifiedTime))
+							Expect(*result.CreatedTime).To(Equal(*result.ModifiedTime))
+
 						})
 
 						It("has the correct stored data sets", func() {
