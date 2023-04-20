@@ -134,8 +134,8 @@ func (c *Calibration) Parse(parser structure.ObjectParser) {
 func (c *Calibration) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(c)
 	validator.String("recordId", c.ID).Exists().NotEmpty()
-	validator.Time("systemTime", c.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
-	validator.Time("displayTime", c.DisplayTime.Raw()).Exists().NotZero()
+	validator.Time("systemTime", c.SystemTime.Raw()).NotZero().BeforeNow(SystemTimeNowThreshold)
+	validator.Time("displayTime", c.DisplayTime.Raw()).NotZero()
 	validator.String("transmitterId", c.TransmitterID).Exists().Using(TransmitterIDValidator)
 	validator.Int("transmitterTicks", c.TransmitterTicks).Exists()
 	validator.String("displayDevice", c.DisplayDevice).Exists().NotEmpty()
