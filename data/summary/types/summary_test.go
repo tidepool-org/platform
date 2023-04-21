@@ -17,8 +17,8 @@ const (
 	lowBloodGlucose      = 3.9
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
+	inTargetBloodGlucose = 5.0
 	units                = "mmol/L"
-	requestedAvgGlucose  = 7.0
 )
 
 type DataRanges struct {

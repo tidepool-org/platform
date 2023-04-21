@@ -204,8 +204,6 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 		return nil
 	}
 
-	// TODO: since old unit tests directly test feeding strings into this parser, removing this
-	// legacy string logic breaks a lot of tests which need correcting/removing across all record types.
 	switch rawValue.(type) {
 	case time.Time:
 		timeValue = rawValue.(time.Time)

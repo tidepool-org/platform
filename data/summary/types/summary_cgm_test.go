@@ -105,7 +105,7 @@ var _ = Describe("CGM Summary", func() {
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 336, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 336, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -114,7 +114,7 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Returns correct hour count when given 1 week", func() {
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 168, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -123,7 +123,7 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Returns correct hour count when given 3 weeks", func() {
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 504, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 504, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -134,8 +134,8 @@ var _ = Describe("CGM Summary", func() {
 				var doubledCGMData = make([]*glucose.Glucose, 288*2)
 
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose)
-				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
+				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
 
 				// interlace the lists
 				for i := 0; i < len(dataSetCGMData); i += 1 {
@@ -152,11 +152,11 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct record count when given overlapping records across multiple calculations", func() {
 				userCGMSummary = types.Create[types.CGMStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -169,10 +169,10 @@ var _ = Describe("CGM Summary", func() {
 				var hourlyStatsLen int
 				var newHourlyStatsLen int
 				secondDatumTime := datumTime.AddDate(0, 0, 15)
-				secondRequestedAvgGlucose := requestedAvgGlucose - 4
+				secondRequestedAvgGlucose := lowBloodGlucose
 				userCGMSummary = types.Create[types.CGMStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 168, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -181,7 +181,7 @@ var _ = Describe("CGM Summary", func() {
 				By("check total glucose and dates for first batch")
 				hourlyStatsLen = len(userCGMSummary.Stats.Buckets)
 				for i := hourlyStatsLen - 1; i >= 0; i-- {
-					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", requestedAvgGlucose*12*5, 0.001))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", inTargetBloodGlucose*12*5, 0.001))
 
 					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 5*time.Minute)
 					Expect(userCGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
@@ -215,13 +215,12 @@ var _ = Describe("CGM Summary", func() {
 				var lastRecordTime time.Time
 				userCGMSummary = types.Create[types.CGMStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 144, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 144, inTargetBloodGlucose)
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(144))
 
-				// TODO move to 0.5 hour to test more cases
 				for i := 1; i <= 24; i++ {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetCGMData = NewDataSetCGMDataAvg(deviceId, incrementalDatumTime, 1, float64(i))
@@ -252,9 +251,11 @@ var _ = Describe("CGM Summary", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, requestedAvgGlucose)
-				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -1), 24, requestedAvgGlucose+1)
-				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose+2)
+
+				// Datasets use +1 and +2 offset to allow for checking via iteration
+				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, inTargetBloodGlucose)
+				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -1), 24, inTargetBloodGlucose+1)
+				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose+2)
 				dataSetCGMData = append(dataSetCGMDataOne, dataSetCGMDataTwo...)
 				dataSetCGMData = append(dataSetCGMData, dataSetCGMDataThree...)
 
@@ -272,7 +273,7 @@ var _ = Describe("CGM Summary", func() {
 					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userCGMSummary.Stats.Buckets)-i-1) - 5*time.Minute)
 					Expect(userCGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 
-					expectedTotalGlucose = (requestedAvgGlucose + float64(i/24)) * 12 * 5
+					expectedTotalGlucose = (inTargetBloodGlucose + float64(i/24)) * 12 * 5
 					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", expectedTotalGlucose, 0.001))
 				}
 			})
@@ -485,8 +486,8 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Returns correct average glucose for stats", func() {
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose)
-				expectedGMI := types.CalculateGMI(requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				expectedGMI := types.CalculateGMI(inTargetBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -507,7 +508,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
@@ -516,8 +517,8 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Correctly removes GMI when CGM use drop below 0.7", func() {
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose)
-				expectedGMI := types.CalculateGMI(requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				expectedGMI := types.CalculateGMI(inTargetBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -538,14 +539,14 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
 				}
 
 				// start the real test
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, 31), 16, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, 31), 16, inTargetBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -569,14 +570,14 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(960))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
 				}
 			})
 
 			It("Returns correctly calculated summary with no rolling", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 				userCGMSummary = types.Create[types.CGMStats](userId)
-				expectedGMI := types.CalculateGMI(requestedAvgGlucose)
+				expectedGMI := types.CalculateGMI(inTargetBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -597,7 +598,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
@@ -605,10 +606,10 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with rolling <100% cgm use", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 1, requestedAvgGlucose-4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 1, lowBloodGlucose)
 				userCGMSummary = types.Create[types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
-				expectedGMI := types.CalculateGMI(requestedAvgGlucose + 4)
+				expectedGMI := types.CalculateGMI(highBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -629,14 +630,14 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 				}
 
 				// start the actual test
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 720, requestedAvgGlucose+4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 720, highBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -656,7 +657,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
@@ -664,10 +665,10 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with rolling 100% cgm use", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose-4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
 				userCGMSummary = types.Create[types.CGMStats](userId)
 				newDatumTime = datumTime.Add(time.Duration(23) * time.Hour)
-				expectedGMIFirst := types.CalculateGMI(requestedAvgGlucose - 4)
+				expectedGMIFirst := types.CalculateGMI(lowBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -687,14 +688,14 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.005))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.005))
 
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 				}
 
 				// start the actual test
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 23, requestedAvgGlucose+4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 23, highBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -704,7 +705,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, requestedAvgGlucose+4, requestedAvgGlucose-4)
+					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, highBloodGlucose, lowBloodGlucose)
 					expectedGMI := types.CalculateGMI(expectedAverage)
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
@@ -724,10 +725,10 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly non-rolling summary with two 30 day windows", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose-4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, highBloodGlucose)
 				userCGMSummary = types.Create[types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 31)
-				expectedGMISecond := types.CalculateGMI(requestedAvgGlucose + 4)
+				expectedGMISecond := types.CalculateGMI(highBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -747,7 +748,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(1440))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
 
 					if *userCGMSummary.Stats.Periods[period].TimeCGMUsePercent > 0.7 {
 						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
@@ -758,7 +759,7 @@ var _ = Describe("CGM Summary", func() {
 				}
 
 				// start the actual test
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 168, requestedAvgGlucose+4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 168, highBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -784,7 +785,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
 
 					if *userCGMSummary.Stats.Periods[period].TimeCGMUsePercent > 0.7 {
 						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
@@ -797,10 +798,10 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with rolling dropping cgm use", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose-4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
 				userCGMSummary = types.Create[types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
-				expectedGMI := types.CalculateGMI(requestedAvgGlucose - 4)
+				expectedGMI := types.CalculateGMI(lowBloodGlucose)
 
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -820,14 +821,14 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
 				}
 
 				// start the actual test
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 1, requestedAvgGlucose+4)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 1, highBloodGlucose)
 
 				err = userCGMSummary.Stats.Update(dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -845,7 +846,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.05))
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.05))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())

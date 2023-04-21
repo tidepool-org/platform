@@ -20,6 +20,9 @@ type Datum interface {
 	GetOrigin() *origin.Origin
 	GetPayload() *metadata.Metadata
 
+	GetType() string
+	GetTime() *time.Time
+
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)
 	SetActive(active bool)
@@ -30,9 +33,6 @@ type Datum interface {
 	SetModifiedUserID(modifiedUserID *string)
 	SetDeletedTime(deletedTime *time.Time)
 	SetDeletedUserID(deletedUserID *string)
-
-	UpdatesSummary(updatesSummary *map[string]bool)
-
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
 }

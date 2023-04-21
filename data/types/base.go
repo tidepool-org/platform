@@ -267,6 +267,10 @@ func (b *Base) GetTime() *time.Time {
 	return b.Time
 }
 
+func (b *Base) GetType() string {
+	return b.Type
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }
@@ -305,27 +309,6 @@ func (b *Base) SetDeletedTime(deletedTime *time.Time) {
 
 func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
-}
-
-func (b *Base) UpdatesTypeSummary(t string) bool {
-	// two years has a bit of padding, to allow for some calculation delay
-	twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	if b.Type == t && b.Time.Before(oneDayFuture) && b.Time.After(twoYearsPast) {
-		return true
-	}
-
-	return false
-}
-
-func (b *Base) UpdatesSummary(updates *map[string]bool) {
-	if b.UpdatesTypeSummary("cbg") {
-		(*updates)["cgm"] = true
-	}
-	if b.UpdatesTypeSummary("smbg") {
-		(*updates)["bgm"] = true
-	}
 }
 
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

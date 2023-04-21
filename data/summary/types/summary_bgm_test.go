@@ -101,7 +101,7 @@ var _ = Describe("BGM Summary", func() {
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userBGMSummary = types.Create[types.BGMStats](userId)
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 336, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 336, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -110,7 +110,7 @@ var _ = Describe("BGM Summary", func() {
 
 			It("Returns correct hour count when given 1 week", func() {
 				userBGMSummary = types.Create[types.BGMStats](userId)
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -119,7 +119,7 @@ var _ = Describe("BGM Summary", func() {
 
 			It("Returns correct hour count when given 3 weeks", func() {
 				userBGMSummary = types.Create[types.BGMStats](userId)
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 504, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 504, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -131,8 +131,8 @@ var _ = Describe("BGM Summary", func() {
 				var doubledBGMData = make([]*glucose.Glucose, 288*2)
 
 				userBGMSummary = types.Create[types.BGMStats](userId)
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose)
-				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
+				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
 
 				// interlace the lists
 				for i := 0; i < len(dataSetBGMData); i += 1 {
@@ -150,11 +150,11 @@ var _ = Describe("BGM Summary", func() {
 				// NOTE CGM would filter these, we are testing that they don't get filtered here
 				userBGMSummary = types.Create[types.BGMStats](userId)
 
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -167,10 +167,10 @@ var _ = Describe("BGM Summary", func() {
 				var hourlyStatsLen int
 				var newHourlyStatsLen int
 				secondDatumTime := datumTime.AddDate(0, 0, 15)
-				secondRequestedAvgGlucose := requestedAvgGlucose - 4
+				secondRequestedAvgGlucose := lowBloodGlucose
 				userBGMSummary = types.Create[types.BGMStats](userId)
 
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -179,7 +179,7 @@ var _ = Describe("BGM Summary", func() {
 				By("check total glucose and dates for first batch")
 				hourlyStatsLen = len(userBGMSummary.Stats.Buckets)
 				for i := hourlyStatsLen - 1; i >= 0; i-- {
-					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", requestedAvgGlucose*6, 0.001))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", inTargetBloodGlucose*6, 0.001))
 
 					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 10*time.Minute)
 					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
@@ -213,7 +213,7 @@ var _ = Describe("BGM Summary", func() {
 				var lastRecordTime time.Time
 				userBGMSummary = types.Create[types.BGMStats](userId)
 
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 144, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 144, inTargetBloodGlucose)
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
@@ -249,9 +249,11 @@ var _ = Describe("BGM Summary", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
 				userBGMSummary = types.Create[types.BGMStats](userId)
-				dataSetBGMDataOne := NewDataSetBGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, requestedAvgGlucose)
-				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceId, datumTime.AddDate(0, 0, -1), 24, requestedAvgGlucose+1)
-				dataSetBGMDataThree := NewDataSetBGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose+2)
+
+				// Datasets use +1 and +2 offset to allow for checking via iteration
+				dataSetBGMDataOne := NewDataSetBGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, inTargetBloodGlucose)
+				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceId, datumTime.AddDate(0, 0, -1), 24, inTargetBloodGlucose+1)
+				dataSetBGMDataThree := NewDataSetBGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose+2)
 				dataSetBGMData = append(dataSetBGMDataOne, dataSetBGMDataTwo...)
 				dataSetBGMData = append(dataSetBGMData, dataSetBGMDataThree...)
 
@@ -268,7 +270,7 @@ var _ = Describe("BGM Summary", func() {
 					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - 10*time.Minute)
 					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 
-					expectedTotalGlucose = (requestedAvgGlucose + float64(i/24)) * 6
+					expectedTotalGlucose = (inTargetBloodGlucose + float64(i/24)) * 6
 					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", expectedTotalGlucose, 0.001))
 				}
 			})
@@ -411,7 +413,7 @@ var _ = Describe("BGM Summary", func() {
 
 			It("Returns correct average glucose for stats", func() {
 				userBGMSummary = types.Create[types.BGMStats](userId)
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -422,13 +424,13 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 			})
 
 			It("Returns correctly calculated summary with no rolling", func() {
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 				userBGMSummary = types.Create[types.BGMStats](userId)
 
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
@@ -440,13 +442,13 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 			})
 
 			It("Returns correctly calculated summary with rolling low to high record counts", func() {
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 1, requestedAvgGlucose-4)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 1, lowBloodGlucose)
 				userBGMSummary = types.Create[types.BGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
 
@@ -458,12 +460,12 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 
 				// start the actual test
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 720, requestedAvgGlucose+4)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 720, highBloodGlucose)
 
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -473,13 +475,13 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 			})
 
 			It("Returns correctly calculated summary with rolling high to low record counts", func() {
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, requestedAvgGlucose-4)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
 				userBGMSummary = types.Create[types.BGMStats](userId)
 				newDatumTime = datumTime.Add(time.Duration(23) * time.Hour)
 
@@ -491,12 +493,12 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.005))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.005))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 
 				// start the actual test
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 23, requestedAvgGlucose+4)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 23, highBloodGlucose)
 
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -506,14 +508,14 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
-					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, requestedAvgGlucose+4, requestedAvgGlucose-4)
+					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, highBloodGlucose, lowBloodGlucose)
 					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", expectedAverage, 0.005))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 			})
 
 			It("Returns correctly non-rolling summary with two 30 day windows", func() {
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, requestedAvgGlucose-4)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, lowBloodGlucose)
 				userBGMSummary = types.Create[types.BGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 31)
 
@@ -525,12 +527,12 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(24))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 
 				// start the actual test
-				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 168, requestedAvgGlucose+4)
+				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 168, highBloodGlucose)
 
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
@@ -541,7 +543,7 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720)) // 30 days
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
 			})

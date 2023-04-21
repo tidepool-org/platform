@@ -25,6 +25,8 @@ const (
 
 var stopPoints = [...]int{1, 7, 14, 30}
 
+var DeviceDataTypes = []string{DeviceDataTypeCGM, DeviceDataTypeBGM}
+
 type BucketData interface {
 	CGMBucketData | BGMBucketData
 }

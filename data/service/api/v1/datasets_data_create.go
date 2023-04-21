@@ -3,6 +3,7 @@ package v1
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -101,7 +102,16 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		datum.UpdatesSummary(&updatesSummary)
+
+		// two years has a bit of padding, to allow for some calculation delay
+		twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
+		oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+		for _, typ := range types.DeviceDataTypes {
+			if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
+				updatesSummary[typ] = true
+			}
+		}
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -115,7 +125,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if _, ok := updatesSummary["cgm"]; ok {
+	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
 		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](dataServiceContext.SummarizerRegistry())
 		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
 		if err != nil {
@@ -123,7 +133,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if _, ok := updatesSummary["bgm"]; ok {
+	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
 		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](dataServiceContext.SummarizerRegistry())
 		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
 		if err != nil {
