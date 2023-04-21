@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -30,7 +31,7 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 		},
 		Stats: &types.CGMStats{
 			TotalHours: test.RandomIntFromRange(1, 720),
-			Periods:    make(map[string]types.CGMPeriod),
+			Periods:    make(map[string]*types.CGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
 			Buckets: make(types.Buckets[types.CGMBucketData, *types.CGMBucketData], 2),
@@ -61,13 +62,13 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Stats.Periods[period] = types.CGMPeriod{
+		datum.Stats.Periods[period] = &types.CGMPeriod{
 			HasGlucoseManagementIndicator: test.RandomBool(),
 			GlucoseManagementIndicator:    pointer.FromAny(test.RandomFloat64FromRange(0, 20)),
 
 			AverageGlucose: &types.Glucose{
 				Value: test.RandomFloat64FromRange(1, 30),
-				Units: "mmol/L",
+				Units: glucose.MmolL,
 			},
 			HasAverageGlucose: test.RandomBool(),
 
@@ -160,7 +161,7 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 		},
 		Stats: &types.BGMStats{
 			TotalHours: test.RandomIntFromRange(1, 720),
-			Periods:    make(map[string]types.BGMPeriod),
+			Periods:    make(map[string]*types.BGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
 			Buckets: make(types.Buckets[types.BGMBucketData, *types.BGMBucketData], 2),
@@ -184,10 +185,10 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Stats.Periods[period] = types.BGMPeriod{
+		datum.Stats.Periods[period] = &types.BGMPeriod{
 			AverageGlucose: &types.Glucose{
 				Value: test.RandomFloat64FromRange(1, 30),
-				Units: "mmol/L",
+				Units: glucose.MmolL,
 			},
 			HasAverageGlucose: test.RandomBool(),
 

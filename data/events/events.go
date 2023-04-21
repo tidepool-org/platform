@@ -47,7 +47,7 @@ func (u *userDeletionEventsHandler) HandleDeleteUserEvent(payload ev.DeleteUserE
 	}
 
 	logger.Infof("Deleting summary for user")
-	summaryRepository := summaryStore.NewTypeless(u.dataStore.NewBareSummaryRepository())
+	summaryRepository := summaryStore.NewTypeless(u.dataStore.NewSummaryRepository().GetStore())
 	if err := summaryRepository.DeleteSummary(u.ctx, payload.UserID); err != nil {
 		errs = append(errs, err)
 		logger.WithError(err).Error("unable to delete summary for user")

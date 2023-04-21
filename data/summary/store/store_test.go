@@ -48,7 +48,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 
-			summaryRepository = store.NewBareSummaryRepository()
+			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
 			cgmStore := dataStoreSummary.New[types.CGMStats](summaryRepository)
@@ -60,7 +60,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 
-			summaryRepository = store.NewBareSummaryRepository()
+			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
 			bgmStore := dataStoreSummary.New[types.BGMStats](summaryRepository)
@@ -72,7 +72,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 
-			summaryRepository = store.NewBareSummaryRepository()
+			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
 			typelessStore := dataStoreSummary.NewTypeless(summaryRepository)
@@ -100,7 +100,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 		Context("With a repository", func() {
 			BeforeEach(func() {
-				summaryRepository = store.NewBareSummaryRepository()
+				summaryRepository = store.NewSummaryRepository().GetStore()
 				Expect(summaryRepository).ToNot(BeNil())
 			})
 

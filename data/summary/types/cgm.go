@@ -312,9 +312,8 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 
 		// we only add GMI if cgm use >70%, otherwise clear it
 		if *newPeriod.TimeCGMUsePercent > 0.7 {
+			newPeriod.HasGlucoseManagementIndicator = true
 			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(newPeriod.AverageGlucose.Value))
-		} else {
-
 		}
 	}
 
