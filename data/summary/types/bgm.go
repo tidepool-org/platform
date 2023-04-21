@@ -63,7 +63,7 @@ type BGMPeriod struct {
 	TimeInVeryHighRecords    *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
-type BGMPeriods map[string]BGMPeriod
+type BGMPeriods map[string]*BGMPeriod
 
 type BGMStats struct {
 	Periods    BGMPeriods                             `json:"periods" bson:"periods"`
@@ -81,7 +81,7 @@ func (*BGMStats) GetDeviceDataType() string {
 
 func (s *BGMStats) Init() {
 	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
-	s.Periods = make(map[string]BGMPeriod)
+	s.Periods = make(map[string]*BGMPeriod)
 	s.TotalHours = 0
 }
 
@@ -94,9 +94,12 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 }
 
 func (s *BGMStats) Update(userData any) error {
-	var err error
-	userDataTyped := userData.([]*glucoseDatum.Glucose)
-	err = AddData(&s.Buckets, userDataTyped)
+	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
+	if !ok {
+		return errors.New("BGM records for calculation is not compatible with Glucose type")
+	}
+
+	err := AddData(&s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}
@@ -111,9 +114,8 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 	if !ok {
 		return false, errors.New("BGM record for calculation is not compatible with Glucose type")
 	}
-	var normalizedValue float64
 
-	normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
+	var normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromAny(glucose.MmolL))
 
 	if normalizedValue < veryLowBloodGlucose {
 		B.VeryLowRecords++
@@ -134,13 +136,10 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 }
 
 func (s *BGMStats) CalculateSummary() {
-	var totalStats = &BGMBucketData{}
-
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
-	stopPoints := []int{1, 7, 14, 30}
 	var nextStopPoint int
-	var currentIndex int
+	var totalStats = &BGMBucketData{}
 
 	for i := 0; i < len(s.Buckets); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
@@ -148,7 +147,7 @@ func (s *BGMStats) CalculateSummary() {
 			nextStopPoint++
 		}
 
-		currentIndex = len(s.Buckets) - 1 - i
+		var currentIndex = len(s.Buckets) - 1 - i
 		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 		totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
 		totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
@@ -163,82 +162,56 @@ func (s *BGMStats) CalculateSummary() {
 	for i := nextStopPoint; i < len(stopPoints); i++ {
 		s.CalculatePeriod(stopPoints[i], totalStats)
 	}
+
+	s.TotalHours = len(s.Buckets)
 }
 
 func (s *BGMStats) CalculatePeriod(i int, totalStats *BGMBucketData) {
-	var timeInTargetPercent *float64
-	var timeInLowPercent *float64
-	var timeInVeryLowPercent *float64
-	var timeInHighPercent *float64
-	var timeInVeryHighPercent *float64
-	var averageGlucose *Glucose
-
-	// remove partial hour (data end) from total time for more accurate TimeBGMUse
-	totalMinutes := float64(i * 24 * 60)
-	lastRecordTime := s.Buckets[len(s.Buckets)-1].LastRecordTime
-	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
-		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
-	totalMinutes = totalMinutes - nextHour.Sub(lastRecordTime).Minutes()
-
-	s.TotalHours = len(s.Buckets)
-
-	if totalStats.TotalRecords != 0 {
-		timeInTargetPercent = pointer.FromFloat64(float64(totalStats.TargetRecords) / float64(totalStats.TotalRecords))
-		timeInLowPercent = pointer.FromFloat64(float64(totalStats.LowRecords) / float64(totalStats.TotalRecords))
-		timeInVeryLowPercent = pointer.FromFloat64(float64(totalStats.VeryLowRecords) / float64(totalStats.TotalRecords))
-		timeInHighPercent = pointer.FromFloat64(float64(totalStats.HighRecords) / float64(totalStats.TotalRecords))
-		timeInVeryHighPercent = pointer.FromFloat64(float64(totalStats.VeryHighRecords) / float64(totalStats.TotalRecords))
-
-		averageGlucose = &Glucose{
-			Value: totalStats.TotalGlucose / float64(totalStats.TotalRecords),
-			Units: summaryGlucoseUnits,
-		}
-	}
-
-	// ensure periods exists, just in case
-	if s.Periods == nil {
-		s.Periods = make(map[string]BGMPeriod)
-	}
-
-	s.Periods[strconv.Itoa(i)+"d"] = BGMPeriod{
-
-		HasAverageGlucose: averageGlucose != nil,
-		AverageGlucose:    averageGlucose,
-
+	var newPeriod = &BGMPeriod{
 		HasTotalRecords: true,
 		TotalRecords:    pointer.FromAny(totalStats.TotalRecords),
 
 		HasAverageDailyRecords: true,
 		AverageDailyRecords:    pointer.FromAny(float64(totalStats.TotalRecords) / float64(i)),
 
-		HasTimeInTargetPercent: timeInTargetPercent != nil,
-		TimeInTargetPercent:    timeInTargetPercent,
-
 		HasTimeInTargetRecords: true,
 		TimeInTargetRecords:    pointer.FromAny(totalStats.TargetRecords),
-
-		HasTimeInLowPercent: timeInLowPercent != nil,
-		TimeInLowPercent:    timeInLowPercent,
 
 		HasTimeInLowRecords: true,
 		TimeInLowRecords:    pointer.FromAny(totalStats.LowRecords),
 
-		HasTimeInVeryLowPercent: timeInVeryLowPercent != nil,
-		TimeInVeryLowPercent:    timeInVeryLowPercent,
-
 		HasTimeInVeryLowRecords: true,
 		TimeInVeryLowRecords:    pointer.FromAny(totalStats.VeryLowRecords),
-
-		HasTimeInHighPercent: timeInHighPercent != nil,
-		TimeInHighPercent:    timeInHighPercent,
 
 		HasTimeInHighRecords: true,
 		TimeInHighRecords:    pointer.FromAny(totalStats.HighRecords),
 
-		HasTimeInVeryHighPercent: timeInVeryHighPercent != nil,
-		TimeInVeryHighPercent:    timeInVeryHighPercent,
-
 		HasTimeInVeryHighRecords: true,
 		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 	}
+
+	if totalStats.TotalRecords != 0 {
+		newPeriod.HasTimeInTargetPercent = true
+		newPeriod.TimeInTargetPercent = pointer.FromAny(float64(totalStats.TargetRecords) / float64(totalStats.TotalRecords))
+
+		newPeriod.HasTimeInLowPercent = true
+		newPeriod.TimeInLowPercent = pointer.FromAny(float64(totalStats.LowRecords) / float64(totalStats.TotalRecords))
+
+		newPeriod.HasTimeInVeryLowPercent = true
+		newPeriod.TimeInVeryLowPercent = pointer.FromAny(float64(totalStats.VeryLowRecords) / float64(totalStats.TotalRecords))
+
+		newPeriod.HasTimeInHighPercent = true
+		newPeriod.TimeInHighPercent = pointer.FromAny(float64(totalStats.HighRecords) / float64(totalStats.TotalRecords))
+
+		newPeriod.HasTimeInVeryHighPercent = true
+		newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords) / float64(totalStats.TotalRecords))
+
+		newPeriod.HasAverageGlucose = true
+		newPeriod.AverageGlucose = &Glucose{
+			Value: totalStats.TotalGlucose / float64(totalStats.TotalRecords),
+			Units: glucose.MmolL,
+		}
+	}
+
+	s.Periods[strconv.Itoa(i)+"d"] = newPeriod
 }

@@ -35,3 +35,7 @@ func (d *SummaryRepository) EnsureIndexes() error {
 		},
 	})
 }
+
+func (d *SummaryRepository) GetStore() *storeStructuredMongo.Repository {
+	return d.Repository
+}

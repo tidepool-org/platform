@@ -894,7 +894,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 
 // GetDataRange be careful when calling this, as if dataRecords isn't a pointer underneath, it will silently not
 // result in any results being returned.
-func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, t string, startTime time.Time, endTime time.Time) error {
+func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error {
 
 	// quit early if range is 0
 	if startTime.Equal(endTime) {
@@ -909,7 +909,7 @@ func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
-		"type":    t,
+		"type":    typ,
 		"time": bson.M{"$gt": startTime,
 			"$lte": endTime},
 	}
@@ -972,7 +972,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, t
 		return status, nil
 	}
 
-	status.LastUpload = *dataSet[0].CreatedTime // nil pointer?
+	status.LastUpload = *dataSet[0].CreatedTime
 	status.LastUpload = status.LastUpload.UTC()
 
 	status.LastData = *dataSet[0].Time

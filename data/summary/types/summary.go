@@ -20,9 +20,10 @@ const (
 	veryLowBloodGlucose  = 3.0
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
-	summaryGlucoseUnits  = "mmol/L"
 	hoursAgoToKeep       = 30 * 24
 )
+
+var stopPoints = [...]int{1, 7, 14, 30}
 
 type BucketData interface {
 	CGMBucketData | BGMBucketData
@@ -212,12 +213,7 @@ type Period interface {
 }
 
 func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat Bucket[T, A]) error {
-	var hourCount int
-	var oldestHour time.Time
-	var oldestHourToKeep time.Time
 	var existingHour = false
-	var statsGap int
-	var newStatsTime time.Time
 
 	// update existing hour if one does exist
 	if len(*buckets) > 0 {
@@ -236,9 +232,9 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		}
 
 		// add hours for any gaps that this new stat skipped
-		statsGap = int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours())
+		var statsGap = int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours())
 		for i := statsGap; i > 1; i-- {
-			newStatsTime = newStat.Date.Add(time.Duration(-i+1) * time.Hour)
+			var newStatsTime = newStat.Date.Add(time.Duration(-i+1) * time.Hour)
 
 			*buckets = append(*buckets, *CreateBucket[T, A](newStatsTime))
 		}
@@ -249,14 +245,14 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	}
 
 	// remove extra days to cap at X days of newStat
-	hourCount = len(*buckets)
+	var hourCount = len(*buckets)
 	if hourCount > hoursAgoToKeep {
 		*buckets = (*buckets)[hourCount-hoursAgoToKeep:]
 	}
 
 	// remove any newStat that are older than X days from the last stat
-	oldestHour = (*buckets)[0].Date
-	oldestHourToKeep = newStat.Date.Add(-hoursAgoToKeep * time.Hour)
+	var oldestHour = (*buckets)[0].Date
+	var oldestHourToKeep = newStat.Date.Add(-hoursAgoToKeep * time.Hour)
 	if oldestHour.Before(oldestHourToKeep) {
 		// we don't check the last entry because we just added/updated it
 		for i := len(*buckets) - 2; i >= 0; i-- {
@@ -271,23 +267,19 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 }
 
 func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](buckets *S, userData []D) error {
-	var recordTime *time.Time
 	var lastHour time.Time
-	var currentHour time.Time
-	var err error
-	var skipped bool
 	var newBucket *Bucket[T, A]
 
 	for _, r := range userData {
-		recordTime = r.GetTime()
+		var recordTime = r.GetTime()
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
-		currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
+		var currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
 			recordTime.Hour(), 0, 0, 0, recordTime.Location())
 
 		// store stats for the day, if we are now on the next hour
 		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err = AddBin(buckets, *newBucket)
+			err := AddBin(buckets, *newBucket)
 			if err != nil {
 				return err
 			}
@@ -322,7 +314,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 			newBucket.LastRecordTime = (*buckets)[len(*buckets)-1].LastRecordTime
 		}
 
-		skipped, err = newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
+		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
 		if err != nil {
 			return err
 		}
@@ -333,7 +325,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 	// store
 	if newBucket != nil {
-		err = AddBin(buckets, *newBucket)
+		err := AddBin(buckets, *newBucket)
 		if err != nil {
 			return err
 		}

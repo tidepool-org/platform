@@ -16,14 +16,15 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		// TODO: these urls overlap, and while userids of cgm or bgm cant exist, its a remnant of the old api that
-		// should be repathed
-		dataService.MakeRoute("GET", "/v1/summaries/:userId/cgm", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/:userId/bgm", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId/cgm", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId/bgm", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/cgm/:userId", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/bgm/:userId", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
+
+		dataService.MakeRoute("POST", "/v1/summaries/cgm/:userId", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/bgm/:userId", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
+
 		dataService.MakeRoute("POST", "/v1/summaries/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+
 		dataService.MakeRoute("GET", "/v1/summaries/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
 		dataService.MakeRoute("GET", "/v1/summaries/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
 	}

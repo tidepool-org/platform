@@ -10,7 +10,6 @@ import (
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 )
 
@@ -25,7 +24,6 @@ type Context interface {
 
 	DataRepository() dataStore.DataRepository
 	SummaryRepository() dataStore.SummaryRepository
-	BareSummaryRepository() *mongo.Repository
 	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 
 	SummarizerRegistry() *summary.SummarizerRegistry

@@ -238,10 +238,6 @@ type DataRepository struct {
 	GetDataRangeInputs      []GetDataRangeInput
 	GetDataRangeOutputs     []GetDataRangeOutput
 
-	//CalculateSummaryInvocations int
-	//CalculateSummaryInputs      []CalculateSummaryInput
-	//CalculateSummaryOutputs     []CalculateSummaryOutput
-
 	GetLastUpdatedForUserInvocations int
 	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
 	GetLastUpdatedForUserOutputs     []GetLastUpdatedForUserOutput
@@ -482,10 +478,10 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, t
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, id string, t string, startTime time.Time, endTime time.Time) error {
+func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, id string, typ string, startTime time.Time, endTime time.Time) error {
 	d.GetDataRangeInvocations++
 
-	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, DataRecords: dataRecords, ID: id, Type: t, StartTime: startTime, EndTime: endTime})
+	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, DataRecords: dataRecords, ID: id, Type: typ, StartTime: startTime, EndTime: endTime})
 
 	gomega.Expect(d.GetDataRangeOutputs).ToNot(gomega.BeEmpty())
 

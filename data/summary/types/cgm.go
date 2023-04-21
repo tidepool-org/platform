@@ -101,7 +101,7 @@ type CGMPeriod struct {
 	TimeInVeryHighRecords    *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 }
 
-type CGMPeriods map[string]CGMPeriod
+type CGMPeriods map[string]*CGMPeriod
 
 type CGMStats struct {
 	Periods    CGMPeriods                             `json:"periods" bson:"periods"`
@@ -119,7 +119,7 @@ func (*CGMStats) GetDeviceDataType() string {
 
 func (s *CGMStats) Init() {
 	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
-	s.Periods = make(map[string]CGMPeriod)
+	s.Periods = make(map[string]*CGMPeriod)
 	s.TotalHours = 0
 }
 
@@ -132,9 +132,12 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 }
 
 func (s *CGMStats) Update(userData any) error {
-	var err error
-	userDataTyped := userData.([]*glucoseDatum.Glucose)
-	err = AddData(&s.Buckets, userDataTyped)
+	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
+	if !ok {
+		return errors.New("CGM records for calculation is not compatible with Glucose type")
+	}
+
+	err := AddData(&s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}
@@ -145,9 +148,6 @@ func (s *CGMStats) Update(userData any) error {
 }
 
 func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, error) {
-	var normalizedValue float64
-	var duration int
-
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("CGM record for calculation is not compatible with Glucose type")
@@ -163,8 +163,8 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, 
 
 	// Skip record unless we are beyond the blackout window
 	if dataRecord.Time.Sub(*lastRecordTime) > blackoutWindow {
-		normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromString(summaryGlucoseUnits))
-		duration = GetDuration(dataRecord)
+		normalizedValue := *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromAny(glucose.MmolL))
+		duration := GetDuration(dataRecord)
 
 		if normalizedValue < veryLowBloodGlucose {
 			B.VeryLowMinutes += duration
@@ -195,19 +195,10 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, 
 }
 
 func (s *CGMStats) CalculateSummary() {
-	var totalStats = &CGMBucketData{}
-	s.TotalHours = len(s.Buckets)
-
-	// ensure periods exists, just in case
-	if s.Periods == nil {
-		s.Periods = make(map[string]CGMPeriod)
-	}
-
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
-	stopPoints := []int{1, 7, 14, 30}
 	var nextStopPoint int
-	var currentIndex int
+	var totalStats = &CGMBucketData{}
 
 	for i := 0; i < len(s.Buckets); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
@@ -215,7 +206,7 @@ func (s *CGMStats) CalculateSummary() {
 			nextStopPoint++
 		}
 
-		currentIndex = len(s.Buckets) - 1 - i
+		var currentIndex = len(s.Buckets) - 1 - i
 		totalStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
 		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 
@@ -240,58 +231,17 @@ func (s *CGMStats) CalculateSummary() {
 	for i := nextStopPoint; i < len(stopPoints); i++ {
 		s.CalculatePeriod(stopPoints[i], totalStats)
 	}
+
+	s.TotalHours = len(s.Buckets)
 }
 
 func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
-	var timeCGMUsePercent *float64
-	var timeInTargetPercent *float64
-	var timeInLowPercent *float64
-	var timeInVeryLowPercent *float64
-	var timeInHighPercent *float64
-	var timeInVeryHighPercent *float64
-	var glucoseManagementIndicator *float64
-	var realMinutes float64
-	var averageGlucose *Glucose
-
-	if totalStats.TotalRecords != 0 {
-		realMinutes = CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime)
-		timeCGMUsePercent = pointer.FromFloat64(float64(totalStats.TotalMinutes) / realMinutes)
-		// if we are storing under 1d, apply 70% rule to TimeIn*
-		// if we are storing over 1d, check for 24h cgm use
-		if (i <= 1 && *timeCGMUsePercent > 0.7) || (i > 1 && totalStats.TotalMinutes > 1440) {
-			timeInTargetPercent = pointer.FromFloat64(float64(totalStats.TargetMinutes) / float64(totalStats.TotalMinutes))
-			timeInLowPercent = pointer.FromFloat64(float64(totalStats.LowMinutes) / float64(totalStats.TotalMinutes))
-			timeInVeryLowPercent = pointer.FromFloat64(float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalMinutes))
-			timeInHighPercent = pointer.FromFloat64(float64(totalStats.HighMinutes) / float64(totalStats.TotalMinutes))
-			timeInVeryHighPercent = pointer.FromFloat64(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalMinutes))
-		}
-
-		averageGlucose = &Glucose{
-			Value: totalStats.TotalGlucose / float64(totalStats.TotalMinutes),
-			Units: summaryGlucoseUnits,
-		}
-
-		// we only add GMI if cgm use >70%, otherwise clear it
-		if *timeCGMUsePercent > 0.7 {
-			glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose.Value))
-		}
-	}
-
-	s.Periods[strconv.Itoa(i)+"d"] = CGMPeriod{
-		HasTimeCGMUsePercent: timeCGMUsePercent != nil,
-		TimeCGMUsePercent:    timeCGMUsePercent,
-
+	var newPeriod = &CGMPeriod{
 		HasTimeCGMUseMinutes: true,
 		TimeCGMUseMinutes:    pointer.FromAny(totalStats.TotalMinutes),
 
 		HasTimeCGMUseRecords: true,
 		TimeCGMUseRecords:    pointer.FromAny(totalStats.TotalRecords),
-
-		HasAverageGlucose: averageGlucose != nil,
-		AverageGlucose:    averageGlucose,
-
-		HasGlucoseManagementIndicator: glucoseManagementIndicator != nil,
-		GlucoseManagementIndicator:    glucoseManagementIndicator,
 
 		HasTotalRecords: true,
 		TotalRecords:    pointer.FromAny(totalStats.TotalRecords),
@@ -299,17 +249,11 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 		HasAverageDailyRecords: true,
 		AverageDailyRecords:    pointer.FromAny(float64(totalStats.TotalRecords) / float64(i)),
 
-		HasTimeInTargetPercent: timeInTargetPercent != nil,
-		TimeInTargetPercent:    timeInTargetPercent,
-
 		HasTimeInTargetMinutes: true,
 		TimeInTargetMinutes:    pointer.FromAny(totalStats.TargetMinutes),
 
 		HasTimeInTargetRecords: true,
 		TimeInTargetRecords:    pointer.FromAny(totalStats.TargetRecords),
-
-		HasTimeInLowPercent: timeInLowPercent != nil,
-		TimeInLowPercent:    timeInLowPercent,
 
 		HasTimeInLowMinutes: true,
 		TimeInLowMinutes:    pointer.FromAny(totalStats.LowMinutes),
@@ -317,17 +261,11 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 		HasTimeInLowRecords: true,
 		TimeInLowRecords:    pointer.FromAny(totalStats.LowRecords),
 
-		HasTimeInVeryLowPercent: timeInVeryLowPercent != nil,
-		TimeInVeryLowPercent:    timeInVeryLowPercent,
-
 		HasTimeInVeryLowMinutes: true,
 		TimeInVeryLowMinutes:    pointer.FromAny(totalStats.VeryLowMinutes),
 
 		HasTimeInVeryLowRecords: true,
 		TimeInVeryLowRecords:    pointer.FromAny(totalStats.VeryLowRecords),
-
-		HasTimeInHighPercent: timeInHighPercent != nil,
-		TimeInHighPercent:    timeInHighPercent,
 
 		HasTimeInHighMinutes: true,
 		TimeInHighMinutes:    pointer.FromAny(totalStats.HighMinutes),
@@ -335,13 +273,50 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 		HasTimeInHighRecords: true,
 		TimeInHighRecords:    pointer.FromAny(totalStats.HighRecords),
 
-		HasTimeInVeryHighPercent: timeInVeryHighPercent != nil,
-		TimeInVeryHighPercent:    timeInVeryHighPercent,
-
 		HasTimeInVeryHighMinutes: true,
 		TimeInVeryHighMinutes:    pointer.FromAny(totalStats.VeryHighMinutes),
 
 		HasTimeInVeryHighRecords: true,
 		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 	}
+
+	if totalStats.TotalRecords != 0 {
+		var realMinutes = CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime)
+		newPeriod.HasTimeCGMUsePercent = true
+		newPeriod.TimeCGMUsePercent = pointer.FromAny(float64(totalStats.TotalMinutes) / realMinutes)
+
+		// if we are storing under 1d, apply 70% rule to TimeIn*
+		// if we are storing over 1d, check for 24h cgm use
+		if (i <= 1 && *newPeriod.TimeCGMUsePercent > 0.7) || (i > 1 && totalStats.TotalMinutes > 1440) {
+			newPeriod.HasTimeInTargetPercent = true
+			newPeriod.TimeInTargetPercent = pointer.FromAny(float64(totalStats.TargetMinutes) / float64(totalStats.TotalMinutes))
+
+			newPeriod.HasTimeInLowPercent = true
+			newPeriod.TimeInLowPercent = pointer.FromAny(float64(totalStats.LowMinutes) / float64(totalStats.TotalMinutes))
+
+			newPeriod.HasTimeInVeryLowPercent = true
+			newPeriod.TimeInVeryLowPercent = pointer.FromAny(float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalMinutes))
+
+			newPeriod.HasTimeInHighPercent = true
+			newPeriod.TimeInHighPercent = pointer.FromAny(float64(totalStats.HighMinutes) / float64(totalStats.TotalMinutes))
+
+			newPeriod.HasTimeInVeryHighPercent = true
+			newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalMinutes))
+		}
+
+		newPeriod.HasAverageGlucose = true
+		newPeriod.AverageGlucose = &Glucose{
+			Value: totalStats.TotalGlucose / float64(totalStats.TotalMinutes),
+			Units: glucose.MmolL,
+		}
+
+		// we only add GMI if cgm use >70%, otherwise clear it
+		if *newPeriod.TimeCGMUsePercent > 0.7 {
+			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(newPeriod.AverageGlucose.Value))
+		} else {
+
+		}
+	}
+
+	s.Periods[strconv.Itoa(i)+"d"] = newPeriod
 }

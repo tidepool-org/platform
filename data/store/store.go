@@ -18,7 +18,6 @@ type Store interface {
 
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
-	NewBareSummaryRepository() *storeStructuredMongo.Repository
 }
 
 type DataRepository interface {
@@ -45,8 +44,7 @@ type DataRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-	// The return type is incorrect
-	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, t string, startTime time.Time, endTime time.Time) error
+	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error
 	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
 }
@@ -69,4 +67,6 @@ func (f *Filter) Validate(validator structure.Validator) {}
 
 type SummaryRepository interface {
 	EnsureIndexes() error
+
+	GetStore() *storeStructuredMongo.Repository
 }
