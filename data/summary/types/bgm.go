@@ -115,7 +115,7 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 		return false, errors.New("BGM record for calculation is not compatible with Glucose type")
 	}
 
-	var normalizedValue = *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromAny(glucose.MmolL))
+	normalizedValue := *glucose.NormalizeValueForUnits(dataRecord.Value, pointer.FromAny(glucose.MmolL))
 
 	if normalizedValue < veryLowBloodGlucose {
 		B.VeryLowRecords++
@@ -147,7 +147,7 @@ func (s *BGMStats) CalculateSummary() {
 			nextStopPoint++
 		}
 
-		var currentIndex = len(s.Buckets) - 1 - i
+		currentIndex := len(s.Buckets) - 1 - i
 		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 		totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
 		totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
@@ -167,7 +167,7 @@ func (s *BGMStats) CalculateSummary() {
 }
 
 func (s *BGMStats) CalculatePeriod(i int, totalStats *BGMBucketData) {
-	var newPeriod = &BGMPeriod{
+	newPeriod := &BGMPeriod{
 		HasTotalRecords: true,
 		TotalRecords:    pointer.FromAny(totalStats.TotalRecords),
 

@@ -206,7 +206,7 @@ func (s *CGMStats) CalculateSummary() {
 			nextStopPoint++
 		}
 
-		var currentIndex = len(s.Buckets) - 1 - i
+		currentIndex := len(s.Buckets) - 1 - i
 		totalStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
 		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 
@@ -236,7 +236,7 @@ func (s *CGMStats) CalculateSummary() {
 }
 
 func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
-	var newPeriod = &CGMPeriod{
+	newPeriod := &CGMPeriod{
 		HasTimeCGMUseMinutes: true,
 		TimeCGMUseMinutes:    pointer.FromAny(totalStats.TotalMinutes),
 
@@ -281,7 +281,7 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 	}
 
 	if totalStats.TotalRecords != 0 {
-		var realMinutes = CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime)
+		realMinutes := CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime)
 		newPeriod.HasTimeCGMUsePercent = true
 		newPeriod.TimeCGMUsePercent = pointer.FromAny(float64(totalStats.TotalMinutes) / realMinutes)
 
