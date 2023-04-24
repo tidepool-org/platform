@@ -26,7 +26,15 @@ type DataRepository struct {
 	*storeStructuredMongo.Repository
 }
 
+const (
+	ModifiedTimeIndexRaw = "2023-04-01T00:00:00Z"
+)
+
 func (d *DataRepository) EnsureIndexes() error {
+	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
+	if err != nil {
+		return err
+	}
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -53,7 +61,7 @@ func (d *DataRepository) EnsureIndexes() error {
 					{
 						Key: "modifiedTime",
 						Value: bson.D{
-							{Key: "$gt", Value: time.Date(2023, time.April, 1, 0, 0, 0, 0, time.UTC)},
+							{Key: "$gt", Value: modifiedTime},
 						},
 					},
 				}).

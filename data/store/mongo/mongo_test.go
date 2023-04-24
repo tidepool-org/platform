@@ -353,6 +353,8 @@ var _ = Describe("Mongo", func() {
 				err = cursor.All(context.Background(), &indexes)
 				Expect(err).ToNot(HaveOccurred())
 
+				modifiedTime, err := time.Parse(time.RFC3339, dataStoreMongo.ModifiedTimeIndexRaw)
+				Expect(err).ToNot(HaveOccurred())
 				Expect(indexes).To(ConsistOf(
 					MatchFields(IgnoreExtras, Fields{
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
@@ -366,7 +368,7 @@ var _ = Describe("Mongo", func() {
 						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "modifiedTime")),
 						"Background":              Equal(true),
 						"Name":                    Equal("UserIdTypeModifiedTime"),
-						"PartialFilterExpression": Equal(bson.D{{Key: "modifiedTime", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(time.Date(2023, time.April, 1, 0, 0, 0, 0, time.UTC))}}}}),
+						"PartialFilterExpression": Equal(bson.D{{Key: "modifiedTime", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(modifiedTime)}}}}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
