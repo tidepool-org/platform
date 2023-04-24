@@ -15,8 +15,9 @@ RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
-FROM mongo:4.2.14 AS production
-ENV ENV="/home/tidepool/.bashrc" DEBIAN_FRONTEND="noninteractive"
+FROM mongo:6.0.5 AS production
+# this statically set $HOME is non-ideal, but is to combat it being hardcoded to /data/db upstream
+ENV HOME="/home/tidepool/" DEBIAN_FRONTEND="noninteractive"
 RUN apt -y update && \
     apt -y install ca-certificates tzdata && \
     adduser --disabled-password tidepool
