@@ -148,7 +148,7 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	} else if mediaType == nil {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Content-Type"))
 		return
-	} else if strings.Contains(*mediaType, "application/json") {
+	} else if !strings.Contains(*mediaType, "application/json") {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderInvalid("Content-Type"))
 		return
 	}
