@@ -45,11 +45,19 @@ func (d *DataRepository) EnsureIndexes() error {
 				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
 				{Key: "type", Value: 1},
-				{Key: "modifiedTime", Value: -1},
+				{Key: "modifiedTime", Value: 1},
 			},
 			Options: options.Index().
 				SetBackground(true).
-				SetName("ModifiedTime"),
+				SetPartialFilterExpression(bson.D{
+					{
+						Key: "modifiedTime",
+						Value: bson.D{
+							{Key: "$gt", Value: time.Date(2023, time.April, 1, 0, 0, 0, 0, time.UTC)},
+						},
+					},
+				}).
+				SetName("UserIdTypeModifiedTime"),
 		},
 		{
 			Keys: bson.D{
