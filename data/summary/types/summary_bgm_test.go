@@ -219,7 +219,6 @@ var _ = Describe("BGM Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144))
 
-				// TODO move to 0.5 hour to test more cases
 				for i := 1; i <= 24; i++ {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetBGMData = NewDataSetBGMDataAvg(deviceId, incrementalDatumTime, 1, float64(i))
