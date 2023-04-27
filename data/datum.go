@@ -48,3 +48,9 @@ func (d Data) SetActive(active bool) {
 		datum.SetActive(active)
 	}
 }
+
+func (d Data) SetModifiedTime(modifiedTime *time.Time) {
+	for _, datum := range d {
+		datum.SetModifiedTime(modifiedTime)
+	}
+}

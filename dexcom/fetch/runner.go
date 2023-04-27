@@ -363,8 +363,8 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 		t.deviceHashes = map[string]string{}
 	}
 
-	if device.SerialNumber != nil && t.deviceHashes[*device.SerialNumber] != deviceHash {
-		t.deviceHashes[*device.SerialNumber] = deviceHash
+	if device.TransmitterID != nil && t.deviceHashes[*device.TransmitterID] != deviceHash {
+		t.deviceHashes[*device.TransmitterID] = deviceHash
 		return true
 	}
 
@@ -562,7 +562,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
+			datumArray = append(datumArray, translateEGVToDatum(e))
 		}
 	}
 
@@ -585,6 +585,7 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 
 	datumArray := data.Data{}
 	for _, e := range *response.Events {
+
 		switch *e.Status {
 		case dexcom.EventStatusCreated:
 			if t.afterLatestDataTime(e.SystemTime.Raw()) {
@@ -597,8 +598,14 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 					datumArray = append(datumArray, translateEventHealthToDatum(e))
 				case dexcom.EventTypeInsulin:
 					datumArray = append(datumArray, translateEventInsulinToDatum(e))
+				case dexcom.EventTypeBG:
+					datumArray = append(datumArray, translateEventBGToDatum(e))
+				case dexcom.EventTypeNotes:
+					datumArray = append(datumArray, translateEventNoteToDatum(e))
 				}
 			}
+		case dexcom.EventStatusUpdated:
+			// FUTURE: Handle updated events
 		case dexcom.EventStatusDeleted:
 			// FUTURE: Handle deleted events
 		}
@@ -689,10 +696,8 @@ func (t *TaskRunner) storeDevicesDatumArray(devicesDatumArray data.Data) error {
 		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, devicesDatumArray); err != nil {
 			return errors.Wrap(err, "unable to create data set data")
 		}
-
 		t.task.Data["deviceHashes"] = t.deviceHashes
 	}
-
 	return nil
 }
 
