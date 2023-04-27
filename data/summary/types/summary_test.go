@@ -164,4 +164,60 @@ var _ = Describe("Summary", func() {
 			Expect(gmi).To(Equal(11.7))
 		})
 	})
+
+	Context("CalculateRealMinutes", func() {
+		It("with a full hour endpoint", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 59, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 1440))
+		})
+
+		It("with a half hour endpoint", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 30, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 1440-25))
+		})
+
+		It("with a start of hour endpoint", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 1, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 1440-54))
+		})
+
+		It("with a near full hour endpoint", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 54, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 1440-1))
+		})
+
+		It("with an on the hour endpoint", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 0, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 1440-55))
+		})
+
+		It("with 7d period", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 55, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(7, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 7*1440))
+		})
+
+		It("with 14d period", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 55, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(14, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 14*1440))
+		})
+
+		It("with 30d period", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 55, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(30, lastRecordTime, 5)
+			Expect(realMinutes).To(BeNumerically("==", 30*1440))
+		})
+
+		It("with 15 minute duration", func() {
+			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 40, 0, 0, time.UTC)
+			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 15)
+			Expect(realMinutes).To(BeNumerically("==", 1440-5))
+		})
+	})
 })

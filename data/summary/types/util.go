@@ -48,11 +48,14 @@ func CalculateGMI(averageGlucose float64) float64 {
 }
 
 // CalculateRealMinutes remove partial hour (data end) from total time for more accurate TimeCGMUse
-func CalculateRealMinutes(i int, lastRecordTime time.Time) float64 {
+func CalculateRealMinutes(i int, lastRecordTime time.Time, lastRecordDuration int) float64 {
 	realMinutes := float64(i * 24 * 60)
 	nextHour := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day(),
 		lastRecordTime.Hour()+1, 0, 0, 0, lastRecordTime.Location())
-	realMinutes = realMinutes - nextHour.Sub(lastRecordTime).Minutes()
+	potentialRealMinutes := realMinutes - nextHour.Sub(lastRecordTime.Add(time.Minute*time.Duration(lastRecordDuration))).Minutes()
 
-	return realMinutes
+	if potentialRealMinutes > realMinutes {
+		return realMinutes
+	}
+	return potentialRealMinutes
 }

@@ -394,7 +394,6 @@ var _ = Describe("CGM Summary", func() {
 			var newDatumTime time.Time
 
 			It("Returns correct time in range for stats", func() {
-				var expectedCGMUse float64
 				userCGMSummary = types.Create[types.CGMStats](userId)
 				ranges := NewDataRanges()
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime, 720, ranges)
@@ -464,14 +463,6 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasAverageDailyRecords).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 240))
 
-					// this value is a bit funny, its 83.3%, but the missing end of the final day gets compensated off
-					// resulting in 83.6% only on the first day
-					if v == 1 {
-						expectedCGMUse = 0.836
-					} else {
-						expectedCGMUse = 0.833
-					}
-
 					// ranges calc only generates 83.3% of an hour, each hour needs to be divisible by 5
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseMinutes).To(Equal(1200 * v))
@@ -480,7 +471,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseRecords).To(Equal(240 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUsePercent).To(BeNumerically("~", expectedCGMUse, 0.001))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUsePercent).To(BeNumerically("~", 0.833, 0.001))
 				}
 			})
 

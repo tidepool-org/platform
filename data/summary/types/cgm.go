@@ -283,7 +283,7 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 	}
 
 	if totalStats.TotalRecords != 0 {
-		realMinutes := CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime)
+		realMinutes := CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime, s.Buckets[len(s.Buckets)-1].Data.LastRecordDuration)
 		newPeriod.HasTimeCGMUsePercent = true
 		newPeriod.TimeCGMUsePercent = pointer.FromAny(float64(totalStats.TotalMinutes) / realMinutes)
 
