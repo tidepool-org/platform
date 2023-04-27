@@ -26,6 +26,7 @@ type Datum interface {
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)
 	SetActive(active bool)
+	SetType(typ string)
 	SetDeviceID(deviceID *string)
 	SetCreatedTime(createdTime *time.Time)
 	SetCreatedUserID(createdUserID *string)

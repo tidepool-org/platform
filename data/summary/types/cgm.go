@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
@@ -114,7 +116,7 @@ func (*CGMStats) GetType() string {
 }
 
 func (*CGMStats) GetDeviceDataType() string {
-	return DeviceDataTypeCGM
+	return continuous.Type
 }
 
 func (s *CGMStats) Init() {

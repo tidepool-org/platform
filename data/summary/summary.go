@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"time"
 
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
@@ -40,7 +41,7 @@ func GetSummarizer[T types.Stats, A types.StatsPt[T]](reg *SummarizerRegistry) S
 
 type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
-	SetOutdated(ctx context.Context, userId string) error
+	SetOutdated(ctx context.Context, userId string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
@@ -73,9 +74,8 @@ func (c *GlucoseSummarizer[T, A]) GetSummary(ctx context.Context, userId string)
 	return c.summaries.GetSummary(ctx, userId)
 }
 
-func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId string) error {
-	_, err := c.summaries.SetOutdated(ctx, userId)
-	return err
+func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
+	return c.summaries.SetOutdated(ctx, userId)
 }
 
 func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
@@ -84,17 +84,15 @@ func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagina
 
 func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, error) {
 	var empty struct{}
-	var userIDsReqBackfill []string
-	var count = 0
 
 	distinctDataUserIDs, err := c.deviceData.DistinctUserIDs(ctx, types.GetDeviceDataTypeString[T, A]())
 	if err != nil {
-		return count, err
+		return 0, err
 	}
 
 	distinctSummaryIDs, err := c.summaries.DistinctSummaryIDs(ctx)
 	if err != nil {
-		return count, err
+		return 0, err
 	}
 
 	distinctSummaryIDMap := make(map[string]struct{})
@@ -102,6 +100,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 		distinctSummaryIDMap[v] = empty
 	}
 
+	var userIDsReqBackfill []string
 	for _, userID := range distinctDataUserIDs {
 		if _, exists := distinctSummaryIDMap[userID]; exists {
 		} else {
@@ -120,30 +119,22 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 	}
 
 	if len(summaries) > 0 {
-		count, err = c.summaries.CreateSummaries(ctx, summaries)
-		if err != nil {
-			return count, err
-		}
+		return c.summaries.CreateSummaries(ctx, summaries)
 	}
 
-	return count, nil
+	return 0, nil
 }
 
 func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error) {
-	var status *types.UserLastUpdated
-	var err error
-	var userSummary *types.Summary[T, A]
-	var userData []*glucoseDatum.Glucose
-
 	logger := log.LoggerFromContext(ctx)
-	userSummary, err = c.GetSummary(ctx, userId)
+	userSummary, err := c.GetSummary(ctx, userId)
 	if err != nil {
 		return userSummary, err
 	}
 
 	logger.Debugf("Starting summary calculation for %s", userId)
 
-	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A]())
+	status, err := c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A]())
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +173,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		}
 	}
 
+	var userData []*glucoseDatum.Glucose
 	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, status.LastData)
 	if err != nil {
 		return nil, err

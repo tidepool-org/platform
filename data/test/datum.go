@@ -35,6 +35,8 @@ type Datum struct {
 	GetTimeOutputs                       []*time.Time
 	GetTypeInvocations                   int
 	GetTypeOutputs                       []string
+	SetTypeInvocations                   int
+	SetTypeInputs                        []string
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -55,8 +57,6 @@ type Datum struct {
 	SetDeletedTimeInputs                 []*time.Time
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
-	UpdatesSummaryInvocations            int
-	UpdatesSummaryInputs                 []*map[string]bool
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -134,6 +134,12 @@ func (d *Datum) GetType() string {
 	return output
 }
 
+func (d *Datum) SetType(typ string) {
+	d.SetTypeInvocations++
+
+	d.SetTypeInputs = append(d.SetTypeInputs, typ)
+}
+
 func (d *Datum) GetTime() *time.Time {
 	d.GetTimeInvocations++
 
@@ -202,12 +208,6 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInvocations++
 
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
-}
-
-func (d *Datum) UpdatesSummary(updatesSummary *map[string]bool) {
-	d.UpdatesSummaryInvocations++
-
-	d.UpdatesSummaryInputs = append(d.UpdatesSummaryInputs, updatesSummary)
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

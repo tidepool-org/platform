@@ -12,7 +12,6 @@ import (
 
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -40,7 +39,6 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-
 	if userId == "" {
 		return nil, errors.New("userId is missing")
 	}
@@ -131,19 +129,18 @@ func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summa
 }
 
 func (r *Repo[T, A]) DistinctSummaryIDs(ctx context.Context) ([]string, error) {
-	var userIDs []string
-
 	if ctx == nil {
-		return userIDs, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	selector := bson.M{"type": types.GetTypeString[T, A]()}
 
 	result, err := r.Distinct(ctx, "userId", selector)
 	if err != nil {
-		return userIDs, errors.New("error fetching distinct userIDs")
+		return nil, errors.New("error fetching distinct userIDs")
 	}
 
+	var userIDs []string
 	for _, v := range result {
 		userIDs = append(userIDs, v.(string))
 	}
@@ -189,50 +186,39 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 }
 
 func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
-	var outdatedTime *time.Time
-	var userSummary *types.Summary[T, A]
-	var err error
-
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-
 	if userId == "" {
 		return nil, errors.New("userId is missing")
 	}
 
 	// we need to get the summary first, as there is multiple possible operations, and we do not want to replace
 	// the existing field, but also want to upsert if no summary exists.
-	userSummary, err = r.GetSummary(ctx, userId)
+	userSummary, err := r.GetSummary(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	if userSummary != nil {
-		outdatedTime = userSummary.Dates.OutdatedSince
-	} else {
+	if userSummary == nil {
 		userSummary = types.Create[T, A](userId)
 	}
 
-	if outdatedTime == nil {
-		outdatedTime = pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond))
-		userSummary.Dates.OutdatedSince = outdatedTime
+	if userSummary.Dates.OutdatedSince == nil {
+		userSummary.SetOutdated()
 		err = r.UpsertSummary(ctx, userSummary)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", userId, userSummary.Type)
 		}
 	}
 
-	return outdatedTime, nil
+	return userSummary.Dates.OutdatedSince, nil
 }
 
 func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
-	var summaries []*types.Summary[T, A]
-
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-
 	if page == nil {
 		return nil, errors.New("pagination is missing")
 	}
@@ -249,13 +235,13 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	opts.SetLimit(int64(page.Size))
 
 	cursor, err := r.Find(ctx, selector, opts)
-
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get outdated summaries")
 	}
 
+	var summaries []*types.Summary[T, A]
 	if err = cursor.All(ctx, &summaries); err != nil {
 		return nil, errors.Wrap(err, "unable to decode outdated summaries")
 	}

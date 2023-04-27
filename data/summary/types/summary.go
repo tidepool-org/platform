@@ -3,6 +3,9 @@ package types
 import (
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
@@ -11,10 +14,8 @@ import (
 )
 
 const (
-	SummaryTypeCGM    = "cgm"
-	DeviceDataTypeCGM = "cbg"
-	SummaryTypeBGM    = "bgm"
-	DeviceDataTypeBGM = "smbg"
+	SummaryTypeCGM = "cgm"
+	SummaryTypeBGM = "bgm"
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0
@@ -25,7 +26,11 @@ const (
 
 var stopPoints = [...]int{1, 7, 14, 30}
 
-var DeviceDataTypes = []string{DeviceDataTypeCGM, DeviceDataTypeBGM}
+var DeviceDataTypes = [...]string{continuous.Type, selfmonitored.Type}
+var DeviceDataToSummaryTypes = map[string]string{
+	continuous.Type:    SummaryTypeCGM,
+	selfmonitored.Type: SummaryTypeBGM,
+}
 
 type BucketData interface {
 	CGMBucketData | BGMBucketData
@@ -167,7 +172,8 @@ func NewConfig() Config {
 }
 
 func (s *Summary[T, A]) SetOutdated() {
-	s.Dates.OutdatedSince = pointer.FromTime(time.Now().UTC())
+	s.Dates.OutdatedSince = pointer.FromAny(time.Now().UTC().Truncate(time.Millisecond))
+	s.Dates.HasOutdatedSince = true
 }
 
 func NewDates() Dates {

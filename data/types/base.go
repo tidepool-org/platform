@@ -271,6 +271,10 @@ func (b *Base) GetType() string {
 	return b.Type
 }
 
+func (b *Base) SetType(typ string) {
+	b.Type = typ
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }

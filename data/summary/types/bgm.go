@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
@@ -76,7 +78,7 @@ func (*BGMStats) GetType() string {
 }
 
 func (*BGMStats) GetDeviceDataType() string {
-	return DeviceDataTypeBGM
+	return selfmonitored.Type
 }
 
 func (s *BGMStats) Init() {

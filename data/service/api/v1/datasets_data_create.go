@@ -1,11 +1,13 @@
 package v1
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary"
+
 	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
@@ -95,7 +97,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	var updatesSummary = make(map[string]bool)
+	updatesSummary := make(map[string]struct{})
 
 	datumArray = append(datumArray, normalizer.Data()...)
 
@@ -103,15 +105,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
 
-		// two years has a bit of padding, to allow for some calculation delay
-		twoYearsPast := time.Now().UTC().AddDate(0, -23, -27)
-		oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-		for _, typ := range types.DeviceDataTypes {
-			if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
-				updatesSummary[typ] = true
-			}
-		}
+		CheckDatumUpdatesSummary(updatesSummary, datum)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -125,25 +119,48 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
-		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](dataServiceContext.SummarizerRegistry())
-		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set cgm summary outdated")
-		}
-	}
-
-	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
-		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](dataServiceContext.SummarizerRegistry())
-		err = summarizer.SetOutdated(ctx, *dataSet.UserID)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set cgm summary outdated")
-		}
-	}
+	MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
+}
+
+// The following 2 functions are pulled out of the above so that they can be unit tested independently.
+func MaybeUpdateSummary(ctx context.Context, registry *summary.SummarizerRegistry, updatesSummary map[string]struct{}, userId string) map[string]*time.Time {
+	outdatedSinceMap := make(map[string]*time.Time)
+	lgr := log.LoggerFromContext(ctx)
+
+	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
+		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set cgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
+	}
+
+	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
+		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set bgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
+	}
+
+	return outdatedSinceMap
+}
+
+func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
+	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	for _, typ := range types.DeviceDataTypes {
+		if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
+			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+		}
+	}
 }

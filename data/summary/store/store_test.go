@@ -105,9 +105,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 			})
 
 			AfterEach(func() {
-				if summaryRepository != nil {
-					_, _ = summaryCollection.DeleteMany(context.Background(), bson.D{})
-				}
+				_, err = summaryCollection.DeleteMany(ctx, bson.D{})
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			Context("With typed Stores", func() {
