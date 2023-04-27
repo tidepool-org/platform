@@ -1,7 +1,6 @@
 package dexcom_test
 
 import (
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -11,27 +10,12 @@ import (
 	"github.com/tidepool-org/platform/dexcom"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureTest "github.com/tidepool-org/platform/structure/test"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Dexcom", func() {
-	It("TimeFormatMilli is expected", func() {
-		Expect(dexcom.TimeFormatMilli).To(Equal("2006-01-02T15:04:05.999"))
-	})
-
-	It("TimeFormatMilliZ is expected", func() {
-		Expect(dexcom.TimeFormatMilliZ).To(Equal("2006-01-02T15:04:05.999-07:00"))
-	})
-
-	It("TimeFormatMilliUTC is expected", func() {
-		Expect(dexcom.TimeFormatMilliUTC).To(Equal("2006-01-02T15:04:05.999Z"))
-	})
-
 	It("TimeFormat is expected", func() {
 		Expect(dexcom.TimeFormat).To(Equal("2006-01-02T15:04:05"))
-	})
-
-	It("TimeMinimalFormat is expected", func() {
-		Expect(dexcom.TimeMinimalFormat).To(Equal("2006-01-02T15:04"))
 	})
 
 	It("SystemTimeNowThreshold is expected", func() {
@@ -39,9 +23,6 @@ var _ = Describe("Dexcom", func() {
 	})
 
 	Context("IsValidTransmitterID, TransmitterIDValidator, and ValidateTransmitterID", func() {
-
-		const validTransmitterId = "6f1c584eb070e0e7ec3f8a9af313c34028374eee50928be47d807f333891369f"
-
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
 				Expect(dexcom.IsValidTransmitterID(value)).To(Equal(len(expectedErrors) == 0))
@@ -51,12 +32,12 @@ var _ = Describe("Dexcom", func() {
 				errorsTest.ExpectEqual(dexcom.ValidateTransmitterID(value), expectedErrors...)
 			},
 			Entry("is an empty string", ""),
-			Entry("has string length in range", validTransmitterId),
-			Entry("has string length out of range (lower)", validTransmitterId[:40], dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterId[:40])),
-			Entry("has string length out of range (upper)", validTransmitterId+"a", dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterId+"a")),
-			Entry("has uppercase characters", strings.ToUpper(validTransmitterId), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ToUpper(validTransmitterId))),
-			Entry("has symbols", strings.ReplaceAll(validTransmitterId, "a", "$"), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterId, "a", "$"))),
-			Entry("has whitespace", strings.ReplaceAll(validTransmitterId, "a", " "), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterId, "a", " "))),
+			Entry("has string length in range", test.RandomStringFromRangeAndCharset(5, 6, test.CharsetNumeric+test.CharsetUppercase)),
+			Entry("has string length out of range (lower)", "0123", dexcom.ErrorValueStringAsTransmitterIDNotValid("0123")),
+			Entry("has string length out of range (upper)", "0123456", dexcom.ErrorValueStringAsTransmitterIDNotValid("0123456")),
+			Entry("has lowercase characters", "abcdef", dexcom.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
+			Entry("has symbols", "$%^&*(", dexcom.ErrorValueStringAsTransmitterIDNotValid("$%^&*(")),
+			Entry("has whitespace", "a    b", dexcom.ErrorValueStringAsTransmitterIDNotValid("a    b")),
 		)
 	})
 

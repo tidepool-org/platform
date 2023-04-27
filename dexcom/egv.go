@@ -4,33 +4,24 @@ import (
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	EGVUnitUnknown = "unknown"
-	EGVUnitMgdL    = "mg/dL"
-	EGVUnitMmolL   = "mmol/L"
+	EGVUnitMgdL       = "mg/dL"
+	EGVUnitMgdLMinute = "mg/dL/min"
 
-	EGVRateUnitUnknown     = "unknown"
-	EGVRateUnitMgdLMinute  = "mg/dL/min"
-	EGVRateUnitMmolLMinute = "mmol/L/min"
+	EGVValueMgdLMaximum       = dataBloodGlucose.MgdLMaximum
+	EGVValueMgdLMinimum       = dataBloodGlucose.MgdLMinimum
+	EGVValuePinnedMgdLMaximum = 400.0
+	EGVValuePinnedMgdLMinimum = 40.0
 
-	EGVValueMgdLMaximum        = dataBloodGlucose.MgdLMaximum
-	EGVValueMgdLMinimum        = dataBloodGlucose.MgdLMinimum
-	EGVValuePinnedMgdLMaximum  = 400.0
-	EGVValuePinnedMgdLMinimum  = 40.0
-	EGVValueMmolLMaximum       = dataBloodGlucose.MmolLMaximum
-	EGVValueMmolLMinimum       = dataBloodGlucose.MmolLMinimum
-	EGVValuePinnedMmolLMaximum = cgm.HighAlertLevelMmolLMaximum
-	EGVValuePinnedMmolLMinimum = cgm.UrgentLowAlertLevelMmolLMinimum
-
-	EGVStatusUnknown = "unknown"
-	EGVStatusHigh    = "high"
-	EGVStatusLow     = "low"
-	EGVStatusOK      = "ok"
+	EGVStatusHigh             = "high"
+	EGVStatusLow              = "low"
+	EGVStatusOK               = "ok"
+	EGVStatusOutOfCalibration = "outOfCalibration"
+	EGVStatusSensorNoise      = "sensorNoise"
 
 	EGVTrendDoubleUp       = "doubleUp"
 	EGVTrendSingleUp       = "singleUp"
@@ -48,26 +39,23 @@ const (
 
 func EGVsResponseRateUnits() []string {
 	return []string{
-		EGVRateUnitUnknown,
-		EGVRateUnitMgdLMinute,
-		EGVRateUnitMmolLMinute,
+		EGVUnitMgdLMinute,
 	}
 }
 
 func EGVsResponseUnits() []string {
 	return []string{
-		EGVUnitUnknown,
 		EGVUnitMgdL,
-		EGVUnitMmolL,
 	}
 }
 
 func EGVStatuses() []string {
 	return []string{
-		EGVStatusUnknown,
 		EGVStatusHigh,
 		EGVStatusLow,
 		EGVStatusOK,
+		EGVStatusOutOfCalibration,
+		EGVStatusSensorNoise,
 	}
 }
 
@@ -87,10 +75,9 @@ func EGVTrends() []string {
 }
 
 type EGVsResponse struct {
-	RecordType    *string `json:"recordType,omitempty"`
-	RecordVersion *string `json:"recordVersion,omitempty"`
-	UserID        *string `json:"userId,omitempty"`
-	EGVs          *EGVs   `json:"records,omitempty"`
+	RateUnit *string `json:"rateUnit,omitempty"`
+	Unit     *string `json:"unit,omitempty"`
+	EGVs     *EGVs   `json:"egvs,omitempty"`
 }
 
 func ParseEGVsResponse(parser structure.ObjectParser) *EGVsResponse {
@@ -107,14 +94,15 @@ func NewEGVsResponse() *EGVsResponse {
 }
 
 func (e *EGVsResponse) Parse(parser structure.ObjectParser) {
-	e.UserID = parser.String("userId")
-	e.RecordType = parser.String("recordType")
-	e.RecordVersion = parser.String("recordVersion")
-	e.EGVs = ParseEGVs(parser.WithReferenceArrayParser("records"))
+	e.RateUnit = parser.String("rateUnit")
+	e.Unit = parser.String("unit")
+	e.EGVs = ParseEGVs(parser.WithReferenceArrayParser("egvs"), e.Unit)
 }
 
 func (e *EGVsResponse) Validate(validator structure.Validator) {
-	if egvsValidator := validator.WithReference("records"); e.EGVs != nil {
+	validator.String("rateUnit", e.RateUnit).Exists().OneOf(EGVsResponseRateUnits()...)
+	validator.String("unit", e.Unit).Exists().OneOf(EGVsResponseUnits()...)
+	if egvsValidator := validator.WithReference("egvs"); e.EGVs != nil {
 		e.EGVs.Validate(egvsValidator)
 	} else {
 		egvsValidator.ReportError(structureValidator.ErrorValueNotExists())
@@ -123,12 +111,13 @@ func (e *EGVsResponse) Validate(validator structure.Validator) {
 
 type EGVs []*EGV
 
-func ParseEGVs(parser structure.ArrayParser) *EGVs {
+func ParseEGVs(parser structure.ArrayParser, unit *string) *EGVs {
 	if !parser.Exists() {
 		return nil
 	}
 	datum := NewEGVs()
-	parser.Parse(datum)
+	datum.Parse(parser, unit)
+	parser.NotParsed()
 	return datum
 }
 
@@ -136,9 +125,9 @@ func NewEGVs() *EGVs {
 	return &EGVs{}
 }
 
-func (e *EGVs) Parse(parser structure.ArrayParser) {
+func (e *EGVs) Parse(parser structure.ArrayParser, unit *string) {
 	for _, reference := range parser.References() {
-		*e = append(*e, ParseEGV(parser.WithReferenceObjectParser(reference)))
+		*e = append(*e, ParseEGV(parser.WithReferenceObjectParser(reference), unit))
 	}
 }
 
@@ -153,69 +142,62 @@ func (e *EGVs) Validate(validator structure.Validator) {
 }
 
 type EGV struct {
-	ID                    *string  `json:"recordId,omitempty"`
-	SystemTime            *Time    `json:"systemTime,omitempty"`
-	DisplayTime           *Time    `json:"displayTime,omitempty"`
-	Unit                  *string  `json:"unit,omitempty"`
-	RateUnit              *string  `json:"rateUnit,omitempty"`
-	Value                 *float64 `json:"value,omitempty"`
-	Status                *string  `json:"status,omitempty"`
-	Trend                 *string  `json:"trend,omitempty"`
-	TrendRate             *float64 `json:"trendRate,omitempty"`
-	TransmitterID         *string  `json:"transmitterId,omitempty"`
-	TransmitterTicks      *int     `json:"transmitterTicks,omitempty"`
-	TransmitterGeneration *string  `json:"transmitterGeneration,omitempty"`
-	DisplayDevice         *string  `json:"displayDevice,omitempty"`
+	SystemTime       *Time    `json:"systemTime,omitempty"`
+	DisplayTime      *Time    `json:"displayTime,omitempty"`
+	Unit             *string  `json:"unit,omitempty"`
+	Value            *float64 `json:"value,omitempty"`
+	RealTimeValue    *float64 `json:"realtimeValue,omitempty"`
+	SmoothedValue    *float64 `json:"smoothedValue,omitempty"`
+	Status           *string  `json:"status,omitempty"`
+	Trend            *string  `json:"trend,omitempty"`
+	TrendRate        *float64 `json:"trendRate,omitempty"`
+	TransmitterID    *string  `json:"transmitterId,omitempty"`
+	TransmitterTicks *int     `json:"transmitterTicks,omitempty"`
 }
 
-func ParseEGV(parser structure.ObjectParser) *EGV {
+func ParseEGV(parser structure.ObjectParser, unit *string) *EGV {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewEGV()
+	datum := NewEGV(unit)
 	parser.Parse(datum)
 	return datum
 }
 
-func NewEGV() *EGV {
-	return &EGV{}
+func NewEGV(unit *string) *EGV {
+	return &EGV{
+		Unit: unit,
+	}
 }
 
 func (e *EGV) Parse(parser structure.ObjectParser) {
-	e.ID = parser.String("recordId")
-	e.SystemTime = TimeFromString(parser.String("systemTime"))
-	e.DisplayTime = TimeFromString(parser.String("displayTime"))
-	e.Unit = parser.String("unit")
-	e.RateUnit = parser.String("rateUnit")
+	e.SystemTime = TimeFromRaw(parser.ForgivingTime("systemTime", TimeFormat))
+	e.DisplayTime = TimeFromRaw(parser.ForgivingTime("displayTime", TimeFormat))
 	e.Value = parser.Float64("value")
+	e.RealTimeValue = parser.Float64("realtimeValue")
+	e.SmoothedValue = parser.Float64("smoothedValue")
 	e.Status = parser.String("status")
 	e.Trend = parser.String("trend")
 	e.TrendRate = parser.Float64("trendRate")
 	e.TransmitterID = parser.String("transmitterId")
 	e.TransmitterTicks = parser.Int("transmitterTicks")
-	e.TransmitterGeneration = parser.String("transmitterGeneration")
-	e.DisplayDevice = parser.String("displayDevice")
 }
 
 func (e *EGV) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
-	validator.String("recordId", e.ID).Exists().NotEmpty()
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
-	validator.String("unit", e.Unit).Exists().OneOf(EGVsResponseUnits()...)
-	validator.String("rateUnit", e.RateUnit).Exists().OneOf(EGVsResponseRateUnits()...)
+	validator.String("unit", e.Unit).OneOf(EGVsResponseUnits()...)
 	if e.Unit != nil {
 		switch *e.Unit {
 		case EGVUnitMgdL:
 			validator.Float64("value", e.Value).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
-		case EGVUnitMmolL:
-			validator.Float64("value", e.Value).Exists().InRange(EGVValueMmolLMinimum, EGVValueMmolLMaximum)
+			validator.Float64("realtimeValue", e.RealTimeValue).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
+			validator.Float64("smoothedValue", e.SmoothedValue).InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 		}
 	}
-	validator.Int("transmitterTicks", e.TransmitterTicks).Exists().GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
-	validator.String("transmitterGeneration", e.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
-	validator.String("displayDevice", e.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
-	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("status", e.Status).OneOf(EGVStatuses()...)
 	validator.String("trend", e.Trend).OneOf(EGVTrends()...)
+	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
+	validator.Int("transmitterTicks", e.TransmitterTicks).GreaterThanOrEqualTo(EGVTransmitterTickMinimum)
 }
