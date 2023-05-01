@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"log"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -211,6 +212,12 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 }
 
 func (e *Event) Validate(validator structure.Validator) {
+	if e.Type != nil {
+		log.Printf("## fetchEvents validation: type[%s] systemTime[%v] displayTime[%v]", *e.Type, e.SystemTime.Raw(), e.DisplayTime.Raw())
+	} else {
+		log.Print("## fetchEvents validation: event type is not set")
+	}
+
 	validator = validator.WithMeta(e)
 	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
