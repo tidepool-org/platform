@@ -500,7 +500,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
 	if err != nil {
-		t.logger.Infof("## fetchCalibrations error [%w]", err)
+		t.logger.Infof("## fetchCalibrations error [%s]", err.Error())
 		return nil, err
 	}
 	t.logger.Infof("## fetchCalibrations [%d]", len(fetchDatumArray))
@@ -508,7 +508,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
 	if err != nil {
-		t.logger.Infof("## fetchEGVs error [%w]", err)
+		t.logger.Infof("## fetchEGVs error [%s]", err.Error())
 		return nil, err
 	}
 
@@ -517,7 +517,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
 	if err != nil {
-		t.logger.Infof("## fetchEvents error [%w]", err)
+		t.logger.Infof("## fetchEvents error [%s]", err.Error())
 		return nil, err
 	}
 	t.logger.Infof("## fetchEvents [%d]", len(fetchDatumArray))
@@ -588,12 +588,13 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
+		t.logger.Info("## fetchEvents validation error")
 		return nil, err
 	}
 
 	datumArray := data.Data{}
 	for _, e := range *response.Events {
-
+		t.logger.Infof("## fetchEvents event type %s", *e.Type)
 		switch *e.Status {
 		case dexcom.EventStatusCreated:
 			if t.afterLatestDataTime(e.SystemTime.Raw()) {
