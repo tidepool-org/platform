@@ -68,14 +68,14 @@ var _ = Describe("Event", func() {
 	})
 
 	It("EventTypes returns expected", func() {
-		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "notes", "unknown"}))
+		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "note", "unknown"}))
 		Expect(dexcom.EventTypes()).To(Equal([]string{
 			dexcom.EventTypeBG,
 			dexcom.EventTypeCarbs,
 			dexcom.EventTypeExercise,
 			dexcom.EventTypeHealth,
 			dexcom.EventTypeInsulin,
-			dexcom.EventTypeNotes,
+			dexcom.EventTypeNote,
 			dexcom.EventTypeUnknown,
 		}))
 	})
@@ -219,7 +219,7 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 			Entry("unit to be set when type is notes", func() *dexcom.Event {
-				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNotes))
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNote))
 				event.Unit = nil
 				return event
 			}),

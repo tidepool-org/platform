@@ -19,7 +19,7 @@ const (
 	EventTypeInsulin  = "insulin"
 	EventTypeUnknown  = "unknown"
 	EventTypeBG       = "bloodGlucose"
-	EventTypeNotes    = "notes"
+	EventTypeNote     = "note"
 
 	EventUnitUnknown = "unknown"
 
@@ -65,7 +65,7 @@ func EventTypes() []string {
 		EventTypeExercise,
 		EventTypeHealth,
 		EventTypeInsulin,
-		EventTypeNotes,
+		EventTypeNote,
 		EventTypeUnknown,
 	}
 }
@@ -232,7 +232,7 @@ func (e *Event) Validate(validator structure.Validator) {
 			e.validateHealth(validator)
 		case EventTypeInsulin:
 			e.validateInsulin(validator)
-		case EventTypeNotes:
+		case EventTypeNote:
 			e.validateNote(validator)
 		case EventTypeBG:
 			e.validateBG(validator)
