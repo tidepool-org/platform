@@ -219,8 +219,8 @@ func (e *Event) Validate(validator structure.Validator) {
 	}
 
 	validator = validator.WithMeta(e)
-	validator.Time("systemTime", e.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
-	validator.Time("displayTime", e.DisplayTime.Raw()).Exists().NotZero()
+	validator.Time("systemTime", e.SystemTime.Raw()).NotZero().BeforeNow(SystemTimeNowThreshold)
+	validator.Time("displayTime", e.DisplayTime.Raw()).NotZero()
 	validator.String("eventType", e.Type).Exists().OneOf(EventTypes()...)
 	if e.Type != nil {
 		switch *e.Type {

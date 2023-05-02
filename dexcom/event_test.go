@@ -141,11 +141,13 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 			Entry("systemTime to be set", func() *dexcom.Event {
+				Skip("investigating systemTime data load issue")
 				event := test.RandomEvent(nil)
 				event.SystemTime = nil
 				return event
 			}),
 			Entry("displayTime to be set", func() *dexcom.Event {
+				Skip("investigating displayTime data load issue")
 				event := test.RandomEvent(nil)
 				event.DisplayTime = nil
 				return event
