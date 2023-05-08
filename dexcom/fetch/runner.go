@@ -544,6 +544,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 
 	datumArray := data.Data{}
 	for _, c := range *response.Calibrations {
+		t.logger.Infof("## Calibrations for device [%s] transmitterID [%s]", *c.TransmitterGeneration, *c.TransmitterID)
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateCalibrationToDatum(c))
 		}
@@ -569,6 +570,11 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
+
+		if e.TransmitterGeneration != nil && *e.TransmitterGeneration == "g7" {
+			t.logger.Infof("## EGVs for device [%s] transmitterID [%s]", *e.TransmitterGeneration, *e.TransmitterID)
+		}
+
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateEGVToDatum(e))
 		}
