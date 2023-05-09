@@ -581,8 +581,12 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 			t.logger.Infof("## fetchEGVs for device [%s] transmitterID [%s]", *e.TransmitterGeneration, *e.TransmitterID)
 		}
 
+		t.logger.Infof("## fetchEGVs after latest data? transmitterID [%s] [%v]", *e.TransmitterID, t.afterLatestDataTime(e.SystemTime.Raw()))
+		datum := translateEGVToDatum(e)
+		t.logger.Infof("## fetchEGVs datum transmitterID [%s] [%#v]", *e.TransmitterID, datum.Meta())
+
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateEGVToDatum(e))
+			datumArray = append(datumArray, datum)
 		}
 	}
 
