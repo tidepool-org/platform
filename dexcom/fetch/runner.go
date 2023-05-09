@@ -473,9 +473,12 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexc
 	var devicesDatumArray data.Data
 	for _, device := range *devices {
 
-		t.logger.Infof("## fetchDevice gen[%s] lastupload[%s]", *device.TransmitterGeneration, *device.LastUploadDate)
+		t.logger.Infof("## fetchDevice gen[%s] lastupload[%s] id[%s]", *device.TransmitterGeneration, *device.LastUploadDate, *device.TransmitterID)
 
 		if t.updateDeviceHash(device) {
+			datum := translateDeviceToDatum(device)
+			t.logger.Infof("## datum id[%s] meta[%v]", *device.TransmitterID, datum.Meta())
+
 			devicesDatumArray = append(devicesDatumArray, translateDeviceToDatum(device))
 		}
 	}
