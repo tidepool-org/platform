@@ -1,6 +1,7 @@
 package types
 
 import (
+	"log"
 	"sort"
 	"time"
 
@@ -180,6 +181,13 @@ func (b *Base) Validate(validator structure.Validator) {
 				validator.Time("modifiedTime", b.ModifiedTime).Exists()
 			}
 			validator.String("modifiedUserId", b.ModifiedUserID).NotExists()
+		}
+	}
+
+	// ## debug
+	if b.Notes != nil {
+		if len(*b.Notes) == 0 {
+			log.Printf("## these notes will silently fail %#v ", *b)
 		}
 	}
 
