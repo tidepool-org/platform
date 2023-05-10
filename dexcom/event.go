@@ -216,11 +216,6 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 func (e *Event) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
 
-	if e.TransmitterID != nil {
-		if *e.TransmitterID == "7e47e337bbec0de20265effdae8c77f013006417f2219ff90cc4be1274c7d228" {
-			log.Printf("## event type[%s] value[%s] ", *e.Type, *e.Value)
-		}
-	}
 	validator.Time("systemTime", e.SystemTime.Raw()).NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).NotZero()
 	validator.String("eventType", e.Type).Exists().OneOf(EventTypes()...)
@@ -234,7 +229,7 @@ func (e *Event) Validate(validator structure.Validator) {
 			e.validateHealth(validator)
 		case EventTypeInsulin:
 			e.validateInsulin(validator)
-		case EventTypeNote:
+		case EventTypeNote, EventTypeNotes:
 			e.validateNote(validator)
 		case EventTypeBG:
 			e.validateBG(validator)
@@ -281,6 +276,7 @@ func (e *Event) validateHealth(validator structure.Validator) {
 }
 
 func (e *Event) validateNote(validator structure.Validator) {
+	log.Printf("## this is a note [%s] value[%s] ", *e.Type, *e.Value)
 	validator.String("value", e.Value).Exists().NotEmpty()
 }
 

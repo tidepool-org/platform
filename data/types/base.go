@@ -184,10 +184,10 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
-	// ## debug
 	if b.Notes != nil {
 		if len(*b.Notes) == 0 {
-			log.Printf("## these notes will silently fail %#v %s", *b.Payload, *b.DeviceID)
+			b.Notes = nil
+			log.Println("## these notes were empty and would silently fail")
 		}
 	}
 
