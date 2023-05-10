@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"log"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -19,6 +20,7 @@ const (
 	EventTypeUnknown  = "unknown"
 	EventTypeBG       = "bloodGlucose"
 	EventTypeNote     = "note"
+	EventTypeNotes    = "notes"
 
 	EventUnitUnknown = "unknown"
 
@@ -65,6 +67,7 @@ func EventTypes() []string {
 		EventTypeHealth,
 		EventTypeInsulin,
 		EventTypeNote,
+		EventTypeNotes,
 		EventTypeUnknown,
 	}
 }
@@ -212,6 +215,12 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 
 func (e *Event) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(e)
+
+	if e.TransmitterID != nil {
+		if *e.TransmitterID == "7e47e337bbec0de20265effdae8c77f013006417f2219ff90cc4be1274c7d228" {
+			log.Printf("## event type[%s] value[%s] ", *e.Type, *e.Value)
+		}
+	}
 	validator.Time("systemTime", e.SystemTime.Raw()).NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", e.DisplayTime.Raw()).NotZero()
 	validator.String("eventType", e.Type).Exists().OneOf(EventTypes()...)

@@ -68,7 +68,7 @@ var _ = Describe("Event", func() {
 	})
 
 	It("EventTypes returns expected", func() {
-		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "note", "unknown"}))
+		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "note", "notes", "unknown"}))
 		Expect(dexcom.EventTypes()).To(Equal([]string{
 			dexcom.EventTypeBG,
 			dexcom.EventTypeCarbs,
@@ -76,6 +76,7 @@ var _ = Describe("Event", func() {
 			dexcom.EventTypeHealth,
 			dexcom.EventTypeInsulin,
 			dexcom.EventTypeNote,
+			dexcom.EventTypeNotes,
 			dexcom.EventTypeUnknown,
 		}))
 	})

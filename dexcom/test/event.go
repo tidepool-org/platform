@@ -77,7 +77,7 @@ func RandomEvent(ofType *string) *dexcom.Event {
 		datum.Value = pointer.FromString(
 			fmt.Sprintf("%f", test.RandomFloat64FromRange(dexcom.EventValueMgdLMinimum, dexcom.EventValueMgdLMaximum)),
 		)
-	case dexcom.EventTypeNote:
+	case dexcom.EventTypeNote, dexcom.EventTypeNotes:
 		datum.Unit = nil
 		datum.Value = pointer.FromString(test.RandomString())
 	case dexcom.EventTypeUnknown:
