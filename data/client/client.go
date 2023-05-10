@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -110,9 +109,9 @@ func (c *ClientImpl) CreateUserDataSet(ctx context.Context, userID string, creat
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, &response); err != nil {
 		return nil, err
 	}
-	if response.Errors != nil {
-		for _, v := range response.Errors {
-			log.Printf("## CreateUserDataSet URL[%s] Error[%#v]  ##", url, v)
+	if response.Errors != nil && len(response.Errors) != 0 {
+		for _, err := range response.Errors {
+			return nil, errors.Newf("response statusCode[%d] %s", err.Status, err.Detail)
 		}
 	}
 	return response.Data, nil
