@@ -169,7 +169,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
@@ -188,7 +188,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
@@ -207,7 +207,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
@@ -226,7 +226,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusInternalServerError, nil, responseHeaders),
@@ -246,7 +246,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, []byte("{"), responseHeaders),
@@ -265,7 +265,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, test.MarshalResponseBody(responseCalibrationsResponse), responseHeaders),
@@ -296,7 +296,7 @@ var _ = Describe("Client", func() {
 						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+								VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -316,7 +316,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/calibrations", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -399,7 +399,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
@@ -418,7 +418,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
@@ -437,7 +437,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
@@ -456,7 +456,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusInternalServerError, nil, responseHeaders),
@@ -476,7 +476,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, []byte("{"), responseHeaders),
@@ -495,7 +495,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, test.MarshalResponseBody(responseDevicesResponse), responseHeaders),
@@ -527,7 +527,7 @@ var _ = Describe("Client", func() {
 						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+								VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -547,7 +547,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/devices", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -630,7 +630,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
@@ -649,7 +649,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
@@ -668,7 +668,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
@@ -687,7 +687,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusInternalServerError, nil, responseHeaders),
@@ -707,7 +707,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, []byte("{"), responseHeaders),
@@ -726,7 +726,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, test.MarshalResponseBody(responseEGVsResponse), responseHeaders),
@@ -757,7 +757,7 @@ var _ = Describe("Client", func() {
 						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+								VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -777,7 +777,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/egvs", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -860,7 +860,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
@@ -879,7 +879,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
@@ -898,7 +898,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
@@ -917,7 +917,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusInternalServerError, nil, responseHeaders),
@@ -937,7 +937,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, []byte("{"), responseHeaders),
@@ -956,7 +956,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, test.MarshalResponseBody(responseEventsResponse), responseHeaders),
@@ -987,7 +987,7 @@ var _ = Describe("Client", func() {
 						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+								VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 								VerifyHeaderKV("User-Agent", userAgent),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
@@ -1007,7 +1007,7 @@ var _ = Describe("Client", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
-									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
+									VerifyRequest("GET", "/p/v3/users/self/events", requestQuery),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyBody(nil),
 									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
