@@ -40,7 +40,11 @@ func New(cfg *Config) (*Client, error) {
 func (c *Client) ConstructURL(paths ...string) string {
 	segments := []string{}
 	for _, path := range paths {
-		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
+		escapedPath := url.PathEscape(strings.Trim(path, "/"))
+		if escapedPath == "" {
+			continue
+		}
+		segments = append(segments, escapedPath)
 	}
 	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
 }
