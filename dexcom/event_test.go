@@ -142,13 +142,13 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 			Entry("systemTime to be set", func() *dexcom.Event {
-				Skip("investigating systemTime data load issue")
+				Skip("systemTime will occassionally be unset that kills the whole upload process")
 				event := test.RandomEvent(nil)
 				event.SystemTime = nil
 				return event
 			}),
 			Entry("displayTime to be set", func() *dexcom.Event {
-				Skip("investigating displayTime data load issue")
+				Skip("displayTime will occassionally be unset that kills the whole upload process")
 				event := test.RandomEvent(nil)
 				event.DisplayTime = nil
 				return event

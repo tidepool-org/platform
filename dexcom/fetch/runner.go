@@ -472,13 +472,7 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexc
 
 	var devicesDatumArray data.Data
 	for _, device := range *devices {
-
-		t.logger.Infof("## fetchDevice gen[%s] lastupload[%s] id[%s]", *device.TransmitterGeneration, *device.LastUploadDate, *device.TransmitterID)
-
 		if t.updateDeviceHash(device) {
-			datum := translateDeviceToDatum(device)
-			t.logger.Infof("## datum id[%s] meta[%v]", *device.TransmitterID, datum.Meta())
-
 			devicesDatumArray = append(devicesDatumArray, translateDeviceToDatum(device))
 		}
 	}
@@ -506,27 +500,21 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 
 	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
 	if err != nil {
-		t.logger.Infof("## fetchCalibrations error [%s]", err.Error())
 		return nil, err
 	}
-	t.logger.Infof("## fetchCalibrations [%d]", len(fetchDatumArray))
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
 	if err != nil {
-		t.logger.Infof("## fetchEGVs error [%s]", err.Error())
 		return nil, err
 	}
 
-	t.logger.Infof("## fetchEGVs [%d]", len(fetchDatumArray))
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
 	if err != nil {
-		t.logger.Infof("## fetchEvents error [%s]", err.Error())
 		return nil, err
 	}
-	t.logger.Infof("## fetchEvents [%d]", len(fetchDatumArray))
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	sort.Sort(BySystemTime(datumArray))
@@ -550,7 +538,6 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 
 	datumArray := data.Data{}
 	for _, c := range *response.Calibrations {
-		t.logger.Infof("## fetchCalibrations for device [%s] transmitterID [%s]", *c.TransmitterGeneration, *c.TransmitterID)
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateCalibrationToDatum(c))
 		}
@@ -576,17 +563,8 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
-
-		if e.TransmitterGeneration != nil && *e.TransmitterGeneration == "g7" {
-			t.logger.Infof("## fetchEGVs for device [%s] transmitterID [%s]", *e.TransmitterGeneration, *e.TransmitterID)
-		}
-
-		t.logger.Infof("## fetchEGVs after latest data? transmitterID [%s] [%v]", *e.TransmitterID, t.afterLatestDataTime(e.SystemTime.Raw()))
-		datum := translateEGVToDatum(e)
-		t.logger.Infof("## fetchEGVs datum transmitterID [%s] [%#v]", *e.TransmitterID, datum.Meta())
-
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, datum)
+			datumArray = append(datumArray, translateEGVToDatum(e))
 		}
 	}
 
@@ -604,13 +582,11 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 
 	t.validator.Validate(response)
 	if err = t.validator.Error(); err != nil {
-		t.logger.Info("## fetchEvents validation error")
 		return nil, err
 	}
 
 	datumArray := data.Data{}
 	for _, e := range *response.Events {
-		t.logger.Infof("## fetchEvents event type %s", *e.Type)
 		switch *e.Status {
 		case dexcom.EventStatusCreated:
 			if t.afterLatestDataTime(e.SystemTime.Raw()) {

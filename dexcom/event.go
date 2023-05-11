@@ -1,7 +1,6 @@
 package dexcom
 
 import (
-	"log"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -276,7 +275,6 @@ func (e *Event) validateHealth(validator structure.Validator) {
 }
 
 func (e *Event) validateNote(validator structure.Validator) {
-	log.Printf("## this is a note [%s] value[%s] ", *e.Type, *e.Value)
 	validator.String("value", e.Value).Exists().NotEmpty()
 }
 

@@ -46,13 +46,13 @@ var _ = Describe("Calibration", func() {
 				return device
 			}),
 			Entry("required systemTime is not set", func() *dexcom.Calibration {
-				Skip("investigating systemTime data load issue")
+				Skip("systemTime will occassionally be unset that kills the whole upload process")
 				device := test.RandomCalibration()
 				device.SystemTime = nil
 				return device
 			}),
 			Entry("required displayTime is not set", func() *dexcom.Calibration {
-				Skip("investigating displayTime data load issue")
+				Skip("displayTime will occassionally be unset that kills the whole upload process")
 				device := test.RandomCalibration()
 				device.DisplayTime = nil
 				return device
