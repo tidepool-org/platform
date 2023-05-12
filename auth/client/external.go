@@ -113,6 +113,7 @@ type External struct {
 	serverSessionTokenTimeout time.Duration
 	serverSessionTokenMutex   sync.Mutex
 	serverSessionTokenSafe    string
+	pathPrefix                string
 	closingChannel            chan chan bool
 }
 
@@ -142,6 +143,7 @@ func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name str
 		name:                      name,
 		serverSessionTokenSecret:  cfg.ServerSessionTokenSecret,
 		serverSessionTokenTimeout: cfg.ServerSessionTokenTimeout,
+		pathPrefix:                cfg.PathPrefix,
 	}, nil
 }
 
@@ -207,7 +209,7 @@ func (e *External) ValidateSessionToken(ctx context.Context, token string) (requ
 		IsServer bool
 		UserID   string
 	}
-	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL(e.PathPrefix, "token", token), nil, nil, &result); err != nil {
+	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL(e.pathPrefix, "token", token), nil, nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -308,7 +310,7 @@ func (e *External) refreshServerSessionToken() error {
 	e.logger.Debug("Refreshing server session token")
 
 	requestMethod := "POST"
-	requestURL := e.client.ConstructURL(e.PathPrefix, "serverlogin")
+	requestURL := e.client.ConstructURL(e.pathPrefix, "serverlogin")
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new request for %s %s", requestMethod, requestURL)
