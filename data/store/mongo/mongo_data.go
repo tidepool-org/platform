@@ -27,7 +27,15 @@ type DataRepository struct {
 	*storeStructuredMongo.Repository
 }
 
+const (
+	ModifiedTimeIndexRaw = "2023-04-01T00:00:00Z"
+)
+
 func (d *DataRepository) EnsureIndexes() error {
+	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
+	if err != nil {
+		return err
+	}
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -40,6 +48,25 @@ func (d *DataRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "modifiedTime", Value: 1},
+			},
+			Options: options.Index().
+				SetBackground(true).
+				SetPartialFilterExpression(bson.D{
+					{
+						Key: "modifiedTime",
+						Value: bson.D{
+							{Key: "$gt", Value: modifiedTime},
+						},
+					},
+				}).
+				SetName("UserIdTypeModifiedTime"),
 		},
 		{
 			Keys: bson.D{
@@ -183,6 +210,7 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Uplo
 	timestamp := now.Truncate(time.Millisecond)
 
 	dataSet.CreatedTime = pointer.FromTime(timestamp)
+	dataSet.ModifiedTime = pointer.FromTime(timestamp)
 
 	dataSet.ByUser = dataSet.CreatedUserID
 
@@ -289,7 +317,8 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 			"deletedUserId": bson.M{"$exists": false},
 		}
 		set := bson.M{
-			"deletedTime": timestamp,
+			"deletedTime":  timestamp,
+			"modifiedTime": timestamp,
 		}
 		unset := bson.M{}
 		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
@@ -303,6 +332,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 	}
 
 	dataSet.SetDeletedTime(&timestamp)
+	dataSet.SetModifiedTime(&timestamp)
 	return nil
 }
 
@@ -330,6 +360,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&timestamp)
+		datum.SetModifiedTime(&timestamp)
 		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 	}
 
@@ -712,6 +743,7 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 			"deletedUserId": bson.M{"$exists": false},
 		}
 		set := bson.M{
+			// this upload's records has been deleted but we don't need to set the modifiedTime of the upload
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
