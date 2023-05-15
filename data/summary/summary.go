@@ -187,6 +187,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 
 	// if there is no new data
 	if len(userData) < 0 {
+		userSummary.UpdateWithoutChangeCount++
 		logger.Infof("User %s has an outdated summary with no forward data, summary will not be calculated.", userId)
 	}
 

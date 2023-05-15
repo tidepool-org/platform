@@ -224,7 +224,7 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	}
 
 	selector := bson.M{
-		"dates.outdatedSince": bson.M{"$ne": nil},
+		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 		"type":                types.GetTypeString[T, A](),
 	}
 

@@ -22,6 +22,8 @@ const (
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
 	hoursAgoToKeep       = 30 * 24
+
+	setOutdatedBuffer = 2 * time.Minute
 )
 
 var stopPoints = [...]int{1, 7, 14, 30}
@@ -159,6 +161,8 @@ type Summary[T Stats, A StatsPt[T]] struct {
 
 	Dates Dates `json:"dates" bson:"dates"`
 	Stats A     `json:"stats" bson:"stats"`
+
+	UpdateWithoutChangeCount int `json:"updateWithoutChangeCount" bson:"updateWithoutChangeCount"`
 }
 
 func NewConfig() Config {
@@ -172,7 +176,7 @@ func NewConfig() Config {
 }
 
 func (s *Summary[T, A]) SetOutdated() {
-	s.Dates.OutdatedSince = pointer.FromAny(time.Now().UTC().Truncate(time.Millisecond))
+	s.Dates.OutdatedSince = pointer.FromAny(time.Now().Add(setOutdatedBuffer).UTC().Truncate(time.Millisecond))
 	s.Dates.HasOutdatedSince = true
 }
 
