@@ -184,7 +184,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 
 	if b.Notes != nil {
-		// notes from dexcom API fetch were set tobe empty and would silently fail
+		// notes from dexcom API fetch were set to be empty and would silently fail
 		if len(*b.Notes) == 0 {
 			b.Notes = nil
 		}
