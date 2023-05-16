@@ -183,6 +183,13 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
+	if b.Notes != nil {
+		// notes from dexcom API fetch were set tobe empty and would silently fail
+		if len(*b.Notes) == 0 {
+			b.Notes = nil
+		}
+	}
+
 	validator.StringArray("notes", b.Notes).NotEmpty().LengthLessThanOrEqualTo(NotesLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(NoteLengthMaximum)
 	})

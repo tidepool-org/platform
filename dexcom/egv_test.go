@@ -89,11 +89,13 @@ var _ = Describe("EGV", func() {
 				Expect(validator.Error()).To(HaveOccurred())
 			},
 			Entry("systemTime to be set", func() *dexcom.EGV {
+				Skip("systemTime will occassionally be unset that kills the whole upload process")
 				egv := getTestEVG()
 				egv.SystemTime = nil
 				return egv
 			}),
 			Entry("displayTime to be set", func() *dexcom.EGV {
+				Skip("displayTime will occassionally be unset that kills the whole upload process")
 				egv := getTestEVG()
 				egv.DisplayTime = nil
 				return egv

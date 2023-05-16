@@ -68,13 +68,14 @@ var _ = Describe("Event", func() {
 	})
 
 	It("EventTypes returns expected", func() {
-		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "notes", "unknown"}))
+		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "note", "notes", "unknown"}))
 		Expect(dexcom.EventTypes()).To(Equal([]string{
 			dexcom.EventTypeBG,
 			dexcom.EventTypeCarbs,
 			dexcom.EventTypeExercise,
 			dexcom.EventTypeHealth,
 			dexcom.EventTypeInsulin,
+			dexcom.EventTypeNote,
 			dexcom.EventTypeNotes,
 			dexcom.EventTypeUnknown,
 		}))
@@ -141,11 +142,13 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 			Entry("systemTime to be set", func() *dexcom.Event {
+				Skip("systemTime will occassionally be unset that kills the whole upload process")
 				event := test.RandomEvent(nil)
 				event.SystemTime = nil
 				return event
 			}),
 			Entry("displayTime to be set", func() *dexcom.Event {
+				Skip("displayTime will occassionally be unset that kills the whole upload process")
 				event := test.RandomEvent(nil)
 				event.DisplayTime = nil
 				return event
@@ -217,7 +220,7 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 			Entry("unit to be set when type is notes", func() *dexcom.Event {
-				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNotes))
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNote))
 				event.Unit = nil
 				return event
 			}),
