@@ -32,7 +32,7 @@ func (t Time) MarshalBSON() (interface{}, error) {
 }
 
 func (t Time) format() string {
-	return t.Time.Format(TimeFormat)
+	return t.Time.Format(TimeFormatMilli)
 }
 
 func TimeFromRaw(raw *time.Time) *Time {
@@ -41,5 +41,26 @@ func TimeFromRaw(raw *time.Time) *Time {
 	}
 	return &Time{
 		Time: *raw,
+	}
+}
+
+func TimeFromString(raw *string) *Time {
+	if raw == nil {
+		return nil
+	}
+
+	stringValue := *raw
+	var err error
+	var timeValue time.Time
+
+	format := GetTimeFormat(stringValue)
+
+	timeValue, err = time.Parse(format, stringValue)
+	if err != nil {
+		return nil
+	}
+
+	return &Time{
+		Time: timeValue,
 	}
 }

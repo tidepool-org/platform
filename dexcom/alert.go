@@ -1,7 +1,6 @@
 package dexcom
 
 import (
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,6 +25,11 @@ const (
 	AlertScheduleSettingsDayFriday    = "friday"
 	AlertScheduleSettingsDaySaturday  = "saturday"
 
+	AlertScheduleSettingsOverrideModeUnknown = "unknown"
+	AlertScheduleSettingsOverrideModeQuiet   = "quiet"
+	AlertScheduleSettingsOverrideModeVibrate = "vibrate"
+
+	AlertSettingAlertNameUnknown       = "unknown"
 	AlertSettingAlertNameFall          = "fall"
 	AlertSettingAlertNameHigh          = "high"
 	AlertSettingAlertNameLow           = "low"
@@ -34,10 +38,12 @@ const (
 	AlertSettingAlertNameRise          = "rise"
 	AlertSettingAlertNameUrgentLow     = "urgentLow"
 	AlertSettingAlertNameUrgentLowSoon = "urgentLowSoon"
+	AlertSettingAlertNameFixedLow      = "fixedLow"
 
 	AlertSettingSnoozeMinutesMaximum = dataTypesSettingsCgm.SnoozeDurationMinutesMaximum
 	AlertSettingSnoozeMinutesMinimum = dataTypesSettingsCgm.SnoozeDurationMinutesMinimum
 
+	AlertSettingUnitUnknown    = "unknown"
 	AlertSettingUnitMinutes    = "minutes"
 	AlertSettingUnitMgdL       = "mg/dL"
 	AlertSettingUnitMgdLMinute = "mg/dL/min"
@@ -58,6 +64,15 @@ const (
 	AlertSettingValueUrgentLowMgdLMinimum     = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
 	AlertSettingValueUrgentLowSoonMgdLMaximum = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
 	AlertSettingValueUrgentLowSoonMgdLMinimum = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
+
+	AlertSettingSoundThemeUnknown = "unknown"
+	AlertSettingSoundThemeModern  = "modern"
+	AlertSettingSoundThemeClassic = "classic"
+
+	AlertSettingSoundOutputModeUnknown = "unknown"
+	AlertSettingSoundOutputModeSound   = "sound"
+	AlertSettingSoundOutputModeVibrate = "vibrate"
+	AlertSettingSoundOutputModeMatch   = "match"
 )
 
 func AlertScheduleSettingsDays() []string {
@@ -69,6 +84,14 @@ func AlertScheduleSettingsDays() []string {
 		AlertScheduleSettingsDayThursday,
 		AlertScheduleSettingsDayFriday,
 		AlertScheduleSettingsDaySaturday,
+	}
+}
+
+func AlertScheduleSettingsOverrideModes() []string {
+	return []string{
+		AlertScheduleSettingsOverrideModeUnknown,
+		AlertScheduleSettingsOverrideModeQuiet,
+		AlertScheduleSettingsOverrideModeVibrate,
 	}
 }
 
@@ -95,6 +118,7 @@ func AlertScheduleSettingsDayIndex(day string) int {
 
 func AlertSettingAlertNames() []string {
 	return []string{
+		AlertSettingAlertNameUnknown,
 		AlertSettingAlertNameFall,
 		AlertSettingAlertNameHigh,
 		AlertSettingAlertNameLow,
@@ -103,6 +127,24 @@ func AlertSettingAlertNames() []string {
 		AlertSettingAlertNameRise,
 		AlertSettingAlertNameUrgentLow,
 		AlertSettingAlertNameUrgentLowSoon,
+		AlertSettingAlertNameFixedLow,
+	}
+}
+
+func AlertSettingSoundOutputModes() []string {
+	return []string{
+		AlertSettingSoundOutputModeUnknown,
+		AlertSettingSoundOutputModeSound,
+		AlertSettingSoundOutputModeVibrate,
+		AlertSettingSoundOutputModeMatch,
+	}
+}
+
+func AlertSettingSoundThemes() []string {
+	return []string{
+		AlertSettingSoundThemeUnknown,
+		AlertSettingSoundThemeModern,
+		AlertSettingSoundThemeClassic,
 	}
 }
 
@@ -276,12 +318,20 @@ func (a *AlertSchedule) Name() *string {
 }
 
 type AlertScheduleSettings struct {
-	Name       *string   `json:"alertScheduleName,omitempty" yaml:"alertScheduleName,omitempty"`
-	Enabled    *bool     `json:"isEnabled,omitempty" yaml:"isEnabled,omitempty"`
-	Default    *bool     `json:"isDefaultSchedule,omitempty" yaml:"isDefaultSchedule,omitempty"`
-	StartTime  *string   `json:"startTime,omitempty" yaml:"startTime,omitempty"`
-	EndTime    *string   `json:"endTime,omitempty" yaml:"endTime,omitempty"`
-	DaysOfWeek *[]string `json:"daysOfWeek,omitempty" yaml:"daysOfWeek,omitempty"`
+	Name       *string          `json:"alertScheduleName,omitempty" yaml:"alertScheduleName,omitempty"`
+	Enabled    *bool            `json:"isEnabled,omitempty" yaml:"isEnabled,omitempty"`
+	Default    *bool            `json:"isDefaultSchedule,omitempty" yaml:"isDefaultSchedule,omitempty"`
+	StartTime  *string          `json:"startTime,omitempty" yaml:"startTime,omitempty"`
+	EndTime    *string          `json:"endTime,omitempty" yaml:"endTime,omitempty"`
+	DaysOfWeek *[]string        `json:"daysOfWeek,omitempty" yaml:"daysOfWeek,omitempty"`
+	Active     *bool            `json:"isActive,omitempty" yaml:"isActive,omitempty"`
+	Override   *OverrideSetting `json:"override,omitempty" yaml:"override,omitempty"`
+}
+
+type OverrideSetting struct {
+	Enabled *bool   `json:"isOverrideEnabled,omitempty" yaml:"isOverrideEnabled,omitempty"`
+	Mode    *string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	EndTime *string `json:"endTime,omitempty" yaml:"endTime,omitempty"`
 }
 
 func ParseAlertScheduleSettings(parser structure.ObjectParser) *AlertScheduleSettings {
@@ -304,6 +354,23 @@ func (a *AlertScheduleSettings) Parse(parser structure.ObjectParser) {
 	a.StartTime = parser.String("startTime")
 	a.EndTime = parser.String("endTime")
 	a.DaysOfWeek = parser.StringArray("daysOfWeek")
+	a.Active = parser.Bool("isActive")
+	a.Override = ParseOverrideSetting(parser.WithReferenceObjectParser("override"))
+}
+
+func ParseOverrideSetting(parser structure.ObjectParser) *OverrideSetting {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := &OverrideSetting{}
+	parser.Parse(datum)
+	return datum
+}
+
+func (o *OverrideSetting) Parse(parser structure.ObjectParser) {
+	o.Enabled = parser.Bool("isOverrideEnabled")
+	o.Mode = parser.String("mode")
+	o.EndTime = parser.String("endTime")
 }
 
 func (a *AlertScheduleSettings) Validate(validator structure.Validator) {
@@ -455,13 +522,17 @@ func (a AlertSettingsByAlertSettingAlertName) Less(i int, j int) bool {
 }
 
 type AlertSetting struct {
-	SystemTime  *Time    `json:"systemTime,omitempty" yaml:"-"`
-	DisplayTime *Time    `json:"displayTime,omitempty" yaml:"-"`
-	AlertName   *string  `json:"alertName,omitempty" yaml:"alertName,omitempty"`
-	Unit        *string  `json:"unit,omitempty" yaml:"unit,omitempty"`
-	Value       *float64 `json:"value,omitempty" yaml:"value,omitempty"`
-	Snooze      *int     `json:"snooze,omitempty" yaml:"snooze,omitempty"`
-	Enabled     *bool    `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	SystemTime                *Time    `json:"systemTime,omitempty" yaml:"-"`
+	DisplayTime               *Time    `json:"displayTime,omitempty" yaml:"-"`
+	AlertName                 *string  `json:"alertName,omitempty" yaml:"alertName,omitempty"`
+	Unit                      *string  `json:"unit,omitempty" yaml:"unit,omitempty"`
+	Value                     *float64 `json:"value,omitempty" yaml:"value,omitempty"`
+	Snooze                    *int     `json:"snooze,omitempty" yaml:"snooze,omitempty"`
+	Enabled                   *bool    `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Delay                     *int     `json:"delay,omitempty" yaml:"delay,omitempty"`
+	SecondaryTriggerCondition *int     `json:"secondaryTriggerCondition,omitempty" yaml:"secondaryTriggerCondition,omitempty"`
+	SoundTheme                *string  `json:"soundTheme,omitempty" yaml:"soundTheme,omitempty"`
+	SoundOutputMode           *string  `json:"soundOutputMode,omitempty" yaml:"soundOutputMode,omitempty"`
 }
 
 func ParseAlertSetting(parser structure.ObjectParser) *AlertSetting {
@@ -478,19 +549,27 @@ func NewAlertSetting() *AlertSetting {
 }
 
 func (a *AlertSetting) Parse(parser structure.ObjectParser) {
-	a.SystemTime = TimeFromRaw(parser.Time("systemTime", TimeFormat))
-	a.DisplayTime = TimeFromRaw(parser.Time("displayTime", TimeFormat))
+	a.SystemTime = TimeFromString(parser.String("systemTime"))
+	a.DisplayTime = TimeFromString(parser.String("displayTime"))
 	a.AlertName = parser.String("alertName")
 	a.Unit = parser.String("unit")
 	a.Value = parser.Float64("value")
 	a.Snooze = parser.Int("snooze")
 	a.Enabled = parser.Bool("enabled")
+	a.Delay = parser.Int("delay")
+	a.SecondaryTriggerCondition = parser.Int("secondaryTriggerCondition")
+	a.SoundTheme = parser.String("soundTheme")
+	a.SoundOutputMode = parser.String("soundOutputMode")
 }
 
 func (a *AlertSetting) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(a)
-	validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
-	validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
+	if a.SystemTime != nil {
+		validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
+	}
+	if a.DisplayTime != nil {
+		validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
+	}
 	validator.String("alertName", a.AlertName).Exists().OneOf(AlertSettingAlertNames()...)
 
 	if a.AlertName != nil {
@@ -511,8 +590,15 @@ func (a *AlertSetting) Validate(validator structure.Validator) {
 			a.validateUrgentLow(validator)
 		case AlertSettingAlertNameUrgentLowSoon:
 			a.validateUrgentLowSoon(validator)
+		case AlertSettingAlertNameFixedLow:
+			a.validateFixedLow(validator)
+		case AlertSettingAlertNameUnknown:
+			a.validateUnknown(validator)
 		}
 	}
+
+	validator.String("soundTheme", a.SoundTheme).OneOf(AlertSettingSoundThemes()...)
+	validator.String("soundOutputMode", a.SoundOutputMode).OneOf(AlertSettingSoundOutputModes()...)
 }
 
 func (a *AlertSetting) Normalize(normalizer structure.Normalizer) {}
@@ -628,6 +714,15 @@ func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 	validator.Bool("enabled", a.Enabled).Exists()
 }
 
+func (a *AlertSetting) validateUnknown(validator structure.Validator) {
+	validator.String("unit", a.Unit).OneOf(AlertSettingUnitUnknown)
+	validator.Bool("enabled", a.Enabled).Exists()
+}
+
+func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
+	validator.Bool("enabled", a.Enabled).Exists()
+}
+
 func ParseAlertScheduleSettingsTime(value string) (int, int, bool) {
 	timeFormat := "15:04"
 	value = strings.ToUpper(value)
@@ -662,5 +757,3 @@ func ValidateAlertScheduleSettingsTime(value string) error {
 func ErrorValueStringAsAlertScheduleSettingsTimeNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as alert schedule settings time", value)
 }
-
-var alertScheduleSettingsTimeExpression = regexp.MustCompile("^([0-9][0-9]):([0-9][0-9])$")

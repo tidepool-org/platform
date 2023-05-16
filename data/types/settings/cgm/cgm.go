@@ -23,7 +23,7 @@ const (
 	NameLengthMaximum             = 100
 	SerialNumberLengthMaximum     = 100
 	SoftwareVersionLengthMaximum  = 100
-	TransmitterIDExpressionString = "^[0-9A-Z]{5,6}$"
+	TransmitterIDExpressionString = "^[0-9a-zA-Z]{5,64}$"
 )
 
 type CGM struct {
@@ -166,7 +166,8 @@ func TransmitterIDValidator(value string, errorReporter structure.ErrorReporter)
 
 func ValidateTransmitterID(value string) error {
 	if value == "" {
-		return structureValidator.ErrorValueEmpty()
+		// transmitterId is no longer guaranteed from dexcom
+		return nil
 	} else if !transmitterIDExpression.MatchString(value) {
 		return ErrorValueStringAsTransmitterIDNotValid(value)
 	}

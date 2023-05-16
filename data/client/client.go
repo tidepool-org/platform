@@ -109,7 +109,6 @@ func (c *ClientImpl) CreateUserDataSet(ctx context.Context, userID string, creat
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, &response); err != nil {
 		return nil, err
 	}
-
 	return response.Data, nil
 }
 
