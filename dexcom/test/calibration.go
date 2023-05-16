@@ -1,6 +1,8 @@
 package test
 
 import (
+	"math"
+
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -42,14 +44,22 @@ func CloneCalibrations(datum *dexcom.Calibrations) *dexcom.Calibrations {
 
 func RandomCalibration() *dexcom.Calibration {
 	datum := dexcom.NewCalibration()
+	datum.ID = pointer.FromString(test.RandomString())
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
 	datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.CalibrationUnits()))
 	switch *datum.Unit {
 	case dexcom.CalibrationUnitMgdL:
 		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.CalibrationValueMgdLMinimum, dexcom.CalibrationValueMgdLMaximum))
+	case dexcom.CalibrationUnitMmolL:
+		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.CalibrationValueMmolLMinimum, dexcom.CalibrationValueMmolLMaximum))
+	case dexcom.CalibrationUnitUnknown:
+		datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.CalibrationValueMmolLMinimum, dexcom.CalibrationValueMmolLMaximum))
 	}
 	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
+	datum.TransmitterTicks = pointer.FromInt(test.RandomIntFromRange(dexcom.EGVTransmitterTickMinimum, math.MaxInt32))
+	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))
+	datum.DisplayDevice = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayDevices()))
 	return datum
 }
 
@@ -58,10 +68,15 @@ func CloneCalibration(datum *dexcom.Calibration) *dexcom.Calibration {
 		return nil
 	}
 	clone := dexcom.NewCalibration()
+
+	clone.ID = pointer.CloneString(datum.ID)
 	clone.SystemTime = CloneTime(datum.SystemTime)
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.Unit = pointer.CloneString(datum.Unit)
 	clone.Value = pointer.CloneFloat64(datum.Value)
 	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
+	clone.TransmitterTicks = pointer.CloneInt(datum.TransmitterTicks)
+	clone.TransmitterGeneration = pointer.CloneString(datum.TransmitterGeneration)
+	clone.DisplayDevice = pointer.CloneString(datum.DisplayDevice)
 	return clone
 }
