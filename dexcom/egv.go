@@ -185,7 +185,7 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.ID = parser.String("recordId")
 	e.SystemTime = TimeFromString(parser.String("systemTime"))
 	e.DisplayTime = TimeFromString(parser.String("displayTime"))
-	e.Unit = BGUnitFromParser(parser)
+	e.Unit = UnitFromParser(parser, EGVUnitMgdL)
 	e.RateUnit = parser.String("rateUnit")
 	e.Value = parser.Float64("value")
 	e.Status = parser.String("status")

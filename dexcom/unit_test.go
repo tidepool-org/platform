@@ -12,12 +12,12 @@ import (
 
 var _ = Describe("Unit", func() {
 
-	Context("BGUnitFromParser", func() {
+	Context("UnitFromParser", func() {
 		It("returns the unit value when set", func() {
 			objectData := map[string]interface{}{
 				"unit": dataBloodGlucose.MmolL,
 			}
-			unit := dexcom.BGUnitFromParser(parser.NewObject(&objectData))
+			unit := dexcom.UnitFromParser(parser.NewObject(&objectData), dataBloodGlucose.MgdL)
 			Expect(unit).ToNot(BeNil())
 			Expect(*unit).To(Equal(dataBloodGlucose.MmolL))
 		})
@@ -25,7 +25,7 @@ var _ = Describe("Unit", func() {
 			objectData := map[string]interface{}{
 				"unit": nil,
 			}
-			unit := dexcom.BGUnitFromParser(parser.NewObject(&objectData))
+			unit := dexcom.UnitFromParser(parser.NewObject(&objectData), dataBloodGlucose.MgdL)
 			Expect(*unit).To(Equal(dataBloodGlucose.MgdL))
 		})
 	})

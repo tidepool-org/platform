@@ -203,10 +203,20 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.DisplayTime = TimeFromString(parser.String("displayTime"))
 	e.Type = parser.String("eventType")
 	e.SubType = parser.String("eventSubType")
-	if e.Type != nil && *e.Type == EventTypeBG {
-		e.Unit = BGUnitFromParser(parser)
-	} else {
-		e.Unit = parser.String("unit")
+
+	if e.Type != nil {
+		switch *e.Type {
+		case EventTypeCarbs:
+			e.Unit = UnitFromParser(parser, EventUnitCarbsGrams)
+		case EventTypeExercise:
+			e.Unit = UnitFromParser(parser, EventUnitExerciseMinutes)
+		case EventTypeInsulin:
+			e.Unit = UnitFromParser(parser, EventUnitInsulinUnits)
+		case EventTypeBG:
+			e.Unit = UnitFromParser(parser, EventUnitMgdL)
+		default:
+			e.Unit = parser.String("unit")
+		}
 	}
 	e.Value = parser.String("value")
 	e.ID = parser.String("recordId")
