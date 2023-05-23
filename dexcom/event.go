@@ -203,7 +203,11 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	e.DisplayTime = TimeFromString(parser.String("displayTime"))
 	e.Type = parser.String("eventType")
 	e.SubType = parser.String("eventSubType")
-	e.Unit = parser.String("unit")
+	if e.Type != nil && *e.Type == EventTypeBG {
+		e.Unit = BGUnitFromParser(parser)
+	} else {
+		e.Unit = parser.String("unit")
+	}
 	e.Value = parser.String("value")
 	e.ID = parser.String("recordId")
 	e.Status = parser.String("eventStatus")

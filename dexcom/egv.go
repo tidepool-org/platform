@@ -5,7 +5,6 @@ import (
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/settings/cgm"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -186,13 +185,7 @@ func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.ID = parser.String("recordId")
 	e.SystemTime = TimeFromString(parser.String("systemTime"))
 	e.DisplayTime = TimeFromString(parser.String("displayTime"))
-	// NOTE: currently we are finding that g7 data occasionally doesn't have the required units
-	// data. This is a workaround until that issue is resolved
-	unitVal := parser.String("unit")
-	if unitVal == nil {
-		unitVal = pointer.FromString(EGVUnitMgdL)
-	}
-	e.Unit = unitVal
+	e.Unit = BGUnitFromParser(parser)
 	e.RateUnit = parser.String("rateUnit")
 	e.Value = parser.Float64("value")
 	e.Status = parser.String("status")
