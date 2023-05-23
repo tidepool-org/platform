@@ -207,13 +207,13 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	if e.Type != nil {
 		switch *e.Type {
 		case EventTypeCarbs:
-			e.Unit = UnitFromParser(parser, EventUnitCarbsGrams)
+			e.Unit = StringOrDefault(parser.String("unit"), EventUnitCarbsGrams)
 		case EventTypeExercise:
-			e.Unit = UnitFromParser(parser, EventUnitExerciseMinutes)
+			e.Unit = StringOrDefault(parser.String("unit"), EventUnitExerciseMinutes)
 		case EventTypeInsulin:
-			e.Unit = UnitFromParser(parser, EventUnitInsulinUnits)
+			e.Unit = StringOrDefault(parser.String("unit"), EventUnitInsulinUnits)
 		case EventTypeBG:
-			e.Unit = UnitFromParser(parser, EventUnitMgdL)
+			e.Unit = StringOrDefault(parser.String("unit"), EventUnitMgdL)
 		default:
 			e.Unit = parser.String("unit")
 		}
