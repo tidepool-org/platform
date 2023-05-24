@@ -220,9 +220,10 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 			e.Value = StringOrDefault(parser.String("value"), EventValueMgdLMinimum)
 		default:
 			e.Unit = parser.String("unit")
+			e.Value = parser.String("value")
 		}
 	}
-	e.Value = parser.String("value")
+
 	e.ID = parser.String("recordId")
 	e.Status = parser.String("eventStatus")
 	e.TransmitterGeneration = parser.String("transmitterGeneration")
