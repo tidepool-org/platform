@@ -1,6 +1,8 @@
 package dexcom_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -199,6 +201,34 @@ var _ = Describe("Event", func() {
 			Entry("when EventTypeExercise", func() *dexcom.Event {
 				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeExercise))
 				event.Value = pointer.FromString("100m")
+				return event
+			}),
+		)
+		DescribeTable("value is valid at minimum",
+			func(setupEventFunc func() *dexcom.Event) {
+				testEvent := setupEventFunc()
+				validator := validator.New()
+				testEvent.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
+			},
+			Entry("when EventTypeBG", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeBG))
+				event.Value = pointer.FromString(fmt.Sprintf("%v", dexcom.EventValueMgdLMinimum))
+				return event
+			}),
+			Entry("when EventTypeCarbs", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeCarbs))
+				event.Value = pointer.FromString(fmt.Sprintf("%v", dexcom.EventValueCarbsGramsMinimum))
+				return event
+			}),
+			Entry("when EventTypeInsulin", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeInsulin))
+				event.Value = pointer.FromString(fmt.Sprintf("%v", dexcom.EventValueInsulinUnitsMinimum))
+				return event
+			}),
+			Entry("when EventTypeExercise", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeExercise))
+				event.Value = pointer.FromString(fmt.Sprintf("%v", dexcom.EventValueExerciseMinutesMinimum))
 				return event
 			}),
 		)
