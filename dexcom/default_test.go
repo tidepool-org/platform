@@ -18,7 +18,8 @@ var _ = Describe("Default", func() {
 
 		BeforeEach(func() {
 			objectData := map[string]interface{}{
-				"unit": dataBloodGlucose.MmolL,
+				"unit":      dataBloodGlucose.MmolL,
+				"empty-val": "",
 			}
 			objParser = parser.NewObject(&objectData)
 		})
@@ -37,6 +38,11 @@ var _ = Describe("Default", func() {
 			val := dexcom.StringOrDefault(objParser, "no-value", dataBloodGlucose.MgdLMinimum)
 			Expect(val).ToNot(BeNil())
 			Expect(*val).To(Equal("0"))
+		})
+		It("default is returned when value is empty string", func() {
+			val := dexcom.StringOrDefault(objParser, "empty-val", dexcom.EventUnitCarbsGrams)
+			Expect(val).ToNot(BeNil())
+			Expect(*val).To(Equal(dexcom.EventUnitCarbsGrams))
 		})
 		It("returns nil when neither set", func() {
 			unit := dexcom.StringOrDefault(objParser, "no-unit", nil)
