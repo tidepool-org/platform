@@ -33,9 +33,18 @@ var _ = Describe("Default", func() {
 			Expect(unit).ToNot(BeNil())
 			Expect(*unit).To(Equal(dataBloodGlucose.MgdL))
 		})
+		It("default is returned as a string pointer ", func() {
+			val := dexcom.StringOrDefault(objParser.String("no-value"), dataBloodGlucose.MgdLMinimum)
+			Expect(val).ToNot(BeNil())
+			Expect(*val).To(Equal("0"))
+		})
 		It("returns nil when neither set", func() {
-			unit := dexcom.StringOrDefault(objParser.String("no-unit"), "")
+			unit := dexcom.StringOrDefault(objParser.String("no-unit"), nil)
 			Expect(unit).To(BeNil())
+		})
+		It("returns nil when default is empty", func() {
+			val := dexcom.StringOrDefault(objParser.String("no-unit"), "")
+			Expect(val).To(BeNil())
 		})
 	})
 })
