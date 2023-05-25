@@ -77,14 +77,6 @@ var _ = Describe("Calibration", func() {
 				device.TransmitterGeneration = nil
 				return device
 			}),
-		)
-		DescribeTable("does not error when",
-			func(setupFunc func() *dexcom.Calibration) {
-				testCalibration := setupFunc()
-				validator := validator.New()
-				testCalibration.Validate(validator)
-				Expect(validator.Error()).ToNot(HaveOccurred())
-			},
 			Entry("unit is not set", func() *dexcom.Calibration {
 				device := test.RandomCalibration()
 				device.Unit = nil

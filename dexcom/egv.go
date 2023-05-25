@@ -11,8 +11,8 @@ import (
 
 const (
 	EGVUnitUnknown = "unknown"
-	EGVUnitMgdL    = "mg/dL"
-	EGVUnitMmolL   = "mmol/L"
+	EGVUnitMgdL    = dataBloodGlucose.MgdL
+	EGVUnitMmolL   = dataBloodGlucose.MmolL
 
 	EGVRateUnitUnknown     = "unknown"
 	EGVRateUnitMgdLMinute  = "mg/dL/min"
