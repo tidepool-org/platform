@@ -611,7 +611,7 @@ var _ = Describe("V1", func() {
 							var content *blob.DeviceLogsContent
 
 							BeforeEach(func() {
-								content = blobTest.DeviceLogsContent()
+								content = blobTest.RandomDeviceLogsContent()
 							})
 
 							JustBeforeEach(func() {
@@ -766,7 +766,7 @@ var _ = Describe("V1", func() {
 									})
 
 									It("responds successfully", func() {
-										responseResult := blobTest.DeviceLogsBlob()
+										responseResult := blobTest.RandomDeviceLogsBlob()
 										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: responseResult, Error: nil}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))

@@ -57,8 +57,8 @@ func RandomContent() *blob.Content {
 	return datum
 }
 
-func DeviceLogsContent() *blob.DeviceLogsContent {
-	content := []byte(`{data:"some data",isTrue:false}`)
+func RandomDeviceLogsContent() *blob.DeviceLogsContent {
+	content := test.RandomBytes()
 	datum := &blob.DeviceLogsContent{}
 	datum.Body = ioutil.NopCloser(bytes.NewReader(content))
 	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
@@ -69,7 +69,7 @@ func DeviceLogsContent() *blob.DeviceLogsContent {
 	return datum
 }
 
-func DeviceLogsBlob() *blob.DeviceLogsBlob {
+func RandomDeviceLogsBlob() *blob.DeviceLogsBlob {
 	datum := &blob.DeviceLogsBlob{}
 	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.ID = pointer.FromString(RandomID())
@@ -78,6 +78,8 @@ func DeviceLogsBlob() *blob.DeviceLogsBlob {
 	datum.MediaType = pointer.FromString("application/json; charset=utf-8")
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.StartAtTime = datum.CreatedTime
+	datum.EndAtTime = pointer.FromTime(datum.CreatedTime.Add(5 * time.Minute))
 	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
 }
@@ -154,6 +156,41 @@ func NewObjectFromBlob(datum *blob.Blob, objectFormat test.ObjectFormat) map[str
 	return object
 }
 
+func NewObjectFromDeviceLogsBlob(datum *blob.DeviceLogsBlob, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.ID != nil {
+		object["id"] = test.NewObjectFromString(*datum.ID, objectFormat)
+	}
+	if datum.UserID != nil {
+		object["userId"] = test.NewObjectFromString(*datum.UserID, objectFormat)
+	}
+	if datum.DigestMD5 != nil {
+		object["digestMD5"] = test.NewObjectFromString(*datum.DigestMD5, objectFormat)
+	}
+	if datum.MediaType != nil {
+		object["mediaType"] = test.NewObjectFromString(*datum.MediaType, objectFormat)
+	}
+	if datum.Size != nil {
+		object["size"] = test.NewObjectFromInt(*datum.Size, objectFormat)
+	}
+	if datum.CreatedTime != nil {
+		object["createdTime"] = test.NewObjectFromTime(*datum.CreatedTime, objectFormat)
+	}
+	if datum.Revision != nil {
+		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
+	}
+	if datum.StartAtTime != nil {
+		object["startAtTime"] = test.NewObjectFromTime(*datum.StartAtTime, objectFormat)
+	}
+	if datum.EndAtTime != nil {
+		object["endAtTime"] = test.NewObjectFromTime(*datum.EndAtTime, objectFormat)
+	}
+	return object
+}
+
 func MatchBlob(datum *blob.Blob) gomegaTypes.GomegaMatcher {
 	if datum == nil {
 		return gomega.BeNil()
@@ -169,6 +206,23 @@ func MatchBlob(datum *blob.Blob) gomegaTypes.GomegaMatcher {
 		"ModifiedTime": test.MatchTime(datum.ModifiedTime),
 		"DeletedTime":  test.MatchTime(datum.DeletedTime),
 		"Revision":     gomega.Equal(datum.Revision),
+	}))
+}
+
+func MatchDeviceLogsBlob(datum *blob.DeviceLogsBlob) gomegaTypes.GomegaMatcher {
+	if datum == nil {
+		return gomega.BeNil()
+	}
+	return gomegaGstruct.PointTo(gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
+		"ID":          gomega.Equal(datum.ID),
+		"UserID":      gomega.Equal(datum.UserID),
+		"DigestMD5":   gomega.Equal(datum.DigestMD5),
+		"MediaType":   gomega.Equal(datum.MediaType),
+		"Size":        gomega.Equal(datum.Size),
+		"CreatedTime": test.MatchTime(datum.CreatedTime),
+		"Revision":    gomega.Equal(datum.Revision),
+		"StartAtTime": test.MatchTime(datum.StartAtTime),
+		"EndAtTime":   test.MatchTime(datum.EndAtTime),
 	}))
 }
 

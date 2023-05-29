@@ -236,7 +236,7 @@ var _ = Describe("Mongo", func() {
 
 					BeforeEach(func() {
 						update = blobStoreStructuredTest.RandomDeviceLogsUpdate()
-						original = blobTest.DeviceLogsBlob()
+						original = blobTest.RandomDeviceLogsBlob()
 						original.ID = pointer.FromString(id)
 						_, err := deviceLogsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
@@ -366,7 +366,7 @@ var _ = Describe("Mongo", func() {
 					var original *blob.DeviceLogsBlob
 
 					BeforeEach(func() {
-						original = blobTest.DeviceLogsBlob()
+						original = blobTest.RandomDeviceLogsBlob()
 						original.ID = pointer.FromString(id)
 						_, err := deviceLogsCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())

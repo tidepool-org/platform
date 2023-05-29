@@ -188,7 +188,7 @@ func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 	validator.Int("size", b.Size).Exists().GreaterThanOrEqualTo(0)
 	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("startAtTime", b.StartAtTime).Exists().NotZero().BeforeNow(time.Second)
-	validator.Time("endAtTime", b.EndAtTime).Exists().NotZero().BeforeNow(time.Second)
+	validator.Time("endAtTime", b.EndAtTime).Exists().NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
