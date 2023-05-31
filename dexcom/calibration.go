@@ -10,8 +10,8 @@ import (
 
 const (
 	CalibrationUnitUnknown = "unknown"
-	CalibrationUnitMgdL    = "mg/dL"
-	CalibrationUnitMmolL   = "mmol/L"
+	CalibrationUnitMgdL    = dataBloodGlucose.MgdL
+	CalibrationUnitMmolL   = dataBloodGlucose.MmolL
 
 	CalibrationValueMgdLMaximum = dataBloodGlucose.MgdLMaximum
 	CalibrationValueMgdLMinimum = dataBloodGlucose.MgdLMinimum
@@ -123,7 +123,7 @@ func (c *Calibration) Parse(parser structure.ObjectParser) {
 	c.ID = parser.String("recordId")
 	c.SystemTime = TimeFromString(parser.String("systemTime"))
 	c.DisplayTime = TimeFromString(parser.String("displayTime"))
-	c.Unit = parser.String("unit")
+	c.Unit = StringOrDefault(parser, "unit", CalibrationUnitMgdL)
 	c.Value = parser.Float64("value")
 	c.TransmitterID = parser.String("transmitterId")
 	c.TransmitterGeneration = parser.String("transmitterGeneration")
@@ -140,7 +140,7 @@ func (c *Calibration) Validate(validator structure.Validator) {
 	validator.Int("transmitterTicks", c.TransmitterTicks).Exists()
 	validator.String("displayDevice", c.DisplayDevice).Exists().NotEmpty()
 	validator.String("transmitterGeneration", c.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
-	validator.String("unit", c.Unit).OneOf(CalibrationUnits()...)
+	validator.String("unit", c.Unit).Exists().OneOf(CalibrationUnits()...)
 	if c.Unit != nil {
 		switch *c.Unit {
 		case CalibrationUnitMgdL:
