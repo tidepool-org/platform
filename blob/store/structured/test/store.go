@@ -54,4 +54,7 @@ func (s *Store) AssertOutputsEmpty() {
 	if len(s.NewRepositoryOutputs) > 0 {
 		panic("NewRepositoryOutputs is not empty")
 	}
+	if len(s.NewDeviceLogsRepositoryOutputs) > 0 {
+		panic("NewDeviceLogsRepositoryOutputs is not empty")
+	}
 }

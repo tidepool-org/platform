@@ -165,6 +165,10 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 	return repository.Update(ctx, *result.ID, nil, update)
 }
 
+func (c *Client) ListDeviceLogs(ctx context.Context, userID string, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	return nil, errors.New("not implemented")
+}
+
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	ctx = log.ContextWithField(ctx, "userId", userID)
 	repository := c.BlobStructuredStore().NewBlobRepository()

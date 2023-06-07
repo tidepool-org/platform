@@ -118,6 +118,23 @@ func CloneBlob(datum *blob.Blob) *blob.Blob {
 	return clone
 }
 
+func CloneDeviceLogsBlob(datum *blob.DeviceLogsBlob) *blob.DeviceLogsBlob {
+	if datum == nil {
+		return nil
+	}
+	clone := &blob.DeviceLogsBlob{}
+	clone.ID = pointer.CloneString(datum.ID)
+	clone.UserID = pointer.CloneString(datum.UserID)
+	clone.DigestMD5 = pointer.CloneString(datum.DigestMD5)
+	clone.MediaType = pointer.CloneString(datum.MediaType)
+	clone.Size = pointer.CloneInt(datum.Size)
+	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
+	clone.StartAtTime = pointer.CloneTime(datum.StartAtTime)
+	clone.EndAtTime = pointer.CloneTime(datum.EndAtTime)
+	clone.Revision = pointer.CloneInt(datum.Revision)
+	return clone
+}
+
 func NewObjectFromBlob(datum *blob.Blob, objectFormat test.ObjectFormat) map[string]interface{} {
 	if datum == nil {
 		return nil

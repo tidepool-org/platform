@@ -19,6 +19,10 @@ type Provider struct {
 	BlobUnstructuredStoreStub                 func() blobStoreUnstructured.Store
 	BlobUnstructuredStoreOutputs              []blobStoreUnstructured.Store
 	BlobUnstructuredStoreOutput               *blobStoreUnstructured.Store
+	DeviceLogsStructuredStoreInvocations      int
+	DeviceLogsStructuredStoreStub             func() blobStoreStructured.Store
+	DeviceLogsStructuredStoreOutputs          []blobStoreStructured.Store
+	DeviceLogsStructuredStoreOutput           *blobStoreStructured.Store
 	DeviceLogBlobUnstructuredStoreInvocations int
 	DeviceLogBlobUnstructuredStoreStub        func() blobStoreUnstructured.Store
 	DeviceLogBlobUnstructuredStoreOutputs     []blobStoreUnstructured.Store
@@ -93,6 +97,22 @@ func (p *Provider) DeviceLogsUnstructuredStore() blobStoreUnstructured.Store {
 	panic("DeviceLogsUnstructuredStore has no output")
 }
 
+func (p *Provider) DeviceLogsStructuredStore() blobStoreStructured.Store {
+	p.DeviceLogsStructuredStoreInvocations++
+	if p.DeviceLogsStructuredStoreStub != nil {
+		return p.DeviceLogsStructuredStoreStub()
+	}
+	if len(p.DeviceLogsStructuredStoreOutputs) > 0 {
+		output := p.DeviceLogsStructuredStoreOutputs[0]
+		p.DeviceLogsStructuredStoreOutputs = p.DeviceLogsStructuredStoreOutputs[1:]
+		return output
+	}
+	if p.DeviceLogsStructuredStoreOutput != nil {
+		return *p.DeviceLogsStructuredStoreOutput
+	}
+	panic("DeviceLogsStructuredStore has no output")
+}
+
 func (p *Provider) AssertOutputsEmpty() {
 	if len(p.AuthClientOutputs) > 0 {
 		panic("AuthClientOutputs is not empty")
@@ -102,5 +122,11 @@ func (p *Provider) AssertOutputsEmpty() {
 	}
 	if len(p.BlobUnstructuredStoreOutputs) > 0 {
 		panic("BlobUnstructuredStoreOutputs is not empty")
+	}
+	if len(p.DeviceLogBlobUnstructuredStoreOutputs) > 0 {
+		panic("DeviceLogBlobUnstructuredStoreOutputs is not empty")
+	}
+	if len(p.DeviceLogsStructuredStoreOutputs) > 0 {
+		panic("DeviceLogsStructuredStoreOutputs is not empty")
 	}
 }
