@@ -82,6 +82,7 @@ var _ = Describe("V1", func() {
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/device-logs")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/device-logs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id/content")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/blobs/:id")})),
@@ -318,6 +319,37 @@ var _ = Describe("V1", func() {
 
 								parameterAssertions()
 							})
+						})
+					})
+				})
+
+				Context("ListDeviceLogs", func() {
+					BeforeEach(func() {
+						req.Method = http.MethodGet
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/device-logs", userID)
+					})
+
+					It("panics when the response is missing", func() {
+						Expect(func() { router.ListDeviceLogs(nil, req) }).To(Panic())
+					})
+
+					It("panics when the request is missing", func() {
+						Expect(func() { router.ListDeviceLogs(res, nil) }).To(Panic())
+					})
+
+					Context("responds with JSON", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
+						AfterEach(func() {
+							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+						})
+						It("responds with not implemented request and expected error in body", func() {
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotImplemented}))
+							Expect(res.WriteInputs).To(HaveLen(1))
+							errorsTest.ExpectErrorJSON(errors.New("not yet implemented"), res.WriteInputs[0])
 						})
 					})
 				})

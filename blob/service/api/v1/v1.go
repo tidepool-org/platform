@@ -45,6 +45,7 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 
 		rest.Post("/v1/users/:userId/device-logs", r.CreateDeviceLogs),
+		rest.Get("/v1/users/:userId/device-logs", r.ListDeviceLogs),
 
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
@@ -192,6 +193,11 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 		}
 	}
 	responder.Data(http.StatusCreated, result)
+}
+
+func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	responder.Error(http.StatusNotImplemented, errors.New("not yet implemented"))
 }
 
 func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {
