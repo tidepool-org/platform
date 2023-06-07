@@ -207,17 +207,17 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	if e.Type != nil {
 		switch *e.Type {
 		case EventTypeCarbs:
-			e.Unit = StringOrDefault(parser.String("unit"), EventUnitCarbsGrams)
-			e.Value = StringOrDefault(parser.String("value"), EventValueCarbsGramsMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitCarbsGrams)
+			e.Value = StringOrDefault(parser, "value", EventValueCarbsGramsMinimum)
 		case EventTypeExercise:
-			e.Unit = StringOrDefault(parser.String("unit"), EventUnitExerciseMinutes)
-			e.Value = StringOrDefault(parser.String("value"), EventValueExerciseMinutesMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitExerciseMinutes)
+			e.Value = StringOrDefault(parser, "value", EventValueExerciseMinutesMinimum)
 		case EventTypeInsulin:
-			e.Unit = StringOrDefault(parser.String("unit"), EventUnitInsulinUnits)
-			e.Value = StringOrDefault(parser.String("value"), EventValueInsulinUnitsMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitInsulinUnits)
+			e.Value = StringOrDefault(parser, "value", EventValueInsulinUnitsMinimum)
 		case EventTypeBG:
-			e.Unit = StringOrDefault(parser.String("unit"), EventUnitMgdL)
-			e.Value = StringOrDefault(parser.String("value"), EventValueMgdLMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitMgdL)
+			e.Value = StringOrDefault(parser, "value", EventValueMgdLMinimum)
 		default:
 			e.Unit = parser.String("unit")
 			e.Value = parser.String("value")
