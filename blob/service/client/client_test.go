@@ -522,12 +522,12 @@ var _ = Describe("Client", func() {
 
 								AfterEach(func() {
 									Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{UserID: userID, ID: *createDeviceLogsBlob.ID}}))
-									Expect(blobStructuredRepository.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyInput{{ID: *createDeviceLogsBlob.ID}}))
+									Expect(deviceLogsStructuredRepository.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyDeviceLogsInput{{ID: *createDeviceLogsBlob.ID}}))
 								})
 
 								It("returns an error", func() {
 									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-									blobStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
 									result, err := client.CreateDeviceLogs(ctx, userID, content)
 									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 									Expect(result).To(BeNil())
@@ -536,7 +536,7 @@ var _ = Describe("Client", func() {
 								It("returns an error and logs an error when the unstructured store returns an error", func() {
 									responseErr := errorsTest.RandomError()
 									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-									blobStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: true, Error: nil}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
 									result, err := client.CreateDeviceLogs(ctx, userID, content)
 									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 									Expect(result).To(BeNil())
@@ -546,7 +546,7 @@ var _ = Describe("Client", func() {
 								It("returns an error and logs an error when the structured store returns an error", func() {
 									responseErr := errorsTest.RandomError()
 									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
-									blobStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: false, Error: responseErr}}
 									result, err := client.CreateDeviceLogs(ctx, userID, content)
 									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 									Expect(result).To(BeNil())
@@ -556,7 +556,7 @@ var _ = Describe("Client", func() {
 								It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
 									responseErr := errorsTest.RandomError()
 									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
-									blobStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyOutput{{Destroyed: false, Error: responseErr}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: false, Error: responseErr}}
 									result, err := client.CreateDeviceLogs(ctx, userID, content)
 									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
 									Expect(result).To(BeNil())
