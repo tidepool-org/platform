@@ -318,12 +318,6 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("OriginId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
-						"Unique":                  Equal(true),
-						"Name":                    Equal("UniqueUploadId"),
-						"PartialFilterExpression": Equal(bson.D{{Key: "type", Value: "upload"}}),
-					}),
-					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
 						"Background": Equal(true),
 						"Name":       Equal("UploadId"),
@@ -698,7 +692,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						AfterEach(func() {
-							logger.AssertDebug("DatumRepository.UpdateDataSet", log.Fields{"id": id, "update": update})
+							logger.AssertDebug("DataSetRepository.UpdateDataSet", log.Fields{"id": id, "update": update})
 						})
 
 						Context("with updates", func() {
@@ -717,7 +711,7 @@ var _ = Describe("Mongo", func() {
 								update.Time = pointer.FromTime(newTime)
 								_, err = repository.UpdateDataSet(ctx, id, update)
 								Expect(err).ToNot(HaveOccurred())
-								ValidateDataSetWithModifiedThreshold(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, time.Second, dataSet)
+								ValidateDataSetWithModifiedThreshold(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, time.Second, dataSet)
 							})
 						})
 
@@ -748,12 +742,7 @@ var _ = Describe("Mongo", func() {
 							ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
 							ValidateDataSet(dataSetCollection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
 
-							// Updating an existing dataset that lives in the
-							// previous deviceData collection via
-							// DatumRepository should also call
-							// DataSetRepository.upsertDataSet to upsert the
-							// data set into the new deviceDataSets repo
-							logger.AssertDebug("DataSetRepository.upsertDataSet", log.Fields{"id": id, "update": update})
+							logger.AssertDebug("DataSetRepository.UpdateDataSet", log.Fields{"id": id, "update": update})
 						})
 					})
 				})
@@ -1146,7 +1135,7 @@ var _ = Describe("Mongo", func() {
 										selectedDataSetData.SetActive(false)
 										selectedDataSetData.SetModifiedTime(pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond)))
 										ValidateDataSetDataWithModifiedThreshold(collection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"archivedTime": 0}, time.Second, selectedDataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
