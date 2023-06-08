@@ -4,10 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -45,9 +44,9 @@ type DataRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-	GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error)
-	GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
-	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
+	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error
+	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error)
+	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
 }
 
 type Filter struct {
@@ -69,11 +68,5 @@ func (f *Filter) Validate(validator structure.Validator) {}
 type SummaryRepository interface {
 	EnsureIndexes() error
 
-	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
-	DeleteSummary(ctx context.Context, id string) error
-	SetOutdated(ctx context.Context, id string) (*time.Time, error)
-	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error)
-	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
-	DistinctSummaryIDs(ctx context.Context) ([]string, error)
-	CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int, error)
+	GetStore() *storeStructuredMongo.Repository
 }

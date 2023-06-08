@@ -1,6 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.18
+go 1.19
 
 require (
 	github.com/Shopify/sarama v1.27.0
@@ -16,9 +16,10 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mjibson/esc v0.2.0
-	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.3
-	github.com/prometheus/client_golang v1.11.1
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.20.0
+	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/rinchsan/device-check-go v1.2.3
 	github.com/tidepool-org/clinic/client v0.0.0-20211118205743-020bf46ac989
 	github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
@@ -53,9 +54,11 @@ require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.14.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/jcmturner/gofork v1.0.0 // indirect
@@ -66,9 +69,8 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
-	github.com/nxadm/tail v1.4.4 // indirect
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
@@ -94,7 +96,6 @@ require (
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/term v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
-	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
@@ -103,6 +104,7 @@ require (
 	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
 	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 )
 

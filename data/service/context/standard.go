@@ -5,6 +5,8 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/data/summary"
+
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
@@ -27,6 +29,7 @@ type Standard struct {
 	dataStore               dataStore.Store
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
+	summarizerRegistry      *summary.SummarizerRegistry
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
@@ -110,6 +113,9 @@ func (s *Standard) Close() {
 	if s.summaryRepository != nil {
 		s.summaryRepository = nil
 	}
+	if s.summarizerRegistry != nil {
+		s.summarizerRegistry = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -140,6 +146,16 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 		s.summaryRepository = s.dataStore.NewSummaryRepository()
 	}
 	return s.summaryRepository
+}
+
+func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
+	dataRepo := s.DataRepository()
+	summaryRepo := s.SummaryRepository()
+
+	if s.summarizerRegistry == nil {
+		s.summarizerRegistry = summary.New(summaryRepo.GetStore(), dataRepo)
+	}
+	return s.summarizerRegistry
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {

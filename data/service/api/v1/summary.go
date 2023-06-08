@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
@@ -14,10 +16,17 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/:userId", Authenticate(GetSummary)),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId", Authenticate(UpdateSummary)),
-		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
-		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs)),
+		dataService.MakeRoute("GET", "/v1/summaries/cgm/:userId", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/bgm/:userId", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
+
+		dataService.MakeRoute("POST", "/v1/summaries/cgm/:userId", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/bgm/:userId", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
+
+		dataService.MakeRoute("POST", "/v1/summaries/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+
+		dataService.MakeRoute("GET", "/v1/summaries/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
 	}
 }
 
@@ -42,11 +51,10 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary(dataServiceContext dataService.Context) {
+func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -56,8 +64,8 @@ func GetSummary(dataServiceContext dataService.Context) {
 		return
 	}
 
-	summary, err := dataClient.GetSummary(ctx, id)
-
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if summary == nil {
@@ -67,11 +75,10 @@ func GetSummary(dataServiceContext dataService.Context) {
 	}
 }
 
-func UpdateSummary(dataServiceContext dataService.Context) {
+func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -81,7 +88,8 @@ func UpdateSummary(dataServiceContext dataService.Context) {
 		return
 	}
 
-	summary, err := dataClient.UpdateSummary(ctx, id)
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if summary == nil {
@@ -91,11 +99,10 @@ func UpdateSummary(dataServiceContext dataService.Context) {
 	}
 }
 
-func BackfillSummaries(dataServiceContext dataService.Context) {
+func BackfillSummaries[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -104,7 +111,8 @@ func BackfillSummaries(dataServiceContext dataService.Context) {
 		return
 	}
 
-	status, err := dataClient.BackfillSummaries(ctx)
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	status, err := summarizer.BackfillSummaries(ctx)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -113,11 +121,10 @@ func BackfillSummaries(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, status)
 }
 
-func GetOutdatedUserIDs(dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -132,7 +139,8 @@ func GetOutdatedUserIDs(dataServiceContext dataService.Context) {
 		return
 	}
 
-	userIDs, err := dataClient.GetOutdatedUserIDs(ctx, pagination)
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	userIDs, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

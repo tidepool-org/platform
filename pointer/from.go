@@ -33,3 +33,7 @@ func FromStringArray(value []string) *[]string {
 func FromTime(value time.Time) *time.Time {
 	return &value
 }
+
+func FromAny[T any](value T) *T {
+	return &value
+}
