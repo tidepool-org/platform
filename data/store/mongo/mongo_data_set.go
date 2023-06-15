@@ -29,8 +29,8 @@ func (d *DataSetRepository) EnsureIndexes() error {
 		return err
 	}
 	// Note "type" field isn't really needed because datasets/uploads are
-	// always type == "upload" but this is just to keep the original queries
-	// untouched.
+	// always type == "upload" but most still include it just to keep the
+	// original queries untouched.
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -80,7 +80,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			},
 			Options: options.Index().
 				SetUnique(true).
-				SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
 				SetName("UniqueUploadId"),
 		},
 		{
