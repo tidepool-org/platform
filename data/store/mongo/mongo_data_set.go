@@ -78,7 +78,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			},
 			Options: options.Index().
 				SetUnique(true).
-				SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
 				SetName("UniqueUploadId"),
 		},
 		{
