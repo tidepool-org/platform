@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	BackfillAvailableAfterDurationMaximum = 24 * time.Hour
-	BackfillAvailableAfterDurationMinimum = 24 * time.Hour
-	BackfillTaskDurationMaximum           = 30 * time.Minute
+	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
+	DefaultBackfillAvailableAfterDurationMinimum = 23 * time.Hour
+	BackfillTaskDurationMaximum                  = 5 * time.Minute
+	BackfillType                                 = "org.tidepool.summary.backfill"
 )
 
 type BackfillRunner struct {
@@ -51,13 +52,41 @@ func NewBackfillRunner(logger log.Logger, versionReporter version.Reporter, auth
 	}, nil
 }
 
+func BackfillTaskName() string {
+	return fmt.Sprintf("%s", BackfillType)
+}
+
 func (r *BackfillRunner) CanRunTask(tsk *task.Task) bool {
 	return tsk != nil && tsk.Type == BackfillType
 }
 
-func (r *BackfillRunner) GenerateNextTime() time.Duration {
-	randTime := time.Duration(rand.Int63n(int64(BackfillAvailableAfterDurationMaximum - BackfillAvailableAfterDurationMinimum + 1)))
-	return BackfillAvailableAfterDurationMinimum + randTime
+func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
+
+	Min := time.Duration(interval.Min) * time.Minute
+	Max := time.Duration(interval.Max) * time.Minute
+
+	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
+	return Min + randTime
+}
+
+func (r *BackfillRunner) ValidateConfig(tsk *task.Task) TaskConfiguration {
+	var config TaskConfiguration
+	var valid bool
+	if raw, ok := tsk.Data["config"]; ok {
+		config = raw.(TaskConfiguration)
+		if configErr := ValidateConfig(config); configErr != nil {
+			r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
+		} else {
+			valid = true
+		}
+	}
+
+	if !valid {
+		config = NewDefaultBackfillConfig()
+		tsk.Data["config"] = config
+	}
+
+	return config
 }
 
 func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
@@ -66,6 +95,8 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
 
 	tsk.ClearError()
+
+	config := r.ValidateConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
 		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
@@ -80,7 +111,7 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	}
 
 	if !tsk.IsFailed() {
-		tsk.RepeatAvailableAfter(r.GenerateNextTime())
+		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
 
 	if taskDuration := time.Since(now); taskDuration > BackfillTaskDurationMaximum {

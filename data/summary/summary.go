@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	backfillBatch = 100000
+	backfillBatch       = 50000
+	backfillInsertBatch = 10000
 )
 
 type SummarizerRegistry struct {
@@ -100,10 +101,9 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 		distinctSummaryIDMap[v] = empty
 	}
 
-	var userIDsReqBackfill []string
+	userIDsReqBackfill := make([]string, 0, backfillBatch)
 	for _, userID := range distinctDataUserIDs {
-		if _, exists := distinctSummaryIDMap[userID]; exists {
-		} else {
+		if _, exists := distinctSummaryIDMap[userID]; !exists {
 			userIDsReqBackfill = append(userIDsReqBackfill, userID)
 		}
 
@@ -112,10 +112,19 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 		}
 	}
 
-	var summaries = make([]*types.Summary[T, A], len(userIDsReqBackfill))
-	for i, userID := range userIDsReqBackfill {
-		summaries[i] = types.Create[T, A](userID)
-		summaries[i].SetOutdated()
+	summaries := make([]*types.Summary[T, A], 0, len(userIDsReqBackfill))
+	for _, userID := range userIDsReqBackfill {
+		s := types.Create[T, A](userID)
+		s.SetOutdated()
+		summaries = append(summaries, s)
+
+		if len(summaries) >= backfillInsertBatch {
+			count, err := c.summaries.CreateSummaries(ctx, summaries)
+			if err != nil {
+				return count, err
+			}
+			summaries = nil
+		}
 	}
 
 	if len(summaries) > 0 {
