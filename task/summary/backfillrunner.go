@@ -83,6 +83,10 @@ func (r *BackfillRunner) ValidateConfig(tsk *task.Task) TaskConfiguration {
 
 	if !valid {
 		config = NewDefaultBackfillConfig()
+
+		if tsk.Data == nil {
+			tsk.Data = make(map[string]interface{})
+		}
 		tsk.Data["config"] = config
 	}
 

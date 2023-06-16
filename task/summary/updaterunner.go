@@ -89,6 +89,10 @@ func (r *UpdateRunner) ValidateConfig(tsk *task.Task) TaskConfiguration {
 
 	if !valid {
 		config = NewDefaultUpdateConfig()
+
+		if tsk.Data == nil {
+			tsk.Data = make(map[string]interface{})
+		}
 		tsk.Data["config"] = config
 	}
 
