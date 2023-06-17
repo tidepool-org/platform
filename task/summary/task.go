@@ -16,7 +16,7 @@ type MinuteRange struct {
 
 type TaskConfiguration struct {
 	Interval MinuteRange
-	Batch    *int
+	Batch    *int `json:"batch,omitempty" bson:"batch,omitempty"`
 }
 
 func ValidateConfig(config TaskConfiguration) error {
