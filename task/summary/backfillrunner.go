@@ -3,6 +3,7 @@ package summary
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
 	"time"
 
@@ -69,15 +70,19 @@ func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 	return Min + randTime
 }
 
-func (r *BackfillRunner) ValidateConfig(tsk *task.Task) TaskConfiguration {
+func (r *BackfillRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	var config TaskConfiguration
 	var valid bool
 	if raw, ok := tsk.Data["config"]; ok {
-		config = raw.(TaskConfiguration)
-		if configErr := ValidateConfig(config); configErr != nil {
-			r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
+		unmarshalError := bson.Unmarshal(raw.([]byte), &config)
+		if unmarshalError != nil {
+			r.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
 		} else {
-			valid = true
+			if configErr := ValidateConfig(config); configErr != nil {
+				r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
+			} else {
+				valid = true
+			}
 		}
 	}
 
@@ -92,7 +97,6 @@ func (r *BackfillRunner) ValidateConfig(tsk *task.Task) TaskConfiguration {
 
 	return config
 }
-
 func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	now := time.Now()
 
@@ -100,7 +104,7 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 
 	tsk.ClearError()
 
-	config := r.ValidateConfig(tsk)
+	config := r.GetConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
 		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
