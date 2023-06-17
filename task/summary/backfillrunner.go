@@ -75,7 +75,10 @@ func (r *BackfillRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	var config TaskConfiguration
 	var valid bool
 	if raw, ok := tsk.Data["config"]; ok {
-		unmarshalError := bson.Unmarshal(raw.([]byte), &config)
+		// this is abuse of marshal/unmarshal, this was done with interface{} target when loading the task,
+		// but we require something more specific at this point
+		bs, _ := bson.Marshal(raw)
+		unmarshalError := bson.Unmarshal(bs, &config)
 		if unmarshalError != nil {
 			r.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
 		} else {
