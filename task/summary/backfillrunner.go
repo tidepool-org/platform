@@ -3,9 +3,10 @@ package summary
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
