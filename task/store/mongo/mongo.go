@@ -371,7 +371,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
 	selector := bson.M{
 		"state":   task.TaskStateRunning,
-		"runTime": time.Now().UTC().Add(-15 * time.Minute),
+		"runTime": bson.M{"$lt": time.Now().UTC().Add(-15 * time.Minute)},
 	}
 
 	update := bson.M{"$set": bson.M{
