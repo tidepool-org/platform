@@ -191,11 +191,21 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 
 func (q *Queue) startManager(ctx context.Context) {
 	q.waitGroup.Add(1)
-	go func() {
+
+	// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
+	// time, it is not an error condition if it does, but could stress the db if the collection gets large
+	nextUnstickTime := pointer.FromAny(time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 10)))))
+
+	go func(nextUnstickTime *time.Time) {
 		defer q.waitGroup.Done()
 
 		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
 		defer q.stopTimer()
+
+		if nextUnstickTime.Before(time.Now()) {
+			q.unstickTasks(ctx)
+			*nextUnstickTime = time.Now().Add(15 * time.Minute)
+		}
 
 		for {
 			select {
@@ -209,7 +219,18 @@ func (q *Queue) startManager(ctx context.Context) {
 				q.startTimer(q.dispatchTasks(ctx))
 			}
 		}
-	}()
+	}(nextUnstickTime)
+}
+
+func (q *Queue) unstickTasks(ctx context.Context) {
+	repository := q.store.NewTaskRepository()
+	count, err := repository.UnstickTasks(ctx)
+	if err != nil {
+		q.logger.WithError(err).Error("Failure in unsticking tasks")
+	}
+	if count > 0 {
+		q.logger.WithField("unstickCount", count).Info("Unstuck Tasks")
+	}
 }
 
 func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
@@ -220,11 +241,11 @@ func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 		tsk := &task.Task{}
 		if iter.Next(ctx) {
 			err := iter.Decode(tsk)
-			q.dispatchTask(ctx, tsk)
 			if err != nil {
-				q.logger.WithError(err).Error("Failure iterating tasks") // TODO: Only warn after n fallbacks
-				return q.delay                                           // TODO: Exponential fallback
+				q.logger.WithError(err).Error("Failure iterating tasks")
+				return q.delay
 			}
+			q.dispatchTask(ctx, tsk)
 		} else {
 			return q.delay
 		}

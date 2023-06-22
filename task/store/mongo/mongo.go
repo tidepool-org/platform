@@ -368,6 +368,20 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 	return tsk, nil
 }
 
+func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
+	selector := bson.M{
+		"state":   task.TaskStateRunning,
+		"runTime": time.Now().UTC().Add(-15 * time.Minute),
+	}
+
+	update := bson.M{"$set": bson.M{
+		"state": task.TaskStatePending},
+	}
+
+	result, err := t.UpdateMany(ctx, selector, update)
+	return result.ModifiedCount, err
+}
+
 func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, error) {
 	now := time.Now()
 
