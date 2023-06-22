@@ -88,7 +88,7 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 		if unmarshalError != nil {
 			r.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
 		} else {
-			if configErr := ValidateConfig(config); configErr != nil {
+			if configErr := ValidateConfig(config, true); configErr != nil {
 				r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
 			} else {
 				valid = true
