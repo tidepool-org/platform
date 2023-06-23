@@ -101,6 +101,14 @@ func (r *Runner) CanRunTask(tsk *task.Task) bool {
 	return tsk != nil && tsk.Type == Type
 }
 
+func (r *Runner) GetRunnerType() string {
+	return Type
+}
+
+func (r *Runner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(TaskDurationMaximum * 3)
+}
+
 func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	now := time.Now()
 

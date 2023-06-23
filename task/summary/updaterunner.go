@@ -69,6 +69,14 @@ func (r *UpdateRunner) CanRunTask(tsk *task.Task) bool {
 	return tsk != nil && tsk.Type == UpdateType
 }
 
+func (r *UpdateRunner) GetRunnerType() string {
+	return UpdateType
+}
+
+func (r *UpdateRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(UpdateTaskDurationMaximum * 3)
+}
+
 func (r *UpdateRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 	Min := time.Duration(interval.Min) * time.Minute
 	Max := time.Duration(interval.Max) * time.Minute

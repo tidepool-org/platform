@@ -62,6 +62,14 @@ func (r *BackfillRunner) CanRunTask(tsk *task.Task) bool {
 	return tsk != nil && tsk.Type == BackfillType
 }
 
+func (r *BackfillRunner) GetRunnerType() string {
+	return BackfillType
+}
+
+func (r *BackfillRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(BackfillTaskDurationMaximum * 3)
+}
+
 func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 
 	Min := time.Duration(interval.Min) * time.Minute

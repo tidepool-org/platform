@@ -68,7 +68,8 @@ func (c *Config) Validate() error {
 
 type Runner interface {
 	CanRunTask(tks *task.Task) bool
-
+	GetRunnerType() string
+	GetRunnerDeadline() time.Time
 	Run(ctx context.Context, tsk *task.Task)
 }
 
@@ -77,7 +78,7 @@ type Queue struct {
 	store             store.Store
 	workers           int
 	delay             time.Duration
-	runners           []Runner
+	runners           map[string]Runner
 	cancelFunc        context.CancelFunc
 	waitGroup         sync.WaitGroup
 	workersAvailable  int
@@ -111,7 +112,7 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
 		store:             str,
 		workers:           workers,
 		delay:             delay,
-		runners:           []Runner{},
+		runners:           make(map[string]Runner),
 		dispatchChannel:   make(chan *task.Task, workers),
 		completionChannel: make(chan *task.Task, workers),
 	}, nil
@@ -122,7 +123,7 @@ func (q *Queue) RegisterRunner(runner Runner) error {
 		return errors.New("runner is missing")
 	}
 
-	q.runners = append(q.runners, runner)
+	q.runners[runner.GetRunnerType()] = runner
 	return nil
 }
 
@@ -178,11 +179,9 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		}
 	}()
 
-	for _, runner := range q.runners {
-		if runner.CanRunTask(tsk) {
-			runner.Run(ctx, tsk)
-			return
-		}
+	if runner, ok := q.runners[tsk.Type]; ok {
+		runner.Run(ctx, tsk)
+		return
 	}
 
 	logger.Error("Runner not found for task")
@@ -194,7 +193,7 @@ func (q *Queue) startManager(ctx context.Context) {
 
 	// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
 	// time, it is not an error condition if it does, but could stress the db if the collection gets large
-	nextUnstickTime := pointer.FromAny(time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 10)))))
+	nextUnstickTime := pointer.FromAny(time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15)))))
 
 	go func(nextUnstickTime *time.Time) {
 		defer q.waitGroup.Done()
@@ -204,7 +203,7 @@ func (q *Queue) startManager(ctx context.Context) {
 
 		if nextUnstickTime.Before(time.Now()) {
 			q.unstickTasks(ctx)
-			*nextUnstickTime = time.Now().Add(15 * time.Minute)
+			*nextUnstickTime = time.Now().Add(q.delay * 15)
 		}
 
 		for {
@@ -260,7 +259,12 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	repository := q.store.NewTaskRepository()
 
 	tsk.State = task.TaskStateRunning
-	tsk.RunTime = pointer.FromTime(time.Now())
+	tsk.RunTime = pointer.FromAny(time.Now())
+
+	// we don't error here if missing, as the task will be failed during runTask
+	if runner, ok := q.runners[tsk.Type]; ok {
+		tsk.ExpirationTime = pointer.FromAny(runner.GetRunnerDeadline())
+	}
 
 	var err error
 	tsk, err = repository.UpdateFromState(ctx, tsk, task.TaskStatePending)
