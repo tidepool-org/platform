@@ -67,10 +67,10 @@ func (c *Config) Validate() error {
 }
 
 type Runner interface {
-	CanRunTask(tks *task.Task) bool
 	GetRunnerType() string
 	GetRunnerDeadline() time.Time
-	Run(ctx context.Context, tsk *task.Task)
+	GetRunnerMaximumDuration() time.Duration
+	Run(ctx context.Context, tsk *task.Task) bool
 }
 
 type Queue struct {
@@ -180,8 +180,18 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	}()
 
 	if runner, ok := q.runners[tsk.Type]; ok {
-		runner.Run(ctx, tsk)
-		return
+		status := make(chan bool, 1)
+		go func() {
+			status <- runner.Run(ctx, tsk)
+		}()
+		select {
+		case <-time.After(2 * runner.GetRunnerMaximumDuration()):
+			tsk.AppendError(errors.New("Task timed out"))
+			tsk.RepeatAvailableAfter(2 * runner.GetRunnerMaximumDuration())
+			return
+		case <-status:
+			return
+		}
 	}
 
 	logger.Error("Runner not found for task")

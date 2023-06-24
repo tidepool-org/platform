@@ -58,16 +58,16 @@ func BackfillTaskName() string {
 	return fmt.Sprintf("%s", BackfillType)
 }
 
-func (r *BackfillRunner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == BackfillType
-}
-
 func (r *BackfillRunner) GetRunnerType() string {
 	return BackfillType
 }
 
 func (r *BackfillRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(BackfillTaskDurationMaximum * 3)
+}
+
+func (r *BackfillRunner) GetRunnerMaximumDuration() time.Duration {
+	return BackfillTaskDurationMaximum
 }
 
 func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {

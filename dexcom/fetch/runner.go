@@ -97,16 +97,16 @@ func (r *Runner) DexcomClient() dexcom.Client {
 	return r.dexcomClient
 }
 
-func (r *Runner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == Type
-}
-
 func (r *Runner) GetRunnerType() string {
 	return Type
 }
 
 func (r *Runner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(TaskDurationMaximum * 3)
+}
+
+func (r *Runner) GetRunnerMaximumDuration() time.Duration {
+	return TaskDurationMaximum
 }
 
 func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
