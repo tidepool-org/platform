@@ -116,7 +116,7 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
+func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
@@ -144,6 +144,8 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
 		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
+
+	return true
 }
 
 type UpdateTaskRunner struct {
