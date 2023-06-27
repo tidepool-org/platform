@@ -4,7 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary"
+	baseDatum "github.com/tidepool-org/platform/data/types"
+
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,7 +14,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -891,21 +892,24 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
-	var dataSetsOld []*continuous.Continuous
-	var dataSets []*continuous.Continuous
-	selectorOld := bson.M{
-		"_active": true,
-		"_userId": id,
-		"type":    "cbg",
-		"time": bson.M{"$gt": startTime.Format(time.RFC3339Nano),
-			"$lte": endTime.Format(time.RFC3339Nano)},
+// GetDataRange be careful when calling this, as if dataRecords isn't a pointer underneath, it will silently not
+// result in any results being returned.
+func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error {
+
+	// quit early if range is 0
+	if startTime.Equal(endTime) {
+		return nil
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if startTime.After(endTime) {
+		return errors.Newf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
 	}
 
 	selector := bson.M{
 		"_active": true,
-		"_userId": id,
-		"type":    "cbg",
+		"_userId": userId,
+		"type":    typ,
 		"time": bson.M{"$gt": startTime,
 			"$lte": endTime},
 	}
@@ -913,39 +917,23 @@ func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTi
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
 
-	cursorOld, err := d.Find(ctx, selectorOld, opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
-	}
-
 	cursor, err := d.Find(ctx, selector, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get cgm data in date range for user")
+		return errors.Wrap(err, "unable to get cgm data in date range for user")
 	}
 
-	if err = cursorOld.All(ctx, &dataSetsOld); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data sets")
-	}
-	if err = cursor.All(ctx, &dataSets); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data sets")
+	if err = cursor.All(ctx, dataRecords); err != nil {
+		return errors.Wrap(err, "unable to decode data sets")
 	}
 
-	if len(dataSets) > 0 && len(dataSetsOld) > 0 {
-		// user has old and new format data
-		dataSets = append(dataSetsOld, dataSets...)
-	} else if len(dataSetsOld) > 0 && len(dataSets) == 0 {
-		// user has old format data, but no new data
-		dataSets = dataSetsOld
-	}
-
-	return dataSets, nil
+	return nil
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
-	var status summary.UserLastUpdated
-	var dataSet []*continuous.Continuous
+	var status = &types.UserLastUpdated{}
+	var dataSet []*baseDatum.Base
 
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -958,18 +946,10 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
 
-	selectorOld := bson.M{
-		"_active": true,
-		"_userId": id,
-		"type":    "cbg",
-		"time": bson.M{"$lte": futureCutoff.Format(time.RFC3339Nano),
-			"$gte": pastCutoff.Format(time.RFC3339Nano)},
-	}
-
 	selector := bson.M{
 		"_active": true,
 		"_userId": id,
-		"type":    "cbg",
+		"type":    typ,
 		"time": bson.M{"$lte": futureCutoff,
 			"$gte": pastCutoff},
 	}
@@ -980,46 +960,28 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get last cbg date")
+		return nil, errors.Wrapf(err, "unable to get last %s date", typ)
 	}
 
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, errors.Wrap(err, "unable to decode last cbg date")
+		return nil, errors.Wrapf(err, "unable to decode last %s date", typ)
 	}
 
-	// if we can't find a new format record, instead look for legacy date records
+	// if we have no record
 	if len(dataSet) < 1 {
-		cursor, err = d.Find(ctx, selectorOld, findOptions)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to get last cbg date")
-		}
-		if err = cursor.All(ctx, &dataSet); err != nil {
-			return nil, errors.Wrap(err, "unable to decode last cbg date")
-		}
-
-	}
-
-	// if we still have no record
-	if len(dataSet) < 1 {
-		return nil, nil
+		return status, nil
 	}
 
 	status.LastUpload = *dataSet[0].CreatedTime
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse latest CreatedTime")
-	}
 	status.LastUpload = status.LastUpload.UTC()
 
 	status.LastData = *dataSet[0].Time
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to parse latest Time")
-	}
 	status.LastData = status.LastData.UTC()
 
-	return &status, nil
+	return status, nil
 }
 
-func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
 	var distinctUserIDMap = make(map[string]struct{})
 	var empty struct{}
 
@@ -1031,29 +993,14 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
-	selectorOld := bson.M{
-		"time": bson.M{"$gte": pastCutoff.Format(time.RFC3339Nano),
-			"$lte": futureCutoff.Format(time.RFC3339Nano)},
-		"_active": true,
-		"type":    "cbg",
-		"_userId": bson.M{"$ne": -1111},
-	}
-
 	selector := bson.M{
-		"time": bson.M{"$gte": pastCutoff,
-			"$lte": futureCutoff},
-		"_active": true,
-		"type":    "cbg",
 		"_userId": bson.M{"$ne": -1111},
+		"_active": true,
+		"type":    typ,
+		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
 	}
 
-	// we would prefer to use hints here instead of _userId $ne -1111, but hints are not (yet?) available on distinct opts
 	result, err := d.Distinct(ctx, "_userId", selector)
-	if err != nil {
-		return nil, errors.Wrap(err, "error fetching distinct userIDs")
-	}
-
-	resultOld, err := d.Distinct(ctx, "_userId", selectorOld)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching distinct userIDs")
 	}
@@ -1061,15 +1008,10 @@ func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, erro
 	for _, v := range result {
 		distinctUserIDMap[v.(string)] = empty
 	}
-	for _, v := range resultOld {
-		distinctUserIDMap[v.(string)] = empty
-	}
 
-	userIDs := make([]string, len(distinctUserIDMap))
-	offset := 0
+	userIDs := make([]string, 0, len(distinctUserIDMap))
 	for k := range distinctUserIDMap {
-		userIDs[offset] = k
-		offset++
+		userIDs = append(userIDs, k)
 	}
 
 	return userIDs, nil

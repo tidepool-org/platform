@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
@@ -31,10 +31,12 @@ type Client interface {
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
-	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
-	UpdateSummary(ctx context.Context, id string) (*summary.Summary, error)
-	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
-	BackfillSummaries(ctx context.Context) (int, error)
+	GetCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
+	GetBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
+	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
+	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
+	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
+	BackfillSummaries(ctx context.Context, t string) (int, error)
 }
 
 type ClientImpl struct {
@@ -132,16 +134,16 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	return dataSet, nil
 }
 
-func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summary, error) {
+func (c *ClientImpl) GetCGMSummary(ctx context.Context, userId string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
-		return nil, errors.New("id is missing")
+	if userId == "" {
+		return nil, errors.New("userId is missing")
 	}
 
-	url := c.client.ConstructURL("v1", "summaries", id)
-	summary := &summary.Summary{}
+	url := c.client.ConstructURL("v1", "summaries", "cgm", userId)
+	summary := &types.Summary[types.CGMStats, *types.CGMStats]{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -152,16 +154,36 @@ func (c *ClientImpl) GetSummary(ctx context.Context, id string) (*summary.Summar
 	return summary, nil
 }
 
-func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Summary, error) {
+func (c *ClientImpl) GetBGMSummary(ctx context.Context, userId string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
+	if userId == "" {
 		return nil, errors.New("id is missing")
 	}
 
-	url := c.client.ConstructURL("v1", "summaries", id)
-	summary := &summary.Summary{}
+	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
+	summary := &types.Summary[types.BGMStats, *types.BGMStats]{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, userId string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "cgm", userId)
+	summary := &types.Summary[types.CGMStats, *types.CGMStats]{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -172,9 +194,29 @@ func (c *ClientImpl) UpdateSummary(ctx context.Context, id string) (*summary.Sum
 	return summary, nil
 }
 
-func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
+func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
+	summary := &types.Summary[types.BGMStats, *types.BGMStats]{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return summary, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) BackfillSummaries(ctx context.Context, typ string) (int, error) {
 	var count int
-	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries")
+	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries", typ)
 
 	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
 		return count, errors.Wrap(err, "backfill request returned an error")
@@ -183,8 +225,14 @@ func (c *ClientImpl) BackfillSummaries(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
-	url := c.client.ConstructURL("v1", "summaries")
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if typ == "" {
+		return nil, errors.New("type is missing")
+	}
+	url := c.client.ConstructURL("v1", "summaries", typ)
 
 	if pagination == nil {
 		pagination = page.NewPagination()
@@ -192,7 +240,7 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pa
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	userIDs := []string{}
+	var userIDs []string
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil

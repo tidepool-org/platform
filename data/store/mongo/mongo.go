@@ -21,15 +21,15 @@ type Store struct {
 }
 
 func (s *Store) EnsureIndexes() error {
-	datarepository := s.NewDataRepository()
-	summaryrepository := s.NewSummaryRepository()
+	dataRepository := s.NewDataRepository()
+	summaryRepository := s.NewSummaryRepository()
 
-	err := datarepository.EnsureIndexes()
+	err := dataRepository.EnsureIndexes()
 	if err != nil {
 		return err
 	}
 
-	err = summaryrepository.EnsureIndexes()
+	err = summaryRepository.EnsureIndexes()
 
 	return err
 }

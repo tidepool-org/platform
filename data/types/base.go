@@ -17,13 +17,9 @@ import (
 )
 
 const (
-	ArchivedTimeFormat      = time.RFC3339Nano
 	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
 	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	CreatedTimeFormat       = time.RFC3339Nano
-	DeletedTimeFormat       = time.RFC3339Nano
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	ModifiedTimeFormat      = time.RFC3339Nano
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	TagLengthMaximum        = 100
@@ -274,6 +270,18 @@ func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
 
+func (b *Base) GetTime() *time.Time {
+	return b.Time
+}
+
+func (b *Base) GetType() string {
+	return b.Type
+}
+
+func (b *Base) SetType(typ string) {
+	b.Type = typ
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }
@@ -312,18 +320,6 @@ func (b *Base) SetDeletedTime(deletedTime *time.Time) {
 
 func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
-}
-
-func (b *Base) UpdatesSummary() bool {
-	// two years has a bit of padding, to allow for some calculation delay
-	twoYearsPast := time.Now().UTC().AddDate(0, -23, -20)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	if b.Type == "cbg" && b.Time.Before(oneDayFuture) && b.Time.After(twoYearsPast) {
-		return true
-	}
-
-	return false
 }
 
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {

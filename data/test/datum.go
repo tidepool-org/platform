@@ -31,6 +31,12 @@ type Datum struct {
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
 	GetOriginOutputs                     []*origin.Origin
+	GetTimeInvocations                   int
+	GetTimeOutputs                       []*time.Time
+	GetTypeInvocations                   int
+	GetTypeOutputs                       []string
+	SetTypeInvocations                   int
+	SetTypeInputs                        []string
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -51,8 +57,6 @@ type Datum struct {
 	SetDeletedTimeInputs                 []*time.Time
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
-	UpdatesSummaryInvocations            int
-	UpdatesSummaryOutputs                []bool
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -120,6 +124,32 @@ func (d *Datum) GetOrigin() *origin.Origin {
 	return output
 }
 
+func (d *Datum) GetType() string {
+	d.GetTypeInvocations++
+
+	gomega.Expect(d.GetTypeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetTypeOutputs[0]
+	d.GetTypeOutputs = d.GetTypeOutputs[1:]
+	return output
+}
+
+func (d *Datum) SetType(typ string) {
+	d.SetTypeInvocations++
+
+	d.SetTypeInputs = append(d.SetTypeInputs, typ)
+}
+
+func (d *Datum) GetTime() *time.Time {
+	d.GetTimeInvocations++
+
+	gomega.Expect(d.GetTimeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetTimeOutputs[0]
+	d.GetTimeOutputs = d.GetTimeOutputs[1:]
+	return output
+}
+
 func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInvocations++
 
@@ -178,16 +208,6 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInvocations++
 
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
-}
-
-func (d *Datum) UpdatesSummary() bool {
-	d.UpdatesSummaryInvocations++
-
-	gomega.Expect(d.UpdatesSummaryOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.UpdatesSummaryOutputs[0]
-	d.UpdatesSummaryOutputs = d.UpdatesSummaryOutputs[1:]
-	return output
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
