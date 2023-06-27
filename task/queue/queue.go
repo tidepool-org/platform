@@ -211,12 +211,12 @@ func (q *Queue) startManager(ctx context.Context) {
 		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
 		defer q.stopTimer()
 
-		if nextUnstickTime.Before(time.Now()) {
-			q.unstickTasks(ctx)
-			*nextUnstickTime = time.Now().Add(q.delay * 15)
-		}
-
 		for {
+			if nextUnstickTime.Before(time.Now()) {
+				q.unstickTasks(ctx)
+				*nextUnstickTime = time.Now().Add(q.delay * 15)
+			}
+
 			select {
 			case <-ctx.Done():
 				return
