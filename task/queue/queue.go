@@ -273,7 +273,7 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 
 	// we don't error here if missing, as the task will be failed during runTask
 	if runner, ok := q.runners[tsk.Type]; ok {
-		tsk.ExpirationTime = pointer.FromAny(runner.GetRunnerDeadline())
+		tsk.DeadlineTime = pointer.FromAny(runner.GetRunnerDeadline())
 	}
 
 	var err error
