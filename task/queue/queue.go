@@ -201,20 +201,20 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 func (q *Queue) startManager(ctx context.Context) {
 	q.waitGroup.Add(1)
 
-	// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
-	// time, it is not an error condition if it does, but could stress the db if the collection gets large
-	nextUnstickTime := pointer.FromAny(time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15)))))
-
-	go func(nextUnstickTime *time.Time) {
+	go func() {
 		defer q.waitGroup.Done()
 
 		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
 		defer q.stopTimer()
 
+		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
+		// time, it is not an error condition if it does, but could stress the db if the collection gets large
+		nextUnstickTime := time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15))))
+
 		for {
 			if nextUnstickTime.Before(time.Now()) {
 				q.unstickTasks(ctx)
-				*nextUnstickTime = time.Now().Add(q.delay * 15)
+				nextUnstickTime = time.Now().Add(q.delay * 15)
 			}
 
 			select {
@@ -228,7 +228,7 @@ func (q *Queue) startManager(ctx context.Context) {
 				q.startTimer(q.dispatchTasks(ctx))
 			}
 		}
-	}(nextUnstickTime)
+	}()
 }
 
 func (q *Queue) unstickTasks(ctx context.Context) {
