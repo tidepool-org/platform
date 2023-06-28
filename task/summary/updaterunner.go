@@ -2,7 +2,6 @@ package summary
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -59,10 +58,6 @@ func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authCl
 		authClient:      authClient,
 		dataClient:      dataClient,
 	}, nil
-}
-
-func UpdateTaskName() string {
-	return fmt.Sprintf("%s", UpdateType)
 }
 
 func (r *UpdateRunner) CanRunTask(tsk *task.Task) bool {

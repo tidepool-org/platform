@@ -57,7 +57,7 @@ func NewDefaultBackfillTaskCreate() *task.TaskCreate {
 	expirationTime := availableTime.AddDate(1000, 0, 0)
 
 	return &task.TaskCreate{
-		Name:           pointer.FromString(BackfillTaskName()),
+		Name:           pointer.FromAny(BackfillType),
 		Type:           BackfillType,
 		Priority:       5,
 		AvailableTime:  pointer.FromTime(availableTime),
@@ -82,7 +82,7 @@ func NewDefaultUpdateTaskCreate() *task.TaskCreate {
 	expirationTime := availableTime.AddDate(1000, 0, 0)
 
 	return &task.TaskCreate{
-		Name:           pointer.FromString(UpdateTaskName()),
+		Name:           pointer.FromAny(UpdateType),
 		Type:           UpdateType,
 		Priority:       5,
 		AvailableTime:  pointer.FromTime(availableTime),
