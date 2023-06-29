@@ -53,15 +53,12 @@ func NewDefaultBackfillConfig() TaskConfiguration {
 }
 
 func NewDefaultBackfillTaskCreate() *task.TaskCreate {
-	availableTime := time.Now().UTC()
-	expirationTime := availableTime.AddDate(1000, 0, 0)
-
 	return &task.TaskCreate{
 		Name:           pointer.FromAny(BackfillType),
 		Type:           BackfillType,
 		Priority:       5,
-		AvailableTime:  pointer.FromTime(availableTime),
-		ExpirationTime: pointer.FromTime(expirationTime),
+		AvailableTime:  pointer.FromAny(time.Now().UTC()),
+		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
 		Data: map[string]interface{}{
 			"config": NewDefaultBackfillConfig(),
 		},
@@ -78,15 +75,12 @@ func NewDefaultUpdateConfig() TaskConfiguration {
 }
 
 func NewDefaultUpdateTaskCreate() *task.TaskCreate {
-	availableTime := time.Now().UTC()
-	expirationTime := availableTime.AddDate(1000, 0, 0)
-
 	return &task.TaskCreate{
 		Name:           pointer.FromAny(UpdateType),
 		Type:           UpdateType,
 		Priority:       5,
-		AvailableTime:  pointer.FromTime(availableTime),
-		ExpirationTime: pointer.FromTime(expirationTime),
+		AvailableTime:  pointer.FromAny(time.Now().UTC()),
+		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
 		Data: map[string]interface{}{
 			"config": NewDefaultUpdateConfig(),
 		},
