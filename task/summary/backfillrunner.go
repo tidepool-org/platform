@@ -54,8 +54,16 @@ func NewBackfillRunner(logger log.Logger, versionReporter version.Reporter, auth
 	}, nil
 }
 
-func (r *BackfillRunner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == BackfillType
+func (r *BackfillRunner) GetRunnerType() string {
+	return BackfillType
+}
+
+func (r *BackfillRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(BackfillTaskDurationMaximum * 3)
+}
+
+func (r *BackfillRunner) GetRunnerMaximumDuration() time.Duration {
+	return BackfillTaskDurationMaximum
 }
 
 func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
@@ -97,7 +105,7 @@ func (r *BackfillRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 
 	return config
 }
-func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
+func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
@@ -125,6 +133,8 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	if taskDuration := time.Since(now); taskDuration > BackfillTaskDurationMaximum {
 		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
+
+	return true
 }
 
 type BackfillTaskRunner struct {

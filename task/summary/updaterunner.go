@@ -60,8 +60,16 @@ func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authCl
 	}, nil
 }
 
-func (r *UpdateRunner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == UpdateType
+func (r *UpdateRunner) GetRunnerType() string {
+	return UpdateType
+}
+
+func (r *UpdateRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(UpdateTaskDurationMaximum * 3)
+}
+
+func (r *UpdateRunner) GetRunnerMaximumDuration() time.Duration {
+	return UpdateTaskDurationMaximum
 }
 
 func (r *UpdateRunner) GenerateNextTime(interval MinuteRange) time.Duration {
@@ -103,7 +111,7 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
+func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
@@ -131,6 +139,8 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
 		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
+
+	return true
 }
 
 type UpdateTaskRunner struct {
