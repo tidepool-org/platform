@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
@@ -17,9 +19,10 @@ import (
 )
 
 const (
-	BackfillAvailableAfterDurationMaximum = 24 * time.Hour
-	BackfillAvailableAfterDurationMinimum = 24 * time.Hour
-	BackfillTaskDurationMaximum           = 30 * time.Minute
+	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
+	DefaultBackfillAvailableAfterDurationMinimum = 23 * time.Hour
+	BackfillTaskDurationMaximum                  = 5 * time.Minute
+	BackfillType                                 = "org.tidepool.summary.backfill"
 )
 
 type BackfillRunner struct {
@@ -51,21 +54,65 @@ func NewBackfillRunner(logger log.Logger, versionReporter version.Reporter, auth
 	}, nil
 }
 
-func (r *BackfillRunner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == BackfillType
+func (r *BackfillRunner) GetRunnerType() string {
+	return BackfillType
 }
 
-func (r *BackfillRunner) GenerateNextTime() time.Duration {
-	randTime := time.Duration(rand.Int63n(int64(BackfillAvailableAfterDurationMaximum - BackfillAvailableAfterDurationMinimum + 1)))
-	return BackfillAvailableAfterDurationMinimum + randTime
+func (r *BackfillRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(BackfillTaskDurationMaximum * 3)
 }
 
-func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
+func (r *BackfillRunner) GetRunnerMaximumDuration() time.Duration {
+	return BackfillTaskDurationMaximum
+}
+
+func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
+
+	Min := time.Duration(interval.Min) * time.Minute
+	Max := time.Duration(interval.Max) * time.Minute
+
+	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
+	return Min + randTime
+}
+
+func (r *BackfillRunner) GetConfig(tsk *task.Task) TaskConfiguration {
+	var config TaskConfiguration
+	var valid bool
+	if raw, ok := tsk.Data["config"]; ok {
+		// this is abuse of marshal/unmarshal, this was done with interface{} target when loading the task,
+		// but we require something more specific at this point
+		bs, _ := bson.Marshal(raw)
+		unmarshalError := bson.Unmarshal(bs, &config)
+		if unmarshalError != nil {
+			r.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
+		} else {
+			if configErr := ValidateConfig(config, false); configErr != nil {
+				r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
+			} else {
+				valid = true
+			}
+		}
+	}
+
+	if !valid {
+		config = NewDefaultBackfillConfig()
+
+		if tsk.Data == nil {
+			tsk.Data = make(map[string]interface{})
+		}
+		tsk.Data["config"] = config
+	}
+
+	return config
+}
+func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
 
 	tsk.ClearError()
+
+	config := r.GetConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
 		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
@@ -80,12 +127,14 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	}
 
 	if !tsk.IsFailed() {
-		tsk.RepeatAvailableAfter(r.GenerateNextTime())
+		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
 
 	if taskDuration := time.Since(now); taskDuration > BackfillTaskDurationMaximum {
 		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
+
+	return true
 }
 
 type BackfillTaskRunner struct {

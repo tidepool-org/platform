@@ -67,9 +67,10 @@ func (c *Config) Validate() error {
 }
 
 type Runner interface {
-	CanRunTask(tks *task.Task) bool
-
-	Run(ctx context.Context, tsk *task.Task)
+	GetRunnerType() string
+	GetRunnerDeadline() time.Time
+	GetRunnerMaximumDuration() time.Duration
+	Run(ctx context.Context, tsk *task.Task) bool
 }
 
 type Queue struct {
@@ -77,7 +78,7 @@ type Queue struct {
 	store             store.Store
 	workers           int
 	delay             time.Duration
-	runners           []Runner
+	runners           map[string]Runner
 	cancelFunc        context.CancelFunc
 	waitGroup         sync.WaitGroup
 	workersAvailable  int
@@ -111,7 +112,7 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
 		store:             str,
 		workers:           workers,
 		delay:             delay,
-		runners:           []Runner{},
+		runners:           make(map[string]Runner),
 		dispatchChannel:   make(chan *task.Task, workers),
 		completionChannel: make(chan *task.Task, workers),
 	}, nil
@@ -122,7 +123,7 @@ func (q *Queue) RegisterRunner(runner Runner) error {
 		return errors.New("runner is missing")
 	}
 
-	q.runners = append(q.runners, runner)
+	q.runners[runner.GetRunnerType()] = runner
 	return nil
 }
 
@@ -178,9 +179,17 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		}
 	}()
 
-	for _, runner := range q.runners {
-		if runner.CanRunTask(tsk) {
-			runner.Run(ctx, tsk)
+	if runner, ok := q.runners[tsk.Type]; ok {
+		status := make(chan bool, 1)
+		go func() {
+			status <- runner.Run(ctx, tsk)
+		}()
+		select {
+		case <-time.After(2 * runner.GetRunnerMaximumDuration()):
+			tsk.AppendError(errors.New("Task timed out"))
+			tsk.RepeatAvailableAfter(2 * runner.GetRunnerMaximumDuration())
+			return
+		case <-status:
 			return
 		}
 	}
@@ -191,13 +200,23 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 
 func (q *Queue) startManager(ctx context.Context) {
 	q.waitGroup.Add(1)
+
 	go func() {
 		defer q.waitGroup.Done()
 
 		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
 		defer q.stopTimer()
 
+		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
+		// time, it is not an error condition if it does, but could stress the db if the collection gets large
+		nextUnstickTime := time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15))))
+
 		for {
+			if nextUnstickTime.Before(time.Now()) {
+				q.unstickTasks(ctx)
+				nextUnstickTime = time.Now().Add(q.delay * 15)
+			}
+
 			select {
 			case <-ctx.Done():
 				return
@@ -212,6 +231,17 @@ func (q *Queue) startManager(ctx context.Context) {
 	}()
 }
 
+func (q *Queue) unstickTasks(ctx context.Context) {
+	repository := q.store.NewTaskRepository()
+	count, err := repository.UnstickTasks(ctx)
+	if err != nil {
+		q.logger.WithError(err).Error("Failure in unsticking tasks")
+	}
+	if count > 0 {
+		q.logger.WithField("unstickCount", count).Info("Unstuck Tasks")
+	}
+}
+
 func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 	defer q.stopPendingIterator()
 	for q.workersAvailable > 0 {
@@ -220,11 +250,11 @@ func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 		tsk := &task.Task{}
 		if iter.Next(ctx) {
 			err := iter.Decode(tsk)
-			q.dispatchTask(ctx, tsk)
 			if err != nil {
-				q.logger.WithError(err).Error("Failure iterating tasks") // TODO: Only warn after n fallbacks
-				return q.delay                                           // TODO: Exponential fallback
+				q.logger.WithError(err).Error("Failure iterating tasks")
+				return q.delay
 			}
+			q.dispatchTask(ctx, tsk)
 		} else {
 			return q.delay
 		}
@@ -239,7 +269,12 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	repository := q.store.NewTaskRepository()
 
 	tsk.State = task.TaskStateRunning
-	tsk.RunTime = pointer.FromTime(time.Now())
+	tsk.RunTime = pointer.FromAny(time.Now())
+
+	// we don't error here if missing, as the task will be failed during runTask
+	if runner, ok := q.runners[tsk.Type]; ok {
+		tsk.DeadlineTime = pointer.FromAny(runner.GetRunnerDeadline())
+	}
 
 	var err error
 	tsk, err = repository.UpdateFromState(ctx, tsk, task.TaskStatePending)
