@@ -17,6 +17,7 @@ func Routes() []service.Route {
 		service.MakeRoute("PUT", "/v1/data_sets/:dataSetId", Authenticate(DataSetsUpdate)),
 		service.MakeRoute("GET", "/v1/time", TimeGet),
 		service.MakeRoute("POST", "/v1/users/:userId/data_sets", Authenticate(UsersDataSetsCreate)),
+		service.MakeRoute("GET", "/v1/metrics", GetMetrics),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)
