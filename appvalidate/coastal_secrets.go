@@ -9,7 +9,13 @@ import (
 	"path"
 
 	"github.com/kelseyhightower/envconfig"
+
 	"github.com/tidepool-org/platform/structure"
+	structValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	PartnerCoastal = "Coastal"
 )
 
 type CoastalSecretsConfig struct {
@@ -34,25 +40,33 @@ func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
 type CoastalPayload struct {
 	RCTypeID         string   `json:"rcTypeId"`
 	RCInstanceID     string   `json:"rcInstanceId"`
-	HardwareVersions []string `json:"hardwareVersions"`
-	SoftwareVersions []string `json:"softwareVersions"`
+	HardwareVersions []string `json:"rcHWVersions"`
+	SoftwareVersions []string `json:"rcSWVersions"`
 	PHDTypeID        string   `json:"phdTypeId"`
 	PHDInstanceID    string   `json:"phdInstanceId"`
 	CSR              string   `json:"csr"`
 	RCBMac           string   `json:"rcbMac"`
-	RCBSignature     string   `json:"rcbSignature"`
 }
 
 type CoastalResponse struct {
-	APIKey             string   `json:"api_key"`
-	RCManufacturerName string   `json:"RCManufacturerName"`
-	RCBCertificate     []byte   `json:"RCBCertificate"`
-	RCs                []string `json:"RCs"`
+	Certificates []struct {
+		Content   string `json:"content"`
+		TTLInDays int    `json:"ttlInDays"`
+		Type      string `json:"type"`
+	} `json:"certificates"`
 }
 
-func (c *CoastalSecrets) GetSecret(ctx context.Context, csr []byte, payload *CoastalPayload) ([]byte, error) {
+func (c *CoastalSecrets) GetSecret(ctx context.Context, payloadRaw []byte) (*CoastalResponse, error) {
+	var payload CoastalPayload
+	if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+		return nil, err
+	}
+
+	if err := structValidator.New().Validate(&payload); err != nil {
+		return nil, err
+	}
+
 	var buf bytes.Buffer
-	// todo validate
 	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
 		return nil, err
 	}
@@ -70,27 +84,28 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, csr []byte, payload *Coa
 	req.Header.Add("apiKey", c.Config.APIKey)
 	req.Header.Add("client_id", c.Config.ClientID)
 	req.Header.Add("client_secret", c.Config.ClientSecret)
+	req.Header.Add("content-type", "application/json")
+	req.Header.Add("accept", "application/json")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
-	resonse := &CoastalResponse{}
-	if err := json.NewDecoder(res.Body).Decode(resonse); err != nil {
+	var response CoastalResponse
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
 		return nil, err
 	}
-	return resonse.RCBCertificate, nil
+	return &response, nil
 }
 
 func (p *CoastalPayload) Validate(v structure.Validator) {
 	v.String("rcTypeId", &p.RCTypeID).NotEmpty()
 	v.String("rcInstanceId", &p.RCInstanceID).NotEmpty()
-	v.StringArray("hardwareVersions", &p.HardwareVersions).NotEmpty()
-	v.StringArray("softwareVersions", &p.SoftwareVersions).NotEmpty()
+	v.StringArray("rcHWVersions", &p.HardwareVersions).NotEmpty()
+	v.StringArray("rcSWVersions", &p.SoftwareVersions).NotEmpty()
 	v.String("phdTypeId", &p.PHDTypeID).NotEmpty()
 	v.String("phdInstanceId", &p.PHDInstanceID).NotEmpty()
 	v.String("csr", &p.CSR).NotEmpty()
 	v.String("rcbMac", &p.RCBMac).NotEmpty()
-	v.String("rcbSignature", &p.RCBSignature).NotEmpty()
 }

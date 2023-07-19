@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -137,11 +136,12 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		responder.InternalServerError(err)
 		return
 	}
+
 	// Assertion has succeeded, at this point, we would access some secret
 	// from a DB, partner API, etc, depending on the AssertionVerify object.
-	switch strings.ToLower(assertVerify.ClientData.Partner) {
-	case "Coastal":
-		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.CSRs[0]), nil)
+	switch assertVerify.ClientData.Partner {
+	case appvalidate.PartnerCoastal:
+		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.Payload))
 		if err != nil {
 			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch coastal secrets")
 			responder.InternalServerError(err)
