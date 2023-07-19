@@ -45,7 +45,7 @@ type CoastalPayload struct {
 	PHDTypeID        string   `json:"phdTypeId"`
 	PHDInstanceID    string   `json:"phdInstanceId"`
 	CSR              string   `json:"csr"`
-	RCBMac           string   `json:"rcbMac"`
+	RCBMac           string   `json:"rcbMac"` // Note this field will be renamed to rcbSignature in V3 with actual validation, it is currently required to be any non empty string for V2 otherwise a 400 error is returned.
 }
 
 type CoastalResponse struct {
