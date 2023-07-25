@@ -563,6 +563,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 }
 
 func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.Data, error) {
+	t.logger.Debug("fetching alerts ...")
 	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t.tokenSource)
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
@@ -575,13 +576,11 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 	if err = t.validator.Error(); err != nil {
 		return nil, err
 	}
-
 	datumArray := data.Data{}
 	t.logger.Debugf("total alerts found %d", len(*response.Alerts))
 	for _, c := range *response.Alerts {
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
-			t.logger.Debugf("TODO: translate alert %s", c.AlertName)
-			//datumArray = append(datumArray, translateAlertToDatum(c))
+			datumArray = append(datumArray, translateAlertToDatum(c, response.RecordVersion))
 		}
 	}
 

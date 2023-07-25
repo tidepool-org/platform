@@ -116,15 +116,15 @@ func (a *Alerts) Validate(validator structure.Validator) {
 }
 
 type Alert struct {
+	AlertName  *string `json:"alertName,omitempty"`
+	AlertState *string `json:"alertState,omitempty"`
+
 	ID                    *string `json:"recordId,omitempty"`
 	SystemTime            *Time   `json:"systemTime,omitempty"`
 	DisplayTime           *Time   `json:"displayTime,omitempty"`
 	TransmitterID         *string `json:"transmitterId,omitempty"`
 	TransmitterGeneration *string `json:"transmitterGeneration,omitempty"`
 	DisplayDevice         *string `json:"displayDevice,omitempty"`
-
-	AlertName  *string `json:"alertName,omitempty"`
-	AlertState *string `json:"alertState,omitempty"`
 }
 
 func ParseAlert(parser structure.ObjectParser) *Alert {
