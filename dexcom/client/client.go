@@ -40,6 +40,17 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	}, nil
 }
 
+func (c *Client) GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.AlertsResponse, error) {
+	alertsResponse := &dexcom.AlertsResponse{}
+	paths := []string{"v3", "users", "self", "alerts"}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), alertsResponse, tokenSource); err != nil {
+		return nil, errors.Wrap(err, "unable to get alerts")
+	}
+
+	return alertsResponse, nil
+}
+
 func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error) {
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
 	paths := []string{"v3", "users", "self", "calibrations"}
