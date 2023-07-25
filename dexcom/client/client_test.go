@@ -159,7 +159,7 @@ var _ = Describe("Client", func() {
 					server.Close()
 					server = nil
 					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
-					Expect(err.Error()).To(MatchRegexp("unable to get egvs; unable to perform request to .*: connect: connection refused"))
+					Expect(err.Error()).To(MatchRegexp("unable to get alerts; unable to perform request to .*: connect: connection refused"))
 					Expect(alertsResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 				})
@@ -178,9 +178,9 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
 							Expect(err).To(MatchError("unable to get alerts; bad request"))
-							Expect(egvsResponse).To(BeNil())
+							Expect(alertsResponse).To(BeNil())
 						})
 					})
 
@@ -255,7 +255,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							alertsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
 							Expect(err).To(MatchError("unable to get alerts; json is malformed"))
 							Expect(alertsResponse).To(BeNil())
 						})
