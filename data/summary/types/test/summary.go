@@ -34,12 +34,36 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 			Periods:    make(map[string]*types.CGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-			Buckets: make(types.Buckets[types.CGMBucketData, *types.CGMBucketData], 2),
+			HourlyBuckets: make(types.Buckets[types.CGMBucketData, *types.CGMBucketData], 2),
+			DailyBuckets:  make(types.Buckets[types.CGMBucketData, *types.CGMBucketData], 2),
 		},
 	}
 
-	for i := 0; i < len(datum.Stats.Buckets); i++ {
-		datum.Stats.Buckets[i] = types.Bucket[types.CGMBucketData, *types.CGMBucketData]{
+	for i := 0; i < len(datum.Stats.HourlyBuckets); i++ {
+		datum.Stats.HourlyBuckets[i] = types.Bucket[types.CGMBucketData, *types.CGMBucketData]{
+			Date:           test.RandomTime(),
+			LastRecordTime: test.RandomTime(),
+			Data: &types.CGMBucketData{
+				LastRecordDuration: test.RandomIntFromRange(1, 10),
+				TargetMinutes:      test.RandomIntFromRange(0, 1440),
+				TargetRecords:      test.RandomIntFromRange(0, 288),
+				LowMinutes:         test.RandomIntFromRange(0, 1440),
+				LowRecords:         test.RandomIntFromRange(0, 288),
+				VeryLowMinutes:     test.RandomIntFromRange(0, 1440),
+				VeryLowRecords:     test.RandomIntFromRange(0, 288),
+				HighMinutes:        test.RandomIntFromRange(0, 1440),
+				HighRecords:        test.RandomIntFromRange(0, 288),
+				VeryHighMinutes:    test.RandomIntFromRange(0, 1440),
+				VeryHighRecords:    test.RandomIntFromRange(0, 288),
+				TotalGlucose:       test.RandomFloat64FromRange(0, 10000),
+				TotalMinutes:       test.RandomIntFromRange(0, 1440),
+				TotalRecords:       test.RandomIntFromRange(0, 288),
+			},
+		}
+	}
+
+	for i := 0; i < len(datum.Stats.DailyBuckets); i++ {
+		datum.Stats.DailyBuckets[i] = types.Bucket[types.CGMBucketData, *types.CGMBucketData]{
 			Date:           test.RandomTime(),
 			LastRecordTime: test.RandomTime(),
 			Data: &types.CGMBucketData{
@@ -164,12 +188,29 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 			Periods:    make(map[string]*types.BGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-			Buckets: make(types.Buckets[types.BGMBucketData, *types.BGMBucketData], 2),
+			HourlyBuckets: make(types.Buckets[types.BGMBucketData, *types.BGMBucketData], 2),
+			DailyBuckets:  make(types.Buckets[types.BGMBucketData, *types.BGMBucketData], 2),
 		},
 	}
 
-	for i := 0; i < len(datum.Stats.Buckets); i++ {
-		datum.Stats.Buckets[i] = types.Bucket[types.BGMBucketData, *types.BGMBucketData]{
+	for i := 0; i < len(datum.Stats.HourlyBuckets); i++ {
+		datum.Stats.HourlyBuckets[i] = types.Bucket[types.BGMBucketData, *types.BGMBucketData]{
+			Date:           test.RandomTime(),
+			LastRecordTime: test.RandomTime(),
+			Data: &types.BGMBucketData{
+				TargetRecords:   test.RandomIntFromRange(0, 288),
+				LowRecords:      test.RandomIntFromRange(0, 288),
+				VeryLowRecords:  test.RandomIntFromRange(0, 288),
+				HighRecords:     test.RandomIntFromRange(0, 288),
+				VeryHighRecords: test.RandomIntFromRange(0, 288),
+				TotalGlucose:    test.RandomFloat64FromRange(0, 10000),
+				TotalRecords:    test.RandomIntFromRange(0, 288),
+			},
+		}
+	}
+
+	for i := 0; i < len(datum.Stats.DailyBuckets); i++ {
+		datum.Stats.DailyBuckets[i] = types.Bucket[types.BGMBucketData, *types.BGMBucketData]{
 			Date:           test.RandomTime(),
 			LastRecordTime: test.RandomTime(),
 			Data: &types.BGMBucketData{

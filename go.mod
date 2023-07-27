@@ -1,6 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.19
+go 1.20
 
 require (
 	github.com/Shopify/sarama v1.27.0

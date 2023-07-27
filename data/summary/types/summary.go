@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/tidepool-org/platform/errors"
 	"time"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -21,7 +22,8 @@ const (
 	veryLowBloodGlucose  = 3.0
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
-	hoursAgoToKeep       = 30 * 24
+	HoursAgoToKeep       = 60 * 24
+	dailyStatsBeakpoint  = 14 * 24
 
 	setOutdatedBuffer = 2 * time.Minute
 )
@@ -225,30 +227,47 @@ type Period interface {
 }
 
 func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat Bucket[T, A]) error {
-	var existingHour = false
+	// NOTE This is only partially able to handle editing the past, and will break if given a bucket which
+	//      must be prepended
+	existingHour := false
 
-	// update existing hour if one does exist
+	// we assume the list is fully populated with empty hours for any gaps, so the length should be predictable
 	if len(*buckets) > 0 {
-		for i := len(*buckets) - 1; i >= 0; i-- {
+		lastBucketPeriod := (*buckets)[len(*buckets)-1].Date
+		currentPeriod := newStat.Date
 
-			if ((*buckets)[i]).Date.Equal(newStat.Date) {
-				(*buckets)[i] = newStat
+		hoursConversion := 1
+		if lastBucketPeriod.Sub(currentPeriod).Hours() > dailyStatsBeakpoint {
+			hoursConversion = 24
+		}
+
+		// if we need to look for an existing bucket
+		if currentPeriod.Equal(lastBucketPeriod) || currentPeriod.Before(lastBucketPeriod) {
+
+			gapPeriods := int(lastBucketPeriod.Sub(currentPeriod).Hours()) / hoursConversion
+			if gapPeriods < len(*buckets) {
+				if !(*buckets)[-gapPeriods-1].Date.Equal(currentPeriod) {
+					return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
+				}
+				(*buckets)[-gapPeriods-1] = newStat
 				existingHour = true
-				break
-			}
-
-			// we already passed our date, give up
-			if (*buckets)[i].Date.Before(newStat.Date) {
-				break
 			}
 		}
 
-		// add hours for any gaps that this new stat skipped
-		var statsGap = int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours())
-		for i := statsGap; i > 1; i-- {
-			var newStatsTime = newStat.Date.Add(time.Duration(-i+1) * time.Hour)
+		// add hours for any gaps that this new bucket skipped
+		statsGap := int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours()) / hoursConversion
+		// only add gap buckets if the gap is shorter than max tracking amount
+		if statsGap > 0 && statsGap < HoursAgoToKeep {
+			gapBuckets := make(Buckets[T, A], 0, statsGap)
+			for i := statsGap; i > 1; i-- {
+				newStatsTime := newStat.Date.Add(time.Duration(-i+1) * time.Hour * time.Duration(hoursConversion))
+				gapBuckets = append(gapBuckets, *CreateBucket[T, A](newStatsTime))
+			}
 
-			*buckets = append(*buckets, *CreateBucket[T, A](newStatsTime))
+			*buckets = append(*buckets, gapBuckets...)
+		} else if statsGap > HoursAgoToKeep {
+			// otherwise, the gap is larger than our tracking, delete all the old buckets for a clean state
+			*buckets = make(S, 1)
 		}
 	}
 
@@ -256,74 +275,94 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		*buckets = append(*buckets, newStat)
 	}
 
-	// remove extra days to cap at X days of newStat
-	var hourCount = len(*buckets)
-	if hourCount > hoursAgoToKeep {
-		*buckets = (*buckets)[hourCount-hoursAgoToKeep:]
-	}
-
-	// remove any newStat that are older than X days from the last stat
-	var oldestHour = (*buckets)[0].Date
-	var oldestHourToKeep = newStat.Date.Add(-hoursAgoToKeep * time.Hour)
-	if oldestHour.Before(oldestHourToKeep) {
-		// we don't check the last entry because we just added/updated it
-		for i := len(*buckets) - 2; i >= 0; i-- {
-			if (*buckets)[i].Date.Before(oldestHourToKeep) {
-				*buckets = (*buckets)[i+1:]
-				break
-			}
+	// TODO handle dailybuckets
+	// remove extra hours to cap at X hours of buckets
+	if len(*buckets) > HoursAgoToKeep {
+		// zero out any to-be-trimmed buckets to lower their impact until reallocation
+		for i := 0; i <= len(*buckets)-HoursAgoToKeep; i++ {
+			(*buckets)[i] = Bucket[T, A]{}
 		}
+		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep:]
 	}
 
 	return nil
 }
 
-func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](buckets *S, userData []D) error {
-	var lastHour time.Time
-	var newBucket *Bucket[T, A]
+func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](hourlyBuckets *S, dailyBuckets *S, userData []D) error {
+	lastPeriod := time.Time{}
+	newBucket := &Bucket[T, A]{}
+	targetBuckets := hourlyBuckets
 
 	for _, r := range userData {
-		var recordTime = r.GetTime()
+		recordTime := r.GetTime()
+
+		// reduce accuracy of period to daily if over daily breakpoint
+		// TODO this will jump a bit, we need to hold +1 day to handle it
+		recordHour := recordTime.Hour()
+		if (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(*recordTime).Hours() > dailyStatsBeakpoint {
+			recordHour = 0
+		}
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
-		var currentHour = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
-			recordTime.Hour(), 0, 0, 0, recordTime.Location())
+		currentPeriod := time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
+			recordHour, 0, 0, 0, recordTime.Location())
 
-		// store stats for the day, if we are now on the next hour
-		if !lastHour.IsZero() && !currentHour.Equal(lastHour) {
-			err := AddBin(buckets, *newBucket)
+		// store stats for the period, if we are now on the next period
+		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
+			if (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(lastPeriod).Hours() > dailyStatsBeakpoint {
+				targetBuckets = dailyBuckets
+			} else {
+				targetBuckets = hourlyBuckets
+			}
+			err := AddBin(targetBuckets, *newBucket)
 			if err != nil {
 				return err
 			}
 			newBucket = nil
 		}
 
+		// repeated from above as we need to switch again after adding
+		if (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(currentPeriod).Hours() > dailyStatsBeakpoint {
+			targetBuckets = dailyBuckets
+		} else {
+			targetBuckets = hourlyBuckets
+		}
+
 		if newBucket == nil {
 			// pull stats if they already exist
-			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			for i := len(*buckets) - 1; i >= 0; i-- {
-				if (*buckets)[i].Date.Equal(currentHour) {
-					newBucket = &(*buckets)[i]
-					break
-				}
+			// we assume the list is fully populated with empty hours for any gaps, so the length should be predictable
+			if len(*targetBuckets) > 0 {
+				lastBucketHour := (*targetBuckets)[len(*targetBuckets)-1].Date
 
-				// we already passed our date, give up
-				if (*buckets)[i].Date.Before(currentHour) {
-					break
+				// if we need to look for an existing bucket
+				if currentPeriod.Equal(lastBucketHour) || currentPeriod.Before(lastBucketHour) {
+					hoursConversion := 1
+					if targetBuckets == dailyBuckets {
+						hoursConversion = 24
+					}
+
+					gap := int(lastBucketHour.Sub(currentPeriod).Hours()) / hoursConversion
+
+					if gap < len(*targetBuckets) {
+						newBucket = &(*targetBuckets)[-gap-1]
+						if !newBucket.Date.Equal(currentPeriod) {
+							return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
+						}
+					}
 				}
 			}
 
 			// we still don't have a bucket, make a new one.
 			if newBucket == nil {
-				newBucket = CreateBucket[T, A](currentHour)
+				newBucket = CreateBucket[T, A](currentPeriod)
 			}
 		}
 
-		lastHour = currentHour
+		lastPeriod = currentPeriod
 
 		// if on fresh day, pull LastRecordTime from last day if possible
-		if newBucket.LastRecordTime.IsZero() && len(*buckets) > 0 {
-			newBucket.LastRecordTime = (*buckets)[len(*buckets)-1].LastRecordTime
+		if newBucket.LastRecordTime.IsZero() && len(*targetBuckets) > 0 {
+			newBucket.LastRecordTime = (*targetBuckets)[len(*targetBuckets)-1].LastRecordTime
 		}
 
 		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
@@ -335,9 +374,9 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 		}
 	}
 
-	// store
+	// store any partial bucket
 	if newBucket != nil {
-		err := AddBin(buckets, *newBucket)
+		err := AddBin(targetBuckets, *newBucket)
 		if err != nil {
 			return err
 		}

@@ -106,9 +106,11 @@ type CGMPeriod struct {
 type CGMPeriods map[string]*CGMPeriod
 
 type CGMStats struct {
-	Periods    CGMPeriods                             `json:"periods" bson:"periods"`
-	Buckets    Buckets[CGMBucketData, *CGMBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours int                                    `json:"totalHours" bson:"totalHours"`
+	Periods       CGMPeriods                             `json:"periods" bson:"periods"`
+	OffsetPeriods CGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
+	HourlyBuckets Buckets[CGMBucketData, *CGMBucketData] `json:"hourlyBuckets" bson:"hourlyBuckets"`
+	DailyBuckets  Buckets[CGMBucketData, *CGMBucketData] `json:"dailyBuckets" bson:"buckets"`
+	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
 }
 
 func (*CGMStats) GetType() string {
@@ -120,17 +122,19 @@ func (*CGMStats) GetDeviceDataType() string {
 }
 
 func (s *CGMStats) Init() {
-	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
+	s.HourlyBuckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
+	s.DailyBuckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
 	s.Periods = make(map[string]*CGMPeriod)
+	s.OffsetPeriods = make(map[string]*CGMPeriod)
 	s.TotalHours = 0
 }
 
 func (s *CGMStats) GetBucketsLen() int {
-	return len(s.Buckets)
+	return len(s.HourlyBuckets)
 }
 
 func (s *CGMStats) GetBucketDate(i int) time.Time {
-	return s.Buckets[i].Date
+	return s.HourlyBuckets[i].Date
 }
 
 func (s *CGMStats) Update(userData any) error {
@@ -139,7 +143,7 @@ func (s *CGMStats) Update(userData any) error {
 		return errors.New("CGM records for calculation is not compatible with Glucose type")
 	}
 
-	err := AddData(&s.Buckets, userDataTyped)
+	err := AddData(&s.HourlyBuckets, &s.DailyBuckets, userDataTyped)
 	if err != nil {
 		return err
 	}
@@ -199,45 +203,77 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, 
 func (s *CGMStats) CalculateSummary() {
 	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
-	var nextStopPoint int
-	var totalStats = &CGMBucketData{}
+	nextStopPoint := 0
+	nextOffsetStopPoint := 0
+	totalStats := &CGMBucketData{}
+	totalOffsetStats := &CGMBucketData{}
 
-	for i := 0; i < len(s.Buckets); i++ {
+	for i := 0; i < len(s.HourlyBuckets); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
-			s.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
+			s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
 			nextStopPoint++
 		}
 
-		currentIndex := len(s.Buckets) - 1 - i
-		totalStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
-		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+		currentIndex := len(s.HourlyBuckets) - 1 - i
 
-		totalStats.LowMinutes += s.Buckets[currentIndex].Data.LowMinutes
-		totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+		// only add to offset stats when primary stop point is ahead of offset
+		if nextStopPoint > nextOffsetStopPoint {
+			if i == stopPoints[nextOffsetStopPoint]*24 {
+				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalStats)
+				nextOffsetStopPoint++
+			}
+			totalOffsetStats.TargetMinutes += s.HourlyBuckets[currentIndex].Data.TargetMinutes
+			totalOffsetStats.TargetRecords += s.HourlyBuckets[currentIndex].Data.TargetRecords
 
-		totalStats.VeryLowMinutes += s.Buckets[currentIndex].Data.VeryLowMinutes
-		totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+			totalOffsetStats.LowMinutes += s.HourlyBuckets[currentIndex].Data.LowMinutes
+			totalOffsetStats.LowRecords += s.HourlyBuckets[currentIndex].Data.LowRecords
 
-		totalStats.HighMinutes += s.Buckets[currentIndex].Data.HighMinutes
-		totalStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+			totalOffsetStats.VeryLowMinutes += s.HourlyBuckets[currentIndex].Data.VeryLowMinutes
+			totalOffsetStats.VeryLowRecords += s.HourlyBuckets[currentIndex].Data.VeryLowRecords
 
-		totalStats.VeryHighMinutes += s.Buckets[currentIndex].Data.VeryHighMinutes
-		totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+			totalOffsetStats.HighMinutes += s.HourlyBuckets[currentIndex].Data.HighMinutes
+			totalOffsetStats.HighRecords += s.HourlyBuckets[currentIndex].Data.HighRecords
 
-		totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
-		totalStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
-		totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+			totalOffsetStats.VeryHighMinutes += s.HourlyBuckets[currentIndex].Data.VeryHighMinutes
+			totalOffsetStats.VeryHighRecords += s.HourlyBuckets[currentIndex].Data.VeryHighRecords
+
+			totalOffsetStats.TotalGlucose += s.HourlyBuckets[currentIndex].Data.TotalGlucose
+			totalOffsetStats.TotalMinutes += s.HourlyBuckets[currentIndex].Data.TotalMinutes
+			totalOffsetStats.TotalRecords += s.HourlyBuckets[currentIndex].Data.TotalRecords
+		}
+
+		totalStats.TargetMinutes += s.HourlyBuckets[currentIndex].Data.TargetMinutes
+		totalStats.TargetRecords += s.HourlyBuckets[currentIndex].Data.TargetRecords
+
+		totalStats.LowMinutes += s.HourlyBuckets[currentIndex].Data.LowMinutes
+		totalStats.LowRecords += s.HourlyBuckets[currentIndex].Data.LowRecords
+
+		totalStats.VeryLowMinutes += s.HourlyBuckets[currentIndex].Data.VeryLowMinutes
+		totalStats.VeryLowRecords += s.HourlyBuckets[currentIndex].Data.VeryLowRecords
+
+		totalStats.HighMinutes += s.HourlyBuckets[currentIndex].Data.HighMinutes
+		totalStats.HighRecords += s.HourlyBuckets[currentIndex].Data.HighRecords
+
+		totalStats.VeryHighMinutes += s.HourlyBuckets[currentIndex].Data.VeryHighMinutes
+		totalStats.VeryHighRecords += s.HourlyBuckets[currentIndex].Data.VeryHighRecords
+
+		totalStats.TotalGlucose += s.HourlyBuckets[currentIndex].Data.TotalGlucose
+		totalStats.TotalMinutes += s.HourlyBuckets[currentIndex].Data.TotalMinutes
+		totalStats.TotalRecords += s.HourlyBuckets[currentIndex].Data.TotalRecords
 	}
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		s.CalculatePeriod(stopPoints[i], totalStats)
+		s.CalculatePeriod(stopPoints[i], false, totalStats)
+	}
+	for i := nextOffsetStopPoint; i < len(stopPoints); i++ {
+		s.CalculatePeriod(stopPoints[i], true, totalStats)
 	}
 
-	s.TotalHours = len(s.Buckets)
+	s.TotalHours = len(s.HourlyBuckets)
 }
 
-func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
+func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData) {
 	newPeriod := &CGMPeriod{
 		HasTimeCGMUseMinutes: true,
 		TimeCGMUseMinutes:    pointer.FromAny(totalStats.TotalMinutes),
@@ -283,7 +319,7 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 	}
 
 	if totalStats.TotalRecords != 0 {
-		realMinutes := CalculateRealMinutes(i, s.Buckets[len(s.Buckets)-1].LastRecordTime, s.Buckets[len(s.Buckets)-1].Data.LastRecordDuration)
+		realMinutes := CalculateRealMinutes(i, s.HourlyBuckets[len(s.HourlyBuckets)-1].LastRecordTime, s.HourlyBuckets[len(s.HourlyBuckets)-1].Data.LastRecordDuration)
 		newPeriod.HasTimeCGMUsePercent = true
 		newPeriod.TimeCGMUsePercent = pointer.FromAny(float64(totalStats.TotalMinutes) / realMinutes)
 
@@ -319,5 +355,10 @@ func (s *CGMStats) CalculatePeriod(i int, totalStats *CGMBucketData) {
 		}
 	}
 
-	s.Periods[strconv.Itoa(i)+"d"] = newPeriod
+	if offset {
+		s.OffsetPeriods[strconv.Itoa(i)+"d"] = newPeriod
+	} else {
+		s.Periods[strconv.Itoa(i)+"d"] = newPeriod
+	}
+
 }

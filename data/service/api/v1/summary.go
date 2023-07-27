@@ -65,13 +65,13 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	summary, err := summarizer.GetSummary(ctx, id)
+	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
+	} else if userSummary == nil {
 		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
@@ -89,13 +89,13 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	summary, err := summarizer.UpdateSummary(ctx, id)
+	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
+	} else if userSummary == nil {
 		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 

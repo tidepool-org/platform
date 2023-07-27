@@ -167,8 +167,8 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		userSummary = types.Create[T, A](userId)
 	}
 
-	// remove 30 days for start time
-	startTime := status.LastData.AddDate(0, 0, -30)
+	// remove HoursAgoToKeep/24 days for start time
+	startTime := status.LastData.AddDate(0, 0, types.HoursAgoToKeep/24)
 
 	if userSummary.Dates.LastData != nil {
 		// if summary already exists with a last data checkpoint, start data pull there
