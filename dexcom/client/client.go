@@ -73,6 +73,16 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 	return devicesResponse, nil
 }
 
+func (c *Client) GetDataRange(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DataRangeResponse, error) {
+	dataRangeResponse := &dexcom.DataRangeResponse{}
+	paths := []string{"v3", "users", "self", "dataRange"}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), dataRangeResponse, tokenSource); err != nil {
+		return nil, errors.Wrap(err, "unable to get dataRange")
+	}
+	return dataRangeResponse, nil
+}
+
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
 	paths := []string{"v3", "users", "self", "egvs"}
