@@ -48,3 +48,42 @@ var _ = Describe("DataRange", func() {
 		)
 	})
 })
+
+var _ = Describe("DataRangeResponse", func() {
+
+	Describe("Validate", func() {
+		DescribeTable("errors when",
+			func(setupDataRangeFunc func() *dexcom.DataRangeResponse) {
+				testDataRange := setupDataRangeFunc()
+				validator := validator.New()
+				testDataRange.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
+			},
+			Entry("required end is not set", func() *dexcom.DataRange {
+				dataRange := test.RandomDataRange()
+				dataRange.End = nil
+				return dataRange
+			}),
+			Entry("required start is not set", func() *dexcom.DataRange {
+				dataRange := test.RandomDataRange()
+				dataRange.Start = nil
+				return dataRange
+			}),
+			Entry("required end display time is not set", func() *dexcom.DataRange {
+				dataRange := test.RandomDataRange()
+				dataRange.End.DisplayTime = nil
+				return dataRange
+			}),
+			Entry("required start system time is not set", func() *dexcom.DataRange {
+				dataRange := test.RandomDataRange()
+				dataRange.Start.SystemTime = nil
+				return dataRange
+			}),
+			Entry("required start display time is not set", func() *dexcom.DataRange {
+				dataRange := test.RandomDataRange()
+				dataRange.Start.DisplayTime = nil
+				return dataRange
+			}),
+		)
+	})
+})
