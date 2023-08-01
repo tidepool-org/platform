@@ -246,10 +246,10 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 
 			gapPeriods := int(lastBucketPeriod.Sub(currentPeriod).Hours()) / hoursConversion
 			if gapPeriods < len(*buckets) {
-				if !(*buckets)[-gapPeriods-1].Date.Equal(currentPeriod) {
+				if !(*buckets)[len(*buckets)-gapPeriods-1].Date.Equal(currentPeriod) {
 					return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
 				}
-				(*buckets)[-gapPeriods-1] = newStat
+				(*buckets)[len(*buckets)-gapPeriods-1] = newStat
 				existingHour = true
 			}
 		}
@@ -288,20 +288,20 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	return nil
 }
 
-func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](hourlyBuckets *S, dailyBuckets *S, userData []D) error {
+func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](buckets *S, userData []D) error {
 	lastPeriod := time.Time{}
-	newBucket := &Bucket[T, A]{}
-	targetBuckets := hourlyBuckets
+	var newBucket *Bucket[T, A]
+	targetBuckets := buckets
 
 	for _, r := range userData {
 		recordTime := r.GetTime()
 
-		// reduce accuracy of period to daily if over daily breakpoint
-		// TODO this will jump a bit, we need to hold +1 day to handle it
 		recordHour := recordTime.Hour()
-		if (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(*recordTime).Hours() > dailyStatsBeakpoint {
-			recordHour = 0
-		}
+		//// reduce accuracy of period to daily if over daily breakpoint
+		//// TODO this will jump a bit, we need to hold +1 day to handle it
+		//if len(*hourlyBuckets) > 0 && (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(*recordTime).Hours() > dailyStatsBeakpoint {
+		//	recordHour = 0
+		//}
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
 		currentPeriod := time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
@@ -309,11 +309,12 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 		// store stats for the period, if we are now on the next period
 		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
-			if (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(lastPeriod).Hours() > dailyStatsBeakpoint {
-				targetBuckets = dailyBuckets
-			} else {
-				targetBuckets = hourlyBuckets
-			}
+			//if len(*hourlyBuckets) > 0 && (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(lastPeriod).Hours() > dailyStatsBeakpoint {
+			//	targetBuckets = dailyBuckets
+			//} else {
+			//	targetBuckets = hourlyBuckets
+			//}
+
 			err := AddBin(targetBuckets, *newBucket)
 			if err != nil {
 				return err
@@ -321,12 +322,12 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 			newBucket = nil
 		}
 
-		// repeated from above as we need to switch again after adding
-		if (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(currentPeriod).Hours() > dailyStatsBeakpoint {
-			targetBuckets = dailyBuckets
-		} else {
-			targetBuckets = hourlyBuckets
-		}
+		//// repeated from above as we need to switch again after adding
+		//if len(*hourlyBuckets) > 0 && (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(currentPeriod).Hours() > dailyStatsBeakpoint {
+		//	targetBuckets = dailyBuckets
+		//} else {
+		//	targetBuckets = hourlyBuckets
+		//}
 
 		if newBucket == nil {
 			// pull stats if they already exist
@@ -337,14 +338,14 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 				// if we need to look for an existing bucket
 				if currentPeriod.Equal(lastBucketHour) || currentPeriod.Before(lastBucketHour) {
 					hoursConversion := 1
-					if targetBuckets == dailyBuckets {
-						hoursConversion = 24
-					}
+					//if targetBuckets == dailyBuckets {
+					//	hoursConversion = 24
+					//}
 
 					gap := int(lastBucketHour.Sub(currentPeriod).Hours()) / hoursConversion
 
 					if gap < len(*targetBuckets) {
-						newBucket = &(*targetBuckets)[-gap-1]
+						newBucket = &(*targetBuckets)[len(*targetBuckets)-gap-1]
 						if !newBucket.Date.Equal(currentPeriod) {
 							return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
 						}

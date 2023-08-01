@@ -70,9 +70,9 @@ type BGMPeriods map[string]*BGMPeriod
 type BGMStats struct {
 	Periods       BGMPeriods                             `json:"periods" bson:"periods"`
 	OffsetPeriods BGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
-	HourlyBuckets Buckets[BGMBucketData, *BGMBucketData] `json:"hourlyBuckets" bson:"hourlyBuckets"`
-	DailyBuckets  Buckets[BGMBucketData, *BGMBucketData] `json:"dailyBuckets" bson:"dailyBuckets"`
-	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
+	Buckets       Buckets[BGMBucketData, *BGMBucketData] `json:"buckets" bson:"buckets"`
+	//DailyBuckets  Buckets[BGMBucketData, *BGMBucketData] `json:"dailyBuckets" bson:"dailyBuckets"`
+	TotalHours int `json:"totalHours" bson:"totalHours"`
 }
 
 func (*BGMStats) GetType() string {
@@ -84,19 +84,19 @@ func (*BGMStats) GetDeviceDataType() string {
 }
 
 func (s *BGMStats) Init() {
-	s.HourlyBuckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
-	s.DailyBuckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
+	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
+	//s.DailyBuckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
 	s.Periods = make(map[string]*BGMPeriod)
 	s.OffsetPeriods = make(map[string]*BGMPeriod)
 	s.TotalHours = 0
 }
 
 func (s *BGMStats) GetBucketsLen() int {
-	return len(s.HourlyBuckets)
+	return len(s.Buckets)
 }
 
 func (s *BGMStats) GetBucketDate(i int) time.Time {
-	return s.HourlyBuckets[i].Date
+	return s.Buckets[i].Date
 }
 
 func (s *BGMStats) Update(userData any) error {
@@ -105,7 +105,7 @@ func (s *BGMStats) Update(userData any) error {
 		return errors.New("BGM records for calculation is not compatible with Glucose type")
 	}
 
-	err := AddData(&s.HourlyBuckets, userDataTyped)
+	err := AddData(&s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (s *BGMStats) CalculateSummary() {
 	nextOffsetStopPoint := 0
 	totalStats := &BGMBucketData{}
 
-	for i := 0; i < len(s.HourlyBuckets); i++ {
+	for i := 0; i < len(s.Buckets); i++ {
 		if i == stopPoints[nextStopPoint]*24 {
 			s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
 			nextStopPoint++
@@ -162,15 +162,15 @@ func (s *BGMStats) CalculateSummary() {
 			}
 		}
 
-		currentIndex := len(s.HourlyBuckets) - 1 - i
-		totalStats.TargetRecords += s.HourlyBuckets[currentIndex].Data.TargetRecords
-		totalStats.LowRecords += s.HourlyBuckets[currentIndex].Data.LowRecords
-		totalStats.VeryLowRecords += s.HourlyBuckets[currentIndex].Data.VeryLowRecords
-		totalStats.HighRecords += s.HourlyBuckets[currentIndex].Data.HighRecords
-		totalStats.VeryHighRecords += s.HourlyBuckets[currentIndex].Data.VeryHighRecords
+		currentIndex := len(s.Buckets) - 1 - i
+		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+		totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+		totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+		totalStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+		totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
 
-		totalStats.TotalGlucose += s.HourlyBuckets[currentIndex].Data.TotalGlucose
-		totalStats.TotalRecords += s.HourlyBuckets[currentIndex].Data.TotalRecords
+		totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
+		totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
 	}
 
 	// fill in periods we never reached
@@ -181,7 +181,7 @@ func (s *BGMStats) CalculateSummary() {
 		s.CalculatePeriod(stopPoints[i], true, totalStats)
 	}
 
-	s.TotalHours = len(s.HourlyBuckets)
+	s.TotalHours = len(s.Buckets)
 }
 
 func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData) {
