@@ -567,11 +567,13 @@ var _ = Describe("Client", func() {
 			var responseDataRangeResponse *dexcom.DataRangeResponse
 
 			BeforeEach(func() {
+				//no date is set
+				requestQuery = ""
 				responseDataRangeResponse = dexcomTest.RandomDataRangeResponse()
 			})
 
 			It("returns error when http client source is missing", func() {
-				dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, nil)
+				dataRangeResponse, err := clnt.GetDataRange(ctx, nil)
 				Expect(err).To(MatchError("unable to get dataRange; http client source is missing"))
 				Expect(dataRangeResponse).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -580,7 +582,7 @@ var _ = Describe("Client", func() {
 			It("returns error when http client source returns an error", func() {
 				responseErr := errorsTest.RandomError()
 				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-				dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+				dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 				Expect(err).To(MatchError(fmt.Sprintf("unable to get dataRange; %s", responseErr)))
 				Expect(dataRangeResponse).To(BeNil())
 				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
@@ -590,7 +592,7 @@ var _ = Describe("Client", func() {
 			It("returns error when http client source returns that indicates an oauth token failure", func() {
 				responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
 				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-				dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+				dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 				Expect(err).To(MatchError("unable to get dataRange; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
 				Expect(dataRangeResponse).To(BeNil())
 				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
@@ -607,7 +609,7 @@ var _ = Describe("Client", func() {
 
 				It("returns error when context is missing", func() {
 					ctx = nil
-					dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+					dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 					Expect(err).To(MatchError("unable to get dataRange; context is missing"))
 					Expect(dataRangeResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
@@ -617,7 +619,7 @@ var _ = Describe("Client", func() {
 				It("returns error when the server is not reachable", func() {
 					server.Close()
 					server = nil
-					dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+					dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 					Expect(err.Error()).To(MatchRegexp("unable to get dataRange; unable to perform request to .*: connect: connection refused"))
 					Expect(dataRangeResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
@@ -637,7 +639,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).To(MatchError("unable to get dataRange; bad request"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -656,7 +658,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).To(MatchError("unable to get dataRange; authentication token is not authorized for requested action"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -675,7 +677,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).To(MatchError("unable to get dataRange; resource not found"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -694,7 +696,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).To(HaveOccurred())
 							Expect(err.Error()).To(MatchRegexp("unable to get dataRange; unexpected response status code 500 from"))
 							Expect(dataRangeResponse).To(BeNil())
@@ -714,7 +716,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).To(MatchError("unable to get dataRange; json is malformed"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -733,7 +735,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(dataRangeResponse).To(Equal(responseDataRangeResponse))
 						})
@@ -784,7 +786,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, startTime, endTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, tokenSource)
 							Expect(err).To(MatchError("unable to get dataRange; authentication token is invalid"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
