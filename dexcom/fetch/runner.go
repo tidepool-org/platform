@@ -390,9 +390,19 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 }
 
 func (t *TaskRunner) fetchSinceLatestDataTime() error {
-	startTime := initialDataTime
+
+	var startTime time.Time
+	var err error
 	if t.dataSource.LatestDataTime != nil && startTime.Before(*t.dataSource.LatestDataTime) {
 		startTime = *t.dataSource.LatestDataTime
+	} else {
+		startTime, err = t.fetchDataRangeStart()
+		if err != nil {
+			return err
+		}
+	}
+	if startTime.IsZero() {
+		startTime = initialDataTime
 	}
 
 	almostNow := time.Now().Add(-time.Minute)
@@ -402,7 +412,8 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			endTime = almostNow
 		}
 
-		if err := t.fetch(startTime, endTime); err != nil {
+		err = t.fetch(startTime, endTime)
+		if err != nil {
 			return err
 		}
 
@@ -527,6 +538,18 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	sort.Sort(BySystemTime(datumArray))
 
 	return datumArray, nil
+}
+
+func (t *TaskRunner) fetchDataRangeStart() (time.Time, error) {
+	response, err := t.DexcomClient().GetDataRange(t.context, t.tokenSource)
+	if err != nil {
+		return time.Time{}, err
+	}
+	t.validator.Validate(response)
+	if err = t.validator.Error(); err != nil {
+		return time.Time{}, err
+	}
+	return response.GetOldestStartDate(), nil
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {

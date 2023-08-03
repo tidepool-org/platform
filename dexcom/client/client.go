@@ -73,11 +73,11 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 	return devicesResponse, nil
 }
 
-func (c *Client) GetDataRange(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DataRangeResponse, error) {
+func (c *Client) GetDataRange(ctx context.Context, tokenSource oauth.TokenSource) (*dexcom.DataRangeResponse, error) {
 	dataRangeResponse := &dexcom.DataRangeResponse{}
 	paths := []string{"v3", "users", "self", "dataRange"}
 
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), dataRangeResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequest(ctx, time.Time{}, time.Time{}, "GET", c.client.ConstructURL(paths...), dataRangeResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get dataRange")
 	}
 	return dataRangeResponse, nil
@@ -106,10 +106,12 @@ func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime tim
 func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
 	now := time.Now()
 
-	url = c.client.AppendURLQuery(url, map[string]string{
-		"startDate": startTime.UTC().Format(dexcom.TimeFormat),
-		"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
-	})
+	if !startTime.IsZero() && !endTime.IsZero() {
+		url = c.client.AppendURLQuery(url, map[string]string{
+			"startDate": startTime.UTC().Format(dexcom.TimeFormat),
+			"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
+		})
+	}
 
 	err := c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	if oauth.IsAccessTokenError(err) {

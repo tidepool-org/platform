@@ -1,6 +1,8 @@
 package dexcom
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -44,6 +46,24 @@ func (d *DataRangeResponse) Parse(parser structure.ObjectParser) {
 	d.Calibrations = ParseDataRange(parser.WithReferenceObjectParser("calibrations"))
 	d.Egvs = ParseDataRange(parser.WithReferenceObjectParser("egvs"))
 	d.Events = ParseDataRange(parser.WithReferenceObjectParser("events"))
+}
+
+func (d *DataRangeResponse) GetOldestStartDate() time.Time {
+	oldest := time.Time{}
+	if d.Calibrations.Start != nil {
+		oldest = d.Calibrations.Start.DisplayTime.Time
+	}
+	if d.Events.Start != nil {
+		if d.Events.Start.DisplayTime.Time.Before(oldest) {
+			oldest = d.Events.Start.DisplayTime.Time
+		}
+	}
+	if d.Egvs.Start != nil {
+		if d.Egvs.Start.DisplayTime.Time.Before(oldest) {
+			oldest = d.Egvs.Start.DisplayTime.Time
+		}
+	}
+	return oldest
 }
 
 func (d *DataRangeResponse) Validate(validator structure.Validator) {
