@@ -30,9 +30,9 @@ type AssertionUpdate struct {
 }
 
 type AssertionClientData struct {
-	Challenge string          `json:"challenge"`
-	Partner   string          `json:"partner"` // Which partner are we requesting a secret from - currently only one supported
-	Payload   json.RawMessage `json:"payload"` // Payload to send to partner
+	Challenge   string          `json:"challenge"`
+	Partner     string          `json:"partner"`     // Which partner are we requesting a secret from - currently only one supported
+	PartnerData json.RawMessage `json:"partnerData"` // Data to send to partner - This is a RawMessage because it is partner specific. The validation of this is delayed until later.
 }
 
 func NewAssertionVerify(userID string) *AssertionVerify {

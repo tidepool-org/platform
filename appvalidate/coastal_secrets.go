@@ -56,9 +56,9 @@ type CoastalResponse struct {
 	} `json:"certificates"`
 }
 
-func (c *CoastalSecrets) GetSecret(ctx context.Context, payloadRaw []byte) (*CoastalResponse, error) {
+func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (*CoastalResponse, error) {
 	var payload CoastalPayload
-	if err := json.Unmarshal(payloadRaw, &payload); err != nil {
+	if err := json.Unmarshal(partnerDataRaw, &payload); err != nil {
 		return nil, err
 	}
 

@@ -141,7 +141,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	// from a DB, partner API, etc, depending on the AssertionVerify object.
 	switch assertVerify.ClientData.Partner {
 	case appvalidate.PartnerCoastal:
-		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.Payload))
+		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
 		if err != nil {
 			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch coastal secrets")
 			responder.InternalServerError(err)
