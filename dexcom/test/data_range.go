@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/dexcom"
 )
 
@@ -9,6 +11,14 @@ func RandomDataRangeResponse() *dexcom.DataRangeResponse {
 	datum.Calibrations = RandomDataRange()
 	datum.Egvs = RandomDataRange()
 	datum.Events = RandomDataRange()
+	return datum
+}
+
+func RandomDataRangeResponseWithDate(seed time.Time) *dexcom.DataRangeResponse {
+	datum := dexcom.NewDataRangeResponse()
+	datum.Calibrations = dataRange(seed)
+	datum.Egvs = dataRange(seed)
+	datum.Events = dataRange(seed)
 	return datum
 }
 
@@ -27,6 +37,15 @@ func RandomDataRange() *dexcom.DataRange {
 	datum := dexcom.NewDataRange()
 	datum.End = RandomDateRange()
 	datum.Start = RandomDateRange()
+	return datum
+}
+
+func dataRange(seed time.Time) *dexcom.DataRange {
+	datum := dexcom.NewDataRange()
+	datum.End.DisplayTime.Time = seed
+	datum.End.SystemTime.Time = seed
+	datum.Start.DisplayTime.Time = seed.Add(-12 * time.Hour)
+	datum.Start.SystemTime.Time = seed.Add(-12 * time.Hour)
 	return datum
 }
 

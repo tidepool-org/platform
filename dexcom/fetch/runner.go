@@ -550,6 +550,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 }
 
 func (t *TaskRunner) fetchDataRangeStart() (time.Time, error) {
+	t.logger.Debug("fetching dataRange ...")
 	response, err := t.DexcomClient().GetDataRange(t.context, t.tokenSource)
 	if err != nil {
 		return time.Time{}, err
@@ -558,7 +559,11 @@ func (t *TaskRunner) fetchDataRangeStart() (time.Time, error) {
 	if err = t.validator.Error(); err != nil {
 		return time.Time{}, err
 	}
-	return response.GetOldestStartDate(), nil
+
+	oldest := response.GetOldestStartDate()
+
+	t.logger.Debugf("dataRange start %s", oldest.Format(time.RFC3339))
+	return oldest, nil
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {

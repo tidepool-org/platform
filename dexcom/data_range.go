@@ -49,9 +49,11 @@ func (d *DataRangeResponse) Parse(parser structure.ObjectParser) {
 }
 
 func (d *DataRangeResponse) GetOldestStartDate() time.Time {
-	oldest := time.Time{}
+	oldest := time.Now().UTC()
 	if d.Calibrations.Start != nil {
-		oldest = d.Calibrations.Start.DisplayTime.Time
+		if d.Calibrations.Start.DisplayTime.Time.Before(oldest) {
+			oldest = d.Calibrations.Start.DisplayTime.Time
+		}
 	}
 	if d.Events.Start != nil {
 		if d.Events.Start.DisplayTime.Time.Before(oldest) {
@@ -96,7 +98,10 @@ func ParseDataRange(parser structure.ObjectParser) *DataRange {
 }
 
 func NewDataRange() *DataRange {
-	return &DataRange{}
+	return &DataRange{
+		Start: NewDateRange(),
+		End:   NewDateRange(),
+	}
 }
 
 func (d *DataRange) Parse(parser structure.ObjectParser) {
@@ -128,7 +133,10 @@ func ParseNewDateRange(parser structure.ObjectParser) *DateRange {
 }
 
 func NewDateRange() *DateRange {
-	return &DateRange{}
+	return &DateRange{
+		SystemTime:  NewTime(),
+		DisplayTime: NewTime(),
+	}
 }
 
 func (c *DateRange) Parse(parser structure.ObjectParser) {

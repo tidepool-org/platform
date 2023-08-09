@@ -1,6 +1,8 @@
 package dexcom_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -11,7 +13,6 @@ import (
 )
 
 var _ = Describe("DataRange", func() {
-
 	Describe("Validate", func() {
 		DescribeTable("errors when",
 			func(setupDataRangeFunc func() *dexcom.DataRange) {
@@ -50,7 +51,6 @@ var _ = Describe("DataRange", func() {
 })
 
 var _ = Describe("DataRangeResponse", func() {
-
 	Describe("Validate", func() {
 		DescribeTable("errors when",
 			func(setupDataRangeRespFunc func() *dexcom.DataRangeResponse) {
@@ -75,5 +75,47 @@ var _ = Describe("DataRangeResponse", func() {
 				return dataRangeResp
 			}),
 		)
+	})
+	Describe("GetOldestStartDate", func() {
+
+		var oldestTime time.Time
+		var nowTime time.Time
+		var dayInPast time.Time
+		var dayInFuture time.Time
+
+		BeforeEach(func() {
+			oldestTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
+			nowTime = time.Now().UTC()
+			dayInPast = nowTime.Add(-24 * time.Hour)
+			dayInFuture = nowTime.Add(24 * time.Hour)
+		})
+
+		When("the dates are after now", func() {
+			It("it returns now", func() {
+				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInFuture)
+				Expect(dataRangeResp.GetOldestStartDate().Truncate(5 * time.Minute)).To(Equal(nowTime.Truncate(5 * time.Minute)))
+			})
+		})
+		When("Events start is oldest", func() {
+			It("it is returned", func() {
+				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
+				dataRangeResp.Events.Start.DisplayTime.Time = oldestTime
+				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
+			})
+		})
+		When("Egvs start is oldest", func() {
+			It("it is returned", func() {
+				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
+				dataRangeResp.Egvs.Start.DisplayTime.Time = oldestTime
+				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
+			})
+		})
+		When("Calibrations start is oldest", func() {
+			It("it is returned", func() {
+				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
+				dataRangeResp.Calibrations.Start.DisplayTime.Time = oldestTime
+				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
+			})
+		})
 	})
 })
