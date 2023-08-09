@@ -32,8 +32,6 @@ const (
 	TaskDurationMaximum           = 5 * time.Minute
 )
 
-var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
-
 type Runner struct {
 	logger           log.Logger
 	versionReporter  version.Reporter
@@ -381,28 +379,11 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 	return false
 }
 
-func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
-	if dataSetUpdate.IsEmpty() {
-		return nil
-	}
-
-	dataSet, err := t.DataClient().UpdateDataSet(t.context, *t.dataSet.UploadID, dataSetUpdate)
-	if err != nil {
-		return errors.Wrap(err, "unable to update data set")
-	} else if dataSet == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data set is missing")
-	}
-
-	t.dataSet = dataSet
-	return nil
-}
-
 func (t *TaskRunner) fetchSinceLatestDataTime() error {
 
-	var startTime time.Time
+	var startTime = time.Time{}
 	var err error
-	if t.dataSource.LatestDataTime != nil && startTime.Before(*t.dataSource.LatestDataTime) {
+	if t.dataSource.LatestDataTime != nil {
 		startTime = *t.dataSource.LatestDataTime
 	} else {
 		startTime, err = t.fetchDataRangeStart()
@@ -411,7 +392,9 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		}
 	}
 	if startTime.IsZero() {
-		startTime = initialDataTime
+		t.logger.Info("there is no data to fetch")
+		t.task.SetCompleted()
+		return nil
 	}
 
 	almostNow := time.Now().Add(-time.Minute)
