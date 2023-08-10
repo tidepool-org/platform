@@ -5,7 +5,7 @@ dist: jammy
 language: go
 
 go:
-  - 1.21
+  - 1.20
 
 go_import_path: github.com/tidepool-org/platform
 
