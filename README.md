@@ -150,6 +150,7 @@ If you previously noted any changes or issues of concern, perform any explicit t
 ## Upgrade
 
 Install `dep` via `brew`. Execute `dep ensure -update`.
+`go get -u <dependacy>`
 
 ## Review
 
