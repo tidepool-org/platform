@@ -20,7 +20,10 @@ type Store interface {
 	NewSummaryRepository() SummaryRepository
 }
 
-type DataRepository interface {
+// DataSetRepository is the interface for interacting and modifying
+// the "parent" datum document, formerly the documents where type
+// = "upload".
+type DataSetRepository interface {
 	EnsureIndexes() error
 
 	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
@@ -28,6 +31,18 @@ type DataRepository interface {
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
+	DestroyDataForUserByID(ctx context.Context, userID string) error
+
+	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
+	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
+}
+
+// DatumRepository is the interface for interacting and modifying
+// the "children" data documents, documents where type != "upload" and
+// whose "parent" is the datum whose type = "upload". It can be thought of as
+// the DataSet's data.
+type DatumRepository interface {
+	EnsureIndexes() error
 
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
@@ -47,6 +62,13 @@ type DataRepository interface {
 	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error
 	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
+}
+
+// DataRepository is the combined interface of DataSetRepository and
+// DatumRepository.
+type DataRepository interface {
+	DataSetRepository
+	DatumRepository
 }
 
 type Filter struct {
