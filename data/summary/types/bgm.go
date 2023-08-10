@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -25,44 +26,57 @@ type BGMBucketData struct {
 }
 
 type BGMPeriod struct {
-	HasAverageGlucose bool     `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
-	AverageGlucose    *Glucose `json:"averageGlucose" bson:"averageGlucose"`
+	HasAverageGlucose   bool     `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
+	AverageGlucose      *Glucose `json:"averageGlucose" bson:"averageGlucose"`
+	AverageGlucoseDelta *float64 `json:"averageGlucoseDelta" bson:"averageGlucoseDelta"`
 
-	HasTotalRecords bool `json:"hasTotalRecords" bson:"hasTotalRecords"`
-	TotalRecords    *int `json:"totalRecords" bson:"totalRecords"`
+	HasTotalRecords   bool `json:"hasTotalRecords" bson:"hasTotalRecords"`
+	TotalRecords      *int `json:"totalRecords" bson:"totalRecords"`
+	TotalRecordsDelta *int `json:"totalRecordsDelta" bson:"totalRecordsDelta"`
 
-	HasAverageDailyRecords bool     `json:"hasAverageDailyRecords" bson:"hasAverageDailyRecords"`
-	AverageDailyRecords    *float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
+	HasAverageDailyRecords   bool     `json:"hasAverageDailyRecords" bson:"hasAverageDailyRecords"`
+	AverageDailyRecords      *float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
+	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta" bson:"averageDailyRecordsDelta"`
 
-	HasTimeInTargetPercent bool     `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
-	TimeInTargetPercent    *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
+	HasTimeInTargetPercent   bool     `json:"hasTimeInTargetPercent" bson:"hasTimeInTargetPercent"`
+	TimeInTargetPercent      *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
+	TimeInTargetPercentDelta *float64 `json:"timeInTargetPercentDelta" bson:"timeInTargetPercentDelta"`
 
-	HasTimeInTargetRecords bool `json:"hasTimeInTargetRecords" bson:"hasTimeInTargetRecords"`
-	TimeInTargetRecords    *int `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+	HasTimeInTargetRecords   bool `json:"hasTimeInTargetRecords" bson:"hasTimeInTargetRecords"`
+	TimeInTargetRecords      *int `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
+	TimeInTargetRecordsDelta *int `json:"timeInTargetRecordsDelta" bson:"timeInTargetRecordsDelta"`
 
-	HasTimeInLowPercent bool     `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
-	TimeInLowPercent    *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
+	HasTimeInLowPercent   bool     `json:"hasTimeInLowPercent" bson:"hasTimeInLowPercent"`
+	TimeInLowPercent      *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
+	TimeInLowPercentDelta *float64 `json:"timeInLowPercentDelta" bson:"timeInLowPercentDelta"`
 
-	HasTimeInLowRecords bool `json:"hasTimeInLowRecords" bson:"hasTimeInLowRecords"`
-	TimeInLowRecords    *int `json:"timeInLowRecords" bson:"timeInLowRecords"`
+	HasTimeInLowRecords   bool `json:"hasTimeInLowRecords" bson:"hasTimeInLowRecords"`
+	TimeInLowRecords      *int `json:"timeInLowRecords" bson:"timeInLowRecords"`
+	TimeInLowRecordsDelta *int `json:"timeInLowRecordsDelta" bson:"timeInLowRecordsDelta"`
 
-	HasTimeInVeryLowPercent bool     `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
-	TimeInVeryLowPercent    *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+	HasTimeInVeryLowPercent   bool     `json:"hasTimeInVeryLowPercent" bson:"hasTimeInVeryLowPercent"`
+	TimeInVeryLowPercent      *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
+	TimeInVeryLowPercentDelta *float64 `json:"timeInVeryLowPercentDelta" bson:"timeInVeryLowPercentDelta"`
 
-	HasTimeInVeryLowRecords bool `json:"hasTimeInVeryLowRecords" bson:"hasTimeInVeryLowRecords"`
-	TimeInVeryLowRecords    *int `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+	HasTimeInVeryLowRecords   bool `json:"hasTimeInVeryLowRecords" bson:"hasTimeInVeryLowRecords"`
+	TimeInVeryLowRecords      *int `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
+	TimeInVeryLowRecordsDelta *int `json:"timeInVeryLowRecordsDelta" bson:"timeInVeryLowRecordsDelta"`
 
-	HasTimeInHighPercent bool     `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
-	TimeInHighPercent    *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+	HasTimeInHighPercent   bool     `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
+	TimeInHighPercent      *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
+	TimeInHighPercentDelta *float64 `json:"timeInHighPercentDelta" bson:"timeInHighPercentDelta"`
 
-	HasTimeInHighRecords bool `json:"hasTimeInHighRecords" bson:"hasTimeInHighRecords"`
-	TimeInHighRecords    *int `json:"timeInHighRecords" bson:"timeInHighRecords"`
+	HasTimeInHighRecords   bool `json:"hasTimeInHighRecords" bson:"hasTimeInHighRecords"`
+	TimeInHighRecords      *int `json:"timeInHighRecords" bson:"timeInHighRecords"`
+	TimeInHighRecordsDelta *int `json:"timeInHighRecordsDelta" bson:"timeInHighRecordsDelta"`
 
-	HasTimeInVeryHighPercent bool     `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
-	TimeInVeryHighPercent    *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+	HasTimeInVeryHighPercent   bool     `json:"hasTimeInVeryHighPercent" bson:"hasTimeInVeryHighPercent"`
+	TimeInVeryHighPercent      *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
+	TimeInVeryHighPercentDelta *float64 `json:"timeInVeryHighPercentDelta" bson:"timeInVeryHighPercentDelta"`
 
-	HasTimeInVeryHighRecords bool `json:"hasTimeInVeryHighRecords" bson:"hasTimeInVeryHighRecords"`
-	TimeInVeryHighRecords    *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+	HasTimeInVeryHighRecords   bool `json:"hasTimeInVeryHighRecords" bson:"hasTimeInVeryHighRecords"`
+	TimeInVeryHighRecords      *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta" bson:"timeInVeryHighRecordsDelta"`
 }
 
 type BGMPeriods map[string]*BGMPeriod
@@ -105,7 +119,14 @@ func (s *BGMStats) Update(userData any) error {
 		return errors.New("BGM records for calculation is not compatible with Glucose type")
 	}
 
-	err := AddData(&s.Buckets, userDataTyped)
+	for i, v := range userDataTyped {
+		if v.Type != selfmonitored.Type {
+			return fmt.Errorf("Non-BGM data provided for BGM summary update at position %d", i)
+		}
+	}
+
+	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
+	err := AddData[BGMBucketData, *BGMBucketData](&s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}
@@ -142,35 +163,50 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 }
 
 func (s *BGMStats) CalculateSummary() {
-	// count backwards through hourly stats, stopping at 24, 24*7, 24*14, 24*30
+	// count backwards (newest first) through hourly stats, stopping at 24, 24*7, 24*14, 24*30
 	// currently only supports day precision
 	nextStopPoint := 0
 	nextOffsetStopPoint := 0
 	totalStats := &BGMBucketData{}
+	totalOffsetStats := &BGMBucketData{}
 
 	for i := 0; i < len(s.Buckets); i++ {
-		if i == stopPoints[nextStopPoint]*24 {
-			s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
-			nextStopPoint++
+		currentIndex := len(s.Buckets) - 1 - i
+
+		// only count primary stats when the next stop point is a real period
+		if len(stopPoints) > nextStopPoint {
+			if i == stopPoints[nextStopPoint]*24 {
+				s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
+				nextStopPoint++
+			}
+
+			totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+			totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+			totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+			totalStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+			totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+
+			totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
+			totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
 		}
 
 		// only add to offset stats when primary stop point is ahead of offset
-		if nextStopPoint > nextOffsetStopPoint {
-			if i == stopPoints[nextOffsetStopPoint]*24 {
-				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalStats)
+		if nextStopPoint > nextOffsetStopPoint && len(stopPoints) > nextOffsetStopPoint {
+			if i == stopPoints[nextOffsetStopPoint]*24*2 {
+				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalOffsetStats)
 				nextOffsetStopPoint++
+				totalOffsetStats = &BGMBucketData{}
 			}
+
+			totalOffsetStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+			totalOffsetStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+			totalOffsetStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+			totalOffsetStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+			totalOffsetStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+
+			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
+			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
 		}
-
-		currentIndex := len(s.Buckets) - 1 - i
-		totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
-		totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
-		totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
-		totalStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
-		totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
-
-		totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
-		totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
 	}
 
 	// fill in periods we never reached
@@ -178,10 +214,118 @@ func (s *BGMStats) CalculateSummary() {
 		s.CalculatePeriod(stopPoints[i], false, totalStats)
 	}
 	for i := nextOffsetStopPoint; i < len(stopPoints); i++ {
-		s.CalculatePeriod(stopPoints[i], true, totalStats)
+		s.CalculatePeriod(stopPoints[i], true, totalOffsetStats)
 	}
 
 	s.TotalHours = len(s.Buckets)
+
+	s.CalculateDelta()
+}
+
+func (s *BGMStats) CalculateDelta() {
+	// We do this as a separate pass through the periods as the amount of tracking required to reverse the iteration
+	// and fill this in during the period calculation would likely nullify any benefits, at least with the current
+	// approach.
+
+	for k := range s.Periods {
+		if s.Periods[k].AverageGlucose != nil && s.OffsetPeriods[k].AverageGlucose != nil {
+			delta := s.Periods[k].AverageGlucose.Value - s.OffsetPeriods[k].AverageGlucose.Value
+
+			s.Periods[k].AverageGlucoseDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].AverageGlucoseDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TotalRecords != nil && s.OffsetPeriods[k].TotalRecords != nil {
+			delta := *s.Periods[k].TotalRecords - *s.OffsetPeriods[k].TotalRecords
+
+			s.Periods[k].TotalRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TotalRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].AverageDailyRecords != nil && s.OffsetPeriods[k].AverageDailyRecords != nil {
+			delta := *s.Periods[k].AverageDailyRecords - *s.OffsetPeriods[k].AverageDailyRecords
+
+			s.Periods[k].AverageDailyRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].AverageDailyRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInTargetPercent != nil && s.OffsetPeriods[k].TimeInTargetPercent != nil {
+			delta := *s.Periods[k].TimeInTargetPercent - *s.OffsetPeriods[k].TimeInTargetPercent
+
+			s.Periods[k].TimeInTargetPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInTargetPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInTargetPercent != nil && s.OffsetPeriods[k].TimeInTargetPercent != nil {
+			delta := *s.Periods[k].TimeInTargetPercent - *s.OffsetPeriods[k].TimeInTargetPercent
+
+			s.Periods[k].TimeInTargetPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInTargetPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInTargetRecords != nil && s.OffsetPeriods[k].TimeInTargetRecords != nil {
+			delta := *s.Periods[k].TimeInTargetRecords - *s.OffsetPeriods[k].TimeInTargetRecords
+
+			s.Periods[k].TimeInTargetRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInTargetRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInLowPercent != nil && s.OffsetPeriods[k].TimeInLowPercent != nil {
+			delta := *s.Periods[k].TimeInLowPercent - *s.OffsetPeriods[k].TimeInLowPercent
+
+			s.Periods[k].TimeInLowPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInLowPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInLowRecords != nil && s.OffsetPeriods[k].TimeInLowRecords != nil {
+			delta := *s.Periods[k].TimeInLowRecords - *s.OffsetPeriods[k].TimeInLowRecords
+
+			s.Periods[k].TimeInLowRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInLowRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInVeryLowPercent != nil && s.OffsetPeriods[k].TimeInVeryLowPercent != nil {
+			delta := *s.Periods[k].TimeInVeryLowPercent - *s.OffsetPeriods[k].TimeInVeryLowPercent
+
+			s.Periods[k].TimeInVeryLowPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInVeryLowPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInVeryLowRecords != nil && s.OffsetPeriods[k].TimeInVeryLowRecords != nil {
+			delta := *s.Periods[k].TimeInVeryLowRecords - *s.OffsetPeriods[k].TimeInVeryLowRecords
+
+			s.Periods[k].TimeInVeryLowRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInVeryLowRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInHighPercent != nil && s.OffsetPeriods[k].TimeInHighPercent != nil {
+			delta := *s.Periods[k].TimeInHighPercent - *s.OffsetPeriods[k].TimeInHighPercent
+
+			s.Periods[k].TimeInHighPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInHighPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInHighRecords != nil && s.OffsetPeriods[k].TimeInHighRecords != nil {
+			delta := *s.Periods[k].TimeInHighRecords - *s.OffsetPeriods[k].TimeInHighRecords
+
+			s.Periods[k].TimeInHighRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInHighRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInVeryHighPercent != nil && s.OffsetPeriods[k].TimeInVeryHighPercent != nil {
+			delta := *s.Periods[k].TimeInVeryHighPercent - *s.OffsetPeriods[k].TimeInVeryHighPercent
+
+			s.Periods[k].TimeInVeryHighPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInVeryHighPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInVeryHighRecords != nil && s.OffsetPeriods[k].TimeInVeryHighRecords != nil {
+			delta := *s.Periods[k].TimeInVeryHighRecords - *s.OffsetPeriods[k].TimeInVeryHighRecords
+
+			s.Periods[k].TimeInVeryHighRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInVeryHighRecordsDelta = pointer.FromAny(-delta)
+		}
+	}
 }
 
 func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData) {

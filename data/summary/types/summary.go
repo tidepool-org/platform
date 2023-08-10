@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/tidepool-org/platform/errors"
 	"time"
+
+	"github.com/tidepool-org/platform/errors"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
@@ -279,7 +280,7 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	// remove extra hours to cap at X hours of buckets
 	if len(*buckets) > HoursAgoToKeep {
 		// zero out any to-be-trimmed buckets to lower their impact until reallocation
-		for i := 0; i <= len(*buckets)-HoursAgoToKeep; i++ {
+		for i := 0; i < len(*buckets)-HoursAgoToKeep; i++ {
 			(*buckets)[i] = Bucket[T, A]{}
 		}
 		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep:]

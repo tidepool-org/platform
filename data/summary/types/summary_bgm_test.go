@@ -102,28 +102,28 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 336, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(336))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(336))
 			})
 
 			It("Returns correct hour count when given 1 week", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(168))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(168))
 			})
 
 			It("Returns correct hour count when given 3 weeks", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 504, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(504))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(504))
 			})
 
 			It("Returns correct record count when given overlapping records", func() {
@@ -139,11 +139,11 @@ var _ = Describe("BGM Summary", func() {
 					doubledBGMData[i*2] = dataSetBGMData[i]
 					doubledBGMData[i*2+1] = dataSetBGMDataTwo[i]
 				}
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(24))
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.TotalRecords).To(Equal(6))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(6))
 			})
 
 			It("Returns correct record count when given overlapping records across multiple calculations", func() {
@@ -151,15 +151,15 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(24))
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.TotalRecords).To(Equal(12))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(12))
 			})
 
 			It("Returns correct stats when given 1 week, then 1 week more than 2 weeks ahead", func() {
@@ -171,40 +171,40 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(168))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(168))
 
 				By("check total glucose and dates for first batch")
-				hourlyStatsLen = len(userBGMSummary.Stats.HourlyBuckets)
+				hourlyStatsLen = len(userBGMSummary.Stats.Buckets)
 				for i := hourlyStatsLen - 1; i >= 0; i-- {
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalGlucose).To(BeNumerically("~", inTargetBloodGlucose*6, 0.001))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", inTargetBloodGlucose*6, 0.001))
 
 					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 10*time.Minute)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].LastRecordTime).To(Equal(lastRecordTime))
+					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, secondDatumTime, 168, secondRequestedAvgGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(528)) // 22 days
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(528)) // 22 days
 
 				By("check total glucose and dates for second batch")
-				newHourlyStatsLen = len(userBGMSummary.Stats.HourlyBuckets)
+				newHourlyStatsLen = len(userBGMSummary.Stats.Buckets)
 				expectedNewHourlyStatsLenStart := newHourlyStatsLen - len(dataSetBGMData)/12 // 12 per day, need length without the gap
 				for i := newHourlyStatsLen - 1; i >= expectedNewHourlyStatsLenStart; i-- {
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalGlucose).To(BeNumerically("~", secondRequestedAvgGlucose*6))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", secondRequestedAvgGlucose*6))
 
 					lastRecordTime = secondDatumTime.Add(-time.Hour*time.Duration(newHourlyStatsLen-i-1) - 10*time.Minute)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].LastRecordTime).To(Equal(lastRecordTime))
+					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				By("check total glucose and dates for gap")
 				expectedGapEnd := newHourlyStatsLen - expectedNewHourlyStatsLenStart
 				for i := hourlyStatsLen; i <= expectedGapEnd; i++ {
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalGlucose).To(Equal(float64(0)))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(Equal(float64(0)))
 				}
 			})
 
@@ -214,32 +214,32 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 144, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(144))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144))
 
 				for i := 1; i <= 24; i++ {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetBGMData = NewDataSetBGMDataAvg(deviceId, incrementalDatumTime, 1, float64(i))
 
-					err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+					err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(144 + i))
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalRecords).To(Equal(6))
+					Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144 + i))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(6))
 				}
 
-				for i := 144; i < len(userBGMSummary.Stats.HourlyBuckets); i++ {
+				for i := 144; i < len(userBGMSummary.Stats.Buckets); i++ {
 					f := fmt.Sprintf("hour %d", i)
 					By(f)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalRecords).To(Equal(6))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(6))
 
 					lastRecordTime = datumTime.Add(time.Hour*time.Duration(i-143) - time.Minute*10)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].LastRecordTime).To(Equal(lastRecordTime))
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalGlucose).To(Equal(float64((i - 143) * 6)))
+					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(Equal(float64((i - 143) * 6)))
 
-					averageGlucose := userBGMSummary.Stats.HourlyBuckets[i].Data.TotalGlucose / float64(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalRecords)
+					averageGlucose := userBGMSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userBGMSummary.Stats.Buckets[i].Data.TotalRecords)
 					Expect(averageGlucose).To(BeNumerically("~", i-143, 0.005))
 				}
 			})
@@ -256,21 +256,21 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = append(dataSetBGMDataOne, dataSetBGMDataTwo...)
 				dataSetBGMData = append(dataSetBGMData, dataSetBGMDataThree...)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(72))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(72))
 
-				for i := len(userBGMSummary.Stats.HourlyBuckets) - 1; i >= 0; i-- {
+				for i := len(userBGMSummary.Stats.Buckets) - 1; i >= 0; i-- {
 					f := fmt.Sprintf("hour %d", i+1)
 					By(f)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalRecords).To(Equal(6))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(6))
 
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.HourlyBuckets)-i-1) - 10*time.Minute)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].LastRecordTime).To(Equal(lastRecordTime))
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - 10*time.Minute)
+					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 
 					expectedTotalGlucose = (inTargetBloodGlucose + float64(i/24)) * 6
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalGlucose).To(BeNumerically("~", expectedTotalGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", expectedTotalGlucose, 0.001))
 				}
 			})
 
@@ -290,63 +290,301 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMDataFive := NewDataSetBGMDataRanges(deviceId, datumTime, 1, veryHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMDataOne)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMDataOne)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMDataTwo)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMDataThree)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMDataFour)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMDataFour)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMDataFive)
+				err = types.AddData[types.BGMBucketData, *types.BGMBucketData](&userBGMSummary.Stats.Buckets, dataSetBGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(5))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(5))
 
 				By("check record counters for insurance")
-				for i := len(userBGMSummary.Stats.HourlyBuckets) - 1; i >= 0; i-- {
+				for i := len(userBGMSummary.Stats.Buckets) - 1; i >= 0; i-- {
 					f := fmt.Sprintf("hour %d", i+1)
 					By(f)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].Data.TotalRecords).To(Equal(5))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(5))
 
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.HourlyBuckets)-i-1) - time.Minute*12)
-					Expect(userBGMSummary.Stats.HourlyBuckets[i].LastRecordTime).To(Equal(lastRecordTime))
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - time.Minute*12)
+					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				By("very low records")
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.VeryLowRecords).To(Equal(5))
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.LowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.TargetRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.HighRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[0].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.VeryLowRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.TargetRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.VeryHighRecords).To(Equal(0))
 
 				By("low records")
-				Expect(userBGMSummary.Stats.HourlyBuckets[1].Data.VeryLowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[1].Data.LowRecords).To(Equal(5))
-				Expect(userBGMSummary.Stats.HourlyBuckets[1].Data.TargetRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[1].Data.HighRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[1].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.VeryLowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.LowRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.TargetRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.HighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.VeryHighRecords).To(Equal(0))
 
 				By("in-range records")
-				Expect(userBGMSummary.Stats.HourlyBuckets[2].Data.VeryLowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[2].Data.LowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[2].Data.TargetRecords).To(Equal(5))
-				Expect(userBGMSummary.Stats.HourlyBuckets[2].Data.HighRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[2].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.VeryLowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.LowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.TargetRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.HighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.VeryHighRecords).To(Equal(0))
 
 				By("high records")
-				Expect(userBGMSummary.Stats.HourlyBuckets[3].Data.VeryLowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[3].Data.LowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[3].Data.TargetRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[3].Data.HighRecords).To(Equal(5))
-				Expect(userBGMSummary.Stats.HourlyBuckets[3].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.VeryLowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.LowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.TargetRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.HighRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.VeryHighRecords).To(Equal(0))
 
 				By("very high records")
-				Expect(userBGMSummary.Stats.HourlyBuckets[4].Data.VeryLowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[4].Data.LowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[4].Data.TargetRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[4].Data.HighRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.HourlyBuckets[4].Data.VeryHighRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.VeryLowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.LowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.TargetRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.HighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(5))
+			})
+		})
+
+		Context("CalculateDelta", func() {
+			It("Returns correct deltas for periods", func() {
+				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
+
+				for i, period := range periodKeys {
+					vFloat := float64(i) * 7.5
+					vFloatTwo := vFloat * 2
+					vInt := i * 7
+					vIntTwo := vInt * 2
+
+					userBGMSummary.Stats.Periods[period] = &types.BGMPeriod{
+						AverageGlucose:        &types.Glucose{Value: vFloat, Units: units},
+						TotalRecords:          pointer.FromAny(vInt),
+						AverageDailyRecords:   pointer.FromAny(vFloat),
+						TimeInTargetPercent:   pointer.FromAny(vFloat),
+						TimeInTargetRecords:   pointer.FromAny(vInt),
+						TimeInLowPercent:      pointer.FromAny(vFloat),
+						TimeInLowRecords:      pointer.FromAny(vInt),
+						TimeInVeryLowPercent:  pointer.FromAny(vFloat),
+						TimeInVeryLowRecords:  pointer.FromAny(vInt),
+						TimeInHighPercent:     pointer.FromAny(vFloat),
+						TimeInHighRecords:     pointer.FromAny(vInt),
+						TimeInVeryHighPercent: pointer.FromAny(vFloat),
+						TimeInVeryHighRecords: pointer.FromAny(vInt),
+					}
+
+					userBGMSummary.Stats.OffsetPeriods[period] = &types.BGMPeriod{
+						AverageGlucose:        &types.Glucose{Value: vFloatTwo, Units: units},
+						TotalRecords:          pointer.FromAny(vIntTwo),
+						AverageDailyRecords:   pointer.FromAny(vFloatTwo),
+						TimeInTargetPercent:   pointer.FromAny(vFloatTwo),
+						TimeInTargetRecords:   pointer.FromAny(vIntTwo),
+						TimeInLowPercent:      pointer.FromAny(vFloatTwo),
+						TimeInLowRecords:      pointer.FromAny(vIntTwo),
+						TimeInVeryLowPercent:  pointer.FromAny(vFloatTwo),
+						TimeInVeryLowRecords:  pointer.FromAny(vIntTwo),
+						TimeInHighPercent:     pointer.FromAny(vFloatTwo),
+						TimeInHighRecords:     pointer.FromAny(vIntTwo),
+						TimeInVeryHighPercent: pointer.FromAny(vFloatTwo),
+						TimeInVeryHighRecords: pointer.FromAny(vIntTwo),
+					}
+				}
+
+				userBGMSummary.Stats.CalculateDelta()
+
+				for i, period := range periodKeys {
+					floatDiff := float64(i)*7.5 - float64(i)*7.5*2
+					intDiff := i*7 - i*7*2
+
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(Equal(-floatDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].TotalRecordsDelta).To(Equal(intDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TotalRecordsDelta).To(Equal(-intDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].AverageDailyRecordsDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].AverageDailyRecordsDelta).To(Equal(-floatDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInTargetPercentDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInTargetPercentDelta).To(Equal(-floatDiff))
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInTargetRecordsDelta).To(Equal(intDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInTargetRecordsDelta).To(Equal(-intDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInLowPercentDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInLowPercentDelta).To(Equal(-floatDiff))
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInLowRecordsDelta).To(Equal(intDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInLowRecordsDelta).To(Equal(-intDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInVeryLowPercentDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryLowPercentDelta).To(Equal(-floatDiff))
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInVeryLowRecordsDelta).To(Equal(intDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryLowRecordsDelta).To(Equal(-intDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInHighPercentDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInHighPercentDelta).To(Equal(-floatDiff))
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInHighRecordsDelta).To(Equal(intDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInHighRecordsDelta).To(Equal(-intDiff))
+
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInVeryHighPercentDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryHighPercentDelta).To(Equal(-floatDiff))
+					Expect(*userBGMSummary.Stats.Periods[period].TimeInVeryHighRecordsDelta).To(Equal(intDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryHighRecordsDelta).To(Equal(-intDiff))
+				}
+			})
+
+			It("Returns correct nil deltas with nil latest stats", func() {
+				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
+
+				for _, period := range periodKeys {
+					userBGMSummary.Stats.Periods[period] = &types.BGMPeriod{
+						AverageGlucose:        nil,
+						TotalRecords:          nil,
+						AverageDailyRecords:   nil,
+						TimeInTargetPercent:   nil,
+						TimeInTargetRecords:   nil,
+						TimeInLowPercent:      nil,
+						TimeInLowRecords:      nil,
+						TimeInVeryLowPercent:  nil,
+						TimeInVeryLowRecords:  nil,
+						TimeInHighPercent:     nil,
+						TimeInHighRecords:     nil,
+						TimeInVeryHighPercent: nil,
+						TimeInVeryHighRecords: nil,
+					}
+
+					userBGMSummary.Stats.OffsetPeriods[period] = &types.BGMPeriod{
+						AverageGlucose:        &types.Glucose{Value: 1.0, Units: units},
+						TotalRecords:          pointer.FromAny(1),
+						AverageDailyRecords:   pointer.FromAny(1.0),
+						TimeInTargetPercent:   pointer.FromAny(1.0),
+						TimeInTargetRecords:   pointer.FromAny(1),
+						TimeInLowPercent:      pointer.FromAny(1.0),
+						TimeInLowRecords:      pointer.FromAny(1),
+						TimeInVeryLowPercent:  pointer.FromAny(1.0),
+						TimeInVeryLowRecords:  pointer.FromAny(1),
+						TimeInHighPercent:     pointer.FromAny(1.0),
+						TimeInHighRecords:     pointer.FromAny(1),
+						TimeInVeryHighPercent: pointer.FromAny(1.0),
+						TimeInVeryHighRecords: pointer.FromAny(1),
+					}
+				}
+
+				userBGMSummary.Stats.CalculateDelta()
+
+				for _, period := range periodKeys {
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TotalRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TotalRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].AverageDailyRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageDailyRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInTargetPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInTargetPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInTargetRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInTargetRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInLowRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInLowRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryLowRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryLowRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInHighRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInHighRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryHighRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryHighRecordsDelta).To(BeNil())
+				}
+			})
+
+			It("Returns correct nil deltas with nil offset stats", func() {
+				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
+
+				for _, period := range periodKeys {
+					userBGMSummary.Stats.Periods[period] = &types.BGMPeriod{
+						AverageGlucose:        &types.Glucose{Value: 1.0, Units: units},
+						TotalRecords:          pointer.FromAny(1),
+						AverageDailyRecords:   pointer.FromAny(1.0),
+						TimeInTargetPercent:   pointer.FromAny(1.0),
+						TimeInTargetRecords:   pointer.FromAny(1),
+						TimeInLowPercent:      pointer.FromAny(1.0),
+						TimeInLowRecords:      pointer.FromAny(1),
+						TimeInVeryLowPercent:  pointer.FromAny(1.0),
+						TimeInVeryLowRecords:  pointer.FromAny(1),
+						TimeInHighPercent:     pointer.FromAny(1.0),
+						TimeInHighRecords:     pointer.FromAny(1),
+						TimeInVeryHighPercent: pointer.FromAny(1.0),
+						TimeInVeryHighRecords: pointer.FromAny(1),
+					}
+
+					userBGMSummary.Stats.OffsetPeriods[period] = &types.BGMPeriod{
+						AverageGlucose:        nil,
+						TotalRecords:          nil,
+						AverageDailyRecords:   nil,
+						TimeInTargetPercent:   nil,
+						TimeInTargetRecords:   nil,
+						TimeInLowPercent:      nil,
+						TimeInLowRecords:      nil,
+						TimeInVeryLowPercent:  nil,
+						TimeInVeryLowRecords:  nil,
+						TimeInHighPercent:     nil,
+						TimeInHighRecords:     nil,
+						TimeInVeryHighPercent: nil,
+						TimeInVeryHighRecords: nil,
+					}
+				}
+
+				userBGMSummary.Stats.CalculateDelta()
+
+				for _, period := range periodKeys {
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TotalRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TotalRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].AverageDailyRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageDailyRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInTargetPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInTargetPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInTargetRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInTargetRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInLowRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInLowRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryLowPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryLowRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryLowRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInHighRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInHighRecordsDelta).To(BeNil())
+
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryHighPercentDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].TimeInVeryHighRecordsDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].TimeInVeryHighRecordsDelta).To(BeNil())
+				}
 			})
 		})
 
@@ -358,11 +596,9 @@ var _ = Describe("BGM Summary", func() {
 				ranges := NewDataRanges()
 				dataSetBGMData = NewDataSetBGMDataRanges(deviceId, datumTime, 720, ranges)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
-
-				userBGMSummary.Stats.CalculateSummary()
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				stopPoints := []int{1, 7, 14, 30}
@@ -414,12 +650,9 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
-
-				userBGMSummary.Stats.CalculateSummary()
-
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
@@ -432,12 +665,9 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
-
-				userBGMSummary.Stats.CalculateSummary()
-
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
@@ -451,11 +681,9 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(1))
-
-				userBGMSummary.Stats.CalculateSummary()
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1))
 
 				for _, period := range periodKeys {
@@ -466,12 +694,12 @@ var _ = Describe("BGM Summary", func() {
 				// start the actual test
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 720, highBloodGlucose)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(721))
 
 				userBGMSummary.Stats.CalculateSummary()
-				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(721))
 
 				for _, period := range periodKeys {
 					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
@@ -484,11 +712,9 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
 				newDatumTime = datumTime.Add(time.Duration(23) * time.Hour)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
-
-				userBGMSummary.Stats.CalculateSummary()
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
@@ -499,12 +725,10 @@ var _ = Describe("BGM Summary", func() {
 				// start the actual test
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 23, highBloodGlucose)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
-
-				userBGMSummary.Stats.CalculateSummary()
-				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(743))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(743))
 
 				for i, period := range periodKeys {
 					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, highBloodGlucose, lowBloodGlucose)
@@ -516,13 +740,11 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correctly non-rolling summary with two 30 day windows", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, lowBloodGlucose)
 				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
-				newDatumTime = datumTime.AddDate(0, 0, 31)
+				newDatumTime = datumTime.AddDate(0, 0, 61)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(24))
-
-				userBGMSummary.Stats.CalculateSummary()
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(24))
 
 				for _, period := range periodKeys {
@@ -533,18 +755,108 @@ var _ = Describe("BGM Summary", func() {
 				// start the actual test
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 168, highBloodGlucose)
 
-				err = types.AddData(&userBGMSummary.Stats.HourlyBuckets, &userBGMSummary.Stats.DailyBuckets, dataSetBGMData)
+				err = userBGMSummary.Stats.Update(dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.HourlyBuckets)).To(Equal(720))
-
-				userBGMSummary.Stats.CalculateSummary()
-
-				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720)) // 30 days
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1440))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1440)) // 60 days
 
 				for _, period := range periodKeys {
 					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
 					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
 				}
+			})
+
+			It("Returns correctly moving offset periods", func() {
+				// Here we generate 5 1d datasets, and add them in a specific order:
+				// -59d -- target glucose
+				// -27d -- veryHigh glucose
+				// -13d -- veryLow glucose
+				//  -1d -- high glucose
+				//   0d -- low glucose
+
+				// This should result in:
+				//  1d regular  -- low, 144 readings (from 0d)
+				//  1d offset   -- high, 144 readings (from 1d)
+				//  7d regular  -- (high+low)/2, 144*2 (288) readings (from 0d + 1d)
+				//  7d offset   -- veryLow, 144 readings (from 14d)
+				// 14d regular -- (high+low+veryLow)/3, 144*3 (432) readings (from 1d + 2d + 14d)
+				// 14d offset  -- veryHigh, 144 readings (from 28d)
+				// 30d regular -- (high+veryHigh+low+veryLow)/4, 144*4 (576) readings (from 1d + 2d + 14d + 28d)
+				// 30d offset  -- target, 144 readings (from 60d)
+
+				userBGMSummary = types.Create[types.BGMStats, *types.BGMStats](userId)
+
+				newDatumTimeOne := datumTime.AddDate(0, 0, -59)
+				newDatumTimeTwo := datumTime.AddDate(0, 0, -27)
+				newDatumTimeThree := datumTime.AddDate(0, 0, -13)
+				newDatumTimeFour := datumTime.AddDate(0, 0, -1)
+				newDatumTimeFive := datumTime
+
+				dataSetBGMDataOne := NewDataSetBGMDataAvg(deviceId, newDatumTimeOne, 24, inTargetBloodGlucose)
+				dataSetBGMDataTwo := NewDataSetBGMDataAvg(deviceId, newDatumTimeTwo, 24, veryHighBloodGlucose)
+				dataSetBGMDataThree := NewDataSetBGMDataAvg(deviceId, newDatumTimeThree, 24, veryLowBloodGlucose)
+				dataSetBGMDataFour := NewDataSetBGMDataAvg(deviceId, newDatumTimeFour, 24, highBloodGlucose)
+				dataSetBGMDataFive := NewDataSetBGMDataAvg(deviceId, newDatumTimeFive, 24, lowBloodGlucose)
+
+				err = userBGMSummary.Stats.Update(dataSetBGMDataOne)
+				Expect(err).ToNot(HaveOccurred())
+
+				// first day, should have 24 buckets
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(24))
+
+				err = userBGMSummary.Stats.Update(dataSetBGMDataTwo)
+				Expect(err).ToNot(HaveOccurred())
+
+				// 33 days elapsed, should have 33*24 (792) buckets
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(792))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(792))
+
+				err = userBGMSummary.Stats.Update(dataSetBGMDataThree)
+				Expect(err).ToNot(HaveOccurred())
+
+				// 47 days elapsed, should have 47*24 (1128) buckets
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1128))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1128))
+
+				err = userBGMSummary.Stats.Update(dataSetBGMDataFour)
+				Expect(err).ToNot(HaveOccurred())
+
+				// 59 days elapsed, should have 59*24 (1416) buckets
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1416))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1416))
+
+				err = userBGMSummary.Stats.Update(dataSetBGMDataFive)
+				Expect(err).ToNot(HaveOccurred())
+
+				// 60 days elapsed, should have 60*24 (1440) buckets
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1440))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1440))
+
+				// check that the data matches the expectation described at the top of the test
+				Expect(userBGMSummary.Stats.Periods["1d"].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["1d"].TotalRecords).To(Equal(144))
+
+				Expect(userBGMSummary.Stats.OffsetPeriods["1d"].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["1d"].TotalRecords).To(Equal(144))
+
+				Expect(userBGMSummary.Stats.Periods["7d"].AverageGlucose.Value).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose)/2, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(144 * 2))
+
+				Expect(userBGMSummary.Stats.OffsetPeriods["7d"].AverageGlucose.Value).To(BeNumerically("~", veryLowBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(144))
+
+				Expect(userBGMSummary.Stats.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/3, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["14d"].TotalRecords).To(Equal(144 * 3))
+
+				Expect(userBGMSummary.Stats.OffsetPeriods["14d"].AverageGlucose.Value).To(BeNumerically("~", veryHighBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["14d"].TotalRecords).To(Equal(144))
+
+				Expect(userBGMSummary.Stats.Periods["30d"].AverageGlucose.Value).To(BeNumerically("~", (veryHighBloodGlucose+highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/4, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(144 * 4))
+
+				Expect(userBGMSummary.Stats.OffsetPeriods["30d"].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(144))
 			})
 		})
 	})
