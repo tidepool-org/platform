@@ -1,27 +1,27 @@
 sudo: false
 
-dist: focal
+dist: jammy
 
 language: go
 
 go:
-  - 1.21
+  - 1.20
 
 go_import_path: github.com/tidepool-org/platform
 
 env:
   global:
-    - MONGODB=5.3.2
+    - MONGODB=6.0.8
 
 before_install:
   - sudo apt-get remove -y mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
-  - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-${MONGODB}.tgz -O /tmp/mongodb.tgz
+  - wget https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-${MONGODB}.tgz -O /tmp/mongodb.tgz
   - tar -xf /tmp/mongodb.tgz
   - mkdir /tmp/data
-  - ${PWD}/mongodb-linux-x86_64-ubuntu2004-${MONGODB}/bin/mongod --replSet rs0 --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
+  - ${PWD}/mongodb-linux-x86_64-ubuntu2204-${MONGODB}/bin/mongod --replSet rs0 --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
   # sleep for a few seconds so that mongod actually starts otherwise the mongo shell command we run below won't be able to connect to mongod.
   - sleep 2
-  - ${PWD}/mongodb-linux-x86_64-ubuntu2004-${MONGODB}/bin/mongo --host 127.0.0.1 --port 27017 --eval 'rs.initiate()'
+  - ${PWD}/mongodb-linux-x86_64-ubuntu2204-${MONGODB}/bin/mongo --host 127.0.0.1 --port 27017 --eval 'rs.initiate()'
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
 
 addons:
