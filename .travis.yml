@@ -19,7 +19,7 @@ before_install:
   - sudo apt-get remove -y mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
   - wget https://repo.mongodb.org/apt/ubuntu/dists/${DIST}/mongodb-org/6.0/multiverse/binary-amd64/mongodb-org-server_${MONGODB}_amd64.deb -O /tmp/mongodb.deb
   - wget https://downloads.mongodb.com/compass/mongodb-mongosh_${MONGOSH}_amd64.deb -O /tmp/mongosh.deb
-  - apt install /tmp/mongodb.deb /tmp/mongosh.deb
+  - sudo apt install /tmp/mongodb.deb /tmp/mongosh.deb
   - mkdir /tmp/data
   - /usr/bin/mongod --replSet rs0 --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
   # sleep for a few seconds so that mongod actually starts otherwise the mongo shell command we run below won't be able to connect to mongod.
