@@ -3,8 +3,7 @@ FROM golang:1.21-alpine AS development
 WORKDIR /go/src/github.com/tidepool-org/platform
 RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories && \
     echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories && \
-    apk --no-cache add make mongodb yaml-cpp=0.6.2-r2 && \
-    apk --no-cache add ca-certificates tzdata && \
+    apk --no-cache add ca-certificates tzdata make git mongodb yaml-cpp=0.6.2-r2&& \
     go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
     adduser -D tidepool && \
     chown -R tidepool /go/src/github.com/tidepool-org/platform
