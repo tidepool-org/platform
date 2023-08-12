@@ -17,9 +17,8 @@ CMD ["make", "service-start"]
 FROM mongo:6.0.8 AS production
 # this statically set $HOME is non-ideal, but is to combat it being hardcoded to /data/db upstream
 ENV HOME="/home/tidepool/" DEBIAN_FRONTEND="noninteractive"
-RUN apk --no-cache update && \
-    apk --no-cache upgrade && \
-    apk --no-cache add ca-certificates tzdata && \
+RUN apt -y update && \
+    apt -y install ca-certificates tzdata && \
     adduser --disabled-password tidepool
 WORKDIR /home/tidepool
 USER tidepool
