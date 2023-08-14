@@ -242,8 +242,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", float64((i-143)*12*5), 0.001))
 
-					averageGlucose := userCGMSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes)
-					Expect(averageGlucose).To(BeNumerically("~", i-143))
+					averageGlucoseMmol := userCGMSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes)
+					Expect(averageGlucoseMmol).To(BeNumerically("~", i-143))
 				}
 			})
 
@@ -404,7 +404,7 @@ var _ = Describe("CGM Summary", func() {
 						TimeCGMUsePercent:          pointer.FromAny(vFloat),
 						TimeCGMUseMinutes:          pointer.FromAny(vInt),
 						TimeCGMUseRecords:          pointer.FromAny(vInt),
-						AverageGlucose:             &types.Glucose{Value: vFloat, Units: units},
+						AverageGlucoseMmol:         pointer.FromAny(vFloat),
 						GlucoseManagementIndicator: pointer.FromAny(vFloat),
 						TotalRecords:               pointer.FromAny(vInt),
 						AverageDailyRecords:        pointer.FromAny(vFloat),
@@ -429,7 +429,7 @@ var _ = Describe("CGM Summary", func() {
 						TimeCGMUsePercent:          pointer.FromAny(vFloatTwo),
 						TimeCGMUseMinutes:          pointer.FromAny(vIntTwo),
 						TimeCGMUseRecords:          pointer.FromAny(vIntTwo),
-						AverageGlucose:             &types.Glucose{Value: vFloatTwo, Units: units},
+						AverageGlucoseMmol:         pointer.FromAny(vFloatTwo),
 						GlucoseManagementIndicator: pointer.FromAny(vFloatTwo),
 						TotalRecords:               pointer.FromAny(vIntTwo),
 						AverageDailyRecords:        pointer.FromAny(vFloatTwo),
@@ -464,8 +464,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecordsDelta).To(Equal(intDiff))
 					Expect(*userCGMSummary.Stats.OffsetPeriods[period].TimeCGMUseRecordsDelta).To(Equal(-intDiff))
 
-					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(Equal(floatDiff))
-					Expect(*userCGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(Equal(-floatDiff))
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmolDelta).To(Equal(floatDiff))
+					Expect(*userCGMSummary.Stats.OffsetPeriods[period].AverageGlucoseMmolDelta).To(Equal(-floatDiff))
 
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicatorDelta).To(Equal(floatDiff))
 					Expect(*userCGMSummary.Stats.OffsetPeriods[period].GlucoseManagementIndicatorDelta).To(Equal(-floatDiff))
@@ -521,7 +521,7 @@ var _ = Describe("CGM Summary", func() {
 						TimeCGMUsePercent:          nil,
 						TimeCGMUseMinutes:          nil,
 						TimeCGMUseRecords:          nil,
-						AverageGlucose:             nil,
+						AverageGlucoseMmol:         nil,
 						GlucoseManagementIndicator: nil,
 						TotalRecords:               nil,
 						AverageDailyRecords:        nil,
@@ -546,7 +546,7 @@ var _ = Describe("CGM Summary", func() {
 						TimeCGMUsePercent:          pointer.FromAny(1.0),
 						TimeCGMUseMinutes:          pointer.FromAny(1),
 						TimeCGMUseRecords:          pointer.FromAny(1),
-						AverageGlucose:             &types.Glucose{Value: 1.0, Units: units},
+						AverageGlucoseMmol:         pointer.FromAny(1.0),
 						GlucoseManagementIndicator: pointer.FromAny(1.0),
 						TotalRecords:               pointer.FromAny(1),
 						AverageDailyRecords:        pointer.FromAny(1.0),
@@ -578,8 +578,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecordsDelta).To(BeNil())
 					Expect(userCGMSummary.Stats.OffsetPeriods[period].TimeCGMUseRecordsDelta).To(BeNil())
 
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(BeNil())
-					Expect(userCGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(BeNil())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucoseMmolDelta).To(BeNil())
+					Expect(userCGMSummary.Stats.OffsetPeriods[period].AverageGlucoseMmolDelta).To(BeNil())
 
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicatorDelta).To(BeNil())
 					Expect(userCGMSummary.Stats.OffsetPeriods[period].GlucoseManagementIndicatorDelta).To(BeNil())
@@ -635,7 +635,7 @@ var _ = Describe("CGM Summary", func() {
 						TimeCGMUsePercent:          pointer.FromAny(1.0),
 						TimeCGMUseMinutes:          pointer.FromAny(1),
 						TimeCGMUseRecords:          pointer.FromAny(1),
-						AverageGlucose:             &types.Glucose{Value: 1.0, Units: units},
+						AverageGlucoseMmol:         pointer.FromAny(1.0),
 						GlucoseManagementIndicator: pointer.FromAny(1.0),
 						TotalRecords:               pointer.FromAny(1),
 						AverageDailyRecords:        pointer.FromAny(1.0),
@@ -660,7 +660,7 @@ var _ = Describe("CGM Summary", func() {
 						TimeCGMUsePercent:          nil,
 						TimeCGMUseMinutes:          nil,
 						TimeCGMUseRecords:          nil,
-						AverageGlucose:             nil,
+						AverageGlucoseMmol:         nil,
 						GlucoseManagementIndicator: nil,
 						TotalRecords:               nil,
 						AverageDailyRecords:        nil,
@@ -692,8 +692,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].TimeCGMUseRecordsDelta).To(BeNil())
 					Expect(userCGMSummary.Stats.OffsetPeriods[period].TimeCGMUseRecordsDelta).To(BeNil())
 
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(BeNil())
-					Expect(userCGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(BeNil())
+					Expect(userCGMSummary.Stats.Periods[period].AverageGlucoseMmolDelta).To(BeNil())
+					Expect(userCGMSummary.Stats.OffsetPeriods[period].AverageGlucoseMmolDelta).To(BeNil())
 
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicatorDelta).To(BeNil())
 					Expect(userCGMSummary.Stats.OffsetPeriods[period].GlucoseManagementIndicatorDelta).To(BeNil())
@@ -845,8 +845,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(Equal(inTargetBloodGlucose))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
@@ -873,8 +873,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseRecords).To(Equal(periodInts[i] * 288))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(Equal(inTargetBloodGlucose))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(Equal(expectedGMI))
@@ -902,8 +902,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(960))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(Equal(inTargetBloodGlucose))
 				}
 			})
 
@@ -927,8 +927,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
@@ -957,8 +957,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
@@ -982,8 +982,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
@@ -1011,8 +1011,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.005))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.005))
 
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
@@ -1038,8 +1038,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", expectedAverage, 0.005))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", expectedAverage, 0.005))
 
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.005))
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
@@ -1067,8 +1067,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(1440))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
 
 					if *userCGMSummary.Stats.Periods[period].TimeCGMUsePercent > 0.7 {
 						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
@@ -1101,8 +1101,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseRecords).To(BeTrue())
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
 
 					if *userCGMSummary.Stats.Periods[period].TimeCGMUsePercent > 0.7 {
 						Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
@@ -1135,8 +1135,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(periodInts[i] * 1440))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
@@ -1160,8 +1160,8 @@ var _ = Describe("CGM Summary", func() {
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUseMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUseMinutes).To(Equal(60))
 
-					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
-					Expect(userCGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.05))
+					Expect(userCGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.05))
 
 					Expect(userCGMSummary.Stats.Periods[period].HasGlucoseManagementIndicator).To(BeFalse())
 					Expect(userCGMSummary.Stats.Periods[period].GlucoseManagementIndicator).To(BeNil())
@@ -1236,28 +1236,28 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(1440))
 
 				// check that the data matches the expectation described at the top of the test
-				Expect(userCGMSummary.Stats.Periods["1d"].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
+				Expect(*userCGMSummary.Stats.Periods["1d"].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))
 				Expect(*userCGMSummary.Stats.Periods["1d"].TotalRecords).To(Equal(288))
 
-				Expect(userCGMSummary.Stats.OffsetPeriods["1d"].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
+				Expect(*userCGMSummary.Stats.OffsetPeriods["1d"].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["1d"].TotalRecords).To(Equal(288))
 
-				Expect(userCGMSummary.Stats.Periods["7d"].AverageGlucose.Value).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose)/2, 0.001))
+				Expect(*userCGMSummary.Stats.Periods["7d"].AverageGlucoseMmol).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose)/2, 0.001))
 				Expect(*userCGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(288 * 2))
 
-				Expect(userCGMSummary.Stats.OffsetPeriods["7d"].AverageGlucose.Value).To(BeNumerically("~", veryLowBloodGlucose, 0.001))
+				Expect(*userCGMSummary.Stats.OffsetPeriods["7d"].AverageGlucoseMmol).To(BeNumerically("~", veryLowBloodGlucose, 0.001))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(288))
 
-				Expect(userCGMSummary.Stats.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/3, 0.001))
+				Expect(*userCGMSummary.Stats.Periods["14d"].AverageGlucoseMmol).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/3, 0.001))
 				Expect(*userCGMSummary.Stats.Periods["14d"].TotalRecords).To(Equal(288 * 3))
 
-				Expect(userCGMSummary.Stats.OffsetPeriods["14d"].AverageGlucose.Value).To(BeNumerically("~", veryHighBloodGlucose, 0.001))
+				Expect(*userCGMSummary.Stats.OffsetPeriods["14d"].AverageGlucoseMmol).To(BeNumerically("~", veryHighBloodGlucose, 0.001))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["14d"].TotalRecords).To(Equal(288))
 
-				Expect(userCGMSummary.Stats.Periods["30d"].AverageGlucose.Value).To(BeNumerically("~", (veryHighBloodGlucose+highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/4, 0.001))
+				Expect(*userCGMSummary.Stats.Periods["30d"].AverageGlucoseMmol).To(BeNumerically("~", (veryHighBloodGlucose+highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/4, 0.001))
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(288 * 4))
 
-				Expect(userCGMSummary.Stats.OffsetPeriods["30d"].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
+				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].AverageGlucoseMmol).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(288))
 			})
 		})

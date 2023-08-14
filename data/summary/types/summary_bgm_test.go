@@ -239,8 +239,8 @@ var _ = Describe("BGM Summary", func() {
 					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(Equal(float64((i - 143) * 6)))
 
-					averageGlucose := userBGMSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userBGMSummary.Stats.Buckets[i].Data.TotalRecords)
-					Expect(averageGlucose).To(BeNumerically("~", i-143, 0.005))
+					averageGlucoseMmol := userBGMSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userBGMSummary.Stats.Buckets[i].Data.TotalRecords)
+					Expect(averageGlucoseMmol).To(BeNumerically("~", i-143, 0.005))
 				}
 			})
 
@@ -361,7 +361,7 @@ var _ = Describe("BGM Summary", func() {
 					vIntTwo := vInt * 2
 
 					userBGMSummary.Stats.Periods[period] = &types.BGMPeriod{
-						AverageGlucose:        &types.Glucose{Value: vFloat, Units: units},
+						AverageGlucoseMmol:    pointer.FromAny(vFloat),
 						TotalRecords:          pointer.FromAny(vInt),
 						AverageDailyRecords:   pointer.FromAny(vFloat),
 						TimeInTargetPercent:   pointer.FromAny(vFloat),
@@ -377,7 +377,7 @@ var _ = Describe("BGM Summary", func() {
 					}
 
 					userBGMSummary.Stats.OffsetPeriods[period] = &types.BGMPeriod{
-						AverageGlucose:        &types.Glucose{Value: vFloatTwo, Units: units},
+						AverageGlucoseMmol:    pointer.FromAny(vFloatTwo),
 						TotalRecords:          pointer.FromAny(vIntTwo),
 						AverageDailyRecords:   pointer.FromAny(vFloatTwo),
 						TimeInTargetPercent:   pointer.FromAny(vFloatTwo),
@@ -399,8 +399,8 @@ var _ = Describe("BGM Summary", func() {
 					floatDiff := float64(i)*7.5 - float64(i)*7.5*2
 					intDiff := i*7 - i*7*2
 
-					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(Equal(floatDiff))
-					Expect(*userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(Equal(-floatDiff))
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmolDelta).To(Equal(floatDiff))
+					Expect(*userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseMmolDelta).To(Equal(-floatDiff))
 
 					Expect(*userBGMSummary.Stats.Periods[period].TotalRecordsDelta).To(Equal(intDiff))
 					Expect(*userBGMSummary.Stats.OffsetPeriods[period].TotalRecordsDelta).To(Equal(-intDiff))
@@ -440,7 +440,7 @@ var _ = Describe("BGM Summary", func() {
 
 				for _, period := range periodKeys {
 					userBGMSummary.Stats.Periods[period] = &types.BGMPeriod{
-						AverageGlucose:        nil,
+						AverageGlucoseMmol:    nil,
 						TotalRecords:          nil,
 						AverageDailyRecords:   nil,
 						TimeInTargetPercent:   nil,
@@ -456,7 +456,7 @@ var _ = Describe("BGM Summary", func() {
 					}
 
 					userBGMSummary.Stats.OffsetPeriods[period] = &types.BGMPeriod{
-						AverageGlucose:        &types.Glucose{Value: 1.0, Units: units},
+						AverageGlucoseMmol:    pointer.FromAny(1.0),
 						TotalRecords:          pointer.FromAny(1),
 						AverageDailyRecords:   pointer.FromAny(1.0),
 						TimeInTargetPercent:   pointer.FromAny(1.0),
@@ -475,8 +475,8 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary.Stats.CalculateDelta()
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(BeNil())
-					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucoseMmolDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseMmolDelta).To(BeNil())
 
 					Expect(userBGMSummary.Stats.Periods[period].TotalRecordsDelta).To(BeNil())
 					Expect(userBGMSummary.Stats.OffsetPeriods[period].TotalRecordsDelta).To(BeNil())
@@ -516,7 +516,7 @@ var _ = Describe("BGM Summary", func() {
 
 				for _, period := range periodKeys {
 					userBGMSummary.Stats.Periods[period] = &types.BGMPeriod{
-						AverageGlucose:        &types.Glucose{Value: 1.0, Units: units},
+						AverageGlucoseMmol:    pointer.FromAny(1.0),
 						TotalRecords:          pointer.FromAny(1),
 						AverageDailyRecords:   pointer.FromAny(1.0),
 						TimeInTargetPercent:   pointer.FromAny(1.0),
@@ -532,7 +532,7 @@ var _ = Describe("BGM Summary", func() {
 					}
 
 					userBGMSummary.Stats.OffsetPeriods[period] = &types.BGMPeriod{
-						AverageGlucose:        nil,
+						AverageGlucoseMmol:    nil,
 						TotalRecords:          nil,
 						AverageDailyRecords:   nil,
 						TimeInTargetPercent:   nil,
@@ -551,8 +551,8 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary.Stats.CalculateDelta()
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucoseDelta).To(BeNil())
-					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.Periods[period].AverageGlucoseMmolDelta).To(BeNil())
+					Expect(userBGMSummary.Stats.OffsetPeriods[period].AverageGlucoseMmolDelta).To(BeNil())
 
 					Expect(userBGMSummary.Stats.Periods[period].TotalRecordsDelta).To(BeNil())
 					Expect(userBGMSummary.Stats.OffsetPeriods[period].TotalRecordsDelta).To(BeNil())
@@ -656,8 +656,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(Equal(inTargetBloodGlucose))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(Equal(inTargetBloodGlucose))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 			})
 
@@ -671,8 +671,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 			})
 
@@ -687,8 +687,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 
 				// start the actual test
@@ -702,8 +702,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(721))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 			})
 
@@ -718,8 +718,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.005))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.005))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 
 				// start the actual test
@@ -732,8 +732,8 @@ var _ = Describe("BGM Summary", func() {
 
 				for i, period := range periodKeys {
 					expectedAverage := ExpectedAverage(periodInts[i]*24, 23, highBloodGlucose, lowBloodGlucose)
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", expectedAverage, 0.005))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", expectedAverage, 0.005))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 			})
 
@@ -748,8 +748,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(24))
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 
 				// start the actual test
@@ -761,8 +761,8 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1440)) // 60 days
 
 				for _, period := range periodKeys {
-					Expect(userBGMSummary.Stats.Periods[period].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
-					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucose).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[period].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
+					Expect(userBGMSummary.Stats.Periods[period].HasAverageGlucoseMmol).To(BeTrue())
 				}
 			})
 
@@ -834,28 +834,28 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1440))
 
 				// check that the data matches the expectation described at the top of the test
-				Expect(userBGMSummary.Stats.Periods["1d"].AverageGlucose.Value).To(BeNumerically("~", lowBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["1d"].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))
 				Expect(*userBGMSummary.Stats.Periods["1d"].TotalRecords).To(Equal(144))
 
-				Expect(userBGMSummary.Stats.OffsetPeriods["1d"].AverageGlucose.Value).To(BeNumerically("~", highBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["1d"].AverageGlucoseMmol).To(BeNumerically("~", highBloodGlucose, 0.001))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["1d"].TotalRecords).To(Equal(144))
 
-				Expect(userBGMSummary.Stats.Periods["7d"].AverageGlucose.Value).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose)/2, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["7d"].AverageGlucoseMmol).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose)/2, 0.001))
 				Expect(*userBGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(144 * 2))
 
-				Expect(userBGMSummary.Stats.OffsetPeriods["7d"].AverageGlucose.Value).To(BeNumerically("~", veryLowBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["7d"].AverageGlucoseMmol).To(BeNumerically("~", veryLowBloodGlucose, 0.001))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(144))
 
-				Expect(userBGMSummary.Stats.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/3, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["14d"].AverageGlucoseMmol).To(BeNumerically("~", (highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/3, 0.001))
 				Expect(*userBGMSummary.Stats.Periods["14d"].TotalRecords).To(Equal(144 * 3))
 
-				Expect(userBGMSummary.Stats.OffsetPeriods["14d"].AverageGlucose.Value).To(BeNumerically("~", veryHighBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["14d"].AverageGlucoseMmol).To(BeNumerically("~", veryHighBloodGlucose, 0.001))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["14d"].TotalRecords).To(Equal(144))
 
-				Expect(userBGMSummary.Stats.Periods["30d"].AverageGlucose.Value).To(BeNumerically("~", (veryHighBloodGlucose+highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/4, 0.001))
+				Expect(*userBGMSummary.Stats.Periods["30d"].AverageGlucoseMmol).To(BeNumerically("~", (veryHighBloodGlucose+highBloodGlucose+lowBloodGlucose+veryLowBloodGlucose)/4, 0.001))
 				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(144 * 4))
 
-				Expect(userBGMSummary.Stats.OffsetPeriods["30d"].AverageGlucose.Value).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].AverageGlucoseMmol).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(144))
 			})
 		})

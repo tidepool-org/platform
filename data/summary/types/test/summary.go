@@ -1,7 +1,6 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -91,12 +90,9 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 			GlucoseManagementIndicator:      pointer.FromAny(test.RandomFloat64FromRange(0, 20)),
 			GlucoseManagementIndicatorDelta: pointer.FromAny(test.RandomFloat64FromRange(0, 20)),
 
-			HasAverageGlucose: test.RandomBool(),
-			AverageGlucose: &types.Glucose{
-				Value: test.RandomFloat64FromRange(1, 30),
-				Units: glucose.MmolL,
-			},
-			AverageGlucoseDelta: pointer.FromAny(test.RandomFloat64FromRange(0, 20)),
+			HasAverageGlucoseMmol:   test.RandomBool(),
+			AverageGlucoseMmol:      pointer.FromAny(test.RandomFloat64FromRange(1, 30)),
+			AverageGlucoseMmolDelta: pointer.FromAny(test.RandomFloat64FromRange(0, 20)),
 
 			HasTotalRecords:   test.RandomBool(),
 			TotalRecords:      pointer.FromAny(test.RandomIntFromRange(0, 25920)),
@@ -249,12 +245,9 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
 		datum.Stats.Periods[period] = &types.BGMPeriod{
-			HasAverageGlucose: test.RandomBool(),
-			AverageGlucose: &types.Glucose{
-				Value: test.RandomFloat64FromRange(1, 30),
-				Units: glucose.MmolL,
-			},
-			AverageGlucoseDelta: pointer.FromAny(test.RandomFloat64FromRange(1, 30)),
+			HasAverageGlucoseMmol:   test.RandomBool(),
+			AverageGlucoseMmol:      pointer.FromAny(test.RandomFloat64FromRange(1, 30)),
+			AverageGlucoseMmolDelta: pointer.FromAny(test.RandomFloat64FromRange(1, 30)),
 
 			HasTotalRecords:   test.RandomBool(),
 			TotalRecords:      pointer.FromAny(test.RandomIntFromRange(0, 25920)),

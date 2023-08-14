@@ -49,9 +49,9 @@ type CGMPeriod struct {
 	TimeCGMUseRecords      *int `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
 	TimeCGMUseRecordsDelta *int `json:"timeCGMUseRecordsDelta" bson:"timeCGMUseRecordsDelta"`
 
-	HasAverageGlucose   bool     `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
-	AverageGlucose      *Glucose `json:"averageGlucose" bson:"averageGlucose"`
-	AverageGlucoseDelta *float64 `json:"averageGlucoseDelta" bson:"averageGlucoseDelta"`
+	HasAverageGlucoseMmol   bool     `json:"hasAverageGlucoseMmol" bson:"hasAverageGlucoseMmol"`
+	AverageGlucoseMmol      *float64 `json:"averageGlucoseMmol" bson:"averageGlucoseMmol"`
+	AverageGlucoseMmolDelta *float64 `json:"averageGlucoseMmolDelta" bson:"averageGlucoseMmolDelta"`
 
 	HasGlucoseManagementIndicator   bool     `json:"hasGlucoseManagementIndicator" bson:"hasGlucoseManagementIndicator"`
 	GlucoseManagementIndicator      *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
@@ -336,11 +336,11 @@ func (s *CGMStats) CalculateDelta() {
 			s.OffsetPeriods[k].TimeCGMUseMinutesDelta = pointer.FromAny(-delta)
 		}
 
-		if s.Periods[k].AverageGlucose != nil && s.OffsetPeriods[k].AverageGlucose != nil {
-			delta := s.Periods[k].AverageGlucose.Value - s.OffsetPeriods[k].AverageGlucose.Value
+		if s.Periods[k].AverageGlucoseMmol != nil && s.OffsetPeriods[k].AverageGlucoseMmol != nil {
+			delta := *s.Periods[k].AverageGlucoseMmol - *s.OffsetPeriods[k].AverageGlucoseMmol
 
-			s.Periods[k].AverageGlucoseDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].AverageGlucoseDelta = pointer.FromAny(-delta)
+			s.Periods[k].AverageGlucoseMmolDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].AverageGlucoseMmolDelta = pointer.FromAny(-delta)
 		}
 
 		if s.Periods[k].GlucoseManagementIndicator != nil && s.OffsetPeriods[k].GlucoseManagementIndicator != nil {
@@ -547,16 +547,13 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 			newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalMinutes))
 		}
 
-		newPeriod.HasAverageGlucose = true
-		newPeriod.AverageGlucose = &Glucose{
-			Value: totalStats.TotalGlucose / float64(totalStats.TotalMinutes),
-			Units: glucose.MmolL,
-		}
+		newPeriod.HasAverageGlucoseMmol = true
+		newPeriod.AverageGlucoseMmol = pointer.FromAny(totalStats.TotalGlucose / float64(totalStats.TotalMinutes))
 
 		// we only add GMI if cgm use >70%, otherwise clear it
 		if *newPeriod.TimeCGMUsePercent > 0.7 {
 			newPeriod.HasGlucoseManagementIndicator = true
-			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(newPeriod.AverageGlucose.Value))
+			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(*newPeriod.AverageGlucoseMmol))
 		}
 	}
 

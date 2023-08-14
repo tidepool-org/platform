@@ -26,9 +26,9 @@ type BGMBucketData struct {
 }
 
 type BGMPeriod struct {
-	HasAverageGlucose   bool     `json:"hasAverageGlucose" bson:"hasAverageGlucose"`
-	AverageGlucose      *Glucose `json:"averageGlucose" bson:"averageGlucose"`
-	AverageGlucoseDelta *float64 `json:"averageGlucoseDelta" bson:"averageGlucoseDelta"`
+	HasAverageGlucoseMmol   bool     `json:"hasAverageGlucoseMmol" bson:"hasAverageGlucoseMmol"`
+	AverageGlucoseMmol      *float64 `json:"averageGlucoseMmol" bson:"averageGlucoseMmol"`
+	AverageGlucoseMmolDelta *float64 `json:"averageGlucoseMmolDelta" bson:"averageGlucoseMmolDelta"`
 
 	HasTotalRecords   bool `json:"hasTotalRecords" bson:"hasTotalRecords"`
 	TotalRecords      *int `json:"totalRecords" bson:"totalRecords"`
@@ -228,11 +228,11 @@ func (s *BGMStats) CalculateDelta() {
 	// approach.
 
 	for k := range s.Periods {
-		if s.Periods[k].AverageGlucose != nil && s.OffsetPeriods[k].AverageGlucose != nil {
-			delta := s.Periods[k].AverageGlucose.Value - s.OffsetPeriods[k].AverageGlucose.Value
+		if s.Periods[k].AverageGlucoseMmol != nil && s.OffsetPeriods[k].AverageGlucoseMmol != nil {
+			delta := *s.Periods[k].AverageGlucoseMmol - *s.OffsetPeriods[k].AverageGlucoseMmol
 
-			s.Periods[k].AverageGlucoseDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].AverageGlucoseDelta = pointer.FromAny(-delta)
+			s.Periods[k].AverageGlucoseMmolDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].AverageGlucoseMmolDelta = pointer.FromAny(-delta)
 		}
 
 		if s.Periods[k].TotalRecords != nil && s.OffsetPeriods[k].TotalRecords != nil {
@@ -368,11 +368,8 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 		newPeriod.HasTimeInVeryHighPercent = true
 		newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords) / float64(totalStats.TotalRecords))
 
-		newPeriod.HasAverageGlucose = true
-		newPeriod.AverageGlucose = &Glucose{
-			Value: totalStats.TotalGlucose / float64(totalStats.TotalRecords),
-			Units: glucose.MmolL,
-		}
+		newPeriod.HasAverageGlucoseMmol = true
+		newPeriod.AverageGlucoseMmol = pointer.FromAny(totalStats.TotalGlucose / float64(totalStats.TotalRecords))
 	}
 
 	if offset {
