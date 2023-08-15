@@ -55,7 +55,7 @@ func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID stri
 	// Because there may be some dataSets in the old deviceData collection we
 	// must read from both and merge the results while migration isn't
 	// complete. Can delete this code when migration is complete.
-	merged := mergeSortedUploads(newUploads, prevUploads)
+	merged := MergeSortedUploads(newUploads, prevUploads)
 	if pagination != nil && len(merged) > pagination.Size {
 		merged = merged[:pagination.Size]
 	}
@@ -131,7 +131,7 @@ func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, fi
 	// Because there may be some dataSets in the old deviceData collection we
 	// must read from both and merge the results while migration isn't
 	// complete. Can delete this code when migration is complete.
-	merged := mergeSortedDataSets(newDataSets, prevDataSets)
+	merged := MergeSortedDataSets(newDataSets, prevDataSets)
 	if pagination != nil && len(merged) > pagination.Size {
 		merged = merged[:pagination.Size]
 	}
@@ -465,8 +465,8 @@ func (d *DataRepository) mongoClient() *mongo.Client {
 	return d.DatumRepository.Database().Client()
 }
 
-// mergeSortedUploads combines the unique Uploads by UploadID into a new slice.
-func mergeSortedUploads(newUploads, prevUploads []*upload.Upload) []*upload.Upload {
+// MergeSortedUploads combines the unique Uploads by UploadID into a new slice.
+func MergeSortedUploads(newUploads, prevUploads []*upload.Upload) []*upload.Upload {
 	combined := make([]*upload.Upload, 0, len(newUploads)+len(prevUploads))
 
 	// Merge the two datasets like the merge step in merge sort. Note we don't
@@ -482,7 +482,10 @@ func mergeSortedUploads(newUploads, prevUploads []*upload.Upload) []*upload.Uplo
 			combined = append(combined, newUploads[newCounter])
 			newCounter++
 		}
-		combined = append(combined, prevUploads[newCounter])
+		// Always add the dataSet/upload in the "old" deviceData collection
+		// because the dataSet/upload may not have been finished migrating
+		// into the new deviceDataSets collection
+		combined = append(combined, dataSet)
 		// Skip duplicate of newUploads in prevUploads if it exists.
 		if newCounter < len(newUploads) && *newUploads[newCounter].UploadID == *dataSet.UploadID {
 			newCounter++
@@ -492,8 +495,8 @@ func mergeSortedUploads(newUploads, prevUploads []*upload.Upload) []*upload.Uplo
 	return combined
 }
 
-// mergeSortedDataSets combines the unique Uploads by UploadID into a new slice.
-func mergeSortedDataSets(newDataSets, prevDataSets data.DataSets) data.DataSets {
+// MergeSortedDataSets combines the unique Uploads by UploadID into a new slice.
+func MergeSortedDataSets(newDataSets, prevDataSets data.DataSets) data.DataSets {
 	combined := make(data.DataSets, 0, len(newDataSets)+len(prevDataSets))
 
 	// Merge the two datasets like the merge step in merge sort. Note we don't
@@ -509,7 +512,10 @@ func mergeSortedDataSets(newDataSets, prevDataSets data.DataSets) data.DataSets 
 			combined = append(combined, newDataSets[newCounter])
 			newCounter++
 		}
-		combined = append(combined, prevDataSets[newCounter])
+		// Always add the dataSet/upload in the "old" deviceData collection
+		// because the dataSet/upload may not have been finished migrating
+		// into the new deviceDataSets collection
+		combined = append(combined, dataSet)
 		// Skip duplicate of newDataSets in prevDataSets if it exists.
 		if newCounter < len(newDataSets) && *newDataSets[newCounter].UploadID == *dataSet.UploadID {
 			newCounter++
