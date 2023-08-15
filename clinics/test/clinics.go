@@ -17,7 +17,7 @@ func NewRandomClinic() api.Clinic {
 		ClinicType:       pointer.FromAny(test.RandomChoice([]api.ClinicClinicType{api.HealthcareSystem, api.VeterinaryClinic, api.Other})),
 		Country:          pointer.FromAny(faker.Address().Country()),
 		CreatedTime:      pointer.FromAny(test.RandomTimeFromRange(test.RandomTimeMinimum(), test.RandomTimeMaximum())),
-		Id:               pointer.FromAny(primitive.NewObjectID().Hex()),
+		Id:               pointer.FromAny(primitive.NewObjectIDFromTimestamp(test.RandomTimeFromRange(test.RandomTimeMinimum(), test.RandomTimeMaximum())).Hex()),
 		Name:             faker.Company().Name(),
 		PhoneNumbers:     pointer.FromAny([]api.PhoneNumber{{Number: faker.PhoneNumber().PhoneNumber()}}),
 		PostalCode:       pointer.FromAny(faker.Address().ZipCode()),

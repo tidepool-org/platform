@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = AvailableAfterDurationMinimum + 1*time.Hour
-	AvailableAfterDurationMinimum = 14*24*time.Hour - 30*time.Minute
+	AvailableAfterDurationMaximum = 75 * time.Minute
+	AvailableAfterDurationMinimum = 45 * time.Minute
 	TaskDurationMaximum           = 5 * time.Minute
 )
 
@@ -58,6 +58,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	serverSessionToken, err := r.authClient.ServerSessionToken()
 	if err != nil {
 		tsk.AppendError(errors.Wrap(err, "unable to get server session token"))
+		return true
 	}
 
 	ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
@@ -97,7 +98,7 @@ func (r *Runner) getSyncTasks(ctx context.Context) (map[string]task.Task, error)
 		Size: 1000,
 	}
 
-	tasksByClinicId := map[string]task.Task{}
+	tasksByClinicId := make(map[string]task.Task)
 	for {
 		tasks, err := r.taskClient.ListTasks(ctx, &filter, &pagination)
 		if err != nil {
@@ -105,6 +106,7 @@ func (r *Runner) getSyncTasks(ctx context.Context) (map[string]task.Task, error)
 		}
 
 		for _, tsk := range tasks {
+			tsk := tsk
 			clinicId, err := sync.GetClinicId(tsk.Data)
 			if err != nil {
 				r.logger.Errorf("unable to get clinicId from task data (taskId %v): %v", tsk.ID, err)
@@ -148,8 +150,8 @@ func GetReconciliationPlan(syncTasks map[string]task.Task, clinics []api.Clinic)
 	// and toCreate will contain tasks for new clinics that need to be synced.
 	for _, clinic := range clinics {
 		clinicId := *clinic.Id
-
 		_, exists := syncTasks[clinicId]
+
 		if exists {
 			delete(syncTasks, clinicId)
 		} else {

@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = 75 * time.Minute
-	AvailableAfterDurationMinimum = 45 * time.Minute
+	AvailableAfterDurationMaximum = AvailableAfterDurationMinimum + 1*time.Hour
+	AvailableAfterDurationMinimum = 14*24*time.Hour - 30*time.Minute
 	TaskDurationMaximum           = 5 * time.Minute
 )
 
