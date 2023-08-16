@@ -183,8 +183,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	}
 
 	if len(t.task.Data) == 0 {
-		t.task.SetFailed()
-		return errors.New("data is missing")
+		return t.failTask(errors.New("data is missing"))
 	}
 
 	t.context = ctx
@@ -204,7 +203,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	}
 	if err := t.fetchSinceLatestDataTime(); err != nil {
 		if request.IsErrorUnauthenticated(errors.Cause(err)) {
-			t.task.SetFailed()
+			t.failTask(err)
 			if updateErr := t.updateDataSourceWithError(err); updateErr != nil {
 				t.Logger().WithError(updateErr).Error("unable to update data source with error")
 			}
@@ -217,16 +216,14 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 func (t *TaskRunner) getProviderSession() error {
 	providerSessionID, ok := t.task.Data["providerSessionId"].(string)
 	if !ok || providerSessionID == "" {
-		t.task.SetFailed()
-		return errors.New("provider session id is missing")
+		return t.failTask(errors.New("provider session id is missing"))
 	}
 
 	providerSession, err := t.AuthClient().GetProviderSession(t.context, providerSessionID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get provider session")
 	} else if providerSession == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "provider session is missing")
+		return t.failTask(errors.Wrap(err, "provider session is missing"))
 	}
 	t.providerSession = providerSession
 
@@ -247,27 +244,30 @@ func (t *TaskRunner) updateProviderSession() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to update provider session")
 	} else if providerSession == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "provider session is missing")
+		return t.failTask(errors.Wrap(err, "provider session is missing"))
 	}
 	t.providerSession = providerSession
 
 	return nil
 }
 
+func (t *TaskRunner) failTask(err error) error {
+	t.task.SetFailed()
+	t.logger.Warnf("dexcom task failed: %s", err)
+	return err
+}
+
 func (t *TaskRunner) getDataSource() error {
 	dataSourceID, ok := t.task.Data["dataSourceId"].(string)
 	if !ok || dataSourceID == "" {
-		t.task.SetFailed()
-		return errors.New("data source id is missing")
+		return t.failTask(errors.New("data source id is missing"))
 	}
 
 	source, err := t.DataSourceClient().Get(t.context, dataSourceID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get data source")
 	} else if source == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data source is missing")
+		return t.failTask(errors.Wrap(err, "data source is missing"))
 	}
 	t.dataSource = source
 
@@ -320,8 +320,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to update data source")
 	} else if source == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data source is missing")
+		return t.failTask(errors.Wrap(err, "data source is missing"))
 	}
 
 	t.dataSource = source
@@ -331,8 +330,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 func (t *TaskRunner) createTokenSource() error {
 	tokenSource, err := oauthToken.NewSourceWithToken(t.providerSession.OAuthToken)
 	if err != nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "unable to create token source")
+		return t.failTask(errors.Wrap(err, "unable to create token source"))
 	}
 
 	t.tokenSource = tokenSource
@@ -346,16 +344,14 @@ func (t *TaskRunner) getDeviceHashes() error {
 	}
 	rawMap, rawMapOK := raw.(map[string]interface{})
 	if !rawMapOK || rawMap == nil {
-		t.task.SetFailed()
-		return errors.New("device hashes is invalid")
+		return t.failTask(errors.New("device hashes is invalid"))
 	}
 	deviceHashes := map[string]string{}
 	for key, value := range rawMap {
 		if valueString, valueStringOK := value.(string); valueStringOK {
 			deviceHashes[key] = valueString
 		} else {
-			t.task.SetFailed()
-			return errors.New("device hash is invalid")
+			return t.failTask(errors.New("device hash is invalid"))
 		}
 	}
 
@@ -390,8 +386,7 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to update data set")
 	} else if dataSet == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data set is missing")
+		return t.failTask(errors.Wrap(err, "data set is missing"))
 	}
 
 	t.dataSet = dataSet
