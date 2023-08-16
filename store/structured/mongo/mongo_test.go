@@ -20,6 +20,13 @@ var _ = Describe("Mongo", func() {
 		var config *storeStructuredMongo.Config
 		var store *storeStructuredMongo.Store
 		var repository *storeStructuredMongo.Repository
+		// unusedIPs for testing error paths. These IPs are defined in
+		// TEST-NET-3, for documentation and examples, so in theory they
+		// should be unused. Details at:
+		// https://datatracker.ietf.org/doc/html/rfc5737
+		unusedIPs := []string{
+			"203.0.113.2", "203.0.113.3",
+		}
 
 		BeforeEach(func() {
 			config = storeStructuredMongoTest.NewConfig()
@@ -49,7 +56,7 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns an error if the addresses are not reachable", func() {
-				config.Addresses = []string{"127.0.0.2", "127.0.0.3"}
+				config.Addresses = unusedIPs
 				var err error
 				store, err = storeStructuredMongo.NewStore(config)
 				Expect(store).ToNot(BeNil())
@@ -60,7 +67,7 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns the correct status if the addresses are not reachable", func() {
-				config.Addresses = []string{"127.0.0.2", "127.0.0.3"}
+				config.Addresses = unusedIPs
 				var err error
 				store, err = storeStructuredMongo.NewStore(config)
 				Expect(store).ToNot(BeNil())
