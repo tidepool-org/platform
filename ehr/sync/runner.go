@@ -12,9 +12,11 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = AvailableAfterDurationMinimum + 1*time.Hour
-	AvailableAfterDurationMinimum = 14*24*time.Hour - 30*time.Minute
-	TaskDurationMaximum           = 5 * time.Minute
+	OnSuccessAvailableAfterDurationMaximum = OnSuccessAvailableAfterDurationMinimum + 1*time.Hour
+	OnSuccessAvailableAfterDurationMinimum = 14*24*time.Hour - 30*time.Minute
+	OnErrorAvailableAfterDurationMaximum   = OnErrorAvailableAfterDurationMinimum + 5*time.Minute
+	OnErrorAvailableAfterDurationMinimum   = 1*time.Hour - 5*time.Minute
+	TaskDurationMaximum                    = 5 * time.Minute
 )
 
 type Runner struct {
@@ -45,19 +47,14 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 	tsk.ClearError()
 
-	clinicId, err := GetClinicId(tsk.Data)
-	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to get clinicId from task data"))
-		return true
-	}
-
-	err = r.clinicsClient.SyncEHRData(ctx, clinicId)
-	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to sync ehr data"))
-	}
+	r.doRun(ctx, tsk)
 
 	if !tsk.IsFailed() {
-		tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
+		if tsk.HasError() {
+			tsk.RepeatAvailableAfter(OnErrorAvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(OnErrorAvailableAfterDurationMaximum-OnErrorAvailableAfterDurationMinimum+1))))
+		} else {
+			tsk.RepeatAvailableAfter(OnSuccessAvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(OnSuccessAvailableAfterDurationMaximum-OnSuccessAvailableAfterDurationMinimum+1))))
+		}
 	}
 
 	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
@@ -65,4 +62,19 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	}
 
 	return true
+}
+
+func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
+	clinicId, err := GetClinicId(tsk.Data)
+	if err != nil {
+		tsk.AppendError(errors.Wrap(err, "unable to get clinicId from task data"))
+		// Unrecoverable condition, move the task to failed state so it won't be retried
+		tsk.SetFailed()
+		return
+	}
+
+	err = r.clinicsClient.SyncEHRData(ctx, clinicId)
+	if err != nil {
+		tsk.AppendError(errors.Wrap(err, "unable to sync ehr data"))
+	}
 }
