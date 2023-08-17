@@ -262,8 +262,237 @@ var _ = Describe("Mongo", func() {
 		})
 	})
 
+	Context("Utility Functions", func() {
+		Context("MergeSortedUploads", func() {
+			prevUpload1 := &upload.Upload{
+				Base: types.Base{
+					Active:          true,
+					CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					CreatedUserID:   pointer.FromString("user1"),
+					DeviceID:        pointer.FromString("deviceId"),
+					DeviceTime:      pointer.FromString("2016-12-01T20:21:23"),
+					GUID:            pointer.FromString("guid1"),
+					ID:              pointer.FromString("id1"),
+					ModifiedTime:    pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Source:          pointer.FromString("source"),
+					Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Type:            "upload",
+					UploadID:        pointer.FromString("upload1"),
+					UserID:          pointer.FromString("user1"),
+					VersionInternal: 0,
+				},
+			}
+			prevUpload2 := &upload.Upload{
+				Base: types.Base{
+					Active:          true,
+					CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					CreatedUserID:   pointer.FromString("user1"),
+					DeviceID:        pointer.FromString("deviceId"),
+					DeviceTime:      pointer.FromString("2017-12-01T20:21:23"),
+					GUID:            pointer.FromString("guid2"),
+					ID:              pointer.FromString("id2"),
+					ModifiedTime:    pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Source:          pointer.FromString("source"),
+					Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Type:            "upload",
+					UploadID:        pointer.FromString("upload2"),
+					UserID:          pointer.FromString("user1"),
+					VersionInternal: 0,
+				},
+			}
+			newUpload1 := &upload.Upload{
+				Base: types.Base{
+					Active:          true,
+					CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					CreatedUserID:   pointer.FromString("user1"),
+					DeviceID:        pointer.FromString("deviceId"),
+					DeviceTime:      pointer.FromString("2016-12-01T20:21:23"),
+					GUID:            pointer.FromString("guid1"),
+					ID:              pointer.FromString("id1"),
+					ModifiedTime:    pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Source:          pointer.FromString("source"),
+					Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Type:            "upload",
+					UploadID:        pointer.FromString("upload1"),
+					UserID:          pointer.FromString("user1"),
+					VersionInternal: 1,
+				},
+			}
+			newUpload2 := &upload.Upload{
+				Base: types.Base{
+					Active:          true,
+					CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					CreatedUserID:   pointer.FromString("user1"),
+					DeviceID:        pointer.FromString("deviceId"),
+					DeviceTime:      pointer.FromString("2017-12-01T20:21:23"),
+					GUID:            pointer.FromString("guid2"),
+					ID:              pointer.FromString("id2"),
+					ModifiedTime:    pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Source:          pointer.FromString("source"),
+					Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+					Type:            "upload",
+					UploadID:        pointer.FromString("upload2"),
+					UserID:          pointer.FromString("user1"),
+					VersionInternal: 1,
+				},
+			}
+			It("works with more previous Uploads than new Uploads", func() {
+				prevSets := []*upload.Upload{
+					prevUpload1,
+					prevUpload2,
+				}
+				newSets := []*upload.Upload{
+					newUpload1,
+				}
+				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
+				Expect(len(sets)).To(Equal(2))
+				Expect(sets[0]).To(Equal(prevUpload1))
+				Expect(sets[1]).To(Equal(prevUpload2))
+			})
+
+			It("works with more new Uploads than previous Uploads", func() {
+				prevSets := []*upload.Upload{
+					prevUpload2,
+				}
+				newSets := []*upload.Upload{
+					newUpload1,
+					newUpload2,
+				}
+				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
+				Expect(len(sets)).To(Equal(2))
+				Expect(sets[0]).To(Equal(newUpload1))
+				Expect(sets[1]).To(Equal(prevUpload2))
+			})
+
+			It("works with equal new Uploads and previous Uploads", func() {
+				prevSets := []*upload.Upload{
+					prevUpload1,
+					prevUpload2,
+				}
+				newSets := []*upload.Upload{
+					newUpload1,
+					newUpload2,
+				}
+				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
+				Expect(len(sets)).To(Equal(2))
+				Expect(sets[0]).To(Equal(prevUpload1))
+				Expect(sets[1]).To(Equal(prevUpload2))
+			})
+		})
+
+		Context("MergeSortedDataSets", func() {
+			prevDataSet1 := &data.DataSet{
+				Active:          true,
+				ByUser:          pointer.FromString("abcdef"),
+				ComputerTime:    pointer.FromString("2016-12-01T20:21:23"),
+				CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				DataSetType:     pointer.FromString("upload"),
+				DeviceID:        pointer.FromString("my-device"),
+				DeviceModel:     pointer.FromString("device-model"),
+				ID:              pointer.FromString("1"),
+				Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				Type:            "upload",
+				UploadID:        pointer.FromString("1"),
+				UserID:          pointer.FromString("User1"),
+				Version:         pointer.FromString("0"),
+				VersionInternal: 0,
+			}
+			prevDataSet2 := &data.DataSet{
+				Active:          true,
+				ByUser:          pointer.FromString("abcdef"),
+				ComputerTime:    pointer.FromString("2017-12-01T20:21:23"),
+				CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				DataSetType:     pointer.FromString("upload"),
+				DeviceID:        pointer.FromString("my-device"),
+				DeviceModel:     pointer.FromString("device-model"),
+				ID:              pointer.FromString("2"),
+				Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				Type:            "upload",
+				UploadID:        pointer.FromString("2"),
+				UserID:          pointer.FromString("User1"),
+				Version:         pointer.FromString("0"),
+				VersionInternal: 0,
+			}
+			newDataSet1 := &data.DataSet{
+				Active:          true,
+				ByUser:          pointer.FromString("abcdef"),
+				ComputerTime:    pointer.FromString("2016-12-01T20:21:23"),
+				CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				DataSetType:     pointer.FromString("upload"),
+				DeviceID:        pointer.FromString("my-device"),
+				DeviceModel:     pointer.FromString("device-model"),
+				ID:              pointer.FromString("1"),
+				Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				Type:            "upload",
+				UploadID:        pointer.FromString("1"),
+				UserID:          pointer.FromString("User1"),
+				Version:         pointer.FromString("1"),
+				VersionInternal: 1,
+			}
+			newDataSet2 := &data.DataSet{
+				Active:          true,
+				ByUser:          pointer.FromString("abcdef"),
+				ComputerTime:    pointer.FromString("2017-12-01T20:21:23"),
+				CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				DataSetType:     pointer.FromString("upload"),
+				DeviceID:        pointer.FromString("my-device"),
+				DeviceModel:     pointer.FromString("device-model"),
+				ID:              pointer.FromString("2"),
+				Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
+				Type:            "upload",
+				UploadID:        pointer.FromString("2"),
+				UserID:          pointer.FromString("User1"),
+				Version:         pointer.FromString("1"),
+				VersionInternal: 1,
+			}
+
+			It("works with more previous DataSets than new DataSets", func() {
+				prevSets := data.DataSets{
+					prevDataSet1,
+					prevDataSet2,
+				}
+				newSets := data.DataSets{
+					newDataSet1,
+				}
+				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
+				Expect(len(sets)).To(Equal(2))
+				Expect(sets[0]).To(Equal(prevDataSet1))
+				Expect(sets[1]).To(Equal(prevDataSet2))
+			})
+
+			It("works with more new DataSets than previous DataSets", func() {
+				prevSets := data.DataSets{
+					prevDataSet1,
+				}
+				newSets := data.DataSets{
+					newDataSet1,
+					newDataSet2,
+				}
+				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
+				Expect(len(sets)).To(Equal(2))
+				Expect(sets[0]).To(Equal(prevDataSet1))
+				Expect(sets[1]).To(Equal(newDataSet2))
+			})
+
+			It("works with equal new DataSets and previous DataSets", func() {
+				prevSets := data.DataSets{
+					prevDataSet1,
+					prevDataSet2,
+				}
+				newSets := data.DataSets{
+					newDataSet1,
+					newDataSet2,
+				}
+				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
+				Expect(len(sets)).To(Equal(2))
+				Expect(sets[0]).To(Equal(prevDataSet1))
+				Expect(sets[1]).To(Equal(prevDataSet2))
+			})
+		})
+	})
 	Context("with a new store", func() {
 		var collection *mongo.Collection
+		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
 
 		BeforeEach(func() {
@@ -272,14 +501,16 @@ var _ = Describe("Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			collection = store.GetCollection("deviceData")
+			dataSetCollection = store.GetCollection("deviceDataSets")
 			summaryCollection = store.GetCollection("summary")
 			Expect(store.EnsureIndexes()).To(Succeed())
 		})
 
 		AfterEach(func() {
 			if collection != nil {
-				_ = collection.Database().Drop(context.Background())
-				_ = summaryCollection.Database().Drop(context.Background())
+				collection.Database().Drop(context.Background())
+				dataSetCollection.Database().Drop(context.Background())
+				summaryCollection.Database().Drop(context.Background())
 			}
 		})
 
@@ -406,22 +637,23 @@ var _ = Describe("Mongo", func() {
 				preparePersistedDataSets := func() {
 					createdTimeOther, _ := time.Parse(time.RFC3339, "2016-09-01T12:00:00Z")
 					collection = store.GetCollection("deviceData")
+					dataSetCollection = store.GetCollection("deviceDataSets")
 					dataSetExistingOther = NewDataSet(userTest.RandomID(), dataTest.NewDeviceID())
 					dataSetExistingOther.CreatedTime = pointer.FromTime(createdTimeOther)
 					dataSetExistingOther.ModifiedTime = pointer.FromTime(createdTimeOther)
-					_, err := collection.InsertOne(context.Background(), dataSetExistingOther)
+					_, err := dataSetCollection.InsertOne(context.Background(), dataSetExistingOther)
 					Expect(err).ToNot(HaveOccurred())
 					dataSetExistingOne = NewDataSet(userID, deviceID)
 					createdTimeOne, _ := time.Parse(time.RFC3339, "2016-09-01T12:30:00Z")
 					dataSetExistingOne.CreatedTime = pointer.FromTime(createdTimeOne)
 					dataSetExistingOne.ModifiedTime = pointer.FromTime(createdTimeOne)
-					_, err = collection.InsertOne(context.Background(), dataSetExistingOne)
+					_, err = dataSetCollection.InsertOne(context.Background(), dataSetExistingOne)
 					Expect(err).ToNot(HaveOccurred())
 					dataSetExistingTwo = NewDataSet(userID, deviceID)
 					createdTimeTwo, _ := time.Parse(time.RFC3339, "2016-09-01T10:00:00Z")
 					dataSetExistingTwo.CreatedTime = pointer.FromTime(createdTimeTwo)
 					dataSetExistingTwo.ModifiedTime = pointer.FromTime(createdTimeTwo)
-					_, err = collection.InsertOne(context.Background(), dataSetExistingTwo)
+					_, err = dataSetCollection.InsertOne(context.Background(), dataSetExistingTwo)
 					Expect(err).ToNot(HaveOccurred())
 				}
 
@@ -473,7 +705,7 @@ var _ = Describe("Mongo", func() {
 					Context("with database access", func() {
 						BeforeEach(func() {
 							preparePersistedDataSets()
-							_, err := collection.InsertOne(context.Background(), dataSet)
+							_, err := dataSetCollection.InsertOne(context.Background(), dataSet)
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -511,7 +743,7 @@ var _ = Describe("Mongo", func() {
 							BeforeEach(func() {
 								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T13:00:00Z")
 								dataSet.DeletedTime = pointer.FromTime(createdTime)
-								result := collection.FindOneAndReplace(context.Background(), bson.M{"id": dataSet.ID}, dataSet)
+								result := dataSetCollection.FindOneAndReplace(context.Background(), bson.M{"id": dataSet.ID}, dataSet)
 								Expect(result.Err()).ToNot(HaveOccurred())
 							})
 
@@ -544,7 +776,7 @@ var _ = Describe("Mongo", func() {
 					Context("with database access", func() {
 						BeforeEach(func() {
 							preparePersistedDataSets()
-							_, err := collection.InsertOne(context.Background(), dataSet)
+							_, err := dataSetCollection.InsertOne(context.Background(), dataSet)
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -616,7 +848,7 @@ var _ = Describe("Mongo", func() {
 
 							// Make sure the values are set in the db as well.
 							var result *upload.Upload
-							err := collection.FindOne(context.Background(), bson.M{"uploadId": dataSet.UploadID}).Decode(&result)
+							err := dataSetCollection.FindOne(context.Background(), bson.M{"uploadId": dataSet.UploadID}).Decode(&result)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(*result.CreatedTime).To(Equal(*dataSet.CreatedTime))
 							Expect(*result.ModifiedTime).To(Equal(*dataSet.ModifiedTime))
@@ -625,9 +857,9 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored data sets", func() {
-							ValidateDataSet(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+							ValidateDataSet(dataSetCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
 							Expect(repository.CreateDataSet(ctx, dataSet)).To(Succeed())
-							ValidateDataSet(collection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+							ValidateDataSet(dataSetCollection, bson.M{"createdTime": bson.M{"$exists": true}, "createdUserId": bson.M{"$exists": false}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
 						})
 					})
 				})
@@ -681,13 +913,20 @@ var _ = Describe("Mongo", func() {
 							createdTime := time.Now().UTC().Truncate(time.Millisecond)
 							dataSet.CreatedTime = pointer.FromTime(createdTime)
 							dataSet.ModifiedTime = pointer.FromTime(createdTime)
-							_, err := collection.InsertOne(context.Background(), dataSet)
+							// Insert in BOTH collections to mimick the
+							// migration where dataSet will be in deviceData
+							// and deviceDataSets. This is because while
+							// migration happens an update to a dataset will
+							// only succeed if it is still in the old deviceData collection.
+							_, err := dataSetCollection.InsertOne(context.Background(), dataSet)
+							Expect(err).ToNot(HaveOccurred())
+							_, err = collection.InsertOne(context.Background(), dataSet)
 							Expect(err).ToNot(HaveOccurred())
 							id = *dataSet.UploadID
 						})
 
 						AfterEach(func() {
-							logger.AssertDebug("UpdateDataSet", log.Fields{"id": id, "update": update})
+							logger.AssertDebug("DatumRepository.UpdateDataSet", log.Fields{"id": id, "update": update})
 						})
 
 						Context("with updates", func() {
@@ -724,9 +963,9 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("has the correct stored data sets", func() {
-							ValidateDataSet(collection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+							ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
 							// All newly created data now includes the modifiedTime as well.
-							ValidateDataSet(collection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
+							ValidateDataSet(dataSetCollection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, dataSet)
 							update = data.NewDataSetUpdate()
 							update.State = pointer.FromString("closed")
 							result, err := repository.UpdateDataSet(ctx, id, update)
@@ -734,8 +973,15 @@ var _ = Describe("Mongo", func() {
 							Expect(result).ToNot(BeNil())
 							Expect(result.State).ToNot(BeNil())
 							Expect(*result.State).To(Equal("closed"))
-							ValidateDataSet(collection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
-							ValidateDataSet(collection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
+							ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
+							ValidateDataSet(dataSetCollection, bson.M{"modifiedTime": bson.M{"$exists": true}}, bson.M{}, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, result)
+
+							// Updating an existing dataset that lives in the
+							// previous deviceData collection via
+							// DatumRepository should also call
+							// DataSetRepository.upsertDataSet to upsert the
+							// data set into the new deviceDataSets repo
+							logger.AssertDebug("DataSetRepository.upsertDataSet", log.Fields{"id": id, "update": update})
 						})
 					})
 				})
@@ -748,7 +994,14 @@ var _ = Describe("Mongo", func() {
 
 					preparePersistedDataSetsData := func() {
 						preparePersistedDataSets()
+						// Insert in BOTH collections to mimick the
+						// migration where dataSet will be in deviceData
+						// and deviceDataSets. This is because while
+						// migration happens an update to a dataset will
+						// only succeed if it is still in the old deviceData collection.
 						_, err := collection.InsertOne(context.Background(), dataSet)
+						Expect(err).ToNot(HaveOccurred())
+						_, err = dataSetCollection.InsertOne(context.Background(), dataSet)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(repository.CreateDataSetData(ctx, dataSetExistingOther, dataSetExistingOtherData)).To(Succeed())
 						Expect(repository.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneData)).To(Succeed())
@@ -809,9 +1062,9 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored data sets", func() {
-								ValidateDataSet(collection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
+								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{})
 								Expect(repository.DeleteDataSet(ctx, dataSet)).To(Succeed())
-								ValidateDataSet(collection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
+								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet)
 							})
 
 							It("has the correct stored data set data", func() {
@@ -969,14 +1222,14 @@ var _ = Describe("Mongo", func() {
 										preparePersistedDataSetsData()
 										Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"_active": true}, bson.M{}, data.Data{})
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds and has the correct stored active data set data", func() {
 										Expect(repository.ActivateDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										selectedDataSetData.SetActive(true)
 										ValidateDataSetData(collection, bson.M{"_active": true}, bson.M{"modifiedTime": 0}, selectedDataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
@@ -1106,14 +1359,14 @@ var _ = Describe("Mongo", func() {
 										Expect(repository.ActivateDataSetData(ctx, dataSet, nil)).To(Succeed())
 										dataSetData.SetActive(true)
 										ValidateDataSetData(collection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, data.Data{})
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds and has the correct stored active data set data", func() {
 										Expect(repository.ArchiveDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										selectedDataSetData.SetActive(false)
 										ValidateDataSetData(collection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"archivedTime": 0, "modifiedTime": 0}, selectedDataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds and updates .modifiedTime", func() {
@@ -1250,14 +1503,14 @@ var _ = Describe("Mongo", func() {
 										preparePersistedDataSetsData()
 										Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"modifiedTime": 0}, data.Data{})
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds and has the correct stored active data set data", func() {
 										Expect(repository.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										selectedDataSetData.SetActive(false)
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, selectedDataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
@@ -1386,13 +1639,13 @@ var _ = Describe("Mongo", func() {
 										Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 										Expect(repository.DeleteDataSetData(ctx, dataSet, nil)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, dataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds and has the correct stored active data set data", func() {
 										Expect(repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, unselectedDataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
@@ -1520,13 +1773,13 @@ var _ = Describe("Mongo", func() {
 										preparePersistedDataSetsData()
 										Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, dataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds and has the correct stored active data set data", func() {
 										Expect(repository.DestroyDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, unselectedDataSetData)
-										ValidateDataSet(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
+										ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSet.UploadID}, bson.M{}, dataSet)
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
@@ -1673,9 +1926,9 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored data sets", func() {
-								ValidateDataSet(collection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+								ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
 								Expect(repository.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-								ValidateDataSet(collection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+								ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
 							})
 
 							It("has the correct stored archived data set data", func() {
@@ -1759,9 +2012,9 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored data sets", func() {
-								ValidateDataSet(collection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+								ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
 								Expect(repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet)).To(Succeed())
-								ValidateDataSet(collection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
+								ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSetExistingOne.UploadID, "_active": true}, bson.M{}, dataSetExistingOne)
 							})
 
 							It("has the correct stored unarchived data set data", func() {
@@ -1786,9 +2039,9 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored data sets if an intermediary is unarchived", func() {
-								ValidateDataSet(collection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
+								ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
 								Expect(repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSetExistingOne)).To(Succeed())
-								ValidateDataSet(collection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
+								ValidateDataSet(dataSetCollection, bson.M{"uploadId": dataSetExistingTwo.UploadID, "_active": true}, bson.M{}, dataSetExistingTwo)
 							})
 
 							It("has the correct stored unarchived data set data if an intermediary is unarchived", func() {
@@ -1865,12 +2118,12 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored active data set", func() {
-								ValidateDataSet(collection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-								ValidateDataSet(collection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+								ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
 								Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-								Expect(collection.CountDocuments(ctx, bson.M{"type": "upload"})).To(Equal(int64(4)))
-								ValidateDataSet(collection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
-								ValidateDataSet(collection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
+								Expect(dataSetCollection.CountDocuments(ctx, bson.M{"type": "upload"})).To(Equal(int64(4)))
+								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
+								ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
 							})
 
 							It("has the correct stored active data set data", func() {
@@ -1907,7 +2160,14 @@ var _ = Describe("Mongo", func() {
 								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
 								destroyDataSet.CreatedTime = pointer.FromTime(createdTime)
 								destroyDataSet.ModifiedTime = pointer.FromTime(createdTime)
+								// Insert in BOTH collections to mimick the
+								// migration where dataSet will be in deviceData
+								// and deviceDataSets. This is because while
+								// migration happens an update to a dataset will
+								// only succeed if it is still in the old deviceData collection.
 								_, err := collection.InsertOne(context.Background(), destroyDataSet)
+								Expect(err).ToNot(HaveOccurred())
+								_, err = dataSetCollection.InsertOne(context.Background(), destroyDataSet)
 								Expect(err).ToNot(HaveOccurred())
 								destroyDataSetData = NewDataSetData(destroyDeviceID)
 								Expect(repository.CreateDataSetData(ctx, destroyDataSet, destroyDataSetData)).To(Succeed())
@@ -1918,9 +2178,9 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("has the correct stored data sets", func() {
-								ValidateDataSet(collection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, destroyDataSet)
+								ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo, destroyDataSet)
 								Expect(repository.DestroyDataForUserByID(ctx, destroyUserID)).To(Succeed())
-								ValidateDataSet(collection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
+								ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
 							})
 
 							It("has the correct stored data set data", func() {
