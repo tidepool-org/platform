@@ -578,7 +578,8 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 	}
 	datumArray := data.Data{}
 	t.logger.Debugf("total alerts found %d", len(*response.Alerts))
-	for _, c := range *response.Alerts {
+	for i, c := range *response.Alerts {
+		t.logger.Debugf("alert[%d] %v", i, c)
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateAlertToDatum(c, response.RecordVersion))
 		}
