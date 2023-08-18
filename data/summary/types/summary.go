@@ -386,3 +386,22 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 	return nil
 }
+
+func GetStartTime[T Stats, A StatsPt[T]](userSummary *Summary[T, A], status *UserLastUpdated) time.Time {
+	// remove HoursAgoToKeep/24 days for start time
+	startTime := status.LastData.AddDate(0, 0, -HoursAgoToKeep/24)
+
+	if userSummary.Dates.LastData != nil {
+		// if summary already exists with a last data checkpoint, start data pull there
+		if startTime.Before(*userSummary.Dates.LastData) {
+			startTime = *userSummary.Dates.LastData
+		}
+
+		// ensure LastData does not move backwards by capping it at summary LastData
+		if status.LastData.Before(*userSummary.Dates.LastData) {
+			status.LastData = *userSummary.Dates.LastData
+		}
+	}
+
+	return startTime
+}

@@ -162,24 +162,11 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		return userSummary, nil
 	}
 
+	startTime := types.GetStartTime(userSummary, status)
+
 	// user exists (has relevant data), but no summary, create a blank one
 	if userSummary == nil {
 		userSummary = types.Create[T, A](userId)
-	}
-
-	// remove HoursAgoToKeep/24 days for start time
-	startTime := status.LastData.AddDate(0, 0, types.HoursAgoToKeep/24)
-
-	if userSummary.Dates.LastData != nil {
-		// if summary already exists with a last data checkpoint, start data pull there
-		if startTime.Before(*userSummary.Dates.LastData) {
-			startTime = *userSummary.Dates.LastData
-		}
-
-		// ensure LastData does not move backwards by capping it at summary LastData
-		if status.LastData.Before(*userSummary.Dates.LastData) {
-			status.LastData = *userSummary.Dates.LastData
-		}
 	}
 
 	var userData []*glucoseDatum.Glucose
