@@ -46,7 +46,7 @@ func shouldTaskError(t *task.Task) bool {
 	if t.Data[dexcomTaskRetryField] != nil {
 		count, ok := t.Data[dexcomTaskRetryField].(int)
 		if ok {
-			return count > 3
+			return count >= 3
 		}
 	}
 	return true
@@ -56,7 +56,8 @@ func incrementTaskRetryCount(t *task.Task) {
 	if t.Data[dexcomTaskRetryField] != nil {
 		count, ok := t.Data[dexcomTaskRetryField].(int)
 		if ok {
-			t.Data[dexcomTaskRetryField] = count + 1
+			count++
+			t.Data[dexcomTaskRetryField] = count
 		}
 	} else {
 		t.Data[dexcomTaskRetryField] = 1

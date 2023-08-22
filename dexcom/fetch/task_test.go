@@ -40,9 +40,6 @@ var _ = Describe("Task", func() {
 			Entry("if two retries", func() (*task.Task, int) {
 				return getTask(2), 2
 			}),
-			Entry("if three retries", func() (*task.Task, int) {
-				return getTask(3), 3
-			}),
 		)
 		DescribeTable("will append error",
 			func(setupFunc func() (*task.Task, int)) {
@@ -52,10 +49,10 @@ var _ = Describe("Task", func() {
 				Expect(tsk.HasError()).To(Equal(true))
 				Expect(tsk.IsFailed()).To(Equal(true))
 			},
-			Entry("when 4th retry", func() (*task.Task, int) {
-				return getTask(4), 4
+			Entry("when 3rd retry", func() (*task.Task, int) {
+				return getTask(3), 3
 			}),
-			Entry("more than 4 retries", func() (*task.Task, int) {
+			Entry("more than 3 retries", func() (*task.Task, int) {
 				return getTask(10), 10
 			}),
 		)
