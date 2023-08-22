@@ -1,11 +1,12 @@
 package fetch_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+
+	"errors"
+
 	"github.com/tidepool-org/platform/dexcom/fetch"
 	"github.com/tidepool-org/platform/task"
 )
