@@ -252,7 +252,7 @@ func (t *TaskRunner) updateProviderSession() error {
 
 func (t *TaskRunner) failTask(err error) error {
 	t.task.SetFailed()
-	t.logger.Warnf("dexcom task failed: %s", err)
+	t.logger.Warnf("dexcom task %s failed: %s", t.task.ID, err)
 	return err
 }
 
