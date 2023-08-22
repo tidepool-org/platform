@@ -127,14 +127,13 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 		tsk.ClearError()
 
 		if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
-			tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
+			SetErrorOrAllowTaskRetry(tsk, errors.Wrap(sErr, "unable to get server session token"))
 		} else {
 			ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
 			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
-				tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
+				SetErrorOrAllowTaskRetry(tsk, errors.Wrap(tErr, "unable to create task runner"))
 			} else if tErr = taskRunner.Run(ctx); tErr != nil {
-				tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+				SetErrorOrAllowTaskRetry(tsk, errors.Wrap(tErr, "unable to run task runner"))
 			}
 		}
 	}
