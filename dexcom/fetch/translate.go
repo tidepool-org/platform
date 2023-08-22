@@ -337,7 +337,16 @@ func translateAlertToDatum(alert *dexcom.Alert, version *string) data.Datum {
 	datum.Payload = metadata.NewMetadata()
 
 	if alert.AlertState != nil {
-		(*datum.Payload)["state"] = *alert.AlertState
+		(*datum.Payload)["alertState"] = *alert.AlertState
+	}
+	if alert.TransmitterID != nil {
+		(*datum.Payload)["transmitterId"] = *alert.TransmitterID
+	}
+	if alert.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *alert.TransmitterGeneration
+	}
+	if alert.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *alert.DisplayDevice
 	}
 	if version != nil {
 		(*datum.Payload)["version"] = *version
