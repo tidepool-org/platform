@@ -21,12 +21,12 @@ var _ = Describe("Task", func() {
 		}
 	}
 
-	Context("SetErrorOrAllowTaskRetry", func() {
+	Context("ErrorOrRetryTask", func() {
 		DescribeTable("will not append error",
 			func(setupFunc func() (*task.Task, int)) {
 				tsk, startCount := setupFunc()
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
-				fetch.SetErrorOrAllowTaskRetry(tsk, errors.New("some error"))
+				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
 				Expect(tsk.HasError()).To(Equal(false))
 				Expect(tsk.IsFailed()).To(Equal(false))
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount + 1))
@@ -45,7 +45,7 @@ var _ = Describe("Task", func() {
 			func(setupFunc func() (*task.Task, int)) {
 				tsk, startCount := setupFunc()
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
-				fetch.SetErrorOrAllowTaskRetry(tsk, errors.New("some error"))
+				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
 				Expect(tsk.HasError()).To(Equal(true))
 				Expect(tsk.IsFailed()).To(Equal(true))
 			},
@@ -56,6 +56,18 @@ var _ = Describe("Task", func() {
 				return getTask(10), 10
 			}),
 		)
+	})
+
+	Context("ResetTask", func() {
+		It("returns the unit value when set", func() {
+			tsk := getTask(3)
+			tsk.AppendError(errors.New("some error"))
+			Expect(tsk.HasError()).To(Equal(true))
+			Expect(tsk.Data["retryCount"]).To(Equal(3))
+			fetch.ResetTask(tsk)
+			Expect(tsk.HasError()).To(Equal(false))
+			Expect(tsk.Data["retryCount"]).To(Equal(0))
+		})
 	})
 
 	Context("NewTaskCreate", func() {

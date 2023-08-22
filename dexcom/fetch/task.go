@@ -33,13 +33,18 @@ func NewTaskCreate(providerSessionID string, dataSourceID string) (*task.TaskCre
 	}, nil
 }
 
-func SetErrorOrAllowTaskRetry(t *task.Task, err error) {
+func ErrorOrRetryTask(t *task.Task, err error) {
 	if shouldTaskError(t) {
 		t.AppendError(err)
 		t.SetFailed()
 		return
 	}
 	incrementTaskRetryCount(t)
+}
+
+func ResetTask(t *task.Task) {
+	t.ClearError()
+	t.Data[dexcomTaskRetryField] = 0
 }
 
 func shouldTaskError(t *task.Task) bool {
