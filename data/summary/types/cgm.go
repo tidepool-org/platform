@@ -132,8 +132,7 @@ type CGMStats struct {
 	Periods       CGMPeriods                             `json:"periods" bson:"periods"`
 	OffsetPeriods CGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
 	Buckets       Buckets[CGMBucketData, *CGMBucketData] `json:"buckets" bson:"buckets"`
-	//DailyBuckets  Buckets[CGMBucketData, *CGMBucketData] `json:"dailyBuckets" bson:"buckets"`
-	TotalHours int `json:"totalHours" bson:"totalHours"`
+	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
 }
 
 func (*CGMStats) GetType() string {
@@ -146,7 +145,6 @@ func (*CGMStats) GetDeviceDataType() string {
 
 func (s *CGMStats) Init() {
 	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
-	//s.DailyBuckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
 	s.Periods = make(map[string]*CGMPeriod)
 	s.OffsetPeriods = make(map[string]*CGMPeriod)
 	s.TotalHours = 0

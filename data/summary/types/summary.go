@@ -24,9 +24,7 @@ const (
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
 	HoursAgoToKeep       = 60 * 24
-	dailyStatsBeakpoint  = 14 * 24
-
-	setOutdatedBuffer = 2 * time.Minute
+	setOutdatedBuffer    = 2 * time.Minute
 )
 
 var stopPoints = [...]int{1, 7, 14, 30}
@@ -237,15 +235,10 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		lastBucketPeriod := (*buckets)[len(*buckets)-1].Date
 		currentPeriod := newStat.Date
 
-		hoursConversion := 1
-		if lastBucketPeriod.Sub(currentPeriod).Hours() > dailyStatsBeakpoint {
-			hoursConversion = 24
-		}
-
 		// if we need to look for an existing bucket
 		if currentPeriod.Equal(lastBucketPeriod) || currentPeriod.Before(lastBucketPeriod) {
 
-			gapPeriods := int(lastBucketPeriod.Sub(currentPeriod).Hours()) / hoursConversion
+			gapPeriods := int(lastBucketPeriod.Sub(currentPeriod).Hours())
 			if gapPeriods < len(*buckets) {
 				if !(*buckets)[len(*buckets)-gapPeriods-1].Date.Equal(currentPeriod) {
 					return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
@@ -256,12 +249,12 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		}
 
 		// add hours for any gaps that this new bucket skipped
-		statsGap := int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours()) / hoursConversion
+		statsGap := int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours())
 		// only add gap buckets if the gap is shorter than max tracking amount
 		if statsGap > 0 && statsGap < HoursAgoToKeep {
 			gapBuckets := make(Buckets[T, A], 0, statsGap)
 			for i := statsGap; i > 1; i-- {
-				newStatsTime := newStat.Date.Add(time.Duration(-i+1) * time.Hour * time.Duration(hoursConversion))
+				newStatsTime := newStat.Date.Add(time.Duration(-i+1) * time.Hour)
 				gapBuckets = append(gapBuckets, *CreateBucket[T, A](newStatsTime))
 			}
 
@@ -276,7 +269,6 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		*buckets = append(*buckets, newStat)
 	}
 
-	// TODO handle dailybuckets
 	// remove extra hours to cap at X hours of buckets
 	if len(*buckets) > HoursAgoToKeep {
 		// zero out any to-be-trimmed buckets to lower their impact until reallocation
@@ -298,11 +290,6 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 		recordTime := r.GetTime()
 
 		recordHour := recordTime.Hour()
-		//// reduce accuracy of period to daily if over daily breakpoint
-		//// TODO this will jump a bit, we need to hold +1 day to handle it
-		//if len(*hourlyBuckets) > 0 && (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(*recordTime).Hours() > dailyStatsBeakpoint {
-		//	recordHour = 0
-		//}
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
 		currentPeriod := time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
@@ -310,25 +297,12 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 		// store stats for the period, if we are now on the next period
 		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
-			//if len(*hourlyBuckets) > 0 && (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(lastPeriod).Hours() > dailyStatsBeakpoint {
-			//	targetBuckets = dailyBuckets
-			//} else {
-			//	targetBuckets = hourlyBuckets
-			//}
-
 			err := AddBin(targetBuckets, *newBucket)
 			if err != nil {
 				return err
 			}
 			newBucket = nil
 		}
-
-		//// repeated from above as we need to switch again after adding
-		//if len(*hourlyBuckets) > 0 && (*hourlyBuckets)[len(*hourlyBuckets)-1].Date.Sub(currentPeriod).Hours() > dailyStatsBeakpoint {
-		//	targetBuckets = dailyBuckets
-		//} else {
-		//	targetBuckets = hourlyBuckets
-		//}
 
 		if newBucket == nil {
 			// pull stats if they already exist
@@ -338,12 +312,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 				// if we need to look for an existing bucket
 				if currentPeriod.Equal(lastBucketHour) || currentPeriod.Before(lastBucketHour) {
-					hoursConversion := 1
-					//if targetBuckets == dailyBuckets {
-					//	hoursConversion = 24
-					//}
-
-					gap := int(lastBucketHour.Sub(currentPeriod).Hours()) / hoursConversion
+					gap := int(lastBucketHour.Sub(currentPeriod).Hours())
 
 					if gap < len(*targetBuckets) {
 						newBucket = &(*targetBuckets)[len(*targetBuckets)-gap-1]

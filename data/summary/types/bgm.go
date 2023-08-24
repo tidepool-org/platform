@@ -85,8 +85,7 @@ type BGMStats struct {
 	Periods       BGMPeriods                             `json:"periods" bson:"periods"`
 	OffsetPeriods BGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
 	Buckets       Buckets[BGMBucketData, *BGMBucketData] `json:"buckets" bson:"buckets"`
-	//DailyBuckets  Buckets[BGMBucketData, *BGMBucketData] `json:"dailyBuckets" bson:"dailyBuckets"`
-	TotalHours int `json:"totalHours" bson:"totalHours"`
+	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
 }
 
 func (*BGMStats) GetType() string {
@@ -99,7 +98,6 @@ func (*BGMStats) GetDeviceDataType() string {
 
 func (s *BGMStats) Init() {
 	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
-	//s.DailyBuckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
 	s.Periods = make(map[string]*BGMPeriod)
 	s.OffsetPeriods = make(map[string]*BGMPeriod)
 	s.TotalHours = 0
