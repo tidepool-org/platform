@@ -51,6 +51,8 @@ _bin/services/data/data
 
 Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
 
+> **Note:** For testing and development, services are generally run on a local Kubernetes cluster through the [development repo](https://github.com/tidepool-org/development#developing-tidepool-services).
+
 # Makefile
 
 * To setup your Go environment for building and editing the project:
