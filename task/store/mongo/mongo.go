@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/ehr/reconcile"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -28,6 +30,8 @@ var (
 		Help: "The total number of tasks sorted by state and type",
 	}, []string{"state", "type"})
 )
+
+const MaxTaskCreationDuration = 10 * time.Second
 
 type Store struct {
 	*storeStructuredMongo.Store
@@ -60,13 +64,27 @@ func (s *Store) EnsureIndexes() error {
 }
 
 func (s *Store) EnsureSummaryUpdateTask() error {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
+	defer cancel()
+
 	repository := s.TaskRepository()
-	return repository.EnsureSummaryUpdateTask()
+	return repository.EnsureSummaryUpdateTask(ctx)
 }
 
 func (s *Store) EnsureSummaryBackfillTask() error {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
+	defer cancel()
+
 	repository := s.TaskRepository()
-	return repository.EnsureSummaryBackfillTask()
+	return repository.EnsureSummaryBackfillTask(ctx)
+}
+
+func (s *Store) EnsureEHRReconcileTask() error {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
+	defer cancel()
+
+	repository := s.TaskRepository()
+	return repository.EnsureEHRReconcileTask(ctx)
 }
 
 type TaskRepository struct {
@@ -111,43 +129,22 @@ func (t *TaskRepository) EnsureIndexes() error {
 	})
 }
 
-func (t *TaskRepository) EnsureSummaryUpdateTask() error {
+func (t *TaskRepository) EnsureSummaryUpdateTask(ctx context.Context) error {
 	create := summary.NewDefaultUpdateTaskCreate()
-
-	tsk, err := task.NewTask(create)
-	if err != nil {
-		return err
-	} else if err = structureValidator.New().Validate(tsk); err != nil {
-		return errors.Wrap(err, "task is invalid")
-	}
-
-	upsert := true
-	after := options.After
-	opts := options.FindOneAndUpdateOptions{
-		ReturnDocument: &after,
-		Upsert:         &upsert,
-	}
-
-	summaryTask := t.FindOneAndUpdate(context.Background(),
-		bson.M{"name": tsk.Name},
-		bson.M{"$setOnInsert": tsk},
-		&opts,
-	)
-
-	if summaryTask.Err() != nil {
-		if summaryTask.Err() != mongo.ErrNoDocuments {
-			return errors.Wrap(summaryTask.Err(), "unable to create summary update task")
-		}
-	}
-
-	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
-
-	return summaryTask.Err()
+	return t.ensureTask(ctx, create)
 }
 
-func (t *TaskRepository) EnsureSummaryBackfillTask() error {
+func (t *TaskRepository) EnsureSummaryBackfillTask(ctx context.Context) error {
 	create := summary.NewDefaultBackfillTaskCreate()
+	return t.ensureTask(ctx, create)
+}
 
+func (t *TaskRepository) EnsureEHRReconcileTask(ctx context.Context) error {
+	create := reconcile.NewTaskCreate()
+	return t.ensureTask(ctx, create)
+}
+
+func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate) error {
 	tsk, err := task.NewTask(create)
 	if err != nil {
 		return err
@@ -162,21 +159,19 @@ func (t *TaskRepository) EnsureSummaryBackfillTask() error {
 		Upsert:         &upsert,
 	}
 
-	summaryTask := t.FindOneAndUpdate(context.Background(),
+	res := t.FindOneAndUpdate(ctx,
 		bson.M{"name": tsk.Name},
 		bson.M{"$setOnInsert": tsk},
 		&opts,
 	)
 
-	if summaryTask.Err() != nil {
-		if summaryTask.Err() != mongo.ErrNoDocuments {
-			return errors.Wrap(summaryTask.Err(), "unable to create summary backfill task")
-		}
+	if res.Err() != nil && res.Err() != mongo.ErrNoDocuments {
+		return errors.Wrap(res.Err(), "unable to create task")
 	}
 
 	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
 
-	return summaryTask.Err()
+	return res.Err()
 }
 
 func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
