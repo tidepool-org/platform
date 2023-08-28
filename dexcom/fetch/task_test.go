@@ -107,7 +107,7 @@ var _ = Describe("Task", func() {
 	})
 
 	Context("ResetTask", func() {
-		It("returns the unit value when set", func() {
+		It("clears existing errors", func() {
 			tsk := getTask(3, true)
 			tsk.AppendError(errors.New("some error"))
 			Expect(tsk.HasError()).To(Equal(true))
