@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 )
@@ -34,12 +35,19 @@ func NewTaskCreate(providerSessionID string, dataSourceID string) (*task.TaskCre
 }
 
 func ErrorOrRetryTask(t *task.Task, err error) {
-	if shouldTaskError(t) {
-		t.AppendError(err)
-		t.SetFailed()
-		return
+	if t.IsFailed() {
+		if shouldTaskError(t) {
+			t.AppendError(err)
+			return
+		}
+		incrementTaskRetryCount(t)
 	}
-	incrementTaskRetryCount(t)
+}
+
+func FailTask(l log.Logger, t *task.Task, err error) error {
+	l.Warnf("dexcom task %s failed: %s", t.ID, err)
+	t.SetFailed()
+	return err
 }
 
 func ResetTask(t *task.Task) {
