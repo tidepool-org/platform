@@ -124,14 +124,14 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	}
 
 	if !skipToAvoidDexcomBackup {
-		ResetTask(tsk)
+		tsk.ClearError()
 
 		if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
-			r.logTaskError(tsk, errors.Wrap(sErr, "unable to get server session token"))
+			r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to get server session token"))
 		} else {
 			ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
-				r.logTaskError(tsk, errors.Wrap(sErr, "unable to create task runner"))
+				r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to create task runner"))
 			} else if tErr = taskRunner.Run(ctx); tErr != nil {
 				ErrorOrRetryTask(tsk, errors.Wrap(tErr, "unable to run task runner"))
 			}
@@ -148,7 +148,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	return true
 }
 
-func (r *Runner) logTaskError(tsk *task.Task, err error) {
+func (r *Runner) ignoreAndLogTaskError(tsk *task.Task, err error) {
 	r.logger.Warnf("dexcom task %s error, task will be retried: %s", tsk.ID, err)
 }
 

@@ -41,6 +41,7 @@ func ErrorOrRetryTask(t *task.Task, err error) {
 			return
 		}
 		incrementTaskRetryCount(t)
+		t.State = task.TaskStateCompleted
 	}
 }
 
@@ -48,11 +49,6 @@ func FailTask(l log.Logger, t *task.Task, err error) error {
 	l.Warnf("dexcom task %s failed: %s", t.ID, err)
 	t.SetFailed()
 	return err
-}
-
-func ResetTask(t *task.Task) {
-	t.ClearError()
-	t.Data[dexcomTaskRetryField] = 0
 }
 
 func shouldTaskError(t *task.Task) bool {

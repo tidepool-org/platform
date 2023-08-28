@@ -37,6 +37,7 @@ var _ = Describe("Task", func() {
 				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
 				Expect(tsk.HasError()).To(Equal(false))
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount + 1))
+				Expect(tsk.IsFailed()).To(Equal(false))
 			},
 			Entry("if zero retries", func() (*task.Task, int) {
 				retryCount := 0
@@ -57,6 +58,7 @@ var _ = Describe("Task", func() {
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
 				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
 				Expect(tsk.HasError()).To(Equal(true))
+				Expect(tsk.IsFailed()).To(Equal(true))
 			},
 			Entry("when 3rd retry", func() (*task.Task, int) {
 				retryCount := 3
@@ -103,18 +105,6 @@ var _ = Describe("Task", func() {
 			Expect(tsk.IsFailed()).To(Equal(true))
 			fetch.FailTask(logger, tsk, errors.New("some error"))
 			Expect(tsk.IsFailed()).To(Equal(true))
-		})
-	})
-
-	Context("ResetTask", func() {
-		It("clears existing errors", func() {
-			tsk := getTask(3, true)
-			tsk.AppendError(errors.New("some error"))
-			Expect(tsk.HasError()).To(Equal(true))
-			Expect(tsk.Data["retryCount"]).To(Equal(3))
-			fetch.ResetTask(tsk)
-			Expect(tsk.HasError()).To(Equal(false))
-			Expect(tsk.Data["retryCount"]).To(Equal(0))
 		})
 	})
 
