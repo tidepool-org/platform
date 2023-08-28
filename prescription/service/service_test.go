@@ -112,7 +112,7 @@ var _ = Describe("PrescriptionService", func() {
 	Context("Claim Prescription", func() {
 		It("uses the clinic service to share the patient account with the clinic", func() {
 			prescr := prescriptionTest.RandomPrescription()
-			patient := clinic.Patient{Id: clinic.TidepoolUserId(prescr.PatientUserID)}
+			patient := clinic.Patient{Id: &prescr.PatientUserID}
 			claim := &prescription.Claim{
 				PatientID:  prescr.PatientUserID,
 				AccessCode: prescr.AccessCode,

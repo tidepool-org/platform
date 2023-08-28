@@ -14,7 +14,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -78,15 +77,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
-			},
-			Options: options.Index().
-				SetUnique(true).
-				SetPartialFilterExpression(bson.D{{Key: "type", Value: "upload"}}).
-				SetName("UniqueUploadId"),
-		},
-		{
-			Keys: bson.D{
-				{Key: "uploadId", Value: 1},
 				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
@@ -113,124 +103,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				SetName("DeduplicatorHash"),
 		},
 	})
-}
-
-func (d *DatumRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if dataSetID == "" {
-		return nil, errors.New("data set id is missing")
-	}
-
-	now := time.Now().UTC()
-
-	var dataSet *upload.Upload
-	selector := bson.M{
-		"uploadId": dataSetID,
-		"type":     "upload",
-	}
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
-
-	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DatumRepository.GetDataSetByID")
-
-	if err == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get data set by id")
-	}
-
-	return dataSet, nil
-}
-
-func (d *DatumRepository) createDataSet(ctx context.Context, dataSet *upload.Upload, now time.Time) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if err := validateDataSet(dataSet); err != nil {
-		return err
-	}
-
-	now = now.UTC()
-	timestamp := now.Truncate(time.Millisecond)
-
-	dataSet.CreatedTime = pointer.FromTime(timestamp)
-	dataSet.ModifiedTime = pointer.FromTime(timestamp)
-
-	dataSet.ByUser = dataSet.CreatedUserID
-
-	var err error
-	if _, err = d.InsertOne(ctx, dataSet); storeStructuredMongo.IsDup(err) {
-		err = errors.New("data set already exists")
-	}
-
-	loggerFields := log.Fields{"userId": dataSet.UserID, "dataSetId": dataSet.UploadID, "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DatumRepository.CreateDataSet")
-
-	if err != nil {
-		return errors.Wrap(err, "unable to create data set")
-	}
-	return nil
-}
-
-func (d *DatumRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*upload.Upload, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	} else if !data.IsValidSetID(id) {
-		return nil, errors.New("id is invalid")
-	}
-	if update == nil {
-		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
-		return nil, errors.Wrap(err, "update is invalid")
-	}
-
-	now = now.UTC()
-	timestamp := now.Truncate(time.Millisecond)
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
-
-	set := bson.M{
-		"modifiedTime": timestamp,
-	}
-	unset := bson.M{}
-	if update.Active != nil {
-		set["_active"] = *update.Active
-	}
-	if update.DeviceID != nil {
-		set["deviceId"] = *update.DeviceID
-	}
-	if update.DeviceModel != nil {
-		set["deviceModel"] = *update.DeviceModel
-	}
-	if update.DeviceSerialNumber != nil {
-		set["deviceSerialNumber"] = *update.DeviceSerialNumber
-	}
-	if update.Deduplicator != nil {
-		set["_deduplicator"] = update.Deduplicator
-	}
-	if update.State != nil {
-		set["_state"] = *update.State
-	}
-	if update.Time != nil {
-		set["time"] = *update.Time
-	}
-	if update.TimeZoneName != nil {
-		set["timezone"] = *update.TimeZoneName
-	}
-	if update.TimeZoneOffset != nil {
-		set["timezoneOffset"] = *update.TimeZoneOffset
-	}
-	changeInfo, err := d.UpdateMany(ctx, bson.M{"type": "upload", "uploadId": id}, d.ConstructUpdate(set, unset))
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DatumRepository.UpdateDataSet")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to update data set")
-	}
-
-	return d.GetDataSetByID(ctx, id)
 }
 
 func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
