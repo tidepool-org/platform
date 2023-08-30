@@ -4,5 +4,4 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("Runner", func() {
-})
+var _ = Describe("Runner", func() {})
