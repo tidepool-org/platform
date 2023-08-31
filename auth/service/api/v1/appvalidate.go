@@ -20,7 +20,6 @@ func (r *Router) AppValidateRoutes() []*rest.Route {
 		rest.Post("/v1/attestations/challenges", api.RequireUser(r.CreateAttestationChallenge)),
 		rest.Post("/v1/attestations/verifications", api.RequireUser(r.VerifyAttestation)),
 		rest.Post("/v1/assertions/challenges", api.RequireUser(r.CreateAssertionChallenge)),
-		// Rename this route to show actual intent of retrieving secret when secret retrieval is implemented.
 		rest.Post("/v1/assertions/verifications", api.RequireUser(r.VerifyAssertion)),
 	}
 }
@@ -143,11 +142,23 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	case appvalidate.PartnerCoastal:
 		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
 		if err != nil {
-			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch coastal secrets")
+			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch Coastal secrets")
 			responder.InternalServerError(err)
 			return
 		}
-		responder.Data(http.StatusOK, secret)
+		responder.Data(http.StatusOK, appvalidate.AssertionResponse{
+			Data: secret,
+		})
+	case appvalidate.PartnerPalmTree:
+		secret, err := r.PalmTreeSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
+		if err != nil {
+			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch PalmTree secrets")
+			responder.InternalServerError(err)
+			return
+		}
+		responder.Data(http.StatusOK, appvalidate.AssertionResponse{
+			Data: secret,
+		})
 	default:
 		responder.Error(http.StatusBadRequest, fmt.Errorf("unknown partner, %s", assertVerify.ClientData.Partner))
 	}

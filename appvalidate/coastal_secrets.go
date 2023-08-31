@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -19,12 +20,14 @@ const (
 )
 
 type CoastalSecretsConfig struct {
-	BaseURL            string `env:"COASTAL_BASE_URL"`
-	APICertificatePath string `env:"COASTAL_API_CERTIFICATE_PATH"`
-	APIKey             string `env:"COASTAL_API_KEY"`
-	ClientID           string `env:"COASTAL_CLIENT_ID"`
-	ClientSecret       string `env:"COSTAL_CLIENT_SECRET"`
+	APICertificatePath string `envconfig:"COASTAL_API_CERTIFICATE_PATH"`
+	APIKey             string `envconfig:"COASTAL_API_KEY"`
+	BaseURL            string `envconfig:"COASTAL_BASE_URL"`
+	ClientID           string `envconfig:"COASTAL_CLIENT_ID"`
+	ClientSecret       string `envconfig:"COSTAL_CLIENT_SECRET"`
+	RCTypeID           string `envconfig:"COASTAL_RC_TYPE_ID"`
 }
+
 type CoastalSecrets struct {
 	Config CoastalSecretsConfig
 }
@@ -57,13 +60,14 @@ type CoastalResponse struct {
 }
 
 func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (*CoastalResponse, error) {
-	var payload CoastalPayload
-	if err := json.Unmarshal(partnerDataRaw, &payload); err != nil {
-		return nil, err
+	payload := newCoastalPayload(c.Config.RCTypeID)
+	if err := json.Unmarshal(partnerDataRaw, payload); err != nil {
+		return nil, fmt.Errorf("unable to unmarshal Coastal payload: %w", err)
 	}
+	// Todo: calculate rcbMac / rcbSignature when partner API is updated.
 
-	if err := structValidator.New().Validate(&payload); err != nil {
-		return nil, err
+	if err := structValidator.New().Validate(payload); err != nil {
+		return nil, fmt.Errorf("unable to validate Coastal payload: %w", err)
 	}
 
 	var buf bytes.Buffer
@@ -73,7 +77,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 
 	u, err := url.Parse(c.Config.BaseURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to prase Coastal API baseURL: %w", err)
 	}
 	u.Path = path.Join(u.Path, c.Config.APICertificatePath)
 
@@ -89,12 +93,17 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to issue Coastal API request: %w", err)
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, fmt.Errorf("unsuccessful Coastal API response: %v: %v", res.StatusCode, res.Status)
+	}
+
 	var response CoastalResponse
 	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to read Coastal API response: %w", err)
 	}
 	return &response, nil
 }
@@ -108,4 +117,10 @@ func (p *CoastalPayload) Validate(v structure.Validator) {
 	v.String("phdInstanceId", &p.PHDInstanceID).NotEmpty()
 	v.String("csr", &p.CSR).NotEmpty()
 	v.String("rcbMac", &p.RCBMac).NotEmpty()
+}
+
+func newCoastalPayload(rcTypeID string) *CoastalPayload {
+	return &CoastalPayload{
+		RCTypeID: rcTypeID,
+	}
 }

@@ -56,6 +56,7 @@ type Service struct {
 	deviceCheck        apple.DeviceCheck
 	appValidator       *appvalidate.Validator
 	coastalSecrets     *appvalidate.CoastalSecrets
+	palmTreeSecrets    *appvalidate.PalmTreeSecrets
 }
 
 func New() *Service {
@@ -114,6 +115,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeCoastalSecrets(); err != nil {
 		return err
 	}
+	if err := s.initializePalmTreeSecrets(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -167,6 +171,10 @@ func (s *Service) AppValidator() *appvalidate.Validator {
 
 func (s *Service) CoastalSecrets() *appvalidate.CoastalSecrets {
 	return s.coastalSecrets
+}
+
+func (s *Service) PalmTreeSecrets() *appvalidate.PalmTreeSecrets {
+	return s.palmTreeSecrets
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -476,6 +484,15 @@ func (s *Service) initializeCoastalSecrets() error {
 		Config: *cfg,
 	}
 	return nil
+}
+
+func (s *Service) initializePalmTreeSecrets() error {
+	cfg, err := appvalidate.NewPalmTreeSecretsConfig()
+	if err != nil {
+		return err
+	}
+	s.palmTreeSecrets, err = appvalidate.NewPalmTreeSecrets(cfg)
+	return err
 }
 
 func (s *Service) terminateUserEventsHandler() {
