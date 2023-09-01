@@ -17,6 +17,10 @@ import (
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+var (
+	ErrInvalidPalmTreeTLS = errors.New("invalid PalmTree TLS credentials")
+)
+
 const (
 	PartnerPalmTree = "PalmTree"
 )
@@ -25,8 +29,10 @@ type PalmTreeSecretsConfig struct {
 	BaseURL   string `envconfig:"PALMTREE_BASE_URL"`
 	CalID     string `envconfig:"PALMTREE_CAL_ID"`
 	ProfileID string `envconfig:"PALMTREE_PROFILE_ID"`
-	CertFile  string `envconfig:"PALMTREE_TLS_CERT_FILE"`
-	KeyFile   string `envconfig:"PALMTREE_TLS_KEY_FILE"`
+	// CertData is the raw contents of the tls certificate file
+	CertData []byte `envconfig:"PALMTREE_TLS_CERT_DATA"`
+	// KeyData is the raw contents of the tls private key file
+	KeyData []byte `envconfig:"PALMTREE_TLS_KEY_DATA"`
 }
 
 type PalmTreeSecrets struct {
@@ -46,10 +52,14 @@ func NewPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
 	if c == nil {
 		return nil, errors.New("empty PalmTree config")
 	}
-	cert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+	cert, err := tls.X509KeyPair(c.CertData, c.KeyData)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load PalmTree X.509 key pair: %w", err)
+		return &PalmTreeSecrets{
+			Config: *c,
+			client: http.DefaultClient,
+		}, fmt.Errorf("%w: %w", ErrInvalidPalmTreeTLS, err)
 	}
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			Certificates: []tls.Certificate{cert},
@@ -145,8 +155,8 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 func (p *PalmTreePayload) Validate(v structure.Validator) {
 	v.String("csr", &p.CSR).NotEmpty()
 	v.String("profileId", &p.ProfileID).NotEmpty()
-	v.String("requiredFormat.format", &p.RequiredFormat.Format).NotEmpty()
-	v.String("optionalCertificateRequestDetails.subjectDn", &p.CertificateRequestDetails.SubjectDN).NotEmpty()
+	v.String("requiredFormat.format", &p.RequiredFormat.Format).EqualTo("PEM")
+	v.String("optionalCertificateRequestDetails.subjectDn", &p.CertificateRequestDetails.SubjectDN).EqualTo("C=US")
 }
 
 func newPalmtreePayload(profileID string) *PalmTreePayload {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	stdErrors "errors"
 	"net/http"
 	"time"
 
@@ -492,7 +493,11 @@ func (s *Service) initializePalmTreeSecrets() error {
 		return err
 	}
 	s.palmTreeSecrets, err = appvalidate.NewPalmTreeSecrets(cfg)
-	return err
+	// Allow system to not fail if there are no credentials to PalmTree
+	if err != nil && !stdErrors.Is(err, appvalidate.ErrInvalidPalmTreeTLS) {
+		return err
+	}
+	return nil
 }
 
 func (s *Service) terminateUserEventsHandler() {

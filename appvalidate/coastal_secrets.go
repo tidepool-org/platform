@@ -20,12 +20,11 @@ const (
 )
 
 type CoastalSecretsConfig struct {
-	APICertificatePath string `envconfig:"COASTAL_API_CERTIFICATE_PATH"`
-	APIKey             string `envconfig:"COASTAL_API_KEY"`
-	BaseURL            string `envconfig:"COASTAL_BASE_URL"`
-	ClientID           string `envconfig:"COASTAL_CLIENT_ID"`
-	ClientSecret       string `envconfig:"COSTAL_CLIENT_SECRET"`
-	RCTypeID           string `envconfig:"COASTAL_RC_TYPE_ID"`
+	APIKey       string `envconfig:"COASTAL_API_KEY"`
+	BaseURL      string `envconfig:"COASTAL_BASE_URL"`
+	ClientID     string `envconfig:"COASTAL_CLIENT_ID"`
+	ClientSecret string `envconfig:"COSTAL_CLIENT_SECRET"`
+	RCTypeID     string `envconfig:"COASTAL_RC_TYPE_ID"`
 }
 
 type CoastalSecrets struct {
@@ -79,7 +78,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	if err != nil {
 		return nil, fmt.Errorf("unable to prase Coastal API baseURL: %w", err)
 	}
-	u.Path = path.Join(u.Path, c.Config.APICertificatePath)
+	u.Path = path.Join(u.Path, "devices/api/v1/certificates")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), &buf)
 	if err != nil {
