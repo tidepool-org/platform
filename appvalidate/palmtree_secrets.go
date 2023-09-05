@@ -57,7 +57,7 @@ func NewPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
 		return &PalmTreeSecrets{
 			Config: *c,
 			client: http.DefaultClient,
-		}, fmt.Errorf("%w: %w", ErrInvalidPalmTreeTLS, err)
+		}, errors.Join(ErrInvalidPalmTreeTLS, err)
 	}
 
 	tr := &http.Transport{

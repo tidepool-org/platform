@@ -87,6 +87,20 @@ func (mr *MockAuthServiceMockRecorder) AuthStore() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthStore", reflect.TypeOf((*MockAuthService)(nil).AuthStore))
 }
 
+// CoastalSecrets mocks base method.
+func (m *MockAuthService) CoastalSecrets() *appvalidate.CoastalSecrets {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CoastalSecrets")
+	ret0, _ := ret[0].(*appvalidate.CoastalSecrets)
+	return ret0
+}
+
+// CoastalSecrets indicates an expected call of CoastalSecrets.
+func (mr *MockAuthServiceMockRecorder) CoastalSecrets() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CoastalSecrets", reflect.TypeOf((*MockAuthService)(nil).CoastalSecrets))
+}
+
 // ConfigReporter mocks base method.
 func (m *MockAuthService) ConfigReporter() config.Reporter {
 	m.ctrl.T.Helper()
@@ -155,6 +169,20 @@ func (m *MockAuthService) Logger() log.Logger {
 func (mr *MockAuthServiceMockRecorder) Logger() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logger", reflect.TypeOf((*MockAuthService)(nil).Logger))
+}
+
+// PalmTreeSecrets mocks base method.
+func (m *MockAuthService) PalmTreeSecrets() *appvalidate.PalmTreeSecrets {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PalmTreeSecrets")
+	ret0, _ := ret[0].(*appvalidate.PalmTreeSecrets)
+	return ret0
+}
+
+// PalmTreeSecrets indicates an expected call of PalmTreeSecrets.
+func (mr *MockAuthServiceMockRecorder) PalmTreeSecrets() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PalmTreeSecrets", reflect.TypeOf((*MockAuthService)(nil).PalmTreeSecrets))
 }
 
 // ProviderFactory mocks base method.

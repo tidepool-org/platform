@@ -93,6 +93,14 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	return output
 }
 
+func (s *Service) CoastalSecrets() *appvalidate.CoastalSecrets {
+	return nil
+}
+
+func (s *Service) PalmTreeSecrets() *appvalidate.PalmTreeSecrets {
+	return nil
+}
+
 func (s *Service) Expectations() {
 	s.Service.Expectations()
 	s.AuthStoreImpl.Expectations()
