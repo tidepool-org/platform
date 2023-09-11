@@ -1,0 +1,7 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore:
+    SNYK-GOLANG-GITHUBCOMDISINTEGRATIONIMAGING-5880692:
+        - '\*':
+            reason: Image code not used
+            expires: 2024-09-05T17:33:45.004Z
