@@ -6,6 +6,7 @@ import (
 
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
@@ -70,9 +71,7 @@ func (m *Migration) execute() error {
 	m.Logger().Debug("Creating data repository")
 
 	m.dataRepository = dataStore.GetRepository("deviceData")
-
 	hashUpdatedCount, archivedCount, errorCount := m.migrateJellyfishDocuments()
-
 	m.Logger().Infof("Migrated %d duplicate jellyfish documents", hashUpdatedCount)
 	m.Logger().Infof("Archived %d duplicate jellyfish documents", archivedCount)
 	m.Logger().Infof("%d errors occurred", errorCount)
@@ -94,12 +93,16 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 		logger.Debugf("Finding jellyfish records for %d users", len(userIDs))
 
 		for _, userID := range userIDs {
-			logger.Debugf("Finding Omnipod records for user ID %s", userID)
+			logger.Debugf("Finding jellyfish records for user ID %s", userID)
 			selector := bson.M{
 				"_userId": userID,
 				"_active": true,
 				// Don't need to change the IDs for uploads, since uploads aren't de-duped.
-				"type":          bson.M{"$ne": "upload"},
+				"type": bson.M{"$ne": "upload"},
+				"$or": []bson.M{
+					{"deviceId": bson.M{"$regex": primitive.Regex{Pattern: `^InsOmn`}}},
+					{"deviceId": bson.M{"$regex": primitive.Regex{Pattern: `^tandem`}}},
+				},
 				"_deduplicator": bson.M{"$exists": false},
 			}
 
@@ -112,10 +115,32 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 				jellyfishDocCursor.Decode(&jellyfishResult)
 				hash := JellyfishIDHash(jellyfishResult)
 
-				err = m.migrateDocument(jellyfishResult["_id"], hash)
+				dupQuery := bson.M{
+					"_userId":       userID,
+					"_active":       true,
+					"_id":           jellyfishResult["_id"],
+					"_deduplicator": bson.M{"$exists": true},
+				}
+				dupCursor, err := m.dataRepository.Find(context.Background(), dupQuery)
 				if err != nil {
-					logger.WithError(err).Error("Unable to migrate jellyfish document")
+					logger.WithError(err).Errorf("Could not query for duplicate datum %s.", jellyfishResult["_id"])
 					errorCount++
+					continue
+				}
+				if !dupCursor.Next(context.Background()) {
+					err = m.archiveDocument(jellyfishResult["_id"])
+					if err != nil {
+						logger.WithError(err).Error("Unable to archive jellyfish document")
+						errorCount++
+					}
+					archivedCount++
+				} else {
+					err = m.migrateDocument(jellyfishResult["_id"], hash)
+					if err != nil {
+						logger.WithError(err).Error("Unable to migrate jellyfish document")
+						errorCount++
+					}
+					hashUpdatedCount++
 				}
 			}
 			if err := jellyfishDocCursor.Err(); err != nil {
@@ -145,5 +170,16 @@ func (m *Migration) migrateDocument(objectId interface{}, hash string) error {
 		},
 	}
 	_, err := m.dataRepository.UpdateOne(context.Background(), bson.M{"_id": objectId}, deduplicatorUpdate)
+	return err
+}
+
+func (m *Migration) archiveDocument(objectId interface{}) error {
+	archiveUpdate := bson.M{
+		"$set": bson.M{
+			"_active":       false,
+			"_archivedTime": time.Now().UnixNano() / int64(time.Millisecond),
+		},
+	}
+	_, err := m.dataRepository.UpdateOne(context.Background(), bson.M{"_id": objectId}, archiveUpdate)
 	return err
 }

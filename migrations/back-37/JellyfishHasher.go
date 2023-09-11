@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// used for BACK-37 to set hash for jellyfish datum for migrating to platform API
 func JellyfishIDHash(bsonData bson.M) string {
 	// represents data from base id fields
 	var baseData = func(bsonData bson.M) []string {
@@ -23,11 +24,7 @@ func JellyfishIDHash(bsonData bson.M) string {
 		theHash = makeJellyfishHash(
 			append(baseData(bsonData), bsonData["deliveryType"].(string))...,
 		)
-	case "bolus":
-		theHash = makeJellyfishHash(
-			append(baseData(bsonData), bsonData["subType"].(string))...,
-		)
-	case "deviceEvent":
+	case "bolus", "deviceEvent":
 		theHash = makeJellyfishHash(
 			append(baseData(bsonData), bsonData["subType"].(string))...,
 		)
