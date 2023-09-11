@@ -10,4 +10,4 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        args: --policy-path='./.snyk'
+        args: --policy-path='${{ github.workspace }}/.snyk'
