@@ -6,7 +6,6 @@ import (
 
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
@@ -36,7 +35,7 @@ func (m *Migration) Initialize(provider application.Provider) error {
 	}
 
 	m.CLI().Usage = "BACK-37: Migrate all existing data to add required Platform deduplication hash fields"
-	m.CLI().Description = "BACK-37: To fully migrate the Tandem and Omnipod devices from the `jellyfish`\n" +
+	m.CLI().Description = "BACK-37: To fully migrate devices from the `jellyfish`\n" +
 		" 	upload API to the `platform` upload API"
 	m.CLI().Authors = []cli.Author{
 		{
@@ -72,7 +71,7 @@ func (m *Migration) execute() error {
 
 	m.dataRepository = dataStore.GetRepository("deviceData")
 	hashUpdatedCount, archivedCount, errorCount := m.migrateJellyfishDocuments()
-	m.Logger().Infof("Migrated %d duplicate jellyfish documents", hashUpdatedCount)
+	m.Logger().Infof("Migrated %d jellyfish documents", hashUpdatedCount)
 	m.Logger().Infof("Archived %d duplicate jellyfish documents", archivedCount)
 	m.Logger().Infof("%d errors occurred", errorCount)
 
@@ -98,11 +97,7 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 				"_userId": userID,
 				"_active": true,
 				// Don't need to change the IDs for uploads, since uploads aren't de-duped.
-				"type": bson.M{"$ne": "upload"},
-				"$or": []bson.M{
-					{"deviceId": bson.M{"$regex": primitive.Regex{Pattern: `^InsOmn`}}},
-					{"deviceId": bson.M{"$regex": primitive.Regex{Pattern: `^tandem`}}},
-				},
+				"type":          bson.M{"$ne": "upload"},
 				"_deduplicator": bson.M{"$exists": false},
 			}
 
