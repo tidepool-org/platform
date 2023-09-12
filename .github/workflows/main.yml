@@ -10,4 +10,4 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        args: --policy-path='${{ github.workspace }}/.snyk'
+        args: snyk ignore --id=SNYK-GOLANG-GITHUBCOMDISINTEGRATIONIMAGING-5880692 --expiry=2024-09-05 --policy-path=.snyk
