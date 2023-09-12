@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/store"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -49,4 +50,8 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 	return &SummaryRepository{
 		s.Store.GetRepository("summary"),
 	}
+}
+
+func (s *Store) NewAlertsRepository() alerts.Repository {
+	return alerts.NewMongoRepo(s.Store.GetRepository("alerts"))
 }
