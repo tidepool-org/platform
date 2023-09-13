@@ -34,10 +34,21 @@ type Base struct {
 	Repeat DurationMinutes `json:"repeat"`
 }
 
+func (b Base) Validate(validator structure.Validator) {
+	validator.Bool("enabled", &b.Enabled)
+	dur := b.Repeat.Duration()
+	validator.Duration("repeat", &dur)
+}
+
 // DelayMixin adds a configurable delay.
 type DelayMixin struct {
 	// Delay is measured in minutes.
 	Delay DurationMinutes `json:"delay,omitempty"`
+}
+
+func (d DelayMixin) Validate(validator structure.Validator) {
+	dur := d.Delay.Duration()
+	validator.Duration("delay", &dur)
 }
 
 // ThresholdMixin adds a configurable threshold.
@@ -45,8 +56,10 @@ type ThresholdMixin struct {
 	// Threshold is compared the current value to determine if an alert should
 	// be triggered.
 	Threshold `json:"threshold"`
-	// UnmarshalJSON prevents the use of the embedded Threshold.UnmarshalJSON.
-	UnmarshalJSON struct{}
+}
+
+func (t ThresholdMixin) Validate(validator structure.Validator) {
+	t.Threshold.Validate(validator)
 }
 
 // WithThreshold extends Base with ThresholdMixin.
@@ -66,6 +79,12 @@ type Deluxe struct {
 	Base
 	DelayMixin
 	ThresholdMixin
+}
+
+func (d Deluxe) Validate(validator structure.Validator) {
+	d.Base.Validate(validator)
+	d.DelayMixin.Validate(validator)
+	d.ThresholdMixin.Validate(validator)
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.
