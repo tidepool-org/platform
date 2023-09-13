@@ -26,6 +26,26 @@ type Config struct {
 	NoCommunication *WithDelay     `json:"noCommunication,omitempty"`
 }
 
+func (c Config) Validate(validator structure.Validator) {
+	validator.String("ownerID", &c.OwnerID).LengthGreaterThan(0)
+	validator.String("invitorID", &c.InvitorID).LengthGreaterThan(0)
+	if c.Low != nil {
+		c.Low.Validate(validator)
+	}
+	if c.UrgentLow != nil {
+		c.Low.Validate(validator)
+	}
+	if c.High != nil {
+		c.High.Validate(validator)
+	}
+	if c.NotLooping != nil {
+		c.NotLooping.Validate(validator)
+	}
+	if c.NoCommunication != nil {
+		c.NoCommunication.Validate(validator)
+	}
+}
+
 // Base describes the minimum specifics of a desired alert.
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
@@ -37,7 +57,7 @@ type Base struct {
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
 	dur := b.Repeat.Duration()
-	validator.Duration("repeat", &dur)
+	validator.Duration("repeat", &dur).GreaterThan(0 * time.Minute)
 }
 
 // DelayMixin adds a configurable delay.
@@ -48,7 +68,7 @@ type DelayMixin struct {
 
 func (d DelayMixin) Validate(validator structure.Validator) {
 	dur := d.Delay.Duration()
-	validator.Duration("delay", &dur)
+	validator.Duration("delay", &dur).GreaterThan(0 * time.Minute)
 }
 
 // ThresholdMixin adds a configurable threshold.
@@ -68,10 +88,20 @@ type WithThreshold struct {
 	ThresholdMixin
 }
 
+func (d WithThreshold) Validate(validator structure.Validator) {
+	d.Base.Validate(validator)
+	d.ThresholdMixin.Validate(validator)
+}
+
 // WithDelay extends Base with DelayMixin.
 type WithDelay struct {
 	Base
 	DelayMixin
+}
+
+func (d WithDelay) Validate(validator structure.Validator) {
+	d.Base.Validate(validator)
+	d.DelayMixin.Validate(validator)
 }
 
 // Deluxe extends Base with both DelayMixin and ThresholdMixin.

@@ -18,6 +18,118 @@ func TestSuite(t *testing.T) {
 	test.Test(t)
 }
 
+var _ = Describe("Config", func() {
+	It("parses all the things", func() {
+		buf := buff(`{
+  "invitorID": "1",
+  "ownerID": "2",
+  "low": {
+    "enabled": true,
+    "repeat": 30,
+    "delay": 10,
+    "threshold": {
+      "units": "mg/dL",
+      "value": 123.4
+    }
+  },
+  "urgentLow": {
+    "enabled": false,
+    "repeat": 30,
+    "threshold": {
+      "units": "mg/dL",
+      "value": 456.7
+    }
+  },
+  "high": {
+    "enabled": false,
+    "repeat": 30,
+    "delay": 5,
+    "threshold": {
+      "units": "mmol/L",
+      "value": 456.7
+    }
+  },
+  "notLooping": {
+    "enabled": true,
+    "repeat": 32,
+    "delay": 4
+  },
+  "noCommunication": {
+    "enabled": true,
+    "repeat": 33,
+    "delay": 6
+  }
+
+}`)
+		conf := &Config{}
+		err := request.DecodeObject(nil, buf, conf)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conf.InvitorID).To(Equal("1"))
+		Expect(conf.OwnerID).To(Equal("2"))
+		Expect(conf.High.Enabled).To(Equal(false))
+		Expect(conf.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
+		Expect(conf.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
+		Expect(conf.High.Threshold.Value).To(Equal(456.7))
+		Expect(conf.High.Threshold.Units).To(Equal(glucose.MmolL))
+		Expect(conf.Low.Enabled).To(Equal(true))
+		Expect(conf.Low.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
+		Expect(conf.Low.Delay).To(Equal(DurationMinutes(10 * time.Minute)))
+		Expect(conf.Low.Threshold.Value).To(Equal(123.4))
+		Expect(conf.Low.Threshold.Units).To(Equal(glucose.MgdL))
+		Expect(conf.UrgentLow.Enabled).To(Equal(false))
+		Expect(conf.UrgentLow.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
+		Expect(conf.UrgentLow.Threshold.Value).To(Equal(456.7))
+		Expect(conf.UrgentLow.Threshold.Units).To(Equal(glucose.MgdL))
+		Expect(conf.NotLooping.Enabled).To(Equal(true))
+		Expect(conf.NotLooping.Repeat).To(Equal(DurationMinutes(32 * time.Minute)))
+		Expect(conf.NotLooping.Delay).To(Equal(DurationMinutes(4 * time.Minute)))
+		Expect(conf.NoCommunication.Enabled).To(Equal(true))
+		Expect(conf.NoCommunication.Repeat).To(Equal(DurationMinutes(33 * time.Minute)))
+		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
+	})
+
+	Context("urgentLow", func() {
+		It("rejects a delay", func() {
+			Skip("DecodeObject isn't configurable to use strict decoding")
+			// 			buf := buff(`{
+			//   "invitorID":"1", "ownerID":"2",
+			//   "low": {
+			//     "enabled": true,
+			//     "repeat": 5,
+			//     "delay": 10,
+			//     "threshold": {
+			//       "units": "mg/dL",
+			//       "value": 123.4
+			//     }
+			//   }
+			// }`)
+			// 			conf := &Config{}
+			// 			err := request.DecodeObject(nil, buf, conf)
+			// 			log.Printf("err: %+v", err)
+			// 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("low", func() {
+		It("rejects a blank repeat", func() {
+			buf := buff(`{
+  "invitorID":"1", "ownerID":"2",
+  "low": {
+    "enabled": true,
+    "delay": 10,
+    "threshold": {
+      "units": "mg/dL",
+      "value": 123.4
+    }
+  }
+}`)
+			conf := &Config{}
+			err := request.DecodeObject(nil, buf, conf)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})
+
 var _ = Describe("Duration", func() {
 	It("parses 42", func() {
 		d := DurationMinutes(0)
