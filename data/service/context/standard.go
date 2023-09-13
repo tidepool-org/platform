@@ -117,6 +117,9 @@ func (s *Standard) Close() {
 	if s.summarizerRegistry != nil {
 		s.summarizerRegistry = nil
 	}
+	if s.alertsRepository != nil {
+		s.alertsRepository = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {

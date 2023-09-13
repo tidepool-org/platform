@@ -18,46 +18,46 @@ func AlertsRoutes() []service.Route {
 	}
 }
 
-func DeleteAlert(sCtx service.Context) {
-	ctx := sCtx.Request().Context()
-	r := sCtx.Request()
+func DeleteAlert(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
 	details := request.DetailsFromContext(ctx)
-	repo := sCtx.AlertsRepository()
+	repo := dCtx.AlertsRepository()
 
 	if err := checkPermissions(details, r.PathParam("userID")); err != nil {
-		sCtx.RespondWithError(platform.ErrorUnauthorized())
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
 	cfg := &alerts.Config{}
 	if err := json.NewDecoder(r.Body).Decode(cfg); err != nil {
-		sCtx.RespondWithError(platform.ErrorJSONMalformed())
+		dCtx.RespondWithError(platform.ErrorJSONMalformed())
 	}
 	cfg.OwnerID = details.UserID()
 	if err := repo.Delete(ctx, cfg); err != nil {
-		sCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
 	}
 }
 
-func UpsertAlert(sCtx service.Context) {
-	ctx := sCtx.Request().Context()
-	r := sCtx.Request()
+func UpsertAlert(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
 	details := request.DetailsFromContext(ctx)
-	repo := sCtx.AlertsRepository()
+	repo := dCtx.AlertsRepository()
 
 	if err := checkPermissions(details, r.PathParam("userID")); err != nil {
-		sCtx.RespondWithError(platform.ErrorUnauthorized())
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
 	cfg := &alerts.Config{}
 	if err := json.NewDecoder(r.Body).Decode(cfg); err != nil {
-		sCtx.RespondWithError(platform.ErrorJSONMalformed())
+		dCtx.RespondWithError(platform.ErrorJSONMalformed())
 	}
 	cfg.OwnerID = details.UserID()
 	if err := repo.Upsert(ctx, cfg); err != nil {
-		sCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
 	}
 }
@@ -65,12 +65,9 @@ func UpsertAlert(sCtx service.Context) {
 var ErrUnauthorized = fmt.Errorf("unauthorized")
 
 func checkPermissions(details request.Details, userID string) error {
-	if details.IsService() {
-		return nil
-	}
 	if details.IsUser() {
 		if details.UserID() != userID {
-			log.Printf("warning: URL userID doesn't match authenticated user")
+			log.Printf("warning: URL userID doesn't match token userID, token wins ")
 		}
 		return nil
 	}
