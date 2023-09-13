@@ -30,9 +30,10 @@ func DeleteAlert(dCtx service.Context) {
 	}
 
 	cfg := &alerts.Config{}
-	if err := json.NewDecoder(r.Body).Decode(cfg); err != nil {
+	if err := request.DecodeRequestBody(r.Request, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorJSONMalformed())
 	}
+
 	cfg.OwnerID = details.UserID()
 	if err := repo.Delete(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())

@@ -1,7 +1,7 @@
 package alerts
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -9,6 +9,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -45,39 +47,41 @@ var _ = Describe("Duration", func() {
 
 var _ = Describe("Threshold", func() {
 	It("accepts mg/dL", func() {
-		raw := []byte(fmt.Sprintf(`{"units":%q,"value":42}`, UnitsMilligramsPerDeciliter))
+		buf := buff(`{"units":%q,"value":42}`, glucose.MgdL)
 		threshold := &Threshold{}
-		err := json.Unmarshal(raw, threshold)
+		err := request.DecodeObject(nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
-		Expect(threshold.Units).To(Equal(UnitsMilligramsPerDeciliter))
+		Expect(threshold.Units).To(Equal(glucose.MgdL))
 	})
 	It("accepts mmol/L", func() {
-		raw := []byte(fmt.Sprintf(`{"units":%q,"value":42}`, UnitsMillimollsPerLiter))
+		buf := buff(`{"units":%q,"value":42}`, glucose.MmolL)
 		threshold := &Threshold{}
-		err := json.Unmarshal(raw, threshold)
+		err := request.DecodeObject(nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
-		Expect(threshold.Units).To(Equal(UnitsMillimollsPerLiter))
+		Expect(threshold.Units).To(Equal(glucose.MmolL))
 	})
 	It("rejects lb/gal", func() {
-		raw := []byte(fmt.Sprintf(`{"units":%q,"value":42}`, "lb/gal"))
-		threshold := &Threshold{}
-		err := json.Unmarshal(raw, threshold)
+		buf := buff(`{"units":%q,"value":42}`, "lb/gal")
+		err := request.DecodeObject(nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 	It("rejects blank units", func() {
-		raw := []byte(fmt.Sprintf(`{"units":%q,"value":42}`, ""))
-		threshold := &Threshold{}
-		err := json.Unmarshal(raw, threshold)
+		buf := buff(`{"units":"","value":42}`)
+		err := request.DecodeObject(nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 	It("is case-sensitive with respect to Units", func() {
-		badUnits := strings.ToUpper(UnitsMillimollsPerLiter)
-		raw := []byte(fmt.Sprintf(`{"units":%q,"value":42}`, badUnits))
-		threshold := &Threshold{}
-		err := json.Unmarshal(raw, threshold)
+		badUnits := strings.ToUpper(glucose.MmolL)
+		buf := buff(`{"units":%q,"value":42}`, badUnits)
+		err := request.DecodeObject(nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 
 })
+
+// buff is a helper for generating a JSON []byte representation.
+func buff(format string, args ...interface{}) *bytes.Buffer {
+	return bytes.NewBufferString(fmt.Sprintf(format, args...))
+}

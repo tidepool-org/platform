@@ -4,9 +4,10 @@ package alerts
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"time"
+
+	"github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/structure"
 )
 
 // Config models a user's desired alerts.
@@ -100,30 +101,7 @@ type ValueWithUnits struct {
 // Threshold is a value measured in either mg/dL or mmol/L.
 type Threshold ValueWithUnits
 
-// UnmarshalJSON adds validation of Units.
-func (t *Threshold) UnmarshalJSON(b []byte) error {
-	v := ValueWithUnits(*t)
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err
-	}
-	*t = Threshold(v)
-	return t.ValidateUnits()
+// Validate implements structure.Validatable
+func (t Threshold) Validate(validator structure.Validator) {
+	validator.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
 }
-
-// ValidateUnits returns an error if the specified Units aren't expected.
-func (t Threshold) ValidateUnits() error {
-	switch t.Units {
-	case UnitsMilligramsPerDeciliter:
-		return nil
-	case UnitsMillimollsPerLiter:
-		return nil
-	}
-	return fmt.Errorf("invalid units: %q", t.Units)
-}
-
-const (
-	// UnitsMilligramsPerDeciliter are a common blood-glucose measurement unit in the USA.
-	UnitsMilligramsPerDeciliter string = "mg/dL"
-	// UnitsMillimollsPerLiter are a common blood-glucose measurement unit in the UK.
-	UnitsMillimollsPerLiter string = "mmol/L"
-)
