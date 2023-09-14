@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service/context"
 	"github.com/tidepool-org/platform/request"

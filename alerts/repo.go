@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tidepool-org/platform/store/structured/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 // Repository abstracts persistent storage for AlertsConfig data.

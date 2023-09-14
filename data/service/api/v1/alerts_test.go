@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/alerts"
 	dataservice "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
