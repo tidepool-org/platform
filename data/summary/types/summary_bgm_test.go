@@ -804,6 +804,10 @@ var _ = Describe("BGM Summary", func() {
 				// first day, should have 24 buckets
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(24))
+				Expect(*userBGMSummary.Stats.Periods["1d"].TotalRecords).To(Equal(24 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["1d"].TotalRecords).To(Equal(0))
+				Expect(*userBGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(24 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(0))
 
 				err = userBGMSummary.Stats.Update(dataSetBGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
@@ -811,6 +815,10 @@ var _ = Describe("BGM Summary", func() {
 				// 33 days elapsed, should have 33*24 (792) buckets
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(792))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(792))
+				Expect(*userBGMSummary.Stats.Periods["14d"].TotalRecords).To(Equal(24 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["14d"].TotalRecords).To(Equal(0))
+				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 6))
 
 				err = userBGMSummary.Stats.Update(dataSetBGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
@@ -818,6 +826,8 @@ var _ = Describe("BGM Summary", func() {
 				// 47 days elapsed, should have 47*24 (1128) buckets
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1128))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1128))
+				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 2 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 6))
 
 				err = userBGMSummary.Stats.Update(dataSetBGMDataFour)
 				Expect(err).ToNot(HaveOccurred())
@@ -825,6 +835,8 @@ var _ = Describe("BGM Summary", func() {
 				// 59 days elapsed, should have 59*24 (1416) buckets
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1416))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1416))
+				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 3 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 1 * 6))
 
 				err = userBGMSummary.Stats.Update(dataSetBGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
@@ -832,6 +844,8 @@ var _ = Describe("BGM Summary", func() {
 				// 60 days elapsed, should have 60*24 (1440) buckets
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1440))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1440))
+				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 4 * 6))
+				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 1 * 6))
 
 				// check that the data matches the expectation described at the top of the test
 				Expect(*userBGMSummary.Stats.Periods["1d"].AverageGlucoseMmol).To(BeNumerically("~", lowBloodGlucose, 0.001))

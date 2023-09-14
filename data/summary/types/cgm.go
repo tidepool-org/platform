@@ -300,6 +300,7 @@ func (s *CGMStats) CalculateSummary() {
 	}
 	for i := nextOffsetStopPoint; i < len(stopPoints); i++ {
 		s.CalculatePeriod(stopPoints[i], true, totalOffsetStats)
+		totalOffsetStats = &CGMBucketData{}
 	}
 
 	s.TotalHours = len(s.Buckets)
@@ -360,13 +361,6 @@ func (s *CGMStats) CalculateDelta() {
 
 			s.Periods[k].AverageDailyRecordsDelta = pointer.FromAny(delta)
 			s.OffsetPeriods[k].AverageDailyRecordsDelta = pointer.FromAny(-delta)
-		}
-
-		if s.Periods[k].TimeInTargetPercent != nil && s.OffsetPeriods[k].TimeInTargetPercent != nil {
-			delta := *s.Periods[k].TimeInTargetPercent - *s.OffsetPeriods[k].TimeInTargetPercent
-
-			s.Periods[k].TimeInTargetPercentDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].TimeInTargetPercentDelta = pointer.FromAny(-delta)
 		}
 
 		if s.Periods[k].TimeInTargetPercent != nil && s.OffsetPeriods[k].TimeInTargetPercent != nil {

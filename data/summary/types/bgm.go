@@ -213,6 +213,7 @@ func (s *BGMStats) CalculateSummary() {
 	}
 	for i := nextOffsetStopPoint; i < len(stopPoints); i++ {
 		s.CalculatePeriod(stopPoints[i], true, totalOffsetStats)
+		totalOffsetStats = &BGMBucketData{}
 	}
 
 	s.TotalHours = len(s.Buckets)
