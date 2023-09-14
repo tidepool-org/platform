@@ -1,10 +1,12 @@
 package mocks
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -70,4 +72,57 @@ func (w *mockResponseWriter) WriteJson(object interface{}) error {
 // EncodeJson is a method of rest.ResponseWriter that is useful to override.
 func (c *mockResponseWriter) EncodeJson(v interface{}) ([]byte, error) {
 	return json.MarshalIndent(v, "", "  ")
+}
+
+type PermissionsMapMap map[string]map[string]permission.Permissions
+
+func TestUserPerms() permission.Permissions {
+	return permission.Permissions{
+		permission.Alerting: map[string]interface{}{},
+		permission.Read:     map[string]interface{}{},
+	}
+}
+
+func TestPerms() PermissionsMapMap {
+	return PermissionsMapMap{
+		TestUserID1: {
+			TestUserID2: TestUserPerms(),
+		},
+	}
+}
+
+type Permission struct {
+	Perms   PermissionsMapMap
+	Default permission.Permissions
+	Error   error
+}
+
+func NewPermission(perms PermissionsMapMap, def permission.Permissions, err error) *Permission {
+	if def == nil {
+		def = TestUserPerms()
+	}
+	return &Permission{
+		Perms:   perms,
+		Default: def,
+		Error:   err,
+	}
+}
+
+func NewPermissionDefault() *Permission {
+	return NewPermission(nil, TestUserPerms(), nil)
+}
+
+func NewPermissionError(err error) *Permission {
+	return NewPermission(nil, nil, err)
+}
+
+func (p *Permission) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+	if p.Error != nil {
+		return nil, p.Error
+	}
+	if p, found := p.Perms[requestUserID][targetUserID]; found {
+		return p, nil
+	}
+
+	return p.Default, nil
 }

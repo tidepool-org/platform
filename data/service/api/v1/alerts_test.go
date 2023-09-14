@@ -3,7 +3,6 @@ package v1
 import (
 	"bytes"
 	"context"
-
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
@@ -12,12 +11,23 @@ import (
 	"github.com/tidepool-org/platform/alerts"
 	dataservice "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
+func permsNoAlerting() map[string]map[string]permission.Permissions {
+	return map[string]map[string]permission.Permissions{
+		mocks.TestUserID1: {
+			mocks.TestUserID2: {
+				permission.Read: map[string]interface{}{},
+			},
+		},
+	}
+}
+
 var _ = Describe("Alerts endpoints", func() {
 
-	testUnauthorized := func(f func(dataservice.Context)) {
+	testAuthentication := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
 			OwnerID:   mocks.TestUserID1,
@@ -28,6 +38,23 @@ var _ = Describe("Alerts endpoints", func() {
 		badDetails := mocks.NewDetails(request.MethodSessionToken, "", "")
 		dCtx.WithDetails(badDetails)
 
+		f(dCtx)
+
+		rec := dCtx.Recorder()
+		Expect(rec.Code).To(Equal(http.StatusForbidden))
+	}
+
+	testPermissions := func(f func(dataservice.Context)) {
+		t := GinkgoT()
+		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
+			OwnerID:   mocks.TestUserID1,
+			InvitorID: mocks.TestUserID2,
+		}))
+		dCtx := mocks.NewContext(t, "", "", body)
+		dCtx.MockAlertsRepository = newMockRepo()
+		dCtx.MockPermissionClient = mocks.NewPermission(permsNoAlerting(), nil, nil)
+
+		//runtime.Breakpoint()
 		f(dCtx)
 
 		rec := dCtx.Recorder()
@@ -71,8 +98,8 @@ var _ = Describe("Alerts endpoints", func() {
 	}
 
 	Describe("Delete", func() {
-		It("rejects unauthorized users", func() {
-			testUnauthorized(DeleteAlert)
+		It("rejects unauthenticated users", func() {
+			testAuthentication(DeleteAlert)
 		})
 
 		It("uses the authenticated user's userID", func() {
@@ -82,11 +109,16 @@ var _ = Describe("Alerts endpoints", func() {
 		It("errors on invalid JSON", func() {
 			testInvalidJSON(DeleteAlert)
 		})
+
+		It("rejects users without alerting permissions", func() {
+			testPermissions(DeleteAlert)
+		})
+
 	})
 
 	Describe("Upsert", func() {
-		It("rejects unauthorized users", func() {
-			testUnauthorized(UpsertAlert)
+		It("rejects unauthenticated users", func() {
+			testAuthentication(UpsertAlert)
 		})
 
 		It("uses the authenticated user's userID", func() {
@@ -96,6 +128,11 @@ var _ = Describe("Alerts endpoints", func() {
 		It("errors on invalid JSON", func() {
 			testInvalidJSON(UpsertAlert)
 		})
+
+		It("rejects users without alerting permissions", func() {
+			testPermissions(UpsertAlert)
+		})
+
 	})
 })
 

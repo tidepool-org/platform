@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service/context"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	servicecontext "github.com/tidepool-org/platform/service/context"
 )
@@ -25,6 +26,7 @@ type Context struct {
 	ResponseWriter       rest.ResponseWriter
 	recorder             *httptest.ResponseRecorder
 	MockAlertsRepository alerts.Repository
+	MockPermissionClient permission.Client
 }
 
 func NewContext(t likeT, method, url string, body io.Reader) *Context {
@@ -53,10 +55,11 @@ func NewContext(t likeT, method, url string, body io.Reader) *Context {
 		Standard: &context.Standard{
 			Responder: responder,
 		},
-		RESTRequest:    rr,
-		ResponseWriter: w,
-		recorder:       recorder,
-		T:              t,
+		RESTRequest:          rr,
+		ResponseWriter:       w,
+		MockPermissionClient: NewPermission(TestPerms(), nil, nil),
+		recorder:             recorder,
+		T:                    t,
 	}
 }
 
@@ -85,4 +88,8 @@ func (c *Context) Recorder() *httptest.ResponseRecorder {
 
 func (c *Context) AlertsRepository() alerts.Repository {
 	return c.MockAlertsRepository
+}
+
+func (c *Context) PermissionClient() permission.Client {
+	return c.MockPermissionClient
 }
