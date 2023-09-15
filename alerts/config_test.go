@@ -89,28 +89,6 @@ var _ = Describe("Config", func() {
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
 	})
 
-	Context("urgentLow", func() {
-		It("rejects a delay", func() {
-			Skip("DecodeObject isn't configurable to use strict decoding")
-			// 			buf := buff(`{
-			//   "invitorID":"1", "ownerID":"2",
-			//   "low": {
-			//     "enabled": true,
-			//     "repeat": 5,
-			//     "delay": 10,
-			//     "threshold": {
-			//       "units": "mg/dL",
-			//       "value": 123.4
-			//     }
-			//   }
-			// }`)
-			// 			conf := &Config{}
-			// 			err := request.DecodeObject(nil, buf, conf)
-			// 			log.Printf("err: %+v", err)
-			// 			Expect(err).To(HaveOccurred())
-		})
-	})
-
 	Context("low", func() {
 		It("rejects a blank repeat", func() {
 			buf := buff(`{
