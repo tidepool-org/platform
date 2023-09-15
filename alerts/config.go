@@ -33,7 +33,7 @@ func (c Config) Validate(validator structure.Validator) {
 		c.Low.Validate(validator)
 	}
 	if c.UrgentLow != nil {
-		c.Low.Validate(validator)
+		c.UrgentLow.Validate(validator)
 	}
 	if c.High != nil {
 		c.High.Validate(validator)

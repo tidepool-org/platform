@@ -60,7 +60,6 @@ var _ = Describe("Config", func() {
     "repeat": 33,
     "delay": 6
   }
-
 }`)
 		conf := &Config{}
 		err := request.DecodeObject(nil, buf, conf)
@@ -87,6 +86,47 @@ var _ = Describe("Config", func() {
 		Expect(conf.NoCommunication.Enabled).To(Equal(true))
 		Expect(conf.NoCommunication.Repeat).To(Equal(DurationMinutes(33 * time.Minute)))
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
+	})
+
+	Context("urgentLow", func() {
+		It("validates threshold units", func() {
+			buf := buff(`{"urgentLow": {"threshold": {"units":%q,"value":42}}`, "garbage")
+			threshold := &Threshold{}
+			err := request.DecodeObject(nil, buf, threshold)
+			Expect(err).To(MatchError("json is malformed"))
+		})
+		It("validates repeat minutes (negative)", func() {
+			buf := buff(`{
+  "invitorID": "1", "ownerID": "2",
+  "urgentLow": {
+    "enabled": false,
+    "repeat": -11,
+    "threshold": {
+      "units": "%s",
+      "value": 1
+    }
+  }
+}`, glucose.MgdL)
+			cfg := &Config{}
+			err := request.DecodeObject(nil, buf, cfg)
+			Expect(err).To(MatchError("value -11m0s is not greater than 0s"))
+		})
+		It("validates repeat minutes (string)", func() {
+			buf := buff(`{
+  "invitorID": "1", "ownerID": "2",
+  "urgentLow": {
+    "enabled": false,
+    "repeat": "a",
+    "threshold": {
+      "units": "%s",
+      "value": 1
+    }
+  }
+}`, glucose.MgdL)
+			cfg := &Config{}
+			err := request.DecodeObject(nil, buf, cfg)
+			Expect(err).To(MatchError("json is malformed"))
+		})
 	})
 
 	Context("low", func() {
