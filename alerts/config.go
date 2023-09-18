@@ -4,6 +4,7 @@ package alerts
 
 import (
 	"bytes"
+	"context"
 	"time"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -12,13 +13,8 @@ import (
 
 // Config models a user's desired alerts.
 type Config struct {
-	Key string `json:"key" bson:"_id"`
-	// OwnerID links the user that owns and controls these alerts, i.e. the
-	// care team member.
-	OwnerID string `json:"ownerID"`
-	// InvitorID links the user whose data is shared, and will trigger alerts.
-	InvitorID string `json:"invitorID"`
-
+	OwnerID         string         `json:"ownerID"`
+	InvitorID       string         `json:"invitorID"`
 	UrgentLow       *WithThreshold `json:"urgentLow,omitempty"`
 	Low             *Deluxe        `json:"low,omitempty"`
 	High            *Deluxe        `json:"high,omitempty"`
@@ -153,4 +149,10 @@ type Threshold ValueWithUnits
 // Validate implements structure.Validatable
 func (t Threshold) Validate(validator structure.Validator) {
 	validator.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
+}
+
+// Repository abstracts persistent storage for Config data.
+type Repository interface {
+	Upsert(ctx context.Context, conf *Config) error
+	Delete(ctx context.Context, conf *Config) error
 }

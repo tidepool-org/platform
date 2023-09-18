@@ -53,5 +53,6 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 }
 
 func (s *Store) NewAlertsRepository() alerts.Repository {
-	return alerts.NewMongoRepo(s.Store.GetRepository("alerts"))
+	r := alertsRepo(*s.Store.GetRepository("alerts"))
+	return &r
 }
