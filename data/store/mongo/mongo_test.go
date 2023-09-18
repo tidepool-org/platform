@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
@@ -234,6 +235,7 @@ var _ = Describe("Mongo", func() {
 	var store *dataStoreMongo.Store
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
+	var alertsRepository alerts.Repository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -494,6 +496,7 @@ var _ = Describe("Mongo", func() {
 		var collection *mongo.Collection
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
+		var alertsCollection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
@@ -503,6 +506,7 @@ var _ = Describe("Mongo", func() {
 			collection = store.GetCollection("deviceData")
 			dataSetCollection = store.GetCollection("deviceDataSets")
 			summaryCollection = store.GetCollection("summary")
+			alertsCollection = store.GetCollection("alerts")
 			Expect(store.EnsureIndexes()).To(Succeed())
 		})
 
@@ -511,6 +515,7 @@ var _ = Describe("Mongo", func() {
 				collection.Database().Drop(context.Background())
 				dataSetCollection.Database().Drop(context.Background())
 				summaryCollection.Database().Drop(context.Background())
+				alertsCollection.Database().Drop(context.Background())
 			}
 		})
 
@@ -601,6 +606,13 @@ var _ = Describe("Mongo", func() {
 			It("returns a new repository", func() {
 				summaryRepository = store.NewSummaryRepository()
 				Expect(summaryRepository).ToNot(BeNil())
+			})
+		})
+
+		Context("NewAlertsRepository", func() {
+			It("returns a new repository", func() {
+				alertsRepository = store.NewAlertsRepository()
+				Expect(alertsRepository).ToNot(BeNil())
 			})
 		})
 

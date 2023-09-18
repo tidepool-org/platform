@@ -104,3 +104,9 @@ func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, i
 	}
 	return fmt.Errorf("user isn't authorized for alerting: %q", userID)
 }
+
+// Repository abstracts persistent storage for AlertsConfig data.
+type Repository interface {
+	Upsert(ctx context.Context, conf *alerts.Config) error
+	Delete(ctx context.Context, conf *alerts.Config) error
+}
