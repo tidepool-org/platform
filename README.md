@@ -10,7 +10,15 @@ The Tidepool Platform API.
 
 1. Install Go version 1.11.4 or later
 1. Install mongodb (if it is not already installed, or run it from Docker)
+
+    The tests assume that mongodb is listening on 127.0.0.1:27017.
+    1. Configure mongodb replica sets (required for tests to pass)
+
+        A single node is all that's required. It can be as simple as simple adding `--replSet rs0` when running mongd, or the equivalent config file change.
 1. Start mongodb (if it is not already running)
+    1. Initiate the replica set
+
+	    Something like: `mongosh rs.initiate()`
 1. Clone this repo
 1. Change directory to the path you cloned the repo into
 1. Source the `env.sh` file
@@ -42,6 +50,8 @@ _bin/services/data/data
 ```
 
 Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
+
+> **Note:** For testing and development, services are generally run on a local Kubernetes cluster through the [development repo](https://github.com/tidepool-org/development#developing-tidepool-services).
 
 # Makefile
 
@@ -149,7 +159,11 @@ If you previously noted any changes or issues of concern, perform any explicit t
 
 ## Upgrade
 
-Install `dep` via `brew`. Execute `dep ensure -update`.
+```
+go get -u <dependacy>   # e.g. go get -u github.com/onsi/gomega
+go mod tidy
+go mod vendor
+```
 
 ## Review
 

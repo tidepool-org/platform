@@ -36,7 +36,12 @@ func (s *Store) EnsureIndexes() error {
 
 func (s *Store) NewDataRepository() store.DataRepository {
 	return &DataRepository{
-		s.Store.GetRepository("deviceData"),
+		DatumRepository: &DatumRepository{
+			s.Store.GetRepository("deviceData"),
+		},
+		DataSetRepository: &DataSetRepository{
+			s.Store.GetRepository("deviceDataSets"),
+		},
 	}
 }
 

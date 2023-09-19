@@ -9,3 +9,5 @@ jobs:
       uses: snyk/actions/golang@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: snyk ignore --id=SNYK-GOLANG-GITHUBCOMDISINTEGRATIONIMAGING-5880692 --expiry=2024-03-12 --policy-path=.snyk
