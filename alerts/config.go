@@ -13,13 +13,13 @@ import (
 
 // Config models a user's desired alerts.
 type Config struct {
-	OwnerID         string         `json:"ownerID"`
-	InvitorID       string         `json:"invitorID"`
-	UrgentLow       *WithThreshold `json:"urgentLow,omitempty"`
-	Low             *Deluxe        `json:"low,omitempty"`
-	High            *Deluxe        `json:"high,omitempty"`
-	NotLooping      *WithDelay     `json:"notLooping,omitempty"`
-	NoCommunication *WithDelay     `json:"noCommunication,omitempty"`
+	OwnerID         string         `json:"ownerID" bson:"ownerID"`
+	InvitorID       string         `json:"invitorID" bson:"invitorID"`
+	UrgentLow       *WithThreshold `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
+	Low             *Deluxe        `json:"low,omitempty" bson:"low,omitempty"`
+	High            *Deluxe        `json:"high,omitempty" bson:"high,omitempty"`
+	NotLooping      *WithDelay     `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+	NoCommunication *WithDelay     `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
 }
 
 func (c Config) Validate(validator structure.Validator) {
@@ -80,8 +80,8 @@ func (t ThresholdMixin) Validate(validator structure.Validator) {
 
 // WithThreshold extends Base with ThresholdMixin.
 type WithThreshold struct {
-	Base
-	ThresholdMixin
+	Base           `bson:",inline"`
+	ThresholdMixin `bson:",inline"`
 }
 
 func (d WithThreshold) Validate(validator structure.Validator) {
@@ -91,8 +91,8 @@ func (d WithThreshold) Validate(validator structure.Validator) {
 
 // WithDelay extends Base with DelayMixin.
 type WithDelay struct {
-	Base
-	DelayMixin
+	Base       `bson:",inline"`
+	DelayMixin `bson:",inline"`
 }
 
 func (d WithDelay) Validate(validator structure.Validator) {
@@ -102,9 +102,9 @@ func (d WithDelay) Validate(validator structure.Validator) {
 
 // Deluxe extends Base with both DelayMixin and ThresholdMixin.
 type Deluxe struct {
-	Base
-	DelayMixin
-	ThresholdMixin
+	Base           `bson:",inline"`
+	DelayMixin     `bson:",inline"`
+	ThresholdMixin `bson:",inline"`
 }
 
 func (d Deluxe) Validate(validator structure.Validator) {
