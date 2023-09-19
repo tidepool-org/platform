@@ -89,7 +89,7 @@ generate: esc mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 
-ci-generate: generate
+ci-generate: generate format-write-changed imports-write-changed
 	@cd $(ROOT_DIRECTORY) && \
 		O=`git diff` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
 
@@ -105,6 +105,10 @@ format-write:
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
+format-write-changed:
+	@cd $(ROOT_DIRECTORY) && \
+		git diff --name-only | xargs -I{} gofmt -e -s -w {}
+
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
@@ -116,6 +120,10 @@ imports-write: goimports
 	@cd $(ROOT_DIRECTORY) && \
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
+imports-write-changed: goimports
+	@cd $(ROOT_DIRECTORY) && \
+		git diff --name-only | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
 
 vet: tmp
 	@echo "go vet"

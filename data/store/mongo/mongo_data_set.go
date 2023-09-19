@@ -9,9 +9,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -169,12 +171,7 @@ func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *upload.U
 	return nil
 }
 
-// upsertDataSet upserts a DataSet. It is not exported as the caller of this
-// code has to first check if the update succeeded in the original, old,
-// deviceData collection. If it did, then an upsert in this collection is
-// allowed. When migration is complete and all device upload data is moved to
-// the new collection, the upsert option can be removed.
-func (d *DataSetRepository) upsertDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*upload.Upload, error) {
+func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -224,10 +221,9 @@ func (d *DataSetRepository) upsertDataSet(ctx context.Context, id string, update
 	if update.TimeZoneOffset != nil {
 		set["timezoneOffset"] = *update.TimeZoneOffset
 	}
-	// Remove this upsert option when migration of device upload data from deviceData to deviceDataSets is complete
-	opts := options.Update().SetUpsert(true)
+	opts := options.Update().SetUpsert(false) // Can only update an existing document
 	changeInfo, err := d.UpdateMany(ctx, bson.M{"uploadId": id}, d.ConstructUpdate(set, unset), opts)
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DataSetRepository.upsertDataSet")
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DataSetRepository.UpdateDataSet")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to upsert data set")
 	}
@@ -260,6 +256,111 @@ func (d *DataSetRepository) GetDataSet(ctx context.Context, id string) (*data.Da
 	}
 
 	return dataSet, nil
+}
+
+func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if filter == nil {
+		filter = data.NewDataSetFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+
+	dataSets := data.DataSets{}
+	selector := bson.M{
+		"_active": true,
+		"_userId": userID,
+		"type":    "upload",
+	}
+	if filter.ClientName != nil {
+		selector["client.name"] = *filter.ClientName
+	}
+	if filter.Deleted == nil || !*filter.Deleted {
+		selector["deletedTime"] = bson.M{"$exists": false}
+	}
+	if filter.DeviceID != nil {
+		selector["deviceId"] = *filter.DeviceID
+	}
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := d.Find(ctx, selector, opts)
+	logger.WithFields(log.Fields{"count": len(dataSets), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserDataSets")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list user data sets")
+	}
+
+	if err = cursor.All(ctx, &dataSets); err != nil {
+		return nil, errors.Wrap(err, "unable to decode user data sets")
+	}
+
+	if dataSets == nil {
+		dataSets = data.DataSets{}
+	}
+
+	return dataSets, nil
+}
+
+func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	}
+	if filter == nil {
+		filter = store.NewFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	now := time.Now()
+
+	var dataSets []*upload.Upload
+	selector := bson.M{
+		"_active": true,
+		"_userId": userID,
+		"type":    "upload",
+	}
+	if !filter.Deleted {
+		selector["deletedTime"] = bson.M{"$exists": false}
+	}
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := d.Find(ctx, selector, opts)
+
+	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
+
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get data sets for user by id")
+	}
+
+	if err = cursor.All(ctx, &dataSets); err != nil {
+		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
+	}
+
+	if dataSets == nil {
+		dataSets = []*upload.Upload{}
+	}
+	return dataSets, nil
 }
 
 func validateDataSet(dataSet *upload.Upload) error {
