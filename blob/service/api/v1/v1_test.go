@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -411,7 +411,7 @@ var _ = Describe("V1", func() {
 							})
 
 							JustBeforeEach(func() {
-								req.Body = ioutil.NopCloser(content.Body)
+								req.Body = io.NopCloser(content.Body)
 								if content.DigestMD5 != nil {
 									req.Header.Set("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
 								}
@@ -561,7 +561,7 @@ var _ = Describe("V1", func() {
 										Expect(client.CreateInputs).To(Equal([]blobTest.CreateInput{{
 											UserID: userID,
 											Content: &blob.Content{
-												Body:      ioutil.NopCloser(content.Body),
+												Body:      io.NopCloser(content.Body),
 												DigestMD5: nil,
 												MediaType: content.MediaType,
 											},
@@ -576,7 +576,7 @@ var _ = Describe("V1", func() {
 										Expect(client.CreateInputs).To(Equal([]blobTest.CreateInput{{
 											UserID: userID,
 											Content: &blob.Content{
-												Body:      ioutil.NopCloser(content.Body),
+												Body:      io.NopCloser(content.Body),
 												DigestMD5: content.DigestMD5,
 												MediaType: content.MediaType,
 											},
@@ -647,7 +647,7 @@ var _ = Describe("V1", func() {
 							})
 
 							JustBeforeEach(func() {
-								req.Body = ioutil.NopCloser(content.Body)
+								req.Body = io.NopCloser(content.Body)
 								if content.DigestMD5 != nil {
 									req.Header.Set("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
 								}
@@ -685,6 +685,18 @@ var _ = Describe("V1", func() {
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
 									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
+								})
+							})
+							When("the digest header is missing", func() {
+								BeforeEach(func() {
+									content.DigestMD5 = nil
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorHeaderMissing("Digest"), res.WriteInputs[0])
 								})
 							})
 
@@ -779,7 +791,19 @@ var _ = Describe("V1", func() {
 									})
 								})
 
-								digestAssertions := func() {
+								When("the digest header is specified", func() {
+									AfterEach(func() {
+										Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
+											UserID: userID,
+											Content: &blob.DeviceLogsContent{
+												Body:      io.NopCloser(content.Body),
+												DigestMD5: content.DigestMD5,
+												MediaType: content.MediaType,
+												StartAt:   content.StartAt,
+												EndAt:     content.EndAt,
+											},
+										}}))
+									})
 									It("responds with a bad request error when the client returns a digests not equal error", func() {
 										err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
 										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: err}}
@@ -805,42 +829,6 @@ var _ = Describe("V1", func() {
 										Expect(res.WriteInputs).To(HaveLen(1))
 										Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
 									})
-								}
-
-								When("the digest header is not specified", func() {
-									BeforeEach(func() {
-										content.DigestMD5 = nil
-									})
-									AfterEach(func() {
-										Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
-											UserID: userID,
-											Content: &blob.DeviceLogsContent{
-												Body:      ioutil.NopCloser(content.Body),
-												DigestMD5: nil,
-												MediaType: content.MediaType,
-												StartAt:   content.StartAt,
-												EndAt:     content.EndAt,
-											},
-										}}))
-									})
-									digestAssertions()
-								})
-
-								When("the digest header is specified", func() {
-									AfterEach(func() {
-										Expect(client.CreateDeviceLogsInputs).To(Equal([]blobTest.CreateDeviceLogsInput{{
-											UserID: userID,
-											Content: &blob.DeviceLogsContent{
-												Body:      ioutil.NopCloser(content.Body),
-												DigestMD5: content.DigestMD5,
-												MediaType: content.MediaType,
-												StartAt:   content.StartAt,
-												EndAt:     content.EndAt,
-											},
-										}}))
-									})
-
-									digestAssertions()
 								})
 							})
 						})
@@ -1158,7 +1146,7 @@ var _ = Describe("V1", func() {
 								It("responds successfully without headers", func() {
 									body := test.RandomBytes()
 									content := blob.NewContent()
-									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									content.Body = io.NopCloser(bytes.NewReader(body))
 									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -1169,7 +1157,7 @@ var _ = Describe("V1", func() {
 								It("responds successfully with headers", func() {
 									body := test.RandomBytes()
 									content := blob.NewContent()
-									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									content.Body = io.NopCloser(bytes.NewReader(body))
 									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
 									content.MediaType = pointer.FromString(netTest.RandomMediaType())
 									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}

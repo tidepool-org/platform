@@ -141,6 +141,9 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
+	} else if digestMD5 == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Digest"))
+		return
 	}
 	mediaType, err := request.ParseMediaTypeHeader(req.Header, "Content-Type")
 	if err != nil {
