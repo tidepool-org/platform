@@ -620,14 +620,17 @@ var _ = Describe("Mongo", func() {
 			BeforeEach(func() {
 				repository = store.NewDataRepository()
 				summaryRepository = store.NewSummaryRepository()
+				alertsRepository = store.NewAlertsRepository()
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
+				Expect(alertsRepository).ToNot(BeNil())
 			})
 
 			AfterEach(func() {
 				if repository != nil {
 					_, _ = collection.DeleteMany(context.Background(), bson.D{})
 					_, _ = summaryCollection.DeleteMany(context.Background(), bson.D{})
+					_, _ = alertsCollection.DeleteMany(context.Background(), bson.D{})
 				}
 			})
 
@@ -2193,6 +2196,75 @@ var _ = Describe("Mongo", func() {
 							})
 						})
 					})
+				})
+
+			})
+		})
+
+		Context("alerts", func() {
+			BeforeEach(func() {
+				var err error
+				store, err = dataStoreMongo.NewStore(config)
+				Expect(err).To(Succeed())
+
+				alertsRepository = store.NewAlertsRepository()
+				Expect(alertsRepository).ToNot(BeNil())
+			})
+
+			prep := func(upsertDoc bool) (context.Context, *alerts.Config, bson.M) {
+				cfg := &alerts.Config{
+					InvitorID: "invitor-id",
+					OwnerID:   "owner-id",
+				}
+				ctx := context.Background()
+				filter := bson.M{}
+				if upsertDoc {
+					Expect(alertsRepository.Upsert(context.Background(), cfg)).
+						To(Succeed())
+					filter["_id"] = dataStoreMongo.AlertsID(cfg)
+				}
+
+				return ctx, cfg, filter
+			}
+
+			Describe("Upsert", func() {
+				Context("when no document exists", func() {
+					It("creates a new document", func() {
+						ctx, cfg, filter := prep(false)
+
+						Expect(alertsRepository.Upsert(context.Background(), cfg)).To(Succeed())
+
+						res := store.GetCollection("alerts").FindOne(ctx, filter)
+						Expect(res.Err()).To(Succeed())
+					})
+				})
+
+				It("updates the existing document", func() {
+					ctx, cfg, filter := prep(true)
+
+					cfg.Low = &alerts.Deluxe{Base: alerts.Base{Enabled: true}}
+					err := alertsRepository.Upsert(context.Background(), cfg)
+					Expect(err).To(Succeed())
+
+					doc := &dataStoreMongo.AlertsConfigDocument{}
+					res := store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(Succeed())
+					Expect(res.Decode(doc)).To(Succeed())
+					Expect(doc.Config.Low).ToNot(BeNil())
+					Expect(doc.Config.Low.Base.Enabled).To(Equal(true))
+				})
+
+			})
+
+			Describe("Delete", func() {
+				It("deletes the document", func() {
+					ctx, cfg, filter := prep(true)
+
+					err := alertsRepository.Delete(context.Background(), cfg)
+					Expect(err).To(Succeed())
+
+					res := store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(MatchError(mongo.ErrNoDocuments))
 				})
 			})
 		})
