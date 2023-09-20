@@ -137,7 +137,7 @@ func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, f
 		return err
 	}
 	for key := range perms {
-		if key == permission.Alerting {
+		if key == permission.Follow {
 			return nil
 		}
 	}

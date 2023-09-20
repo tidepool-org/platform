@@ -8,7 +8,7 @@ type Permission map[string]interface{}
 type Permissions map[string]Permission
 
 const (
-	Alerting  = "alerting"
+	Follow    = "follow"
 	Custodian = "custodian"
 	Owner     = "root"
 	Read      = "view"

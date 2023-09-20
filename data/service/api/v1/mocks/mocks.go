@@ -78,8 +78,8 @@ type PermissionsMapMap map[string]map[string]permission.Permissions
 
 func TestUserPerms() permission.Permissions {
 	return permission.Permissions{
-		permission.Alerting: map[string]interface{}{},
-		permission.Read:     map[string]interface{}{},
+		permission.Follow: map[string]interface{}{},
+		permission.Read:   map[string]interface{}{},
 	}
 }
 
