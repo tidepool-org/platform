@@ -24,15 +24,22 @@ type Store struct {
 func (s *Store) EnsureIndexes() error {
 	dataRepository := s.NewDataRepository()
 	summaryRepository := s.NewSummaryRepository()
+	alertsRepository := s.NewAlertsRepository()
 
 	err := dataRepository.EnsureIndexes()
 	if err != nil {
 		return err
 	}
 
-	err = summaryRepository.EnsureIndexes()
+	if err := summaryRepository.EnsureIndexes(); err != nil {
+		return err
+	}
 
-	return err
+	if err := alertsRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Store) NewDataRepository() store.DataRepository {

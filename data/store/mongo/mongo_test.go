@@ -2206,6 +2206,8 @@ var _ = Describe("Mongo", func() {
 				var err error
 				store, err = dataStoreMongo.NewStore(config)
 				Expect(err).To(Succeed())
+				_, err = store.GetCollection("alerts").DeleteMany(context.Background(), bson.D{})
+				Expect(err).To(Succeed())
 
 				alertsRepository = store.NewAlertsRepository()
 				Expect(alertsRepository).ToNot(BeNil())
@@ -2221,7 +2223,8 @@ var _ = Describe("Mongo", func() {
 				if upsertDoc {
 					Expect(alertsRepository.Upsert(ctx, cfg)).
 						To(Succeed())
-					filter["_id"] = dataStoreMongo.AlertsID(cfg)
+					filter["userId"] = cfg.UserID
+					filter["followedId"] = cfg.FollowedID
 				}
 
 				return ctx, cfg, filter
@@ -2246,12 +2249,12 @@ var _ = Describe("Mongo", func() {
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
-					doc := &dataStoreMongo.AlertsConfigDocument{}
+					doc := &alerts.Config{}
 					res := store.GetCollection("alerts").FindOne(ctx, filter)
 					Expect(res.Err()).To(Succeed())
 					Expect(res.Decode(doc)).To(Succeed())
-					Expect(doc.Config.Low).ToNot(BeNil())
-					Expect(doc.Config.Low.Base.Enabled).To(Equal(true))
+					Expect(doc.Low).ToNot(BeNil())
+					Expect(doc.Low.Base.Enabled).To(Equal(true))
 				})
 
 			})

@@ -215,3 +215,7 @@ func (r *mockRepo) Delete(ctx context.Context, conf *alerts.Config) error {
 	}
 	return nil
 }
+
+func (r *mockRepo) EnsureIndexes() error {
+	return nil
+}

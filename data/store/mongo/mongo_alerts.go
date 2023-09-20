@@ -5,21 +5,20 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/alerts"
-	"github.com/tidepool-org/platform/store/structured/mongo"
+	structuredmongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 // alertsRepo implements alerts.Repository, writing data to a MongoDB collection.
-type alertsRepo mongo.Repository
+type alertsRepo structuredmongo.Repository
 
 // Upsert will create or update the given Config.
 func (r *alertsRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 	opts := options.Update().SetUpsert(true)
-	doc := NewAlertsConfigDocument(conf)
-	filter := bson.M{"_id": doc.ID}
-	_, err := r.UpdateOne(ctx, filter, bson.M{"$set": doc}, opts)
+	_, err := r.UpdateOne(ctx, r.filter(conf), bson.M{"$set": conf}, opts)
 	if err != nil {
 		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
@@ -27,9 +26,8 @@ func (r *alertsRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 }
 
 // Delete will delete the given Config.
-func (r *alertsRepo) Delete(ctx context.Context, conf *alerts.Config) error {
-	filter := bson.M{"_id": AlertsID(conf)}
-	_, err := r.DeleteMany(ctx, filter, nil)
+func (r *alertsRepo) Delete(ctx context.Context, cfg *alerts.Config) error {
+	_, err := r.DeleteMany(ctx, r.filter(cfg), nil)
 	if err != nil {
 		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
@@ -37,9 +35,8 @@ func (r *alertsRepo) Delete(ctx context.Context, conf *alerts.Config) error {
 }
 
 // Get will retrieve the given Config.
-func (r *alertsRepo) Get(ctx context.Context, conf *alerts.Config) (*alerts.Config, error) {
-	filter := bson.M{"_id": AlertsID(conf)}
-	res := r.FindOne(ctx, filter, nil)
+func (r *alertsRepo) Get(ctx context.Context, cfg *alerts.Config) (*alerts.Config, error) {
+	res := r.FindOne(ctx, r.filter(cfg), nil)
 	if res.Err() != nil {
 		return nil, fmt.Errorf("getting alerts.Config: %w", res.Err())
 	}
@@ -50,20 +47,25 @@ func (r *alertsRepo) Get(ctx context.Context, conf *alerts.Config) (*alerts.Conf
 	return out, nil
 }
 
-// AlertsConfigDocument wraps alerts.Config to provide an ID for mongodb.
-type AlertsConfigDocument struct {
-	ID             string `bson:"_id"`
-	*alerts.Config `bson:",inline"`
+// EnsureIndexes to maintain index constraints.
+func (r *alertsRepo) EnsureIndexes() error {
+	repo := structuredmongo.Repository(*r)
+	return (&repo).CreateAllIndexes(context.Background(), []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "followedId", Value: 1},
+			},
+			Options: options.Index().
+				SetUnique(true).
+				SetName("UserIdFollowedIdTypeUnique"),
+		},
+	})
 }
 
-func NewAlertsConfigDocument(cfg *alerts.Config) *AlertsConfigDocument {
-	return &AlertsConfigDocument{
-		ID:     AlertsID(cfg),
-		Config: cfg,
+func (r *alertsRepo) filter(cfg *alerts.Config) interface{} {
+	return &alerts.Config{
+		UserID:     cfg.UserID,
+		FollowedID: cfg.FollowedID,
 	}
-}
-
-// AlertsID generates a unique ID for a mongo document.
-func AlertsID(cfg *alerts.Config) string {
-	return cfg.UserID + ":" + cfg.FollowedID
 }
