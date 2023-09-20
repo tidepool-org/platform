@@ -19,8 +19,8 @@ type likeT interface {
 }
 
 var (
-	TestUserID1 = "user1"
-	TestUserID2 = "user2"
+	TestUserID1 = "62a372fa-7096-4d33-ab3a-1f26d7701f76"
+	TestUserID2 = "89d13ccb-32fb-47ef-9a8c-9d45f5d1c145"
 	TestToken1  = "token1"
 	TestToken2  = "token2"
 )

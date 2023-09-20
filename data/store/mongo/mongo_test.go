@@ -2213,8 +2213,8 @@ var _ = Describe("Mongo", func() {
 
 			prep := func(upsertDoc bool) (context.Context, *alerts.Config, bson.M) {
 				cfg := &alerts.Config{
-					InvitorID: "invitor-id",
-					OwnerID:   "owner-id",
+					FollowedID: "followed-id",
+					UserID:     "user-id",
 				}
 				ctx := context.Background()
 				filter := bson.M{}

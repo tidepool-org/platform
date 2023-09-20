@@ -37,12 +37,12 @@ func DeleteAlert(dCtx service.Context) {
 	}
 
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, details.UserID(), cfg.InvitorID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, details.UserID(), cfg.FollowedID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg.OwnerID = details.UserID()
+	cfg.UserID = details.UserID()
 	if err := repo.Delete(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -66,12 +66,12 @@ func UpsertAlert(dCtx service.Context) {
 	}
 
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, details.UserID(), cfg.InvitorID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, details.UserID(), cfg.FollowedID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg.OwnerID = details.UserID()
+	cfg.UserID = details.UserID()
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -91,9 +91,9 @@ func checkAuthentication(details request.Details, userID string) error {
 }
 
 // checkUserAuthorization returns nil if userID is permitted to have alerts
-// based on invitorID's data.
-func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, invitorID string) error {
-	perms, err := pc.GetUserPermissions(ctx, userID, invitorID)
+// based on followedID's data.
+func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, followedID string) error {
+	perms, err := pc.GetUserPermissions(ctx, userID, followedID)
 	if err != nil {
 		return err
 	}
@@ -103,10 +103,4 @@ func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, i
 		}
 	}
 	return fmt.Errorf("user isn't authorized for alerting: %q", userID)
-}
-
-// Repository abstracts persistent storage for AlertsConfig data.
-type Repository interface {
-	Upsert(ctx context.Context, conf *alerts.Config) error
-	Delete(ctx context.Context, conf *alerts.Config) error
 }

@@ -9,12 +9,16 @@ import (
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
 )
 
 // Config models a user's desired alerts.
 type Config struct {
-	OwnerID         string         `json:"ownerID" bson:"ownerID"`
-	InvitorID       string         `json:"invitorID" bson:"invitorID"`
+	// UserID receives the alerts, and owns this Config.
+	UserID string `json:"userId" bson:"userId"`
+	// FollowedID is the user whose data generates alerts, and has granted
+	// UserID permission to that data.
+	FollowedID      string         `json:"followedId" bson:"followedId"`
 	UrgentLow       *WithThreshold `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
 	Low             *Deluxe        `json:"low,omitempty" bson:"low,omitempty"`
 	High            *Deluxe        `json:"high,omitempty" bson:"high,omitempty"`
@@ -23,8 +27,8 @@ type Config struct {
 }
 
 func (c Config) Validate(validator structure.Validator) {
-	validator.String("ownerID", &c.OwnerID).LengthGreaterThan(0)
-	validator.String("invitorID", &c.InvitorID).LengthGreaterThan(0)
+	validator.String("UserID", &c.UserID).Using(user.IDValidator)
+	validator.String("FollowedID", &c.FollowedID).Using(user.IDValidator)
 	if c.Low != nil {
 		c.Low.Validate(validator)
 	}

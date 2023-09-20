@@ -19,11 +19,16 @@ func TestSuite(t *testing.T) {
 	test.Test(t)
 }
 
+const (
+	mockUserID1 = "008c7f79-6545-4466-95fb-34e3ba728d38"
+	mockUserID2 = "b1880201-30d5-4190-92bb-6afcf08ca15e"
+)
+
 var _ = Describe("Config", func() {
 	It("parses all the things", func() {
 		buf := buff(`{
-  "invitorID": "1",
-  "ownerID": "2",
+  "userId": "%s",
+  "followedId": "%s",
   "low": {
     "enabled": true,
     "repeat": 30,
@@ -60,12 +65,12 @@ var _ = Describe("Config", func() {
     "repeat": 33,
     "delay": 6
   }
-}`)
+}`, mockUserID1, mockUserID2)
 		conf := &Config{}
 		err := request.DecodeObject(nil, buf, conf)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conf.InvitorID).To(Equal("1"))
-		Expect(conf.OwnerID).To(Equal("2"))
+		Expect(conf.UserID).To(Equal(mockUserID1))
+		Expect(conf.FollowedID).To(Equal(mockUserID2))
 		Expect(conf.High.Enabled).To(Equal(false))
 		Expect(conf.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
@@ -90,14 +95,15 @@ var _ = Describe("Config", func() {
 
 	Context("urgentLow", func() {
 		It("validates threshold units", func() {
-			buf := buff(`{"urgentLow": {"threshold": {"units":%q,"value":42}}`, "garbage")
+			buf := buff(`{"urgentLow": {"threshold": {"units":"%s","value":42}}`, "garbage")
 			threshold := &Threshold{}
 			err := request.DecodeObject(nil, buf, threshold)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 		It("validates repeat minutes (negative)", func() {
 			buf := buff(`{
-  "invitorID": "1", "ownerID": "2",
+  "userId": "%s",
+  "followedId": "%s",
   "urgentLow": {
     "enabled": false,
     "repeat": -11,
@@ -106,14 +112,15 @@ var _ = Describe("Config", func() {
       "value": 1
     }
   }
-}`, glucose.MgdL)
+}`, mockUserID1, mockUserID2, glucose.MgdL)
 			cfg := &Config{}
 			err := request.DecodeObject(nil, buf, cfg)
 			Expect(err).To(MatchError("value -11m0s is not greater than 0s"))
 		})
 		It("validates repeat minutes (string)", func() {
 			buf := buff(`{
-  "invitorID": "1", "ownerID": "2",
+  "userId": "%s",
+  "followedId": "%s",
   "urgentLow": {
     "enabled": false,
     "repeat": "a",
@@ -122,7 +129,7 @@ var _ = Describe("Config", func() {
       "value": 1
     }
   }
-}`, glucose.MgdL)
+}`, mockUserID1, mockUserID2, glucose.MgdL)
 			cfg := &Config{}
 			err := request.DecodeObject(nil, buf, cfg)
 			Expect(err).To(MatchError("json is malformed"))
@@ -132,7 +139,8 @@ var _ = Describe("Config", func() {
 	Context("low", func() {
 		It("rejects a blank repeat", func() {
 			buf := buff(`{
-  "invitorID":"1", "ownerID":"2",
+  "userId": "%s",
+  "followedId": "%s",
   "low": {
     "enabled": true,
     "delay": 10,
@@ -141,7 +149,7 @@ var _ = Describe("Config", func() {
       "value": 123.4
     }
   }
-}`)
+}`, mockUserID1, mockUserID2)
 			conf := &Config{}
 			err := request.DecodeObject(nil, buf, conf)
 			Expect(err).To(HaveOccurred())
@@ -178,7 +186,7 @@ var _ = Describe("Duration", func() {
 
 var _ = Describe("Threshold", func() {
 	It("accepts mg/dL", func() {
-		buf := buff(`{"units":%q,"value":42}`, glucose.MgdL)
+		buf := buff(`{"units":"%s","value":42}`, glucose.MgdL)
 		threshold := &Threshold{}
 		err := request.DecodeObject(nil, buf, threshold)
 		Expect(err).To(BeNil())
@@ -186,7 +194,7 @@ var _ = Describe("Threshold", func() {
 		Expect(threshold.Units).To(Equal(glucose.MgdL))
 	})
 	It("accepts mmol/L", func() {
-		buf := buff(`{"units":%q,"value":42}`, glucose.MmolL)
+		buf := buff(`{"units":"%s","value":42}`, glucose.MmolL)
 		threshold := &Threshold{}
 		err := request.DecodeObject(nil, buf, threshold)
 		Expect(err).To(BeNil())
@@ -194,7 +202,7 @@ var _ = Describe("Threshold", func() {
 		Expect(threshold.Units).To(Equal(glucose.MmolL))
 	})
 	It("rejects lb/gal", func() {
-		buf := buff(`{"units":%q,"value":42}`, "lb/gal")
+		buf := buff(`{"units":"%s","value":42}`, "lb/gal")
 		err := request.DecodeObject(nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
@@ -205,7 +213,7 @@ var _ = Describe("Threshold", func() {
 	})
 	It("is case-sensitive with respect to Units", func() {
 		badUnits := strings.ToUpper(glucose.MmolL)
-		buf := buff(`{"units":%q,"value":42}`, badUnits)
+		buf := buff(`{"units":"%s","value":42}`, badUnits)
 		err := request.DecodeObject(nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})

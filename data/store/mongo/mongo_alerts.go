@@ -21,7 +21,7 @@ func (r *alertsRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 	filter := bson.M{"_id": doc.ID}
 	_, err := r.UpdateOne(ctx, filter, bson.M{"$set": doc}, opts)
 	if err != nil {
-		return fmt.Errorf("upserting AlertsConfig: %w", err)
+		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
 	return nil
 }
@@ -31,7 +31,7 @@ func (r *alertsRepo) Delete(ctx context.Context, conf *alerts.Config) error {
 	filter := bson.M{"_id": AlertsID(conf)}
 	_, err := r.DeleteMany(ctx, filter, nil)
 	if err != nil {
-		return fmt.Errorf("upserting AlertsConfig: %w", err)
+		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
 	return nil
 }
@@ -51,5 +51,5 @@ func NewAlertsConfigDocument(cfg *alerts.Config) *AlertsConfigDocument {
 
 // AlertsID generates a unique ID for a mongo document.
 func AlertsID(cfg *alerts.Config) string {
-	return cfg.OwnerID + ":" + cfg.InvitorID
+	return cfg.UserID + ":" + cfg.FollowedID
 }

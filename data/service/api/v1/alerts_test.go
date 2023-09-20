@@ -30,8 +30,8 @@ var _ = Describe("Alerts endpoints", func() {
 	testAuthentication := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			OwnerID:   mocks.TestUserID1,
-			InvitorID: mocks.TestUserID2,
+			UserID:     mocks.TestUserID1,
+			FollowedID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
@@ -47,14 +47,13 @@ var _ = Describe("Alerts endpoints", func() {
 	testPermissions := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			OwnerID:   mocks.TestUserID1,
-			InvitorID: mocks.TestUserID2,
+			UserID:     mocks.TestUserID1,
+			FollowedID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
 		dCtx.MockPermissionClient = mocks.NewPermission(permsNoAlerting(), nil, nil)
 
-		//runtime.Breakpoint()
 		f(dCtx)
 
 		rec := dCtx.Recorder()
@@ -64,8 +63,8 @@ var _ = Describe("Alerts endpoints", func() {
 	testUserID := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			OwnerID:   "someotheruser", // pass in whatever value, it should be overridden
-			InvitorID: mocks.TestUserID2,
+			UserID:     "00000000-dead-4123-beef-000000000000",
+			FollowedID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		repo := newMockRepo()
@@ -76,7 +75,7 @@ var _ = Describe("Alerts endpoints", func() {
 
 		f(dCtx)
 
-		Expect(repo.OwnerID).To(Equal(mocks.TestUserID1))
+		Expect(repo.UserID).To(Equal(mocks.TestUserID1))
 		rec := dCtx.Recorder()
 		Expect(rec.Code).To(Equal(http.StatusOK))
 	}
@@ -137,7 +136,7 @@ var _ = Describe("Alerts endpoints", func() {
 })
 
 type mockRepo struct {
-	OwnerID string
+	UserID string
 }
 
 func newMockRepo() *mockRepo {
@@ -145,19 +144,19 @@ func newMockRepo() *mockRepo {
 }
 
 func (r *mockRepo) ExpectsOwnerID(ownerID string) {
-	r.OwnerID = ownerID
+	r.UserID = ownerID
 }
 
 func (r *mockRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 	if conf != nil {
-		r.OwnerID = conf.OwnerID
+		r.UserID = conf.UserID
 	}
 	return nil
 }
 
 func (r *mockRepo) Delete(ctx context.Context, conf *alerts.Config) error {
 	if conf != nil {
-		r.OwnerID = conf.OwnerID
+		r.UserID = conf.UserID
 	}
 	return nil
 }
