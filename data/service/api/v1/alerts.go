@@ -3,8 +3,12 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service"
@@ -15,6 +19,7 @@ import (
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
+		service.MakeRoute("GET", "/v1/alerts/:userID/:followedID", Authenticate(GetAlert)),
 		service.MakeRoute("POST", "/v1/alerts/:userID", Authenticate(UpsertAlert)),
 		service.MakeRoute("DELETE", "/v1/alerts/:userID", Authenticate(DeleteAlert)),
 	}
@@ -47,6 +52,40 @@ func DeleteAlert(dCtx service.Context) {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
 	}
+}
+
+func GetAlert(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
+	details := request.DetailsFromContext(ctx)
+	repo := dCtx.AlertsRepository()
+
+	if err := checkAuthentication(details, r.PathParam("userID")); err != nil {
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	followedID := r.PathParam("followedID")
+	pc := dCtx.PermissionClient()
+	if err := checkUserAuthorization(ctx, pc, details.UserID(), followedID); err != nil {
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	cfg := &alerts.Config{UserID: details.UserID(), FollowedID: followedID}
+	alert, err := repo.Get(ctx, cfg)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			dCtx.RespondWithStatusAndErrors(http.StatusNotFound,
+				[]*platform.Error{platform.ErrorValueNotExists()})
+			return
+		}
+		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		return
+	}
+
+	responder := request.MustNewResponder(dCtx.Response(), r)
+	responder.Data(http.StatusOK, alert)
 }
 
 func UpsertAlert(dCtx service.Context) {

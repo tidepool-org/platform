@@ -36,6 +36,20 @@ func (r *alertsRepo) Delete(ctx context.Context, conf *alerts.Config) error {
 	return nil
 }
 
+// Get will retrieve the given Config.
+func (r *alertsRepo) Get(ctx context.Context, conf *alerts.Config) (*alerts.Config, error) {
+	filter := bson.M{"_id": AlertsID(conf)}
+	res := r.FindOne(ctx, filter, nil)
+	if res.Err() != nil {
+		return nil, fmt.Errorf("getting alerts.Config: %w", res.Err())
+	}
+	out := &alerts.Config{}
+	if err := res.Decode(out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AlertsConfigDocument wraps alerts.Config to provide an ID for mongodb.
 type AlertsConfigDocument struct {
 	ID             string `bson:"_id"`

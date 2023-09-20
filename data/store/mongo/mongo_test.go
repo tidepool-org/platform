@@ -2219,7 +2219,7 @@ var _ = Describe("Mongo", func() {
 				ctx := context.Background()
 				filter := bson.M{}
 				if upsertDoc {
-					Expect(alertsRepository.Upsert(context.Background(), cfg)).
+					Expect(alertsRepository.Upsert(ctx, cfg)).
 						To(Succeed())
 					filter["_id"] = dataStoreMongo.AlertsID(cfg)
 				}
@@ -2232,7 +2232,7 @@ var _ = Describe("Mongo", func() {
 					It("creates a new document", func() {
 						ctx, cfg, filter := prep(false)
 
-						Expect(alertsRepository.Upsert(context.Background(), cfg)).To(Succeed())
+						Expect(alertsRepository.Upsert(ctx, cfg)).To(Succeed())
 
 						res := store.GetCollection("alerts").FindOne(ctx, filter)
 						Expect(res.Err()).To(Succeed())
@@ -2243,7 +2243,7 @@ var _ = Describe("Mongo", func() {
 					ctx, cfg, filter := prep(true)
 
 					cfg.Low = &alerts.Deluxe{Base: alerts.Base{Enabled: true}}
-					err := alertsRepository.Upsert(context.Background(), cfg)
+					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
 					doc := &dataStoreMongo.AlertsConfigDocument{}
@@ -2256,11 +2256,44 @@ var _ = Describe("Mongo", func() {
 
 			})
 
+			Describe("Get", func() {
+				Context("when no document exists", func() {
+					It("returns an error", func() {
+						ctx, cfg, _ := prep(false)
+
+						_, err := alertsRepository.Get(ctx, cfg)
+						Expect(err).To(MatchError(mongo.ErrNoDocuments))
+					})
+				})
+
+				It("retrieves the correct document", func() {
+					ctx, cfg, _ := prep(true)
+
+					other := &alerts.Config{
+						UserID:     "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
+						FollowedID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
+						High:       &alerts.Deluxe{Base: alerts.Base{Enabled: true}}}
+					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
+					cfg.Low = &alerts.Deluxe{Base: alerts.Base{Enabled: true}}
+					err := alertsRepository.Upsert(ctx, cfg)
+					Expect(err).To(Succeed())
+
+					got, err := alertsRepository.Get(ctx, cfg)
+					Expect(err).To(Succeed())
+					Expect(got).ToNot(BeNil())
+					Expect(got.Low).ToNot(BeNil())
+					Expect(got.Low.Enabled).To(Equal(true))
+					Expect(got.UserID).To(Equal(cfg.UserID))
+					Expect(got.FollowedID).To(Equal(cfg.FollowedID))
+				})
+
+			})
+
 			Describe("Delete", func() {
 				It("deletes the document", func() {
 					ctx, cfg, filter := prep(true)
 
-					err := alertsRepository.Delete(context.Background(), cfg)
+					err := alertsRepository.Delete(ctx, cfg)
 					Expect(err).To(Succeed())
 
 					res := store.GetCollection("alerts").FindOne(ctx, filter)

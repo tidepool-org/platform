@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	dataservice "github.com/tidepool-org/platform/data/service"
@@ -112,7 +113,41 @@ var _ = Describe("Alerts endpoints", func() {
 		It("rejects users without alerting permissions", func() {
 			testPermissions(DeleteAlert)
 		})
+	})
 
+	Describe("Get", func() {
+		It("rejects unauthenticated users", func() {
+			testAuthentication(GetAlert)
+		})
+
+		It("uses the authenticated user's userID", func() {
+			testUserID(GetAlert)
+		})
+
+		It("errors when Config doesn't exist", func() {
+			t := GinkgoT()
+			body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
+				UserID:     mocks.TestUserID1,
+				FollowedID: mocks.TestUserID2,
+			}))
+			dCtx := mocks.NewContext(t, "", "", body)
+			repo := newMockRepo()
+			repo.ReturnsError(mongo.ErrNoDocuments)
+			dCtx.MockAlertsRepository = repo
+
+			GetAlert(dCtx)
+
+			rec := dCtx.Recorder()
+			Expect(rec.Code).To(Equal(http.StatusNotFound))
+		})
+
+		It("rejects users without alerting permissions", func() {
+			testPermissions(func(dCtx dataservice.Context) {
+				dCtx.Request().PathParams["followedID"] = mocks.TestUserID2
+
+				GetAlert(dCtx)
+			})
+		})
 	})
 
 	Describe("Upsert", func() {
@@ -131,16 +166,20 @@ var _ = Describe("Alerts endpoints", func() {
 		It("rejects users without alerting permissions", func() {
 			testPermissions(UpsertAlert)
 		})
-
 	})
 })
 
 type mockRepo struct {
 	UserID string
+	Error  error
 }
 
 func newMockRepo() *mockRepo {
 	return &mockRepo{}
+}
+
+func (r *mockRepo) ReturnsError(err error) {
+	r.Error = err
 }
 
 func (r *mockRepo) ExpectsOwnerID(ownerID string) {
@@ -148,13 +187,29 @@ func (r *mockRepo) ExpectsOwnerID(ownerID string) {
 }
 
 func (r *mockRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
+	if r.Error != nil {
+		return r.Error
+	}
 	if conf != nil {
 		r.UserID = conf.UserID
 	}
 	return nil
 }
 
+func (r *mockRepo) Get(ctx context.Context, conf *alerts.Config) (*alerts.Config, error) {
+	if r.Error != nil {
+		return nil, r.Error
+	}
+	if conf != nil {
+		r.UserID = conf.UserID
+	}
+	return &alerts.Config{}, nil
+}
+
 func (r *mockRepo) Delete(ctx context.Context, conf *alerts.Config) error {
+	if r.Error != nil {
+		return r.Error
+	}
 	if conf != nil {
 		r.UserID = conf.UserID
 	}
