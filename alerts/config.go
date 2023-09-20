@@ -18,12 +18,12 @@ type Config struct {
 	UserID string `json:"userId" bson:"userId"`
 	// FollowedID is the user whose data generates alerts, and has granted
 	// UserID permission to that data.
-	FollowedID      string         `json:"followedId" bson:"followedId"`
-	UrgentLow       *WithThreshold `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
-	Low             *Deluxe        `json:"low,omitempty" bson:"low,omitempty"`
-	High            *Deluxe        `json:"high,omitempty" bson:"high,omitempty"`
-	NotLooping      *WithDelay     `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
-	NoCommunication *WithDelay     `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
+	FollowedID      string                 `json:"followedId" bson:"followedId"`
+	UrgentLow       *WithThreshold         `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
+	Low             *WithDelayAndThreshold `json:"low,omitempty" bson:"low,omitempty"`
+	High            *WithDelayAndThreshold `json:"high,omitempty" bson:"high,omitempty"`
+	NotLooping      *WithDelay             `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+	NoCommunication *WithDelay             `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
 }
 
 func (c Config) Validate(validator structure.Validator) {
@@ -104,14 +104,14 @@ func (d WithDelay) Validate(validator structure.Validator) {
 	d.DelayMixin.Validate(validator)
 }
 
-// Deluxe extends Base with both DelayMixin and ThresholdMixin.
-type Deluxe struct {
+// WithDelayAndThreshold extends Base with both DelayMixin and ThresholdMixin.
+type WithDelayAndThreshold struct {
 	Base           `bson:",inline"`
 	DelayMixin     `bson:",inline"`
 	ThresholdMixin `bson:",inline"`
 }
 
-func (d Deluxe) Validate(validator structure.Validator) {
+func (d WithDelayAndThreshold) Validate(validator structure.Validator) {
 	d.Base.Validate(validator)
 	d.DelayMixin.Validate(validator)
 	d.ThresholdMixin.Validate(validator)
