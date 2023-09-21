@@ -8,7 +8,7 @@ import (
 )
 
 // used for BACK-37 to set hash for jellyfish datum for migrating to platform API
-func JellyfishIDHash(bsonData bson.M) string {
+func CreateHash(bsonData bson.M) string {
 	// represents data from base id fields
 	var baseData = func(bsonData bson.M) []string {
 		return []string{
@@ -44,7 +44,7 @@ func JellyfishIDHash(bsonData bson.M) string {
 
 func JellyfishObjectIDHash(bsonData bson.M) string {
 	return makeJellyfishHash(
-		JellyfishIDHash(bsonData),
+		CreateHash(bsonData),
 	)
 }
 

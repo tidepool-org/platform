@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/errors"
 	migrationMongo "github.com/tidepool-org/platform/migration/mongo"
@@ -96,7 +98,7 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 			selector := bson.M{
 				"_userId": userID,
 				"_active": true,
-				// Don't need to change the IDs for uploads, since uploads aren't de-duped.
+				// uploads aren't de-duped.
 				"type":          bson.M{"$ne": "upload"},
 				"_deduplicator": bson.M{"$exists": false},
 			}
@@ -108,7 +110,6 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 			}
 			for jellyfishDocCursor.Next(context.Background()) {
 				jellyfishDocCursor.Decode(&jellyfishResult)
-				hash := JellyfishIDHash(jellyfishResult)
 
 				dupQuery := bson.M{
 					"_userId":       userID,
@@ -130,8 +131,7 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 					}
 					archivedCount++
 				} else {
-					err = m.migrateDocument(jellyfishResult["_id"], hash)
-					if err != nil {
+					if err := m.migrateDocument(jellyfishResult); err != nil {
 						logger.WithError(err).Error("Unable to migrate jellyfish document")
 						errorCount++
 					}
@@ -154,17 +154,42 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 	return hashUpdatedCount, archivedCount, errorCount
 }
 
-func (m *Migration) migrateDocument(objectId interface{}, hash string) error {
-	deduplicatorUpdate := bson.M{
-		"$set": bson.M{
-			"_deduplicator": bson.M{
-				"name":    deduplicator.DeviceDeactivateHashName,
-				"version": "1.1.0",
-				"hash":    hash,
+func (m *Migration) migrateDocument(jfDatum bson.M) error {
+	var deduplicatorUpdate bson.M
+
+	switch jfDatum["type"] {
+	case "smbg", "bloodKetone", "cbg":
+		if len(fmt.Sprintf("%v", jfDatum["value"])) > 7 {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := jfDatum["value"].(float64)
+			mgdlVal := val*18.01559 + 0.5
+			mgdL := glucose.MgdL
+			jfDatum["value"] = glucose.NormalizeValueForUnits(&mgdlVal, &mgdL)
+
+			deduplicatorUpdate = bson.M{
+				"$set": bson.M{
+					"_deduplicator": bson.M{
+						"name":    deduplicator.DeviceDeactivateHashName,
+						"version": "1.1.0",
+						"hash":    CreateHash(jfDatum),
+					},
+					"value": jfDatum["value"],
+				},
+			}
+		}
+	default:
+		deduplicatorUpdate = bson.M{
+			"$set": bson.M{
+				"_deduplicator": bson.M{
+					"name":    deduplicator.DeviceDeactivateHashName,
+					"version": "1.1.0",
+					"hash":    CreateHash(jfDatum),
+				},
 			},
-		},
+		}
 	}
-	_, err := m.dataRepository.UpdateOne(context.Background(), bson.M{"_id": objectId}, deduplicatorUpdate)
+	_, err := m.dataRepository.UpdateOne(context.Background(), bson.M{"_id": jfDatum["_id"]}, deduplicatorUpdate)
 	return err
 }
 
