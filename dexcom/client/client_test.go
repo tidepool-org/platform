@@ -104,6 +104,235 @@ var _ = Describe("Client", func() {
 			tokenSource.AssertOutputsEmpty()
 		})
 
+		Context("GetAlerts", func() {
+			var responseAlertsResponse *dexcom.AlertsResponse
+
+			BeforeEach(func() {
+				responseAlertsResponse = dexcomTest.RandomAlertsResponse()
+			})
+
+			It("returns error when http client source is missing", func() {
+				alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, nil)
+				Expect(err).To(MatchError("unable to get alerts; http client source is missing"))
+				Expect(alertsResponse).To(BeNil())
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error when http client source returns an error", func() {
+				responseErr := errorsTest.RandomError()
+				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
+				alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+				Expect(err).To(MatchError(fmt.Sprintf("unable to get alerts; %s", responseErr)))
+				Expect(alertsResponse).To(BeNil())
+				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error when http client source returns that indicates an oauth token failure", func() {
+				responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
+				alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+				Expect(err).To(MatchError("unable to get alerts; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+				Expect(alertsResponse).To(BeNil())
+				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			When("http client source returns successfully", func() {
+				var httpClient *http.Client
+
+				BeforeEach(func() {
+					httpClient = http.DefaultClient
+					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+				})
+
+				It("returns error when context is missing", func() {
+					ctx = nil
+					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+					Expect(err).To(MatchError("unable to get alerts; context is missing"))
+					Expect(alertsResponse).To(BeNil())
+					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
+				It("returns error when the server is not reachable", func() {
+					server.Close()
+					server = nil
+					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+					Expect(err.Error()).To(MatchRegexp("unable to get alerts; unable to perform request to .*: connect: connection refused"))
+					Expect(alertsResponse).To(BeNil())
+					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
+				})
+
+				requestAssertions := func() {
+					Context("with an bad request 400", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusBadRequest, []byte{255, 255, 255}, responseHeaders),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).To(MatchError("unable to get alerts; bad request"))
+							Expect(alertsResponse).To(BeNil())
+						})
+					})
+
+					Context("with an forbidden response 403", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).To(MatchError("unable to get alerts; authentication token is not authorized for requested action"))
+							Expect(alertsResponse).To(BeNil())
+						})
+					})
+
+					Context("with an resource not found 404", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).To(MatchError("unable to get alerts; resource not found"))
+							Expect(alertsResponse).To(BeNil())
+						})
+					})
+
+					Context("with an unexpected response 500", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusInternalServerError, nil, responseHeaders),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).To(HaveOccurred())
+							Expect(err.Error()).To(MatchRegexp("unable to get alerts; unexpected response status code 500 from"))
+							Expect(alertsResponse).To(BeNil())
+						})
+					})
+
+					Context("with an unparseable response", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, []byte("{"), responseHeaders),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).To(MatchError("unable to get alerts; json is malformed"))
+							Expect(alertsResponse).To(BeNil())
+						})
+					})
+
+					Context("with a successful response", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, test.MarshalResponseBody(responseAlertsResponse), responseHeaders),
+								),
+							)
+						})
+
+						It("returns success", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(alertsResponse).To(Equal(responseAlertsResponse))
+						})
+					})
+				}
+
+				When("the server responds directly to the one request", func() {
+					AfterEach(func() {
+						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
+						Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+					requestAssertions()
+				})
+
+				When("the server responds with unauthorized, the token is expired and the request retried", func() {
+					BeforeEach(func() {
+						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+								VerifyHeaderKV("User-Agent", userAgent),
+								VerifyBody(nil),
+								RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+							),
+						)
+					})
+
+					AfterEach(func() {
+						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
+						Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
+						Expect(server.ReceivedRequests()).To(HaveLen(2))
+					})
+
+					requestAssertions()
+
+					Context("with an unauthorized response 401", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyBody(nil),
+									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+							Expect(err).To(MatchError("unable to get alerts; authentication token is invalid"))
+							Expect(alertsResponse).To(BeNil())
+						})
+					})
+				})
+			})
+		})
+
 		Context("GetCalibrations", func() {
 			var responseCalibrationsResponse *dexcom.CalibrationsResponse
 

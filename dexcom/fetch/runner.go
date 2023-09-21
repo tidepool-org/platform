@@ -499,7 +499,13 @@ func (t *TaskRunner) preloadDataSet() error {
 func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Data, error) {
 	datumArray := data.Data{}
 
-	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
+	fetchDatumArray, err := t.fetchAlerts(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	datumArray = append(datumArray, fetchDatumArray...)
+
+	fetchDatumArray, err = t.fetchCalibrations(startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
@@ -541,6 +547,29 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	for _, c := range *response.Calibrations {
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
 			datumArray = append(datumArray, translateCalibrationToDatum(c))
+		}
+	}
+
+	return datumArray, nil
+}
+
+func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.Data, error) {
+	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t.tokenSource)
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	t.validator.Validate(response)
+	if err = t.validator.Error(); err != nil {
+		return nil, err
+	}
+	datumArray := data.Data{}
+	for _, c := range *response.Alerts {
+		if t.afterLatestDataTime(c.SystemTime.Raw()) {
+			datumArray = append(datumArray, translateAlertToDatum(c, response.RecordVersion))
 		}
 	}
 
