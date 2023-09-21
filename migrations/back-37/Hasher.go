@@ -3,8 +3,9 @@ package main
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 )
 
 // used for BACK-37 to set hash for jellyfish datum for migrating to platform API
@@ -21,15 +22,15 @@ func CreateHash(bsonData bson.M) string {
 	var theHash string
 	switch bsonData["type"] {
 	case "basal":
-		theHash = makeJellyfishHash(
+		theHash = makeHash(
 			append(baseData(bsonData), bsonData["deliveryType"].(string))...,
 		)
 	case "bolus", "deviceEvent":
-		theHash = makeJellyfishHash(
+		theHash = makeHash(
 			append(baseData(bsonData), bsonData["subType"].(string))...,
 		)
 	case "smbg", "bloodKetone", "cbg":
-		theHash = makeJellyfishHash(
+		theHash = makeHash(
 			append(
 				baseData(bsonData),
 				bsonData["units"].(string),
@@ -37,18 +38,12 @@ func CreateHash(bsonData bson.M) string {
 			)...,
 		)
 	default:
-		theHash = makeJellyfishHash(baseData(bsonData)...)
+		theHash = makeHash(baseData(bsonData)...)
 	}
 	return theHash
 }
 
-func JellyfishObjectIDHash(bsonData bson.M) string {
-	return makeJellyfishHash(
-		CreateHash(bsonData),
-	)
-}
-
-func makeJellyfishHash(fields ...string) string {
+func makeHash(fields ...string) string {
 	hash, err := deduplicator.GenerateIdentityHash(fields)
 	if err != nil {
 		panic(err)
