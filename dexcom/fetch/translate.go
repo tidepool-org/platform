@@ -8,6 +8,8 @@ import (
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
+
+	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 
 	dataTypesBloodGlucoseSelfMonitored "github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
@@ -324,6 +326,39 @@ func translateAlertSettingUnitToRateAlertUnits(unit *string) *string {
 		}
 	}
 	return nil
+}
+
+func translateAlertToDatum(alert *dexcom.Alert, version *string) data.Datum {
+	datum := dataTypesAlert.New()
+	// TODO: Refactor so we don't have to clear these here
+	datum.ID = nil
+	datum.GUID = nil
+
+	datum.Payload = metadata.NewMetadata()
+
+	if alert.AlertState != nil {
+		(*datum.Payload)["alertState"] = *alert.AlertState
+	}
+	if alert.TransmitterID != nil {
+		(*datum.Payload)["transmitterId"] = *alert.TransmitterID
+	}
+	if alert.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *alert.TransmitterGeneration
+	}
+	if alert.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *alert.DisplayDevice
+	}
+	if version != nil {
+		(*datum.Payload)["version"] = *version
+	}
+
+	if alert.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(alert.ID)}
+	}
+	datum.IssuedTime = alert.DisplayTime.Raw()
+	datum.Name = pointer.CloneString(alert.AlertName)
+	translateTime(alert.SystemTime, alert.DisplayTime, &datum.Base)
+	return datum
 }
 
 func translateEGVToDatum(egv *dexcom.EGV) data.Datum {

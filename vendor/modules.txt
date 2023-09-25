@@ -313,7 +313,7 @@ github.com/russross/blackfriday/v2
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 ## explicit
 github.com/shurcooL/sanitized_anchor_name
-# github.com/tidepool-org/clinic/client v0.0.0-20211118205743-020bf46ac989
+# github.com/tidepool-org/clinic/client v0.0.0-20230815132146-bd6c2982ff6d
 ## explicit; go 1.16
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
