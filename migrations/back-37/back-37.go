@@ -10,7 +10,6 @@ import (
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/errors"
 	migrationMongo "github.com/tidepool-org/platform/migration/mongo"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -37,8 +36,7 @@ func (m *Migration) Initialize(provider application.Provider) error {
 	}
 
 	m.CLI().Usage = "BACK-37: Migrate all existing data to add required Platform deduplication hash fields"
-	m.CLI().Description = "BACK-37: To fully migrate devices from the `jellyfish`\n" +
-		" 	upload API to the `platform` upload API"
+	m.CLI().Description = "BACK-37: To fully migrate devices from the `jellyfish` upload API to the `platform` upload API"
 	m.CLI().Authors = []cli.Author{
 		{
 			Name:  "J H BATE",
@@ -124,16 +122,19 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 					continue
 				}
 				if !dupCursor.Next(context.Background()) {
-					err = m.archiveDocument(jellyfishResult["_id"])
-					if err != nil {
-						logger.WithError(err).Error("Unable to archive jellyfish document")
-						errorCount++
+					if !m.DryRun() {
+						if err := m.archiveDocument(jellyfishResult["_id"]); err != nil {
+							logger.WithError(err).Error("Unable to archive jellyfish document")
+							errorCount++
+						}
 					}
 					archivedCount++
 				} else {
-					if err := m.migrateDocument(jellyfishResult); err != nil {
-						logger.WithError(err).Error("Unable to migrate jellyfish document")
-						errorCount++
+					if !m.DryRun() {
+						if err := m.migrateDocument(jellyfishResult); err != nil {
+							logger.WithError(err).Error("Unable to migrate jellyfish document")
+							errorCount++
+						}
 					}
 					hashUpdatedCount++
 				}
@@ -170,9 +171,7 @@ func (m *Migration) migrateDocument(jfDatum bson.M) error {
 			deduplicatorUpdate = bson.M{
 				"$set": bson.M{
 					"_deduplicator": bson.M{
-						"name":    deduplicator.DeviceDeactivateHashName,
-						"version": "1.1.0",
-						"hash":    CreateHash(jfDatum),
+						"hash": CreateHash(jfDatum),
 					},
 					"value": jfDatum["value"],
 				},
@@ -182,9 +181,7 @@ func (m *Migration) migrateDocument(jfDatum bson.M) error {
 		deduplicatorUpdate = bson.M{
 			"$set": bson.M{
 				"_deduplicator": bson.M{
-					"name":    deduplicator.DeviceDeactivateHashName,
-					"version": "1.1.0",
-					"hash":    CreateHash(jfDatum),
+					"hash": CreateHash(jfDatum),
 				},
 			},
 		}
