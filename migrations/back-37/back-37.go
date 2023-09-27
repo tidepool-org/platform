@@ -107,7 +107,12 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 				logger.WithError(err).Error("Unable to find jellyfish results")
 			}
 			for jellyfishDocCursor.Next(context.Background()) {
-				jellyfishDocCursor.Decode(&jellyfishResult)
+				err = jellyfishDocCursor.Decode(&jellyfishResult)
+				if err != nil {
+					logger.WithError(err).Error("Could not decode mongo doc")
+					errorCount++
+					continue
+				}
 
 				dupQuery := bson.M{
 					"_userId":       userID,
@@ -121,7 +126,7 @@ func (m *Migration) migrateJellyfishDocuments() (int, int, int) {
 					errorCount++
 					continue
 				}
-				if !dupCursor.Next(context.Background()) {
+				if dupCursor.Next(context.Background()) {
 					if !m.DryRun() {
 						if err := m.archiveDocument(jellyfishResult["_id"]); err != nil {
 							logger.WithError(err).Error("Unable to archive jellyfish document")

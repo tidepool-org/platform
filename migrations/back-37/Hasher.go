@@ -2,10 +2,12 @@ package main
 
 import (
 	"strconv"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	"github.com/tidepool-org/platform/data/types"
 )
 
 // used for BACK-37 to set hash for jellyfish datum for migrating to platform API
@@ -15,7 +17,7 @@ func CreateHash(bsonData bson.M) string {
 		return []string{
 			bsonData["_userId"].(string),
 			bsonData["deviceId"].(string),
-			bsonData["time"].(string),
+			bsonData["time"].(time.Time).Format(types.TimeFormat),
 			bsonData["type"].(string),
 		}
 	}
