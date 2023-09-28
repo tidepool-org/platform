@@ -136,6 +136,11 @@ func (m *DurationMinutes) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (m *DurationMinutes) MarshalJSON() ([]byte, error) {
+	minutes := time.Duration(*m) / time.Minute
+	return json.Marshal(minutes)
+}
+
 func (m DurationMinutes) Duration() time.Duration {
 	return time.Duration(m)
 }

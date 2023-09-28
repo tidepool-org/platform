@@ -182,6 +182,12 @@ var _ = Describe("Duration", func() {
 		Expect(err).To(BeNil())
 		Expect(d.Duration()).To(Equal(time.Duration(0)))
 	})
+	It("marshals to 5", func() {
+		d := DurationMinutes(5 * time.Minute)
+		out, err := d.MarshalJSON()
+		Expect(err).To(Succeed())
+		Expect(out).To(Equal([]byte("5")))
+	})
 })
 
 var _ = Describe("Threshold", func() {
