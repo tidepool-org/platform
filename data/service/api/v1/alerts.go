@@ -126,6 +126,9 @@ func checkAuthentication(details request.Details, userID string) error {
 		}
 		return nil
 	}
+	if details.IsService() {
+		return nil
+	}
 	return ErrUnauthorized
 }
 
