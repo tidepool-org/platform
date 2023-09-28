@@ -5,6 +5,7 @@ package alerts
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -49,9 +50,9 @@ func (c Config) Validate(validator structure.Validator) {
 // Base describes the minimum specifics of a desired alert.
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
-	Enabled bool
+	Enabled bool `json:"enabled"`
 	// Repeat is measured in minutes.
-	Repeat DurationMinutes `json:"repeat"`
+	Repeat DurationMinutes `json:"repeat,omitempty"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
