@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -50,7 +50,7 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 	}
 
 	err := r.FindOne(ctx, selector).Decode(&summary)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get summary")
@@ -235,7 +235,7 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	opts.SetLimit(int64(page.Size))
 
 	cursor, err := r.Find(ctx, selector, opts)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get outdated summaries")

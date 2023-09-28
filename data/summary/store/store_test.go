@@ -51,7 +51,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			cgmStore := dataStoreSummary.New[types.CGMStats](summaryRepository)
+			cgmStore := dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
 			Expect(cgmStore).ToNot(BeNil())
 		})
 
@@ -63,7 +63,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			bgmStore := dataStoreSummary.New[types.BGMStats](summaryRepository)
+			bgmStore := dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
 			Expect(bgmStore).ToNot(BeNil())
 		})
 
@@ -124,8 +124,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 					userId = userTest.RandomID()
 					userIdOther = userTest.RandomID()
 
-					cgmStore = dataStoreSummary.New[types.CGMStats](summaryRepository)
-					bgmStore = dataStoreSummary.New[types.BGMStats](summaryRepository)
+					cgmStore = dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
+					bgmStore = dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
 					typelessStore = dataStoreSummary.NewTypeless(summaryRepository)
 				})
 
@@ -832,14 +832,14 @@ var _ = Describe("Summary Stats Mongo", func() {
 						userIds, err = cgmStore.GetOutdatedUserIDs(nil, page.NewPagination())
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
-						Expect(len(userIds)).To(Equal(0))
+						Expect(userIds).To(BeNil())
 					})
 
 					It("With missing pagination", func() {
 						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, nil)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("pagination is missing"))
-						Expect(len(userIds)).To(Equal(0))
+						Expect(userIds).To(BeNil())
 					})
 
 					It("With outdated CGM summaries", func() {

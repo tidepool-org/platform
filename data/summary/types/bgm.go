@@ -255,13 +255,6 @@ func (s *BGMStats) CalculateDelta() {
 			s.OffsetPeriods[k].TimeInTargetPercentDelta = pointer.FromAny(-delta)
 		}
 
-		if s.Periods[k].TimeInTargetPercent != nil && s.OffsetPeriods[k].TimeInTargetPercent != nil {
-			delta := *s.Periods[k].TimeInTargetPercent - *s.OffsetPeriods[k].TimeInTargetPercent
-
-			s.Periods[k].TimeInTargetPercentDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].TimeInTargetPercentDelta = pointer.FromAny(-delta)
-		}
-
 		if s.Periods[k].TimeInTargetRecords != nil && s.OffsetPeriods[k].TimeInTargetRecords != nil {
 			delta := *s.Periods[k].TimeInTargetRecords - *s.OffsetPeriods[k].TimeInTargetRecords
 
