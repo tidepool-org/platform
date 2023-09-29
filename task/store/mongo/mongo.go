@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tidepool-org/platform/ehr/reconcile"
@@ -31,10 +32,11 @@ var (
 	}, []string{"state", "type"})
 )
 
-const MaxTaskCreationDuration = 10 * time.Second
+const MaxTaskCreationDuration = 30 * time.Second
 
 type Store struct {
 	*storeStructuredMongo.Store
+	typeFilter *string
 }
 
 func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
@@ -48,13 +50,22 @@ func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
 	}, nil
 }
 
+func (s *Store) WithTypeFilter(typeFilter string) store.Store {
+	return &Store{
+		Store:      s.Store,
+		typeFilter: &typeFilter,
+	}
+}
+
 func (s *Store) NewTaskRepository() store.TaskRepository {
-	return s.TaskRepository()
+	repo := s.TaskRepository()
+	repo.typeFilter = s.typeFilter
+	return repo
 }
 
 func (s *Store) TaskRepository() *TaskRepository {
 	return &TaskRepository{
-		s.Store.GetRepository("tasks"),
+		Repository: s.Store.GetRepository("tasks"),
 	}
 }
 
@@ -63,35 +74,37 @@ func (s *Store) EnsureIndexes() error {
 	return repository.EnsureIndexes()
 }
 
-func (s *Store) EnsureSummaryUpdateTask() error {
+func (s *Store) EnsureDefaultTasks() error {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
 	defer cancel()
 
 	repository := s.TaskRepository()
-	return repository.EnsureSummaryUpdateTask(ctx)
-}
+	fs := []func(context.Context) error{
+		repository.EnsureSummaryUpdateTask,
+		repository.EnsureSummaryBackfillTask,
+		repository.EnsureEHRReconcileTask,
+	}
 
-func (s *Store) EnsureSummaryBackfillTask() error {
-	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
-	defer cancel()
+	for _, f := range fs {
+		if err := f(ctx); err != nil {
+			return err
+		}
+	}
 
-	repository := s.TaskRepository()
-	return repository.EnsureSummaryBackfillTask(ctx)
-}
-
-func (s *Store) EnsureEHRReconcileTask() error {
-	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
-	defer cancel()
-
-	repository := s.TaskRepository()
-	return repository.EnsureEHRReconcileTask(ctx)
+	return nil
 }
 
 type TaskRepository struct {
 	*storeStructuredMongo.Repository
+	typeFilter *string
 }
 
 func (t *TaskRepository) EnsureIndexes() error {
+	// Repositories operation only a subset of the tasks shouldn't invoke this method
+	if t.typeFilter != nil {
+		return fmt.Errorf("calling EnsureIndexes() on a partitioned repository is not allowed")
+	}
+
 	return t.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
 			Keys: bson.D{{Key: "id", Value: 1}},
@@ -151,6 +164,9 @@ func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate
 	} else if err = structureValidator.New().Validate(tsk); err != nil {
 		return errors.Wrap(err, "task is invalid")
 	}
+	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
+		return err
+	}
 
 	upsert := true
 	after := options.After
@@ -188,12 +204,16 @@ func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter,
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
+	if err := t.assertType(t.typeFilter, filter.Type); err != nil {
+		return nil, err
+	}
 
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
 
 	tasks := task.Tasks{}
 	selector := bson.M{}
+
 	if filter.Name != nil {
 		selector["name"] = *filter.Name
 	}
@@ -233,6 +253,9 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 	} else if err = structureValidator.New().Validate(tsk); err != nil {
 		return nil, errors.Wrap(err, "task is invalid")
 	}
+	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
+		return nil, err
+	}
 
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"create": create})
@@ -259,7 +282,13 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
 	var task *task.Task
-	err := t.FindOne(ctx, bson.M{"id": id}).Decode(&task)
+
+	selector := bson.M{"id": id}
+	if t.typeFilter != nil {
+		selector["type"] = t.typeFilter
+	}
+
+	err := t.FindOne(ctx, selector).Decode(&task)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
 
 	if err == mongo.ErrNoDocuments {
@@ -302,7 +331,13 @@ func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task
 	if update.ExpirationTime != nil {
 		set["expirationTime"] = *update.ExpirationTime
 	}
-	changeInfo, err := t.UpdateMany(ctx, bson.M{"id": id}, t.ConstructUpdate(set, bson.M{}))
+
+	selector := bson.M{"id": id}
+	if t.typeFilter != nil {
+		selector["type"] = t.typeFilter
+	}
+
+	changeInfo, err := t.UpdateMany(ctx, selector, t.ConstructUpdate(set, bson.M{}))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update task")
@@ -322,7 +357,12 @@ func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithField("id", id)
 
-	changeInfo, err := t.DeleteMany(ctx, bson.M{"id": id})
+	selector := bson.M{"id": id}
+	if t.typeFilter != nil {
+		selector["type"] = t.typeFilter
+	}
+
+	changeInfo, err := t.DeleteOne(ctx, selector)
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteTask")
 	if err != nil {
 		return errors.Wrap(err, "unable to delete task")
@@ -350,6 +390,9 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		"id":    tsk.ID,
 		"state": state,
 	}
+	if t.typeFilter != nil {
+		selector["type"] = t.typeFilter
+	}
 	result, err := t.ReplaceOne(ctx, selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
 	if err != nil {
@@ -367,6 +410,9 @@ func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
 	selector := bson.M{
 		"state":        task.TaskStateRunning,
 		"deadlineTime": bson.M{"$lt": time.Now()},
+	}
+	if t.typeFilter != nil {
+		selector["type"] = t.typeFilter
 	}
 
 	update := bson.M{
@@ -414,7 +460,17 @@ func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, err
 			},
 		},
 	}
-
+	if t.typeFilter != nil {
+		selector["type"] = t.typeFilter
+	}
 	opts := options.Find().SetSort(bson.M{"priority": -1})
 	return t.Find(ctx, selector, opts)
+}
+
+// assertType return an error if the expected type doesn't match the actual type
+func (t *TaskRepository) assertType(expected *string, actual *string) error {
+	if expected != nil && actual != nil && *expected != *actual {
+		return fmt.Errorf("expected task type %v but got %v", *expected, *actual)
+	}
+	return nil
 }
