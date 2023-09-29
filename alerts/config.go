@@ -13,13 +13,24 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-// Config models a user's desired alerts.
+// Config wraps Alerts to include user relationships.
+//
+// As a wrapper type, Config provides a clear demarcation of what a user
+// controls (Alerts) and what is set by the service (the other values in
+// Config).
 type Config struct {
-	// UserID receives the alerts, and owns this Config.
+	// UserID receives the configured alerts and owns this Config.
 	UserID string `json:"userId" bson:"userId"`
+
 	// FollowedID is the user whose data generates alerts, and has granted
 	// UserID permission to that data.
-	FollowedID      string                 `json:"followedId" bson:"followedId"`
+	FollowedID string `json:"followedId" bson:"followedId"`
+
+	Alerts `bson:",inline,omitempty"`
+}
+
+// Alerts models a user's desired alerts.
+type Alerts struct {
 	UrgentLow       *WithThreshold         `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
 	Low             *WithDelayAndThreshold `json:"low,omitempty" bson:"low,omitempty"`
 	High            *WithDelayAndThreshold `json:"high,omitempty" bson:"high,omitempty"`
@@ -30,20 +41,24 @@ type Config struct {
 func (c Config) Validate(validator structure.Validator) {
 	validator.String("UserID", &c.UserID).Using(user.IDValidator)
 	validator.String("FollowedID", &c.FollowedID).Using(user.IDValidator)
-	if c.Low != nil {
-		c.Low.Validate(validator)
+	c.Alerts.Validate(validator)
+}
+
+func (i Alerts) Validate(validator structure.Validator) {
+	if i.Low != nil {
+		i.Low.Validate(validator)
 	}
-	if c.UrgentLow != nil {
-		c.UrgentLow.Validate(validator)
+	if i.UrgentLow != nil {
+		i.UrgentLow.Validate(validator)
 	}
-	if c.High != nil {
-		c.High.Validate(validator)
+	if i.High != nil {
+		i.High.Validate(validator)
 	}
-	if c.NotLooping != nil {
-		c.NotLooping.Validate(validator)
+	if i.NotLooping != nil {
+		i.NotLooping.Validate(validator)
 	}
-	if c.NoCommunication != nil {
-		c.NoCommunication.Validate(validator)
+	if i.NoCommunication != nil {
+		i.NoCommunication.Validate(validator)
 	}
 }
 
