@@ -42,7 +42,7 @@ func NewContext(t likeT, method, url string, body io.Reader) *Context {
 
 	rr := &rest.Request{
 		Request:    r,
-		PathParams: map[string]string{"userID": TestUserID1},
+		PathParams: map[string]string{"userID": TestUserID1, "followedID": TestUserID2},
 		Env:        map[string]interface{}{},
 	}
 	responder, err := servicecontext.NewResponder(w, rr)

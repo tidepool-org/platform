@@ -2271,11 +2271,12 @@ var _ = Describe("Mongo", func() {
 
 				It("retrieves the correct document", func() {
 					ctx, cfg, _ := prep(true)
-
 					other := &alerts.Config{
 						UserID:     "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
 						FollowedID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
-						High:       &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}}
+						Alerts: alerts.Alerts{
+							High: &alerts.WithDelayAndThreshold{
+								Base: alerts.Base{Enabled: true}}}}
 					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
 					cfg.Low = &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)

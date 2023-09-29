@@ -61,22 +61,6 @@ var _ = Describe("Alerts endpoints", func() {
 		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
-	testAlertsConfigUserIDMustMatchToken := func(f func(dataservice.Context)) {
-		t := GinkgoT()
-		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     "00000000-dead-4123-beef-000000000000",
-			FollowedID: mocks.TestUserID2,
-		}))
-		dCtx := mocks.NewContext(t, "", "", body)
-		repo := newMockRepo()
-		dCtx.MockAlertsRepository = repo
-
-		f(dCtx)
-
-		rec := dCtx.Recorder()
-		Expect(rec.Code).To(Equal(http.StatusBadRequest))
-	}
-
 	testTokenUserIDMustMatchPathParam := func(f func(dataservice.Context), details *mocks.Details) {
 		t := GinkgoT()
 		dCtx := mocks.NewContext(t, "", "", nil)
@@ -90,27 +74,7 @@ var _ = Describe("Alerts endpoints", func() {
 		f(dCtx)
 
 		rec := dCtx.Recorder()
-		Expect(rec.Code).To(Equal(http.StatusBadRequest))
-	}
-
-	testAlertsConfigUserIDMustMatchPathParam := func(f func(dataservice.Context), details *mocks.Details) {
-		t := GinkgoT()
-		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     mocks.TestUserID1,
-			FollowedID: mocks.TestUserID2,
-		}))
-		dCtx := mocks.NewContext(t, "", "", body)
-		if details != nil {
-			dCtx.WithDetails(details)
-		}
-		dCtx.RESTRequest.PathParams["userID"] = "bad"
-		repo := newMockRepo()
-		dCtx.MockAlertsRepository = repo
-
-		f(dCtx)
-
-		rec := dCtx.Recorder()
-		Expect(rec.Code).To(Equal(http.StatusBadRequest))
+		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
 	testInvalidJSON := func(f func(dataservice.Context)) {
@@ -131,22 +95,8 @@ var _ = Describe("Alerts endpoints", func() {
 			testAuthenticationRequired(DeleteAlert)
 		})
 
-		Context("when called by a service", func() {
-			It("requires that the alert.Config's userID matches the userID path param", func() {
-				testAlertsConfigUserIDMustMatchPathParam(UpsertAlert, mocks.ServiceDetails())
-			})
-		})
-
-		It("requires that the alert.Config's userID matches the user's token", func() {
-			testAlertsConfigUserIDMustMatchToken(DeleteAlert)
-		})
-
-		It("requires that the alert.Config's userID matches the userID path param", func() {
-			testAlertsConfigUserIDMustMatchPathParam(UpsertAlert, nil)
-		})
-
-		It("errors on invalid JSON", func() {
-			testInvalidJSON(DeleteAlert)
+		It("requires that the user's token matches the userID path param", func() {
+			testTokenUserIDMustMatchPathParam(DeleteAlert, nil)
 		})
 
 		It("rejects users without alerting permissions", func() {
@@ -159,18 +109,8 @@ var _ = Describe("Alerts endpoints", func() {
 			testAuthenticationRequired(UpsertAlert)
 		})
 
-		Context("when called by a service", func() {
-			It("requires that the alert.Config's userID matches the userID path param", func() {
-				testAlertsConfigUserIDMustMatchPathParam(UpsertAlert, mocks.ServiceDetails())
-			})
-		})
-
-		It("requires that the alert.Config's userID matches the user's token", func() {
-			testAlertsConfigUserIDMustMatchToken(UpsertAlert)
-		})
-
-		It("requires that the alert.Config's userID matches the userID path param", func() {
-			testAlertsConfigUserIDMustMatchPathParam(UpsertAlert, nil)
+		It("requires that the user's token matches the userID path param", func() {
+			testTokenUserIDMustMatchPathParam(UpsertAlert, nil)
 		})
 
 		It("errors on invalid JSON", func() {
