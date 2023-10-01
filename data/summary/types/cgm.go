@@ -246,6 +246,11 @@ func (s *CGMStats) CalculateSummary() {
 				nextStopPoint++
 			}
 
+			fmt.Println("total target minutes:", totalStats.TargetMinutes)
+			fmt.Println("current index:", currentIndex)
+			fmt.Println("current bucket:", s.Buckets[currentIndex])
+			fmt.Println("bucket target minutes:", s.Buckets[currentIndex].Data.TargetMinutes)
+
 			totalStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
 			totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 

@@ -1168,6 +1168,33 @@ var _ = Describe("CGM Summary", func() {
 				}
 			})
 
+			//It("Returns correct record count when given single buckets in strange places", func() {
+			//	userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+			//
+			//	// initial single bucket
+			//	dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime, 1, inTargetBloodGlucose)
+			//
+			//	// add another single bucket forward to check off-by-one
+			//	dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.Add(1*time.Hour), 1, inTargetBloodGlucose)
+			//
+			//	// 1 bucket gap
+			//	dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, datumTime.Add(3*time.Hour), 1, inTargetBloodGlucose)
+			//
+			//	// 0 bucket gap, with overlap with previous
+			//	dataSetCGMDataFour := NewDataSetCGMDataAvg(deviceId, datumTime.Add(3.5*60*time.Minute), 1, inTargetBloodGlucose)
+			//
+			//	// same bucket as before
+			//	dataSetCGMDataFive := NewDataSetCGMDataAvg(deviceId, datumTime.Add(4*60*time.Minute), 1, inTargetBloodGlucose)
+			//
+			//	// lots of buckets ahead
+			//	dataSetCGMDataSix := NewDataSetCGMDataAvg(deviceId, datumTime.Add(14*24*time.Hour), 1, inTargetBloodGlucose)
+			//
+			//	allDataSet := make([]*glucose.Glucose, 0, len(dataSetCGMDataOne)+len(dataSetCGMDataTwo)+len(dataSetCGMDataThree)+len(dataSetCGMDataFour)+len(dataSetCGMDataFive)+len(dataSetCGMDataSix))
+			//
+			//	err = userCGMSummary.Stats.Update(allDataSet)
+			//	Expect(err).ToNot(HaveOccurred())
+			//})
+
 			It("Returns correctly moving offset periods", func() {
 				// Here we generate 5 1d datasets, and add them in a specific order:
 				// -59d -- target glucose
