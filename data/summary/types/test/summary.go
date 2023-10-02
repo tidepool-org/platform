@@ -39,7 +39,7 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 	}
 
 	for i := 0; i < len(datum.Stats.Buckets); i++ {
-		datum.Stats.Buckets[i] = types.Bucket[types.CGMBucketData, *types.CGMBucketData]{
+		datum.Stats.Buckets[i] = &types.Bucket[types.CGMBucketData, *types.CGMBucketData]{
 			Date:           test.RandomTime(),
 			LastRecordTime: test.RandomTime(),
 			Data: &types.CGMBucketData{
@@ -279,7 +279,7 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 	}
 
 	for i := 0; i < len(datum.Stats.Buckets); i++ {
-		datum.Stats.Buckets[i] = types.Bucket[types.BGMBucketData, *types.BGMBucketData]{
+		datum.Stats.Buckets[i] = &types.Bucket[types.BGMBucketData, *types.BGMBucketData]{
 			Date:           test.RandomTime(),
 			LastRecordTime: test.RandomTime(),
 			Data: &types.BGMBucketData{
