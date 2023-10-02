@@ -164,6 +164,31 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(12))
 			})
 
+			//It("Returns correct records when given >60d of data", func() {
+			//	userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+			//
+			//	dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime.Add(-(24*60+1)*time.Hour), 1, NewDataRangesSingle(lowBloodGlucose-0.5))
+			//	err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//	fmt.Println(len(userCGMSummary.Stats.Buckets))
+			//	Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
+			//
+			//	dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime.Add(-(24*60)*time.Hour), 1, NewDataRangesSingle(highBloodGlucose-0.5))
+			//	err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//	fmt.Println(len(userCGMSummary.Stats.Buckets))
+			//	Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
+			//
+			//	dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime, 24*59+23, NewDataRangesSingle(inTargetBloodGlucose-0.5))
+			//	err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+			//	Expect(err).ToNot(HaveOccurred())
+			//	fmt.Println(len(userCGMSummary.Stats.Buckets))
+			//	fmt.Printf("%+v\n", userCGMSummary.Stats.Buckets[0].Data)
+			//	Expect(userCGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(10))
+			//
+			//	Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(1440))
+			//})
+
 			It("Returns correct stats when given 1 week, then 1 week more than 2 weeks ahead", func() {
 				var lastRecordTime time.Time
 				var hourlyStatsLen int

@@ -275,7 +275,7 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		for i := 0; i < len(*buckets)-HoursAgoToKeep; i++ {
 			(*buckets)[i] = Bucket[T, A]{}
 		}
-		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep:]
+		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep+1:]
 	}
 
 	return nil
