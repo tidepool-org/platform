@@ -5,14 +5,14 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/data/summary"
-
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -34,6 +34,7 @@ type Standard struct {
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
 	dataSourceClient        dataSource.Client
+	alertsRepository        alerts.Repository
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
@@ -116,6 +117,9 @@ func (s *Standard) Close() {
 	if s.summarizerRegistry != nil {
 		s.summarizerRegistry = nil
 	}
+	if s.alertsRepository != nil {
+		s.alertsRepository = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -171,4 +175,11 @@ func (s *Standard) DataClient() dataClient.Client {
 
 func (s *Standard) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
+}
+
+func (s *Standard) AlertsRepository() alerts.Repository {
+	if s.alertsRepository == nil {
+		s.alertsRepository = s.dataStore.NewAlertsRepository()
+	}
+	return s.alertsRepository
 }

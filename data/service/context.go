@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
@@ -25,6 +26,7 @@ type Context interface {
 	DataRepository() dataStore.DataRepository
 	SummaryRepository() dataStore.SummaryRepository
 	SyncTaskRepository() syncTaskStore.SyncTaskRepository
+	AlertsRepository() alerts.Repository
 
 	SummarizerRegistry() *summary.SummarizerRegistry
 	DataClient() dataClient.Client

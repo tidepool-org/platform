@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
@@ -18,6 +19,7 @@ type Store interface {
 
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
+	NewAlertsRepository() alerts.Repository
 }
 
 // DataSetRepository is the interface for interacting and modifying
