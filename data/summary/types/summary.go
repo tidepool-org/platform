@@ -137,7 +137,7 @@ func CreateBucket[T BucketData, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
 	return bucket
 }
 
-type Buckets[T BucketData, S BucketDataPt[T]] []Bucket[T, S]
+type Buckets[T BucketData, S BucketDataPt[T]] []*Bucket[T, S]
 
 type Stats interface {
 	CGMStats | BGMStats
@@ -225,7 +225,7 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat Bucket[T, A]) error {
+func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat *Bucket[T, A]) error {
 	// NOTE This is only partially able to handle editing the past, and will break if given a bucket which
 	//      must be prepended
 	existingHour := false
@@ -252,16 +252,16 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		statsGap := int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours())
 		// only add gap buckets if the gap is shorter than max tracking amount
 		if statsGap > 0 && statsGap < HoursAgoToKeep {
-			gapBuckets := make(Buckets[T, A], 0, statsGap)
+			gapBuckets := make(S, 0, statsGap)
 			for i := statsGap; i > 1; i-- {
 				newStatsTime := newStat.Date.Add(time.Duration(-i+1) * time.Hour)
-				gapBuckets = append(gapBuckets, *CreateBucket[T, A](newStatsTime))
+				gapBuckets = append(gapBuckets, CreateBucket[T, A](newStatsTime))
 			}
 
 			*buckets = append(*buckets, gapBuckets...)
 		} else if statsGap > HoursAgoToKeep {
 			// otherwise, the gap is larger than our tracking, delete all the old buckets for a clean state
-			*buckets = make(S, 1)
+			*buckets = make(S, 0, 1)
 		}
 	}
 
@@ -273,9 +273,9 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	if len(*buckets) > HoursAgoToKeep {
 		// zero out any to-be-trimmed buckets to lower their impact until reallocation
 		for i := 0; i < len(*buckets)-HoursAgoToKeep; i++ {
-			(*buckets)[i] = Bucket[T, A]{}
+			(*buckets)[i] = nil
 		}
-		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep+1:]
+		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep:]
 	}
 
 	return nil
@@ -297,7 +297,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 		// store stats for the period, if we are now on the next period
 		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
-			err := AddBin(targetBuckets, *newBucket)
+			err := AddBin(targetBuckets, newBucket)
 			if err != nil {
 				return err
 			}
@@ -315,7 +315,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 					gap := int(lastBucketHour.Sub(currentPeriod).Hours())
 
 					if gap < len(*targetBuckets) {
-						newBucket = &(*targetBuckets)[len(*targetBuckets)-gap-1]
+						newBucket = (*targetBuckets)[len(*targetBuckets)-gap-1]
 						if !newBucket.Date.Equal(currentPeriod) {
 							return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
 						}
@@ -347,7 +347,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 	// store any partial bucket
 	if newBucket != nil {
-		err := AddBin(targetBuckets, *newBucket)
+		err := AddBin(targetBuckets, newBucket)
 		if err != nil {
 			return err
 		}

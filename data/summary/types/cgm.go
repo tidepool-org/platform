@@ -239,6 +239,10 @@ func (s *CGMStats) CalculateSummary() {
 	for i := 0; i < len(s.Buckets); i++ {
 		currentIndex := len(s.Buckets) - 1 - i
 
+		if s.Buckets[currentIndex] == nil || s.Buckets[currentIndex].Data == nil {
+			fmt.Println("uninitialized bucket at index", currentIndex)
+		}
+
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
 			if i == stopPoints[nextStopPoint]*24 {
