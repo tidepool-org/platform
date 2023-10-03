@@ -212,7 +212,7 @@ func (q *queue) startManager(ctx context.Context) {
 	go func() {
 		defer q.waitGroup.Done()
 
-		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
+		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
 		defer q.stopTimer()
 
 		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
