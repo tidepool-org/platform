@@ -51,6 +51,7 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			Expect(config.Config).ToNot(BeNil())
 			config.Config.Address = testHttp.NewAddress()
+			config.ExternalConfig.PathPrefix = "auth"
 			config.Config.UserAgent = testHttp.NewUserAgent()
 			config.Config.ServiceSecret = authTest.NewServiceSecret()
 			config.ExternalConfig.Address = testHttp.NewAddress()
@@ -112,6 +113,7 @@ var _ = Describe("Client", func() {
 			Expect(config).ToNot(BeNil())
 			Expect(config.Config).ToNot(BeNil())
 			config.Config.Address = server.URL()
+			config.ExternalConfig.PathPrefix = "auth"
 			config.Config.UserAgent = testHttp.NewUserAgent()
 			config.Config.ServiceSecret = authTest.NewServiceSecret()
 			config.ExternalConfig.Address = server.URL()

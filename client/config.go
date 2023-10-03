@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"net/url"
 	"time"
 
@@ -33,7 +34,7 @@ func (c *Config) Validate() error {
 	if c.Address == "" {
 		return errors.New("address is missing")
 	} else if _, err := url.Parse(c.Address); err != nil {
-		return errors.New("address is invalid")
+		return fmt.Errorf("address is invalid: %w", err)
 	}
 	if c.UserAgent == "" {
 		return errors.New("user agent is missing")
