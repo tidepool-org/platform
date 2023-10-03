@@ -421,6 +421,10 @@ func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
 	}
 
 	result, err := t.UpdateMany(ctx, selector, update)
+	if err != nil {
+		return 0, err
+	}
+
 	return result.ModifiedCount, err
 }
 
