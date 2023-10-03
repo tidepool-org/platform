@@ -1,6 +1,8 @@
 package queue
 
 import (
+	"fmt"
+
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/task/store"
 )
@@ -24,6 +26,10 @@ func NewMultiQueue(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) 
 
 func (m *MultiQueue) RegisterRunner(runner Runner) error {
 	typ := runner.GetRunnerType()
+	if _, ok := m.queues[typ]; ok {
+		return fmt.Errorf("runner of the same type is already registered")
+	}
+
 	str := m.str.WithTypeFilter(typ)
 	q, err := New(m.cfg, m.lgr, str)
 	if err != nil {
