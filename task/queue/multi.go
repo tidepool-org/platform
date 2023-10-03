@@ -7,7 +7,7 @@ import (
 
 // MultiQueue creates a queue per registered runner
 type MultiQueue struct {
-	queues []Queue
+	queues map[string]Queue
 	cfg    *Config
 	lgr    log.Logger
 	str    store.Store
@@ -15,14 +15,16 @@ type MultiQueue struct {
 
 func NewMultiQueue(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 	return &MultiQueue{
-		cfg: cfg,
-		lgr: lgr,
-		str: str,
+		queues: make(map[string]Queue),
+		cfg:    cfg,
+		lgr:    lgr,
+		str:    str,
 	}, nil
 }
 
 func (m *MultiQueue) RegisterRunner(runner Runner) error {
-	str := m.str.WithTypeFilter(runner.GetRunnerType())
+	typ := runner.GetRunnerType()
+	str := m.str.WithTypeFilter(typ)
 	q, err := New(m.cfg, m.lgr, str)
 	if err != nil {
 		return err
@@ -31,7 +33,7 @@ func (m *MultiQueue) RegisterRunner(runner Runner) error {
 		return err
 	}
 
-	m.queues = append(m.queues, q)
+	m.queues[typ] = q
 	return nil
 }
 
@@ -47,6 +49,10 @@ func (m *MultiQueue) Stop() {
 		q := q
 		q.Stop()
 	}
+}
+
+func (m *MultiQueue) GetQueues() map[string]Queue {
+	return m.queues
 }
 
 var _ Queue = &MultiQueue{}
