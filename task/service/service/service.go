@@ -319,6 +319,12 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	taskQueue.RegisterRunner(summaryBackfillRnnr)
 
+	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+	if summaryMigrationRnnrErr != nil {
+		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
+	}
+	taskQueue.RegisterRunner(summaryMigrationRnnr)
+
 	ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create ehr reconcile runner")
