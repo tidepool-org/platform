@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -67,13 +68,34 @@ type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
 	Enabled bool `json:"enabled"`
 	// Repeat is measured in minutes.
+	//
+	// A value of 0 (the default) disables repeat notifications.
 	Repeat DurationMinutes `json:"repeat,omitempty"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
 	dur := b.Repeat.Duration()
-	validator.Duration("repeat", &dur).GreaterThan(0 * time.Minute)
+	validator.Duration("repeat", &dur).Using(validateRepeat)
+}
+
+const (
+	// RepeatMin is the minimum duration for a repeat setting (if not 0).
+	RepeatMin = 15 * time.Minute
+	// RepeatMax is the maximum duration for a repeat setting.
+	RepeatMax = 4 * time.Hour
+)
+
+func validateRepeat(value time.Duration, errorReporter structure.ErrorReporter) {
+	if value == 0 {
+		return
+	}
+	if value < RepeatMin {
+		errorReporter.ReportError(validator.ErrorValueNotGreaterThanOrEqualTo(value, RepeatMin))
+	}
+	if value > RepeatMax {
+		errorReporter.ReportError(validator.ErrorValueNotLessThanOrEqualTo(value, RepeatMax))
+	}
 }
 
 // DelayMixin adds a configurable delay.

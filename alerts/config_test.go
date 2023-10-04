@@ -12,6 +12,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -93,6 +94,28 @@ var _ = Describe("Config", func() {
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
 	})
 
+	Context("repeat", func() {
+		It("accepts values of 15 minutes to 4 hours (inclusive)", func() {
+			val := validator.New()
+
+			b := Base{Repeat: DurationMinutes(15 * time.Minute)}
+			b.Validate(val)
+			Expect(val.Error()).To(Succeed())
+
+			b = Base{Repeat: DurationMinutes(4 * time.Hour)}
+			b.Validate(val)
+			Expect(val.Error()).To(Succeed())
+
+			b = Base{Repeat: DurationMinutes(4*time.Hour + 1)}
+			b.Validate(val)
+			Expect(val.Error()).NotTo(Succeed())
+
+			b = Base{Repeat: DurationMinutes(15*time.Minute - 1)}
+			b.Validate(val)
+			Expect(val.Error()).NotTo(Succeed())
+		})
+	})
+
 	Context("urgentLow", func() {
 		It("validates threshold units", func() {
 			buf := buff(`{"urgentLow": {"threshold": {"units":"%s","value":42}}`, "garbage")
@@ -115,7 +138,7 @@ var _ = Describe("Config", func() {
 }`, mockUserID1, mockUserID2, glucose.MgdL)
 			cfg := &Config{}
 			err := request.DecodeObject(nil, buf, cfg)
-			Expect(err).To(MatchError("value -11m0s is not greater than 0s"))
+			Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
 		})
 		It("validates repeat minutes (string)", func() {
 			buf := buff(`{
@@ -137,7 +160,7 @@ var _ = Describe("Config", func() {
 	})
 
 	Context("low", func() {
-		It("rejects a blank repeat", func() {
+		It("accepts a blank repeat", func() {
 			buf := buff(`{
   "userId": "%s",
   "followedId": "%s",
@@ -152,7 +175,7 @@ var _ = Describe("Config", func() {
 }`, mockUserID1, mockUserID2)
 			conf := &Config{}
 			err := request.DecodeObject(nil, buf, conf)
-			Expect(err).To(HaveOccurred())
+			Expect(err).To(Succeed())
 		})
 	})
 })
