@@ -2,7 +2,14 @@ package summary
 
 import (
 	"context"
+	"math/rand"
+	"time"
+
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
+
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/log"
@@ -11,11 +18,6 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/version"
-	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
-	"math/rand"
-	"time"
 )
 
 const (

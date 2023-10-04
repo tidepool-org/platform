@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/pkg/errors"
+
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/log"
