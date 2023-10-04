@@ -234,6 +234,47 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		{Key: "dates.outdatedSince", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
+	opts.SetProjection(bson.M{"stats": 0})
+
+	cursor, err := r.Find(ctx, selector, opts)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to get outdated summaries")
+	}
+
+	var summaries []*types.Summary[T, A]
+	if err = cursor.All(ctx, &summaries); err != nil {
+		return nil, errors.Wrap(err, "unable to decode outdated summaries")
+	}
+
+	var userIDs = make([]string, len(summaries))
+	for i := 0; i < len(summaries); i++ {
+		userIDs[i] = summaries[i].UserID
+	}
+
+	return userIDs, nil
+}
+
+func (r *Repo[T, A]) GetMigratableUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if page == nil {
+		return nil, errors.New("pagination is missing")
+	}
+
+	selector := bson.M{
+		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
+		"type":                 types.GetTypeString[T, A](),
+	}
+
+	opts := options.Find()
+	opts.SetSort(bson.D{
+		{Key: "dates.lastUpdatedDate", Value: 1},
+	})
+	opts.SetLimit(int64(page.Size))
+	opts.SetProjection(bson.M{"stats": 0})
 
 	cursor, err := r.Find(ctx, selector, opts)
 	if errors.Is(err, mongo.ErrNoDocuments) {

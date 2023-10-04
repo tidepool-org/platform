@@ -134,6 +134,12 @@ func (s *Service) initializeTaskStore() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure task store contains summary backfill task")
 	}
+
+	err = s.taskStore.EnsureSummaryMigrationTask()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure task store contains summary migration task")
+	}
+
 	err = s.taskStore.EnsureEHRReconcileTask()
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure task store contains ehr reconcile task")

@@ -18,6 +18,7 @@ import (
 const (
 	SummaryTypeCGM = "cgm"
 	SummaryTypeBGM = "bgm"
+	SchemaVersion  = 2
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0
@@ -168,7 +169,7 @@ type Summary[T Stats, A StatsPt[T]] struct {
 
 func NewConfig() Config {
 	return Config{
-		SchemaVersion:            1,
+		SchemaVersion:            SchemaVersion,
 		HighGlucoseThreshold:     highBloodGlucose,
 		VeryHighGlucoseThreshold: veryHighBloodGlucose,
 		LowGlucoseThreshold:      lowBloodGlucose,

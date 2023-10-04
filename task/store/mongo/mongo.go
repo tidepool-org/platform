@@ -79,6 +79,14 @@ func (s *Store) EnsureSummaryBackfillTask() error {
 	return repository.EnsureSummaryBackfillTask(ctx)
 }
 
+func (s *Store) EnsureSummaryMigrationTask() error {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
+	defer cancel()
+
+	repository := s.TaskRepository()
+	return repository.EnsureSummaryMigrationTask(ctx)
+}
+
 func (s *Store) EnsureEHRReconcileTask() error {
 	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
 	defer cancel()
@@ -136,6 +144,11 @@ func (t *TaskRepository) EnsureSummaryUpdateTask(ctx context.Context) error {
 
 func (t *TaskRepository) EnsureSummaryBackfillTask(ctx context.Context) error {
 	create := summary.NewDefaultBackfillTaskCreate()
+	return t.ensureTask(ctx, create)
+}
+
+func (t *TaskRepository) EnsureSummaryMigrationTask(ctx context.Context) error {
+	create := summary.NewDefaultMigrationTaskCreate()
 	return t.ensureTask(ctx, create)
 }
 

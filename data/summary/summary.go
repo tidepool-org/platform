@@ -45,6 +45,7 @@ type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	SetOutdated(ctx context.Context, userId string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
 }
 
@@ -81,6 +82,10 @@ func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId string
 
 func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	return c.summaries.GetOutdatedUserIDs(ctx, pagination)
+}
+
+func (c *GlucoseSummarizer[T, A]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	return c.summaries.GetMigratableUserIDs(ctx, pagination)
 }
 
 func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, error) {
@@ -162,12 +167,12 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		return userSummary, nil
 	}
 
-	startTime := types.GetStartTime(userSummary, status)
-
-	// user exists (has relevant data), but no summary, create a blank one
-	if userSummary == nil {
+	// user has relevant data, but no usable summary for rolling
+	if userSummary == nil || userSummary.Config.SchemaVersion != types.SchemaVersion {
 		userSummary = types.Create[T, A](userId)
 	}
+
+	startTime := types.GetStartTime(userSummary, status)
 
 	var userData []*glucoseDatum.Glucose
 	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, status.LastData)
