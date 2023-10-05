@@ -1,6 +1,7 @@
 package glucose
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/tidepool-org/platform/pointer"
@@ -59,4 +60,50 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 		}
 	}
 	return value
+}
+
+const (
+	// MgdL_Per_MmolL renames MmolLToMgdLConversionFactor in an alternate way.
+	MgdL_Per_MmolL = MmolLToMgdLConversionFactor
+	// MmolL_Per_MgdL inverts the MmolL_Per_MgdL conversion factor.
+	MmolL_Per_MgdL = 1 / MgdL_Per_MmolL
+)
+
+// Convert between common blood glucose measurement units.
+//
+// Results are rounded to five decimal places. However, if fromUnits and
+// toUnits are the same, the value is returned unchanged. If either fromUnits
+// or toUnits aren't handled, Convert panics.
+//
+// Convert is modeled to return results as similar as possible to
+// NormalizeValueForUnits, but without the hassle of pointer values, and with
+// the ability to convert between arbitrary units (as supported).
+func Convert(value float64, fromUnits, toUnits string) float64 {
+	from, to := normUnits(fromUnits), normUnits(toUnits)
+	if from == to {
+		return value
+	}
+	if from == MgdL && to == MmolL {
+		return Round5(value * MmolL_Per_MgdL)
+	}
+	if from == MmolL && to == MgdL {
+		return Round5(value * MgdL_Per_MmolL)
+	}
+	panic(fmt.Errorf("unhandled conversion %q => %q", fromUnits, toUnits))
+}
+
+// Round5 rounds a value to 5 decimal places.
+func Round5(value float64) float64 {
+	return math.Round(value*1e5) / 1e5
+}
+
+// normUnits collapses equivalent units into one form.
+func normUnits(units string) string {
+	switch units {
+	case MmolL, Mmoll:
+		return MmolL
+	case MgdL, Mgdl:
+		return MgdL
+	}
+	return units
 }

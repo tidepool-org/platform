@@ -2245,7 +2245,7 @@ var _ = Describe("Mongo", func() {
 				It("updates the existing document", func() {
 					ctx, cfg, filter := prep(true)
 
-					cfg.Low = &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}
+					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
@@ -2275,10 +2275,12 @@ var _ = Describe("Mongo", func() {
 						UserID:     "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
 						FollowedID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
 						Alerts: alerts.Alerts{
-							High: &alerts.WithDelayAndThreshold{
-								Base: alerts.Base{Enabled: true}}}}
+							High: &alerts.HighAlert{
+								Base: alerts.Base{Enabled: true},
+							},
+						}}
 					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
-					cfg.Low = &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}
+					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 

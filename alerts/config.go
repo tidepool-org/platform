@@ -32,11 +32,11 @@ type Config struct {
 
 // Alerts models a user's desired alerts.
 type Alerts struct {
-	UrgentLow       *WithThreshold         `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
-	Low             *WithDelayAndThreshold `json:"low,omitempty" bson:"low,omitempty"`
-	High            *WithDelayAndThreshold `json:"high,omitempty" bson:"high,omitempty"`
-	NotLooping      *WithDelay             `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
-	NoCommunication *WithDelay             `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
+	UrgentLow       *UrgentLowAlert       `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
+	Low             *LowAlert             `json:"low,omitempty" bson:"low,omitempty"`
+	High            *HighAlert            `json:"high,omitempty" bson:"high,omitempty"`
+	NotLooping      *NotLoopingAlert      `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+	NoCommunication *NoCommunicationAlert `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
 }
 
 func (c Config) Validate(validator structure.Validator) {
@@ -98,61 +98,86 @@ func validateRepeat(value time.Duration, errorReporter structure.ErrorReporter) 
 	}
 }
 
-// DelayMixin adds a configurable delay.
-type DelayMixin struct {
-	// Delay is measured in minutes.
-	Delay DurationMinutes `json:"delay,omitempty"`
-}
-
-func (d DelayMixin) Validate(validator structure.Validator) {
-	dur := d.Delay.Duration()
-	validator.Duration("delay", &dur).GreaterThan(0 * time.Minute)
-}
-
-// ThresholdMixin adds a configurable threshold.
-type ThresholdMixin struct {
+// UrgentLowAlert extends Base with a threshold.
+type UrgentLowAlert struct {
+	Base `bson:",inline"`
 	// Threshold is compared the current value to determine if an alert should
 	// be triggered.
 	Threshold `json:"threshold"`
 }
 
-func (t ThresholdMixin) Validate(validator structure.Validator) {
-	t.Threshold.Validate(validator)
-}
-
-// WithThreshold extends Base with ThresholdMixin.
-type WithThreshold struct {
-	Base           `bson:",inline"`
-	ThresholdMixin `bson:",inline"`
-}
-
-func (d WithThreshold) Validate(validator structure.Validator) {
+func (d UrgentLowAlert) Validate(validator structure.Validator) {
 	d.Base.Validate(validator)
-	d.ThresholdMixin.Validate(validator)
+	d.Threshold.Validate(validator)
+	validateThresholdInNativeUnits(validator, d.Threshold, 40, 55, glucose.MgdL)
 }
 
-// WithDelay extends Base with DelayMixin.
-type WithDelay struct {
-	Base       `bson:",inline"`
-	DelayMixin `bson:",inline"`
+// validateThresholdInNativeUnits formats validation errors in the same units
+// submitted by the user.
+//
+// This provides easier to understand validation error messages.
+func validateThresholdInNativeUnits(validator structure.Validator, threshold Threshold, min, max float64, units string) {
+	nativeMin := glucose.Convert(min, glucose.MgdL, threshold.Units)
+	nativeMax := glucose.Convert(max, glucose.MgdL, threshold.Units)
+	validator.Float64("threshold.value", &threshold.Value).InRange(nativeMin, nativeMax)
 }
 
-func (d WithDelay) Validate(validator structure.Validator) {
+// NotLoopingAlert extends Base with a delay.
+type NotLoopingAlert struct {
+	Base  `bson:",inline"`
+	Delay DurationMinutes `json:"delay,omitempty"`
+}
+
+func (d NotLoopingAlert) Validate(validator structure.Validator) {
 	d.Base.Validate(validator)
-	d.DelayMixin.Validate(validator)
+	dur := d.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
 }
 
-// WithDelayAndThreshold extends Base with both DelayMixin and ThresholdMixin.
-type WithDelayAndThreshold struct {
-	Base           `bson:",inline"`
-	DelayMixin     `bson:",inline"`
-	ThresholdMixin `bson:",inline"`
+// NoCommunicationAlert extends Base with a delay.
+type NoCommunicationAlert struct {
+	Base  `bson:",inline"`
+	Delay DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d WithDelayAndThreshold) Validate(validator structure.Validator) {
+func (d NoCommunicationAlert) Validate(validator structure.Validator) {
 	d.Base.Validate(validator)
-	d.DelayMixin.Validate(validator)
-	d.ThresholdMixin.Validate(validator)
+	dur := d.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
+}
+
+// LowAlert extends Base with threshold and a delay.
+type LowAlert struct {
+	Base `bson:",inline"`
+	// Threshold is compared the current value to determine if an alert should
+	// be triggered.
+	Threshold `json:"threshold"`
+	Delay     DurationMinutes `json:"delay,omitempty"`
+}
+
+func (d LowAlert) Validate(validator structure.Validator) {
+	d.Base.Validate(validator)
+	dur := d.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
+	d.Threshold.Validate(validator)
+	validateThresholdInNativeUnits(validator, d.Threshold, 60, 100, glucose.MgdL)
+}
+
+// HighAlert extends Base with a threshold and a delay.
+type HighAlert struct {
+	Base `bson:",inline"`
+	// Threshold is compared the current value to determine if an alert should
+	// be triggered.
+	Threshold `json:"threshold"`
+	Delay     DurationMinutes `json:"delay,omitempty"`
+}
+
+func (d HighAlert) Validate(validator structure.Validator) {
+	d.Base.Validate(validator)
+	d.Threshold.Validate(validator)
+	dur := d.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
+	validateThresholdInNativeUnits(validator, d.Threshold, 120, 400, glucose.MgdL)
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.

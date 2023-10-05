@@ -36,7 +36,7 @@ var _ = Describe("Config", func() {
     "delay": 10,
     "threshold": {
       "units": "mg/dL",
-      "value": 123.4
+      "value": 80
     }
   },
   "urgentLow": {
@@ -44,7 +44,7 @@ var _ = Describe("Config", func() {
     "repeat": 30,
     "threshold": {
       "units": "mg/dL",
-      "value": 456.7
+      "value": 47.5
     }
   },
   "high": {
@@ -53,7 +53,7 @@ var _ = Describe("Config", func() {
     "delay": 5,
     "threshold": {
       "units": "mmol/L",
-      "value": 456.7
+      "value": 10
     }
   },
   "notLooping": {
@@ -75,16 +75,16 @@ var _ = Describe("Config", func() {
 		Expect(conf.High.Enabled).To(Equal(false))
 		Expect(conf.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
-		Expect(conf.High.Threshold.Value).To(Equal(456.7))
+		Expect(conf.High.Threshold.Value).To(Equal(10.0))
 		Expect(conf.High.Threshold.Units).To(Equal(glucose.MmolL))
 		Expect(conf.Low.Enabled).To(Equal(true))
 		Expect(conf.Low.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.Low.Delay).To(Equal(DurationMinutes(10 * time.Minute)))
-		Expect(conf.Low.Threshold.Value).To(Equal(123.4))
+		Expect(conf.Low.Threshold.Value).To(Equal(80.0))
 		Expect(conf.Low.Threshold.Units).To(Equal(glucose.MgdL))
 		Expect(conf.UrgentLow.Enabled).To(Equal(false))
 		Expect(conf.UrgentLow.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
-		Expect(conf.UrgentLow.Threshold.Value).To(Equal(456.7))
+		Expect(conf.UrgentLow.Threshold.Value).To(Equal(47.5))
 		Expect(conf.UrgentLow.Threshold.Units).To(Equal(glucose.MgdL))
 		Expect(conf.NotLooping.Enabled).To(Equal(true))
 		Expect(conf.NotLooping.Repeat).To(Equal(DurationMinutes(32 * time.Minute)))
@@ -94,22 +94,222 @@ var _ = Describe("Config", func() {
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
 	})
 
+	Context("UrgentLowAlert", func() {
+		Context("Threshold", func() {
+			It("accepts values between 40 and 55 mg/dL", func() {
+				val := validator.New()
+				b := UrgentLowAlert{Threshold: Threshold{Value: 40, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = UrgentLowAlert{Threshold: Threshold{Value: 55, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = UrgentLowAlert{Threshold: Threshold{Value: 56, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 56 is not between 40 and 55"))
+
+				val = validator.New()
+				b = UrgentLowAlert{Threshold: Threshold{Value: 39, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 39 is not between 40 and 55"))
+			})
+		})
+	})
+
+	Context("LowAlert", func() {
+		Context("Threshold", func() {
+			It("accepts values in mmol/L", func() {
+				val := validator.New()
+				b := LowAlert{Threshold: Threshold{Value: 4.2735, Units: "mmol/L"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+			})
+
+			It("accepts values between 60 and 100 mg/dL", func() {
+				val := validator.New()
+				b := LowAlert{Threshold: Threshold{Value: 60, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = LowAlert{Threshold: Threshold{Value: 100, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = LowAlert{Threshold: Threshold{Value: 101, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 101 is not between 60 and 100"))
+
+				val = validator.New()
+				b = LowAlert{Threshold: Threshold{Value: 59, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 59 is not between 60 and 100"))
+			})
+		})
+
+		Context("Delay", func() {
+			It("accepts values between 0 and 6 hours (inclusive)", func() {
+				okThresh := Threshold{Units: "mg/dL", Value: 123}
+
+				val := validator.New()
+				b := HighAlert{Delay: 0, Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = HighAlert{Delay: DurationMinutes(time.Hour * 6 / time.Minute), Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = HighAlert{Delay: -1, Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
+
+				val = validator.New()
+				b = HighAlert{Delay: DurationMinutes(time.Hour*6 + time.Minute), Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 6h1m0s is not between 0s and 6h0m0s"))
+			})
+		})
+	})
+
+	Context("HighAlert", func() {
+		Context("Threshold", func() {
+			It("accepts values between 120 and 400 mg/dL", func() {
+				val := validator.New()
+				b := HighAlert{Threshold: Threshold{Value: 120, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = HighAlert{Threshold: Threshold{Value: 400, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = HighAlert{Threshold: Threshold{Value: 401, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 401 is not between 120 and 400"))
+
+				val = validator.New()
+				b = HighAlert{Threshold: Threshold{Value: 119, Units: "mg/dL"}}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 119 is not between 120 and 400"))
+			})
+		})
+
+		Context("Delay", func() {
+			It("accepts values between 0 and 6 hours (inclusive)", func() {
+				okThresh := Threshold{Units: "mg/dL", Value: 123}
+
+				val := validator.New()
+				b := HighAlert{Delay: 0, Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = HighAlert{Delay: DurationMinutes(time.Hour * 6 / time.Minute), Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = HighAlert{Delay: -1, Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
+
+				val = validator.New()
+				b = HighAlert{Delay: DurationMinutes(time.Hour*6 + time.Minute), Threshold: okThresh}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 6h1m0s is not between 0s and 6h0m0s"))
+			})
+		})
+	})
+
+	Context("NoCommunicationAlert", func() {
+		Context("Delay", func() {
+			It("accepts values between 0 and 6 hours (inclusive)", func() {
+				val := validator.New()
+				b := NoCommunicationAlert{Delay: 0}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = NoCommunicationAlert{Delay: DurationMinutes(time.Hour * 6)}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = NoCommunicationAlert{Delay: -1}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
+
+				val = validator.New()
+				b = NoCommunicationAlert{Delay: DurationMinutes(time.Hour*6 + time.Second)}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 6h0m1s is not between 0s and 6h0m0s"))
+			})
+		})
+	})
+
+	Context("NotLoopingAlert", func() {
+		Context("Delay", func() {
+			It("accepts values between 0 and 2 hours (inclusive)", func() {
+				val := validator.New()
+				b := NotLoopingAlert{Delay: 0}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = NotLoopingAlert{Delay: DurationMinutes(2 * time.Hour)}
+				b.Validate(val)
+				Expect(val.Error()).To(Succeed())
+
+				val = validator.New()
+				b = NotLoopingAlert{Delay: -1}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 2h0m0s"))
+
+				val = validator.New()
+				b = NotLoopingAlert{Delay: DurationMinutes(2*time.Hour + time.Second)}
+				b.Validate(val)
+				Expect(val.Error()).To(MatchError("value 2h0m1s is not between 0s and 2h0m0s"))
+			})
+
+		})
+	})
+
 	Context("repeat", func() {
-		It("accepts values of 15 minutes to 4 hours (inclusive)", func() {
+		It("accepts values of 0", func() {
 			val := validator.New()
 
+			b := Base{Repeat: 0}
+			b.Validate(val)
+			Expect(val.Error()).To(Succeed())
+		})
+
+		It("accepts values of 15 minutes to 4 hours (inclusive)", func() {
+			val := validator.New()
 			b := Base{Repeat: DurationMinutes(15 * time.Minute)}
 			b.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
+			val = validator.New()
 			b = Base{Repeat: DurationMinutes(4 * time.Hour)}
 			b.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
+			val = validator.New()
 			b = Base{Repeat: DurationMinutes(4*time.Hour + 1)}
 			b.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
 
+			val = validator.New()
 			b = Base{Repeat: DurationMinutes(15*time.Minute - 1)}
 			b.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
@@ -132,7 +332,7 @@ var _ = Describe("Config", func() {
     "repeat": -11,
     "threshold": {
       "units": "%s",
-      "value": 1
+      "value": 47.5
     }
   }
 }`, mockUserID1, mockUserID2, glucose.MgdL)
@@ -169,13 +369,14 @@ var _ = Describe("Config", func() {
     "delay": 10,
     "threshold": {
       "units": "mg/dL",
-      "value": 123.4
+      "value": 80
     }
   }
 }`, mockUserID1, mockUserID2)
 			conf := &Config{}
 			err := request.DecodeObject(nil, buf, conf)
 			Expect(err).To(Succeed())
+			Expect(conf.Low.Repeat).To(Equal(DurationMinutes(0)))
 		})
 	})
 })

@@ -126,4 +126,67 @@ var _ = Describe("Glucose", func() {
 			}
 		})
 	})
+
+	Context("Convert", func() {
+
+		It("panics on unhandled units", func() {
+			Expect(func() { glucose.Convert(0, "foo", glucose.MgdL) }).Should(Panic())
+			Expect(func() { glucose.Convert(0, glucose.MgdL, "foo") }).Should(Panic())
+		})
+
+		It("returns equivalent units unchanged", func() {
+			var got float64
+			expected := float64(9.99135198374)
+			input := expected
+
+			got = glucose.Convert(input, glucose.MgdL, glucose.MgdL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mgdl, glucose.MgdL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.MgdL, glucose.Mgdl)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mgdl, glucose.Mgdl)
+			Expect(got).To(Equal(expected))
+
+			got = glucose.Convert(input, glucose.MmolL, glucose.MmolL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mmoll, glucose.MmolL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.MmolL, glucose.Mmoll)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mmoll, glucose.Mmoll)
+			Expect(got).To(Equal(expected))
+		})
+
+		It("converts from mg/dL => mmol/L", func() {
+			var got float64
+			expected := float64(9.99135)
+			input := float64(180.0)
+
+			got = glucose.Convert(input, glucose.MgdL, glucose.MmolL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mgdl, glucose.MmolL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.MgdL, glucose.Mmoll)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mgdl, glucose.Mmoll)
+			Expect(got).To(Equal(expected))
+		})
+
+		It("converts from mmol/L => mg/dL", func() {
+			var got float64
+			expected := float64(180.00007)
+			input := float64(9.99135)
+
+			got = glucose.Convert(input, glucose.MmolL, glucose.MgdL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.MmolL, glucose.Mgdl)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mmoll, glucose.MgdL)
+			Expect(got).To(Equal(expected))
+			got = glucose.Convert(input, glucose.Mmoll, glucose.Mgdl)
+			Expect(got).To(Equal(expected))
+		})
+
+	})
 })
