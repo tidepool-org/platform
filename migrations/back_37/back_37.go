@@ -13,6 +13,12 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/blood/ketone"
+	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/errors"
 	migrationMongo "github.com/tidepool-org/platform/migration/mongo"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -57,10 +63,10 @@ func getValidatedTime(bsonData bson.M, fieldName string) (time.Time, error) {
 
 func createDatumHash(bsonData bson.M) (string, error) {
 	identityFields := []string{}
-	if userID, err := getValidatedString(bsonData, "_userId"); err != nil {
+	if datumUserID, err := getValidatedString(bsonData, "_userId"); err != nil {
 		return "", err
 	} else {
-		identityFields = append(identityFields, userID)
+		identityFields = append(identityFields, datumUserID)
 	}
 	if deviceID, err := getValidatedString(bsonData, "deviceId"); err != nil {
 		return "", err
@@ -79,45 +85,49 @@ func createDatumHash(bsonData bson.M) (string, error) {
 	identityFields = append(identityFields, datumType)
 
 	switch datumType {
-	case "basal":
+	case basal.Type:
 		if deliveryType, err := getValidatedString(bsonData, "deliveryType"); err != nil {
 			return "", err
 		} else {
 			identityFields = append(identityFields, deliveryType)
 		}
-	case "bolus", "deviceEvent":
+	case bolus.Type, device.Type:
 		if subType, err := getValidatedString(bsonData, "subType"); err != nil {
 			return "", err
 		} else {
 			identityFields = append(identityFields, subType)
 		}
-	case "smbg", "bloodKetone", "cbg":
-		if units, err := getValidatedString(bsonData, "units"); err != nil {
+	case selfmonitored.Type, ketone.Type, continuous.Type:
+		units, err := getValidatedString(bsonData, "units")
+		if err != nil {
 			return "", err
 		} else {
 			identityFields = append(identityFields, units)
 		}
 
-		valueRaw, ok := bsonData["value"]
-		if !ok {
+		if valueRaw, ok := bsonData["value"]; !ok {
 			return "", errors.New("value is missing")
-		}
-		val, ok := valueRaw.(float64)
-		if !ok {
+		} else if val, ok := valueRaw.(float64); !ok {
 			return "", errors.New("value is not of expected type")
+		} else {
+			if units != glucose.MgdL && units != glucose.Mgdl {
+				// NOTE: we need to ensure the same precision for the
+				// converted value as it is used to calculate the hash
+				val = getBGValuePlatformPrecision(val)
+			}
+			identityFields = append(identityFields, strconv.FormatFloat(val, 'f', -1, 64))
 		}
-
-		if len(fmt.Sprintf("%v", valueRaw)) > 7 {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			mgdlVal := val*18.01559 + 0.5
-			mgdL := glucose.MgdL
-			val = *glucose.NormalizeValueForUnits(&mgdlVal, &mgdL)
-		}
-		strVal := strconv.FormatFloat(val, 'f', -1, 64)
-		identityFields = append(identityFields, strVal)
 	}
 	return deduplicator.GenerateIdentityHash(identityFields)
+}
+
+func getBGValuePlatformPrecision(mmolVal float64) float64 {
+	if len(fmt.Sprintf("%v", mmolVal)) > 7 {
+		mgdlVal := mmolVal * glucose.MmolLToMgdLConversionFactor
+		mgdL := glucose.MgdL
+		mmolVal = *glucose.NormalizeValueForUnits(&mgdlVal, &mgdL)
+	}
+	return mmolVal
 }
 
 func NewMigration(ctx context.Context) *Migration {
@@ -188,6 +198,8 @@ func (m *Migration) migrateJellyfishDocuments() (int, int) {
 	jellyfishDocCursor, err := m.dataRepository.Find(m.ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to find jellyfish data")
+		errorCount++
+		return hashUpdatedCount, errorCount
 	}
 	defer jellyfishDocCursor.Close(m.ctx)
 	for jellyfishDocCursor.Next(m.ctx) {
@@ -198,47 +210,44 @@ func (m *Migration) migrateJellyfishDocuments() (int, int) {
 			continue
 		}
 		if !m.DryRun() {
-			if err := m.migrateDocument(jellyfishResult); err != nil {
+			if updated, err := m.migrateDocument(jellyfishResult); err != nil {
 				logger.WithError(err).Errorf("Unable to migrate jellyfish document %s.", jellyfishResult["_id"])
 				errorCount++
 				continue
+			} else if updated {
+				hashUpdatedCount++
 			}
 		}
-		hashUpdatedCount++
 	}
 	if err := jellyfishDocCursor.Err(); err != nil {
-		logger.WithError(err).Error("error while fetching data. Please re-run to complete the migration.")
+		logger.WithError(err).Error("Error while fetching data. Please re-run to complete the migration.")
 		errorCount++
 	}
 	return hashUpdatedCount, errorCount
 }
 
-func (m *Migration) migrateDocument(jfDatum bson.M) error {
+func (m *Migration) migrateDocument(jfDatum bson.M) (bool, error) {
 
 	datumID, err := getValidatedString(jfDatum, "_id")
 	if err != nil {
-		return err
-	}
-
-	var modifiedTime *time.Time
-	if timeRaw, ok := jfDatum["modifiedTime"]; !ok {
-		modifiedTime = nil
-	} else if val, ok := timeRaw.(time.Time); !ok {
-		modifiedTime = nil
-	} else {
-		modifiedTime = &val
+		return false, err
 	}
 
 	hash, err := createDatumHash(jfDatum)
 	if err != nil {
-		return err
+		return false, err
 	}
 	update := bson.M{
 		"$set": bson.M{"_deduplicator": bson.M{"hash": hash}},
 	}
-	_, err = m.dataRepository.UpdateOne(m.ctx, bson.M{
+	result, err := m.dataRepository.UpdateOne(m.ctx, bson.M{
 		"_id":          datumID,
-		"modifiedTime": modifiedTime,
+		"modifiedTime": jfDatum["modifiedTime"],
 	}, update)
-	return err
+
+	if err != nil {
+		return false, err
+	}
+
+	return result.ModifiedCount == 1, nil
 }
