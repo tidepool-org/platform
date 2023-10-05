@@ -35,13 +35,13 @@ var _ = Describe("Service", func() {
 		var authClientConfig map[string]interface{}
 		var blobStructuredStoreConfig map[string]interface{}
 		var blobUnstructuredStoreConfig map[string]interface{}
+		var deviceLogsUnstructuredStoreConfig map[string]interface{}
 		var blobServiceConfig map[string]interface{}
 		var service *blobService.Service
 		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
-
 			serverSecret = authTest.NewServiceSecret()
 			sessionToken = authTest.NewSessionToken()
 			server = NewServer()
@@ -74,6 +74,13 @@ var _ = Describe("Service", func() {
 					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				},
 			}
+			deviceLogsUnstructuredStoreConfig = map[string]interface{}{
+				"type": "s3",
+				"s3": map[string]interface{}{
+					"bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+				},
+			}
 			blobServiceConfig = map[string]interface{}{
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
@@ -82,7 +89,12 @@ var _ = Describe("Service", func() {
 					"store": blobStructuredStoreConfig,
 				},
 				"unstructured": map[string]interface{}{
-					"store": blobUnstructuredStoreConfig,
+					"blobs": map[string]interface{}{
+						"store": blobUnstructuredStoreConfig,
+					},
+					"logs": map[string]interface{}{
+						"store": deviceLogsUnstructuredStoreConfig,
+					},
 				},
 				"secret": authTest.NewServiceSecret(),
 				"server": map[string]interface{}{
@@ -91,7 +103,6 @@ var _ = Describe("Service", func() {
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = blobServiceConfig
-
 			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 			service = blobService.New()
 			Expect(service).ToNot(BeNil())
