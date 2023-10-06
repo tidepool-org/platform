@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service/context"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	servicecontext "github.com/tidepool-org/platform/service/context"
@@ -21,12 +22,13 @@ type Context struct {
 
 	T likeT
 	// authDetails should be updated via the WithAuthDetails method.
-	authDetails          *AuthDetails
-	RESTRequest          *rest.Request
-	ResponseWriter       rest.ResponseWriter
-	recorder             *httptest.ResponseRecorder
-	MockAlertsRepository alerts.Repository
-	MockPermissionClient permission.Client
+	authDetails                *AuthDetails
+	RESTRequest                *rest.Request
+	ResponseWriter             rest.ResponseWriter
+	recorder                   *httptest.ResponseRecorder
+	MockAlertsRepository       alerts.Repository
+	MockDeviceTokensRepository devicetokens.Repository
+	MockPermissionClient       permission.Client
 }
 
 func NewContext(t likeT, method, url string, body io.Reader) *Context {
@@ -94,6 +96,10 @@ func (c *Context) Recorder() *httptest.ResponseRecorder {
 
 func (c *Context) AlertsRepository() alerts.Repository {
 	return c.MockAlertsRepository
+}
+
+func (c *Context) DeviceTokensRepository() devicetokens.Repository {
+	return c.MockDeviceTokensRepository
 }
 
 func (c *Context) PermissionClient() permission.Client {
