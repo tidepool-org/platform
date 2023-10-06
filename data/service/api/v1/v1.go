@@ -26,6 +26,7 @@ func Routes() []service.Route {
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
+	routes = append(routes, DeviceTokensRoutes()...)
 
 	return routes
 }
