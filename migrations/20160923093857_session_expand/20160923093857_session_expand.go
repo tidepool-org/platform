@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	jwt "github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt"
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
 
