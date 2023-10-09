@@ -79,7 +79,7 @@ const (
 // NormalizeValueForUnits, but without the hassle of pointer values, and with
 // the ability to convert between arbitrary units (as supported).
 func Convert(value float64, fromUnits, toUnits string) float64 {
-	from, to := normUnits(fromUnits), normUnits(toUnits)
+	from, to := normalizeUnitsCase(fromUnits), normalizeUnitsCase(toUnits)
 	if from == to {
 		return value
 	}
@@ -97,8 +97,8 @@ func Round5(value float64) float64 {
 	return math.Round(value*1e5) / 1e5
 }
 
-// normUnits collapses equivalent units into one form.
-func normUnits(units string) string {
+// normalizeUnitsCase collapses the cAsE of equivalent units into one form.
+func normalizeUnitsCase(units string) string {
 	switch units {
 	case MmolL, Mmoll:
 		return MmolL
