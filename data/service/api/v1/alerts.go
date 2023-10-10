@@ -18,9 +18,9 @@ import (
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
-		service.MakeRoute("GET", "/v1/alerts/:userID/:followedID", Authenticate(GetAlert)),
-		service.MakeRoute("POST", "/v1/alerts/:userID/:followedID", Authenticate(UpsertAlert)),
-		service.MakeRoute("DELETE", "/v1/alerts/:userID/:followedID", Authenticate(DeleteAlert)),
+		service.MakeRoute("GET", "/v1/alerts/:userID/:followedUserID", Authenticate(GetAlert)),
+		service.MakeRoute("POST", "/v1/alerts/:userID/:followedUserID", Authenticate(UpsertAlert)),
+		service.MakeRoute("DELETE", "/v1/alerts/:userID/:followedUserID", Authenticate(DeleteAlert)),
 	}
 }
 
@@ -40,15 +40,15 @@ func DeleteAlert(dCtx service.Context) {
 		return
 	}
 
-	followedID := r.PathParam("followedID")
+	followedUserID := r.PathParam("followedUserID")
 	userID := userIDWithServiceFallback(details, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, userID, followedID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{UserID: userID, FollowedID: followedID}
+	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
 	if err := repo.Delete(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -66,10 +66,10 @@ func GetAlert(dCtx service.Context) {
 		return
 	}
 
-	followedID := r.PathParam("followedID")
+	followedUserID := r.PathParam("followedUserID")
 	userID := userIDWithServiceFallback(details, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, userID, followedID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -79,7 +79,7 @@ func GetAlert(dCtx service.Context) {
 		return
 	}
 
-	cfg := &alerts.Config{UserID: userID, FollowedID: followedID}
+	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
 	alert, err := repo.Get(ctx, cfg)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -117,15 +117,15 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	followedID := r.PathParam("followedID")
+	followedUserID := r.PathParam("followedUserID")
 	userID := userIDWithServiceFallback(details, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, userID, followedID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{UserID: userID, FollowedID: followedID, Alerts: *a}
+	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID, Alerts: *a}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -163,9 +163,9 @@ func checkAuthentication(details request.Details) error {
 }
 
 // checkUserAuthorization returns nil if userID is permitted to have alerts
-// based on followedID's data.
-func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, followedID string) error {
-	perms, err := pc.GetUserPermissions(ctx, userID, followedID)
+// based on followedUserID's data.
+func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, followedUserID string) error {
+	perms, err := pc.GetUserPermissions(ctx, userID, followedUserID)
 	if err != nil {
 		return err
 	}

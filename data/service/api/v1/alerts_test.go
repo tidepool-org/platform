@@ -31,8 +31,8 @@ var _ = Describe("Alerts endpoints", func() {
 	testAuthenticationRequired := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     mocks.TestUserID1,
-			FollowedID: mocks.TestUserID2,
+			UserID:         mocks.TestUserID1,
+			FollowedUserID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
@@ -48,8 +48,8 @@ var _ = Describe("Alerts endpoints", func() {
 	testUserHasFollowPermission := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     mocks.TestUserID1,
-			FollowedID: mocks.TestUserID2,
+			UserID:         mocks.TestUserID1,
+			FollowedUserID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
@@ -134,8 +134,8 @@ var _ = Describe("Alerts endpoints", func() {
 		It("errors when Config doesn't exist", func() {
 			t := GinkgoT()
 			body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-				UserID:     mocks.TestUserID1,
-				FollowedID: mocks.TestUserID2,
+				UserID:         mocks.TestUserID1,
+				FollowedUserID: mocks.TestUserID2,
 			}))
 			dCtx := mocks.NewContext(t, "", "", body)
 			repo := newMockRepo()
@@ -150,7 +150,7 @@ var _ = Describe("Alerts endpoints", func() {
 
 		It("rejects users without alerting permissions", func() {
 			testUserHasFollowPermission(func(dCtx dataservice.Context) {
-				dCtx.Request().PathParams["followedID"] = mocks.TestUserID2
+				dCtx.Request().PathParams["followedUserID"] = mocks.TestUserID2
 
 				GetAlert(dCtx)
 			})

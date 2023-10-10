@@ -29,7 +29,7 @@ var _ = Describe("Config", func() {
 	It("parses all the things", func() {
 		buf := buff(`{
   "userId": "%s",
-  "followedId": "%s",
+  "followedUserId": "%s",
   "low": {
     "enabled": true,
     "repeat": 30,
@@ -71,7 +71,7 @@ var _ = Describe("Config", func() {
 		err := request.DecodeObject(nil, buf, conf)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conf.UserID).To(Equal(mockUserID1))
-		Expect(conf.FollowedID).To(Equal(mockUserID2))
+		Expect(conf.FollowedUserID).To(Equal(mockUserID2))
 		Expect(conf.High.Enabled).To(Equal(false))
 		Expect(conf.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
@@ -96,26 +96,26 @@ var _ = Describe("Config", func() {
 
 	Context("UrgentLowAlert", func() {
 		Context("Threshold", func() {
-			It("accepts values between 40 and 55 mg/dL", func() {
+			It("accepts values between 0 and 1000 mg/dL", func() {
 				val := validator.New()
-				b := UrgentLowAlert{Threshold: Threshold{Value: 40, Units: "mg/dL"}}
+				b := UrgentLowAlert{Threshold: Threshold{Value: 0, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
 				val = validator.New()
-				b = UrgentLowAlert{Threshold: Threshold{Value: 55, Units: "mg/dL"}}
+				b = UrgentLowAlert{Threshold: Threshold{Value: 1000, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
 				val = validator.New()
-				b = UrgentLowAlert{Threshold: Threshold{Value: 56, Units: "mg/dL"}}
+				b = UrgentLowAlert{Threshold: Threshold{Value: 1001, Units: "mg/dL"}}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 56 is not between 40 and 55"))
+				Expect(val.Error()).To(MatchError("value 1001 is not between 0 and 1000"))
 
 				val = validator.New()
-				b = UrgentLowAlert{Threshold: Threshold{Value: 39, Units: "mg/dL"}}
+				b = UrgentLowAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 39 is not between 40 and 55"))
+				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
 			})
 		})
 	})
@@ -129,26 +129,26 @@ var _ = Describe("Config", func() {
 				Expect(val.Error()).To(Succeed())
 			})
 
-			It("accepts values between 60 and 100 mg/dL", func() {
+			It("accepts values between 0 and 1000 mg/dL", func() {
 				val := validator.New()
-				b := LowAlert{Threshold: Threshold{Value: 60, Units: "mg/dL"}}
+				b := LowAlert{Threshold: Threshold{Value: 0, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
 				val = validator.New()
-				b = LowAlert{Threshold: Threshold{Value: 100, Units: "mg/dL"}}
+				b = LowAlert{Threshold: Threshold{Value: 1000, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
 				val = validator.New()
-				b = LowAlert{Threshold: Threshold{Value: 101, Units: "mg/dL"}}
+				b = LowAlert{Threshold: Threshold{Value: 1001, Units: "mg/dL"}}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 101 is not between 60 and 100"))
+				Expect(val.Error()).To(MatchError("value 1001 is not between 0 and 1000"))
 
 				val = validator.New()
-				b = LowAlert{Threshold: Threshold{Value: 59, Units: "mg/dL"}}
+				b = LowAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 59 is not between 60 and 100"))
+				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
 			})
 		})
 
@@ -181,26 +181,26 @@ var _ = Describe("Config", func() {
 
 	Context("HighAlert", func() {
 		Context("Threshold", func() {
-			It("accepts values between 120 and 400 mg/dL", func() {
+			It("accepts values between 0 and 1000 mg/dL", func() {
 				val := validator.New()
-				b := HighAlert{Threshold: Threshold{Value: 120, Units: "mg/dL"}}
+				b := HighAlert{Threshold: Threshold{Value: 0, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
 				val = validator.New()
-				b = HighAlert{Threshold: Threshold{Value: 400, Units: "mg/dL"}}
+				b = HighAlert{Threshold: Threshold{Value: 1000, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
 				val = validator.New()
-				b = HighAlert{Threshold: Threshold{Value: 401, Units: "mg/dL"}}
+				b = HighAlert{Threshold: Threshold{Value: 1001, Units: "mg/dL"}}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 401 is not between 120 and 400"))
+				Expect(val.Error()).To(MatchError("value 1001 is not between 0 and 1000"))
 
 				val = validator.New()
-				b = HighAlert{Threshold: Threshold{Value: 119, Units: "mg/dL"}}
+				b = HighAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 119 is not between 120 and 400"))
+				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
 			})
 		})
 
@@ -285,9 +285,8 @@ var _ = Describe("Config", func() {
 	})
 
 	Context("repeat", func() {
-		It("accepts values of 0", func() {
+		It("accepts values of 0 (indicating disabled)", func() {
 			val := validator.New()
-
 			b := Base{Repeat: 0}
 			b.Validate(val)
 			Expect(val.Error()).To(Succeed())
@@ -326,7 +325,7 @@ var _ = Describe("Config", func() {
 		It("validates repeat minutes (negative)", func() {
 			buf := buff(`{
   "userId": "%s",
-  "followedId": "%s",
+  "followedUserId": "%s",
   "urgentLow": {
     "enabled": false,
     "repeat": -11,
@@ -343,7 +342,7 @@ var _ = Describe("Config", func() {
 		It("validates repeat minutes (string)", func() {
 			buf := buff(`{
   "userId": "%s",
-  "followedId": "%s",
+  "followedUserId": "%s",
   "urgentLow": {
     "enabled": false,
     "repeat": "a",
@@ -363,7 +362,7 @@ var _ = Describe("Config", func() {
 		It("accepts a blank repeat", func() {
 			buf := buff(`{
   "userId": "%s",
-  "followedId": "%s",
+  "followedUserId": "%s",
   "low": {
     "enabled": true,
     "delay": 10,

@@ -23,9 +23,9 @@ type Config struct {
 	// UserID receives the configured alerts and owns this Config.
 	UserID string `json:"userId" bson:"userId"`
 
-	// FollowedID is the user whose data generates alerts, and has granted
+	// FollowedUserID is the user whose data generates alerts, and has granted
 	// UserID permission to that data.
-	FollowedID string `json:"followedId" bson:"followedId"`
+	FollowedUserID string `json:"followedUserId" bson:"followedUserId"`
 
 	Alerts `bson:",inline,omitempty"`
 }
@@ -41,36 +41,36 @@ type Alerts struct {
 
 func (c Config) Validate(validator structure.Validator) {
 	validator.String("UserID", &c.UserID).Using(user.IDValidator)
-	validator.String("FollowedID", &c.FollowedID).Using(user.IDValidator)
+	validator.String("FollowedUserID", &c.FollowedUserID).Using(user.IDValidator)
 	c.Alerts.Validate(validator)
 }
 
-func (i Alerts) Validate(validator structure.Validator) {
-	if i.Low != nil {
-		i.Low.Validate(validator)
+func (a Alerts) Validate(validator structure.Validator) {
+	if a.UrgentLow != nil {
+		a.UrgentLow.Validate(validator)
 	}
-	if i.UrgentLow != nil {
-		i.UrgentLow.Validate(validator)
+	if a.Low != nil {
+		a.Low.Validate(validator)
 	}
-	if i.High != nil {
-		i.High.Validate(validator)
+	if a.High != nil {
+		a.High.Validate(validator)
 	}
-	if i.NotLooping != nil {
-		i.NotLooping.Validate(validator)
+	if a.NotLooping != nil {
+		a.NotLooping.Validate(validator)
 	}
-	if i.NoCommunication != nil {
-		i.NoCommunication.Validate(validator)
+	if a.NoCommunication != nil {
+		a.NoCommunication.Validate(validator)
 	}
 }
 
 // Base describes the minimum specifics of a desired alert.
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
-	Enabled bool `json:"enabled"`
+	Enabled bool `json:"enabled" bson:"enabled"`
 	// Repeat is measured in minutes.
 	//
 	// A value of 0 (the default) disables repeat notifications.
-	Repeat DurationMinutes `json:"repeat,omitempty"`
+	Repeat DurationMinutes `json:"repeat,omitempty" bson:"repeat"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
@@ -84,10 +84,12 @@ const (
 	RepeatMin = 15 * time.Minute
 	// RepeatMax is the maximum duration for a repeat setting.
 	RepeatMax = 4 * time.Hour
+	// RepeatDisabled specifies that a repeat is not desired.
+	RepeatDisabled = 0 * time.Second
 )
 
 func validateRepeat(value time.Duration, errorReporter structure.ErrorReporter) {
-	if value == 0 {
+	if value == RepeatDisabled {
 		return
 	}
 	if value < RepeatMin {
@@ -106,20 +108,9 @@ type UrgentLowAlert struct {
 	Threshold `json:"threshold"`
 }
 
-func (d UrgentLowAlert) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	d.Threshold.Validate(validator)
-	validateThresholdInNativeUnits(validator, d.Threshold, 40, 55, glucose.MgdL)
-}
-
-// validateThresholdInNativeUnits formats validation errors in the same units
-// submitted by the user.
-//
-// This provides easier to understand validation error messages.
-func validateThresholdInNativeUnits(validator structure.Validator, threshold Threshold, min, max float64, units string) {
-	nativeMin := glucose.Convert(min, glucose.MgdL, threshold.Units)
-	nativeMax := glucose.Convert(max, glucose.MgdL, threshold.Units)
-	validator.Float64("threshold.value", &threshold.Value).InRange(nativeMin, nativeMax)
+func (a UrgentLowAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	a.Threshold.Validate(validator)
 }
 
 // NotLoopingAlert extends Base with a delay.
@@ -128,9 +119,9 @@ type NotLoopingAlert struct {
 	Delay DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d NotLoopingAlert) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	dur := d.Delay.Duration()
+func (a NotLoopingAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	dur := a.Delay.Duration()
 	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
 }
 
@@ -140,9 +131,9 @@ type NoCommunicationAlert struct {
 	Delay DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d NoCommunicationAlert) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	dur := d.Delay.Duration()
+func (a NoCommunicationAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	dur := a.Delay.Duration()
 	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
 }
 
@@ -155,12 +146,11 @@ type LowAlert struct {
 	Delay     DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d LowAlert) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	dur := d.Delay.Duration()
+func (a LowAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	dur := a.Delay.Duration()
 	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
-	d.Threshold.Validate(validator)
-	validateThresholdInNativeUnits(validator, d.Threshold, 60, 100, glucose.MgdL)
+	a.Threshold.Validate(validator)
 }
 
 // HighAlert extends Base with a threshold and a delay.
@@ -172,12 +162,11 @@ type HighAlert struct {
 	Delay     DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d HighAlert) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	d.Threshold.Validate(validator)
-	dur := d.Delay.Duration()
+func (a HighAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	a.Threshold.Validate(validator)
+	dur := a.Delay.Duration()
 	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
-	validateThresholdInNativeUnits(validator, d.Threshold, 120, 400, glucose.MgdL)
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.
@@ -219,8 +208,25 @@ type ValueWithUnits struct {
 type Threshold ValueWithUnits
 
 // Validate implements structure.Validatable
-func (t Threshold) Validate(validator structure.Validator) {
-	validator.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
+func (t Threshold) Validate(v structure.Validator) {
+	v.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
+	// This is a sanity check. Client software will likely further constrain these values. The
+	// broadness of these values allows clients to change their own min and max values
+	// independently, and it sidesteps rounding and conversion conflicts between the backend and
+	// clients.
+	var max, min float64
+	switch t.Units {
+	case glucose.MgdL, glucose.Mgdl:
+		max = glucose.MgdLMaximum
+		min = glucose.MgdLMinimum
+		v.Float64("value", &t.Value).InRange(min, max)
+	case glucose.MmolL, glucose.Mmoll:
+		max = glucose.MmolLMaximum
+		min = glucose.MmolLMinimum
+		v.Float64("value", &t.Value).InRange(min, max)
+	default:
+		v.WithReference("value").ReportError(validator.ErrorValueNotValid())
+	}
 }
 
 // Repository abstracts persistent storage for Config data.

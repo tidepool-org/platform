@@ -54,18 +54,18 @@ func (r *alertsRepo) EnsureIndexes() error {
 		{
 			Keys: bson.D{
 				{Key: "userId", Value: 1},
-				{Key: "followedId", Value: 1},
+				{Key: "followedUserId", Value: 1},
 			},
 			Options: options.Index().
 				SetUnique(true).
-				SetName("UserIdFollowedIdTypeUnique"),
+				SetName("UserIdFollowedUserIdTypeUnique"),
 		},
 	})
 }
 
 func (r *alertsRepo) filter(cfg *alerts.Config) interface{} {
 	return &alerts.Config{
-		UserID:     cfg.UserID,
-		FollowedID: cfg.FollowedID,
+		UserID:         cfg.UserID,
+		FollowedUserID: cfg.FollowedUserID,
 	}
 }
