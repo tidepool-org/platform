@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
@@ -35,7 +34,7 @@ func DeleteAlert(dCtx service.Context) {
 		return
 	}
 
-	if err := checkUserIDConsistency(details, r); err != nil {
+	if err := checkUserIDConsistency(details, r.PathParam("userID")); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -74,7 +73,7 @@ func GetAlert(dCtx service.Context) {
 		return
 	}
 
-	if err := checkUserIDConsistency(details, r); err != nil {
+	if err := checkUserIDConsistency(details, r.PathParam("userID")); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -106,7 +105,7 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	if err := checkUserIDConsistency(details, r); err != nil {
+	if err := checkUserIDConsistency(details, r.PathParam("userID")); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -137,11 +136,11 @@ var ErrUnauthorized = fmt.Errorf("unauthorized")
 // checkUserIDConsistency verifies the userIDs in a request.
 //
 // For safety reasons, if these values don't agree, return an error.
-func checkUserIDConsistency(details request.Details, r *rest.Request) error {
+func checkUserIDConsistency(details request.Details, userIDFromPath string) error {
 	if details.IsService() && details.UserID() == "" {
 		return nil
 	}
-	if details.IsUser() && r.PathParam("userID") == details.UserID() {
+	if details.IsUser() && userIDFromPath == details.UserID() {
 		return nil
 	}
 
