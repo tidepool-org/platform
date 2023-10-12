@@ -2215,8 +2215,8 @@ var _ = Describe("Mongo", func() {
 
 			prep := func(upsertDoc bool) (context.Context, *alerts.Config, bson.M) {
 				cfg := &alerts.Config{
-					FollowedID: "followed-id",
-					UserID:     "user-id",
+					FollowedUserID: "followed-user-id",
+					UserID:         "user-id",
 				}
 				ctx := context.Background()
 				filter := bson.M{}
@@ -2224,7 +2224,7 @@ var _ = Describe("Mongo", func() {
 					Expect(alertsRepository.Upsert(ctx, cfg)).
 						To(Succeed())
 					filter["userId"] = cfg.UserID
-					filter["followedId"] = cfg.FollowedID
+					filter["followedUserId"] = cfg.FollowedUserID
 				}
 
 				return ctx, cfg, filter
@@ -2245,7 +2245,7 @@ var _ = Describe("Mongo", func() {
 				It("updates the existing document", func() {
 					ctx, cfg, filter := prep(true)
 
-					cfg.Low = &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}
+					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
@@ -2271,13 +2271,16 @@ var _ = Describe("Mongo", func() {
 
 				It("retrieves the correct document", func() {
 					ctx, cfg, _ := prep(true)
-
 					other := &alerts.Config{
-						UserID:     "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
-						FollowedID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
-						High:       &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}}
+						UserID:         "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
+						FollowedUserID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
+						Alerts: alerts.Alerts{
+							High: &alerts.HighAlert{
+								Base: alerts.Base{Enabled: true},
+							},
+						}}
 					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
-					cfg.Low = &alerts.WithDelayAndThreshold{Base: alerts.Base{Enabled: true}}
+					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
@@ -2287,7 +2290,7 @@ var _ = Describe("Mongo", func() {
 					Expect(got.Low).ToNot(BeNil())
 					Expect(got.Low.Enabled).To(Equal(true))
 					Expect(got.UserID).To(Equal(cfg.UserID))
-					Expect(got.FollowedID).To(Equal(cfg.FollowedID))
+					Expect(got.FollowedUserID).To(Equal(cfg.FollowedUserID))
 				})
 
 			})

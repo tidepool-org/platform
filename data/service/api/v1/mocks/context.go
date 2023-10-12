@@ -30,7 +30,7 @@ type Context struct {
 }
 
 func NewContext(t likeT, method, url string, body io.Reader) *Context {
-	details := defDetails()
+	details := DefaultDetails()
 	ctx := request.NewContextWithDetails(stdcontext.Background(), details)
 	r, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
@@ -42,7 +42,7 @@ func NewContext(t likeT, method, url string, body io.Reader) *Context {
 
 	rr := &rest.Request{
 		Request:    r,
-		PathParams: map[string]string{},
+		PathParams: map[string]string{"userID": TestUserID1, "followedUserID": TestUserID2},
 		Env:        map[string]interface{}{},
 	}
 	responder, err := servicecontext.NewResponder(w, rr)
@@ -70,8 +70,14 @@ func (c *Context) WithDetails(details *Details) {
 	c.RESTRequest.Request = r.WithContext(ctx)
 }
 
-func defDetails() *Details {
+// DefaultDetails provides details for TestUser #1.
+func DefaultDetails() *Details {
 	return NewDetails(request.MethodSessionToken, TestUserID1, TestToken1)
+}
+
+// ServiceDetails provides details for a service call.
+func ServiceDetails() *Details {
+	return NewDetails(request.MethodServiceSecret, "", TestToken2)
 }
 
 func (c *Context) Response() rest.ResponseWriter {

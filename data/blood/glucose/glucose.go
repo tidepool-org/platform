@@ -19,6 +19,13 @@ const (
 	MgdLMinimum float64 = 0.0
 	MgdLMaximum float64 = 1000.0
 
+	// MmolLToMgdLConversionFactor is MgdL Per MmolL.
+	//
+	// Reminder: The molecular mass of glucose is ≈ 180 g/mol.
+	//
+	// MmolLToMgdLConversionFactor can be used like this:
+	//   140 MgdL / MmolLToMgdLConversionFactor = 7.77105 mmol/L
+	//   7.77105 mmol/L * MmolLToMgdLConversionFactor = 140.000 mg/dL
 	MmolLToMgdLConversionFactor float64 = 18.01559
 	MmolLToMgdLPrecisionFactor  float64 = 100000.0
 )
