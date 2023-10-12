@@ -5,41 +5,38 @@ import (
 	"math/rand"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-
-	"github.com/tidepool-org/platform/page"
-
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/version"
-
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
 const (
-	DefaultUpdateAvailableAfterDurationMaximum = 3 * time.Minute
-	DefaultUpdateAvailableAfterDurationMinimum = 3 * time.Minute
-	UpdateTaskDurationMaximum                  = 2 * time.Minute
-	DefaultUpdateWorkerBatchSize               = 500
-	UpdateWorkerCount                          = 4
-	UpdateType                                 = "org.tidepool.summary.update"
+	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
+	DefaultMigrationAvailableAfterDurationMinimum = 5 * time.Minute
+	MigrationTaskDurationMaximum                  = 4 * time.Minute
+	DefaultMigrationWorkerBatchSize               = 500
+	MigrationWorkerCount                          = 1
+	MigrationType                                 = "org.tidepool.summary.migrate"
 )
 
-type UpdateRunner struct {
+type MigrationRunner struct {
 	logger          log.Logger
 	versionReporter version.Reporter
 	authClient      auth.Client
 	dataClient      dataClient.Client
 }
 
-func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client) (*UpdateRunner, error) {
+func NewMigrationRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client) (*MigrationRunner, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
@@ -53,7 +50,7 @@ func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authCl
 		return nil, errors.New("data client is missing")
 	}
 
-	return &UpdateRunner{
+	return &MigrationRunner{
 		logger:          logger,
 		versionReporter: versionReporter,
 		authClient:      authClient,
@@ -61,19 +58,19 @@ func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authCl
 	}, nil
 }
 
-func (r *UpdateRunner) GetRunnerType() string {
-	return UpdateType
+func (r *MigrationRunner) GetRunnerType() string {
+	return MigrationType
 }
 
-func (r *UpdateRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(UpdateTaskDurationMaximum * 3)
+func (r *MigrationRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(MigrationTaskDurationMaximum * 3)
 }
 
-func (r *UpdateRunner) GetRunnerMaximumDuration() time.Duration {
-	return UpdateTaskDurationMaximum
+func (r *MigrationRunner) GetRunnerMaximumDuration() time.Duration {
+	return MigrationTaskDurationMaximum
 }
 
-func (r *UpdateRunner) GenerateNextTime(interval MinuteRange) time.Duration {
+func (r *MigrationRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 	Min := time.Duration(interval.Min) * time.Minute
 	Max := time.Duration(interval.Max) * time.Minute
 
@@ -81,7 +78,7 @@ func (r *UpdateRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 	return Min + randTime
 }
 
-func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
+func (r *MigrationRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	var config TaskConfiguration
 	var valid bool
 	if raw, ok := tsk.Data["config"]; ok {
@@ -101,7 +98,7 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	}
 
 	if !valid {
-		config = NewDefaultUpdateConfig()
+		config = NewDefaultMigrationConfig()
 
 		if tsk.Data == nil {
 			tsk.Data = make(map[string]interface{})
@@ -112,7 +109,7 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
+func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
@@ -126,7 +123,7 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	} else {
 		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 
-		if taskRunner, tErr := NewUpdateTaskRunner(r, tsk); tErr != nil {
+		if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
 			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
 		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
 			tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
@@ -144,14 +141,14 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	return true
 }
 
-type UpdateTaskRunner struct {
-	*UpdateRunner
+type MigrationTaskRunner struct {
+	*MigrationRunner
 	task      *task.Task
 	context   context.Context
 	validator structure.Validator
 }
 
-func NewUpdateTaskRunner(rnnr *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
+func NewMigrationTaskRunner(rnnr *MigrationRunner, tsk *task.Task) (*MigrationTaskRunner, error) {
 	if rnnr == nil {
 		return nil, errors.New("runner is missing")
 	}
@@ -159,13 +156,13 @@ func NewUpdateTaskRunner(rnnr *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner,
 		return nil, errors.New("task is missing")
 	}
 
-	return &UpdateTaskRunner{
-		UpdateRunner: rnnr,
-		task:         tsk,
+	return &MigrationTaskRunner{
+		MigrationRunner: rnnr,
+		task:            tsk,
 	}, nil
 }
 
-func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
+func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -177,13 +174,13 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination.Size = batch
 
 	t.logger.Info("Searching for User CGM Summaries requiring Update")
-	outdatedCGMSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
+	outdatedCGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
 	if err != nil {
 		return err
 	}
 
 	t.logger.Info("Searching for User BGM Summaries requiring Update")
-	outdatedBGMSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
+	outdatedBGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
 	if err != nil {
 		return err
 	}
@@ -203,11 +200,11 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	return nil
 }
 
-func (t *UpdateTaskRunner) UpdateCGMSummaries(userIDs []string) error {
+func (t *MigrationTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
 	eg.Go(func() error {
-		sem := semaphore.NewWeighted(UpdateWorkerCount)
+		sem := semaphore.NewWeighted(MigrationWorkerCount)
 		for _, userID := range userIDs {
 			if err := sem.Acquire(ctx, 1); err != nil {
 				return err
@@ -228,11 +225,11 @@ func (t *UpdateTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 	return eg.Wait()
 }
 
-func (t *UpdateTaskRunner) UpdateBGMSummaries(userIDs []string) error {
+func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
 	eg.Go(func() error {
-		sem := semaphore.NewWeighted(UpdateWorkerCount)
+		sem := semaphore.NewWeighted(MigrationWorkerCount)
 		for _, userID := range userIDs {
 			if err := sem.Acquire(ctx, 1); err != nil {
 				return err
@@ -253,7 +250,7 @@ func (t *UpdateTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 	return eg.Wait()
 }
 
-func (t *UpdateTaskRunner) UpdateCGMUserSummary(userID string) error {
+func (t *MigrationTaskRunner) UpdateCGMUserSummary(userID string) error {
 	t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
 
 	// update summary
@@ -267,7 +264,7 @@ func (t *UpdateTaskRunner) UpdateCGMUserSummary(userID string) error {
 	return nil
 }
 
-func (t *UpdateTaskRunner) UpdateBGMUserSummary(userID string) error {
+func (t *MigrationTaskRunner) UpdateBGMUserSummary(userID string) error {
 	t.logger.WithField("UserID", userID).Debug("Updating User BGM Summary")
 
 	// update summary

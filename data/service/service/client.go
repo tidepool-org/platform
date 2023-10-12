@@ -77,3 +77,7 @@ func (c *Client) GetOutdatedUserIDs(ctx context.Context, t string, pagination *p
 func (c *Client) BackfillSummaries(ctx context.Context, t string) (int, error) {
 	panic("Not Implemented!")
 }
+
+func (c *Client) GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error) {
+	panic("Not Implemented!")
+}

@@ -134,6 +134,12 @@ func (s *Service) initializeTaskStore() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure task store contains summary backfill task")
 	}
+
+	err = s.taskStore.EnsureSummaryMigrationTask()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure task store contains summary migration task")
+	}
+
 	err = s.taskStore.EnsureEHRReconcileTask()
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure task store contains ehr reconcile task")
@@ -312,6 +318,12 @@ func (s *Service) initializeTaskQueue() error {
 		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
 	}
 	taskQueue.RegisterRunner(summaryBackfillRnnr)
+
+	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+	if summaryMigrationRnnrErr != nil {
+		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
+	}
+	taskQueue.RegisterRunner(summaryMigrationRnnr)
 
 	ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
 	if err != nil {
