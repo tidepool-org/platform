@@ -153,21 +153,14 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		return nil, err
 	}
 
-	// this filters out users which require no update, as they have no data of type T, but have an outdated summary
-	if status.LastData.IsZero() {
-		if userSummary != nil {
-			// user's data is inactive/deleted, or this summary shouldn't have been created
-			userSummary.Dates.ZeroOut()
-			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", userId)
-			err = c.summaries.UpsertSummary(ctx, userSummary)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return userSummary, nil
+	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
+	if userSummary != nil && status.LastData.IsZero() {
+		// user's data is inactive/deleted, or this summary shouldn't have been created
+		logger.Warnf("User %s has a summary, but no data, deleting summary", userId)
+		return nil, c.summaries.DeleteSummary(ctx, userId)
 	}
 
-	// user has relevant data, but no usable summary for rolling
+	// user has no usable summary for incremental update
 	if userSummary == nil || userSummary.Config.SchemaVersion != types.SchemaVersion {
 		userSummary = types.Create[T, A](userId)
 	}

@@ -173,29 +173,29 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
-	t.logger.Info("Searching for User CGM Summaries requiring Update")
+	t.logger.Info("Searching for User CGM Summaries requiring Migration")
 	outdatedCGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Info("Searching for User BGM Summaries requiring Update")
+	t.logger.Info("Searching for User BGM Summaries requiring Migration")
 	outdatedBGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Debug("Starting User CGM Summary Update")
+	t.logger.Debug("Starting User CGM Summary Migration")
 	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
 		return err
 	}
-	t.logger.Debug("Finished User CGM Summary Update")
+	t.logger.Debug("Finished User CGM Summary Migration")
 
-	t.logger.Debug("Starting User BGM Summary Update")
+	t.logger.Debug("Starting User BGM Summary Migration")
 	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
 		return err
 	}
-	t.logger.Debug("Finished User BGM Summary Update")
+	t.logger.Debug("Finished User BGM Summary Migration")
 
 	return nil
 }
