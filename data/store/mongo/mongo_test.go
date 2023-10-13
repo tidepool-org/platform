@@ -592,7 +592,7 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("OutdatedSince"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("config.schemaVersion", "type")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("config.schemaVersion", "type", "dates.lastUpdatedDate")),
 						"Background": Equal(false),
 						"Name":       Equal("SchemaVersion"),
 					}),
