@@ -36,6 +36,7 @@ type Client interface {
 	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
 	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
 	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
+	GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context, t string) (int, error)
 }
 
@@ -216,7 +217,7 @@ func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*type
 
 func (c *ClientImpl) BackfillSummaries(ctx context.Context, typ string) (int, error) {
 	var count int
-	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries", typ)
+	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries", "backfill", typ)
 
 	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
 		return count, errors.Wrap(err, "backfill request returned an error")
@@ -232,7 +233,33 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, paginat
 	if typ == "" {
 		return nil, errors.New("type is missing")
 	}
-	url := c.client.ConstructURL("v1", "summaries", typ)
+	url := c.client.ConstructURL("v1", "summaries", "outdated", typ)
+
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	var userIDs []string
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return userIDs, err
+	}
+
+	return userIDs, nil
+}
+
+func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if typ == "" {
+		return nil, errors.New("type is missing")
+	}
+	url := c.client.ConstructURL("v1", "summaries", "migratable", typ)
 
 	if pagination == nil {
 		pagination = page.NewPagination()

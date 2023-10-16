@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/tidepool-org/platform/ehr/reconcile"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,7 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
@@ -82,6 +83,7 @@ func (s *Store) EnsureDefaultTasks() error {
 	fs := []func(context.Context) error{
 		repository.EnsureSummaryUpdateTask,
 		repository.EnsureSummaryBackfillTask,
+		repository.EnsureSummaryMigrationTask,
 		repository.EnsureEHRReconcileTask,
 	}
 
@@ -92,6 +94,22 @@ func (s *Store) EnsureDefaultTasks() error {
 	}
 
 	return nil
+}
+
+func (s *Store) EnsureSummaryMigrationTask() error {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
+	defer cancel()
+
+	repository := s.TaskRepository()
+	return repository.EnsureSummaryMigrationTask(ctx)
+}
+
+func (s *Store) EnsureEHRReconcileTask() error {
+	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
+	defer cancel()
+
+	repository := s.TaskRepository()
+	return repository.EnsureEHRReconcileTask(ctx)
 }
 
 type TaskRepository struct {
@@ -149,6 +167,11 @@ func (t *TaskRepository) EnsureSummaryUpdateTask(ctx context.Context) error {
 
 func (t *TaskRepository) EnsureSummaryBackfillTask(ctx context.Context) error {
 	create := summary.NewDefaultBackfillTaskCreate()
+	return t.ensureTask(ctx, create)
+}
+
+func (t *TaskRepository) EnsureSummaryMigrationTask(ctx context.Context) error {
+	create := summary.NewDefaultMigrationTaskCreate()
 	return t.ensureTask(ctx, create)
 }
 
@@ -291,7 +314,7 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 	err := t.FindOne(ctx, selector).Decode(&task)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
 
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get task")

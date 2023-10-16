@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -176,6 +177,37 @@ var _ = Describe("Factory", func() {
 
 		It("returns successfully", func() {
 			Expect(storeUnstructuredFactory.NewS3Store(configReporter, awsAPI)).ToNot(BeNil())
+		})
+	})
+
+	Context("NewS3StoreWithBucket", func() {
+		const bucketName = "the-bucket-name"
+		BeforeEach(func() {
+			configReporter.Config[bucketName] = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
+			configReporter.Config["prefix"] = test.RandomStringFromRangeAndCharset(1, 64, test.CharsetAlphaNumeric)
+		})
+
+		It("returns an error if the config reporter is missing", func() {
+			store, err := storeUnstructuredFactory.NewS3StoreWithBucket(nil, bucketName, awsAPI)
+			Expect(err).To(MatchError("unable to load config; config reporter is missing"))
+			Expect(store).To(BeNil())
+		})
+
+		It("returns an error if the aws api is missing", func() {
+			store, err := storeUnstructuredFactory.NewS3StoreWithBucket(configReporter, bucketName, nil)
+			Expect(err).To(MatchError("aws api is missing"))
+			Expect(store).To(BeNil())
+		})
+
+		It("returns an error if the config is invalid", func() {
+			delete(configReporter.Config, bucketName)
+			store, err := storeUnstructuredFactory.NewS3StoreWithBucket(configReporter, bucketName, awsAPI)
+			Expect(err).To(MatchError(fmt.Sprintf("unable to load custom bucket config; key \"%s\" not found", bucketName)))
+			Expect(store).To(BeNil())
+		})
+
+		It("returns successfully", func() {
+			Expect(storeUnstructuredFactory.NewS3StoreWithBucket(configReporter, bucketName, awsAPI)).ToNot(BeNil())
 		})
 	})
 })

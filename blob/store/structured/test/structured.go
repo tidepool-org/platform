@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
@@ -21,5 +23,15 @@ func RandomUpdate() *blobStoreStructured.Update {
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
+	return datum
+}
+
+func RandomDeviceLogsUpdate() *blobStoreStructured.DeviceLogsUpdate {
+	datum := blobStoreStructured.NewDeviceLogsUpdate()
+	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
+	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
+	datum.StartAt = pointer.FromTime(test.RandomTime())
+	datum.EndAt = pointer.FromTime(datum.StartAt.Add(1 * time.Hour))
 	return datum
 }

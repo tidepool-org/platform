@@ -22,11 +22,14 @@ func SummaryRoutes() []dataService.Route {
 		dataService.MakeRoute("POST", "/v1/summaries/cgm/:userId", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
 		dataService.MakeRoute("POST", "/v1/summaries/bgm/:userId", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
 
-		dataService.MakeRoute("POST", "/v1/summaries/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/backfill/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("POST", "/v1/summaries/backfill/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
 
-		dataService.MakeRoute("GET", "/v1/summaries/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/outdated/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/outdated/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
+
+		dataService.MakeRoute("GET", "/v1/summaries/migratable/cgm", Authenticate(GetMigratableUserIDs[types.CGMStats, *types.CGMStats])),
+		dataService.MakeRoute("GET", "/v1/summaries/migratable/bgm", Authenticate(GetMigratableUserIDs[types.BGMStats, *types.BGMStats])),
 	}
 }
 
@@ -65,13 +68,13 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	summary, err := summarizer.GetSummary(ctx, id)
+	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
+	} else if userSummary == nil {
 		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
@@ -89,13 +92,13 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	summary, err := summarizer.UpdateSummary(ctx, id)
+	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
+	} else if userSummary == nil {
 		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
@@ -141,6 +144,34 @@ func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext da
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
 	userIDs, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, userIDs)
+}
+
+func GetMigratableUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	responder := request.MustNewResponder(res, req)
+
+	if details := request.DetailsFromContext(ctx); !details.IsService() {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
+	}
+
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

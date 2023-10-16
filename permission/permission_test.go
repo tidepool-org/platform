@@ -31,4 +31,10 @@ var _ = Describe("permission", func() {
 			Expect(permission.Read).To(Equal("view"))
 		})
 	})
+
+	Context("Follow", func() {
+		It("has the expected permissions", func() {
+			Expect(permission.Follow).To(Equal("follow"))
+		})
+	})
 })

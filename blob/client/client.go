@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/errors"
@@ -87,6 +88,43 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		return nil, err
 	}
 
+	return result, nil
+}
+
+func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return nil, errors.New("user id is invalid")
+	}
+	if content == nil {
+		return nil, errors.New("content is missing")
+	} else if err := structureValidator.New().Validate(content); err != nil {
+		return nil, errors.Wrap(err, "content is invalid")
+	}
+
+	var mutators []request.RequestMutator
+	if content.DigestMD5 != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Digest", fmt.Sprintf("MD5=%s", *content.DigestMD5)))
+	}
+	if content.MediaType != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *content.MediaType))
+	}
+	if content.StartAt != nil {
+		mutators = append(mutators, request.NewHeaderMutator("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339)))
+	}
+	if content.EndAt != nil {
+		mutators = append(mutators, request.NewHeaderMutator("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339)))
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "device-logs")
+	result := &blob.DeviceLogsBlob{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, content.Body, result); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 

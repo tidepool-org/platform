@@ -1,6 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.19
+go 1.21
 
 require (
 	github.com/Shopify/sarama v1.27.0
@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.35.3
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/disintegration/imaging v1.6.2
 	github.com/githubnemo/CompileDaemon v1.4.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
@@ -90,7 +89,6 @@ require (
 	go.uber.org/multierr v1.4.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	go.uber.org/zap v1.13.0 // indirect
-	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect

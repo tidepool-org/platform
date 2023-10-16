@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
@@ -203,6 +204,15 @@ func ParseMediaTypeHeader(header http.Header, key string) (*string, error) {
 	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
 		return nil, err
 	} else if value, valid := net.NormalizeMediaType(*stringValue); valid {
+		return &value, nil
+	}
+	return nil, ErrorHeaderInvalid(key)
+}
+
+func ParseTimeHeader(header http.Header, key string, layout string) (*time.Time, error) {
+	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
+		return nil, err
+	} else if value, valueErr := time.Parse(layout, *stringValue); valueErr == nil {
 		return &value, nil
 	}
 	return nil, ErrorHeaderInvalid(key)

@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
@@ -234,6 +235,7 @@ var _ = Describe("Mongo", func() {
 	var store *dataStoreMongo.Store
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
+	var alertsRepository alerts.Repository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -494,6 +496,7 @@ var _ = Describe("Mongo", func() {
 		var collection *mongo.Collection
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
+		var alertsCollection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
@@ -503,6 +506,7 @@ var _ = Describe("Mongo", func() {
 			collection = store.GetCollection("deviceData")
 			dataSetCollection = store.GetCollection("deviceDataSets")
 			summaryCollection = store.GetCollection("summary")
+			alertsCollection = store.GetCollection("alerts")
 			Expect(store.EnsureIndexes()).To(Succeed())
 		})
 
@@ -511,6 +515,7 @@ var _ = Describe("Mongo", func() {
 				collection.Database().Drop(context.Background())
 				dataSetCollection.Database().Drop(context.Background())
 				summaryCollection.Database().Drop(context.Background())
+				alertsCollection.Database().Drop(context.Background())
 			}
 		})
 
@@ -582,9 +587,14 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("UserIDTypeUnique"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("dates.outdatedSince")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("dates.outdatedSince", "type")),
 						"Background": Equal(false),
-						"Name":       Equal("DatesOutdatedSince"),
+						"Name":       Equal("OutdatedSince"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("config.schemaVersion", "type", "dates.lastUpdatedDate")),
+						"Background": Equal(false),
+						"Name":       Equal("SchemaVersion"),
 					}),
 				))
 			})
@@ -604,18 +614,28 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
+		Context("NewAlertsRepository", func() {
+			It("returns a new repository", func() {
+				alertsRepository = store.NewAlertsRepository()
+				Expect(alertsRepository).ToNot(BeNil())
+			})
+		})
+
 		Context("with a new repository", func() {
 			BeforeEach(func() {
 				repository = store.NewDataRepository()
 				summaryRepository = store.NewSummaryRepository()
+				alertsRepository = store.NewAlertsRepository()
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
+				Expect(alertsRepository).ToNot(BeNil())
 			})
 
 			AfterEach(func() {
 				if repository != nil {
 					_, _ = collection.DeleteMany(context.Background(), bson.D{})
 					_, _ = summaryCollection.DeleteMany(context.Background(), bson.D{})
+					_, _ = alertsCollection.DeleteMany(context.Background(), bson.D{})
 				}
 			})
 
@@ -2181,6 +2201,114 @@ var _ = Describe("Mongo", func() {
 							})
 						})
 					})
+				})
+
+			})
+		})
+
+		Context("alerts", func() {
+			BeforeEach(func() {
+				var err error
+				store, err = dataStoreMongo.NewStore(config)
+				Expect(err).To(Succeed())
+				_, err = store.GetCollection("alerts").DeleteMany(context.Background(), bson.D{})
+				Expect(err).To(Succeed())
+
+				alertsRepository = store.NewAlertsRepository()
+				Expect(alertsRepository).ToNot(BeNil())
+			})
+
+			prep := func(upsertDoc bool) (context.Context, *alerts.Config, bson.M) {
+				cfg := &alerts.Config{
+					FollowedUserID: "followed-user-id",
+					UserID:         "user-id",
+				}
+				ctx := context.Background()
+				filter := bson.M{}
+				if upsertDoc {
+					Expect(alertsRepository.Upsert(ctx, cfg)).
+						To(Succeed())
+					filter["userId"] = cfg.UserID
+					filter["followedUserId"] = cfg.FollowedUserID
+				}
+
+				return ctx, cfg, filter
+			}
+
+			Describe("Upsert", func() {
+				Context("when no document exists", func() {
+					It("creates a new document", func() {
+						ctx, cfg, filter := prep(false)
+
+						Expect(alertsRepository.Upsert(ctx, cfg)).To(Succeed())
+
+						res := store.GetCollection("alerts").FindOne(ctx, filter)
+						Expect(res.Err()).To(Succeed())
+					})
+				})
+
+				It("updates the existing document", func() {
+					ctx, cfg, filter := prep(true)
+
+					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
+					err := alertsRepository.Upsert(ctx, cfg)
+					Expect(err).To(Succeed())
+
+					doc := &alerts.Config{}
+					res := store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(Succeed())
+					Expect(res.Decode(doc)).To(Succeed())
+					Expect(doc.Low).ToNot(BeNil())
+					Expect(doc.Low.Base.Enabled).To(Equal(true))
+				})
+
+			})
+
+			Describe("Get", func() {
+				Context("when no document exists", func() {
+					It("returns an error", func() {
+						ctx, cfg, _ := prep(false)
+
+						_, err := alertsRepository.Get(ctx, cfg)
+						Expect(err).To(MatchError(mongo.ErrNoDocuments))
+					})
+				})
+
+				It("retrieves the correct document", func() {
+					ctx, cfg, _ := prep(true)
+					other := &alerts.Config{
+						UserID:         "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
+						FollowedUserID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
+						Alerts: alerts.Alerts{
+							High: &alerts.HighAlert{
+								Base: alerts.Base{Enabled: true},
+							},
+						}}
+					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
+					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
+					err := alertsRepository.Upsert(ctx, cfg)
+					Expect(err).To(Succeed())
+
+					got, err := alertsRepository.Get(ctx, cfg)
+					Expect(err).To(Succeed())
+					Expect(got).ToNot(BeNil())
+					Expect(got.Low).ToNot(BeNil())
+					Expect(got.Low.Enabled).To(Equal(true))
+					Expect(got.UserID).To(Equal(cfg.UserID))
+					Expect(got.FollowedUserID).To(Equal(cfg.FollowedUserID))
+				})
+
+			})
+
+			Describe("Delete", func() {
+				It("deletes the document", func() {
+					ctx, cfg, filter := prep(true)
+
+					err := alertsRepository.Delete(ctx, cfg)
+					Expect(err).To(Succeed())
+
+					res := store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(MatchError(mongo.ErrNoDocuments))
 				})
 			})
 		})

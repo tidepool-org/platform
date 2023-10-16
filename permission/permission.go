@@ -7,10 +7,13 @@ import (
 type Permission map[string]interface{}
 type Permissions map[string]Permission
 
-const Owner = "root"
-const Custodian = "custodian"
-const Write = "upload"
-const Read = "view"
+const (
+	Follow    = "follow"
+	Custodian = "custodian"
+	Owner     = "root"
+	Read      = "view"
+	Write     = "upload"
+)
 
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)

@@ -22,6 +22,7 @@ import (
 type Provider interface {
 	BlobStructuredStore() blobStoreStructured.Store
 	BlobUnstructuredStore() blobStoreUnstructured.Store
+	DeviceLogsUnstructuredStore() blobStoreUnstructured.Store
 }
 
 type Client struct {
@@ -102,6 +103,70 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	update.Size = pointer.FromInt(size)
 	update.Status = pointer.FromString(blob.StatusAvailable)
 	return repository.Update(ctx, *result.ID, nil, update)
+}
+
+func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
+	if content == nil {
+		return nil, errors.New("content is missing")
+	} else if err := structureValidator.New().Validate(content); err != nil {
+		return nil, errors.Wrap(err, "content is invalid")
+	}
+
+	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
+
+	structuredCreate := blobStoreStructured.NewCreate()
+	structuredCreate.MediaType = pointer.CloneString(content.MediaType)
+	result, err := repository.Create(ctx, userID, structuredCreate)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "id": *result.ID})
+
+	hasher := md5.New()
+	sizer := NewSizeWriter()
+	options := storeUnstructured.NewOptions()
+	options.MediaType = content.MediaType
+	err = c.DeviceLogsUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
+	if err != nil {
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
+		}
+		return nil, err
+	}
+
+	size := sizer.Size
+	if size > blob.SizeMaximum {
+		if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
+		}
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
+		}
+		return nil, request.ErrorResourceTooLarge()
+	}
+
+	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
+		if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
+		}
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
+		}
+		return nil, errors.WithSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
+	}
+
+	update := blobStoreStructured.NewDeviceLogsUpdate()
+	update.DigestMD5 = pointer.FromString(digestMD5)
+	update.Size = pointer.FromInt(size)
+	update.StartAt = pointer.FromTime(*content.StartAt)
+	update.EndAt = pointer.FromTime(*content.EndAt)
+	return repository.Update(ctx, *result.ID, nil, update)
+}
+
+func (c *Client) ListDeviceLogs(ctx context.Context, userID string, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
