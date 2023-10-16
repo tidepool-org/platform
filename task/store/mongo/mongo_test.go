@@ -8,7 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/tidepool-org/platform/errors"
+	"github.com/pkg/errors"
+
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
