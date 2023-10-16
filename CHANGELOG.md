@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.22.1 - 2023-10-16
+### Engineering
+- YLP-2604 Add automaxcpu to all backend service that use go routine
+
 ## 0.22.0 - 2022-03-08
 ### Added
 - YLP-2214 Implement data-upload for UMM bolus

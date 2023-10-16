@@ -30,6 +30,9 @@ package main
 import (
 	"github.com/tidepool-org/platform/application"
 	dataServiceService "github.com/tidepool-org/platform/data/service/service"
+
+	// Automatically set GOMAXPROCS to match Linux container CPU quota.
+	_ "go.uber.org/automaxprocs"
 )
 
 func main() {
