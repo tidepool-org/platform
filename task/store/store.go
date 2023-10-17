@@ -10,6 +10,8 @@ import (
 
 type Store interface {
 	NewTaskRepository() TaskRepository
+	WithTypeFilter(typeFilter string) Store
+	Terminate(ctx context.Context) error
 }
 
 type TaskRepository interface {

@@ -4,5 +4,5 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("Queue", func() {
+var _ = Describe("queue", func() {
 })
