@@ -49,7 +49,7 @@ func (r *Router) ListUserRestrictedTokens(res rest.ResponseWriter, req *rest.Req
 
 func (r *Router) CreateUserRestrictedToken(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 
 	userID := req.PathParam("userId")
 	if userID == "" {
@@ -144,7 +144,7 @@ func (r *Router) UpdateRestrictedToken(res rest.ResponseWriter, req *rest.Reques
 
 func (r *Router) DeleteRestrictedToken(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 
 	id := req.PathParam("id")
 	if id == "" {

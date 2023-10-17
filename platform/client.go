@@ -86,7 +86,7 @@ func (c *Client) Mutators(ctx context.Context) ([]request.RequestMutator, error)
 			return nil, errors.New("service secret is missing")
 		}
 	} else {
-		details := request.DetailsFromContext(ctx)
+		details := request.GetAuthDetails(ctx)
 		if details == nil {
 			return nil, errors.New("details is missing")
 		}

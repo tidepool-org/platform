@@ -64,7 +64,7 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 					}
 				}
 
-				req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
+				req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 				if details.HasToken() {
 					req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), lgr.WithField("tokenHash", crypto.HexEncodedMD5Hash(details.Token()))))
 				}
@@ -75,7 +75,7 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	}
 }
 
-func (a *Auth) authenticate(req *rest.Request) (request.Details, error) {
+func (a *Auth) authenticate(req *rest.Request) (request.AuthDetails, error) {
 	details, err := a.authenticateServiceSecret(req)
 	if err != nil || details != nil {
 		return details, err
@@ -94,7 +94,7 @@ func (a *Auth) authenticate(req *rest.Request) (request.Details, error) {
 	return a.authenticateRestrictedToken(req)
 }
 
-func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, error) {
+func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.Header[auth.TidepoolServiceSecretHeaderKey]
 	if !found {
 		return nil, nil
@@ -106,10 +106,10 @@ func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, er
 		return nil, request.ErrorUnauthorized()
 	}
 
-	return request.NewDetails(request.MethodServiceSecret, "", ""), nil
+	return request.NewAuthDetails(request.MethodServiceSecret, "", ""), nil
 }
 
-func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, error) {
+func (a *Auth) authenticateAccessToken(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.Header[auth.TidepoolAuthorizationHeaderKey]
 	if !found {
 		return nil, nil
@@ -127,10 +127,10 @@ func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, erro
 		return nil, nil
 	}
 
-	return request.NewDetails(request.MethodAccessToken, details.UserID(), details.Token()), nil
+	return request.NewAuthDetails(request.MethodAccessToken, details.UserID(), details.Token()), nil
 }
 
-func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, error) {
+func (a *Auth) authenticateSessionToken(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.Header[auth.TidepoolSessionTokenHeaderKey]
 	if !found {
 		return nil, nil
@@ -146,7 +146,7 @@ func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, err
 	return details, nil
 }
 
-func (a *Auth) authenticateRestrictedToken(req *rest.Request) (request.Details, error) {
+func (a *Auth) authenticateRestrictedToken(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.URL.Query()[auth.TidepoolRestrictedTokenParameterKey]
 	if !found {
 		return nil, nil
@@ -159,5 +159,5 @@ func (a *Auth) authenticateRestrictedToken(req *rest.Request) (request.Details, 
 		return nil, nil
 	}
 
-	return request.NewDetails(request.MethodRestrictedToken, restrictedToken.UserID, restrictedToken.ID), nil
+	return request.NewAuthDetails(request.MethodRestrictedToken, restrictedToken.UserID, restrictedToken.ID), nil
 }

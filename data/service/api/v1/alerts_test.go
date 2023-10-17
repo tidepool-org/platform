@@ -36,8 +36,8 @@ var _ = Describe("Alerts endpoints", func() {
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
-		badDetails := mocks.NewDetails(request.MethodSessionToken, "", "")
-		dCtx.WithDetails(badDetails)
+		badDetails := mocks.NewAuthDetails(request.MethodSessionToken, "", "")
+		dCtx.WithAuthDetails(badDetails)
 
 		f(dCtx)
 
@@ -61,11 +61,11 @@ var _ = Describe("Alerts endpoints", func() {
 		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
-	testTokenUserIDMustMatchPathParam := func(f func(dataservice.Context), details *mocks.Details) {
+	testTokenUserIDMustMatchPathParam := func(f func(dataservice.Context), details *mocks.AuthDetails) {
 		t := GinkgoT()
 		dCtx := mocks.NewContext(t, "", "", nil)
 		if details != nil {
-			dCtx.WithDetails(details)
+			dCtx.WithAuthDetails(details)
 		}
 		dCtx.RESTRequest.PathParams["userID"] = "bad"
 		repo := newMockRepo()

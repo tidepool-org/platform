@@ -11,7 +11,7 @@ import (
 func Require(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
-			if details := request.DetailsFromContext(req.Context()); details == nil {
+			if details := request.GetAuthDetails(req.Context()); details == nil {
 				request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 			} else {
 				handlerFunc(res, req)
@@ -23,7 +23,7 @@ func Require(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 func RequireServer(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
-			if details := request.DetailsFromContext(req.Context()); details == nil {
+			if details := request.GetAuthDetails(req.Context()); details == nil {
 				request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 			} else if !details.IsService() {
 				request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
@@ -37,7 +37,7 @@ func RequireServer(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 func RequireUser(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
-			if details := request.DetailsFromContext(req.Context()); details == nil {
+			if details := request.GetAuthDetails(req.Context()); details == nil {
 				request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 			} else if !details.IsUser() {
 				request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())

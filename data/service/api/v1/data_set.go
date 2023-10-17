@@ -20,8 +20,8 @@ import (
 
 func DataSetsRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/users/:userId/data_sets", Authenticate(ListUserDataSets)),
-		dataService.MakeRoute("GET", "/v1/data_sets/:dataSetId", Authenticate(GetDataSet)),
+		dataService.MakeRoute("GET", "/v1/users/:userId/data_sets", EnforceAuthentication(ListUserDataSets)),
+		dataService.MakeRoute("GET", "/v1/data_sets/:dataSetId", EnforceAuthentication(GetDataSet)),
 	}
 }
 
@@ -32,7 +32,7 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -90,7 +90,7 @@ func GetDataSet(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
 	dataClient := dataServiceContext.DataClient()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return

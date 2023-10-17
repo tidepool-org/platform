@@ -22,12 +22,12 @@ import (
 
 func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", Authenticate(ListSources)),
-		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", Authenticate(CreateSource)),
-		dataService.MakeRoute("DELETE", "/v1/users/:userId/data_sources", Authenticate(DeleteAllSources)),
-		dataService.MakeRoute("GET", "/v1/data_sources/:id", Authenticate(GetSource)),
-		dataService.MakeRoute("PUT", "/v1/data_sources/:id", Authenticate(UpdateSource)),
-		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", Authenticate(DeleteSource)),
+		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", EnforceAuthentication(ListSources)),
+		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", EnforceAuthentication(CreateSource)),
+		dataService.MakeRoute("DELETE", "/v1/users/:userId/data_sources", EnforceAuthentication(DeleteAllSources)),
+		dataService.MakeRoute("GET", "/v1/data_sources/:id", EnforceAuthentication(GetSource)),
+		dataService.MakeRoute("PUT", "/v1/data_sources/:id", EnforceAuthentication(UpdateSource)),
+		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", EnforceAuthentication(DeleteSource)),
 	}
 }
 
@@ -37,7 +37,7 @@ func ListSources(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -80,7 +80,7 @@ func CreateSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -120,7 +120,7 @@ func DeleteAllSources(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -154,7 +154,7 @@ func GetSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -193,7 +193,7 @@ func UpdateSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -242,7 +242,7 @@ func DeleteSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return

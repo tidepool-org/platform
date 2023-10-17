@@ -61,16 +61,16 @@ func SetRequestLogger(req *rest.Request, logger log.Logger) {
 	}
 }
 
-func GetRequestAuthDetails(req *rest.Request) request.Details {
+func GetRequestAuthDetails(req *rest.Request) request.AuthDetails {
 	if req != nil {
-		if details, ok := req.Env[_RequestEnvAuthDetails].(request.Details); ok {
+		if details, ok := req.Env[_RequestEnvAuthDetails].(request.AuthDetails); ok {
 			return details
 		}
 	}
 	return nil
 }
 
-func SetRequestAuthDetails(req *rest.Request, details request.Details) {
+func SetRequestAuthDetails(req *rest.Request, details request.AuthDetails) {
 	if req != nil {
 		if details != nil {
 			req.Env[_RequestEnvAuthDetails] = details

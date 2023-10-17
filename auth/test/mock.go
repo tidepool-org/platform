@@ -273,10 +273,10 @@ func (mr *MockClientMockRecorder) UpdateRestrictedToken(ctx, id, update interfac
 }
 
 // ValidateSessionToken mocks base method.
-func (m *MockClient) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
+func (m *MockClient) ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateSessionToken", ctx, token)
-	ret0, _ := ret[0].(request.Details)
+	ret0, _ := ret[0].(request.AuthDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -369,10 +369,10 @@ func (mr *MockExternalAccessorMockRecorder) ServerSessionToken() *gomock.Call {
 }
 
 // ValidateSessionToken mocks base method.
-func (m *MockExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
+func (m *MockExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateSessionToken", ctx, token)
-	ret0, _ := ret[0].(request.Details)
+	ret0, _ := ret[0].(request.AuthDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

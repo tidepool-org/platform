@@ -99,7 +99,7 @@ var _ = Describe("V1", func() {
 			var req *rest.Request
 			var ctx context.Context
 			var handlerFunc rest.HandlerFunc
-			var details request.Details
+			var details request.AuthDetails
 
 			BeforeEach(func() {
 				res = testRest.NewResponseWriter()
@@ -140,11 +140,11 @@ var _ = Describe("V1", func() {
 
 					JustBeforeEach(func() {
 						if asService {
-							details = request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret())
+							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret())
 						} else {
-							details = request.NewDetails(request.MethodSessionToken, userID, "")
+							details = request.NewAuthDetails(request.MethodSessionToken, userID, "")
 						}
-						req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
+						req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 					})
 
 					JustAfterEach(func() {

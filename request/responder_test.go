@@ -32,7 +32,7 @@ func NewData() *Data {
 	}
 }
 
-func (d *Data) Sanitize(details request.Details) error {
+func (d *Data) Sanitize(details request.AuthDetails) error {
 	return d.SanitizeError
 }
 

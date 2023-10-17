@@ -192,7 +192,7 @@ func (e *External) ServerSessionToken() (string, error) {
 	return serverSessionToken, nil
 }
 
-func (e *External) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
+func (e *External) ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -214,7 +214,7 @@ func (e *External) ValidateSessionToken(ctx context.Context, token string) (requ
 		return nil, errors.New("user id is missing")
 	}
 
-	return request.NewDetails(request.MethodSessionToken, result.UserID, token), nil
+	return request.NewAuthDetails(request.MethodSessionToken, result.UserID, token), nil
 }
 
 func (e *External) EnsureAuthorized(ctx context.Context) error {
@@ -222,7 +222,7 @@ func (e *External) EnsureAuthorized(ctx context.Context) error {
 		return errors.New("context is missing")
 	}
 
-	if details := request.DetailsFromContext(ctx); details != nil {
+	if details := request.GetAuthDetails(ctx); details != nil {
 		return nil
 	}
 
@@ -234,7 +234,7 @@ func (e *External) EnsureAuthorizedService(ctx context.Context) error {
 		return errors.New("context is missing")
 	}
 
-	if details := request.DetailsFromContext(ctx); details != nil {
+	if details := request.GetAuthDetails(ctx); details != nil {
 		if details.IsService() {
 			return nil
 		}
@@ -254,7 +254,7 @@ func (e *External) EnsureAuthorizedUser(ctx context.Context, targetUserID string
 		return "", errors.New("authorized permission is missing")
 	}
 
-	if details := request.DetailsFromContext(ctx); details != nil {
+	if details := request.GetAuthDetails(ctx); details != nil {
 		if details.IsService() {
 			return "", nil
 		}
