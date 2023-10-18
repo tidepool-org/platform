@@ -14,11 +14,11 @@ import (
 func (r *Router) RestrictedTokensRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/restricted_tokens", api.RequireServer(r.ListUserRestrictedTokens)),
-		rest.Post("/v1/users/:userId/restricted_tokens", api.Require(r.CreateUserRestrictedToken)),
+		rest.Post("/v1/users/:userId/restricted_tokens", api.RequireAuth(r.CreateUserRestrictedToken)),
 		rest.Delete("/v1/users/:userId/restricted_tokens", api.RequireServer(r.DeleteAllRestrictedTokens)),
 		rest.Get("/v1/restricted_tokens/:id", api.RequireServer(r.GetRestrictedToken)),
 		rest.Put("/v1/restricted_tokens/:id", api.RequireServer(r.UpdateRestrictedToken)),
-		rest.Delete("/v1/restricted_tokens/:id", api.Require(r.DeleteRestrictedToken)),
+		rest.Delete("/v1/restricted_tokens/:id", api.RequireAuth(r.DeleteRestrictedToken)),
 	}
 }
 

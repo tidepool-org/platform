@@ -7,27 +7,17 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/service/api"
 )
-
-// TODO: BEGIN: Update to new service paradigm
-// func (r *Router) SourcesRoutes() []*rest.Route {
-// 	return []*rest.Route{
-// 		rest.Get("/v1/users/:userId/data_sources", api.Require(r.ListSources)),
-// 		rest.Post("/v1/users/:userId/data_sources", api.RequireServer(r.CreateSource)),
-// 		rest.Get("/v1/data_sources/:id", api.Require(r.GetSource)),
-// 		rest.Put("/v1/data_sources/:id", api.RequireServer(r.UpdateSource)),
-// 		rest.Delete("/v1/data_sources/:id", api.RequireServer(r.DeleteSource)),
-// 	}
-// }
 
 func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", EnforceAuthentication(ListSources)),
-		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", EnforceAuthentication(CreateSource)),
-		dataService.MakeRoute("DELETE", "/v1/users/:userId/data_sources", EnforceAuthentication(DeleteAllSources)),
-		dataService.MakeRoute("GET", "/v1/data_sources/:id", EnforceAuthentication(GetSource)),
-		dataService.MakeRoute("PUT", "/v1/data_sources/:id", EnforceAuthentication(UpdateSource)),
-		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", EnforceAuthentication(DeleteSource)),
+		dataService.Get("/v1/users/:userId/data_sources", ListSources, api.RequireAuth),
+		dataService.Post("/v1/users/:userId/data_sources", CreateSource, api.RequireAuth),
+		dataService.Delete("/v1/users/:userId/data_sources", DeleteAllSources, api.RequireAuth),
+		dataService.Get("/v1/data_sources/:id", GetSource, api.RequireAuth),
+		dataService.Put("/v1/data_sources/:id", UpdateSource, api.RequireAuth),
+		dataService.Delete("/v1/data_sources/:id", DeleteSource, api.RequireAuth),
 	}
 }
 

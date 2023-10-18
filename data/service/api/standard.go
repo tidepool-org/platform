@@ -72,19 +72,15 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 
 func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error {
 	baseRoutes := []dataService.Route{
-		dataService.MakeRoute("GET", "/status", s.StatusGet),
-		dataService.MakeRoute("GET", "/version", s.VersionGet),
+		dataService.Get("/status", s.StatusGet),
+		dataService.Get("/version", s.VersionGet),
 	}
 
 	routes = append(baseRoutes, routes...)
 
 	var contextRoutes []*rest.Route
 	for _, route := range routes {
-		contextRoutes = append(contextRoutes, &rest.Route{
-			HttpMethod: route.Method,
-			PathExp:    route.Path,
-			Func:       s.withContext(route.Handler),
-		})
+		contextRoutes = append(contextRoutes, route.ToRestRoute(s.withContext))
 	}
 
 	router, err := rest.MakeRouter(contextRoutes...)

@@ -8,20 +8,13 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/service/api"
 )
-
-// TODO: BEGIN: Update to new service paradigm
-// func (r *Router) DataSetsRoutes() []*rest.Route {
-// 	return []*rest.Route{
-// 		rest.Get("/v1/users/:userId/data_sets", api.Require(r.ListUserDataSets)),
-// 		rest.Get("/v1/data_sets/:id", api.Require(r.GetDataSet)),
-// 	}
-// }
 
 func DataSetsRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/users/:userId/data_sets", EnforceAuthentication(ListUserDataSets)),
-		dataService.MakeRoute("GET", "/v1/data_sets/:dataSetId", EnforceAuthentication(GetDataSet)),
+		dataService.Get("/v1/users/:userId/data_sets", ListUserDataSets, api.RequireAuth),
+		dataService.Get("/v1/data_sets/:dataSetId", GetDataSet, api.RequireAuth),
 	}
 }
 

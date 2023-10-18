@@ -8,7 +8,21 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-func Require(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
+// RequireAuth aborts with an error if a request isn't authenticated.
+//
+// Requests with incorrect, invalid, or no credentials are rejected.
+//
+// RequireAuth works by checking for the existence of an AuthDetails sentinel
+// value, which implies an important assumption:
+//
+//	The existence of AuthDetails in the request's Context indicates that the
+//	request has already been properly authenticated.
+//
+// The function that performs the actual authentication is in the
+// service/middleware package. As long as no other code adds an AuthDetails
+// value to the request's Context (when the request isn't properly
+// authenticated) then things should be good.
+func RequireAuth(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
 			if details := request.GetAuthDetails(req.Context()); details == nil {
@@ -20,6 +34,7 @@ func Require(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	}
 }
 
+// RequireServer aborts with an error if a request isn't authenticated as a server.
 func RequireServer(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
@@ -34,6 +49,7 @@ func RequireServer(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	}
 }
 
+// RequireUser aborts with an error if a request isn't authenticated as a user.
 func RequireUser(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {

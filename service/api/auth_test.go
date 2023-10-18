@@ -17,7 +17,7 @@ import (
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
-var _ = Describe("Auth", func() {
+var _ = Describe("Authenticator", func() {
 	var res *testRest.ResponseWriter
 	var req *rest.Request
 	var handlerFunc rest.HandlerFunc
@@ -46,7 +46,7 @@ var _ = Describe("Auth", func() {
 
 	Context("Require", func() {
 		It("does nothing if handlerFunc is nil", func() {
-			requireFunc := api.Require(nil)
+			requireFunc := api.RequireAuth(nil)
 			Expect(requireFunc).ToNot(BeNil())
 			requireFunc(res, req)
 			Expect(res.WriteHeaderInputs).To(BeEmpty())
@@ -57,7 +57,7 @@ var _ = Describe("Auth", func() {
 			var requireFunc rest.HandlerFunc
 
 			BeforeEach(func() {
-				requireFunc = api.Require(handlerFunc)
+				requireFunc = api.RequireAuth(handlerFunc)
 				Expect(requireFunc).ToNot(BeNil())
 			})
 

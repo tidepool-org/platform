@@ -13,13 +13,14 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	platform "github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/api"
 )
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
-		service.MakeRoute("GET", "/v1/alerts/:userID/:followedUserID", EnforceAuthentication(GetAlert)),
-		service.MakeRoute("POST", "/v1/alerts/:userID/:followedUserID", EnforceAuthentication(UpsertAlert)),
-		service.MakeRoute("DELETE", "/v1/alerts/:userID/:followedUserID", EnforceAuthentication(DeleteAlert)),
+		service.Get("/v1/alerts/:userID/:followedUserID", GetAlert, api.RequireAuth),
+		service.Post("/v1/alerts/:userID/:followedUserID", UpsertAlert, api.RequireAuth),
+		service.Delete("/v1/alerts/:userID/:followedUserID", DeleteAlert, api.RequireAuth),
 	}
 }
 

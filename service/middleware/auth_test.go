@@ -36,28 +36,28 @@ var _ = Describe("Auth", func() {
 
 	Context("NewAuth", func() {
 		It("returns an error if service secret is missing", func() {
-			authMiddleware, err := middleware.NewAuth("", authClient)
+			authMiddleware, err := middleware.NewAuthenticator("", authClient)
 			Expect(err).To(MatchError("service secret is missing"))
 			Expect(authMiddleware).To(BeNil())
 		})
 
 		It("returns an error if auth client is missing", func() {
-			authMiddleware, err := middleware.NewAuth(serviceSecret, nil)
+			authMiddleware, err := middleware.NewAuthenticator(serviceSecret, nil)
 			Expect(err).To(MatchError("auth client is missing"))
 			Expect(authMiddleware).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(middleware.NewAuth(serviceSecret, authClient)).ToNot(BeNil())
+			Expect(middleware.NewAuthenticator(serviceSecret, authClient)).ToNot(BeNil())
 		})
 	})
 
 	Context("with auth middleware", func() {
-		var authMiddleware *middleware.Auth
+		var authMiddleware *middleware.Authenticator
 
 		BeforeEach(func() {
 			var err error
-			authMiddleware, err = middleware.NewAuth(serviceSecret, authClient)
+			authMiddleware, err = middleware.NewAuthenticator(serviceSecret, authClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(authMiddleware).ToNot(BeNil())
 		})

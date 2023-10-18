@@ -7,6 +7,7 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/service/api"
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
@@ -16,20 +17,20 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/cgm/:userId", EnforceAuthentication(GetSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/bgm/:userId", EnforceAuthentication(GetSummary[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("POST", "/v1/summaries/cgm/:userId", EnforceAuthentication(UpdateSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/bgm/:userId", EnforceAuthentication(UpdateSummary[types.BGMStats, *types.BGMStats])),
+		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("POST", "/v1/summaries/backfill/cgm", EnforceAuthentication(BackfillSummaries[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/backfill/bgm", EnforceAuthentication(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+		dataService.Post("/v1/summaries/backfill/cgm", BackfillSummaries[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/backfill/bgm", BackfillSummaries[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("GET", "/v1/summaries/outdated/cgm", EnforceAuthentication(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/outdated/bgm", EnforceAuthentication(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("GET", "/v1/summaries/migratable/cgm", EnforceAuthentication(GetMigratableUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/migratable/bgm", EnforceAuthentication(GetMigratableUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
 	}
 }
 
