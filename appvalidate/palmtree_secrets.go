@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	ErrInvalidPalmTreeTLS = errors.New("invalid PalmTree TLS credentials")
+	ErrPalmTreeInvalidTLS  = errors.New("invalid PalmTree TLS credentials")
+	ErrPalmTreeEmptyConfig = errors.New("empty PalmTree config")
 )
 
 const (
@@ -50,14 +51,14 @@ func NewPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
 
 func NewPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
 	if c == nil {
-		return nil, errors.New("empty PalmTree config")
+		return nil, ErrPalmTreeEmptyConfig
 	}
 	cert, err := tls.X509KeyPair(c.CertData, c.KeyData)
 	if err != nil {
 		return &PalmTreeSecrets{
 			Config: *c,
 			client: http.DefaultClient,
-		}, errors.Join(ErrInvalidPalmTreeTLS, err)
+		}, errors.Join(ErrPalmTreeInvalidTLS, err)
 	}
 
 	tr := &http.Transport{
@@ -107,6 +108,9 @@ type PalmTreeResponse struct {
 }
 
 func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (*PalmTreeResponse, error) {
+	if len(pt.Config.CertData) == 0 {
+		return nil, ErrPalmTreeInvalidTLS
+	}
 	payload := newPalmtreePayload(pt.Config.ProfileID)
 
 	if err := json.Unmarshal(partnerDataRaw, payload); err != nil {
@@ -124,7 +128,7 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 
 	u, err := url.Parse(pt.Config.BaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to prase PalmTree API baseURL: %w", err)
+		return nil, fmt.Errorf("unable to parse PalmTree API baseURL: %w", err)
 	}
 	u.Path = path.Join(u.Path, fmt.Sprintf("v1/certificate-authorities/%s/enrollments", url.PathEscape(pt.Config.CalID)))
 

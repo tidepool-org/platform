@@ -143,6 +143,11 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
 		if err != nil {
 			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch Coastal secrets")
+			// Don't leak error?
+			if errors.Is(err, appvalidate.ErrCoastalInvalidPrivateKey) {
+				responder.InternalServerError(errors.New("invalid Coastal config"))
+				return
+			}
 			responder.InternalServerError(err)
 			return
 		}
@@ -153,6 +158,11 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		secret, err := r.PalmTreeSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
 		if err != nil {
 			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch PalmTree secrets")
+			// Don't leak error?
+			if errors.Is(err, appvalidate.ErrPalmTreeInvalidTLS) {
+				responder.InternalServerError(errors.New("invalid PalmTree config"))
+				return
+			}
 			responder.InternalServerError(err)
 			return
 		}

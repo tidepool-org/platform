@@ -481,9 +481,13 @@ func (s *Service) initializeCoastalSecrets() error {
 	if err != nil {
 		return err
 	}
-	s.coastalSecrets = &appvalidate.CoastalSecrets{
-		Config: *cfg,
+
+	s.coastalSecrets, err = appvalidate.NewCoastalSecrets(cfg)
+	// Allow system to not fail if there is no private key to Coastal
+	if err != nil && !stdErrors.Is(err, appvalidate.ErrCoastalInvalidPrivateKey) {
+		return err
 	}
+
 	return nil
 }
 
@@ -494,7 +498,7 @@ func (s *Service) initializePalmTreeSecrets() error {
 	}
 	s.palmTreeSecrets, err = appvalidate.NewPalmTreeSecrets(cfg)
 	// Allow system to not fail if there are no credentials to PalmTree
-	if err != nil && !stdErrors.Is(err, appvalidate.ErrInvalidPalmTreeTLS) {
+	if err != nil && !stdErrors.Is(err, appvalidate.ErrPalmTreeInvalidTLS) {
 		return err
 	}
 	return nil
