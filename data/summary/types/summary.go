@@ -13,6 +13,8 @@ import (
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/pointer"
+
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 const (
@@ -25,7 +27,12 @@ const (
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
 	HoursAgoToKeep       = 60 * 24
-	setOutdatedBuffer    = 2 * time.Minute
+
+	setOutdatedBuffer = 2 * time.Minute
+
+	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
+	OutdatedReasonDataAdded       = "DATA_ADDED"
+	OutdatedReasonBackfill        = "BACKFILL"
 )
 
 var stopPoints = [...]int{1, 7, 14, 30}
@@ -72,7 +79,8 @@ type Config struct {
 }
 
 type Dates struct {
-	LastUpdatedDate time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	LastUpdatedDate   time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	LastUpdatedReason []string  `json:"lastUpdatedReason" bson:"lastUpdatedReason"`
 
 	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
 	LastUploadDate    *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
@@ -85,26 +93,12 @@ type Dates struct {
 
 	HasOutdatedSince bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
 	OutdatedSince    *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-}
-
-func (d *Dates) ZeroOut() {
-	d.LastUpdatedDate = time.Now().UTC()
-
-	d.HasLastUploadDate = false
-	d.LastUploadDate = nil
-
-	d.HasFirstData = false
-	d.FirstData = nil
-
-	d.HasLastData = false
-	d.LastData = nil
-
-	d.HasOutdatedSince = false
-	d.OutdatedSince = nil
+	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
 func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 	d.LastUpdatedDate = time.Now().UTC()
+	d.LastUpdatedReason = d.OutdatedReason
 
 	d.HasLastUploadDate = true
 	d.LastUploadDate = &status.LastUpload
@@ -117,6 +111,7 @@ func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 
 	d.HasOutdatedSince = false
 	d.OutdatedSince = nil
+	d.OutdatedReason = nil
 }
 
 type Bucket[T BucketData, S BucketDataPt[T]] struct {
@@ -177,14 +172,22 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[T, A]) SetOutdated() {
+func (s *Summary[T, A]) SetOutdated(reason string) {
+	set := mapset.NewSet[string](reason)
+	if len(s.Dates.OutdatedReason) > 0 {
+		set.Append(s.Dates.LastUpdatedReason...)
+	}
+
+	s.Dates.LastUpdatedReason = nil
+	s.Dates.OutdatedReason = set.ToSlice()
 	s.Dates.OutdatedSince = pointer.FromAny(time.Now().Add(setOutdatedBuffer).UTC().Truncate(time.Millisecond))
 	s.Dates.HasOutdatedSince = true
 }
 
 func NewDates() Dates {
 	return Dates{
-		LastUpdatedDate: time.Time{},
+		LastUpdatedDate:   time.Time{},
+		LastUpdatedReason: nil,
 
 		HasLastUploadDate: false,
 		LastUploadDate:    nil,
@@ -197,6 +200,7 @@ func NewDates() Dates {
 
 		HasOutdatedSince: false,
 		OutdatedSince:    nil,
+		OutdatedReason:   nil,
 	}
 }
 

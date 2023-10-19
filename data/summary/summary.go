@@ -42,7 +42,7 @@ func GetSummarizer[T types.Stats, A types.StatsPt[T]](reg *SummarizerRegistry) S
 
 type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
-	SetOutdated(ctx context.Context, userId string) (*time.Time, error)
+	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
@@ -76,8 +76,8 @@ func (c *GlucoseSummarizer[T, A]) GetSummary(ctx context.Context, userId string)
 	return c.summaries.GetSummary(ctx, userId)
 }
 
-func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
-	return c.summaries.SetOutdated(ctx, userId)
+func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+	return c.summaries.SetOutdated(ctx, userId, reason)
 }
 
 func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
@@ -120,7 +120,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 	summaries := make([]*types.Summary[T, A], 0, len(userIDsReqBackfill))
 	for _, userID := range userIDsReqBackfill {
 		s := types.Create[T, A](userID)
-		s.SetOutdated()
+		s.SetOutdated(types.OutdatedReasonBackfill)
 		summaries = append(summaries, s)
 
 		if len(summaries) >= backfillInsertBatch {

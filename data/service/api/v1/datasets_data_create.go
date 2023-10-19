@@ -119,7 +119,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID)
+	MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
@@ -129,13 +129,13 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 }
 
 // The following 2 functions are pulled out of the above so that they can be unit tested independently.
-func MaybeUpdateSummary(ctx context.Context, registry *summary.SummarizerRegistry, updatesSummary map[string]struct{}, userId string) map[string]*time.Time {
+func MaybeUpdateSummary(ctx context.Context, registry *summary.SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
 	outdatedSinceMap := make(map[string]*time.Time)
 	lgr := log.LoggerFromContext(ctx)
 
 	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
 		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set cgm summary outdated")
 		}
@@ -144,7 +144,7 @@ func MaybeUpdateSummary(ctx context.Context, registry *summary.SummarizerRegistr
 
 	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
 		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set bgm summary outdated")
 		}

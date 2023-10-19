@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/tidepool-org/platform/data/summary/types"
 	"net/http"
 
 	"github.com/tidepool-org/platform/data"
@@ -91,6 +92,12 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			return
 		}
 	}
+
+	all := map[string]struct{}{
+		types.SummaryTypeBGM: {},
+		types.SummaryTypeCGM: {},
+	}
+	MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), all, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")

@@ -186,7 +186,7 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 	return count, nil
 }
 
-func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
+func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -205,12 +205,10 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time
 		userSummary = types.Create[T, A](userId)
 	}
 
-	if userSummary.Dates.OutdatedSince == nil {
-		userSummary.SetOutdated()
-		err = r.UpsertSummary(ctx, userSummary)
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", userId, userSummary.Type)
-		}
+	userSummary.SetOutdated(reason)
+	err = r.UpsertSummary(ctx, userSummary)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", userId, userSummary.Type)
 	}
 
 	return userSummary.Dates.OutdatedSince, nil

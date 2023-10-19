@@ -133,7 +133,7 @@ var _ = Describe("DataSetsDataCreate", func() {
 				"bgm": empty,
 			}
 
-			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId)
+			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(2))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
@@ -152,7 +152,7 @@ var _ = Describe("DataSetsDataCreate", func() {
 				"cgm": empty,
 			}
 
-			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId)
+			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(1))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
 
@@ -170,7 +170,7 @@ var _ = Describe("DataSetsDataCreate", func() {
 				"bgm": empty,
 			}
 
-			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId)
+			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(1))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
 
@@ -188,7 +188,7 @@ var _ = Describe("DataSetsDataCreate", func() {
 				"food": empty,
 			}
 
-			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId)
+			outdatedSinceMap := v1.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(BeEmpty())
 		})
 	})

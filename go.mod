@@ -7,6 +7,7 @@ require (
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.35.3
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/githubnemo/CompileDaemon v1.4.0
 	github.com/golang/mock v1.6.0
