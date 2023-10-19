@@ -8,6 +8,8 @@ import (
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/bolus/biphasic"
+	"github.com/tidepool-org/platform/data/types/bolus/normal"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -460,6 +462,18 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 				var s = &schema.BasalSample{}
 				s.MapForTempBasal(event)
 				allSamples["Basal"] = append(allSamples["Basal"], *s)
+			case *normal.Normal:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a bolus entry")
+				var s = &schema.BolusSample{}
+				s.MapForNormalBolus(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add normal bolus in bucket")
+				allSamples["Bolus"] = append(allSamples["Bolus"], *s)
+			case *biphasic.Biphasic:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a bolus entry")
+				var s = &schema.BolusSample{}
+				s.MapForBiphasicBolus(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add biphasic bolus in bucket")
+				allSamples["Bolus"] = append(allSamples["Bolus"], *s)
 			default:
 				d.BucketStore.log.Infof("object ignored %v", event)
 			}
@@ -489,10 +503,10 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	for dataType, samples := range allSamples {
 		start := time.Now()
 		err := d.BucketStore.UpsertMany(ctx, dataSet.UserID, creationTimestamp, samples, dataType)
-
 		if err != nil {
 			return errors.Wrapf(err, "unable to create %v bucket", dataType)
 		}
+
 		elapsedTime := time.Since(start).Seconds()
 		dataWriteToReadStoreMetrics.WithLabelValues(dataType).Observe(float64(elapsedTime))
 	}

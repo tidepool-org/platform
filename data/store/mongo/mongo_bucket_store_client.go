@@ -76,10 +76,19 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	// no data validation is done here as it is done in above layer in the Validate function
 	for _, sample := range samples {
 		ts := sample.GetTimestamp().Format("2006-01-02")
-		ops, _ := buildUpdateOneModel(dataType, sample, userId, ts, creationTimestamp)
-		operations = append(operations, ops...)
-
+		switch dataType {
+		case "Cbg":
+			ops, _ := buildCbgUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "Basal":
+			ops, _ := buildBasalUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "Bolus":
+			ops, _ := buildBolusUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		}
 	}
+
 	// Specify an option to turn the bulk insertion with no order of operation
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(false)
@@ -96,8 +105,8 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	return nil
 }
 
-func buildUpdateOneModel(dataType string, sample schema.ISample, userId *string, ts string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
-	day, err := time.Parse("2006-01-02", ts)
+func buildCbgUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		return nil, ErrUnableToParseBucketDayTime
 	}
@@ -105,97 +114,168 @@ func buildUpdateOneModel(dataType string, sample schema.ISample, userId *string,
 	strUserId := *userId
 	var updates []mongo.WriteModel
 
-	switch dataType {
-	case "Cbg":
-		op := mongo.NewUpdateOneModel()
-		op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
-		op.SetUpdate(bson.D{ // update
-			{Key: "$addToSet", Value: bson.D{
-				{Key: "samples", Value: sample}}},
-			{Key: "$setOnInsert", Value: bson.D{
-				{Key: "_id", Value: strUserId + "_" + ts},
-				{Key: "creationTimestamp", Value: creationTimestamp},
-				{Key: "day", Value: day},
-				{Key: "userId", Value: strUserId}}},
-		})
-		op.SetUpsert(true)
-		updates = append(updates, op)
-	case "Basal":
-		// Insert the bucket if not exist and then insert the sample in it
-		basalFirstOp := mongo.NewUpdateOneModel()
-		var array []schema.ISample
-		basalFirstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
-		basalFirstOp.SetUpdate(bson.D{ // update
-			{Key: "$setOnInsert", Value: bson.D{
-				{Key: "_id", Value: strUserId + "_" + ts},
-				{Key: "creationTimestamp", Value: creationTimestamp},
-				{Key: "day", Value: day},
-				{Key: "userId", Value: strUserId},
-				{Key: "samples", Value: append(array, sample)},
-			},
-			},
-		})
-		basalFirstOp.SetUpsert(true)
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "samples", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+	return updates, nil
+}
 
-		// Update the basal
-		basalSecondOp := mongo.NewUpdateOneModel()
-		elemfilter := sample.(schema.BasalSample)
-		if elemfilter.Guid != "" {
-			// All fields update based on guid
-			basalSecondOp.SetFilter(bson.D{
-				{Key: "_id", Value: strUserId + "_" + ts},
-				{Key: "samples", Value: bson.D{
-					{Key: "$elemMatch", Value: bson.D{
-						{Key: "guid", Value: elemfilter.Guid},
-					},
-					},
-				},
-				},
-			})
-			basalSecondOp.SetUpdate(bson.D{ // update
-				{Key: "$set", Value: bson.D{
-					{Key: "samples.$.internalId", Value: elemfilter.InternalID},
-					{Key: "samples.$.duration", Value: elemfilter.Duration},
-					{Key: "samples.$.rate", Value: elemfilter.Rate},
-					{Key: "samples.$.deliveryType", Value: elemfilter.DeliveryType},
-					{Key: "samples.$.timestamp", Value: elemfilter.Timestamp},
-				},
-				},
-			})
-		} else {
-			// Duration update based on rate/deliveryType/timestamp (nil guid)
-			basalSecondOp.SetFilter(bson.D{
-				{Key: "_id", Value: strUserId + "_" + ts},
-				{Key: "samples", Value: bson.D{
-					{Key: "$elemMatch", Value: bson.D{
-						{Key: "guid", Value: nil},
-						{Key: "rate", Value: elemfilter.Rate},
-						{Key: "deliveryType", Value: elemfilter.DeliveryType},
-						{Key: "timestamp", Value: elemfilter.Timestamp},
-					},
-					},
-				},
-				},
-			})
-			basalSecondOp.SetUpdate(bson.D{ // update
-				{Key: "$set", Value: bson.D{
-					{Key: "samples.$.internalId", Value: elemfilter.InternalID},
-					{Key: "samples.$.duration", Value: elemfilter.Duration},
-				},
-				},
-			})
-		}
-
-		// Otherwise we know that we did not update the basal so we guarantee an insertion
-		// in the array
-		basalThirdOp := mongo.NewUpdateOneModel()
-		basalThirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + ts}})
-		basalThirdOp.SetUpdate(bson.D{ // update
-			{Key: "$addToSet", Value: bson.D{
-				{Key: "samples", Value: sample}}},
-		})
-		updates = append(updates, basalFirstOp, basalSecondOp, basalThirdOp)
+func buildBasalUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
 	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// Insert the bucket if not exist and then insert the sample in it
+	basalFirstOp := mongo.NewUpdateOneModel()
+	var array []schema.ISample
+	basalFirstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	basalFirstOp.SetUpdate(bson.D{ // update
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId},
+			{Key: "samples", Value: append(array, sample)},
+		},
+		},
+	})
+	basalFirstOp.SetUpsert(true)
+
+	// Update the basal
+	basalSecondOp := mongo.NewUpdateOneModel()
+	elemfilter := sample.(schema.BasalSample)
+	if elemfilter.Guid != "" {
+		// All fields update based on guid
+		basalSecondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "samples", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: elemfilter.Guid},
+				},
+				},
+			},
+			},
+		})
+		basalSecondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "samples.$.internalId", Value: elemfilter.InternalID},
+				{Key: "samples.$.duration", Value: elemfilter.Duration},
+				{Key: "samples.$.rate", Value: elemfilter.Rate},
+				{Key: "samples.$.deliveryType", Value: elemfilter.DeliveryType},
+				{Key: "samples.$.timestamp", Value: elemfilter.Timestamp},
+			},
+			},
+		})
+	} else {
+		// Duration update based on rate/deliveryType/timestamp (nil guid)
+		basalSecondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "samples", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: nil},
+					{Key: "rate", Value: elemfilter.Rate},
+					{Key: "deliveryType", Value: elemfilter.DeliveryType},
+					{Key: "timestamp", Value: elemfilter.Timestamp},
+				},
+				},
+			},
+			},
+		})
+		basalSecondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "samples.$.internalId", Value: elemfilter.InternalID},
+				{Key: "samples.$.duration", Value: elemfilter.Duration},
+			},
+			},
+		})
+	}
+
+	// Otherwise we know that we did not update the basal so we guarantee an insertion
+	// in the array
+	basalThirdOp := mongo.NewUpdateOneModel()
+	basalThirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	basalThirdOp.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "samples", Value: sample}}},
+	})
+	updates = append(updates, basalFirstOp, basalSecondOp, basalThirdOp)
+
+	return updates, nil
+}
+
+func buildBolusUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// Insert the bucket if not exist and then insert the sample in it
+	bolusFirstOp := mongo.NewUpdateOneModel()
+	var array []schema.ISample
+	bolusFirstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	bolusFirstOp.SetUpdate(bson.D{ // update
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId},
+			{Key: "samples", Value: append(array, sample)},
+		},
+		},
+	})
+	bolusFirstOp.SetUpsert(true)
+	updates = append(updates, bolusFirstOp)
+
+	// Update the bolus
+	elemfilter := sample.(schema.BolusSample)
+	if elemfilter.Guid != "" && elemfilter.DeviceId != "" {
+		bolusSecondOp := mongo.NewUpdateOneModel()
+		bolusSecondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "samples", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: elemfilter.Guid},
+					{Key: "deviceId", Value: elemfilter.DeviceId},
+				},
+				},
+			},
+			},
+		})
+		bolusSecondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "samples.$.normal", Value: elemfilter.Normal},
+				{Key: "samples.$.uuid", Value: elemfilter.Uuid},
+			},
+			},
+		})
+		updates = append(updates, bolusSecondOp)
+	}
+	// Otherwise we know that we did not update, so we guarantee an insertion
+	// in the array
+	bolusThirdOp := mongo.NewUpdateOneModel()
+	bolusThirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	bolusThirdOp.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "samples", Value: sample}}},
+	})
+	updates = append(updates, bolusThirdOp)
 
 	return updates, nil
 }

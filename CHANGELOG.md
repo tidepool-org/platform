@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.23.0-RC1 - 2023-10-17
+### Engineering
+- YLP-2588 push bolus in bucket store
+
 ## 0.22.1 - 2023-10-16
 ### Engineering
 - YLP-2604 Add automaxcpu to all backend service that use go routine
