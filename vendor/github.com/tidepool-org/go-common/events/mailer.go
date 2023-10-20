@@ -1,6 +1,8 @@
 package events
 
-import cloudevents "github.com/cloudevents/sdk-go/v2"
+import (
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+)
 
 const (
 	SendEmailTemplateEventType = "email_template:send"
