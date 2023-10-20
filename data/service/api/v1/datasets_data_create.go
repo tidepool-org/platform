@@ -158,9 +158,13 @@ func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Dat
 	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
-	for _, typ := range types.DeviceDataTypes {
-		if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
-			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
+	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
+	if datum.GetActive() {
+		for _, typ := range types.DeviceDataTypes {
+			if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
+				updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+			}
 		}
 	}
 }

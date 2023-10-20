@@ -278,6 +278,10 @@ func (b *Base) GetType() string {
 	return b.Type
 }
 
+func (b *Base) GetActive() bool {
+	return b.Active
+}
+
 func (b *Base) SetType(typ string) {
 	b.Type = typ
 }
