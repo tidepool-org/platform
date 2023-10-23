@@ -35,7 +35,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	if !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)

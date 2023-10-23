@@ -7,6 +7,7 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/service/api"
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
@@ -16,25 +17,25 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/cgm/:userId", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/bgm/:userId", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("POST", "/v1/summaries/cgm/:userId", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/bgm/:userId", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
+		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("POST", "/v1/summaries/backfill/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/backfill/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+		dataService.Post("/v1/summaries/backfill/cgm", BackfillSummaries[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/backfill/bgm", BackfillSummaries[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("GET", "/v1/summaries/outdated/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/outdated/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("GET", "/v1/summaries/migratable/cgm", Authenticate(GetMigratableUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/migratable/bgm", Authenticate(GetMigratableUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
 	}
 }
 
 func CheckPermissions(ctx context.Context, dataServiceContext dataService.Context, id string) bool {
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	if !details.IsService() {
 		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), id)
@@ -109,7 +110,7 @@ func BackfillSummaries[T types.Stats, A types.StatsPt[T]](dataServiceContext dat
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
@@ -131,7 +132,7 @@ func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext da
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
@@ -159,7 +160,7 @@ func GetMigratableUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext 
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}

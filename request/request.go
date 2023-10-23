@@ -53,7 +53,13 @@ const (
 	MethodRestrictedToken Method = "restricted token"
 )
 
-type Details interface {
+// AuthDetails provides specifics about a request's authentication.
+//
+// After authentication is performed, a sentinel value implementing this
+// interface is added to the request's context. Later handlers use its
+// existence to indicate that a request's authentication information has been
+// validated.
+type AuthDetails interface {
 	Method() Method
 
 	IsService() bool
@@ -64,41 +70,41 @@ type Details interface {
 	Token() string
 }
 
-func NewDetails(method Method, userID string, token string) Details {
-	return &details{
+func NewAuthDetails(method Method, userID string, token string) AuthDetails {
+	return &authDetails{
 		method: method,
 		userID: userID,
 		token:  token,
 	}
 }
 
-type details struct {
+type authDetails struct {
 	method Method
 	userID string
 	token  string
 }
 
-func (d *details) Method() Method {
+func (d *authDetails) Method() Method {
 	return d.method
 }
 
-func (d *details) IsService() bool {
+func (d *authDetails) IsService() bool {
 	return d.method == MethodServiceSecret || (d.method == MethodSessionToken && d.userID == "")
 }
 
-func (d *details) IsUser() bool {
+func (d *authDetails) IsUser() bool {
 	return !d.IsService()
 }
 
-func (d *details) UserID() string {
+func (d *authDetails) UserID() string {
 	return d.userID
 }
 
-func (d *details) HasToken() bool {
+func (d *authDetails) HasToken() bool {
 	return d.method != MethodServiceSecret
 }
 
-func (d *details) Token() string {
+func (d *authDetails) Token() string {
 	return d.token
 }
 
@@ -132,15 +138,15 @@ func DecodeOptionalRequestPathParameter(req *rest.Request, key string, validator
 
 type contextKey string
 
-const detailsContextKey contextKey = "details"
+const authDetailsContextKey contextKey = "details"
 
-func NewContextWithDetails(ctx context.Context, details Details) context.Context {
-	return context.WithValue(ctx, detailsContextKey, details)
+func NewContextWithAuthDetails(ctx context.Context, details AuthDetails) context.Context {
+	return context.WithValue(ctx, authDetailsContextKey, details)
 }
 
-func DetailsFromContext(ctx context.Context) Details {
+func GetAuthDetails(ctx context.Context) AuthDetails {
 	if ctx != nil {
-		if details, ok := ctx.Value(detailsContextKey).(Details); ok {
+		if details, ok := ctx.Value(authDetailsContextKey).(AuthDetails); ok {
 			return details
 		}
 	}

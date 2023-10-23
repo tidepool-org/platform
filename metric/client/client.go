@@ -52,7 +52,7 @@ func (c *Client) RecordMetric(ctx context.Context, metric string, data ...map[st
 	data = append(data, map[string]string{"sourceVersion": c.versionReporter.Base()})
 
 	var requestURL string
-	if details := request.DetailsFromContext(ctx); details.IsService() {
+	if details := request.GetAuthDetails(ctx); details.IsService() {
 		requestURL = c.client.ConstructURL("metrics", "server", c.name, metric)
 	} else {
 		requestURL = c.client.ConstructURL("metrics", "thisuser", metric)

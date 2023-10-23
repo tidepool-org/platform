@@ -20,7 +20,7 @@ import (
 
 func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -57,7 +57,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -90,7 +90,7 @@ func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Requ
 
 func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := req.PathParam("userId")
@@ -122,7 +122,7 @@ func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Reques
 
 func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -157,7 +157,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 
 func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := req.PathParam("userId")
@@ -191,7 +191,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 
 func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -218,7 +218,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -260,7 +260,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -289,7 +289,7 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -317,7 +317,7 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusOK, prescr)
 }
 
-func (r *Router) canAccessPrescriptionsForRequestUserID(details request.Details, requestedUserID string) bool {
+func (r *Router) canAccessPrescriptionsForRequestUserID(details request.AuthDetails, requestedUserID string) bool {
 	currentUserID := details.UserID()
 	return details.IsService() || currentUserID == requestedUserID
 }

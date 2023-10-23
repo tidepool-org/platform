@@ -13,34 +13,35 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	platform "github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/api"
 )
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
-		service.MakeRoute("GET", "/v1/alerts/:userID/:followedUserID", Authenticate(GetAlert)),
-		service.MakeRoute("POST", "/v1/alerts/:userID/:followedUserID", Authenticate(UpsertAlert)),
-		service.MakeRoute("DELETE", "/v1/alerts/:userID/:followedUserID", Authenticate(DeleteAlert)),
+		service.Get("/v1/alerts/:userID/:followedUserID", GetAlert, api.RequireAuth),
+		service.Post("/v1/alerts/:userID/:followedUserID", UpsertAlert, api.RequireAuth),
+		service.Delete("/v1/alerts/:userID/:followedUserID", DeleteAlert, api.RequireAuth),
 	}
 }
 
 func DeleteAlert(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
-	details := request.DetailsFromContext(ctx)
+	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
 
-	if err := checkAuthentication(details); err != nil {
+	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	if err := checkUserIDConsistency(details, r.PathParam("userID")); err != nil {
+	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
 	followedUserID := r.PathParam("followedUserID")
-	userID := userIDWithServiceFallback(details, r.PathParam("userID"))
+	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
 	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
@@ -57,23 +58,23 @@ func DeleteAlert(dCtx service.Context) {
 func GetAlert(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
-	details := request.DetailsFromContext(ctx)
+	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
 
-	if err := checkAuthentication(details); err != nil {
+	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
 	followedUserID := r.PathParam("followedUserID")
-	userID := userIDWithServiceFallback(details, r.PathParam("userID"))
+	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
 	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	if err := checkUserIDConsistency(details, r.PathParam("userID")); err != nil {
+	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -97,15 +98,15 @@ func GetAlert(dCtx service.Context) {
 func UpsertAlert(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
-	details := request.DetailsFromContext(ctx)
+	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
 
-	if err := checkAuthentication(details); err != nil {
+	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	if err := checkUserIDConsistency(details, r.PathParam("userID")); err != nil {
+	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -117,7 +118,7 @@ func UpsertAlert(dCtx service.Context) {
 	}
 
 	followedUserID := r.PathParam("followedUserID")
-	userID := userIDWithServiceFallback(details, r.PathParam("userID"))
+	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
 	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
@@ -136,7 +137,7 @@ var ErrUnauthorized = fmt.Errorf("unauthorized")
 // checkUserIDConsistency verifies the userIDs in a request.
 //
 // For safety reasons, if these values don't agree, return an error.
-func checkUserIDConsistency(details request.Details, userIDFromPath string) error {
+func checkUserIDConsistency(details request.AuthDetails, userIDFromPath string) error {
 	if details.IsService() && details.UserID() == "" {
 		return nil
 	}
@@ -148,7 +149,7 @@ func checkUserIDConsistency(details request.Details, userIDFromPath string) erro
 }
 
 // checkAuthentication ensures that the request has an authentication token.
-func checkAuthentication(details request.Details) error {
+func checkAuthentication(details request.AuthDetails) error {
 	if details.Token() == "" {
 		return ErrUnauthorized
 	}
@@ -184,7 +185,7 @@ func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, f
 //
 // If the request is from a service, then the service fallback value is used,
 // as no userID is passed with the details in the event of a service request.
-func userIDWithServiceFallback(details request.Details, serviceFallback string) string {
+func userIDWithServiceFallback(details request.AuthDetails, serviceFallback string) string {
 	if details.IsUser() {
 		return details.UserID()
 	}

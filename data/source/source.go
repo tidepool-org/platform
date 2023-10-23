@@ -230,7 +230,7 @@ func (s *Source) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
-func (s *Source) Sanitize(details request.Details) error {
+func (s *Source) Sanitize(details request.AuthDetails) error {
 	if details == nil {
 		return errors.New("unable to sanitize")
 	}
@@ -252,7 +252,7 @@ func (s *Source) Sanitize(details request.Details) error {
 
 type SourceArray []*Source
 
-func (s SourceArray) Sanitize(details request.Details) error {
+func (s SourceArray) Sanitize(details request.AuthDetails) error {
 	for _, datum := range s {
 		if err := datum.Sanitize(details); err != nil {
 			return err
