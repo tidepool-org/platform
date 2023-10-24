@@ -2,10 +2,11 @@ package mongo_test
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"math/rand"
 	"time"
+
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 
