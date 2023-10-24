@@ -180,8 +180,11 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 
 	s.Dates.LastUpdatedReason = nil
 	s.Dates.OutdatedReason = set.ToSlice()
-	s.Dates.OutdatedSince = pointer.FromAny(time.Now().Add(setOutdatedBuffer).UTC().Truncate(time.Millisecond))
-	s.Dates.HasOutdatedSince = true
+
+	if s.Dates.OutdatedSince == nil {
+		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Add(setOutdatedBuffer).UTC().Truncate(time.Millisecond))
+		s.Dates.HasOutdatedSince = true
+	}
 }
 
 func NewDates() Dates {

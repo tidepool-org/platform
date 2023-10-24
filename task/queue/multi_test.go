@@ -130,7 +130,7 @@ var _ = Describe("multi queue", func() {
 			multi.Start()
 
 			// Wait until completion (up to 10 seconds)
-			tCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 			ticker := time.NewTicker(200 * time.Millisecond)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)

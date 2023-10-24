@@ -1,4 +1,4 @@
-package store_test
+package summary_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestSummaryStore(t *testing.T) {
+func TestSummary(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Summary Store Suite")
+	RunSpecs(t, "Summary Suite")
 }
