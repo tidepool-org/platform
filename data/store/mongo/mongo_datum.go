@@ -35,6 +35,8 @@ const (
 	ModifiedTimeIndexRaw = "2023-04-01T00:00:00Z"
 )
 
+var ErrSelectorsInvalid = errors.New("selectors is invalid")
+
 func (d *DatumRepository) EnsureIndexes() error {
 	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
 	if err != nil {
@@ -518,7 +520,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	if selectors == nil {
 		return bson.M{}, nil
 	} else if err := structureValidator.New().Validate(selectors); err != nil {
-		return nil, errors.Join(errors.New("selectors is invalid"), err)
+		return nil, errors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string

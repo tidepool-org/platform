@@ -21,7 +21,7 @@ func NewRandomClinic() api.Clinic {
 		Name:             faker.Company().Name(),
 		PhoneNumbers:     pointer.FromAny([]api.PhoneNumber{{Number: faker.PhoneNumber().PhoneNumber()}}),
 		PostalCode:       pointer.FromAny(faker.Address().ZipCode()),
-		PreferredBgUnits: test.RandomChoice([]api.ClinicPreferredBgUnits{api.ClinicPreferredBgUnitsMgdL, api.ClinicPreferredBgUnitsMmolL}),
+		PreferredBgUnits: test.RandomChoice([]api.ClinicPreferredBgUnits{api.MgdL, api.MmolL}),
 		ShareCode:        pointer.FromAny(faker.RandomString(15)),
 		State:            pointer.FromAny(faker.Address().State()),
 		Tier:             pointer.FromAny(test.RandomChoice([]string{"tier1000", "tier2000"})),
