@@ -69,7 +69,7 @@ endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/ginkgo && go install -mod=vendor .
+	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && go install -mod=vendor .
 endif
 
 goimports:
