@@ -278,7 +278,7 @@ func (b *Base) GetType() string {
 	return b.Type
 }
 
-func (b *Base) GetActive() bool {
+func (b *Base) IsActive() bool {
 	return b.Active
 }
 

@@ -3,7 +3,7 @@ package deduplicator_test
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -140,7 +140,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("update data set is invoked", func() {
+				When("UpdateDataSet is invoked", func() {
 					var update *data.DataSetUpdate
 
 					BeforeEach(func() {
@@ -500,7 +500,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 					})
 				})
 
-				When("update data set is invoked", func() {
+				When("UpdateDataSet is invoked", func() {
 					AfterEach(func() {
 						Expect(repository.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
 					})

@@ -1,10 +1,8 @@
 package devicecheck
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -66,25 +64,18 @@ func (client *Client) QueryTwoBits(deviceToken string, result *QueryTwoBitsResul
 		Timestamp:     time.Now().UTC().UnixNano() / int64(time.Millisecond),
 	}
 
-	resp, err := client.api.do(jwt, queryTwoBitsPath, body)
+	code, respBody, err := client.api.do(jwt, queryTwoBitsPath, body)
 	if err != nil {
 		return fmt.Errorf("devicecheck: failed to query two bits: %w", err)
 	}
-	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("devicecheck: failed to read response body: %w", err)
+	if code != http.StatusOK {
+		return fmt.Errorf("devicecheck: %w", newError(code, respBody))
 	}
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-		if isErrBitStateNotFound(string(respBody)) {
-			return fmt.Errorf("devicecheck: %w", ErrBitStateNotFound)
-		}
-
-		return json.NewDecoder(bytes.NewReader(respBody)).Decode(result)
-	default:
-		return fmt.Errorf("devicecheck: %w", newError(resp.StatusCode, string(respBody)))
+	if isErrBitStateNotFound(respBody) {
+		return fmt.Errorf("devicecheck: %w", ErrBitStateNotFound)
 	}
+
+	return json.NewDecoder(strings.NewReader(respBody)).Decode(result)
 }

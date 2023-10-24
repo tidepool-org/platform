@@ -26,8 +26,7 @@ func (s *Store) EnsureIndexes() error {
 	summaryRepository := s.NewSummaryRepository()
 	alertsRepository := s.NewAlertsRepository()
 
-	err := dataRepository.EnsureIndexes()
-	if err != nil {
+	if err := dataRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 

@@ -21,7 +21,7 @@ type Datum interface {
 	GetPayload() *metadata.Metadata
 
 	GetType() string
-	GetActive() bool
+	IsActive() bool
 	GetTime() *time.Time
 
 	SetUserID(userID *string)

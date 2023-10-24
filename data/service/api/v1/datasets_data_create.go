@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -119,7 +118,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
+	summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
@@ -128,39 +127,13 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
 }
 
-// The following 2 functions are pulled out of the above so that they can be unit tested independently.
-func MaybeUpdateSummary(ctx context.Context, registry *summary.SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
-	outdatedSinceMap := make(map[string]*time.Time)
-	lgr := log.LoggerFromContext(ctx)
-
-	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
-		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set cgm summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
-	}
-
-	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
-		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set bgm summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
-	}
-
-	return outdatedSinceMap
-}
-
 func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
 	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
 	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
 	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
-	if datum.GetActive() {
+	if datum.IsActive() {
 		for _, typ := range types.DeviceDataTypes {
 			if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
 				updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}

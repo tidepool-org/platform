@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/tidepool-org/platform/data/summary"
+
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/store"
@@ -96,7 +98,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 
 		updatesSummary := make(map[string]struct{})
 		CheckDataSetUpdatesSummary(ctx, dataServiceContext.DataRepository(), updatesSummary, dataSetID)
-		MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
+		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

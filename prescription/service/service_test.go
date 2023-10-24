@@ -16,7 +16,7 @@ import (
 	prescriptionStoreTest "github.com/tidepool-org/platform/prescription/store/test"
 	prescriptionTest "github.com/tidepool-org/platform/prescription/test"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

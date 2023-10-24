@@ -60,6 +60,8 @@ type Datum struct {
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
+	IsActiveInvocations                  int
+	IsActiveOutputs                      []bool
 }
 
 func NewDatum() *Datum {
@@ -131,6 +133,16 @@ func (d *Datum) GetType() string {
 
 	output := d.GetTypeOutputs[0]
 	d.GetTypeOutputs = d.GetTypeOutputs[1:]
+	return output
+}
+
+func (d *Datum) IsActive() bool {
+	d.IsActiveInvocations++
+
+	gomega.Expect(d.IsActiveOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.IsActiveOutputs[0]
+	d.IsActiveOutputs = d.IsActiveOutputs[1:]
 	return output
 }
 

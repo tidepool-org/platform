@@ -5,6 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/insulin"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -511,7 +518,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	if selectors == nil {
 		return bson.M{}, nil
 	} else if err := structureValidator.New().Validate(selectors); err != nil {
-		return nil, fmt.Errorf("selectors is invalid: %w", err)
+		return nil, errors.Join(errors.New("selectors is invalid"), err)
 	}
 
 	var selectorIDs []string
@@ -553,13 +560,14 @@ func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetI
 		"_active":  true,
 		"uploadId": dataSetID,
 		"type":     typ,
-		"time": bson.M{"$gt": twoYearsPast,
-			"$lte": oneDayFuture},
+		"time": bson.M{
+			"$gt":  twoYearsPast,
+			"$lte": oneDayFuture,
+		},
 	}
 
 	var result bson.M
-	err := d.FindOne(ctx, selector).Decode(result)
-	if err != nil {
+	if err := d.FindOne(ctx, selector).Decode(result); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
@@ -569,9 +577,38 @@ func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetI
 	return true, nil
 }
 
-// GetDataRange be careful when calling this, as if dataRecords isn't a pointer underneath, it will silently not
-// result in any results being returned.
 func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if userId == "" {
+		return errors.New("userId is empty")
+	}
+
+	if typ == "" {
+		return errors.New("typ is empty")
+	}
+
+	// This is never expected to be an upload.
+	if isTypeUpload(typ) {
+		return fmt.Errorf("unexpected type: %v", upload.Type)
+	}
+
+	switch v := dataRecords.(type) {
+	case *[]*glucose.Glucose:
+		if typ != continuous.Type && typ != selfmonitored.Type {
+			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into glucose slice", typ)
+		}
+	case *[]*insulin.Insulin:
+		if typ != bolus.Type && typ != basal.Type {
+			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into insulin slice", typ)
+		}
+	case *[]interface{}:
+		// we cant check the type match, but at least the structure should work
+	default:
+		return fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
+	}
 
 	// quit early if range is 0
 	if startTime.Equal(endTime) {
@@ -583,17 +620,14 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interfac
 		return fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
 	}
 
-	// This is never expected to by an upload.
-	if isTypeUpload(typ) {
-		return fmt.Errorf("unexpected type: %v", upload.Type)
-	}
-
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
 		"type":    typ,
-		"time": bson.M{"$gt": startTime,
-			"$lte": endTime},
+		"time": bson.M{
+			"$gt":  startTime,
+			"$lte": endTime,
+		},
 	}
 
 	opts := options.Find()
@@ -637,8 +671,10 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, 
 		"_active": true,
 		"_userId": id,
 		"type":    typ,
-		"time": bson.M{"$lte": futureCutoff,
-			"$gte": pastCutoff},
+		"time": bson.M{
+			"$lte": futureCutoff,
+			"$gte": pastCutoff,
+		},
 	}
 
 	findOptions := options.Find()

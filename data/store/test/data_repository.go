@@ -180,6 +180,17 @@ type DistinctUserIDsOutput struct {
 	Error   error
 }
 
+type CheckDataSetContainsTypeInput struct {
+	Context   context.Context
+	DataSetID string
+	Typ       string
+}
+
+type CheckDataSetContainsTypeOutput struct {
+	Status bool
+	Error  error
+}
+
 type DataRepository struct {
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
@@ -249,6 +260,10 @@ type DataRepository struct {
 	DistinctUserIDsInvocations int
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
+
+	CheckDataSetContainsTypeInvocations int
+	CheckDataSetContainsTypeInputs      []CheckDataSetContainsTypeInput
+	CheckDataSetContainsTypeOutputs     []CheckDataSetContainsTypeOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -512,6 +527,18 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	output := d.DistinctUserIDsOutputs[0]
 	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
+}
+
+func (d *DataRepository) CheckDataSetContainsType(ctx context.Context, dataSetID string, typ string) (bool, error) {
+	d.CheckDataSetContainsTypeInvocations++
+
+	d.CheckDataSetContainsTypeInputs = append(d.CheckDataSetContainsTypeInputs, CheckDataSetContainsTypeInput{Context: ctx, Typ: typ, DataSetID: dataSetID})
+
+	gomega.Expect(d.CheckDataSetContainsTypeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.CheckDataSetContainsTypeOutputs[0]
+	d.CheckDataSetContainsTypeOutputs = d.CheckDataSetContainsTypeOutputs[1:]
+	return output.Status, output.Error
 }
 
 func (d *DataRepository) Expectations() {

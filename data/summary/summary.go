@@ -196,3 +196,28 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 
 	return userSummary, err
 }
+
+func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
+	outdatedSinceMap := make(map[string]*time.Time)
+	lgr := log.LoggerFromContext(ctx)
+
+	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
+		summarizer := GetSummarizer[types.CGMStats, *types.CGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set cgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
+	}
+
+	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
+		summarizer := GetSummarizer[types.BGMStats, *types.BGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set bgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
+	}
+
+	return outdatedSinceMap
+}
