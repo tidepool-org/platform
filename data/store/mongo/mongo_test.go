@@ -3,9 +3,10 @@ package mongo_test
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/data/types/bolus"
 	"math/rand"
 	"time"
+
+	"github.com/tidepool-org/platform/data/types/bolus"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
