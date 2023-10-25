@@ -138,7 +138,7 @@ type ListUserDataSetsOutput struct {
 
 type GetLastUpdatedForUserInput struct {
 	Context context.Context
-	ID      string
+	UserID  string
 	Typ     string
 }
 
@@ -481,10 +481,10 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error) {
 	d.GetLastUpdatedForUserInvocations++
 
-	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, ID: id, Typ: typ})
+	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ})
 
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
 
@@ -529,10 +529,10 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) CheckDataSetContainsType(ctx context.Context, dataSetID string, typ string) (bool, error) {
+func (d *DataRepository) CheckDataSetContainsType(ctx context.Context, dataSetId string, typ string) (bool, error) {
 	d.CheckDataSetContainsTypeInvocations++
 
-	d.CheckDataSetContainsTypeInputs = append(d.CheckDataSetContainsTypeInputs, CheckDataSetContainsTypeInput{Context: ctx, Typ: typ, DataSetID: dataSetID})
+	d.CheckDataSetContainsTypeInputs = append(d.CheckDataSetContainsTypeInputs, CheckDataSetContainsTypeInput{Context: ctx, Typ: typ, DataSetID: dataSetId})
 
 	gomega.Expect(d.CheckDataSetContainsTypeOutputs).ToNot(gomega.BeEmpty())
 

@@ -62,10 +62,10 @@ type DatumRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error
-	GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error)
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
 
-	CheckDataSetContainsType(ctx context.Context, dataSetID string, typ string) (bool, error)
+	CheckDataSetContainsType(ctx context.Context, dataSetId string, typ string) (bool, error)
 }
 
 // DataRepository is the combined interface of DataSetRepository and

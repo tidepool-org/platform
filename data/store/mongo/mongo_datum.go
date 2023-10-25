@@ -554,13 +554,25 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetID string, typ string) (bool, error) {
+func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetId string, typ string) (bool, error) {
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+
+	if dataSetId == "" {
+		return false, errors.New("dataSetId is empty")
+	}
+
+	if typ == "" {
+		return false, errors.New("typ is empty")
+	}
+
 	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
 	selector := bson.M{
 		"_active":  true,
-		"uploadId": dataSetID,
+		"uploadId": dataSetId,
 		"type":     typ,
 		"time": bson.M{
 			"$gt":  twoYearsPast,
@@ -568,12 +580,12 @@ func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetI
 		},
 	}
 
-	var result bson.M
+	result := bson.M{}
 	if err := d.FindOne(ctx, selector).Decode(result); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return false, nil
 		}
-		return false, fmt.Errorf("unable to check for type %s in dataset %s: %w", typ, dataSetID, err)
+		return false, fmt.Errorf("unable to check for type %s in dataset %s: %w", typ, dataSetId, err)
 	}
 
 	return true, nil
@@ -647,7 +659,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interfac
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
 	var status = &types.UserLastUpdated{}
@@ -657,8 +669,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, 
 		return nil, errors.New("context is missing")
 	}
 
-	if id == "" {
-		return nil, errors.New("id is missing")
+	if userId == "" {
+		return nil, errors.New("userId is empty")
+	}
+
+	if typ == "" {
+		return nil, errors.New("typ is empty")
 	}
 
 	// This is never expected to by an upload.
@@ -671,7 +687,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, 
 
 	selector := bson.M{
 		"_active": true,
-		"_userId": id,
+		"_userId": userId,
 		"type":    typ,
 		"time": bson.M{
 			"$lte": futureCutoff,

@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/types/bolus"
 	"math/rand"
 	"time"
 
@@ -59,7 +60,7 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 func NewDataSetData(deviceID string) data.Data {
 	requiredRecords := test.RandomIntFromRange(4, 6)
 	typ := test.RandomChoice([]string{"cbg", "smbg", "basal", "bolus"})
-	t := test.RandomTime()
+	t := time.Now().UTC().AddDate(0, 0, -10)
 	var dataSetData = make([]data.Datum, requiredRecords)
 	for count := 0; count < requiredRecords; count++ {
 		datum := dataTypesTest.RandomBase()
@@ -1310,134 +1311,128 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
-					//Context("CheckDataSetContainsType", func() {
-					//	It("returns an error if the data set is missing", func() {
-					//		Expect(repository.DeleteOtherDataSetData(ctx, nil)).To(MatchError("data set is missing"))
-					//	})
-					//
-					//	It("returns an error if the user id is missing", func() {
-					//		dataSet.UserID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
-					//	})
-					//
-					//	It("returns an error if the user id is empty", func() {
-					//		dataSet.UserID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
-					//	})
-					//
-					//	It("returns an error if the upload id is missing", func() {
-					//		dataSet.UploadID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
-					//	})
-					//
-					//	It("returns an error if the upload id is empty", func() {
-					//		dataSet.UploadID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
-					//	})
-					//
-					//	It("returns an error if the device id is missing (nil)", func() {
-					//		dataSet.DeviceID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
-					//	})
-					//
-					//	It("returns an error if the device id is missing (empty)", func() {
-					//		dataSet.DeviceID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
-					//	})
-					//
-					//	Context("with database access", func() {
-					//		BeforeEach(func() {
-					//			preparePersistedDataSetsData()
-					//			Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-					//		})
-					//
-					//		It("succeeds if it successfully deletes all other data set data", func() {
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//		})
-					//
-					//		It("has the correct stored active data set", func() {
-					//			ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//			Expect(dataSetCollection.CountDocuments(ctx, bson.M{"type": "upload"})).To(Equal(int64(4)))
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
-					//		})
-					//
-					//		It("has the correct stored active data set data", func() {
-					//			dataSetDataAfterRemoveData := append(dataSetData, dataSetExistingOtherData...)
-					//			dataSetDataBeforeRemoveData := append(append(dataSetDataAfterRemoveData, dataSetExistingOneData...), dataSetExistingTwoData...)
-					//			ValidateDataSetData(collection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//			ValidateDataSetData(collection, bson.M{}, bson.M{"deletedTime": 0}, dataSetDataAfterRemoveData)
-					//		})
-					//	})
-					//})
-					//
-					//Context("GetLastUpdatedForUser", func() {
-					//	It("returns an error if the data set is missing", func() {
-					//		Expect(repository.DeleteOtherDataSetData(ctx, nil)).To(MatchError("data set is missing"))
-					//	})
-					//
-					//	It("returns an error if the user id is missing", func() {
-					//		dataSet.UserID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
-					//	})
-					//
-					//	It("returns an error if the user id is empty", func() {
-					//		dataSet.UserID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
-					//	})
-					//
-					//	It("returns an error if the upload id is missing", func() {
-					//		dataSet.UploadID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
-					//	})
-					//
-					//	It("returns an error if the upload id is empty", func() {
-					//		dataSet.UploadID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
-					//	})
-					//
-					//	It("returns an error if the device id is missing (nil)", func() {
-					//		dataSet.DeviceID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
-					//	})
-					//
-					//	It("returns an error if the device id is missing (empty)", func() {
-					//		dataSet.DeviceID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
-					//	})
-					//
-					//	Context("with database access", func() {
-					//		BeforeEach(func() {
-					//			preparePersistedDataSetsData()
-					//			Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-					//		})
-					//
-					//		It("succeeds if it successfully deletes all other data set data", func() {
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//		})
-					//
-					//		It("has the correct stored active data set", func() {
-					//			ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//			Expect(dataSetCollection.CountDocuments(ctx, bson.M{"type": "upload"})).To(Equal(int64(4)))
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
-					//		})
-					//
-					//		It("has the correct stored active data set data", func() {
-					//			dataSetDataAfterRemoveData := append(dataSetData, dataSetExistingOtherData...)
-					//			dataSetDataBeforeRemoveData := append(append(dataSetDataAfterRemoveData, dataSetExistingOneData...), dataSetExistingTwoData...)
-					//			ValidateDataSetData(collection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//			ValidateDataSetData(collection, bson.M{}, bson.M{"deletedTime": 0}, dataSetDataAfterRemoveData)
-					//		})
-					//	})
-					//})
-					//
+					Context("CheckDataSetContainsType", func() {
+						It("returns an error if context is missing", func() {
+							status, err := repository.CheckDataSetContainsType(nil, *dataSet.UploadID, "1234")
+							Expect(err).To(HaveOccurred())
+							Expect(status).To(BeFalse())
+							Expect(err).To(MatchError("context is missing"))
+						})
+
+						It("returns an error if dataSetId is empty", func() {
+							status, err := repository.CheckDataSetContainsType(ctx, "", "1234")
+							Expect(err).To(HaveOccurred())
+							Expect(status).To(BeFalse())
+							Expect(err).To(MatchError("dataSetId is empty"))
+						})
+
+						It("returns an error if context is missing", func() {
+							status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, "")
+							Expect(err).To(HaveOccurred())
+							Expect(status).To(BeFalse())
+							Expect(err).To(MatchError("typ is empty"))
+						})
+
+						Context("with database access", func() {
+							BeforeEach(func() {
+								dataSetData[0].SetType(selfmonitored.Type)
+								dataSetData[0].SetActive(false)
+
+								for i := 1; i < len(dataSetData); i++ {
+									dataSetData[i].SetType(continuous.Type)
+									dataSetData[i].SetActive(true)
+								}
+								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+							})
+
+							It("correctly finds type in dataset", func() {
+								status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, continuous.Type)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(status).To(BeTrue())
+							})
+
+							It("correctly does not find type in dataset", func() {
+								status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, bolus.Type)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(status).To(BeFalse())
+							})
+
+							It("correctly does not find inactive type in dataset", func() {
+								status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, selfmonitored.Type)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(status).To(BeFalse())
+							})
+
+						})
+					})
+
+					Context("GetLastUpdatedForUser", func() {
+						It("returns an error if context is missing", func() {
+							userLastUpdated, err := repository.GetLastUpdatedForUser(nil, *dataSet.UserID, dataSetData[2].GetType())
+							Expect(userLastUpdated).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError("context is missing"))
+						})
+
+						It("returns an error if userId is empty", func() {
+							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, "", dataSetData[2].GetType())
+							Expect(userLastUpdated).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError("userId is empty"))
+						})
+
+						It("returns an error if typ is empty", func() {
+							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, "")
+							Expect(userLastUpdated).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError("typ is empty"))
+						})
+
+						Context("with database access", func() {
+							var createdTime time.Time
+							BeforeEach(func() {
+								createdTime = time.Now().UTC().Truncate(time.Millisecond)
+
+								dataSetData[0].SetType(selfmonitored.Type)
+								dataSetData[0].SetActive(false)
+								dataSetData[0].SetCreatedTime(&createdTime)
+
+								for i := 1; i < len(dataSetData); i++ {
+									dataSetData[i].SetType(continuous.Type)
+									dataSetData[i].SetActive(true)
+									dataSetData[i].SetCreatedTime(&createdTime)
+								}
+
+								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
+							})
+
+							It("correctly finds the LastUpload and LastData for a matching set", func() {
+								userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, continuous.Type)
+								Expect(userLastUpdated).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userLastUpdated.LastData).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
+								Expect(userLastUpdated.LastUpload).To(Equal(createdTime))
+							})
+
+							It("correctly does not find the LastUpload and LastData for an inactive type", func() {
+								userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, selfmonitored.Type)
+								Expect(userLastUpdated).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userLastUpdated.LastData.IsZero()).To(BeTrue())
+								Expect(userLastUpdated.LastUpload.IsZero()).To(BeTrue())
+							})
+
+							It("correctly does not find the LastUpload and LastData for an unused type", func() {
+								userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, bolus.Type)
+								Expect(userLastUpdated).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userLastUpdated.LastData.IsZero()).To(BeTrue())
+								Expect(userLastUpdated.LastUpload.IsZero()).To(BeTrue())
+							})
+
+						})
+					})
+
 					//Context("DistinctUserIDs", func() {
 					//	It("returns an error if the data set is missing", func() {
 					//		Expect(repository.DeleteOtherDataSetData(ctx, nil)).To(MatchError("data set is missing"))
