@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"fmt"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"math/rand"
 	"time"
@@ -58,7 +59,7 @@ func NewDataSet(userID string, deviceID string) *upload.Upload {
 }
 
 func NewDataSetData(deviceID string) data.Data {
-	requiredRecords := test.RandomIntFromRange(4, 6)
+	requiredRecords := test.RandomIntFromRange(6, 8)
 	typ := test.RandomChoice([]string{"cbg", "smbg", "basal", "bolus"})
 	t := time.Now().UTC().AddDate(0, 0, -10)
 	var dataSetData = make([]data.Datum, requiredRecords)
@@ -165,7 +166,7 @@ func ValidateDataSetDataWithModifiedThreshold(collection *mongo.Collection, quer
 	actualDataSetData := getDataSetData(collection, query, filter)
 
 	// The main comparison between datasets does a json comparison between
-	// each object in a slice. However this does a deep equal and certain
+	// each object in a slice. However, this does a deep equal and certain
 	// times may not be 100% the same due to when it was updated in the repo
 	// vs when it was defined in a before step, thus the need to compare time
 	// thresholds.
@@ -230,7 +231,7 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 	var dataSetDatumAsInterface bson.M
 	Expect(bson.Unmarshal(bites, &dataSetDatumAsInterface)).To(Succeed())
 	// We don't want to check the modifiedTime as from the time it's called to
-	// the time it's checked the time will (likely) be different. Instead we
+	// the time it's checked the time will (likely) be different. Instead, we
 	// compare them and make sure they're within a time.Duration threshold of
 	// each other outside of this function.
 	delete(dataSetDatumAsInterface, "modifiedTime")
@@ -935,7 +936,7 @@ var _ = Describe("Mongo", func() {
 							createdTime := time.Now().UTC().Truncate(time.Millisecond)
 							dataSet.CreatedTime = pointer.FromTime(createdTime)
 							dataSet.ModifiedTime = pointer.FromTime(createdTime)
-							// Insert in BOTH collections to mimick the
+							// Insert in BOTH collections to mimic the
 							// migration where dataSet will be in deviceData
 							// and deviceDataSets. This is because while
 							// migration happens an update to a dataset will
@@ -1011,7 +1012,7 @@ var _ = Describe("Mongo", func() {
 
 					preparePersistedDataSetsData := func() {
 						preparePersistedDataSets()
-						// Insert in BOTH collections to mimick the
+						// Insert in BOTH collections to mimic the
 						// migration where dataSet will be in deviceData
 						// and deviceDataSets. This is because while
 						// migration happens an update to a dataset will
@@ -1277,10 +1278,10 @@ var _ = Describe("Mongo", func() {
 								Expect(userData).To(HaveLen(len(dataSetData) - 2))
 
 								// query is $gt, we expect to miss the first record
-								Expect(userData[0].GetTime()).To(Equal(dataSetData[1].GetTime()))
+								Expect(*userData[0].GetTime()).To(Equal(dataSetData[1].GetTime().Truncate(time.Millisecond)))
 
 								// query is $lte, we expect to get the last record requested
-								Expect(userData[len(userData)-1].GetTime()).To(Equal(dataSetData[len(dataSetData)-2].GetTime()))
+								Expect(*userData[len(userData)-1].GetTime()).To(Equal(dataSetData[len(dataSetData)-2].GetTime().Truncate(time.Millisecond)))
 							})
 
 							It("correctly misses data outside range", func() {
@@ -1388,6 +1389,13 @@ var _ = Describe("Mongo", func() {
 							Expect(err).To(MatchError("typ is empty"))
 						})
 
+						It("returns an error if typ is upload", func() {
+							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, upload.Type)
+							Expect(userLastUpdated).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
+						})
+
 						Context("with database access", func() {
 							var createdTime time.Time
 							BeforeEach(func() {
@@ -1433,69 +1441,83 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
-					//Context("DistinctUserIDs", func() {
-					//	It("returns an error if the data set is missing", func() {
-					//		Expect(repository.DeleteOtherDataSetData(ctx, nil)).To(MatchError("data set is missing"))
-					//	})
-					//
-					//	It("returns an error if the user id is missing", func() {
-					//		dataSet.UserID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is missing"))
-					//	})
-					//
-					//	It("returns an error if the user id is empty", func() {
-					//		dataSet.UserID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set user id is empty"))
-					//	})
-					//
-					//	It("returns an error if the upload id is missing", func() {
-					//		dataSet.UploadID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is missing"))
-					//	})
-					//
-					//	It("returns an error if the upload id is empty", func() {
-					//		dataSet.UploadID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set upload id is empty"))
-					//	})
-					//
-					//	It("returns an error if the device id is missing (nil)", func() {
-					//		dataSet.DeviceID = nil
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
-					//	})
-					//
-					//	It("returns an error if the device id is missing (empty)", func() {
-					//		dataSet.DeviceID = pointer.FromString("")
-					//		Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(MatchError("data set device id is missing"))
-					//	})
-					//
-					//	Context("with database access", func() {
-					//		BeforeEach(func() {
-					//			preparePersistedDataSetsData()
-					//			Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-					//		})
-					//
-					//		It("succeeds if it successfully deletes all other data set data", func() {
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//		})
-					//
-					//		It("has the correct stored active data set", func() {
-					//			ValidateDataSet(dataSetCollection, bson.M{}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther, dataSetExistingOne, dataSetExistingTwo)
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//			Expect(dataSetCollection.CountDocuments(ctx, bson.M{"type": "upload"})).To(Equal(int64(4)))
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": true}, "deletedUserId": bson.M{"$exists": false}}, bson.M{"deletedTime": 0}, dataSetExistingTwo, dataSetExistingOne)
-					//			ValidateDataSet(dataSetCollection, bson.M{"deletedTime": bson.M{"$exists": false}, "deletedUserId": bson.M{"$exists": false}}, bson.M{}, dataSet, dataSetExistingOther)
-					//		})
-					//
-					//		It("has the correct stored active data set data", func() {
-					//			dataSetDataAfterRemoveData := append(dataSetData, dataSetExistingOtherData...)
-					//			dataSetDataBeforeRemoveData := append(append(dataSetDataAfterRemoveData, dataSetExistingOneData...), dataSetExistingTwoData...)
-					//			ValidateDataSetData(collection, bson.M{}, bson.M{}, dataSetDataBeforeRemoveData)
-					//			Expect(repository.DeleteOtherDataSetData(ctx, dataSet)).To(Succeed())
-					//			ValidateDataSetData(collection, bson.M{}, bson.M{"deletedTime": 0}, dataSetDataAfterRemoveData)
-					//		})
-					//	})
-					//})
+					Context("DistinctUserIDs", func() {
+						It("returns an error if context is missing", func() {
+							userIds, err := repository.DistinctUserIDs(nil, continuous.Type)
+							Expect(userIds).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError("context is missing"))
+						})
+
+						It("returns an error if typ is empty", func() {
+							userIds, err := repository.DistinctUserIDs(ctx, "")
+							Expect(userIds).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError("typ is empty"))
+						})
+
+						It("returns an error if typ is upload", func() {
+							userIds, err := repository.DistinctUserIDs(ctx, upload.Type)
+							Expect(userIds).To(BeNil())
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
+						})
+
+						Context("with database access", func() {
+							var userIdOne string
+							var userIdTwo string
+
+							BeforeEach(func() {
+								userIdOne = userTest.RandomID()
+								dataSetOne := NewDataSet(userIdOne, deviceID)
+								dataSetDataOne := NewDataSetData(deviceID)
+
+								userIdTwo = userTest.RandomID()
+								dataSetTwo := NewDataSet(userIdTwo, deviceID)
+								dataSetDataTwo := NewDataSetData(deviceID)
+
+								dataSetDataOne[0].SetType(selfmonitored.Type)
+								dataSetDataOne[0].SetActive(false)
+								for i := 1; i < len(dataSetDataOne); i++ {
+									dataSetDataOne[i].SetType(continuous.Type)
+									dataSetDataOne[i].SetActive(true)
+								}
+
+								dataSetDataTwo[0].SetType(selfmonitored.Type)
+								dataSetDataTwo[0].SetActive(true)
+								for i := 1; i < len(dataSetDataTwo); i++ {
+									dataSetDataTwo[i].SetType(continuous.Type)
+									dataSetDataTwo[i].SetActive(true)
+								}
+
+								Expect(repository.CreateDataSetData(ctx, dataSetOne, dataSetDataOne)).To(Succeed())
+								Expect(repository.CreateDataSetData(ctx, dataSetTwo, dataSetDataTwo)).To(Succeed())
+							})
+
+							It("correctly identifies distinct users", func() {
+								userIds, err := repository.DistinctUserIDs(ctx, continuous.Type)
+								Expect(userIds).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userIds).To(HaveLen(2))
+								Expect(userIds).To(ConsistOf([]string{userIdOne, userIdTwo}))
+							})
+
+							It("correctly identifies distinct users with inactive data", func() {
+								userIds, err := repository.DistinctUserIDs(ctx, selfmonitored.Type)
+								Expect(userIds).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userIds).To(HaveLen(1))
+								Expect(userIds[0]).To(Equal(userIdTwo))
+							})
+
+							It("correctly identifies distinct users with different-type data", func() {
+								userIds, err := repository.DistinctUserIDs(ctx, bolus.Type)
+								Expect(userIds).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userIds).To(HaveLen(0))
+							})
+						})
+					})
 
 					Context("with selected data set data", func() {
 						var selectors *data.Selectors
@@ -2507,7 +2529,7 @@ var _ = Describe("Mongo", func() {
 								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
 								destroyDataSet.CreatedTime = pointer.FromTime(createdTime)
 								destroyDataSet.ModifiedTime = pointer.FromTime(createdTime)
-								// Insert in BOTH collections to mimick the
+								// Insert in BOTH collections to mimic the
 								// migration where dataSet will be in deviceData
 								// and deviceDataSets. This is because while
 								// migration happens an update to a dataset will

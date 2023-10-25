@@ -9,5 +9,5 @@ import (
 
 func TestSummary(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Summary Suite")
+	RunSpecs(t, "data/summary")
 }

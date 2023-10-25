@@ -730,6 +730,10 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 		return nil, errors.New("context is missing")
 	}
 
+	if typ == "" {
+		return nil, errors.New("typ is empty")
+	}
+
 	// This is never expected to by an upload.
 	if isTypeUpload(typ) {
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
