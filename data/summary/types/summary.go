@@ -111,6 +111,7 @@ func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 
 	d.HasOutdatedSince = false
 	d.OutdatedSince = nil
+	d.OutdatedSinceLimit = nil
 	d.OutdatedReason = nil
 }
 
