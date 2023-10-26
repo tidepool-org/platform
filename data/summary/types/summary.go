@@ -10,11 +10,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
-	"github.com/tidepool-org/platform/pointer"
-
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 const (
@@ -29,6 +27,7 @@ const (
 	HoursAgoToKeep       = 60 * 24
 
 	setOutdatedBuffer = 2 * time.Minute
+	setOutdatedLimit  = 30 * time.Minute
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"
@@ -91,9 +90,10 @@ type Dates struct {
 	HasLastData bool       `json:"hasLastData" bson:"hasLastData"`
 	LastData    *time.Time `json:"lastData" bson:"lastData"`
 
-	HasOutdatedSince bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
-	OutdatedSince    *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
+	HasOutdatedSince   bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
+	OutdatedSince      *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+	OutdatedSinceLimit *time.Time `json:"outdatedSinceLimit" bson:"outdatedSinceLimit"`
+	OutdatedReason     []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
 func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
@@ -175,14 +175,21 @@ func NewConfig() Config {
 func (s *Summary[T, A]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
-		set.Append(s.Dates.LastUpdatedReason...)
+		set.Append(s.Dates.OutdatedReason...)
 	}
 
 	s.Dates.LastUpdatedReason = nil
 	s.Dates.OutdatedReason = set.ToSlice()
 
-	if s.Dates.OutdatedSince == nil {
-		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Add(setOutdatedBuffer).UTC().Truncate(time.Millisecond))
+	timestamp := time.Now().Truncate(time.Millisecond).UTC()
+	if s.Dates.OutdatedSinceLimit == nil {
+		newOutdatedSinceLimit := timestamp.Add(setOutdatedLimit)
+		s.Dates.OutdatedSinceLimit = &newOutdatedSinceLimit
+	}
+
+	if s.Dates.OutdatedSince == nil || s.Dates.OutdatedSince.Before(*s.Dates.OutdatedSinceLimit) {
+		newOutdatedSince := timestamp.Add(setOutdatedBuffer)
+		s.Dates.OutdatedSince = &newOutdatedSince
 		s.Dates.HasOutdatedSince = true
 	}
 }
@@ -201,9 +208,10 @@ func NewDates() Dates {
 		HasLastData: false,
 		LastData:    nil,
 
-		HasOutdatedSince: false,
-		OutdatedSince:    nil,
-		OutdatedReason:   nil,
+		HasOutdatedSince:   false,
+		OutdatedSince:      nil,
+		OutdatedSinceLimit: nil,
+		OutdatedReason:     nil,
 	}
 }
 
