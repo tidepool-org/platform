@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	mapset "github.com/deckarep/golang-set/v2"
+
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 )
