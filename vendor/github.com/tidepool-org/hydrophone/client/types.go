@@ -162,4 +162,3 @@ type UpsertAccountSignupConfirmationJSONRequestBody ConfirmationUpsert
 
 // CancelAccountSignupConfirmationJSONRequestBody defines body for CancelAccountSignupConfirmation for application/json ContentType.
 type CancelAccountSignupConfirmationJSONRequestBody ConfirmationLookup
-
