@@ -84,16 +84,20 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	if update.State != nil && *update.State == "closed" {
-		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet)
-		if getErr != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
-			return
-		} else if deduplicator == nil {
-			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
-			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
-			return
+		// Allow closing datasets without deduplicator (i.e. those created by jellyfish)
+		// so we can mark summaries as outdated.
+		if dataSet != nil && dataSet.HasDeduplicatorName() {
+			deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet)
+			if getErr != nil {
+				dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
+				return
+			} else if deduplicator == nil {
+				dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
+				return
+			} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
+				dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
+				return
+			}
 		}
 
 		updatesSummary := make(map[string]struct{})
