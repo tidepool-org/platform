@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
