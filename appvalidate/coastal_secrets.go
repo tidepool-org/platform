@@ -152,7 +152,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse Coastal API baseURL: %w", err)
 	}
-	u.Path = path.Join(u.Path, "devices/api/v3/certificates")
+	u.Path = path.Join(u.Path, "devices/api/v1/certificates")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), &buf)
 	if err != nil {
