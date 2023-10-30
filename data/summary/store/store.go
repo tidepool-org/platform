@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -54,7 +54,7 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get summary")
+		return nil, fmt.Errorf("unable to get summary: %w", err)
 	}
 
 	return summary, nil
@@ -74,7 +74,7 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 
 	_, err := r.DeleteMany(ctx, selector)
 	if err != nil {
-		return errors.Wrap(err, "unable to delete summary")
+		return fmt.Errorf("unable to delete summary: %w", err)
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 
 	_, err := r.DeleteMany(ctx, selector)
 	if err != nil {
-		return errors.Wrap(err, "unable to delete summary")
+		return fmt.Errorf("unable to delete summary: %w", err)
 	}
 
 	return nil
@@ -164,7 +164,7 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 	for i, userSummary := range summaries {
 		// we don't guard against duplicates, as they fail to insert safely, we only worry about unfilled fields
 		if userSummary.UserID == "" {
-			return 0, errors.Errorf("userId is missing at index %d", i)
+			return 0, fmt.Errorf("userId is missing at index %d", i)
 		} else if userSummary.Type != expectedType {
 			return 0, fmt.Errorf("invalid summary type '%v', expected '%v' at index %d", userSummary.Type, expectedType, i)
 		}
@@ -179,9 +179,9 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 
 	if err != nil {
 		if count > 0 {
-			return count, errors.Wrap(err, "failed to create some summaries")
+			return count, fmt.Errorf("failed to create some summaries: %w", err)
 		}
-		return count, errors.Wrap(err, "unable to create summaries")
+		return count, fmt.Errorf("unable to create summaries: %w", err)
 	}
 	return count, nil
 }
@@ -208,7 +208,7 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	userSummary.SetOutdated(reason)
 	err = r.UpsertSummary(ctx, userSummary)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to update user %s outdatedSince date for type %s", userId, userSummary.Type)
+		return nil, fmt.Errorf("unable to update user %s outdatedSince date for type %s: %w", userId, userSummary.Type, err)
 	}
 
 	return userSummary.Dates.OutdatedSince, nil
@@ -238,12 +238,12 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get outdated summaries")
+		return nil, fmt.Errorf("unable to get outdated summariesL %w", err)
 	}
 
 	var summaries []*types.Summary[T, A]
 	if err = cursor.All(ctx, &summaries); err != nil {
-		return nil, errors.Wrap(err, "unable to decode outdated summaries")
+		return nil, fmt.Errorf("unable to decode outdated summaries: %w", err)
 	}
 
 	var userIDs = make([]string, len(summaries))
@@ -278,12 +278,12 @@ func (r *Repo[T, A]) GetMigratableUserIDs(ctx context.Context, page *page.Pagina
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get outdated summaries")
+		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
 
 	var summaries []*types.Summary[T, A]
 	if err = cursor.All(ctx, &summaries); err != nil {
-		return nil, errors.Wrap(err, "unable to decode outdated summaries")
+		return nil, fmt.Errorf("unable to decode outdated summaries: %w", err)
 	}
 
 	var userIDs = make([]string, len(summaries))
