@@ -3,9 +3,9 @@ package appvalidate
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
+	"crypto/ed25519"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -35,13 +35,13 @@ type CoastalSecretsConfig struct {
 	ClientID     string `envconfig:"COASTAL_CLIENT_ID"`
 	ClientSecret string `envconfig:"COASTAL_CLIENT_SECRET"`
 	RCTypeID     string `envconfig:"COASTAL_RC_TYPE_ID"`
-	// KeyData is the raw contents of the EC private key file
+	// KeyData is the raw contents of the ED25519 private key file in PEM format.
 	KeyData []byte `envconfig:"COASTAL_PRIVATE_KEY_DATA"`
 }
 
 type CoastalSecrets struct {
 	Config CoastalSecretsConfig
-	pk     *ecdsa.PrivateKey
+	pk     ed25519.PrivateKey
 }
 
 func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
@@ -60,11 +60,15 @@ func NewCoastalSecrets(c *CoastalSecretsConfig) (*CoastalSecrets, error) {
 		return nil, ErrCoastalInvalidPrivateKey
 	}
 	keyBlock, _ := pem.Decode(c.KeyData)
-	privateKey, err := x509.ParseECPrivateKey(keyBlock.Bytes)
+	privKeyAny, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	if err != nil {
 		return &CoastalSecrets{
 			Config: *c,
 		}, errors.Join(ErrCoastalInvalidPrivateKey, fmt.Errorf("unable to parse EC private key: %w", err))
+	}
+	privateKey, ok := privKeyAny.(ed25519.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("unexpected coastal private key type: %T", privKeyAny)
 	}
 	return &CoastalSecrets{
 		Config: *c,
@@ -83,7 +87,7 @@ type CoastalPayload struct {
 	CSR             string `json:"csr"`
 }
 
-func (c *CoastalPayload) toInternalPayload(pk *ecdsa.PrivateKey) (payload *coastalPayload, signature []byte, err error) {
+func (c *CoastalPayload) toInternalPayload(pk ed25519.PrivateKey) (payload *coastalPayload, signature string, err error) {
 	payload = &coastalPayload{
 		RCTypeID:         c.RCTypeID,
 		RCInstanceID:     c.RCInstanceID,
@@ -96,12 +100,9 @@ func (c *CoastalPayload) toInternalPayload(pk *ecdsa.PrivateKey) (payload *coast
 
 	bytesRaw, err := json.Marshal(payload)
 	if err != nil {
-		return nil, nil, fmt.Errorf("unable to marshal payload when calculating signature: %w", err)
+		return nil, "", fmt.Errorf("unable to marshal payload when calculating signature: %w", err)
 	}
-	signature, err = ecdsa.SignASN1(rand.Reader, pk, bytesRaw)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to sign payload when calculating signature: %w", err)
-	}
+	signature = base64.StdEncoding.EncodeToString(ed25519.Sign(pk, bytesRaw))
 	return payload, signature, nil
 }
 
@@ -162,7 +163,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	req.Header.Add("client_secret", c.Config.ClientSecret)
 	req.Header.Add("content-type", "application/json")
 	req.Header.Add("accept", "application/json")
-	req.Header.Add("signature", string(signature))
+	req.Header.Add("signature", signature)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
