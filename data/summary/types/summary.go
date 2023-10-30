@@ -37,7 +37,9 @@ const (
 
 var stopPoints = [...]int{1, 7, 14, 30}
 
-var DeviceDataTypes = [...]string{continuous.Type, selfmonitored.Type}
+var DeviceDataTypes = []string{continuous.Type, selfmonitored.Type}
+var DeviceDataTypesSet = mapset.NewSet[string](DeviceDataTypes...)
+
 var DeviceDataToSummaryTypes = map[string]string{
 	continuous.Type:    SummaryTypeCGM,
 	selfmonitored.Type: SummaryTypeBGM,

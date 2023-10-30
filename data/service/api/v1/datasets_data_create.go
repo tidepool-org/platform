@@ -3,7 +3,6 @@ package v1
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/tidepool-org/platform/data/summary"
 
@@ -104,7 +103,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
 
-		CheckDatumUpdatesSummary(updatesSummary, datum)
+		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -125,19 +124,4 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
-}
-
-func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
-	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
-	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
-	if datum.IsActive() {
-		for _, typ := range types.DeviceDataTypes {
-			if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
-				updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
-			}
-		}
-	}
 }

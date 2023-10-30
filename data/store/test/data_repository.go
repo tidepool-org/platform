@@ -180,13 +180,15 @@ type DistinctUserIDsOutput struct {
 	Error   error
 }
 
-type CheckDataSetContainsTypeInput struct {
+type CheckDataSetContainsTypeInRangeInput struct {
 	Context   context.Context
 	DataSetID string
 	Typ       string
+	StartTime time.Time
+	EndTime   time.Time
 }
 
-type CheckDataSetContainsTypeOutput struct {
+type CheckDataSetContainsTypeInRangeOutput struct {
 	Status bool
 	Error  error
 }
@@ -261,9 +263,9 @@ type DataRepository struct {
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
 
-	CheckDataSetContainsTypeInvocations int
-	CheckDataSetContainsTypeInputs      []CheckDataSetContainsTypeInput
-	CheckDataSetContainsTypeOutputs     []CheckDataSetContainsTypeOutput
+	CheckDataSetContainsTypeInRangeInvocations int
+	CheckDataSetContainsTypeInRangeInputs      []CheckDataSetContainsTypeInRangeInput
+	CheckDataSetContainsTypeInRangeOutputs     []CheckDataSetContainsTypeInRangeOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -529,15 +531,15 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) CheckDataSetContainsType(ctx context.Context, dataSetId string, typ string) (bool, error) {
-	d.CheckDataSetContainsTypeInvocations++
+func (d *DataRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
+	d.CheckDataSetContainsTypeInRangeInvocations++
 
-	d.CheckDataSetContainsTypeInputs = append(d.CheckDataSetContainsTypeInputs, CheckDataSetContainsTypeInput{Context: ctx, Typ: typ, DataSetID: dataSetId})
+	d.CheckDataSetContainsTypeInRangeInputs = append(d.CheckDataSetContainsTypeInRangeInputs, CheckDataSetContainsTypeInRangeInput{Context: ctx, Typ: typ, DataSetID: dataSetId, StartTime: startTime, EndTime: endTime})
 
-	gomega.Expect(d.CheckDataSetContainsTypeOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.CheckDataSetContainsTypeInRangeOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.CheckDataSetContainsTypeOutputs[0]
-	d.CheckDataSetContainsTypeOutputs = d.CheckDataSetContainsTypeOutputs[1:]
+	output := d.CheckDataSetContainsTypeInRangeOutputs[0]
+	d.CheckDataSetContainsTypeInRangeOutputs = d.CheckDataSetContainsTypeInRangeOutputs[1:]
 	return output.Status, output.Error
 }
 

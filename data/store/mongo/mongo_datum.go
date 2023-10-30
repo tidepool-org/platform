@@ -554,7 +554,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetId string, typ string) (bool, error) {
+func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -567,16 +567,23 @@ func (d *DatumRepository) CheckDataSetContainsType(ctx context.Context, dataSetI
 		return false, errors.New("typ is empty")
 	}
 
-	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+	// quit early if range is 0
+	if startTime.Equal(endTime) {
+		return false, nil
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if startTime.After(endTime) {
+		return false, fmt.Errorf("startTime (%s) after endTime (%s)", startTime, endTime)
+	}
 
 	selector := bson.M{
 		"_active":  true,
 		"uploadId": dataSetId,
 		"type":     typ,
 		"time": bson.M{
-			"$gt":  twoYearsPast,
-			"$lte": oneDayFuture,
+			"$gt":  startTime,
+			"$lte": endTime,
 		},
 	}
 

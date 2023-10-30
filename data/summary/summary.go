@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
+
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -220,4 +222,33 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 	}
 
 	return outdatedSinceMap
+}
+
+func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
+	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
+	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
+	if datum.IsActive() {
+		typ := datum.GetType()
+		if types.DeviceDataTypesSet.Contains(typ) && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
+			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+		}
+	}
+}
+
+func CheckDataSetUpdatesSummary(ctx context.Context, repository dataStore.DataRepository, updatesSummary map[string]struct{}, dataSetId string) {
+	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	for _, typ := range types.DeviceDataTypes {
+		status, err := repository.CheckDataSetContainsTypeInRange(ctx, dataSetId, typ, twoYearsPast, oneDayFuture)
+		if err != nil {
+			return
+		}
+		if status {
+			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+		}
+	}
 }

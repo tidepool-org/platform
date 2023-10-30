@@ -7,7 +7,7 @@ toolchain go1.21.0
 require (
 	github.com/Shopify/sarama v1.38.1
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.46.5
+	github.com/aws/aws-sdk-go v1.46.6
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -26,7 +26,7 @@ require (
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/tidepool-org/clinic/client v0.0.0-20231026151906-ad2e71e79f6f
 	github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
-	github.com/tidepool-org/go-common v0.10.0
+	github.com/tidepool-org/go-common v0.11.0
 	github.com/tidepool-org/hydrophone/client v0.0.0-20230915144349-ccec1a4d1782
 	github.com/urfave/cli v1.22.14
 	go.mongodb.org/mongo-driver v1.12.1
@@ -72,7 +72,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.9.1 // indirect
-	github.com/go-logr/logr v1.2.4 // indirect
+	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.15.5 // indirect
@@ -128,8 +128,8 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/tdewolff/minify/v2 v2.19.10 // indirect
-	github.com/tdewolff/parse/v2 v2.6.8 // indirect
+	github.com/tdewolff/minify/v2 v2.20.1 // indirect
+	github.com/tdewolff/parse/v2 v2.7.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

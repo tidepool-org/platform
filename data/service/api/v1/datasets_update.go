@@ -1,14 +1,12 @@
 package v1
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
@@ -97,7 +95,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		}
 
 		updatesSummary := make(map[string]struct{})
-		CheckDataSetUpdatesSummary(ctx, dataServiceContext.DataRepository(), updatesSummary, dataSetID)
+		summary.CheckDataSetUpdatesSummary(ctx, dataServiceContext.DataRepository(), updatesSummary, dataSetID)
 		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
@@ -106,16 +104,4 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSet)
-}
-
-func CheckDataSetUpdatesSummary(ctx context.Context, repository store.DataRepository, updatesSummary map[string]struct{}, dataSetID string) {
-	for _, typ := range types.DeviceDataTypes {
-		status, err := repository.CheckDataSetContainsType(ctx, dataSetID, typ)
-		if err != nil {
-			return
-		}
-		if status {
-			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
-		}
-	}
 }

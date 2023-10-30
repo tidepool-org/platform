@@ -1314,25 +1314,35 @@ var _ = Describe("Mongo", func() {
 					})
 
 					Context("CheckDataSetContainsType", func() {
+						twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+						oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
 						It("returns an error if context is missing", func() {
-							status, err := repository.CheckDataSetContainsType(nil, *dataSet.UploadID, "1234")
+							status, err := repository.CheckDataSetContainsTypeInRange(nil, *dataSet.UploadID, "1234", twoYearsPast, oneDayFuture)
 							Expect(err).To(HaveOccurred())
 							Expect(status).To(BeFalse())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if dataSetId is empty", func() {
-							status, err := repository.CheckDataSetContainsType(ctx, "", "1234")
+							status, err := repository.CheckDataSetContainsTypeInRange(ctx, "", "1234", twoYearsPast, oneDayFuture)
 							Expect(err).To(HaveOccurred())
 							Expect(status).To(BeFalse())
 							Expect(err).To(MatchError("dataSetId is empty"))
 						})
 
 						It("returns an error if context is missing", func() {
-							status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, "")
+							status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, "", twoYearsPast, oneDayFuture)
 							Expect(err).To(HaveOccurred())
 							Expect(status).To(BeFalse())
 							Expect(err).To(MatchError("typ is empty"))
+						})
+
+						It("returns error if the times are inverted", func() {
+							status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, "1234", oneDayFuture, twoYearsPast)
+							Expect(err).To(HaveOccurred())
+							Expect(status).To(BeFalse())
+							Expect(err).To(MatchError(MatchRegexp("^startTime.*after endTime")))
 						})
 
 						Context("with database access", func() {
@@ -1348,19 +1358,19 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("correctly finds type in dataset", func() {
-								status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, continuous.Type)
+								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, continuous.Type, twoYearsPast, oneDayFuture)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status).To(BeTrue())
 							})
 
 							It("correctly does not find type in dataset", func() {
-								status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, bolus.Type)
+								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, bolus.Type, twoYearsPast, oneDayFuture)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status).To(BeFalse())
 							})
 
 							It("correctly does not find inactive type in dataset", func() {
-								status, err := repository.CheckDataSetContainsType(ctx, *dataSet.UploadID, selfmonitored.Type)
+								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, selfmonitored.Type, twoYearsPast, oneDayFuture)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status).To(BeFalse())
 							})
