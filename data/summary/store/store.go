@@ -238,7 +238,7 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		return nil, fmt.Errorf("unable to get outdated summariesL %w", err)
+		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
 
 	var summaries []*types.Summary[T, A]
