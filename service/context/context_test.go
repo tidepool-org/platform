@@ -19,7 +19,7 @@ var _ = Describe("Context", func() {
 		var req *rest.Request
 
 		BeforeEach(func() {
-			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken(), "patient")
 			res = testRest.NewResponseWriter()
 			req = testRest.NewRequest()
 			req.Env["AUTH-DETAILS"] = details

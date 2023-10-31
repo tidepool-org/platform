@@ -62,13 +62,15 @@ type Details interface {
 
 	HasToken() bool
 	Token() string
+	Role() string
 }
 
-func NewDetails(method Method, userID string, token string) Details {
+func NewDetails(method Method, userID string, token string, role string) Details {
 	return &details{
 		method: method,
 		userID: userID,
 		token:  token,
+		role:   role,
 	}
 }
 
@@ -76,6 +78,7 @@ type details struct {
 	method Method
 	userID string
 	token  string
+	role   string
 }
 
 func (d *details) Method() Method {
@@ -100,6 +103,10 @@ func (d *details) HasToken() bool {
 
 func (d *details) Token() string {
 	return d.token
+}
+
+func (d *details) Role() string {
+	return d.role
 }
 
 func DecodeRequestPathParameter(req *rest.Request, key string, validator func(value string) bool) (string, error) {

@@ -219,30 +219,6 @@ components:
               format: double
               minimum: 0.0
               example: 5.1
-    Location:
-      type: object
-      description: Location information associated with the resource. One or both of name and gps must be specified.
-      properties:
-        name:
-          type: string
-          description: A name for the location.
-          minLength: 1
-          maxLength: 100
-        gps:
-          $ref: common.yaml#/components/schemas/GPS
-      example:
-        name: Disneyland Park, Anaheim, CA, USA
-        gps:
-          latitude:
-            units: degrees
-            value: 33.812101
-          longitude:
-            units: degrees
-            value: -117.918975
-          origin:
-            name: Google Maps
-            time: '2018-10-26T23:23:04Z'
-            type: service
     Origin:
       type: object
       description: External origin information for the source of the resource.

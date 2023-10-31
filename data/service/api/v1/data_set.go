@@ -49,7 +49,6 @@ func DataSetsRoutes() []dataService.Route {
 func ListUserDataSets(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -80,7 +79,7 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSets, err := dataClient.ListUserDataSets(req.Context(), userID, filter, pagination)
+	dataSets, err := dataServiceContext.DataRepository().ListUserDataSets(req.Context(), userID, filter, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -109,7 +108,6 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 func GetDataSet(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -119,7 +117,7 @@ func GetDataSet(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataClient.GetDataSet(req.Context(), id)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(req.Context(), id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

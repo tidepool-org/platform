@@ -3,7 +3,6 @@ package net_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/net"
@@ -14,60 +13,9 @@ import (
 )
 
 var _ = Describe("Validate", func() {
-	Context("IsValidMediaType, MediaTypeValidator, and ValidateMediaType", func() {
+	Context("ReverseDomainValidator, and ValidateReverseDomain", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
-				Expect(net.IsValidMediaType(value)).To(Equal(len(expectedErrors) == 0))
-				errorReporter := structureTest.NewErrorReporter()
-				net.MediaTypeValidator(value, errorReporter)
-				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
-				errorsTest.ExpectEqual(net.ValidateMediaType(value), expectedErrors...)
-			},
-			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
-			Entry("has valid media type", "text/plain"),
-			Entry("has valid media type with whitespace", "  text/plain  "),
-			Entry("has invalid media type with only slash", "/", net.ErrorValueStringAsMediaTypeNotValid("/")),
-			Entry("has invalid media type with only type", "text/", net.ErrorValueStringAsMediaTypeNotValid("text/")),
-			Entry("has invalid media type with only subtype", "/plain", net.ErrorValueStringAsMediaTypeNotValid("/plain")),
-			Entry("has valid media type with parameter", "text/plain; x=y"),
-			Entry("has valid media type with multiple parameters", "text/plain; x=y; y=z"),
-			Entry("has valid media type with parameter with whitespace", " text/plain  ; x = y ; y = z "),
-			Entry("has valid media type with parameter with trailing semicolon", "text/plain; x=y; y=z; "),
-			Entry("has valid media type with duplicate parameter", "text/plain; x=y; x=y", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x=y; x=y")),
-			Entry("has valid media type with invalid parameter", "text/plain; x", net.ErrorValueStringAsMediaTypeNotValid("text/plain; x")),
-			Entry("has length in range (upper)", "text/plain; x="+test.RandomStringFromRangeAndCharset(242, 242, test.CharsetAlphaNumeric)),
-			Entry("has length out of range (upper)", "text/plain; x="+test.RandomStringFromRangeAndCharset(243, 243, test.CharsetAlphaNumeric), structureValidator.ErrorLengthNotLessThanOrEqualTo(257, 256)),
-		)
-	})
-
-	Context("NormalizeMediaType", func() {
-		DescribeTable("returns the expected results when",
-			func(value string, expectedResult string, expectedOk bool) {
-				result, ok := net.NormalizeMediaType(value)
-				Expect(ok).To(Equal(expectedOk))
-				Expect(result).To(Equal(expectedResult))
-			},
-			Entry("is empty", "", "", false),
-			Entry("has valid media type", "text/plain", "text/plain", true),
-			Entry("has valid media type with uppercase", "TEXT/PLAIN", "text/plain", true),
-			Entry("has valid media type with whitespace", "  text/plain  ", "text/plain", true),
-			Entry("has invalid media type with only slash", "/", "", false),
-			Entry("has invalid media type with only type", "text/", "", false),
-			Entry("has invalid media type with only subtype", "/plain", "", false),
-			Entry("has valid media type with parameter", "text/plain; x=y", "text/plain; x=y", true),
-			Entry("has valid media type with parameter with key uppercase", "text/plain; X=y", "text/plain; x=y", true),
-			Entry("has valid media type with multiple parameters", "text/plain; X=Y; Y=Z", "text/plain; x=Y; y=Z", true),
-			Entry("has valid media type with parameter with whitespace", " text/plain  ; X = y ; y = Z ", "text/plain; x=y; y=Z", true),
-			Entry("has valid media type with parameter with trailing semicolon", "text/plain; x=y; y=z; ", "text/plain; x=y; y=z", true),
-			Entry("has valid media type with duplicate parameter", "text/plain; x=y; X=y", "", false),
-			Entry("has valid media type with invalid parameter", "text/plain; x", "", false),
-		)
-	})
-
-	Context("IsValidReverseDomain, ReverseDomainValidator, and ValidateReverseDomain", func() {
-		DescribeTable("return the expected results when the input",
-			func(value string, expectedErrors ...error) {
-				Expect(net.IsValidReverseDomain(value)).To(Equal(len(expectedErrors) == 0))
 				errorReporter := structureTest.NewErrorReporter()
 				net.ReverseDomainValidator(value, errorReporter)
 				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
@@ -108,10 +56,9 @@ var _ = Describe("Validate", func() {
 		)
 	})
 
-	Context("IsValidSemanticVersion, SemanticVersionValidator, and ValidateSemanticVersion", func() {
+	Context("SemanticVersionValidator, and ValidateSemanticVersion", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
-				Expect(net.IsValidSemanticVersion(value)).To(Equal(len(expectedErrors) == 0))
 				errorReporter := structureTest.NewErrorReporter()
 				net.SemanticVersionValidator(value, errorReporter)
 				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
@@ -127,10 +74,9 @@ var _ = Describe("Validate", func() {
 		)
 	})
 
-	Context("IsValidURL, URLValidator, and ValidateURL", func() {
+	Context("URLValidator, and ValidateURL", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
-				Expect(net.IsValidURL(value)).To(Equal(len(expectedErrors) == 0))
 				errorReporter := structureTest.NewErrorReporter()
 				net.URLValidator(value, errorReporter)
 				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)

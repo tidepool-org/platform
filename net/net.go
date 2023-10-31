@@ -1,7 +1,6 @@
 package net
 
 import (
-	"mime"
 	"net/url"
 	"regexp"
 
@@ -11,41 +10,6 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
-
-func IsValidMediaType(value string) bool {
-	return ValidateMediaType(value) == nil
-}
-
-func MediaTypeValidator(value string, errorReporter structure.ErrorReporter) {
-	errorReporter.ReportError(ValidateMediaType(value))
-}
-
-func ValidateMediaType(value string) error {
-	if value == "" {
-		return structureValidator.ErrorValueEmpty()
-	} else if _, _, err := mime.ParseMediaType(value); err != nil {
-		return ErrorValueStringAsMediaTypeNotValid(value)
-	} else if length := len(value); length > mediaTypeLengthMaximum {
-		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, mediaTypeLengthMaximum)
-	}
-	return nil
-}
-
-func NormalizeMediaType(value string) (string, bool) {
-	mediaType, parameters, err := mime.ParseMediaType(value)
-	if err != nil {
-		return "", false
-	}
-	result := mime.FormatMediaType(mediaType, parameters)
-	if result == "" {
-		return "", false
-	}
-	return result, true
-}
-
-func IsValidReverseDomain(value string) bool {
-	return ValidateReverseDomain(value) == nil
-}
 
 func ReverseDomainValidator(value string, errorReporter structure.ErrorReporter) {
 	errorReporter.ReportError(ValidateReverseDomain(value))
@@ -61,11 +25,6 @@ func ValidateReverseDomain(value string) error {
 	}
 	return nil
 }
-
-func IsValidSemanticVersion(value string) bool {
-	return ValidateSemanticVersion(value) == nil
-}
-
 func SemanticVersionValidator(value string, errorReporter structure.ErrorReporter) {
 	errorReporter.ReportError(ValidateSemanticVersion(value))
 }
@@ -79,10 +38,6 @@ func ValidateSemanticVersion(value string) error {
 		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, semanticVersionLengthMaximum)
 	}
 	return nil
-}
-
-func IsValidURL(value string) bool {
-	return ValidateURL(value) == nil
 }
 
 func URLValidator(value string, errorReporter structure.ErrorReporter) {
@@ -117,7 +72,6 @@ func ErrorValueStringAsURLNotValid(value string) error {
 }
 
 const (
-	mediaTypeLengthMaximum       = 256
 	reverseDomainLengthMaximum   = 253
 	semanticVersionLengthMaximum = 256
 	urlLengthMaximum             = 2047

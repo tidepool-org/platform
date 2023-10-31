@@ -15,7 +15,6 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	locationTest "github.com/tidepool-org/platform/location/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
@@ -52,7 +51,6 @@ var _ = Describe("Base", func() {
 			Expect(datum.DeviceTime).To(BeNil())
 			Expect(datum.GUID).To(BeNil())
 			Expect(datum.ID).To(BeNil())
-			Expect(datum.Location).To(BeNil())
 			Expect(datum.ModifiedTime).To(BeNil())
 			Expect(datum.ModifiedUserID).To(BeNil())
 			Expect(datum.Notes).To(BeNil())
@@ -455,22 +453,6 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) { datum.ID = pointer.FromString(dataTest.RandomID()) },
 					structure.Origins(),
 				),
-				Entry("location missing",
-					func(datum *types.Base) { datum.Location = nil },
-					structure.Origins(),
-				),
-				Entry("location invalid",
-					func(datum *types.Base) {
-						datum.Location.GPS = nil
-						datum.Location.Name = nil
-					},
-					structure.Origins(),
-					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("gps", "name"), "/location"),
-				),
-				Entry("location valid",
-					func(datum *types.Base) { datum.Location = locationTest.RandomLocation() },
-					structure.Origins(),
-				),
 				Entry("modified user id missing",
 					func(datum *types.Base) { datum.ModifiedUserID = nil },
 					structure.Origins(),
@@ -845,8 +827,6 @@ var _ = Describe("Base", func() {
 						datum.DeviceID = pointer.FromString("")
 						datum.DeviceTime = pointer.FromString("invalid")
 						datum.ID = pointer.FromString("")
-						datum.Location.GPS = nil
-						datum.Location.Name = nil
 						datum.Notes = pointer.FromStringArray([]string{})
 						datum.Origin.Name = pointer.FromString("")
 						datum.Source = pointer.FromString("invalid")
@@ -862,7 +842,6 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/deviceId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", "2006-01-02T15:04:05"), "/deviceTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("gps", "name"), "/location"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/notes"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/origin/name"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "carelink"), "/source"),

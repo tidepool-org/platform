@@ -83,7 +83,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with server details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken(), "patient")
 				})
 
 				It("responds successfully", func() {
@@ -95,7 +95,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken(), "patient")
 				})
 
 				It("responds successfully", func() {
@@ -146,7 +146,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with server details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken(), "patient")
 				})
 
 				It("responds successfully", func() {
@@ -158,7 +158,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken(), "patient")
 				})
 
 				It("responds with unauthorized error", func() {
@@ -211,7 +211,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with server details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, "", authTest.NewSessionToken(), "patient")
 				})
 
 				It("responds with unauthorized error", func() {
@@ -225,7 +225,7 @@ var _ = Describe("Auth", func() {
 
 			Context("with user details", func() {
 				BeforeEach(func() {
-					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+					details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken(), "patient")
 				})
 
 				It("responds successfully", func() {

@@ -1,4 +1,6 @@
-FROM golang:1.18-alpine AS builder
+FROM golang:1.20-alpine AS builder
+ARG GOPRIVATE
+ARG GITHUB_TOKEN
 ENV GO111MODULE=on
 ENV XDG_CACHE_HOME="/go/src/github.com/mdblp/.cache"
 WORKDIR /go/src/github.com/mdblp/
@@ -9,5 +11,6 @@ RUN apk --no-cache update && \
     adduser -D mdblp && \
     chown -R mdblp /go
 USER mdblp
+RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 COPY go.mod ./
 RUN go mod download

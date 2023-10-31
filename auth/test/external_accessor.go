@@ -17,8 +17,7 @@ type ValidateSessionTokenOutput struct {
 }
 
 type EnsureAuthorizedUserInput struct {
-	TargetUserID         string
-	AuthorizedPermission string
+	TargetUserID string
 }
 
 type EnsureAuthorizedUserOutput struct {
@@ -27,10 +26,6 @@ type EnsureAuthorizedUserOutput struct {
 }
 
 type ExternalAccessor struct {
-	ServerSessionTokenInvocations      int
-	ServerSessionTokenStub             func() (string, error)
-	ServerSessionTokenOutputs          []ServerSessionTokenOutput
-	ServerSessionTokenOutput           *ServerSessionTokenOutput
 	ValidateSessionTokenInvocations    int
 	ValidateSessionTokenInputs         []string
 	ValidateSessionTokenStub           func(ctx context.Context, token string) (request.Details, error)
@@ -46,29 +41,13 @@ type ExternalAccessor struct {
 	EnsureAuthorizedServiceOutput      *error
 	EnsureAuthorizedUserInvocations    int
 	EnsureAuthorizedUserInputs         []EnsureAuthorizedUserInput
-	EnsureAuthorizedUserStub           func(ctx context.Context, targetUserID string, authorizedPermission string) (string, error)
+	EnsureAuthorizedUserStub           func(ctx context.Context, targetUserID string) (string, error)
 	EnsureAuthorizedUserOutputs        []EnsureAuthorizedUserOutput
 	EnsureAuthorizedUserOutput         *EnsureAuthorizedUserOutput
 }
 
 func NewExternalAccessor() *ExternalAccessor {
 	return &ExternalAccessor{}
-}
-
-func (e *ExternalAccessor) ServerSessionToken() (string, error) {
-	e.ServerSessionTokenInvocations++
-	if e.ServerSessionTokenStub != nil {
-		return e.ServerSessionTokenStub()
-	}
-	if len(e.ServerSessionTokenOutputs) > 0 {
-		output := e.ServerSessionTokenOutputs[0]
-		e.ServerSessionTokenOutputs = e.ServerSessionTokenOutputs[1:]
-		return output.Token, output.Error
-	}
-	if e.ServerSessionTokenOutput != nil {
-		return e.ServerSessionTokenOutput.Token, e.ServerSessionTokenOutput.Error
-	}
-	panic("ServerSessionToken has no output")
 }
 
 func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
@@ -88,59 +67,7 @@ func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token strin
 	panic("ValidateSessionToken has no output")
 }
 
-func (e *ExternalAccessor) EnsureAuthorized(ctx context.Context) error {
-	e.EnsureAuthorizedInvocations++
-	if e.EnsureAuthorizedStub != nil {
-		return e.EnsureAuthorizedStub(ctx)
-	}
-	if len(e.EnsureAuthorizedOutputs) > 0 {
-		output := e.EnsureAuthorizedOutputs[0]
-		e.EnsureAuthorizedOutputs = e.EnsureAuthorizedOutputs[1:]
-		return output
-	}
-	if e.EnsureAuthorizedOutput != nil {
-		return *e.EnsureAuthorizedOutput
-	}
-	panic("EnsureAuthorized has no output")
-}
-
-func (e *ExternalAccessor) EnsureAuthorizedService(ctx context.Context) error {
-	e.EnsureAuthorizedServiceInvocations++
-	if e.EnsureAuthorizedServiceStub != nil {
-		return e.EnsureAuthorizedServiceStub(ctx)
-	}
-	if len(e.EnsureAuthorizedServiceOutputs) > 0 {
-		output := e.EnsureAuthorizedServiceOutputs[0]
-		e.EnsureAuthorizedServiceOutputs = e.EnsureAuthorizedServiceOutputs[1:]
-		return output
-	}
-	if e.EnsureAuthorizedServiceOutput != nil {
-		return *e.EnsureAuthorizedServiceOutput
-	}
-	panic("EnsureAuthorizedService has no output")
-}
-
-func (e *ExternalAccessor) EnsureAuthorizedUser(ctx context.Context, targetUserID string, authorizedPermission string) (string, error) {
-	e.EnsureAuthorizedUserInvocations++
-	e.EnsureAuthorizedUserInputs = append(e.EnsureAuthorizedUserInputs, EnsureAuthorizedUserInput{TargetUserID: targetUserID, AuthorizedPermission: authorizedPermission})
-	if e.EnsureAuthorizedUserStub != nil {
-		return e.EnsureAuthorizedUserStub(ctx, targetUserID, authorizedPermission)
-	}
-	if len(e.EnsureAuthorizedUserOutputs) > 0 {
-		output := e.EnsureAuthorizedUserOutputs[0]
-		e.EnsureAuthorizedUserOutputs = e.EnsureAuthorizedUserOutputs[1:]
-		return output.AuthorizedUserID, output.Error
-	}
-	if e.EnsureAuthorizedUserOutput != nil {
-		return e.EnsureAuthorizedUserOutput.AuthorizedUserID, e.EnsureAuthorizedUserOutput.Error
-	}
-	panic("EnsureAuthorizedUser has no output")
-}
-
 func (e *ExternalAccessor) AssertOutputsEmpty() {
-	if len(e.ServerSessionTokenOutputs) > 0 {
-		panic("ServerSessionTokenOutputs is not empty")
-	}
 	if len(e.ValidateSessionTokenOutputs) > 0 {
 		panic("ValidateSessionTokenOutputs is not empty")
 	}

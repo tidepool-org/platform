@@ -33,7 +33,7 @@ var _ = Describe("Request", func() {
 				},
 			}
 			logger = logNull.NewLogger()
-			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken(), "patient")
 			req = testRest.NewRequest()
 			req.Env["ERRORS"] = errs
 			req.Env["LOGGER"] = logger
@@ -159,7 +159,7 @@ var _ = Describe("Request", func() {
 			var newDetails request.Details
 
 			BeforeEach(func() {
-				newDetails = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+				newDetails = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken(), "patient")
 			})
 
 			It("successfully sets the auth details", func() {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"net/http"
@@ -25,6 +26,19 @@ type Auth struct {
 	serviceSecret  string
 	authClient     auth.Client
 	tokenValidator *validator.Validator
+}
+
+type OAuthCustomClaims struct {
+	Scope    string   `json:"scope"`
+	Roles    []string `json:"http://your-loops.com/roles"`
+	IsServer bool     `json:"isServer"`
+}
+
+func (c OAuthCustomClaims) Validate(ctx context.Context) error {
+	if len(c.Roles) == 0 {
+		return errors.New("Roles not set in the access token")
+	}
+	return nil
 }
 
 func NewAuth(serviceSecret string, authClient auth.Client) (*Auth, error) {
@@ -55,12 +69,6 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 			}()
 
 			lgr := log.LoggerFromContext(req.Context())
-
-			if serverSessionToken, err := a.authClient.ServerSessionToken(); err == nil {
-				req.Request = req.WithContext(auth.NewContextWithServerSessionToken(req.Context(), serverSessionToken))
-			} else {
-				lgr.WithError(err).Warn("Unable to obtain server session token in auth middleware")
-			}
 
 			if details, err := a.authenticate(req); err != nil {
 				// TODO: Sleep exponential fallback based upon IP and occurrences in period
@@ -115,7 +123,7 @@ func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, er
 		return nil, request.ErrorUnauthorized()
 	}
 
-	return request.NewDetails(request.MethodServiceSecret, "", ""), nil
+	return request.NewDetails(request.MethodServiceSecret, "", "", "server"), nil
 }
 
 func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, error) {
@@ -141,8 +149,8 @@ func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, erro
 		parsedToken = t.(*validator.ValidatedClaims)
 	}
 	uid := strings.Split(parsedToken.RegisteredClaims.Subject, "|")[1]
-
-	return request.NewDetails(request.MethodAccessToken, uid, parts[1]), nil
+	customClaims := parsedToken.CustomClaims.(*OAuthCustomClaims)
+	return request.NewDetails(request.MethodAccessToken, uid, parts[1], customClaims.Roles[0]), nil
 }
 
 func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, error) {
@@ -184,6 +192,11 @@ func setupAuth0() (*validator.Validator, error) {
 		validator.RS256,
 		issuerURL.String(),
 		targetAudience,
+		validator.WithCustomClaims(
+			func() validator.CustomClaims {
+				return &OAuthCustomClaims{}
+			},
+		),
 		validator.WithAllowedClockSkew(time.Minute),
 	)
 	if err != nil {

@@ -13,16 +13,16 @@ import (
 	serviceService "github.com/tidepool-org/platform/service/service"
 )
 
-var _ = Describe("DEPRECATEDService", func() {
-	Context("NewDEPRECATEDService", func() {
+var _ = Describe("Service", func() {
+	Context("NewService", func() {
 		It("returns successfully", func() {
-			Expect(serviceService.NewDEPRECATEDService()).ToNot(BeNil())
+			Expect(serviceService.NewService()).ToNot(BeNil())
 		})
 	})
 
 	Context("with started server, config reporter, and new service", func() {
 		var provider *applicationTest.Provider
-		var svc *serviceService.DEPRECATEDService
+		var svc *serviceService.Service
 		var serverSecret string
 		var sessionToken string
 		var server *Server
@@ -63,7 +63,7 @@ var _ = Describe("DEPRECATEDService", func() {
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = serviceConfig
 
-			svc = serviceService.NewDEPRECATEDService()
+			svc = serviceService.NewService()
 			Expect(svc).ToNot(BeNil())
 		})
 
@@ -87,11 +87,6 @@ var _ = Describe("DEPRECATEDService", func() {
 				It("returns an error when the secret is missing", func() {
 					delete(serviceConfig, "secret")
 					Expect(svc.Initialize(provider)).To(MatchError("secret is missing"))
-				})
-
-				It("returns an error when the auth client cannot be initialized", func() {
-					delete(authClientConfig, "address")
-					Expect(svc.Initialize(provider)).To(MatchError("unable to create auth client; config is invalid; address is missing"))
 				})
 
 				It("returns successfully", func() {
@@ -120,7 +115,6 @@ var _ = Describe("DEPRECATEDService", func() {
 					It("returns successfully with server token", func() {
 						authClient := svc.AuthClient()
 						Expect(authClient).ToNot(BeNil())
-						Eventually(authClient.ServerSessionToken).Should(Equal(sessionToken))
 					})
 				})
 			})

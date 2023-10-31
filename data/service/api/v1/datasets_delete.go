@@ -71,28 +71,15 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 	}
 
 	// Read delete options (remove dataset entry ?):
-	var jsonParams map[string]interface{}
+	var jsonParams dataSetsDeleteParams
 	doPurge := false
-	if err := req.DecodeJsonPayload(&jsonParams); err != nil {
-		jsonParams = nil
-	} else {
-		purge, havePurgeOption := jsonParams["purge"]
-		doPurge = havePurgeOption && purge == true
+	if err := req.DecodeJsonPayload(&jsonParams); err == nil {
+		doPurge = jsonParams.Purge
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
+	if err = dataServiceContext.DataRepository().DeleteDataSet(ctx, dataSet, doPurge); err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to delete data", err)
 		return
-	} else if deduplicator == nil {
-		if err = dataServiceContext.DataRepository().DeleteDataSet(ctx, dataSet, doPurge); err != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to delete data set", err)
-			return
-		}
-	} else {
-		if err = deduplicator.Delete(ctx, dataServiceContext.DataRepository(), dataSet, doPurge); err != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to delete", err)
-			return
-		}
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, struct{}{})

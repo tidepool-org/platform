@@ -5,22 +5,21 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/platform"
 )
 
-type DEPRECATEDService struct {
+type Service struct {
 	*application.Application
 	secret     string
 	authClient *authClient.Client
 }
 
-func NewDEPRECATEDService() *DEPRECATEDService {
-	return &DEPRECATEDService{
+func NewService() *Service {
+	return &Service{
 		Application: application.New(),
 	}
 }
 
-func (d *DEPRECATEDService) Initialize(provider application.Provider) error {
+func (d *Service) Initialize(provider application.Provider) error {
 	if err := d.Application.Initialize(provider); err != nil {
 		return err
 	}
@@ -31,9 +30,8 @@ func (d *DEPRECATEDService) Initialize(provider application.Provider) error {
 	return d.initializeAuthClient()
 }
 
-func (d *DEPRECATEDService) Terminate() {
+func (d *Service) Terminate() {
 	if d.authClient != nil {
-		d.authClient.Close()
 		d.authClient = nil
 	}
 	d.secret = ""
@@ -41,15 +39,15 @@ func (d *DEPRECATEDService) Terminate() {
 	d.Application.Terminate()
 }
 
-func (d *DEPRECATEDService) Secret() string {
+func (d *Service) Secret() string {
 	return d.secret
 }
 
-func (d *DEPRECATEDService) AuthClient() auth.Client {
+func (d *Service) AuthClient() auth.Client {
 	return d.authClient
 }
 
-func (d *DEPRECATEDService) initializeSecret() error {
+func (d *Service) initializeSecret() error {
 	d.Logger().Debug("Initializing secret")
 
 	secret := d.ConfigReporter().GetWithDefault("secret", "")
@@ -61,31 +59,25 @@ func (d *DEPRECATEDService) initializeSecret() error {
 	return nil
 }
 
-func (d *DEPRECATEDService) initializeAuthClient() error {
+func (d *Service) initializeAuthClient() error {
 	d.Logger().Debug("Loading auth client config")
 
 	userAgent := d.UserAgent()
 	cfg := authClient.NewConfig()
-	cfg.UserAgent = userAgent
-	cfg.ExternalConfig.AuthenticationConfig.UserAgent = d.UserAgent()
-	cfg.ExternalConfig.AuthorizationConfig.UserAgent = d.UserAgent()
+	cfg.ExternalConfig.AuthenticationConfig.UserAgent = userAgent
 	if err := cfg.Load(d.ConfigReporter().WithScopes("auth", "client")); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 
 	d.Logger().Debug("Creating auth client")
 
-	clnt, err := authClient.NewClient(cfg, platform.AuthorizeAsService, d.Name(), d.Logger())
+	clnt, err := authClient.NewClient(cfg, d.Name(), d.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth client")
 	}
 	d.authClient = clnt
 
 	d.Logger().Debug("Starting auth client")
-
-	if err = d.authClient.Start(); err != nil {
-		return errors.Wrap(err, "unable to start auth client")
-	}
 
 	return nil
 }

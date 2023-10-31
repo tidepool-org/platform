@@ -1,7 +1,9 @@
 # Platform 
 The data platform API
 
-## 0.23.0-RC1 - 2023-10-17
+## 0.23.0-RC3 - 2023-10-20
+### Changed
+YLP-2623 Remove uploadId check in data crreation
 ### Engineering
 - YLP-2588 push bolus in bucket store
 

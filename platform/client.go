@@ -2,11 +2,9 @@ package platform
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
@@ -73,8 +71,6 @@ func (c *Client) Mutators(ctx context.Context) ([]request.RequestMutator, error)
 	if c.IsAuthorizeAsService() {
 		if c.serviceSecret != "" {
 			authorizationMutator = NewServiceSecretHeaderMutator(c.serviceSecret)
-		} else if serverSessionToken := auth.ServerSessionTokenFromContext(ctx); serverSessionToken != "" {
-			authorizationMutator = NewSessionTokenHeaderMutator(serverSessionToken)
 		} else {
 			return nil, errors.New("service secret is missing")
 		}
@@ -92,20 +88,11 @@ func (c *Client) HTTPClient() *http.Client {
 	return c.httpClient
 }
 
-func (c *Client) RequestStream(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, inspectors ...request.ResponseInspector) (io.ReadCloser, error) {
-	clientMutators, err := c.Mutators(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.RequestStreamWithHTTPClient(ctx, method, url, append(mutators, clientMutators...), requestBody, inspectors, c.HTTPClient())
-}
-
-func (c *Client) RequestData(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors ...request.ResponseInspector) error {
+func (c *Client) RequestData(ctx context.Context, method string, url string, requestBody interface{}, responseBody interface{}, inspectors ...request.ResponseInspector) error {
 	clientMutators, err := c.Mutators(ctx)
 	if err != nil {
 		return err
 	}
-
-	return c.RequestDataWithHTTPClient(ctx, method, url, append(mutators, clientMutators...), requestBody, responseBody, inspectors, c.HTTPClient())
+	err = c.RequestDataWithHTTPClient(ctx, method, url, clientMutators, requestBody, responseBody, inspectors, c.HTTPClient())
+	return err
 }

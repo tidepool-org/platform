@@ -7,7 +7,9 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
+	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -44,17 +46,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
-	if err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
-		return
-	}
-	if dataSet == nil {
-		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
-		return
-	}
-
-	permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(req, *dataSet.UserID)
+	permissions, tokenUserId, err := dataServiceContext.PermissionClient().GetPatientPermissions(req)
 	if err != nil {
 		if request.IsErrorUnauthorized(err) {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -68,9 +60,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if (dataSet.State != nil && *dataSet.State == "closed") || (dataSet.DataState != nil && *dataSet.DataState == "closed") { // TODO: Deprecated DataState (after data migration)
-		dataServiceContext.RespondWithError(ErrorDataSetClosed(dataSetID))
-		return
+	dataSet := &upload.Upload{
+		Base: types.Base{
+			UserID:   &tokenUserId,
+			UploadID: &dataSetID,
+		},
 	}
 
 	var rawDatumArray []interface{}
@@ -114,17 +108,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	datumArray = append(datumArray, normalizer.Data()...)
 
 	for _, datum := range datumArray {
-		datum.SetUserID(dataSet.UserID)
-		datum.SetDataSetID(dataSet.UploadID)
+		datum.SetUserID(&tokenUserId)
+		datum.SetDataSetID(&dataSetID)
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
-		return
-	} else if deduplicator == nil {
-		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
-		return
-	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataRepository(), dataSet, datumArray); err != nil { // write in DB
+	if err = dataServiceContext.DataRepository().CreateDataSetData(ctx, dataSet, datumArray); err != nil { // write in DB
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
 	}

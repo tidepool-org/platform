@@ -2,7 +2,6 @@ package platform_test
 
 import (
 	"context"
-	"io"
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
@@ -119,24 +118,6 @@ var _ = Describe("Client", func() {
 						serviceSecret = ""
 					})
 
-					Context("with server session token", func() {
-						var sessionToken string
-
-						BeforeEach(func() {
-							sessionToken = authTest.NewSessionToken()
-							ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
-						})
-
-						It("returns the expected mutators", func() {
-							mutators, err := clnt.Mutators(ctx)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(mutators).To(ConsistOf(
-								platform.NewSessionTokenHeaderMutator(sessionToken),
-								platform.NewTraceMutator(ctx),
-							))
-						})
-					})
-
 					It("returns an error", func() {
 						mutators, err := clnt.Mutators(ctx)
 						Expect(err).To(MatchError("service secret is missing"))
@@ -171,99 +152,19 @@ var _ = Describe("Client", func() {
 					}
 				})
 
-				Context("RequestStream", func() {
-					var reader io.ReadCloser
-					var err error
-
-					AfterEach(func() {
-						if reader != nil {
-							reader.Close()
-						}
-					})
-
-					It("returns error if context is missing", func() {
-						reader, err = clnt.RequestStream(nil, method, url, nil, nil)
-						Expect(err).To(MatchError("context is missing"))
-						Expect(reader).To(BeNil())
-						Expect(server.ReceivedRequests()).To(BeEmpty())
-					})
-
-					It("returns error if method is missing", func() {
-						reader, err = clnt.RequestStream(ctx, "", url, nil, nil)
-						Expect(err).To(MatchError("method is missing"))
-						Expect(reader).To(BeNil())
-						Expect(server.ReceivedRequests()).To(BeEmpty())
-					})
-
-					It("returns error if url is missing", func() {
-						reader, err = clnt.RequestStream(ctx, method, "", nil, nil)
-						Expect(err).To(MatchError("url is missing"))
-						Expect(reader).To(BeNil())
-						Expect(server.ReceivedRequests()).To(BeEmpty())
-					})
-
-					Context("with a successful response 200", func() {
-						BeforeEach(func() {
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest(method, path),
-									VerifyHeaderKV("User-Agent", userAgent),
-									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
-									VerifyBody(nil),
-									RespondWith(http.StatusOK, nil)),
-							)
-						})
-
-						It("returns success", func() {
-							reader, err = clnt.RequestStream(ctx, method, url, nil, nil)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(reader).ToNot(BeNil())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
-					})
-
-					Context("with a successful response 200 with additional mutators and inspectors", func() {
-						var headerKey string
-						var headerValue string
-
-						BeforeEach(func() {
-							headerKey = testHttp.NewHeaderKey()
-							headerValue = testHttp.NewHeaderValue()
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest(method, path),
-									VerifyHeaderKV("User-Agent", userAgent),
-									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
-									VerifyHeaderKV(headerKey, headerValue),
-									VerifyBody(nil),
-									RespondWith(http.StatusOK, nil)),
-							)
-						})
-
-						It("returns success", func() {
-							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
-							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(reader).ToNot(BeNil())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
-					})
-				})
-
 				Context("RequestData", func() {
 					It("returns error if context is missing", func() {
-						Expect(clnt.RequestData(nil, method, url, nil, nil, nil)).To(MatchError("context is missing"))
+						Expect(clnt.RequestData(nil, method, url, nil, nil)).To(MatchError("context is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error if method is missing", func() {
-						Expect(clnt.RequestData(ctx, "", url, nil, nil, nil)).To(MatchError("method is missing"))
+						Expect(clnt.RequestData(ctx, "", url, nil, nil)).To(MatchError("method is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error if url is missing", func() {
-						Expect(clnt.RequestData(ctx, method, "", nil, nil, nil)).To(MatchError("url is missing"))
+						Expect(clnt.RequestData(ctx, method, "", nil, nil)).To(MatchError("url is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
@@ -280,33 +181,27 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.RequestData(ctx, method, url, nil, nil, nil)).To(Succeed())
+							Expect(clnt.RequestData(ctx, method, url, nil, nil)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
 
-					Context("with a successful response 200 with additional mutators and inspectors", func() {
-						var headerKey string
-						var headerValue string
-
+					Context("with a successful response 200 with additional inspectors", func() {
 						BeforeEach(func() {
-							headerKey = testHttp.NewHeaderKey()
-							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
-									VerifyHeaderKV(headerKey, headerValue),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, nil)),
 							)
 						})
 
 						It("returns success", func() {
-							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
 							inspector := request.NewHeadersInspector()
-							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
+							Expect(clnt.RequestData(ctx, method, url, nil, nil, inspector)).To(Succeed())
+
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -321,7 +216,11 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				serviceSecret = ""
 				sessionToken = authTest.NewSessionToken()
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
+				ctx = request.NewContextWithDetails(ctx, request.NewDetails(
+					request.MethodSessionToken,
+					test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric),
+					sessionToken, "patient"),
+				)
 			})
 
 			JustBeforeEach(func() {
@@ -386,99 +285,19 @@ var _ = Describe("Client", func() {
 					}
 				})
 
-				Context("RequestStream", func() {
-					var reader io.ReadCloser
-					var err error
-
-					AfterEach(func() {
-						if reader != nil {
-							reader.Close()
-						}
-					})
-
-					It("returns error if context is missing", func() {
-						reader, err = clnt.RequestStream(nil, method, url, nil, nil)
-						Expect(err).To(MatchError("context is missing"))
-						Expect(reader).To(BeNil())
-						Expect(server.ReceivedRequests()).To(BeEmpty())
-					})
-
-					It("returns error if method is missing", func() {
-						reader, err = clnt.RequestStream(ctx, "", url, nil, nil)
-						Expect(err).To(MatchError("method is missing"))
-						Expect(reader).To(BeNil())
-						Expect(server.ReceivedRequests()).To(BeEmpty())
-					})
-
-					It("returns error if url is missing", func() {
-						reader, err = clnt.RequestStream(ctx, method, "", nil, nil)
-						Expect(err).To(MatchError("url is missing"))
-						Expect(reader).To(BeNil())
-						Expect(server.ReceivedRequests()).To(BeEmpty())
-					})
-
-					Context("with a successful response 200", func() {
-						BeforeEach(func() {
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest(method, path),
-									VerifyHeaderKV("User-Agent", userAgent),
-									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
-									VerifyBody(nil),
-									RespondWith(http.StatusOK, nil)),
-							)
-						})
-
-						It("returns success", func() {
-							reader, err = clnt.RequestStream(ctx, method, url, nil, nil)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(reader).ToNot(BeNil())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
-					})
-
-					Context("with a successful response 200 with additional mutators and inspectors", func() {
-						var headerKey string
-						var headerValue string
-
-						BeforeEach(func() {
-							headerKey = testHttp.NewHeaderKey()
-							headerValue = testHttp.NewHeaderValue()
-							server.AppendHandlers(
-								CombineHandlers(
-									VerifyRequest(method, path),
-									VerifyHeaderKV("User-Agent", userAgent),
-									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
-									VerifyHeaderKV(headerKey, headerValue),
-									VerifyBody(nil),
-									RespondWith(http.StatusOK, nil)),
-							)
-						})
-
-						It("returns success", func() {
-							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
-							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
-							Expect(err).ToNot(HaveOccurred())
-							Expect(reader).ToNot(BeNil())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
-						})
-					})
-				})
-
 				Context("RequestData", func() {
 					It("returns error if context is missing", func() {
-						Expect(clnt.RequestData(nil, method, url, nil, nil, nil)).To(MatchError("context is missing"))
+						Expect(clnt.RequestData(nil, method, url, nil, nil)).To(MatchError("context is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error if method is missing", func() {
-						Expect(clnt.RequestData(ctx, "", url, nil, nil, nil)).To(MatchError("method is missing"))
+						Expect(clnt.RequestData(ctx, "", url, nil, nil)).To(MatchError("method is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error if url is missing", func() {
-						Expect(clnt.RequestData(ctx, method, "", nil, nil, nil)).To(MatchError("url is missing"))
+						Expect(clnt.RequestData(ctx, method, "", nil, nil)).To(MatchError("url is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
@@ -495,33 +314,26 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.RequestData(ctx, method, url, nil, nil, nil)).To(Succeed())
+							Expect(clnt.RequestData(ctx, method, url, nil, nil)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
 
-					Context("with a successful response 200 with additional mutators and inspectors", func() {
-						var headerKey string
-						var headerValue string
-
+					Context("with a successful response 200 with additional inspector", func() {
 						BeforeEach(func() {
-							headerKey = testHttp.NewHeaderKey()
-							headerValue = testHttp.NewHeaderValue()
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path),
 									VerifyHeaderKV("User-Agent", userAgent),
 									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
-									VerifyHeaderKV(headerKey, headerValue),
 									VerifyBody(nil),
 									RespondWith(http.StatusOK, nil)),
 							)
 						})
 
 						It("returns success", func() {
-							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
 							inspector := request.NewHeadersInspector()
-							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
+							Expect(clnt.RequestData(ctx, method, url, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})

@@ -13,7 +13,12 @@ pipeline {
                         // git commit id must be a 40 characters length string (lower case or digits)
                         env.GIT_COMMIT = "f".multiply(40)
                     }
-                    builderImage = docker.build('go-build-image','-f ./Dockerfile.build .')
+                    withCredentials ([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                        builderImage = docker.build(
+                            'go-build-image',
+                            '-f ./Dockerfile.build --build-arg="GITHUB_TOKEN=${GITHUB_TOKEN}" --build-arg="GOPRIVATE=github.com/mdblp/*" .'
+                        )
+                    }
                     env.RUN_ID = UUID.randomUUID().toString()
                     docker.image('docker.ci.diabeloop.eu/ci-toolbox').inside() {
                         env.version = sh (
@@ -65,7 +70,9 @@ pipeline {
         }
         stage('Package') {
             steps {
-                pack()
+                 withCredentials ([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    pack()
+                 }
             }
         }
 
@@ -93,7 +100,9 @@ pipeline {
         stage('Publish') {
             when { branch "dblp" }
             steps {
-                publish()
+                withCredentials ([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    publish()
+                }
             }
         }
     }

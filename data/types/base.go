@@ -7,7 +7,6 @@ import (
 	"github.com/tidepool-org/platform/association"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/location"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/pointer"
@@ -53,7 +52,6 @@ type Base struct {
 	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
 	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
 	InternalID        string                        `json:"-" bson:"internalId,omitempty"`
-	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
 	ModifiedTime      *string                       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
@@ -99,7 +97,6 @@ func (b *Base) Parse(parser structure.ObjectParser) {
 	if b.GUID == nil || *b.GUID == "" {
 		b.GUID = parser.String("eventId")
 	}
-	b.Location = location.ParseLocation(parser.WithReferenceObjectParser("location"))
 	b.Notes = parser.StringArray("notes")
 	b.Origin = origin.ParseOrigin(parser.WithReferenceObjectParser("origin"))
 	b.Payload = metadata.ParseMetadata(parser.WithReferenceObjectParser("payload"))
@@ -170,10 +167,6 @@ func (b *Base) Validate(validator structure.Validator) {
 	validator.String("id", b.ID).Using(data.IDValidator)
 	if validator.Origin() <= structure.OriginInternal {
 		validator.String("id", b.ID).Exists()
-	}
-
-	if b.Location != nil {
-		b.Location.Validate(validator.WithReference("location"))
 	}
 
 	if validator.Origin() <= structure.OriginInternal {

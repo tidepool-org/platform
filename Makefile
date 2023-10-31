@@ -182,54 +182,10 @@ test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
 
-test-until-failure: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)
-
-test-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
-
 ci-test: ginkgo
 	@echo "ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -failOnPending -race -timeout=8m --reportFile=junit-report/report.xml $(TEST)
 
-snyk-test:
-	@echo "snyk test --dev --org=tidepool"
-	@cd $(ROOT_DIRECTORY) && snyk test --dev --org=tidepool
-
-snyk-monitor:
-	@echo "snyk monitor --org=tidepool"
-	@cd $(ROOT_DIRECTORY) && snyk monitor --org=tidepool
-
-ci-snyk: snyk-test snyk-monitor
-
-ci-test-until-failure: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)
-
-ci-test-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)
-
-deploy: clean-deploy deploy-services deploy-migrations deploy-tools
-
-deploy-services:
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
-endif
-
-deploy-migrations:
-ifdef TRAVIS_TAG
-	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
-endif
-
-deploy-tools:
-ifdef TRAVIS_TAG
-	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
-endif
-
-ci-deploy: deploy
 
 ci-soups: clean-soup-doc generate-soups
 
@@ -244,100 +200,6 @@ service-soup:
 		mkdir -p $(ROOT_DIRECTORY)/${TARGET}/${SERVICE} && \
 		mv soup.md $(ROOT_DIRECTORY)/${TARGET}/${SERVICE}/${SERVICE}-${VERSION}-soup.md
 
-bundle-deploy:
-ifdef DEPLOY
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && \
-		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
-		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
-		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
-		cp -R _bin/$(SOURCE)/* $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
-		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
-		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
-		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
-endif
-endif
-
-docker:
-ifdef DOCKER
-	@echo "Login to Docker Default registry..."
-	@echo $(DOCKER_PASSWORD) | docker login --username "$(DOCKER_USERNAME)" --password-stdin $(DOCKER_REGISTRY)
-ifdef OPS_DOCKER_REPOSITORY
-	@echo "Login to Docker Ops registry..."
-	@echo $(OPS_DOCKER_PASSWORD) | docker login --username "$(OPS_DOCKER_USERNAME)" --password-stdin $(OPS_DOCKER_REGISTRY)
-endif
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; $(MAKE) docker-scan DOCKER_FILE="$${DOCKER_FILE}"; done
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
-endif
-
-docker-build:
-ifdef DOCKER
-ifdef DOCKER_FILE
-	docker build --tag $(DOCKER_REPOSITORY):development --target=development --file "$(DOCKER_FILE)" .
-	docker build --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
-ifdef TRAVIS_BRANCH
-ifdef TRAVIS_COMMIT
-ifdef TRAVIS_PULL_REQUEST_BRANCH
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-else
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
-endif
-endif
-endif
-ifdef TRAVIS_TAG
-	docker tag "$(DOCKER_REPOSITORY)" "$(DOCKER_REPOSITORY):$(VERSION)"
-ifdef OPS_DOCKER_REPOSITORY
-	docker tag "$(DOCKER_REPOSITORY)" "$(OPS_DOCKER_REPOSITORY):$(VERSION)"
-endif
-endif
-endif
-endif
-
-docker-scan:
-	@echo "Security scan using Trivy container"
-	@echo "Scan Image $(DOCKER_REPOSITORY)"
-	@TRIVY_VERSION=$(shell curl --silent "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/') && \
-		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:$${TRIVY_VERSION} image --exit-code 0 --severity MEDIUM,LOW,UNKNOWN $(DOCKER_REPOSITORY) && \
-		docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:$${TRIVY_VERSION} image --exit-code 1 --severity CRITICAL,HIGH $(DOCKER_REPOSITORY)
-
-docker-push:
-ifdef DOCKER
-	@echo "DOCKER_REPOSITORY = $(DOCKER_REPOSITORY)"
-	@echo "OPS_DOCKER_REPOSITORY = $(OPS_DOCKER_REPOSITORY)"
-	@echo "TRAVIS_BRANCH = $(TRAVIS_BRANCH)"
-	@echo "TRAVIS_PULL_REQUEST_BRANCH = $(TRAVIS_PULL_REQUEST_BRANCH)"
-	@echo "TRAVIS_COMMIT = $(TRAVIS_COMMIT)"
-	@echo "TRAVIS_TAG= $(TRAVIS_TAG)"
-ifdef DOCKER_REPOSITORY
-ifeq ($(TRAVIS_BRANCH),dblp)
-ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
-	docker push $(DOCKER_REPOSITORY)
-endif
-endif
-ifdef TRAVIS_BRANCH
-ifdef TRAVIS_COMMIT
-ifdef TRAVIS_PULL_REQUEST_BRANCH
-	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-else
-	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
-endif
-endif
-endif
-ifdef TRAVIS_TAG
-	docker push "$(DOCKER_REPOSITORY):$(VERSION)"
-endif
-endif
-ifdef OPS_DOCKER_REPOSITORY
-ifdef TRAVIS_TAG
-	@echo "Pushing to Ops..."
-	docker push "$(OPS_DOCKER_REPOSITORY):$(VERSION)"
-endif
-endif
-endif
-
-ci-docker: docker
 
 clean: clean-bin clean-cover clean-debug clean-deploy
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
@@ -367,7 +229,5 @@ gopath-implode:
 .PHONY: default tmp bindir CompileDaemon esc ginkgo goimports golint buildable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
-	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
-	docker docker-build docker-push ci-docker docker-scan \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
 	gopath-implode

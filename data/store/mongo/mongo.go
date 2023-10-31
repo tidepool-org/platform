@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	goComMgo "github.com/mdblp/go-common/clients/mongo"
+	goComMgo "github.com/mdblp/go-db/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/schema"
@@ -131,7 +131,7 @@ func NewStores(cfg *storeStructuredMongo.Config, config *goComMgo.Config, lg *lo
 		return nil, err
 	}
 
-	bucketStore := &MongoBucketStoreClient{}
+	var bucketStore *MongoBucketStoreClient
 	bucketStore, err = NewMongoBucketStoreClient(config, lg, minimalYearSupportedForData)
 	if err != nil {
 		return nil, err
@@ -421,7 +421,6 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	var err error
 	var incomingUserMetadata *schema.Metadata
 	strUserId := *dataSet.UserID
-	uploadDeviceId := dataSet.DeviceID
 
 	for _, datum := range dataSetData {
 		datum.SetUserID(dataSet.UserID)
@@ -432,10 +431,6 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		writeToLegacy := d.isDatumToLegacy(datum)
 		guid := datum.GetGUID()
 		deviceId := datum.GetDeviceID()
-		if deviceId == nil {
-			deviceId = uploadDeviceId
-		}
-
 		/*If data type is in write to bucket ENV VAR, we write it to bucket*/
 		if writeToBucket {
 			// Prepare cbg to be pushed into data read db

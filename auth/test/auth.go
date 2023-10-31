@@ -17,3 +17,7 @@ func NewSessionToken() string {
 func NewRestrictedToken() string {
 	return test.RandomStringFromRangeAndCharset(40, 40, test.CharsetAlphaNumeric)
 }
+
+func NewRole() string {
+	return test.RandomStringFromRangeAndCharset(3, 10, test.CharsetAlphaNumeric)
+}

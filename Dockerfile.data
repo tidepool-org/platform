@@ -1,10 +1,12 @@
 # Development
-FROM --platform=$BUILDPLATFORM golang:1.15-alpine AS development
+FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS development
+ARG GOPRIVATE
+ARG GITHUB_TOKEN
 ENV GO111MODULE on
 WORKDIR /go/src/github.com/tidepool-org/platform
 RUN apk --no-cache add git make tzdata && \
-    apk add --no-cache ca-certificates tzdata && \
-    go get github.com/githubnemo/CompileDaemon && \
+    apk add --no-cache ca-certificates tzdata git && \
+    go install github.com/githubnemo/CompileDaemon@latest && \
     adduser -D tidepool && \
     chown -R tidepool /go/pkg/mod
 
@@ -15,6 +17,7 @@ USER tidepool
 ENV SERVICE=services/data
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
+RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 

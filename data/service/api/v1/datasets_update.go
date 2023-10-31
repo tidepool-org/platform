@@ -90,19 +90,5 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if update.State != nil && *update.State == "closed" {
-		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet)
-		if getErr != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
-			return
-		} else if deduplicator == nil {
-			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
-			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
-			return
-		}
-	}
-
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, dataSet)
 }

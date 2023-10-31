@@ -6,7 +6,6 @@ import (
 	associationTest "github.com/tidepool-org/platform/association/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
-	locationTest "github.com/tidepool-org/platform/location/test"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -44,7 +43,6 @@ func NewBase() *types.Base {
 	datum.DeviceTime = pointer.FromString(timeReference.In(zoneLoc).Format("2006-01-02T15:04:05"))
 	datum.GUID = pointer.FromString(dataTest.RandomID())
 	datum.ID = pointer.FromString(dataTest.RandomID())
-	datum.Location = locationTest.RandomLocation()
 	datum.ModifiedTime = pointer.FromString(modifiedTime.Format(time.RFC3339Nano))
 	datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
 	datum.Notes = pointer.FromStringArray([]string{NewNote(1, 20), NewNote(1, 20)})
@@ -83,7 +81,6 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.DeviceTime = pointer.CloneString(datum.DeviceTime)
 	clone.GUID = pointer.CloneString(datum.GUID)
 	clone.ID = pointer.CloneString(datum.ID)
-	clone.Location = locationTest.CloneLocation(datum.Location)
 	clone.ModifiedTime = pointer.CloneString(datum.ModifiedTime)
 	clone.ModifiedUserID = pointer.CloneString(datum.ModifiedUserID)
 	clone.Notes = pointer.CloneStringArray(datum.Notes)
