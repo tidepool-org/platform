@@ -6,6 +6,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
+
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -22,34 +24,6 @@ var _ = Describe("ScheduledAlert", func() {
 		Expect(dataTypesSettingsCgm.ScheduledAlertNameLengthMaximum).To(Equal(100))
 	})
 
-	It("ScheduledAlertDaysSunday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysSunday).To(Equal("sunday"))
-	})
-
-	It("ScheduledAlertDaysMonday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysMonday).To(Equal("monday"))
-	})
-
-	It("ScheduledAlertDaysTuesday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysTuesday).To(Equal("tuesday"))
-	})
-
-	It("ScheduledAlertDaysWednesday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysWednesday).To(Equal("wednesday"))
-	})
-
-	It("ScheduledAlertDaysThursday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysThursday).To(Equal("thursday"))
-	})
-
-	It("ScheduledAlertDaysFriday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysFriday).To(Equal("friday"))
-	})
-
-	It("ScheduledAlertDaysSaturday is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDaysSaturday).To(Equal("saturday"))
-	})
-
 	It("ScheduledAlertStartMaximum is expected", func() {
 		Expect(dataTypesSettingsCgm.ScheduledAlertStartMaximum).To(Equal(86400000))
 	})
@@ -64,10 +38,6 @@ var _ = Describe("ScheduledAlert", func() {
 
 	It("ScheduledAlertEndMinimum is expected", func() {
 		Expect(dataTypesSettingsCgm.ScheduledAlertEndMinimum).To(Equal(0))
-	})
-
-	It("ScheduledAlertDays returns expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertDays()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
 	})
 
 	Context("ParseScheduledAlerts", func() {
@@ -205,20 +175,20 @@ var _ = Describe("ScheduledAlert", func() {
 				),
 				Entry("days contains invalid",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {
-						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesSettingsCgm.ScheduledAlertDays())-1, dataTypesSettingsCgm.ScheduledAlertDays())...))
+						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesCommon.Days())-1, dataTypesCommon.Days())...))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}), "/days/0"),
 				),
 				Entry("days contains duplicate",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {
-						duplicate := test.RandomStringFromArray(dataTypesSettingsCgm.ScheduledAlertDays())
+						duplicate := test.RandomStringFromArray(dataTypesCommon.Days())
 						datum.Days = pointer.FromStringArray([]string{duplicate, duplicate})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/days/1"),
 				),
 				Entry("days valid",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {
-						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesSettingsCgm.ScheduledAlertDays()), dataTypesSettingsCgm.ScheduledAlertDays()))
+						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.Days()), dataTypesCommon.Days()))
 					},
 				),
 				Entry("start missing",

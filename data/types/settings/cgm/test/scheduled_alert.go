@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/tidepool-org/platform/data/types/common"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -39,7 +40,7 @@ func NewArrayFromScheduledAlerts(datum *dataTypesSettingsCgm.ScheduledAlerts, ob
 func RandomScheduledAlert() *dataTypesSettingsCgm.ScheduledAlert {
 	datum := dataTypesSettingsCgm.NewScheduledAlert()
 	datum.Name = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.ScheduledAlertNameLengthMaximum))
-	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesSettingsCgm.ScheduledAlertDays()), dataTypesSettingsCgm.ScheduledAlertDays()))
+	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(common.Days()), common.Days()))
 	datum.Start = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsCgm.ScheduledAlertStartMinimum, dataTypesSettingsCgm.ScheduledAlertStartMaximum))
 	datum.End = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsCgm.ScheduledAlertEndMinimum, dataTypesSettingsCgm.ScheduledAlertEndMaximum))
 	datum.Alerts = RandomAlerts()
