@@ -1,8 +1,11 @@
 package pump
 
 import (
+	"strconv"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type Bolus struct {
@@ -51,5 +54,37 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	}
 	if b.Extended != nil {
 		b.Extended.Normalize(normalizer.WithReference("extended"))
+	}
+}
+
+type Boluses []*Bolus
+
+func ParseBoluses(parser structure.ArrayParser) *Boluses {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewBoluses()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewBoluses() *Boluses {
+	return &Boluses{}
+}
+
+func (b *Boluses) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*b = append(*b, ParseBolus(parser.WithReferenceObjectParser(reference)))
+	}
+}
+
+func (b *Boluses) Validate(validator structure.Validator) {
+
+	for index, datum := range *b {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
+			datum.Validate(datumValidator)
+		} else {
+			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
 	}
 }
