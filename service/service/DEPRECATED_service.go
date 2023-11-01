@@ -67,7 +67,11 @@ func (d *DEPRECATEDService) initializeAuthClient() error {
 	cfg := authClient.NewConfig()
 	cfg.UserAgent = d.UserAgent()
 	cfg.ExternalConfig.UserAgent = d.UserAgent()
-	if err := cfg.Load(d.ConfigReporter().WithScopes("auth", "client")); err != nil {
+	reporter := d.ConfigReporter().WithScopes("auth", "client")
+	ext := authClient.NewExternalConfigReporterLoader(reporter.WithScopes("external"))
+	plt := platform.NewConfigReporterLoader(reporter)
+	loader := authClient.NewConfigLoader(ext, plt)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 

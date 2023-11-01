@@ -9,7 +9,10 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/kelseyhightower/envconfig"
+
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -26,10 +29,10 @@ const (
 	ServerSessionTokenTimeoutOnFailureLast  = 60 * time.Second
 )
 
-var ExternalClientModule = fx.Provide(func(name ServiceName, reporter config.Reporter, logger log.Logger, lifecycle fx.Lifecycle) (auth.ExternalAccessor, error) {
+var ExternalClientModule = fx.Provide(func(name ServiceName, loader ExternalConfigLoader, logger log.Logger, lifecycle fx.Lifecycle) (auth.ExternalAccessor, error) {
 	cfg := NewExternalConfig()
 	cfg.Config.UserAgent = string(name)
-	if err := cfg.Load(reporter.WithScopes("auth", "client", "external")); err != nil {
+	if err := cfg.Load(loader); err != nil {
 		return nil, err
 	}
 	external, err := NewExternal(cfg, platform.AuthorizeAsService, string(name), logger)
@@ -54,12 +57,17 @@ func ProvideServiceName(name string) fx.Option {
 	return fx.Supply(ServiceName(name))
 }
 
+func ProvideExternalLoader(reporter config.Reporter) ExternalConfigLoader {
+	scoped := reporter.WithScopes("auth", "client", "external")
+	return NewExternalConfigReporterLoader(scoped)
+}
+
 type ServiceName string
 
 type ExternalConfig struct {
 	*platform.Config
-	ServerSessionTokenSecret  string
-	ServerSessionTokenTimeout time.Duration
+	ServerSessionTokenSecret  string        `envconfig:"TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_SECRET"`
+	ServerSessionTokenTimeout time.Duration `envconfig:"TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_TIMEOUT" default:"1h"`
 }
 
 func NewExternalConfig() *ExternalConfig {
@@ -69,22 +77,8 @@ func NewExternalConfig() *ExternalConfig {
 	}
 }
 
-func (e *ExternalConfig) Load(configReporter config.Reporter) error {
-	if err := e.Config.Load(configReporter); err != nil {
-		return err
-	}
-
-	e.ServerSessionTokenSecret = configReporter.GetWithDefault("server_session_token_secret", "")
-	if serverSessionTokenTimeoutString, err := configReporter.Get("server_session_token_timeout"); err == nil {
-		var serverSessionTokenTimeoutInteger int64
-		serverSessionTokenTimeoutInteger, err = strconv.ParseInt(serverSessionTokenTimeoutString, 10, 0)
-		if err != nil {
-			return errors.New("server session token timeout is invalid")
-		}
-		e.ServerSessionTokenTimeout = time.Duration(serverSessionTokenTimeoutInteger) * time.Second
-	}
-
-	return nil
+func (e *ExternalConfig) Load(loader ExternalConfigLoader) error {
+	return loader.Load(e)
 }
 
 func (e *ExternalConfig) Validate() error {
@@ -348,4 +342,66 @@ func (e *External) serverSessionToken() string {
 	defer e.serverSessionTokenMutex.Unlock()
 
 	return e.serverSessionTokenSafe
+}
+
+// ExternalConfigLoader abstracts the method by which config values are loaded.
+type ExternalConfigLoader interface {
+	// Load sets config values for the properties of ExternalConfig.
+	Load(*ExternalConfig) error
+}
+
+// externalConfigReporterLoader adapts a config.Reporter to implement ConfigLoader.
+type externalConfigReporterLoader struct {
+	Reporter config.Reporter
+	platform.ConfigLoader
+}
+
+func NewExternalConfigReporterLoader(reporter config.Reporter) *externalConfigReporterLoader {
+	return &externalConfigReporterLoader{
+		Reporter:     reporter,
+		ConfigLoader: platform.NewConfigReporterLoader(reporter),
+	}
+}
+
+// Load implements ConfigLoader.
+func (l *externalConfigReporterLoader) Load(cfg *ExternalConfig) error {
+	if err := l.ConfigLoader.Load(cfg.Config); err != nil {
+		return err
+	}
+	cfg.ServerSessionTokenSecret = l.Reporter.GetWithDefault("server_session_token_secret", "")
+	if serverSessionTokenTimeoutString, err := l.Reporter.Get("server_session_token_timeout"); err == nil {
+		var serverSessionTokenTimeoutInteger int64
+		serverSessionTokenTimeoutInteger, err = strconv.ParseInt(serverSessionTokenTimeoutString, 10, 0)
+		if err != nil {
+			return errors.New("server session token timeout is invalid")
+		}
+		cfg.ServerSessionTokenTimeout = time.Duration(serverSessionTokenTimeoutInteger) * time.Second
+	}
+
+	return nil
+}
+
+// externalEnvconfigLoader adapts envconfig to implement ConfigLoader.
+type externalEnvconfigLoader struct {
+	platform.ConfigLoader
+}
+
+// NewExternalEnvconfigLoader loads values via envconfig.
+//
+// If loader is nil, it defaults to envconfig for platform values.
+func NewExternalEnvconfigLoader(loader platform.ConfigLoader) *externalEnvconfigLoader {
+	if loader == nil {
+		loader = platform.NewEnvconfigLoader(nil)
+	}
+	return &externalEnvconfigLoader{
+		ConfigLoader: loader,
+	}
+}
+
+// Load implements ConfigLoader.
+func (l *externalEnvconfigLoader) Load(cfg *ExternalConfig) error {
+	if err := l.ConfigLoader.Load(cfg.Config); err != nil {
+		return err
+	}
+	return envconfig.Process(client.EnvconfigEmptyPrefix, cfg)
 }

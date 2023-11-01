@@ -38,22 +38,20 @@ var _ = Describe("Config", func() {
 
 		Context("Load", func() {
 			var configReporter *configTest.Reporter
+			var loader client.ConfigLoader
 
 			BeforeEach(func() {
 				configReporter = configTest.NewReporter()
 				configReporter.Config["address"] = address
 				configReporter.Config["user_agent"] = userAgent
-			})
-
-			It("returns an error if config reporter is missing", func() {
-				Expect(cfg.Load(nil)).To(MatchError("config reporter is missing"))
+				loader = client.NewConfigReporterLoader(configReporter)
 			})
 
 			It("uses existing address if not set", func() {
 				existingAddress := testHttp.NewAddress()
 				cfg.Address = existingAddress
 				delete(configReporter.Config, "address")
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Address).To(Equal(existingAddress))
 				Expect(cfg.UserAgent).To(Equal(userAgent))
 			})
@@ -62,13 +60,13 @@ var _ = Describe("Config", func() {
 				existingUserAgent := testHttp.NewUserAgent()
 				cfg.UserAgent = existingUserAgent
 				delete(configReporter.Config, "user_agent")
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Address).To(Equal(address))
 				Expect(cfg.UserAgent).To(Equal(existingUserAgent))
 			})
 
 			It("returns successfully and uses values from config reporter", func() {
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Address).To(Equal(address))
 				Expect(cfg.UserAgent).To(Equal(userAgent))
 			})
