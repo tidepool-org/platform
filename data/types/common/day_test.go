@@ -37,9 +37,9 @@ var _ = Describe("Day", func() {
 		Expect(common.DaySaturday).To(Equal("saturday"))
 	})
 
-	It("Days returns expected", func() {
-		Expect(common.Days()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
-		Expect(common.Days()).To(Equal([]string{
+	It("DaysOfWeek returns expected", func() {
+		Expect(common.DaysOfWeek()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
+		Expect(common.DaysOfWeek()).To(Equal([]string{
 			common.DaySunday,
 			common.DayMonday,
 			common.DayTuesday,

@@ -32,10 +32,6 @@ var _ = Describe("SleepSchedule", func() {
 		Expect(dataTypesSettingsPump.SleepSchedulesLengthMinimum).To(Equal(0))
 	})
 
-	Context("ParseScheduledAlerts", func() {
-		// TODO
-	})
-
 	Context("NewSleepSchedules", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsPump.NewSleepSchedules()
@@ -45,9 +41,6 @@ var _ = Describe("SleepSchedule", func() {
 	})
 
 	Context("SleepSchedules", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -146,20 +139,20 @@ var _ = Describe("SleepSchedule", func() {
 				),
 				Entry("days contains invalid",
 					func(datum *dataTypesSettingsPump.SleepSchedule) {
-						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesCommon.Days())-1, dataTypesCommon.Days())...))
+						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesCommon.DaysOfWeek())-1, dataTypesCommon.DaysOfWeek())...))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}), "/days/0"),
 				),
 				Entry("days contains duplicate",
 					func(datum *dataTypesSettingsPump.SleepSchedule) {
-						duplicate := test.RandomStringFromArray(dataTypesCommon.Days())
+						duplicate := test.RandomStringFromArray(dataTypesCommon.DaysOfWeek())
 						datum.Days = pointer.FromStringArray([]string{duplicate, duplicate})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/days/1"),
 				),
 				Entry("days valid",
 					func(datum *dataTypesSettingsPump.SleepSchedule) {
-						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.Days()), dataTypesCommon.Days()))
+						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.DaysOfWeek()), dataTypesCommon.DaysOfWeek()))
 					},
 				),
 				Entry("start missing",

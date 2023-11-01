@@ -175,20 +175,20 @@ var _ = Describe("ScheduledAlert", func() {
 				),
 				Entry("days contains invalid",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {
-						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesCommon.Days())-1, dataTypesCommon.Days())...))
+						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesCommon.DaysOfWeek())-1, dataTypesCommon.DaysOfWeek())...))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}), "/days/0"),
 				),
 				Entry("days contains duplicate",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {
-						duplicate := test.RandomStringFromArray(dataTypesCommon.Days())
+						duplicate := test.RandomStringFromArray(dataTypesCommon.DaysOfWeek())
 						datum.Days = pointer.FromStringArray([]string{duplicate, duplicate})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/days/1"),
 				),
 				Entry("days valid",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {
-						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.Days()), dataTypesCommon.Days()))
+						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.DaysOfWeek()), dataTypesCommon.DaysOfWeek()))
 					},
 				),
 				Entry("start missing",

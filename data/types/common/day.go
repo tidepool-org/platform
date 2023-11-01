@@ -10,7 +10,7 @@ const (
 	DaySaturday  = "saturday"
 )
 
-func Days() []string {
+func DaysOfWeek() []string {
 	return []string{
 		DaySunday,
 		DayMonday,

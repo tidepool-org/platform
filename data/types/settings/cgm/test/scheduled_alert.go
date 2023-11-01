@@ -40,7 +40,7 @@ func NewArrayFromScheduledAlerts(datum *dataTypesSettingsCgm.ScheduledAlerts, ob
 func RandomScheduledAlert() *dataTypesSettingsCgm.ScheduledAlert {
 	datum := dataTypesSettingsCgm.NewScheduledAlert()
 	datum.Name = pointer.FromString(test.RandomStringFromRange(1, dataTypesSettingsCgm.ScheduledAlertNameLengthMaximum))
-	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(common.Days()), common.Days()))
+	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(common.DaysOfWeek()), common.DaysOfWeek()))
 	datum.Start = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsCgm.ScheduledAlertStartMinimum, dataTypesSettingsCgm.ScheduledAlertStartMaximum))
 	datum.End = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsCgm.ScheduledAlertEndMinimum, dataTypesSettingsCgm.ScheduledAlertEndMaximum))
 	datum.Alerts = RandomAlerts()

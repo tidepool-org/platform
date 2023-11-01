@@ -42,7 +42,7 @@ func RandomSleepSchedule() *dataTypesSettingsPump.SleepSchedule {
 	datum := dataTypesSettingsPump.NewSleepSchedule()
 	// enabled by default, if not enbaled days, start and end not required
 	datum.Enabled = pointer.FromBool(true)
-	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.Days()), dataTypesCommon.Days()))
+	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.DaysOfWeek()), dataTypesCommon.DaysOfWeek()))
 	datum.Start = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum, dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum))
 	datum.End = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum, dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum))
 	return datum
