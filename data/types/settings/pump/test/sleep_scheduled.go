@@ -16,7 +16,7 @@ func RandomSleepSchedules(minimumLength int, maximumLength int) *dataTypesSettin
 	return &datum
 }
 
-func CloneScheduledAlerts(datum *dataTypesSettingsPump.SleepSchedules) *dataTypesSettingsPump.SleepSchedules {
+func CloneSleepSchedules(datum *dataTypesSettingsPump.SleepSchedules) *dataTypesSettingsPump.SleepSchedules {
 	if datum == nil {
 		return nil
 	}
