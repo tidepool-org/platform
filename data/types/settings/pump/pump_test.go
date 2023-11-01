@@ -619,7 +619,6 @@ var _ = Describe("Pump", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/serialNumber", pumpTest.NewMeta()),
 				),
-				///
 				Entry("sleep schedules missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
@@ -653,7 +652,6 @@ var _ = Describe("Pump", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.SleepSchedulesMidnightOffsetMaximum+1, 0, pump.SleepSchedulesMidnightOffsetMaximum), "/sleepSchedules/0/end", pumpTest.NewMeta()),
 				),
-				///
 				Entry("software version missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, units *string) { datum.SoftwareVersion = nil },
