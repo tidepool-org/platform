@@ -95,15 +95,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	updatesSummary := make(map[string]struct{})
-
 	datumArray = append(datumArray, normalizer.Data()...)
-
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-
-		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -117,6 +112,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	updatesSummary := make(map[string]struct{})
+	for _, datum := range datumArray {
+		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+	}
 	summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
