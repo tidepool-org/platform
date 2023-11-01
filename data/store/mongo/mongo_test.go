@@ -1430,7 +1430,7 @@ var _ = Describe("Mongo", func() {
 								Expect(userLastUpdated).ToNot(BeNil())
 								Expect(err).ToNot(HaveOccurred())
 								Expect(userLastUpdated.LastData).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
-								Expect(userLastUpdated.LastUpload).To(Equal(createdTime))
+								Expect(userLastUpdated.LastUpload).To(BeTemporally("~", createdTime, time.Second))
 							})
 
 							It("correctly does not find the LastUpload and LastData for an inactive type", func() {

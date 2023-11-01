@@ -7,7 +7,7 @@ toolchain go1.21.0
 require (
 	github.com/IBM/sarama v1.41.3
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.46.7
+	github.com/aws/aws-sdk-go v1.47.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -127,8 +127,8 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/tdewolff/minify/v2 v2.20.3 // indirect
-	github.com/tdewolff/parse/v2 v2.7.2 // indirect
+	github.com/tdewolff/minify/v2 v2.20.5 // indirect
+	github.com/tdewolff/parse/v2 v2.7.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
