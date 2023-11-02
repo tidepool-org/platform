@@ -13,4 +13,5 @@ RUN apk --no-cache update && \
 USER mdblp
 RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 COPY go.mod ./
+COPY go.sum ./
 RUN go mod download

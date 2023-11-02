@@ -4,13 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/basal/automated"
-	"github.com/tidepool-org/platform/data/types/basal/scheduled"
-	"github.com/tidepool-org/platform/data/types/basal/temporary"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/bolus/biphasic"
-	"github.com/tidepool-org/platform/data/types/bolus/normal"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
@@ -19,6 +12,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	goComMgo "github.com/mdblp/go-db/mongo"
+
+	"github.com/tidepool-org/platform/data/types/basal/automated"
+	"github.com/tidepool-org/platform/data/types/basal/scheduled"
+	"github.com/tidepool-org/platform/data/types/basal/temporary"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/bolus/biphasic"
+	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	"github.com/tidepool-org/platform/data/types/device/alarm"
+	"github.com/tidepool-org/platform/data/types/device/calibration"
+	"github.com/tidepool-org/platform/data/types/device/flush"
+	"github.com/tidepool-org/platform/data/types/device/mode"
+	"github.com/tidepool-org/platform/data/types/device/prime"
+	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/schema"
@@ -469,8 +475,51 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 				s.MapForBiphasicBolus(event)
 				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add biphasic bolus in bucket")
 				allSamples["Bolus"] = append(allSamples["Bolus"], *s)
+			case *alarm.Alarm:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a alarm entry")
+				var s = &schema.AlarmSample{}
+				s.MapForAlarm(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add alarm in bucket")
+				allSamples["Alarm"] = append(allSamples["Alarm"], *s)
+			case *mode.Mode:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a mode entry")
+				var s = &schema.Mode{}
+				s.MapForMode(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add mode in bucket")
+				if s.SubType == mode.LoopMode {
+					// this condition allow us to store loop mode in a dedicated collection
+					// because of the special processing with have with this data type
+					// see tide-whisperer-v2 for more info
+					allSamples["loopMode"] = append(allSamples["loopMode"], *s)
+				} else {
+					allSamples["Mode"] = append(allSamples["Mode"], *s)
+				}
+			case *calibration.Calibration:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a mode entry")
+				var s = &schema.Calibration{}
+				s.MapForCalibration(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add Calibration in bucket")
+				allSamples["Calibration"] = append(allSamples["Calibration"], *s)
+			case *flush.Flush:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a mode entry")
+				var s = &schema.Flush{}
+				s.MapForFlush(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add Flush in bucket")
+				allSamples["Flush"] = append(allSamples["Flush"], *s)
+			case *prime.Prime:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a Prime entry")
+				var s = &schema.Prime{}
+				s.MapForPrime(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add Prime in bucket")
+				allSamples["Prime"] = append(allSamples["Prime"], *s)
+			case *reservoirchange.ReservoirChange:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a ReservoirChange entry")
+				var s = &schema.ReservoirChange{}
+				s.MapForReservoirChange(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add ReservoirChange in bucket")
+				allSamples["ReservoirChange"] = append(allSamples["ReservoirChange"], *s)
 			default:
-				d.BucketStore.log.Infof("object ignored %v", event)
+				d.BucketStore.log.Infof("object ignored %+v", event)
 			}
 		}
 

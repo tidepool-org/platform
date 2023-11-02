@@ -86,6 +86,27 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 		case "Bolus":
 			ops, _ := buildBolusUpdateOneModel(sample, userId, ts, creationTimestamp)
 			operations = append(operations, ops...)
+		case "Alarm":
+			ops, _ := buildAlarmUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "Mode":
+			ops, _ := buildModeUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "loopMode":
+			ops, _ := buildLoopModeWriteModel(sample, userId)
+			operations = append(operations, ops...)
+		case "Calibration":
+			ops, _ := buildCalibrationUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "Flush":
+			ops, _ := buildFlushUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "Prime":
+			ops, _ := buildPrimeUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "ReservoirChange":
+			ops, _ := buildReservoirChangeUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
 		}
 	}
 
@@ -93,12 +114,28 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(false)
 
-	// update or insert in Hot Daily and Cold Daily
-	for _, collectionPrefix := range dailyPrefixCollections {
-		collectionName := collectionPrefix + dataType
-		_, err := c.Collection(collectionName).BulkWrite(ctx, operations, &bulkOption)
+	if dataType == "loopMode" {
+		// loop mode event is recorded with out hot/cold collection
+		_, err := c.Collection("loopMode").BulkWrite(ctx, operations, &bulkOption)
 		if err != nil {
 			return err
+		}
+	} else {
+		// update or insert in Hot Daily and Cold Daily
+		for _, collectionPrefix := range dailyPrefixCollections {
+			var collectionName string
+			//TODO: to enhance
+			if dataType == "Alarm" || dataType == "Mode" ||
+				dataType == "Calibration" || dataType == "Flush" ||
+				dataType == "Prime" || dataType == "ReservoirChange" {
+				collectionName = collectionPrefix + "DeviceEvent"
+			} else {
+				collectionName = collectionPrefix + dataType
+			}
+			_, err := c.Collection(collectionName).BulkWrite(ctx, operations, &bulkOption)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -280,7 +317,268 @@ func buildBolusUpdateOneModel(sample schema.ISample, userId *string, date string
 	return updates, nil
 }
 
-// update or insert in MetaData
+func buildAlarmUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// Insert the bucket if not exist and then insert the sample in it
+	firstOp := mongo.NewUpdateOneModel()
+	var array []schema.ISample
+	firstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	firstOp.SetUpdate(bson.D{ // update
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId},
+			{Key: "alarms", Value: append(array, sample)},
+		},
+		},
+	})
+	firstOp.SetUpsert(true)
+	updates = append(updates, firstOp)
+
+	// Update the bolus
+	elemfilter := sample.(schema.AlarmSample)
+	if elemfilter.Guid != "" && elemfilter.DeviceId != "" {
+		secondOp := mongo.NewUpdateOneModel()
+		secondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "alarms", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: elemfilter.Guid},
+					{Key: "deviceId", Value: elemfilter.DeviceId},
+				},
+				},
+			},
+			},
+		})
+		secondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "alarms.$.level", Value: elemfilter.Level},
+				{Key: "alarms.$.ackStatus", Value: elemfilter.AckStatus},
+				{Key: "alarms.$.updateTimestamp", Value: elemfilter.UpdateTimestamp},
+			},
+			},
+		})
+		updates = append(updates, secondOp)
+	}
+	// Otherwise we know that we did not update, so we guarantee an insertion
+	// in the array
+	thirdOp := mongo.NewUpdateOneModel()
+	thirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	thirdOp.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "alarms", Value: sample}}},
+	})
+	updates = append(updates, thirdOp)
+
+	return updates, nil
+}
+
+func buildModeUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// Insert the bucket if not exist and then insert the sample in it
+	firstOp := mongo.NewUpdateOneModel()
+	var array []schema.ISample
+	firstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	firstOp.SetUpdate(bson.D{ // update
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId},
+			{Key: "modes", Value: append(array, sample)},
+		},
+		},
+	})
+	firstOp.SetUpsert(true)
+	updates = append(updates, firstOp)
+
+	// Update the bolus
+	elemfilter := sample.(schema.Mode)
+	if elemfilter.Guid != "" && elemfilter.DeviceId != "" {
+		secondOp := mongo.NewUpdateOneModel()
+		secondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "modes", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: elemfilter.Guid},
+					{Key: "deviceId", Value: elemfilter.DeviceId},
+				},
+				},
+			},
+			},
+		})
+		secondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "modes.$.duration", Value: elemfilter.Duration},
+				{Key: "modes.$.inputTimestamp", Value: elemfilter.InputTimestamp},
+			},
+			},
+		})
+		updates = append(updates, secondOp)
+	}
+	// Otherwise we know that we did not update, so we guarantee an insertion
+	// in the array
+	thirdOp := mongo.NewUpdateOneModel()
+	thirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	thirdOp.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "modes", Value: sample}}},
+	})
+	updates = append(updates, thirdOp)
+
+	return updates, nil
+}
+
+func buildLoopModeWriteModel(sample schema.ISample, userId *string) ([]mongo.WriteModel, error) {
+
+	strUserId := *userId
+
+	elem := sample.(schema.Mode)
+	//hack: a mapping here is required to add the user id in to the saved document
+	// as the mode struct is a shared model with the bucket elements
+	doc := bson.M{}
+	doc["timestamp"] = elem.Timestamp
+	doc["timezone"] = elem.Timezone
+	doc["timezoneOffset"] = elem.TimezoneOffset
+	doc["subType"] = elem.SubType
+	doc["deviceId"] = elem.DeviceId
+	doc["guid"] = elem.Guid
+	doc["duration"] = elem.Duration
+	doc["inputTimestamp"] = elem.InputTimestamp
+	doc["userId"] = strUserId
+
+	var updates []mongo.WriteModel
+	var writeOp mongo.WriteModel
+	if elem.Guid != "" && elem.DeviceId != "" {
+		writeOp = mongo.NewReplaceOneModel().SetFilter(bson.M{"guid": elem.Guid, "userId": strUserId, "deviceId": elem.DeviceId}).SetReplacement(doc).SetUpsert(true)
+	} else {
+		writeOp = mongo.NewInsertOneModel().SetDocument(doc)
+	}
+	updates = append(updates, writeOp)
+	return updates, nil
+}
+
+func buildCalibrationUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "calibrations", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
+}
+
+func buildFlushUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "flushs", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
+}
+
+func buildPrimeUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "primes", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
+}
+
+func buildReservoirChangeUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// one operation because normally the event is sent once
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "reservoirChanges", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
+}
+
+// UpsertMetaData update or insert in MetaData
 func (c *MongoBucketStoreClient) UpsertMetaData(ctx context.Context, userId *string, incomingUserMetadata *schema.Metadata) error {
 
 	var dbUserMetadata *schema.Metadata
