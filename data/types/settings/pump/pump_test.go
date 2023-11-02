@@ -288,7 +288,7 @@ var _ = Describe("Pump", func() {
 				),
 				Entry("bolus valid",
 					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Bolus = pumpTest.NewBolus() },
+					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Bolus = pumpTest.NewRandomBolus() },
 				),
 				Entry("carbohydrate ratio schedule and carbohydrate ratio schedules missing",
 					pointer.FromString("mmol/L"),

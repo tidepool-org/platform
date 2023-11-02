@@ -1,7 +1,7 @@
 package pump
 
 import (
-	"strconv"
+	"sort"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/structure"
@@ -57,34 +57,62 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-type Boluses []*Bolus
+type BolusMap map[string]*Bolus
 
-func ParseBoluses(parser structure.ArrayParser) *Boluses {
+func ParseBolusMap(parser structure.ObjectParser) *BolusMap {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewBoluses()
+	datum := NewBolusMap()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewBoluses() *Boluses {
-	return &Boluses{}
+func NewBolusMap() *BolusMap {
+	return &BolusMap{}
 }
 
-func (b *Boluses) Parse(parser structure.ArrayParser) {
+func (b *BolusMap) Parse(parser structure.ObjectParser) {
 	for _, reference := range parser.References() {
-		*b = append(*b, ParseBolus(parser.WithReferenceObjectParser(reference)))
+		b.Set(reference, ParseBolus(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
-func (b *Boluses) Validate(validator structure.Validator) {
-
-	for index, datum := range *b {
-		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
-			datum.Validate(datumValidator)
-		} else {
-			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
+func (b *BolusMap) Normalize(normalizer data.Normalizer) {
+	for _, name := range b.sortedNames() {
+		if datum := b.Get(name); datum != nil {
+			datum.Normalize(normalizer.WithReference(name))
 		}
 	}
+}
+
+func (b *BolusMap) Validate(validator structure.Validator) {
+	for _, name := range b.sortedNames() {
+		datumArrayValidator := validator.WithReference(name)
+		if datumArray := b.Get(name); datumArray != nil {
+			datumArray.Validate(datumArrayValidator)
+		} else {
+			datumArrayValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
+}
+
+func (b *BolusMap) Get(name string) *Bolus {
+	if datumArray, exists := (*b)[name]; exists {
+		return datumArray
+	}
+	return nil
+}
+
+func (b *BolusMap) Set(name string, datum *Bolus) {
+	(*b)[name] = datum
+}
+
+func (b *BolusMap) sortedNames() []string {
+	names := []string{}
+	for name := range *b {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }

@@ -42,7 +42,7 @@ type Pump struct {
 	BloodGlucoseTargetSchedule         *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`   // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
 	BloodGlucoseTargetSchedules        *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"` // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
 	Bolus                              *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
-	Boluses                            *Boluses                         `json:"boluses,omitempty" bson:"boluses,omitempty"`
+	Boluses                            *BolusMap                        `json:"boluses,omitempty" bson:"boluses,omitempty"`
 	CarbohydrateRatioSchedule          *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules         *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
 	Display                            *Display                         `json:"display,omitempty" bson:"display,omitempty"`
@@ -86,7 +86,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
 	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
-	p.Boluses = ParseBoluses(parser.WithReferenceArrayParser("boluses"))
+	p.Boluses = ParseBolusMap(parser.WithReferenceObjectParser("boluses"))
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
 	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
@@ -239,6 +239,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.Bolus != nil {
 		p.Bolus.Normalize(normalizer.WithReference("bolus"))
+	}
+	if p.Boluses != nil {
+		p.Boluses.Normalize(normalizer.WithReference("boluses"))
 	}
 	if p.CarbohydrateRatioSchedule != nil {
 		p.CarbohydrateRatioSchedule.Normalize(normalizer.WithReference("carbRatio"))
