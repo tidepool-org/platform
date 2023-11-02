@@ -32,6 +32,7 @@ const (
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"
+	OutdatedReasonSchemaMigration = "SCHEMA_MIGRATION"
 	OutdatedReasonBackfill        = "BACKFILL"
 )
 

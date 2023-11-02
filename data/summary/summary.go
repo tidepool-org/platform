@@ -163,8 +163,12 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	}
 
 	// user has no usable summary for incremental update
-	if userSummary == nil || userSummary.Config.SchemaVersion != types.SchemaVersion {
+	if userSummary == nil {
 		userSummary = types.Create[T, A](userId)
+	}
+
+	if userSummary.Config.SchemaVersion != types.SchemaVersion {
+		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
 	}
 
 	startTime := types.GetStartTime(userSummary, status)
