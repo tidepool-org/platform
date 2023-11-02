@@ -73,9 +73,11 @@ type ExternalConfig struct {
 func NewExternalConfig() *ExternalConfig {
 	return &ExternalConfig{
 		Config:                    platform.NewConfig(),
-		ServerSessionTokenTimeout: 3600 * time.Second,
+		ServerSessionTokenTimeout: ServerSessionTokenTimeout,
 	}
 }
+
+const ServerSessionTokenTimeout = time.Hour
 
 func (e *ExternalConfig) Load(loader ExternalConfigLoader) error {
 	return loader.Load(e)
@@ -400,8 +402,20 @@ func NewExternalEnvconfigLoader(loader platform.ConfigLoader) *externalEnvconfig
 
 // Load implements ConfigLoader.
 func (l *externalEnvconfigLoader) Load(cfg *ExternalConfig) error {
+	eeCfg := &struct {
+		Address string `envconfig:"TIDEPOOL_AUTH_CLIENT_EXTERNAL_ADDRESS" required:"true"`
+		*ExternalConfig
+	}{ExternalConfig: cfg}
+	if err := envconfig.Process(client.EnvconfigEmptyPrefix, eeCfg); err != nil {
+		return err
+	}
+	// Override the client.Config.Address. It's not possible to change the
+	// envconfig tag on the config.Client at runtime. In addition, we don't
+	// want to use the envconfig.Prefix so that the code is more easily
+	// searched. The results is that we have to override this value.
+	cfg.Config.Config.Address = eeCfg.Address
 	if err := l.ConfigLoader.Load(cfg.Config); err != nil {
 		return err
 	}
-	return envconfig.Process(client.EnvconfigEmptyPrefix, cfg)
+	return nil
 }
