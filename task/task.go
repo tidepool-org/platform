@@ -268,7 +268,7 @@ func (t *Task) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
-func (t *Task) Sanitize(details request.Details) error {
+func (t *Task) Sanitize(details request.AuthDetails) error {
 	if details != nil && details.IsService() {
 		return nil
 	}
@@ -320,7 +320,7 @@ func (t *Task) ClearError() {
 
 type Tasks []*Task
 
-func (t Tasks) Sanitize(details request.Details) error {
+func (t Tasks) Sanitize(details request.AuthDetails) error {
 	for _, tsk := range t {
 		if err := tsk.Sanitize(details); err != nil {
 			return err

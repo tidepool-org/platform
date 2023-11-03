@@ -134,7 +134,7 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					token = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), token))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), token))
 				})
 
 				Context("as user", func() {
@@ -222,7 +222,7 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					token = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", token))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", token))
 				})
 
 				Context("with an unauthorized response", func() {

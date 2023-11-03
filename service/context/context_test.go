@@ -14,12 +14,12 @@ import (
 
 var _ = Describe("Context", func() {
 	Context("with request and response", func() {
-		var details request.Details
+		var details request.AuthDetails
 		var res *testRest.ResponseWriter
 		var req *rest.Request
 
 		BeforeEach(func() {
-			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+			details = request.NewAuthDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 			res = testRest.NewResponseWriter()
 			req = testRest.NewRequest()
 			req.Env["AUTH-DETAILS"] = details

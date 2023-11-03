@@ -12,8 +12,8 @@ type ServerSessionTokenOutput struct {
 }
 
 type ValidateSessionTokenOutput struct {
-	Details request.Details
-	Error   error
+	AuthDetails request.AuthDetails
+	Error       error
 }
 
 type EnsureAuthorizedUserInput struct {
@@ -33,7 +33,7 @@ type ExternalAccessor struct {
 	ServerSessionTokenOutput           *ServerSessionTokenOutput
 	ValidateSessionTokenInvocations    int
 	ValidateSessionTokenInputs         []string
-	ValidateSessionTokenStub           func(ctx context.Context, token string) (request.Details, error)
+	ValidateSessionTokenStub           func(ctx context.Context, token string) (request.AuthDetails, error)
 	ValidateSessionTokenOutputs        []ValidateSessionTokenOutput
 	ValidateSessionTokenOutput         *ValidateSessionTokenOutput
 	EnsureAuthorizedInvocations        int
@@ -71,7 +71,7 @@ func (e *ExternalAccessor) ServerSessionToken() (string, error) {
 	panic("ServerSessionToken has no output")
 }
 
-func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
+func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error) {
 	e.ValidateSessionTokenInvocations++
 	e.ValidateSessionTokenInputs = append(e.ValidateSessionTokenInputs, token)
 	if e.ValidateSessionTokenStub != nil {
@@ -80,10 +80,10 @@ func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token strin
 	if len(e.ValidateSessionTokenOutputs) > 0 {
 		output := e.ValidateSessionTokenOutputs[0]
 		e.ValidateSessionTokenOutputs = e.ValidateSessionTokenOutputs[1:]
-		return output.Details, output.Error
+		return output.AuthDetails, output.Error
 	}
 	if e.ValidateSessionTokenOutput != nil {
-		return e.ValidateSessionTokenOutput.Details, e.ValidateSessionTokenOutput.Error
+		return e.ValidateSessionTokenOutput.AuthDetails, e.ValidateSessionTokenOutput.Error
 	}
 	panic("ValidateSessionToken has no output")
 }

@@ -36,28 +36,28 @@ var _ = Describe("Auth", func() {
 
 	Context("NewAuth", func() {
 		It("returns an error if service secret is missing", func() {
-			authMiddleware, err := middleware.NewAuth("", authClient)
+			authMiddleware, err := middleware.NewAuthenticator("", authClient)
 			Expect(err).To(MatchError("service secret is missing"))
 			Expect(authMiddleware).To(BeNil())
 		})
 
 		It("returns an error if auth client is missing", func() {
-			authMiddleware, err := middleware.NewAuth(serviceSecret, nil)
+			authMiddleware, err := middleware.NewAuthenticator(serviceSecret, nil)
 			Expect(err).To(MatchError("auth client is missing"))
 			Expect(authMiddleware).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(middleware.NewAuth(serviceSecret, authClient)).ToNot(BeNil())
+			Expect(middleware.NewAuthenticator(serviceSecret, authClient)).ToNot(BeNil())
 		})
 	})
 
 	Context("with auth middleware", func() {
-		var authMiddleware *middleware.Auth
+		var authMiddleware *middleware.Authenticator
 
 		BeforeEach(func() {
 			var err error
-			authMiddleware, err = middleware.NewAuth(serviceSecret, authClient)
+			authMiddleware, err = middleware.NewAuthenticator(serviceSecret, authClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(authMiddleware).ToNot(BeNil())
 		})
@@ -137,7 +137,7 @@ var _ = Describe("Auth", func() {
 
 				It("returns successfully with no details", func() {
 					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-						details := request.DetailsFromContext(req.Context())
+						details := request.GetAuthDetails(req.Context())
 						Expect(details).To(BeNil())
 						Expect(service.GetRequestAuthDetails(req)).To(BeNil())
 						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
@@ -169,7 +169,7 @@ var _ = Describe("Auth", func() {
 
 					It("returns successfully", func() {
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).ToNot(BeNil())
 							Expect(details.Method()).To(Equal(request.MethodServiceSecret))
 							Expect(details.IsService()).To(BeTrue())
@@ -217,10 +217,10 @@ var _ = Describe("Auth", func() {
 					It("returns successfully", func() {
 						userID := serviceTest.NewUserID()
 						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
-							{Details: request.NewDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
+							{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
 						}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).ToNot(BeNil())
 							Expect(details.Method()).To(Equal(request.MethodAccessToken))
 							Expect(details.IsUser()).To(BeTrue())
@@ -237,9 +237,9 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if access token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{Details: nil, Error: errorsTest.RandomError()}}
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{AuthDetails: nil, Error: errorsTest.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).To(BeNil())
 							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
 							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
@@ -269,10 +269,10 @@ var _ = Describe("Auth", func() {
 					It("returns successfully", func() {
 						userID := serviceTest.NewUserID()
 						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
-							{Details: request.NewDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
+							{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
 						}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).ToNot(BeNil())
 							Expect(details.Method()).To(Equal(request.MethodSessionToken))
 							Expect(details.IsUser()).To(BeTrue())
@@ -290,10 +290,10 @@ var _ = Describe("Auth", func() {
 
 					It("returns successfully as service", func() {
 						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
-							{Details: request.NewDetails(request.MethodSessionToken, "", sessionToken), Error: nil},
+							{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, "", sessionToken), Error: nil},
 						}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).ToNot(BeNil())
 							Expect(details.Method()).To(Equal(request.MethodSessionToken))
 							Expect(details.IsService()).To(BeTrue())
@@ -309,9 +309,9 @@ var _ = Describe("Auth", func() {
 					})
 
 					It("returns successfully with no details if session token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{Details: nil, Error: errorsTest.RandomError()}}
+						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{AuthDetails: nil, Error: errorsTest.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).To(BeNil())
 							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
 							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
@@ -351,7 +351,7 @@ var _ = Describe("Auth", func() {
 						}
 						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).ToNot(BeNil())
 							Expect(details.Method()).To(Equal(request.MethodRestrictedToken))
 							Expect(details.IsUser()).To(BeTrue())
@@ -371,7 +371,7 @@ var _ = Describe("Auth", func() {
 					It("returns successfully with no details if restricted token is not valid", func() {
 						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: errorsTest.RandomError()}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).To(BeNil())
 							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
 							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
@@ -385,7 +385,7 @@ var _ = Describe("Auth", func() {
 					It("returns successfully with no details if restricted token is missing", func() {
 						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: nil}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).To(BeNil())
 							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
 							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
@@ -405,7 +405,7 @@ var _ = Describe("Auth", func() {
 						}
 						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
 						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.DetailsFromContext(req.Context())
+							details := request.GetAuthDetails(req.Context())
 							Expect(details).To(BeNil())
 							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
 							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))

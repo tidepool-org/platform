@@ -81,7 +81,7 @@ var _ = Describe("External", func() {
 		var responseHeaders http.Header
 		var client *authClient.External
 		var sessionToken string
-		var details request.Details
+		var details request.AuthDetails
 		var ctx context.Context
 
 		BeforeEach(func() {
@@ -89,7 +89,7 @@ var _ = Describe("External", func() {
 			requestHandlers = nil
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			sessionToken = authTest.NewSessionToken()
-			details = request.NewDetails(request.MethodSessionToken, "", sessionToken)
+			details = request.NewAuthDetails(request.MethodSessionToken, "", sessionToken)
 			ctx = context.Background()
 			ctx = log.NewContextWithLogger(ctx, logger)
 			ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
@@ -102,7 +102,7 @@ var _ = Describe("External", func() {
 			client, err = authClient.NewExternal(config, authorizeAs, name, logger)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())
-			ctx = request.NewContextWithDetails(ctx, details)
+			ctx = request.NewContextWithAuthDetails(ctx, details)
 		})
 
 		AfterEach(func() {
@@ -123,12 +123,12 @@ var _ = Describe("External", func() {
 				})
 
 				It("returns an error when the details are missing", func() {
-					ctx = request.NewContextWithDetails(ctx, nil)
+					ctx = request.NewContextWithAuthDetails(ctx, nil)
 					errorsTest.ExpectEqual(client.EnsureAuthorized(ctx), request.ErrorUnauthorized())
 				})
 
 				It("returns successfully when the details are for a user", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, authTest.RandomUserID(), sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, authTest.RandomUserID(), sessionToken))
 					Expect(client.EnsureAuthorized(ctx)).To(Succeed())
 				})
 
@@ -150,12 +150,12 @@ var _ = Describe("External", func() {
 				})
 
 				It("returns an error when the details are missing", func() {
-					ctx = request.NewContextWithDetails(ctx, nil)
+					ctx = request.NewContextWithAuthDetails(ctx, nil)
 					errorsTest.ExpectEqual(client.EnsureAuthorizedService(ctx), request.ErrorUnauthorized())
 				})
 
 				It("returns an error when the details are for not a service", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, authTest.RandomUserID(), sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, authTest.RandomUserID(), sessionToken))
 					errorsTest.ExpectEqual(client.EnsureAuthorizedService(ctx), request.ErrorUnauthorized())
 				})
 
@@ -173,7 +173,7 @@ var _ = Describe("External", func() {
 			BeforeEach(func() {
 				requestUserID = authTest.RandomUserID()
 				targetUserID = authTest.RandomUserID()
-				details = request.NewDetails(request.MethodSessionToken, requestUserID, sessionToken)
+				details = request.NewAuthDetails(request.MethodSessionToken, requestUserID, sessionToken)
 				authorizedPermission = test.RandomStringFromArray([]string{permission.Write, permission.Read})
 			})
 
@@ -204,38 +204,38 @@ var _ = Describe("External", func() {
 				})
 
 				It("returns an error when the details are missing", func() {
-					ctx = request.NewContextWithDetails(ctx, nil)
+					ctx = request.NewContextWithAuthDetails(ctx, nil)
 					userID, err := client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)
 					errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
 					Expect(userID).To(BeEmpty())
 				})
 
 				It("returns successfully when the details are for a service and authorized permission is custodian", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", sessionToken))
 					authorizedPermission = permission.Custodian
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(""))
 				})
 
 				It("returns successfully when the details are for a service and authorized permission is owner", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", sessionToken))
 					authorizedPermission = permission.Owner
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(""))
 				})
 
 				It("returns successfully when the details are for a service and authorized permission is upload", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", sessionToken))
 					authorizedPermission = permission.Write
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(""))
 				})
 
 				It("returns successfully when the details are for a service and authorized permission is view", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", sessionToken))
 					authorizedPermission = permission.Read
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(""))
 				})
 
 				It("returns an error when the details are for the target user and authorized permission is custodian", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, targetUserID, sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, targetUserID, sessionToken))
 					authorizedPermission = permission.Custodian
 					userID, err := client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)
 					errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
@@ -243,19 +243,19 @@ var _ = Describe("External", func() {
 				})
 
 				It("returns successfully when the details are for the target user and authorized permission is owner", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, targetUserID, sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, targetUserID, sessionToken))
 					authorizedPermission = permission.Owner
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(targetUserID))
 				})
 
 				It("returns successfully when the details are for the target user and authorized permission is upload", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, targetUserID, sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, targetUserID, sessionToken))
 					authorizedPermission = permission.Write
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(targetUserID))
 				})
 
 				It("returns successfully when the details are for the target user and authorized permission is view", func() {
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, targetUserID, sessionToken))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, targetUserID, sessionToken))
 					authorizedPermission = permission.Read
 					Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(targetUserID))
 				})

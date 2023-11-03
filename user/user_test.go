@@ -284,17 +284,17 @@ var _ = Describe("User", func() {
 					original.EmailVerified = nil
 					original.TermsAccepted = nil
 					original.Roles = nil
-					datum.Sanitize(request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
 					Expect(datum).To(Equal(original))
 				})
 
 				It("does not sanitize renditions if details is service", func() {
-					datum.Sanitize(request.NewDetails(request.MethodSessionToken, *original.UserID, authTest.NewSessionToken()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, *original.UserID, authTest.NewSessionToken()))
 					Expect(datum).To(Equal(original))
 				})
 
 				It("does not sanitize renditions if details is service", func() {
-					datum.Sanitize(request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
 					Expect(datum).To(Equal(original))
 				})
 			})
@@ -329,12 +329,12 @@ var _ = Describe("User", func() {
 					original[index].TermsAccepted = nil
 					original[index].Roles = nil
 				}
-				datum.Sanitize(request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
+				datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
 				Expect(datum).To(Equal(original))
 			})
 
 			It("does not sanitize renditions if details is service", func() {
-				datum.Sanitize(request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
+				datum.Sanitize(request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
 				Expect(datum).To(Equal(original))
 			})
 		})

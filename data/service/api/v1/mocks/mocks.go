@@ -33,18 +33,18 @@ func MustMarshalJSON(t likeT, v any) []byte {
 	return data
 }
 
-// Details implements request.Details with test helpers.
-type Details struct {
-	request.Details
+// AuthDetails implements request.AuthDetails with test helpers.
+type AuthDetails struct {
+	request.AuthDetails
 }
 
-func NewDetailsDefault() *Details {
-	return NewDetails(request.MethodSessionToken, TestUserID1, TestToken1)
+func NewAuthDetailsDefault() *AuthDetails {
+	return NewAuthDetails(request.MethodSessionToken, TestUserID1, TestToken1)
 }
 
-func NewDetails(authMethod request.Method, userID, token string) *Details {
-	return &Details{
-		Details: request.NewDetails(authMethod, userID, token),
+func NewAuthDetails(authMethod request.Method, userID, token string) *AuthDetails {
+	return &AuthDetails{
+		AuthDetails: request.NewAuthDetails(authMethod, userID, token),
 	}
 }
 

@@ -1841,13 +1841,13 @@ var _ = Describe("Source", func() {
 			})
 
 			It("does not modify the original when the details are server", func() {
-				details := request.NewDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+				details := request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 				Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 				Expect(sanitized).To(Equal(original))
 			})
 
 			It("removes the provider session id and sanitizes the error when the details are user", func() {
-				details := request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
+				details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
 				Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 				original.ProviderSessionID = nil
 				original.Error.Error = errors.Sanitize(original.Error.Error)
@@ -1864,7 +1864,7 @@ var _ = Describe("Source", func() {
 				})
 
 				It("promotes the unauthenticated error cause", func() {
-					details := request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
+					details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
 					Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 					original.ProviderSessionID = nil
 					original.Error.Error = errors.Sanitize(unauthenticatedError)
@@ -1889,13 +1889,13 @@ var _ = Describe("Source", func() {
 			})
 
 			It("does not modify the originals when the details are server", func() {
-				details := request.NewDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+				details := request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 				Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 				Expect(sanitized).To(Equal(originals))
 			})
 
 			It("removes the provider session id and sanitizes the error when the details are user", func() {
-				details := request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
+				details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
 				Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 				for _, original := range originals {
 					original.ProviderSessionID = nil
