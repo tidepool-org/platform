@@ -183,7 +183,6 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 		set.Append(s.Dates.OutdatedReason...)
 	}
 
-	s.Dates.LastUpdatedReason = nil
 	s.Dates.OutdatedReason = set.ToSlice()
 
 	timestamp := time.Now().Truncate(time.Millisecond).UTC()
