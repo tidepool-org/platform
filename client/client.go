@@ -117,7 +117,9 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 		return nil, errors.New("url is missing")
 	}
 
-	mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+	if c.userAgent != "" {
+		mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+	}
 
 	var body io.Reader
 	if requestBody != nil {

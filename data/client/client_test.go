@@ -43,13 +43,6 @@ var _ = Describe("Client", func() {
 			Expect(clnt).To(BeNil())
 		})
 
-		It("returns an error if config user agent is missing", func() {
-			config.UserAgent = ""
-			clnt, err := dataClient.New(config, platform.AuthorizeAsService)
-			Expect(err).To(MatchError("config is invalid; user agent is missing"))
-			Expect(clnt).To(BeNil())
-		})
-
 		It("returns success", func() {
 			clnt, err := dataClient.New(config, platform.AuthorizeAsService)
 			Expect(err).ToNot(HaveOccurred())

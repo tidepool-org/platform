@@ -89,11 +89,6 @@ var _ = Describe("Config", func() {
 					Expect(cfg.Validate()).To(MatchError("address is invalid"))
 				})
 
-				It("returns an error if the user agent is missing", func() {
-					cfg.UserAgent = ""
-					Expect(cfg.Validate()).To(MatchError("user agent is missing"))
-				})
-
 				It("returns success", func() {
 					Expect(cfg.Validate()).To(Succeed())
 					Expect(cfg.Address).To(Equal(address))

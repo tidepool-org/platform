@@ -87,8 +87,7 @@ var _ = Describe("Client", func() {
 func buildTestClient(s *httptest.Server) *Client {
 	pCfg := &platform.Config{
 		Config: &client.Config{
-			Address:   s.URL,
-			UserAgent: "foo",
+			Address: s.URL,
 		},
 	}
 	token := mockTokenProvider(testToken)
