@@ -1,9 +1,9 @@
 package json_test
 
 import (
-	"io/ioutil"
+	"io"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/log"
@@ -19,13 +19,13 @@ var _ = Describe("Logger", func() {
 		})
 
 		It("returns an error if level ranks is missing", func() {
-			logger, err := logJson.NewLogger(ioutil.Discard, nil, log.DefaultLevel())
+			logger, err := logJson.NewLogger(io.Discard, nil, log.DefaultLevel())
 			Expect(err).To(MatchError("level ranks is missing"))
 			Expect(logger).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(logJson.NewLogger(ioutil.Discard, log.DefaultLevelRanks(), log.DefaultLevel())).ToNot(BeNil())
+			Expect(logJson.NewLogger(io.Discard, log.DefaultLevelRanks(), log.DefaultLevel())).ToNot(BeNil())
 		})
 	})
 })

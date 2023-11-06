@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -600,7 +599,7 @@ var _ = Describe("Client", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, nil, inspectors, httpClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(reader).ToNot(BeNil())
-					Expect(ioutil.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -622,7 +621,7 @@ var _ = Describe("Client", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, strings.NewReader(requestString), inspectors, httpClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(reader).ToNot(BeNil())
-					Expect(ioutil.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -645,7 +644,7 @@ var _ = Describe("Client", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(reader).ToNot(BeNil())
-					Expect(ioutil.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})

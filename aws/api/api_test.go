@@ -3,7 +3,7 @@ package api_test
 import (
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/aws"

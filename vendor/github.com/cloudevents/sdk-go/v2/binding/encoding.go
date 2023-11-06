@@ -1,3 +1,8 @@
+/*
+ Copyright 2021 The CloudEvents Authors
+ SPDX-License-Identifier: Apache-2.0
+*/
+
 package binding
 
 import "errors"
@@ -14,6 +19,9 @@ const (
 	EncodingEvent
 	// When the encoding is unknown (which means that the message is a non-event)
 	EncodingUnknown
+
+	// EncodingBatch is an instance of JSON Batched Events
+	EncodingBatch
 )
 
 func (e Encoding) String() string {
@@ -24,6 +32,8 @@ func (e Encoding) String() string {
 		return "structured"
 	case EncodingEvent:
 		return "event"
+	case EncodingBatch:
+		return "batch"
 	case EncodingUnknown:
 		return "unknown"
 	}
