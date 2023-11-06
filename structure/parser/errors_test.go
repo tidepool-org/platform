@@ -3,8 +3,7 @@ package parser_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"

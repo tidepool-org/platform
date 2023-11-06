@@ -3,7 +3,7 @@ package summary
 import (
 	"time"
 
-	"github.com/pkg/errors"
+	"errors"
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"

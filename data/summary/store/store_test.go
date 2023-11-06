@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -501,21 +501,32 @@ var _ = Describe("Summary Stats Mongo", func() {
 					var outdatedSince *time.Time
 
 					It("With missing context", func() {
-						outdatedSince, err = cgmStore.SetOutdated(nil, userId)
+						outdatedSince, err = cgmStore.SetOutdated(nil, userId, types.OutdatedReasonDataAdded)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("context is missing"))
 						Expect(outdatedSince).To(BeNil())
 					})
 
 					It("With missing userId", func() {
-						outdatedSince, err = cgmStore.SetOutdated(ctx, "")
+						outdatedSince, err = cgmStore.SetOutdated(ctx, "", types.OutdatedReasonDataAdded)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(MatchError("userId is missing"))
 						Expect(outdatedSince).To(BeNil())
 					})
 
-					It("With no existing CGM summary", func() {
-						outdatedSince, err = cgmStore.SetOutdated(ctx, userId)
+					It("With multiple reasons", func() {
+						outdatedSinceOriginal, err := cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSinceOriginal).ToNot(BeNil())
+
+						userCGMSummary, err = cgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userCGMSummary.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(userCGMSummary.Dates.OutdatedSince).To(Equal(outdatedSinceOriginal))
+						Expect(*userCGMSummary.Dates.OutdatedSinceLimit).To(Equal(outdatedSinceOriginal.Add(28 * time.Minute)))
+						Expect(userCGMSummary.Dates.OutdatedReason).To(ConsistOf([]string{types.OutdatedReasonDataAdded}))
+
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonBackfill)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSince).ToNot(BeNil())
 
@@ -523,6 +534,31 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userCGMSummary.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userCGMSummary.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userCGMSummary.Dates.OutdatedSinceLimit).To(Equal(outdatedSinceOriginal.Add(28 * time.Minute)))
+						Expect(userCGMSummary.Dates.OutdatedReason).To(ConsistOf([]string{types.OutdatedReasonDataAdded, types.OutdatedReasonBackfill}))
+
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSince).ToNot(BeNil())
+
+						userCGMSummary, err = cgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userCGMSummary.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(userCGMSummary.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userCGMSummary.Dates.OutdatedSinceLimit).To(Equal(outdatedSinceOriginal.Add(28 * time.Minute)))
+						Expect(userCGMSummary.Dates.OutdatedReason).To(ConsistOf([]string{types.OutdatedReasonDataAdded, types.OutdatedReasonBackfill}))
+					})
+
+					It("With no existing CGM summary", func() {
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSince).ToNot(BeNil())
+
+						userCGMSummary, err = cgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userCGMSummary.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(userCGMSummary.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userCGMSummary.Dates.OutdatedSinceLimit).To(Equal(outdatedSince.Add(28 * time.Minute)))
 					})
 
 					It("With an existing non-outdated CGM summary", func() {
@@ -533,7 +569,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 						err = cgmStore.UpsertSummary(ctx, userCGMSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						outdatedSince, err = cgmStore.SetOutdated(ctx, userId)
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSince).ToNot(BeNil())
 
@@ -541,6 +577,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userCGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userCGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userCGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(outdatedSince.Add(28 * time.Minute)))
+
 					})
 
 					It("With an existing outdated CGM summary", func() {
@@ -549,22 +587,43 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userCGMSummary = test.RandomCGMSummary(userId)
 						userCGMSummary.Dates.OutdatedSince = &fiveMinutesAgo
+						userCGMSummary.Dates.OutdatedSinceLimit = pointer.FromAny(fiveMinutesAgo.Add(28 * time.Minute))
 						err = cgmStore.UpsertSummary(ctx, userCGMSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						outdatedSince, err = cgmStore.SetOutdated(ctx, userId)
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSince).ToNot(BeNil())
-						Expect(*outdatedSince).To(Equal(fiveMinutesAgo))
 
 						userCGMSummaryWritten, err = cgmStore.GetSummary(ctx, userId)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userCGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
-						Expect(*userCGMSummaryWritten.Dates.OutdatedSince).To(Equal(fiveMinutesAgo))
+						Expect(userCGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userCGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(fiveMinutesAgo.Add(28 * time.Minute)))
+					})
+
+					It("With an existing outdated CGM summary beyond the outdatedSinceLimit", func() {
+						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						now := time.Now().UTC().Truncate(time.Millisecond)
+
+						userCGMSummary = test.RandomCGMSummary(userId)
+						userCGMSummary.Dates.OutdatedSince = &now
+						userCGMSummary.Dates.OutdatedSinceLimit = &now
+						err = cgmStore.UpsertSummary(ctx, userCGMSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSince).ToNot(BeNil())
+
+						userCGMSummaryWritten, err = cgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userCGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(*userCGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(now))
 					})
 
 					It("With no existing BGM summary", func() {
-						outdatedSince, err = bgmStore.SetOutdated(ctx, userId)
+						outdatedSince, err = bgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSince).ToNot(BeNil())
 
@@ -572,6 +631,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userBGMSummary.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userBGMSummary.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userBGMSummary.Dates.OutdatedSinceLimit).To(Equal(outdatedSince.Add(28 * time.Minute)))
 					})
 
 					It("With an existing non-outdated BGM summary", func() {
@@ -582,7 +642,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 						err = bgmStore.UpsertSummary(ctx, userBGMSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						outdatedSince, err = bgmStore.SetOutdated(ctx, userId)
+						outdatedSince, err = bgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSince).ToNot(BeNil())
 
@@ -590,6 +650,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userBGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userBGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(outdatedSince.Add(28 * time.Minute)))
+
 					})
 
 					It("With an existing outdated BGM summary", func() {
@@ -598,20 +660,42 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userBGMSummary = test.RandomBGMSummary(userId)
 						userBGMSummary.Dates.OutdatedSince = &fiveMinutesAgo
+						userBGMSummary.Dates.OutdatedSinceLimit = pointer.FromAny(fiveMinutesAgo.Add(28 * time.Minute))
 						err = bgmStore.UpsertSummary(ctx, userBGMSummary)
 						Expect(err).ToNot(HaveOccurred())
 
-						outdatedSince, err = bgmStore.SetOutdated(ctx, userId)
+						outdatedSince, err = bgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(outdatedSince).ToNot(BeNil())
-						Expect(*outdatedSince).To(Equal(fiveMinutesAgo))
 
 						userBGMSummaryWritten, err = bgmStore.GetSummary(ctx, userId)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userBGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
-						Expect(*userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(fiveMinutesAgo))
+						Expect(userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userBGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(fiveMinutesAgo.Add(28 * time.Minute)))
+
 					})
 
+					It("With an existing outdated BGM summary beyond the outdatedSinceLimit", func() {
+						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						now := time.Now().UTC().Truncate(time.Millisecond)
+
+						userBGMSummary = test.RandomBGMSummary(userId)
+						userBGMSummary.Dates.OutdatedSince = &now
+						userBGMSummary.Dates.OutdatedSinceLimit = &now
+						err = bgmStore.UpsertSummary(ctx, userBGMSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						outdatedSince, err = bgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSince).ToNot(BeNil())
+
+						userBGMSummaryWritten, err = bgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userBGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(*userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(now))
+						Expect(*userBGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(now))
+					})
 				})
 
 				Context("GetSummary", func() {

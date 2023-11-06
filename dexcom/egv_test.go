@@ -1,14 +1,14 @@
 package dexcom_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure/validator"
+
 	platform_test "github.com/tidepool-org/platform/test"
 )
 

@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/pkg/errors"
+	"errors"
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -17,7 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 

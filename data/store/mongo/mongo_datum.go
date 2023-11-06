@@ -2,17 +2,26 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/insulin"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"errors"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/summary/types"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -25,6 +34,8 @@ type DatumRepository struct {
 const (
 	ModifiedTimeIndexRaw = "2023-04-01T00:00:00Z"
 )
+
+var ErrSelectorsInvalid = errors.New("selectors is invalid")
 
 func (d *DatumRepository) EnsureIndexes() error {
 	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
@@ -142,7 +153,7 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
 
 	if err != nil {
-		return errors.Wrap(err, "unable to create data set data")
+		return fmt.Errorf("unable to create data set data: %w", err)
 	}
 	return nil
 }
@@ -180,7 +191,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to activate data set data")
-		return errors.Wrap(err, "unable to activate data set data")
+		return fmt.Errorf("unable to activate data set data: %w", err)
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("ActivateDataSetData")
@@ -220,7 +231,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to archive data set data")
-		return errors.Wrap(err, "unable to archive data set data")
+		return fmt.Errorf("unable to archive data set data: %w", err)
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("ArchiveDataSetData")
@@ -261,7 +272,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete data set data")
-		return errors.Wrap(err, "unable to delete data set data")
+		return fmt.Errorf("unable to delete data set data: %w", err)
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DeleteDataSetData")
@@ -290,7 +301,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy deleted data set data")
-		return errors.Wrap(err, "unable to destroy deleted data set data")
+		return fmt.Errorf("unable to destroy deleted data set data: %w", err)
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyDeletedDataSetData")
@@ -318,7 +329,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
-		return errors.Wrap(err, "unable to destroy data set data")
+		return fmt.Errorf("unable to destroy data set data: %w", err)
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyDataSetData")
@@ -370,7 +381,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("ArchiveDeviceDataUsingHashesFromDataSet")
 
 	if err != nil {
-		return errors.Wrap(err, "unable to archive device data using hashes from data set")
+		return fmt.Errorf("unable to archive device data using hashes from data set: %w", err)
 	}
 	return nil
 }
@@ -426,7 +437,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Error("Unable to decode result for UnarchiveDeviceDataUsingHashesFromDataSet")
 			if overallErr == nil {
-				overallErr = errors.Wrap(err, "unable to decode device data results")
+				overallErr = fmt.Errorf("unable to decode device data results: %w", err)
 			}
 		}
 		if result.ID.Active != (result.ID.ArchivedDataSetID == "") || result.ID.Active != (result.ID.ArchivedTime.IsZero()) {
@@ -458,7 +469,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 			loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "result": result}
 			log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Error("Unable to update result for UnarchiveDeviceDataUsingHashesFromDataSet")
 			if overallErr == nil {
-				overallErr = errors.Wrap(err, "unable to transfer device data active")
+				overallErr = fmt.Errorf("unable to transfer device data active: %w", err)
 			}
 		} else {
 			overallUpdateInfo.ModifiedCount += updateInfo.ModifiedCount
@@ -467,7 +478,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 
 	if err := cursor.Err(); err != nil {
 		if overallErr == nil {
-			overallErr = errors.Wrap(err, "unable to iterate to transfer device data active")
+			overallErr = fmt.Errorf("unable to iterate to transfer device data active: %w", err)
 		}
 	}
 
@@ -496,10 +507,10 @@ func (d *DatumRepository) GetDataSet(ctx context.Context, id string) (*data.Data
 
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DatumRepository.GetDataSet")
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get data set")
+		return nil, fmt.Errorf("unable to get data set: %w", err)
 	}
 
 	return dataSet, nil
@@ -509,7 +520,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	if selectors == nil {
 		return bson.M{}, nil
 	} else if err := structureValidator.New().Validate(selectors); err != nil {
-		return nil, errors.Wrap(err, "selectors is invalid")
+		return nil, errors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string
@@ -543,9 +554,82 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-// GetDataRange be careful when calling this, as if dataRecords isn't a pointer underneath, it will silently not
-// result in any results being returned.
+func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+
+	if dataSetId == "" {
+		return false, errors.New("dataSetId is empty")
+	}
+
+	if typ == "" {
+		return false, errors.New("typ is empty")
+	}
+
+	// quit early if range is 0
+	if startTime.Equal(endTime) {
+		return false, nil
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if startTime.After(endTime) {
+		return false, fmt.Errorf("startTime (%s) after endTime (%s)", startTime, endTime)
+	}
+
+	selector := bson.M{
+		"_active":  true,
+		"uploadId": dataSetId,
+		"type":     typ,
+		"time": bson.M{
+			"$gt":  startTime,
+			"$lte": endTime,
+		},
+	}
+
+	result := bson.M{}
+	if err := d.FindOne(ctx, selector).Decode(result); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, fmt.Errorf("unable to check for type %s in dataset %s: %w", typ, dataSetId, err)
+	}
+
+	return true, nil
+}
+
 func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if userId == "" {
+		return errors.New("userId is empty")
+	}
+
+	if typ == "" {
+		return errors.New("typ is empty")
+	}
+
+	// This is never expected to be an upload.
+	if isTypeUpload(typ) {
+		return fmt.Errorf("unexpected type: %v", upload.Type)
+	}
+
+	switch v := dataRecords.(type) {
+	case *[]*glucose.Glucose:
+		if typ != continuous.Type && typ != selfmonitored.Type {
+			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into glucose slice", typ)
+		}
+	case *[]*insulin.Insulin:
+		if typ != bolus.Type && typ != basal.Type {
+			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into insulin slice", typ)
+		}
+	case *[]interface{}:
+		// we cant check the type match, but at least the structure should work
+	default:
+		return fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
+	}
 
 	// quit early if range is 0
 	if startTime.Equal(endTime) {
@@ -554,20 +638,17 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interfac
 
 	// return error if ranges are inverted, as this can produce unexpected results
 	if startTime.After(endTime) {
-		return errors.Newf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
-	}
-
-	// This is never expected to by an upload.
-	if isTypeUpload(typ) {
-		return errors.Newf("unexpected type: %v", upload.Type)
+		return fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
 	}
 
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
 		"type":    typ,
-		"time": bson.M{"$gt": startTime,
-			"$lte": endTime},
+		"time": bson.M{
+			"$gt":  startTime,
+			"$lte": endTime,
+		},
 	}
 
 	opts := options.Find()
@@ -575,17 +656,17 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interfac
 
 	cursor, err := d.Find(ctx, selector, opts)
 	if err != nil {
-		return errors.Wrap(err, "unable to get cgm data in date range for user")
+		return fmt.Errorf("unable to get cgm data in date range for user: %w", err)
 	}
 
 	if err = cursor.All(ctx, dataRecords); err != nil {
-		return errors.Wrap(err, "unable to decode data sets")
+		return fmt.Errorf("unable to decode data sets, %w", err)
 	}
 
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error) {
 	var err error
 	var cursor *mongo.Cursor
 	var status = &types.UserLastUpdated{}
@@ -595,13 +676,17 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, 
 		return nil, errors.New("context is missing")
 	}
 
-	if id == "" {
-		return nil, errors.New("id is missing")
+	if userId == "" {
+		return nil, errors.New("userId is empty")
+	}
+
+	if typ == "" {
+		return nil, errors.New("typ is empty")
 	}
 
 	// This is never expected to by an upload.
 	if isTypeUpload(typ) {
-		return nil, errors.Newf("unexpected type: %v", upload.Type)
+		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
@@ -609,10 +694,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, 
 
 	selector := bson.M{
 		"_active": true,
-		"_userId": id,
+		"_userId": userId,
 		"type":    typ,
-		"time": bson.M{"$lte": futureCutoff,
-			"$gte": pastCutoff},
+		"time": bson.M{
+			"$lte": futureCutoff,
+			"$gte": pastCutoff,
+		},
 	}
 
 	findOptions := options.Find()
@@ -621,11 +708,11 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, id string, 
 
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get last %s date", typ)
+		return nil, fmt.Errorf("unable to get last %s date: %w", typ, err)
 	}
 
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, errors.Wrapf(err, "unable to decode last %s date", typ)
+		return nil, fmt.Errorf("unable to decode last %s date: %w", typ, err)
 	}
 
 	// if we have no record
@@ -650,9 +737,13 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 		return nil, errors.New("context is missing")
 	}
 
+	if typ == "" {
+		return nil, errors.New("typ is empty")
+	}
+
 	// This is never expected to by an upload.
 	if isTypeUpload(typ) {
-		return nil, errors.Newf("unexpected type: %v", upload.Type)
+		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
 	// allow for a small margin on the pastCutoff to allow for calculation delay
@@ -668,7 +759,7 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 
 	result, err := d.Distinct(ctx, "_userId", selector)
 	if err != nil {
-		return nil, errors.Wrap(err, "error fetching distinct userIDs")
+		return nil, fmt.Errorf("error fetching distinct userIDs: %w", err)
 	}
 
 	for _, v := range result {

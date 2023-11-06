@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -43,19 +44,30 @@ func newAPIWithHTTPClient(client *http.Client, env Environment) api {
 	}
 }
 
-func (api api) do(jwt, path string, requestBody interface{}) (*http.Response, error) {
+func (api api) do(jwt, path string, requestBody interface{}) (int, string, error) {
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(requestBody); err != nil {
-		return nil, fmt.Errorf("json: %w", err)
+		return 0, "", fmt.Errorf("json: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, api.baseURL+path, buf)
 	if err != nil {
-		return nil, fmt.Errorf("http: %w", err)
+		return 0, "", fmt.Errorf("http: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", jwt))
 	req.Header.Set("User-Agent", "device-check-go (+https://github.com/rinchsan/device-check-go)")
 
-	return api.client.Do(req)
+	resp, err := api.client.Do(req)
+	if err != nil {
+		return 0, "", fmt.Errorf("http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, "", fmt.Errorf("io: %w", err)
+	}
+
+	return resp.StatusCode, string(respBody), nil
 }

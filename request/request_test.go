@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"

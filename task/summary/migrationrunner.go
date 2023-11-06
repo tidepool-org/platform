@@ -2,10 +2,12 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/pkg/errors"
+	"errors"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -119,14 +121,14 @@ func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	config := r.GetConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
+		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
 	} else {
 		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 
 		if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
+			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
 		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-			tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+			tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
 		}
 	}
 

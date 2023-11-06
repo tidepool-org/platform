@@ -4,8 +4,7 @@ import (
 	"regexp"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
