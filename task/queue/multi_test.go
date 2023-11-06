@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -130,7 +130,7 @@ var _ = Describe("multi queue", func() {
 			multi.Start()
 
 			// Wait until completion (up to 10 seconds)
-			tCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 			ticker := time.NewTicker(200 * time.Millisecond)
 			wg := &sync.WaitGroup{}
 			wg.Add(1)

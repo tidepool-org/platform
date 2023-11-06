@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
@@ -112,7 +111,7 @@ var _ = Describe("Unstructured", func() {
 			var parentReader io.ReadCloser
 
 			BeforeEach(func() {
-				parentReader = ioutil.NopCloser(strings.NewReader(test.RandomString()))
+				parentReader = io.NopCloser(strings.NewReader(test.RandomString()))
 			})
 
 			AfterEach(func() {

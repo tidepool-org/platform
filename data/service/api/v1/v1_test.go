@@ -1,7 +1,7 @@
 package v1_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"

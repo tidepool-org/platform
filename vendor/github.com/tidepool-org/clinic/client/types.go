@@ -13,12 +13,6 @@ const (
 	SessionTokenScopes = "sessionToken.Scopes"
 )
 
-// Defines values for AverageGlucoseUnits.
-const (
-	AverageGlucoseUnitsMmolL AverageGlucoseUnits = "mmol/L"
-	AverageGlucoseUnitsMmoll AverageGlucoseUnits = "mmol/l"
-)
-
 // Defines values for ClinicClinicSize.
 const (
 	N0249   ClinicClinicSize = "0-249"
@@ -38,8 +32,607 @@ const (
 
 // Defines values for ClinicPreferredBgUnits.
 const (
-	ClinicPreferredBgUnitsMgdL  ClinicPreferredBgUnits = "mg/dL"
-	ClinicPreferredBgUnitsMmolL ClinicPreferredBgUnits = "mmol/L"
+	MgdL  ClinicPreferredBgUnits = "mg/dL"
+	MmolL ClinicPreferredBgUnits = "mmol/L"
+)
+
+// Defines values for ClinicTimezone.
+const (
+	AfricaAbidjan                  ClinicTimezone = "Africa/Abidjan"
+	AfricaAccra                    ClinicTimezone = "Africa/Accra"
+	AfricaAddisAbaba               ClinicTimezone = "Africa/Addis_Ababa"
+	AfricaAlgiers                  ClinicTimezone = "Africa/Algiers"
+	AfricaAsmara                   ClinicTimezone = "Africa/Asmara"
+	AfricaAsmera                   ClinicTimezone = "Africa/Asmera"
+	AfricaBamako                   ClinicTimezone = "Africa/Bamako"
+	AfricaBangui                   ClinicTimezone = "Africa/Bangui"
+	AfricaBanjul                   ClinicTimezone = "Africa/Banjul"
+	AfricaBissau                   ClinicTimezone = "Africa/Bissau"
+	AfricaBlantyre                 ClinicTimezone = "Africa/Blantyre"
+	AfricaBrazzaville              ClinicTimezone = "Africa/Brazzaville"
+	AfricaBujumbura                ClinicTimezone = "Africa/Bujumbura"
+	AfricaCairo                    ClinicTimezone = "Africa/Cairo"
+	AfricaCasablanca               ClinicTimezone = "Africa/Casablanca"
+	AfricaCeuta                    ClinicTimezone = "Africa/Ceuta"
+	AfricaConakry                  ClinicTimezone = "Africa/Conakry"
+	AfricaDakar                    ClinicTimezone = "Africa/Dakar"
+	AfricaDarEsSalaam              ClinicTimezone = "Africa/Dar_es_Salaam"
+	AfricaDjibouti                 ClinicTimezone = "Africa/Djibouti"
+	AfricaDouala                   ClinicTimezone = "Africa/Douala"
+	AfricaElAaiun                  ClinicTimezone = "Africa/El_Aaiun"
+	AfricaFreetown                 ClinicTimezone = "Africa/Freetown"
+	AfricaGaborone                 ClinicTimezone = "Africa/Gaborone"
+	AfricaHarare                   ClinicTimezone = "Africa/Harare"
+	AfricaJohannesburg             ClinicTimezone = "Africa/Johannesburg"
+	AfricaJuba                     ClinicTimezone = "Africa/Juba"
+	AfricaKampala                  ClinicTimezone = "Africa/Kampala"
+	AfricaKhartoum                 ClinicTimezone = "Africa/Khartoum"
+	AfricaKigali                   ClinicTimezone = "Africa/Kigali"
+	AfricaKinshasa                 ClinicTimezone = "Africa/Kinshasa"
+	AfricaLagos                    ClinicTimezone = "Africa/Lagos"
+	AfricaLibreville               ClinicTimezone = "Africa/Libreville"
+	AfricaLome                     ClinicTimezone = "Africa/Lome"
+	AfricaLuanda                   ClinicTimezone = "Africa/Luanda"
+	AfricaLubumbashi               ClinicTimezone = "Africa/Lubumbashi"
+	AfricaLusaka                   ClinicTimezone = "Africa/Lusaka"
+	AfricaMalabo                   ClinicTimezone = "Africa/Malabo"
+	AfricaMaputo                   ClinicTimezone = "Africa/Maputo"
+	AfricaMaseru                   ClinicTimezone = "Africa/Maseru"
+	AfricaMbabane                  ClinicTimezone = "Africa/Mbabane"
+	AfricaMogadishu                ClinicTimezone = "Africa/Mogadishu"
+	AfricaMonrovia                 ClinicTimezone = "Africa/Monrovia"
+	AfricaNairobi                  ClinicTimezone = "Africa/Nairobi"
+	AfricaNdjamena                 ClinicTimezone = "Africa/Ndjamena"
+	AfricaNiamey                   ClinicTimezone = "Africa/Niamey"
+	AfricaNouakchott               ClinicTimezone = "Africa/Nouakchott"
+	AfricaOuagadougou              ClinicTimezone = "Africa/Ouagadougou"
+	AfricaPortoNovo                ClinicTimezone = "Africa/Porto-Novo"
+	AfricaSaoTome                  ClinicTimezone = "Africa/Sao_Tome"
+	AfricaTimbuktu                 ClinicTimezone = "Africa/Timbuktu"
+	AfricaTripoli                  ClinicTimezone = "Africa/Tripoli"
+	AfricaTunis                    ClinicTimezone = "Africa/Tunis"
+	AfricaWindhoek                 ClinicTimezone = "Africa/Windhoek"
+	AmericaAdak                    ClinicTimezone = "America/Adak"
+	AmericaAnchorage               ClinicTimezone = "America/Anchorage"
+	AmericaAnguilla                ClinicTimezone = "America/Anguilla"
+	AmericaAntigua                 ClinicTimezone = "America/Antigua"
+	AmericaAraguaina               ClinicTimezone = "America/Araguaina"
+	AmericaArgentinaBuenosAires    ClinicTimezone = "America/Argentina/Buenos_Aires"
+	AmericaArgentinaCatamarca      ClinicTimezone = "America/Argentina/Catamarca"
+	AmericaArgentinaComodRivadavia ClinicTimezone = "America/Argentina/ComodRivadavia"
+	AmericaArgentinaCordoba        ClinicTimezone = "America/Argentina/Cordoba"
+	AmericaArgentinaJujuy          ClinicTimezone = "America/Argentina/Jujuy"
+	AmericaArgentinaLaRioja        ClinicTimezone = "America/Argentina/La_Rioja"
+	AmericaArgentinaMendoza        ClinicTimezone = "America/Argentina/Mendoza"
+	AmericaArgentinaRioGallegos    ClinicTimezone = "America/Argentina/Rio_Gallegos"
+	AmericaArgentinaSalta          ClinicTimezone = "America/Argentina/Salta"
+	AmericaArgentinaSanJuan        ClinicTimezone = "America/Argentina/San_Juan"
+	AmericaArgentinaSanLuis        ClinicTimezone = "America/Argentina/San_Luis"
+	AmericaArgentinaTucuman        ClinicTimezone = "America/Argentina/Tucuman"
+	AmericaArgentinaUshuaia        ClinicTimezone = "America/Argentina/Ushuaia"
+	AmericaAruba                   ClinicTimezone = "America/Aruba"
+	AmericaAsuncion                ClinicTimezone = "America/Asuncion"
+	AmericaAtikokan                ClinicTimezone = "America/Atikokan"
+	AmericaAtka                    ClinicTimezone = "America/Atka"
+	AmericaBahia                   ClinicTimezone = "America/Bahia"
+	AmericaBahiaBanderas           ClinicTimezone = "America/Bahia_Banderas"
+	AmericaBarbados                ClinicTimezone = "America/Barbados"
+	AmericaBelem                   ClinicTimezone = "America/Belem"
+	AmericaBelize                  ClinicTimezone = "America/Belize"
+	AmericaBlancSablon             ClinicTimezone = "America/Blanc-Sablon"
+	AmericaBoaVista                ClinicTimezone = "America/Boa_Vista"
+	AmericaBogota                  ClinicTimezone = "America/Bogota"
+	AmericaBoise                   ClinicTimezone = "America/Boise"
+	AmericaBuenosAires             ClinicTimezone = "America/Buenos_Aires"
+	AmericaCambridgeBay            ClinicTimezone = "America/Cambridge_Bay"
+	AmericaCampoGrande             ClinicTimezone = "America/Campo_Grande"
+	AmericaCancun                  ClinicTimezone = "America/Cancun"
+	AmericaCaracas                 ClinicTimezone = "America/Caracas"
+	AmericaCatamarca               ClinicTimezone = "America/Catamarca"
+	AmericaCayenne                 ClinicTimezone = "America/Cayenne"
+	AmericaCayman                  ClinicTimezone = "America/Cayman"
+	AmericaChicago                 ClinicTimezone = "America/Chicago"
+	AmericaChihuahua               ClinicTimezone = "America/Chihuahua"
+	AmericaCiudadJuarez            ClinicTimezone = "America/Ciudad_Juarez"
+	AmericaCoralHarbour            ClinicTimezone = "America/Coral_Harbour"
+	AmericaCordoba                 ClinicTimezone = "America/Cordoba"
+	AmericaCostaRica               ClinicTimezone = "America/Costa_Rica"
+	AmericaCreston                 ClinicTimezone = "America/Creston"
+	AmericaCuiaba                  ClinicTimezone = "America/Cuiaba"
+	AmericaCuracao                 ClinicTimezone = "America/Curacao"
+	AmericaDanmarkshavn            ClinicTimezone = "America/Danmarkshavn"
+	AmericaDawson                  ClinicTimezone = "America/Dawson"
+	AmericaDawsonCreek             ClinicTimezone = "America/Dawson_Creek"
+	AmericaDenver                  ClinicTimezone = "America/Denver"
+	AmericaDetroit                 ClinicTimezone = "America/Detroit"
+	AmericaDominica                ClinicTimezone = "America/Dominica"
+	AmericaEdmonton                ClinicTimezone = "America/Edmonton"
+	AmericaEirunepe                ClinicTimezone = "America/Eirunepe"
+	AmericaElSalvador              ClinicTimezone = "America/El_Salvador"
+	AmericaEnsenada                ClinicTimezone = "America/Ensenada"
+	AmericaFortNelson              ClinicTimezone = "America/Fort_Nelson"
+	AmericaFortWayne               ClinicTimezone = "America/Fort_Wayne"
+	AmericaFortaleza               ClinicTimezone = "America/Fortaleza"
+	AmericaGlaceBay                ClinicTimezone = "America/Glace_Bay"
+	AmericaGodthab                 ClinicTimezone = "America/Godthab"
+	AmericaGooseBay                ClinicTimezone = "America/Goose_Bay"
+	AmericaGrandTurk               ClinicTimezone = "America/Grand_Turk"
+	AmericaGrenada                 ClinicTimezone = "America/Grenada"
+	AmericaGuadeloupe              ClinicTimezone = "America/Guadeloupe"
+	AmericaGuatemala               ClinicTimezone = "America/Guatemala"
+	AmericaGuayaquil               ClinicTimezone = "America/Guayaquil"
+	AmericaGuyana                  ClinicTimezone = "America/Guyana"
+	AmericaHalifax                 ClinicTimezone = "America/Halifax"
+	AmericaHavana                  ClinicTimezone = "America/Havana"
+	AmericaHermosillo              ClinicTimezone = "America/Hermosillo"
+	AmericaIndianaIndianapolis     ClinicTimezone = "America/Indiana/Indianapolis"
+	AmericaIndianaKnox             ClinicTimezone = "America/Indiana/Knox"
+	AmericaIndianaMarengo          ClinicTimezone = "America/Indiana/Marengo"
+	AmericaIndianaPetersburg       ClinicTimezone = "America/Indiana/Petersburg"
+	AmericaIndianaTellCity         ClinicTimezone = "America/Indiana/Tell_City"
+	AmericaIndianaVevay            ClinicTimezone = "America/Indiana/Vevay"
+	AmericaIndianaVincennes        ClinicTimezone = "America/Indiana/Vincennes"
+	AmericaIndianaWinamac          ClinicTimezone = "America/Indiana/Winamac"
+	AmericaIndianapolis            ClinicTimezone = "America/Indianapolis"
+	AmericaInuvik                  ClinicTimezone = "America/Inuvik"
+	AmericaIqaluit                 ClinicTimezone = "America/Iqaluit"
+	AmericaJamaica                 ClinicTimezone = "America/Jamaica"
+	AmericaJujuy                   ClinicTimezone = "America/Jujuy"
+	AmericaJuneau                  ClinicTimezone = "America/Juneau"
+	AmericaKentuckyLouisville      ClinicTimezone = "America/Kentucky/Louisville"
+	AmericaKentuckyMonticello      ClinicTimezone = "America/Kentucky/Monticello"
+	AmericaKnoxIN                  ClinicTimezone = "America/Knox_IN"
+	AmericaKralendijk              ClinicTimezone = "America/Kralendijk"
+	AmericaLaPaz                   ClinicTimezone = "America/La_Paz"
+	AmericaLima                    ClinicTimezone = "America/Lima"
+	AmericaLosAngeles              ClinicTimezone = "America/Los_Angeles"
+	AmericaLouisville              ClinicTimezone = "America/Louisville"
+	AmericaLowerPrinces            ClinicTimezone = "America/Lower_Princes"
+	AmericaMaceio                  ClinicTimezone = "America/Maceio"
+	AmericaManagua                 ClinicTimezone = "America/Managua"
+	AmericaManaus                  ClinicTimezone = "America/Manaus"
+	AmericaMarigot                 ClinicTimezone = "America/Marigot"
+	AmericaMartinique              ClinicTimezone = "America/Martinique"
+	AmericaMatamoros               ClinicTimezone = "America/Matamoros"
+	AmericaMazatlan                ClinicTimezone = "America/Mazatlan"
+	AmericaMendoza                 ClinicTimezone = "America/Mendoza"
+	AmericaMenominee               ClinicTimezone = "America/Menominee"
+	AmericaMerida                  ClinicTimezone = "America/Merida"
+	AmericaMetlakatla              ClinicTimezone = "America/Metlakatla"
+	AmericaMexicoCity              ClinicTimezone = "America/Mexico_City"
+	AmericaMiquelon                ClinicTimezone = "America/Miquelon"
+	AmericaMoncton                 ClinicTimezone = "America/Moncton"
+	AmericaMonterrey               ClinicTimezone = "America/Monterrey"
+	AmericaMontevideo              ClinicTimezone = "America/Montevideo"
+	AmericaMontreal                ClinicTimezone = "America/Montreal"
+	AmericaMontserrat              ClinicTimezone = "America/Montserrat"
+	AmericaNassau                  ClinicTimezone = "America/Nassau"
+	AmericaNewYork                 ClinicTimezone = "America/New_York"
+	AmericaNipigon                 ClinicTimezone = "America/Nipigon"
+	AmericaNome                    ClinicTimezone = "America/Nome"
+	AmericaNoronha                 ClinicTimezone = "America/Noronha"
+	AmericaNorthDakotaBeulah       ClinicTimezone = "America/North_Dakota/Beulah"
+	AmericaNorthDakotaCenter       ClinicTimezone = "America/North_Dakota/Center"
+	AmericaNorthDakotaNewSalem     ClinicTimezone = "America/North_Dakota/New_Salem"
+	AmericaNuuk                    ClinicTimezone = "America/Nuuk"
+	AmericaOjinaga                 ClinicTimezone = "America/Ojinaga"
+	AmericaPanama                  ClinicTimezone = "America/Panama"
+	AmericaPangnirtung             ClinicTimezone = "America/Pangnirtung"
+	AmericaParamaribo              ClinicTimezone = "America/Paramaribo"
+	AmericaPhoenix                 ClinicTimezone = "America/Phoenix"
+	AmericaPortAuPrince            ClinicTimezone = "America/Port-au-Prince"
+	AmericaPortOfSpain             ClinicTimezone = "America/Port_of_Spain"
+	AmericaPortoAcre               ClinicTimezone = "America/Porto_Acre"
+	AmericaPortoVelho              ClinicTimezone = "America/Porto_Velho"
+	AmericaPuertoRico              ClinicTimezone = "America/Puerto_Rico"
+	AmericaPuntaArenas             ClinicTimezone = "America/Punta_Arenas"
+	AmericaRainyRiver              ClinicTimezone = "America/Rainy_River"
+	AmericaRankinInlet             ClinicTimezone = "America/Rankin_Inlet"
+	AmericaRecife                  ClinicTimezone = "America/Recife"
+	AmericaRegina                  ClinicTimezone = "America/Regina"
+	AmericaResolute                ClinicTimezone = "America/Resolute"
+	AmericaRioBranco               ClinicTimezone = "America/Rio_Branco"
+	AmericaRosario                 ClinicTimezone = "America/Rosario"
+	AmericaSantaIsabel             ClinicTimezone = "America/Santa_Isabel"
+	AmericaSantarem                ClinicTimezone = "America/Santarem"
+	AmericaSantiago                ClinicTimezone = "America/Santiago"
+	AmericaSantoDomingo            ClinicTimezone = "America/Santo_Domingo"
+	AmericaSaoPaulo                ClinicTimezone = "America/Sao_Paulo"
+	AmericaScoresbysund            ClinicTimezone = "America/Scoresbysund"
+	AmericaShiprock                ClinicTimezone = "America/Shiprock"
+	AmericaSitka                   ClinicTimezone = "America/Sitka"
+	AmericaStBarthelemy            ClinicTimezone = "America/St_Barthelemy"
+	AmericaStJohns                 ClinicTimezone = "America/St_Johns"
+	AmericaStKitts                 ClinicTimezone = "America/St_Kitts"
+	AmericaStLucia                 ClinicTimezone = "America/St_Lucia"
+	AmericaStThomas                ClinicTimezone = "America/St_Thomas"
+	AmericaStVincent               ClinicTimezone = "America/St_Vincent"
+	AmericaSwiftCurrent            ClinicTimezone = "America/Swift_Current"
+	AmericaTegucigalpa             ClinicTimezone = "America/Tegucigalpa"
+	AmericaThule                   ClinicTimezone = "America/Thule"
+	AmericaThunderBay              ClinicTimezone = "America/Thunder_Bay"
+	AmericaTijuana                 ClinicTimezone = "America/Tijuana"
+	AmericaToronto                 ClinicTimezone = "America/Toronto"
+	AmericaTortola                 ClinicTimezone = "America/Tortola"
+	AmericaVancouver               ClinicTimezone = "America/Vancouver"
+	AmericaVirgin                  ClinicTimezone = "America/Virgin"
+	AmericaWhitehorse              ClinicTimezone = "America/Whitehorse"
+	AmericaWinnipeg                ClinicTimezone = "America/Winnipeg"
+	AmericaYakutat                 ClinicTimezone = "America/Yakutat"
+	AmericaYellowknife             ClinicTimezone = "America/Yellowknife"
+	AntarcticaCasey                ClinicTimezone = "Antarctica/Casey"
+	AntarcticaDavis                ClinicTimezone = "Antarctica/Davis"
+	AntarcticaDumontDUrville       ClinicTimezone = "Antarctica/DumontDUrville"
+	AntarcticaMacquarie            ClinicTimezone = "Antarctica/Macquarie"
+	AntarcticaMawson               ClinicTimezone = "Antarctica/Mawson"
+	AntarcticaMcMurdo              ClinicTimezone = "Antarctica/McMurdo"
+	AntarcticaPalmer               ClinicTimezone = "Antarctica/Palmer"
+	AntarcticaRothera              ClinicTimezone = "Antarctica/Rothera"
+	AntarcticaSouthPole            ClinicTimezone = "Antarctica/South_Pole"
+	AntarcticaSyowa                ClinicTimezone = "Antarctica/Syowa"
+	AntarcticaTroll                ClinicTimezone = "Antarctica/Troll"
+	AntarcticaVostok               ClinicTimezone = "Antarctica/Vostok"
+	ArcticLongyearbyen             ClinicTimezone = "Arctic/Longyearbyen"
+	AsiaAden                       ClinicTimezone = "Asia/Aden"
+	AsiaAlmaty                     ClinicTimezone = "Asia/Almaty"
+	AsiaAmman                      ClinicTimezone = "Asia/Amman"
+	AsiaAnadyr                     ClinicTimezone = "Asia/Anadyr"
+	AsiaAqtau                      ClinicTimezone = "Asia/Aqtau"
+	AsiaAqtobe                     ClinicTimezone = "Asia/Aqtobe"
+	AsiaAshgabat                   ClinicTimezone = "Asia/Ashgabat"
+	AsiaAshkhabad                  ClinicTimezone = "Asia/Ashkhabad"
+	AsiaAtyrau                     ClinicTimezone = "Asia/Atyrau"
+	AsiaBaghdad                    ClinicTimezone = "Asia/Baghdad"
+	AsiaBahrain                    ClinicTimezone = "Asia/Bahrain"
+	AsiaBaku                       ClinicTimezone = "Asia/Baku"
+	AsiaBangkok                    ClinicTimezone = "Asia/Bangkok"
+	AsiaBarnaul                    ClinicTimezone = "Asia/Barnaul"
+	AsiaBeirut                     ClinicTimezone = "Asia/Beirut"
+	AsiaBishkek                    ClinicTimezone = "Asia/Bishkek"
+	AsiaBrunei                     ClinicTimezone = "Asia/Brunei"
+	AsiaCalcutta                   ClinicTimezone = "Asia/Calcutta"
+	AsiaChita                      ClinicTimezone = "Asia/Chita"
+	AsiaChoibalsan                 ClinicTimezone = "Asia/Choibalsan"
+	AsiaChongqing                  ClinicTimezone = "Asia/Chongqing"
+	AsiaChungking                  ClinicTimezone = "Asia/Chungking"
+	AsiaColombo                    ClinicTimezone = "Asia/Colombo"
+	AsiaDacca                      ClinicTimezone = "Asia/Dacca"
+	AsiaDamascus                   ClinicTimezone = "Asia/Damascus"
+	AsiaDhaka                      ClinicTimezone = "Asia/Dhaka"
+	AsiaDili                       ClinicTimezone = "Asia/Dili"
+	AsiaDubai                      ClinicTimezone = "Asia/Dubai"
+	AsiaDushanbe                   ClinicTimezone = "Asia/Dushanbe"
+	AsiaFamagusta                  ClinicTimezone = "Asia/Famagusta"
+	AsiaGaza                       ClinicTimezone = "Asia/Gaza"
+	AsiaHarbin                     ClinicTimezone = "Asia/Harbin"
+	AsiaHebron                     ClinicTimezone = "Asia/Hebron"
+	AsiaHoChiMinh                  ClinicTimezone = "Asia/Ho_Chi_Minh"
+	AsiaHongKong                   ClinicTimezone = "Asia/Hong_Kong"
+	AsiaHovd                       ClinicTimezone = "Asia/Hovd"
+	AsiaIrkutsk                    ClinicTimezone = "Asia/Irkutsk"
+	AsiaIstanbul                   ClinicTimezone = "Asia/Istanbul"
+	AsiaJakarta                    ClinicTimezone = "Asia/Jakarta"
+	AsiaJayapura                   ClinicTimezone = "Asia/Jayapura"
+	AsiaJerusalem                  ClinicTimezone = "Asia/Jerusalem"
+	AsiaKabul                      ClinicTimezone = "Asia/Kabul"
+	AsiaKamchatka                  ClinicTimezone = "Asia/Kamchatka"
+	AsiaKarachi                    ClinicTimezone = "Asia/Karachi"
+	AsiaKashgar                    ClinicTimezone = "Asia/Kashgar"
+	AsiaKathmandu                  ClinicTimezone = "Asia/Kathmandu"
+	AsiaKatmandu                   ClinicTimezone = "Asia/Katmandu"
+	AsiaKhandyga                   ClinicTimezone = "Asia/Khandyga"
+	AsiaKolkata                    ClinicTimezone = "Asia/Kolkata"
+	AsiaKrasnoyarsk                ClinicTimezone = "Asia/Krasnoyarsk"
+	AsiaKualaLumpur                ClinicTimezone = "Asia/Kuala_Lumpur"
+	AsiaKuching                    ClinicTimezone = "Asia/Kuching"
+	AsiaKuwait                     ClinicTimezone = "Asia/Kuwait"
+	AsiaMacao                      ClinicTimezone = "Asia/Macao"
+	AsiaMacau                      ClinicTimezone = "Asia/Macau"
+	AsiaMagadan                    ClinicTimezone = "Asia/Magadan"
+	AsiaMakassar                   ClinicTimezone = "Asia/Makassar"
+	AsiaManila                     ClinicTimezone = "Asia/Manila"
+	AsiaMuscat                     ClinicTimezone = "Asia/Muscat"
+	AsiaNicosia                    ClinicTimezone = "Asia/Nicosia"
+	AsiaNovokuznetsk               ClinicTimezone = "Asia/Novokuznetsk"
+	AsiaNovosibirsk                ClinicTimezone = "Asia/Novosibirsk"
+	AsiaOmsk                       ClinicTimezone = "Asia/Omsk"
+	AsiaOral                       ClinicTimezone = "Asia/Oral"
+	AsiaPhnomPenh                  ClinicTimezone = "Asia/Phnom_Penh"
+	AsiaPontianak                  ClinicTimezone = "Asia/Pontianak"
+	AsiaPyongyang                  ClinicTimezone = "Asia/Pyongyang"
+	AsiaQatar                      ClinicTimezone = "Asia/Qatar"
+	AsiaQostanay                   ClinicTimezone = "Asia/Qostanay"
+	AsiaQyzylorda                  ClinicTimezone = "Asia/Qyzylorda"
+	AsiaRangoon                    ClinicTimezone = "Asia/Rangoon"
+	AsiaRiyadh                     ClinicTimezone = "Asia/Riyadh"
+	AsiaSaigon                     ClinicTimezone = "Asia/Saigon"
+	AsiaSakhalin                   ClinicTimezone = "Asia/Sakhalin"
+	AsiaSamarkand                  ClinicTimezone = "Asia/Samarkand"
+	AsiaSeoul                      ClinicTimezone = "Asia/Seoul"
+	AsiaShanghai                   ClinicTimezone = "Asia/Shanghai"
+	AsiaSingapore                  ClinicTimezone = "Asia/Singapore"
+	AsiaSrednekolymsk              ClinicTimezone = "Asia/Srednekolymsk"
+	AsiaTaipei                     ClinicTimezone = "Asia/Taipei"
+	AsiaTashkent                   ClinicTimezone = "Asia/Tashkent"
+	AsiaTbilisi                    ClinicTimezone = "Asia/Tbilisi"
+	AsiaTehran                     ClinicTimezone = "Asia/Tehran"
+	AsiaTelAviv                    ClinicTimezone = "Asia/Tel_Aviv"
+	AsiaThimbu                     ClinicTimezone = "Asia/Thimbu"
+	AsiaThimphu                    ClinicTimezone = "Asia/Thimphu"
+	AsiaTokyo                      ClinicTimezone = "Asia/Tokyo"
+	AsiaTomsk                      ClinicTimezone = "Asia/Tomsk"
+	AsiaUjungPandang               ClinicTimezone = "Asia/Ujung_Pandang"
+	AsiaUlaanbaatar                ClinicTimezone = "Asia/Ulaanbaatar"
+	AsiaUlanBator                  ClinicTimezone = "Asia/Ulan_Bator"
+	AsiaUrumqi                     ClinicTimezone = "Asia/Urumqi"
+	AsiaUstNera                    ClinicTimezone = "Asia/Ust-Nera"
+	AsiaVientiane                  ClinicTimezone = "Asia/Vientiane"
+	AsiaVladivostok                ClinicTimezone = "Asia/Vladivostok"
+	AsiaYakutsk                    ClinicTimezone = "Asia/Yakutsk"
+	AsiaYangon                     ClinicTimezone = "Asia/Yangon"
+	AsiaYekaterinburg              ClinicTimezone = "Asia/Yekaterinburg"
+	AsiaYerevan                    ClinicTimezone = "Asia/Yerevan"
+	AtlanticAzores                 ClinicTimezone = "Atlantic/Azores"
+	AtlanticBermuda                ClinicTimezone = "Atlantic/Bermuda"
+	AtlanticCanary                 ClinicTimezone = "Atlantic/Canary"
+	AtlanticCapeVerde              ClinicTimezone = "Atlantic/Cape_Verde"
+	AtlanticFaeroe                 ClinicTimezone = "Atlantic/Faeroe"
+	AtlanticFaroe                  ClinicTimezone = "Atlantic/Faroe"
+	AtlanticJanMayen               ClinicTimezone = "Atlantic/Jan_Mayen"
+	AtlanticMadeira                ClinicTimezone = "Atlantic/Madeira"
+	AtlanticReykjavik              ClinicTimezone = "Atlantic/Reykjavik"
+	AtlanticSouthGeorgia           ClinicTimezone = "Atlantic/South_Georgia"
+	AtlanticStHelena               ClinicTimezone = "Atlantic/St_Helena"
+	AtlanticStanley                ClinicTimezone = "Atlantic/Stanley"
+	AustraliaACT                   ClinicTimezone = "Australia/ACT"
+	AustraliaAdelaide              ClinicTimezone = "Australia/Adelaide"
+	AustraliaBrisbane              ClinicTimezone = "Australia/Brisbane"
+	AustraliaBrokenHill            ClinicTimezone = "Australia/Broken_Hill"
+	AustraliaCanberra              ClinicTimezone = "Australia/Canberra"
+	AustraliaCurrie                ClinicTimezone = "Australia/Currie"
+	AustraliaDarwin                ClinicTimezone = "Australia/Darwin"
+	AustraliaEucla                 ClinicTimezone = "Australia/Eucla"
+	AustraliaHobart                ClinicTimezone = "Australia/Hobart"
+	AustraliaLHI                   ClinicTimezone = "Australia/LHI"
+	AustraliaLindeman              ClinicTimezone = "Australia/Lindeman"
+	AustraliaLordHowe              ClinicTimezone = "Australia/Lord_Howe"
+	AustraliaMelbourne             ClinicTimezone = "Australia/Melbourne"
+	AustraliaNSW                   ClinicTimezone = "Australia/NSW"
+	AustraliaNorth                 ClinicTimezone = "Australia/North"
+	AustraliaPerth                 ClinicTimezone = "Australia/Perth"
+	AustraliaQueensland            ClinicTimezone = "Australia/Queensland"
+	AustraliaSouth                 ClinicTimezone = "Australia/South"
+	AustraliaSydney                ClinicTimezone = "Australia/Sydney"
+	AustraliaTasmania              ClinicTimezone = "Australia/Tasmania"
+	AustraliaVictoria              ClinicTimezone = "Australia/Victoria"
+	AustraliaWest                  ClinicTimezone = "Australia/West"
+	AustraliaYancowinna            ClinicTimezone = "Australia/Yancowinna"
+	BrazilAcre                     ClinicTimezone = "Brazil/Acre"
+	BrazilDeNoronha                ClinicTimezone = "Brazil/DeNoronha"
+	BrazilEast                     ClinicTimezone = "Brazil/East"
+	BrazilWest                     ClinicTimezone = "Brazil/West"
+	CET                            ClinicTimezone = "CET"
+	CST6CDT                        ClinicTimezone = "CST6CDT"
+	CanadaAtlantic                 ClinicTimezone = "Canada/Atlantic"
+	CanadaCentral                  ClinicTimezone = "Canada/Central"
+	CanadaEastern                  ClinicTimezone = "Canada/Eastern"
+	CanadaMountain                 ClinicTimezone = "Canada/Mountain"
+	CanadaNewfoundland             ClinicTimezone = "Canada/Newfoundland"
+	CanadaPacific                  ClinicTimezone = "Canada/Pacific"
+	CanadaSaskatchewan             ClinicTimezone = "Canada/Saskatchewan"
+	CanadaYukon                    ClinicTimezone = "Canada/Yukon"
+	ChileContinental               ClinicTimezone = "Chile/Continental"
+	ChileEasterIsland              ClinicTimezone = "Chile/EasterIsland"
+	Cuba                           ClinicTimezone = "Cuba"
+	EET                            ClinicTimezone = "EET"
+	EST                            ClinicTimezone = "EST"
+	EST5EDT                        ClinicTimezone = "EST5EDT"
+	Egypt                          ClinicTimezone = "Egypt"
+	Eire                           ClinicTimezone = "Eire"
+	EtcGMT                         ClinicTimezone = "Etc/GMT"
+	EtcGMT0                        ClinicTimezone = "Etc/GMT+0"
+	EtcGMT01                       ClinicTimezone = "Etc/GMT-0"
+	EtcGMT02                       ClinicTimezone = "Etc/GMT0"
+	EtcGMT1                        ClinicTimezone = "Etc/GMT+1"
+	EtcGMT10                       ClinicTimezone = "Etc/GMT+10"
+	EtcGMT101                      ClinicTimezone = "Etc/GMT-10"
+	EtcGMT11                       ClinicTimezone = "Etc/GMT-1"
+	EtcGMT111                      ClinicTimezone = "Etc/GMT-11"
+	EtcGMT12                       ClinicTimezone = "Etc/GMT+12"
+	EtcGMT121                      ClinicTimezone = "Etc/GMT-12"
+	EtcGMT13                       ClinicTimezone = "Etc/GMT-13"
+	EtcGMT14                       ClinicTimezone = "Etc/GMT-14"
+	EtcGMT2                        ClinicTimezone = "Etc/GMT+2"
+	EtcGMT21                       ClinicTimezone = "Etc/GMT-2"
+	EtcGMT3                        ClinicTimezone = "Etc/GMT+3"
+	EtcGMT31                       ClinicTimezone = "Etc/GMT-3"
+	EtcGMT4                        ClinicTimezone = "Etc/GMT+4"
+	EtcGMT41                       ClinicTimezone = "Etc/GMT-4"
+	EtcGMT5                        ClinicTimezone = "Etc/GMT+5"
+	EtcGMT51                       ClinicTimezone = "Etc/GMT-5"
+	EtcGMT6                        ClinicTimezone = "Etc/GMT+6"
+	EtcGMT61                       ClinicTimezone = "Etc/GMT-6"
+	EtcGMT7                        ClinicTimezone = "Etc/GMT+7"
+	EtcGMT71                       ClinicTimezone = "Etc/GMT-7"
+	EtcGMT8                        ClinicTimezone = "Etc/GMT+8"
+	EtcGMT81                       ClinicTimezone = "Etc/GMT-8"
+	EtcGMT9                        ClinicTimezone = "Etc/GMT+9"
+	EtcGMT91                       ClinicTimezone = "Etc/GMT-9"
+	EtcGreenwich                   ClinicTimezone = "Etc/Greenwich"
+	EtcUCT                         ClinicTimezone = "Etc/UCT"
+	EtcUTC                         ClinicTimezone = "Etc/UTC"
+	EtcUniversal                   ClinicTimezone = "Etc/Universal"
+	EtcZulu                        ClinicTimezone = "Etc/Zulu"
+	EuropeAmsterdam                ClinicTimezone = "Europe/Amsterdam"
+	EuropeAndorra                  ClinicTimezone = "Europe/Andorra"
+	EuropeAstrakhan                ClinicTimezone = "Europe/Astrakhan"
+	EuropeAthens                   ClinicTimezone = "Europe/Athens"
+	EuropeBelfast                  ClinicTimezone = "Europe/Belfast"
+	EuropeBelgrade                 ClinicTimezone = "Europe/Belgrade"
+	EuropeBerlin                   ClinicTimezone = "Europe/Berlin"
+	EuropeBratislava               ClinicTimezone = "Europe/Bratislava"
+	EuropeBrussels                 ClinicTimezone = "Europe/Brussels"
+	EuropeBucharest                ClinicTimezone = "Europe/Bucharest"
+	EuropeBudapest                 ClinicTimezone = "Europe/Budapest"
+	EuropeBusingen                 ClinicTimezone = "Europe/Busingen"
+	EuropeChisinau                 ClinicTimezone = "Europe/Chisinau"
+	EuropeCopenhagen               ClinicTimezone = "Europe/Copenhagen"
+	EuropeDublin                   ClinicTimezone = "Europe/Dublin"
+	EuropeGibraltar                ClinicTimezone = "Europe/Gibraltar"
+	EuropeGuernsey                 ClinicTimezone = "Europe/Guernsey"
+	EuropeHelsinki                 ClinicTimezone = "Europe/Helsinki"
+	EuropeIsleOfMan                ClinicTimezone = "Europe/Isle_of_Man"
+	EuropeIstanbul                 ClinicTimezone = "Europe/Istanbul"
+	EuropeJersey                   ClinicTimezone = "Europe/Jersey"
+	EuropeKaliningrad              ClinicTimezone = "Europe/Kaliningrad"
+	EuropeKiev                     ClinicTimezone = "Europe/Kiev"
+	EuropeKirov                    ClinicTimezone = "Europe/Kirov"
+	EuropeKyiv                     ClinicTimezone = "Europe/Kyiv"
+	EuropeLisbon                   ClinicTimezone = "Europe/Lisbon"
+	EuropeLjubljana                ClinicTimezone = "Europe/Ljubljana"
+	EuropeLondon                   ClinicTimezone = "Europe/London"
+	EuropeLuxembourg               ClinicTimezone = "Europe/Luxembourg"
+	EuropeMadrid                   ClinicTimezone = "Europe/Madrid"
+	EuropeMalta                    ClinicTimezone = "Europe/Malta"
+	EuropeMariehamn                ClinicTimezone = "Europe/Mariehamn"
+	EuropeMinsk                    ClinicTimezone = "Europe/Minsk"
+	EuropeMonaco                   ClinicTimezone = "Europe/Monaco"
+	EuropeMoscow                   ClinicTimezone = "Europe/Moscow"
+	EuropeNicosia                  ClinicTimezone = "Europe/Nicosia"
+	EuropeOslo                     ClinicTimezone = "Europe/Oslo"
+	EuropeParis                    ClinicTimezone = "Europe/Paris"
+	EuropePodgorica                ClinicTimezone = "Europe/Podgorica"
+	EuropePrague                   ClinicTimezone = "Europe/Prague"
+	EuropeRiga                     ClinicTimezone = "Europe/Riga"
+	EuropeRome                     ClinicTimezone = "Europe/Rome"
+	EuropeSamara                   ClinicTimezone = "Europe/Samara"
+	EuropeSanMarino                ClinicTimezone = "Europe/San_Marino"
+	EuropeSarajevo                 ClinicTimezone = "Europe/Sarajevo"
+	EuropeSaratov                  ClinicTimezone = "Europe/Saratov"
+	EuropeSimferopol               ClinicTimezone = "Europe/Simferopol"
+	EuropeSkopje                   ClinicTimezone = "Europe/Skopje"
+	EuropeSofia                    ClinicTimezone = "Europe/Sofia"
+	EuropeStockholm                ClinicTimezone = "Europe/Stockholm"
+	EuropeTallinn                  ClinicTimezone = "Europe/Tallinn"
+	EuropeTirane                   ClinicTimezone = "Europe/Tirane"
+	EuropeTiraspol                 ClinicTimezone = "Europe/Tiraspol"
+	EuropeUlyanovsk                ClinicTimezone = "Europe/Ulyanovsk"
+	EuropeUzhgorod                 ClinicTimezone = "Europe/Uzhgorod"
+	EuropeVaduz                    ClinicTimezone = "Europe/Vaduz"
+	EuropeVatican                  ClinicTimezone = "Europe/Vatican"
+	EuropeVienna                   ClinicTimezone = "Europe/Vienna"
+	EuropeVilnius                  ClinicTimezone = "Europe/Vilnius"
+	EuropeVolgograd                ClinicTimezone = "Europe/Volgograd"
+	EuropeWarsaw                   ClinicTimezone = "Europe/Warsaw"
+	EuropeZagreb                   ClinicTimezone = "Europe/Zagreb"
+	EuropeZaporozhye               ClinicTimezone = "Europe/Zaporozhye"
+	EuropeZurich                   ClinicTimezone = "Europe/Zurich"
+	GB                             ClinicTimezone = "GB"
+	GBEire                         ClinicTimezone = "GB-Eire"
+	GMT                            ClinicTimezone = "GMT"
+	GMT0                           ClinicTimezone = "GMT+0"
+	GMT01                          ClinicTimezone = "GMT-0"
+	GMT02                          ClinicTimezone = "GMT0"
+	Greenwich                      ClinicTimezone = "Greenwich"
+	HST                            ClinicTimezone = "HST"
+	Hongkong                       ClinicTimezone = "Hongkong"
+	Iceland                        ClinicTimezone = "Iceland"
+	IndianAntananarivo             ClinicTimezone = "Indian/Antananarivo"
+	IndianChagos                   ClinicTimezone = "Indian/Chagos"
+	IndianChristmas                ClinicTimezone = "Indian/Christmas"
+	IndianCocos                    ClinicTimezone = "Indian/Cocos"
+	IndianComoro                   ClinicTimezone = "Indian/Comoro"
+	IndianKerguelen                ClinicTimezone = "Indian/Kerguelen"
+	IndianMahe                     ClinicTimezone = "Indian/Mahe"
+	IndianMaldives                 ClinicTimezone = "Indian/Maldives"
+	IndianMauritius                ClinicTimezone = "Indian/Mauritius"
+	IndianMayotte                  ClinicTimezone = "Indian/Mayotte"
+	IndianReunion                  ClinicTimezone = "Indian/Reunion"
+	Iran                           ClinicTimezone = "Iran"
+	Israel                         ClinicTimezone = "Israel"
+	Jamaica                        ClinicTimezone = "Jamaica"
+	Japan                          ClinicTimezone = "Japan"
+	Kwajalein                      ClinicTimezone = "Kwajalein"
+	Libya                          ClinicTimezone = "Libya"
+	MET                            ClinicTimezone = "MET"
+	MST                            ClinicTimezone = "MST"
+	MST7MDT                        ClinicTimezone = "MST7MDT"
+	MexicoBajaNorte                ClinicTimezone = "Mexico/BajaNorte"
+	MexicoBajaSur                  ClinicTimezone = "Mexico/BajaSur"
+	MexicoGeneral                  ClinicTimezone = "Mexico/General"
+	NZ                             ClinicTimezone = "NZ"
+	NZCHAT                         ClinicTimezone = "NZ-CHAT"
+	Navajo                         ClinicTimezone = "Navajo"
+	PRC                            ClinicTimezone = "PRC"
+	PST8PDT                        ClinicTimezone = "PST8PDT"
+	PacificApia                    ClinicTimezone = "Pacific/Apia"
+	PacificAuckland                ClinicTimezone = "Pacific/Auckland"
+	PacificBougainville            ClinicTimezone = "Pacific/Bougainville"
+	PacificChatham                 ClinicTimezone = "Pacific/Chatham"
+	PacificChuuk                   ClinicTimezone = "Pacific/Chuuk"
+	PacificEaster                  ClinicTimezone = "Pacific/Easter"
+	PacificEfate                   ClinicTimezone = "Pacific/Efate"
+	PacificEnderbury               ClinicTimezone = "Pacific/Enderbury"
+	PacificFakaofo                 ClinicTimezone = "Pacific/Fakaofo"
+	PacificFiji                    ClinicTimezone = "Pacific/Fiji"
+	PacificFunafuti                ClinicTimezone = "Pacific/Funafuti"
+	PacificGalapagos               ClinicTimezone = "Pacific/Galapagos"
+	PacificGambier                 ClinicTimezone = "Pacific/Gambier"
+	PacificGuadalcanal             ClinicTimezone = "Pacific/Guadalcanal"
+	PacificGuam                    ClinicTimezone = "Pacific/Guam"
+	PacificHonolulu                ClinicTimezone = "Pacific/Honolulu"
+	PacificJohnston                ClinicTimezone = "Pacific/Johnston"
+	PacificKanton                  ClinicTimezone = "Pacific/Kanton"
+	PacificKiritimati              ClinicTimezone = "Pacific/Kiritimati"
+	PacificKosrae                  ClinicTimezone = "Pacific/Kosrae"
+	PacificKwajalein               ClinicTimezone = "Pacific/Kwajalein"
+	PacificMajuro                  ClinicTimezone = "Pacific/Majuro"
+	PacificMarquesas               ClinicTimezone = "Pacific/Marquesas"
+	PacificMidway                  ClinicTimezone = "Pacific/Midway"
+	PacificNauru                   ClinicTimezone = "Pacific/Nauru"
+	PacificNiue                    ClinicTimezone = "Pacific/Niue"
+	PacificNorfolk                 ClinicTimezone = "Pacific/Norfolk"
+	PacificNoumea                  ClinicTimezone = "Pacific/Noumea"
+	PacificPagoPago                ClinicTimezone = "Pacific/Pago_Pago"
+	PacificPalau                   ClinicTimezone = "Pacific/Palau"
+	PacificPitcairn                ClinicTimezone = "Pacific/Pitcairn"
+	PacificPohnpei                 ClinicTimezone = "Pacific/Pohnpei"
+	PacificPonape                  ClinicTimezone = "Pacific/Ponape"
+	PacificPortMoresby             ClinicTimezone = "Pacific/Port_Moresby"
+	PacificRarotonga               ClinicTimezone = "Pacific/Rarotonga"
+	PacificSaipan                  ClinicTimezone = "Pacific/Saipan"
+	PacificSamoa                   ClinicTimezone = "Pacific/Samoa"
+	PacificTahiti                  ClinicTimezone = "Pacific/Tahiti"
+	PacificTarawa                  ClinicTimezone = "Pacific/Tarawa"
+	PacificTongatapu               ClinicTimezone = "Pacific/Tongatapu"
+	PacificTruk                    ClinicTimezone = "Pacific/Truk"
+	PacificWake                    ClinicTimezone = "Pacific/Wake"
+	PacificWallis                  ClinicTimezone = "Pacific/Wallis"
+	PacificYap                     ClinicTimezone = "Pacific/Yap"
+	Poland                         ClinicTimezone = "Poland"
+	Portugal                       ClinicTimezone = "Portugal"
+	ROC                            ClinicTimezone = "ROC"
+	ROK                            ClinicTimezone = "ROK"
+	Singapore                      ClinicTimezone = "Singapore"
+	Turkey                         ClinicTimezone = "Turkey"
+	UCT                            ClinicTimezone = "UCT"
+	USAlaska                       ClinicTimezone = "US/Alaska"
+	USAleutian                     ClinicTimezone = "US/Aleutian"
+	USArizona                      ClinicTimezone = "US/Arizona"
+	USCentral                      ClinicTimezone = "US/Central"
+	USEastIndiana                  ClinicTimezone = "US/East-Indiana"
+	USEastern                      ClinicTimezone = "US/Eastern"
+	USHawaii                       ClinicTimezone = "US/Hawaii"
+	USIndianaStarke                ClinicTimezone = "US/Indiana-Starke"
+	USMichigan                     ClinicTimezone = "US/Michigan"
+	USMountain                     ClinicTimezone = "US/Mountain"
+	USPacific                      ClinicTimezone = "US/Pacific"
+	USSamoa                        ClinicTimezone = "US/Samoa"
+	UTC                            ClinicTimezone = "UTC"
+	Universal                      ClinicTimezone = "Universal"
+	WET                            ClinicTimezone = "WET"
+	WSU                            ClinicTimezone = "W-SU"
+	Zulu                           ClinicTimezone = "Zulu"
 )
 
 // Defines values for DataSourceState.
@@ -49,12 +642,6 @@ const (
 	DataSourceStateError            DataSourceState = "error"
 	DataSourceStatePending          DataSourceState = "pending"
 	DataSourceStatePendingReconnect DataSourceState = "pendingReconnect"
-)
-
-// Defines values for EHRMatchActionActionType.
-const (
-	DISABLESUMARYANDREPORTSSUBSCRIPTION EHRMatchActionActionType = "DISABLE_SUMARY_AND_REPORTS_SUBSCRIPTION"
-	ENABLESUMARYANDREPORTSSUBSCRIPTION  EHRMatchActionActionType = "ENABLE_SUMARY_AND_REPORTS_SUBSCRIPTION"
 )
 
 // Defines values for EHRMatchMessageRefDataModel.
@@ -86,17 +673,6 @@ const (
 type AssociateClinicianToUser struct {
 	UserId string `json:"userId"`
 }
-
-// AverageGlucose Blood glucose value, in `mmol/L`
-type AverageGlucose struct {
-	Units AverageGlucoseUnits `json:"units"`
-
-	// Value A floating point value representing a `mmol/L` value.
-	Value float32 `json:"value"`
-}
-
-// AverageGlucoseUnits defines model for AverageGlucose.Units.
-type AverageGlucoseUnits string
 
 // Clinic Clinic
 type Clinic struct {
@@ -136,6 +712,7 @@ type Clinic struct {
 	SuppressedNotifications *SuppressedNotifications `json:"suppressedNotifications,omitempty"`
 	Tier                    *string                  `json:"tier,omitempty"`
 	TierDescription         *string                  `json:"tierDescription,omitempty"`
+	Timezone                *ClinicTimezone          `json:"timezone,omitempty"`
 	UpdatedTime             *time.Time               `json:"updatedTime,omitempty"`
 	Website                 *string                  `json:"website,omitempty"`
 }
@@ -148,6 +725,9 @@ type ClinicClinicType string
 
 // ClinicPreferredBgUnits defines model for Clinic.PreferredBgUnits.
 type ClinicPreferredBgUnits string
+
+// ClinicTimezone defines model for Clinic.Timezone.
+type ClinicTimezone string
 
 // Clinician The `id` may be empty if the clinician invite has not been accepted.
 type Clinician struct {
@@ -238,14 +818,6 @@ type EHRFacility struct {
 	Name string `json:"name"`
 }
 
-// EHRMatchAction defines model for EHRMatchAction.
-type EHRMatchAction struct {
-	ActionType EHRMatchActionActionType `json:"actionType"`
-}
-
-// EHRMatchActionActionType defines model for EHRMatchAction.ActionType.
-type EHRMatchActionActionType string
-
 // EHRMatchMessageRef defines model for EHRMatchMessageRef.
 type EHRMatchMessageRef struct {
 	DataModel  EHRMatchMessageRefDataModel `json:"dataModel"`
@@ -266,8 +838,6 @@ type EHRMatchRequest struct {
 
 // EHRMatchResponse defines model for EHRMatchResponse.
 type EHRMatchResponse struct {
-	Action *EHRMatchAction `json:"action,omitempty"`
-
 	// Clinic Clinic
 	Clinic   Clinic      `json:"clinic"`
 	Patients *Patients   `json:"patients,omitempty"`
@@ -276,7 +846,8 @@ type EHRMatchResponse struct {
 
 // EHRProcedureCodes defines model for EHRProcedureCodes.
 type EHRProcedureCodes struct {
-	DisableSummaryReports string `json:"disableSummaryReports"`
+	CreateAccount         *string `json:"createAccount,omitempty"`
+	DisableSummaryReports string  `json:"disableSummaryReports"`
 
 	// EnableSummaryReports Procedure Code for Summary Statistics and PDF Reports subscription
 	EnableSummaryReports string `json:"enableSummaryReports"`
@@ -377,7 +948,7 @@ type Patient struct {
 
 	// Summary A summary of a patients recent data
 	Summary       *PatientSummary `json:"summary,omitempty"`
-	Tags          *[]string       `json:"tags"`
+	Tags          *PatientTagIds  `json:"tags"`
 	TargetDevices *[]string       `json:"targetDevices,omitempty"`
 	UpdatedTime   *time.Time      `json:"updatedTime,omitempty"`
 }
@@ -387,70 +958,97 @@ type PatientBGMPeriod struct {
 	// AverageDailyRecords Average daily readings
 	AverageDailyRecords *float64 `json:"averageDailyRecords,omitempty"`
 
-	// AverageGlucose Blood glucose value, in `mmol/L`
-	AverageGlucose           *AverageGlucose `json:"averageGlucose,omitempty"`
-	HasAverageDailyRecords   *bool           `json:"hasAverageDailyRecords,omitempty"`
-	HasAverageGlucose        *bool           `json:"hasAverageGlucose,omitempty"`
-	HasTimeInHighPercent     *bool           `json:"hasTimeInHighPercent,omitempty"`
-	HasTimeInHighRecords     *bool           `json:"hasTimeInHighRecords,omitempty"`
-	HasTimeInLowPercent      *bool           `json:"hasTimeInLowPercent,omitempty"`
-	HasTimeInLowRecords      *bool           `json:"hasTimeInLowRecords,omitempty"`
-	HasTimeInTargetPercent   *bool           `json:"hasTimeInTargetPercent,omitempty"`
-	HasTimeInTargetRecords   *bool           `json:"hasTimeInTargetRecords,omitempty"`
-	HasTimeInVeryHighPercent *bool           `json:"hasTimeInVeryHighPercent,omitempty"`
-	HasTimeInVeryHighRecords *bool           `json:"hasTimeInVeryHighRecords,omitempty"`
-	HasTimeInVeryLowPercent  *bool           `json:"hasTimeInVeryLowPercent,omitempty"`
-	HasTimeInVeryLowRecords  *bool           `json:"hasTimeInVeryLowRecords,omitempty"`
-	HasTotalRecords          *bool           `json:"hasTotalRecords,omitempty"`
+	// AverageDailyRecordsDelta Difference between the averageDailyRecords in this period and version in the opposite offset
+	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta,omitempty"`
+
+	// AverageGlucoseMmol Average Glucose of records in this period
+	AverageGlucoseMmol *float64 `json:"averageGlucoseMmol,omitempty"`
+
+	// AverageGlucoseMmolDelta Difference between the averageGlucose in this period and the other offset version
+	AverageGlucoseMmolDelta  *float64 `json:"averageGlucoseMmolDelta,omitempty"`
+	HasAverageDailyRecords   *bool    `json:"hasAverageDailyRecords,omitempty"`
+	HasAverageGlucoseMmol    *bool    `json:"hasAverageGlucoseMmol,omitempty"`
+	HasTimeInHighPercent     *bool    `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInHighRecords     *bool    `json:"hasTimeInHighRecords,omitempty"`
+	HasTimeInLowPercent      *bool    `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInLowRecords      *bool    `json:"hasTimeInLowRecords,omitempty"`
+	HasTimeInTargetPercent   *bool    `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInTargetRecords   *bool    `json:"hasTimeInTargetRecords,omitempty"`
+	HasTimeInVeryHighPercent *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryHighRecords *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
+	HasTimeInVeryLowPercent  *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
+	HasTimeInVeryLowRecords  *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
+	HasTotalRecords          *bool    `json:"hasTotalRecords,omitempty"`
 
 	// TimeInHighPercent Percentage of time spent in high glucose range
 	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
 
+	// TimeInHighPercentDelta Difference between the timeInHighPercent in this period and version in the opposite offset
+	TimeInHighPercentDelta *float64 `json:"timeInHighPercentDelta,omitempty"`
+
 	// TimeInHighRecords Counter of records in high glucose range
 	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// TimeInHighRecordsDelta Difference between the timeInHighRecords in this period and version in the opposite offset
+	TimeInHighRecordsDelta *int `json:"timeInHighRecordsDelta,omitempty"`
 
 	// TimeInLowPercent Percentage of time spent in low glucose range
 	TimeInLowPercent *float64 `json:"timeInLowPercent,omitempty"`
 
+	// TimeInLowPercentDelta Difference between the timeInLowPercent in this period and version in the opposite offset
+	TimeInLowPercentDelta *float64 `json:"timeInLowPercentDelta,omitempty"`
+
 	// TimeInLowRecords Counter of records in low glucose range
 	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
+
+	// TimeInLowRecordsDelta Difference between the timeInLowRecords in this period and version in the opposite offset
+	TimeInLowRecordsDelta *int `json:"timeInLowRecordsDelta,omitempty"`
 
 	// TimeInTargetPercent Percentage of time spent in target glucose range
 	TimeInTargetPercent *float64 `json:"timeInTargetPercent,omitempty"`
 
+	// TimeInTargetPercentDelta Difference between the timeInTargetPercent in this period and version in the opposite offset
+	TimeInTargetPercentDelta *float64 `json:"timeInTargetPercentDelta,omitempty"`
+
 	// TimeInTargetRecords Counter of records in target glucose range
 	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// TimeInTargetRecordsDelta Difference between the timeInTargetRecords in this period and version in the opposite offset
+	TimeInTargetRecordsDelta *int `json:"timeInTargetRecordsDelta,omitempty"`
 
 	// TimeInVeryHighPercent Percentage of time spent in very high glucose range
 	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent,omitempty"`
 
+	// TimeInVeryHighPercentDelta Difference between the timeInVeryHighPercent in this period and version in the opposite offset
+	TimeInVeryHighPercentDelta *float64 `json:"timeInVeryHighPercentDelta,omitempty"`
+
 	// TimeInVeryHighRecords Counter of records in very high glucose range
 	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
+
+	// TimeInVeryHighRecordsDelta Difference between the timeInVeryHighRecords in this period and version in the opposite offset
+	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta,omitempty"`
 
 	// TimeInVeryLowPercent Percentage of time spent in very low glucose range
 	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent,omitempty"`
 
+	// TimeInVeryLowPercentDelta Difference between the timeInVeryLowPercent in this period and version in the opposite offset
+	TimeInVeryLowPercentDelta *float64 `json:"timeInVeryLowPercentDelta,omitempty"`
+
 	// TimeInVeryLowRecords Counter of records in very low glucose range
 	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
 
+	// TimeInVeryLowRecordsDelta Difference between the timeInVeryLowRecords in this period and version in the opposite offset
+	TimeInVeryLowRecordsDelta *int `json:"timeInVeryLowRecordsDelta,omitempty"`
+
 	// TotalRecords Counter of records
 	TotalRecords *int `json:"totalRecords,omitempty"`
+
+	// TotalRecordsDelta Difference between the totalRecords in this period and version in the opposite offset
+	TotalRecordsDelta *int `json:"totalRecordsDelta,omitempty"`
 }
 
 // PatientBGMPeriods A map to each supported BGM summary period
-type PatientBGMPeriods struct {
-	// N14d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N14d *PatientBGMPeriod `json:"14d,omitempty"`
-
-	// N1d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N1d *PatientBGMPeriod `json:"1d,omitempty"`
-
-	// N30d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N30d *PatientBGMPeriod `json:"30d,omitempty"`
-
-	// N7d Summary of a specific BGM time period (currently: 1d, 7d, 14d, 30d)
-	N7d *PatientBGMPeriod `json:"7d,omitempty"`
-}
+type PatientBGMPeriods map[string]PatientBGMPeriod
 
 // PatientBGMStats A summary of a users recent BGM glucose values
 type PatientBGMStats struct {
@@ -459,6 +1057,9 @@ type PatientBGMStats struct {
 
 	// Dates dates tracked for summary calculation
 	Dates *PatientSummaryDates `json:"dates,omitempty"`
+
+	// OffsetPeriods A map to each supported BGM summary period
+	OffsetPeriods *PatientBGMPeriods `json:"offsetPeriods,omitempty"`
 
 	// Periods A map to each supported BGM summary period
 	Periods *PatientBGMPeriods `json:"periods,omitempty"`
@@ -472,106 +1073,160 @@ type PatientCGMPeriod struct {
 	// AverageDailyRecords Average daily readings
 	AverageDailyRecords *float64 `json:"averageDailyRecords,omitempty"`
 
-	// AverageGlucose Blood glucose value, in `mmol/L`
-	AverageGlucose *AverageGlucose `json:"averageGlucose,omitempty"`
+	// AverageDailyRecordsDelta Difference between the averageDailyRecords in this period and version in the opposite offset
+	AverageDailyRecordsDelta *float64 `json:"averageDailyRecordsDelta,omitempty"`
+
+	// AverageGlucoseMmol Average Glucose of records in this period
+	AverageGlucoseMmol *float64 `json:"averageGlucoseMmol,omitempty"`
+
+	// AverageGlucoseMmolDelta Difference between the averageGlucose in this period and the other offset version
+	AverageGlucoseMmolDelta *float64 `json:"averageGlucoseMmolDelta,omitempty"`
 
 	// GlucoseManagementIndicator A derived value which emulates A1C
-	GlucoseManagementIndicator    *float64 `json:"glucoseManagementIndicator,omitempty"`
-	HasAverageDailyRecords        *bool    `json:"hasAverageDailyRecords,omitempty"`
-	HasAverageGlucose             *bool    `json:"hasAverageGlucose,omitempty"`
-	HasGlucoseManagementIndicator *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
-	HasTimeCGMUseMinutes          *bool    `json:"hasTimeCGMUseMinutes,omitempty"`
-	HasTimeCGMUsePercent          *bool    `json:"hasTimeCGMUsePercent,omitempty"`
-	HasTimeCGMUseRecords          *bool    `json:"hasTimeCGMUseRecords,omitempty"`
-	HasTimeInHighMinutes          *bool    `json:"hasTimeInHighMinutes,omitempty"`
-	HasTimeInHighPercent          *bool    `json:"hasTimeInHighPercent,omitempty"`
-	HasTimeInHighRecords          *bool    `json:"hasTimeInHighRecords,omitempty"`
-	HasTimeInLowMinutes           *bool    `json:"hasTimeInLowMinutes,omitempty"`
-	HasTimeInLowPercent           *bool    `json:"hasTimeInLowPercent,omitempty"`
-	HasTimeInLowRecords           *bool    `json:"hasTimeInLowRecords,omitempty"`
-	HasTimeInTargetMinutes        *bool    `json:"hasTimeInTargetMinutes,omitempty"`
-	HasTimeInTargetPercent        *bool    `json:"hasTimeInTargetPercent,omitempty"`
-	HasTimeInTargetRecords        *bool    `json:"hasTimeInTargetRecords,omitempty"`
-	HasTimeInVeryHighMinutes      *bool    `json:"hasTimeInVeryHighMinutes,omitempty"`
-	HasTimeInVeryHighPercent      *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
-	HasTimeInVeryHighRecords      *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
-	HasTimeInVeryLowMinutes       *bool    `json:"hasTimeInVeryLowMinutes,omitempty"`
-	HasTimeInVeryLowPercent       *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
-	HasTimeInVeryLowRecords       *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
-	HasTotalRecords               *bool    `json:"hasTotalRecords,omitempty"`
+	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator,omitempty"`
+
+	// GlucoseManagementIndicatorDelta Difference between the glucoseManagementIndicator in this period and the other offset version
+	GlucoseManagementIndicatorDelta *float64 `json:"glucoseManagementIndicatorDelta,omitempty"`
+	HasAverageDailyRecords          *bool    `json:"hasAverageDailyRecords,omitempty"`
+	HasAverageGlucoseMmol           *bool    `json:"hasAverageGlucoseMmol,omitempty"`
+	HasGlucoseManagementIndicator   *bool    `json:"hasGlucoseManagementIndicator,omitempty"`
+	HasTimeCGMUseMinutes            *bool    `json:"hasTimeCGMUseMinutes,omitempty"`
+	HasTimeCGMUsePercent            *bool    `json:"hasTimeCGMUsePercent,omitempty"`
+	HasTimeCGMUseRecords            *bool    `json:"hasTimeCGMUseRecords,omitempty"`
+	HasTimeInHighMinutes            *bool    `json:"hasTimeInHighMinutes,omitempty"`
+	HasTimeInHighPercent            *bool    `json:"hasTimeInHighPercent,omitempty"`
+	HasTimeInHighRecords            *bool    `json:"hasTimeInHighRecords,omitempty"`
+	HasTimeInLowMinutes             *bool    `json:"hasTimeInLowMinutes,omitempty"`
+	HasTimeInLowPercent             *bool    `json:"hasTimeInLowPercent,omitempty"`
+	HasTimeInLowRecords             *bool    `json:"hasTimeInLowRecords,omitempty"`
+	HasTimeInTargetMinutes          *bool    `json:"hasTimeInTargetMinutes,omitempty"`
+	HasTimeInTargetPercent          *bool    `json:"hasTimeInTargetPercent,omitempty"`
+	HasTimeInTargetRecords          *bool    `json:"hasTimeInTargetRecords,omitempty"`
+	HasTimeInVeryHighMinutes        *bool    `json:"hasTimeInVeryHighMinutes,omitempty"`
+	HasTimeInVeryHighPercent        *bool    `json:"hasTimeInVeryHighPercent,omitempty"`
+	HasTimeInVeryHighRecords        *bool    `json:"hasTimeInVeryHighRecords,omitempty"`
+	HasTimeInVeryLowMinutes         *bool    `json:"hasTimeInVeryLowMinutes,omitempty"`
+	HasTimeInVeryLowPercent         *bool    `json:"hasTimeInVeryLowPercent,omitempty"`
+	HasTimeInVeryLowRecords         *bool    `json:"hasTimeInVeryLowRecords,omitempty"`
+	HasTotalRecords                 *bool    `json:"hasTotalRecords,omitempty"`
 
 	// TimeCGMUseMinutes Counter of minutes spent wearing a cgm
 	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
 
+	// TimeCGMUseMinutesDelta Difference between the timeCGMUseMinutes in this period and version in the opposite offset
+	TimeCGMUseMinutesDelta *int `json:"timeCGMUseMinutesDelta,omitempty"`
+
 	// TimeCGMUsePercent Percentage of time spent wearing a cgm
 	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent,omitempty"`
+
+	// TimeCGMUsePercentDelta Difference between the timeCGMUsePercent in this period and version in the opposite offset
+	TimeCGMUsePercentDelta *float64 `json:"timeCGMUsePercentDelta,omitempty"`
 
 	// TimeCGMUseRecords Counter of minutes spent wearing a cgm
 	TimeCGMUseRecords *int `json:"timeCGMUseRecords,omitempty"`
 
+	// TimeCGMUseRecordsDelta Difference between the timeCGMUseRecords in this period and version in the opposite offset
+	TimeCGMUseRecordsDelta *int `json:"timeCGMUseRecordsDelta,omitempty"`
+
 	// TimeInHighMinutes Counter of minutes spent in high glucose range
 	TimeInHighMinutes *int `json:"timeInHighMinutes,omitempty"`
+
+	// TimeInHighMinutesDelta Difference between the timeInHighMinutes in this period and version in the opposite offset
+	TimeInHighMinutesDelta *int `json:"timeInHighMinutesDelta,omitempty"`
 
 	// TimeInHighPercent Percentage of time spent in high glucose range
 	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
 
+	// TimeInHighPercentDelta Difference between the timeInHighPercent in this period and version in the opposite offset
+	TimeInHighPercentDelta *float64 `json:"timeInHighPercentDelta,omitempty"`
+
 	// TimeInHighRecords Counter of records in high glucose range
 	TimeInHighRecords *int `json:"timeInHighRecords,omitempty"`
+
+	// TimeInHighRecordsDelta Difference between the timeInHighRecords in this period and version in the opposite offset
+	TimeInHighRecordsDelta *int `json:"timeInHighRecordsDelta,omitempty"`
 
 	// TimeInLowMinutes Counter of minutes spent in low glucose range
 	TimeInLowMinutes *int `json:"timeInLowMinutes,omitempty"`
 
+	// TimeInLowMinutesDelta Difference between the timeInLowMinutes in this period and version in the opposite offset
+	TimeInLowMinutesDelta *int `json:"timeInLowMinutesDelta,omitempty"`
+
 	// TimeInLowPercent Percentage of time spent in low glucose range
 	TimeInLowPercent *float64 `json:"timeInLowPercent,omitempty"`
+
+	// TimeInLowPercentDelta Difference between the timeInLowPercent in this period and version in the opposite offset
+	TimeInLowPercentDelta *float64 `json:"timeInLowPercentDelta,omitempty"`
 
 	// TimeInLowRecords Counter of records in low glucose range
 	TimeInLowRecords *int `json:"timeInLowRecords,omitempty"`
 
+	// TimeInLowRecordsDelta Difference between the timeInLowRecords in this period and version in the opposite offset
+	TimeInLowRecordsDelta *int `json:"timeInLowRecordsDelta,omitempty"`
+
 	// TimeInTargetMinutes Counter of minutes spent in target glucose range
 	TimeInTargetMinutes *int `json:"timeInTargetMinutes,omitempty"`
+
+	// TimeInTargetMinutesDelta Difference between the timeInTargetMinutes in this period and version in the opposite offset
+	TimeInTargetMinutesDelta *int `json:"timeInTargetMinutesDelta,omitempty"`
 
 	// TimeInTargetPercent Percentage of time spent in target glucose range
 	TimeInTargetPercent *float64 `json:"timeInTargetPercent,omitempty"`
 
+	// TimeInTargetPercentDelta Difference between the timeInTargetPercent in this period and version in the opposite offset
+	TimeInTargetPercentDelta *float64 `json:"timeInTargetPercentDelta,omitempty"`
+
 	// TimeInTargetRecords Counter of records in target glucose range
 	TimeInTargetRecords *int `json:"timeInTargetRecords,omitempty"`
+
+	// TimeInTargetRecordsDelta Difference between the timeInTargetRecords in this period and version in the opposite offset
+	TimeInTargetRecordsDelta *int `json:"timeInTargetRecordsDelta,omitempty"`
 
 	// TimeInVeryHighMinutes Counter of minutes spent in very high glucose range
 	TimeInVeryHighMinutes *int `json:"timeInVeryHighMinutes,omitempty"`
 
+	// TimeInVeryHighMinutesDelta Difference between the timeInVeryHighMinutes in this period and version in the opposite offset
+	TimeInVeryHighMinutesDelta *int `json:"timeInVeryHighMinutesDelta,omitempty"`
+
 	// TimeInVeryHighPercent Percentage of time spent in very high glucose range
 	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent,omitempty"`
+
+	// TimeInVeryHighPercentDelta Difference between the timeInVeryHighPercent in this period and version in the opposite offset
+	TimeInVeryHighPercentDelta *float64 `json:"timeInVeryHighPercentDelta,omitempty"`
 
 	// TimeInVeryHighRecords Counter of records in very high glucose range
 	TimeInVeryHighRecords *int `json:"timeInVeryHighRecords,omitempty"`
 
+	// TimeInVeryHighRecordsDelta Difference between the timeInVeryHighRecords in this period and version in the opposite offset
+	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta,omitempty"`
+
 	// TimeInVeryLowMinutes Counter of minutes spent in very low glucose range
 	TimeInVeryLowMinutes *int `json:"timeInVeryLowMinutes,omitempty"`
+
+	// TimeInVeryLowMinutesDelta Difference between the timeInVeryLowMinutes in this period and version in the opposite offset
+	TimeInVeryLowMinutesDelta *int `json:"timeInVeryLowMinutesDelta,omitempty"`
 
 	// TimeInVeryLowPercent Percentage of time spent in very low glucose range
 	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent,omitempty"`
 
+	// TimeInVeryLowPercentDelta Difference between the timeInVeryLowPercent in this period and version in the opposite offset
+	TimeInVeryLowPercentDelta *float64 `json:"timeInVeryLowPercentDelta,omitempty"`
+
 	// TimeInVeryLowRecords Counter of records in very low glucose range
 	TimeInVeryLowRecords *int `json:"timeInVeryLowRecords,omitempty"`
 
+	// TimeInVeryLowRecordsDelta Difference between the timeInVeryLowRecords in this period and version in the opposite offset
+	TimeInVeryLowRecordsDelta *int `json:"timeInVeryLowRecordsDelta,omitempty"`
+
 	// TotalRecords Counter of records
 	TotalRecords *int `json:"totalRecords,omitempty"`
+
+	// TotalRecordsDelta Difference between the totalRecords in this period and version in the opposite offset
+	TotalRecordsDelta *int `json:"totalRecordsDelta,omitempty"`
 }
 
 // PatientCGMPeriods A map to each supported CGM summary period
-type PatientCGMPeriods struct {
-	// N14d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N14d *PatientCGMPeriod `json:"14d,omitempty"`
-
-	// N1d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N1d *PatientCGMPeriod `json:"1d,omitempty"`
-
-	// N30d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N30d *PatientCGMPeriod `json:"30d,omitempty"`
-
-	// N7d Summary of a specific CGM time period (currently: 1d, 7d, 14d, 30d)
-	N7d *PatientCGMPeriod `json:"7d,omitempty"`
-}
+type PatientCGMPeriods map[string]PatientCGMPeriod
 
 // PatientCGMStats A summary of a users recent CGM glucose values
 type PatientCGMStats struct {
@@ -580,6 +1235,9 @@ type PatientCGMStats struct {
 
 	// Dates dates tracked for summary calculation
 	Dates *PatientSummaryDates `json:"dates,omitempty"`
+
+	// OffsetPeriods A map to each supported CGM summary period
+	OffsetPeriods *PatientCGMPeriods `json:"offsetPeriods,omitempty"`
 
 	// Periods A map to each supported CGM summary period
 	Periods *PatientCGMPeriods `json:"periods,omitempty"`
@@ -664,6 +1322,9 @@ type PatientTag struct {
 	Name string `json:"name"`
 }
 
+// PatientTagIds defines model for PatientTagIds.
+type PatientTagIds = []string
+
 // Patients defines model for Patients.
 type Patients = []Patient
 
@@ -683,6 +1344,96 @@ type PhoneNumber struct {
 type SuppressedNotifications struct {
 	PatientClinicInvitation *bool `json:"patientClinicInvitation,omitempty"`
 }
+
+// Tide Report of at-risk patients based on specific grouping criteria
+type Tide struct {
+	Config  *TideConfig  `json:"config,omitempty"`
+	Results *TideResults `json:"results,omitempty"`
+}
+
+// TideConfig defines model for TideConfig.
+type TideConfig struct {
+	// ClinicId Clinic identifier.
+	ClinicId *Id          `json:"clinicId,omitempty"`
+	Filters  *TideFilters `json:"filters,omitempty"`
+
+	// HighGlucoseThreshold Threshold used for determining if a value is high
+	HighGlucoseThreshold *float64   `json:"highGlucoseThreshold,omitempty"`
+	LastUploadDateFrom   *time.Time `json:"lastUploadDateFrom,omitempty"`
+	LastUploadDateTo     *time.Time `json:"lastUploadDateTo,omitempty"`
+
+	// LowGlucoseThreshold Threshold used for determining if a value is low
+	LowGlucoseThreshold *float64 `json:"lowGlucoseThreshold,omitempty"`
+	Period              *string  `json:"period,omitempty"`
+
+	// SchemaVersion TIDE schema version
+	SchemaVersion *int           `json:"schemaVersion,omitempty"`
+	Tags          *PatientTagIds `json:"tags"`
+
+	// VeryHighGlucoseThreshold Threshold used for determining if a value is very high
+	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold,omitempty"`
+
+	// VeryLowGlucoseThreshold Threshold used for determining if a value is very low
+	VeryLowGlucoseThreshold *float64 `json:"veryLowGlucoseThreshold,omitempty"`
+}
+
+// TideFilters defines model for TideFilters.
+type TideFilters struct {
+	DropInTimeInTargetPercent *string `json:"dropInTimeInTargetPercent,omitempty"`
+	TimeCGMUsePercent         *string `json:"timeCGMUsePercent,omitempty"`
+	TimeInLowPercent          *string `json:"timeInLowPercent,omitempty"`
+	TimeInTargetPercent       *string `json:"timeInTargetPercent,omitempty"`
+	TimeInVeryLowPercent      *string `json:"timeInVeryLowPercent,omitempty"`
+}
+
+// TidePatient defines model for TidePatient.
+type TidePatient struct {
+	Email *string `json:"email,omitempty"`
+
+	// FullName The full name of the patient
+	FullName *string `json:"fullName,omitempty"`
+
+	// Id String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
+	Id   *TidepoolUserId `json:"id,omitempty"`
+	Tags *PatientTagIds  `json:"tags"`
+}
+
+// TideResultPatient defines model for TideResultPatient.
+type TideResultPatient struct {
+	// AverageGlucoseMmol Average Glucose of records in this period
+	AverageGlucoseMmol *float64 `json:"averageGlucoseMmol,omitempty"`
+
+	// GlucoseManagementIndicator A derived value which emulates A1C
+	GlucoseManagementIndicator *float64     `json:"glucoseManagementIndicator,omitempty"`
+	Patient                    *TidePatient `json:"patient,omitempty"`
+
+	// TimeCGMUseMinutes Counter of minutes spent wearing a cgm
+	TimeCGMUseMinutes *int `json:"timeCGMUseMinutes,omitempty"`
+
+	// TimeCGMUsePercent Percentage of time spent wearing a cgm
+	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent,omitempty"`
+
+	// TimeInHighPercent Percentage of time spent in high glucose range
+	TimeInHighPercent *float64 `json:"timeInHighPercent,omitempty"`
+
+	// TimeInLowPercent Percentage of time spent in low glucose range
+	TimeInLowPercent *float64 `json:"timeInLowPercent,omitempty"`
+
+	// TimeInTargetPercent Percentage of time spent in target glucose range
+	TimeInTargetPercent *float64 `json:"timeInTargetPercent,omitempty"`
+
+	// TimeInTargetPercentDelta Difference between the timeInTargetPercent in this period and version in the opposite offset
+	TimeInTargetPercentDelta *float64 `json:"timeInTargetPercentDelta,omitempty"`
+
+	// TimeInVeryHighPercent Percentage of time spent in very high glucose range
+	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent,omitempty"`
+
+	// TimeInVeryLowPercent Percentage of time spent in very low glucose range
+	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent,omitempty"`
+}
+
+// TideResults defines model for TideResults.
+type TideResults map[string][]TideResultPatient
 
 // TidepoolUserId String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
 type TidepoolUserId = string
@@ -821,6 +1572,9 @@ type ListPatientsParams struct {
 	// Period Time Period to display, filter, and sort
 	Period *string `form:"period,omitempty" json:"period,omitempty"`
 
+	// OffsetPeriods If we should display, filter, and sort based on the offset periods or default periods
+	OffsetPeriods *bool `form:"offsetPeriods,omitempty" json:"offsetPeriods,omitempty"`
+
 	// CgmTimeCGMUsePercent Percentage of time of CGM use
 	CgmTimeCGMUsePercent *string `form:"cgm.timeCGMUsePercent,omitempty" json:"cgm.timeCGMUsePercent,omitempty"`
 
@@ -913,6 +1667,21 @@ type ListPatientsParams struct {
 
 	// Tags Comma-separated list of patient tag IDs
 	Tags *[]string `form:"tags,omitempty" json:"tags,omitempty"`
+}
+
+// TideReportParams defines parameters for TideReport.
+type TideReportParams struct {
+	// Period Time Period to display
+	Period *string `form:"period,omitempty" json:"period,omitempty"`
+
+	// Tags Comma-separated list of patient tag IDs
+	Tags *[]string `form:"tags,omitempty" json:"tags,omitempty"`
+
+	// CgmLastUploadDateFrom Inclusive
+	CgmLastUploadDateFrom *time.Time `form:"cgm.lastUploadDateFrom,omitempty" json:"cgm.lastUploadDateFrom,omitempty"`
+
+	// CgmLastUploadDateTo Exclusive
+	CgmLastUploadDateTo *time.Time `form:"cgm.lastUploadDateTo,omitempty" json:"cgm.lastUploadDateTo,omitempty"`
 }
 
 // ListClinicsForPatientParams defines parameters for ListClinicsForPatient.

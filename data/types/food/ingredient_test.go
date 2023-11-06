@@ -1,10 +1,6 @@
 package food_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -14,6 +10,9 @@ import (
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Ingredient", func() {
