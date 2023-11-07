@@ -5,7 +5,7 @@ import (
 	"context"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-func permsNoAlerting() map[string]map[string]permission.Permissions {
+func permsNoFollow() map[string]map[string]permission.Permissions {
 	return map[string]map[string]permission.Permissions{
 		mocks.TestUserID1: {
 			mocks.TestUserID2: {
@@ -28,16 +28,16 @@ func permsNoAlerting() map[string]map[string]permission.Permissions {
 
 var _ = Describe("Alerts endpoints", func() {
 
-	testAuthentication := func(f func(dataservice.Context)) {
+	testAuthenticationRequired := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     mocks.TestUserID1,
-			FollowedID: mocks.TestUserID2,
+			UserID:         mocks.TestUserID1,
+			FollowedUserID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
-		badDetails := mocks.NewDetails(request.MethodSessionToken, "", "")
-		dCtx.WithDetails(badDetails)
+		badDetails := mocks.NewAuthDetails(request.MethodSessionToken, "", "")
+		dCtx.WithAuthDetails(badDetails)
 
 		f(dCtx)
 
@@ -45,15 +45,15 @@ var _ = Describe("Alerts endpoints", func() {
 		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
-	testPermissions := func(f func(dataservice.Context)) {
+	testUserHasFollowPermission := func(f func(dataservice.Context)) {
 		t := GinkgoT()
 		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     mocks.TestUserID1,
-			FollowedID: mocks.TestUserID2,
+			UserID:         mocks.TestUserID1,
+			FollowedUserID: mocks.TestUserID2,
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
-		dCtx.MockPermissionClient = mocks.NewPermission(permsNoAlerting(), nil, nil)
+		dCtx.MockPermissionClient = mocks.NewPermission(permsNoFollow(), nil, nil)
 
 		f(dCtx)
 
@@ -61,24 +61,20 @@ var _ = Describe("Alerts endpoints", func() {
 		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
-	testUserID := func(f func(dataservice.Context)) {
+	testTokenUserIDMustMatchPathParam := func(f func(dataservice.Context), details *mocks.AuthDetails) {
 		t := GinkgoT()
-		body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-			UserID:     "00000000-dead-4123-beef-000000000000",
-			FollowedID: mocks.TestUserID2,
-		}))
-		dCtx := mocks.NewContext(t, "", "", body)
+		dCtx := mocks.NewContext(t, "", "", nil)
+		if details != nil {
+			dCtx.WithAuthDetails(details)
+		}
+		dCtx.RESTRequest.PathParams["userID"] = "bad"
 		repo := newMockRepo()
-		repo.ExpectsOwnerID(mocks.TestUserID2)
 		dCtx.MockAlertsRepository = repo
-		badDetails := mocks.NewDetails(request.MethodSessionToken, mocks.TestUserID1, "")
-		dCtx.WithDetails(badDetails)
 
 		f(dCtx)
 
-		Expect(repo.UserID).To(Equal(mocks.TestUserID1))
 		rec := dCtx.Recorder()
-		Expect(rec.Code).To(Equal(http.StatusOK))
+		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
 	testInvalidJSON := func(f func(dataservice.Context)) {
@@ -86,10 +82,7 @@ var _ = Describe("Alerts endpoints", func() {
 		body := bytes.NewBuffer([]byte(`"improper JSON data"`))
 		dCtx := mocks.NewContext(t, "", "", body)
 		repo := newMockRepo()
-		repo.ExpectsOwnerID(mocks.TestUserID2)
 		dCtx.MockAlertsRepository = repo
-		badDetails := mocks.NewDetails(request.MethodSessionToken, mocks.TestUserID1, "")
-		dCtx.WithDetails(badDetails)
 
 		f(dCtx)
 
@@ -99,36 +92,50 @@ var _ = Describe("Alerts endpoints", func() {
 
 	Describe("Delete", func() {
 		It("rejects unauthenticated users", func() {
-			testAuthentication(DeleteAlert)
+			testAuthenticationRequired(DeleteAlert)
 		})
 
-		It("uses the authenticated user's userID", func() {
-			testUserID(DeleteAlert)
-		})
-
-		It("errors on invalid JSON", func() {
-			testInvalidJSON(DeleteAlert)
+		It("requires that the user's token matches the userID path param", func() {
+			testTokenUserIDMustMatchPathParam(DeleteAlert, nil)
 		})
 
 		It("rejects users without alerting permissions", func() {
-			testPermissions(DeleteAlert)
+			testUserHasFollowPermission(DeleteAlert)
+		})
+	})
+
+	Describe("Upsert", func() {
+		It("rejects unauthenticated users", func() {
+			testAuthenticationRequired(UpsertAlert)
+		})
+
+		It("requires that the user's token matches the userID path param", func() {
+			testTokenUserIDMustMatchPathParam(UpsertAlert, nil)
+		})
+
+		It("errors on invalid JSON", func() {
+			testInvalidJSON(UpsertAlert)
+		})
+
+		It("rejects users without alerting permissions", func() {
+			testUserHasFollowPermission(UpsertAlert)
 		})
 	})
 
 	Describe("Get", func() {
 		It("rejects unauthenticated users", func() {
-			testAuthentication(GetAlert)
+			testAuthenticationRequired(GetAlert)
 		})
 
-		It("uses the authenticated user's userID", func() {
-			testUserID(GetAlert)
+		It("requires that the user's token matches the userID path param", func() {
+			testTokenUserIDMustMatchPathParam(GetAlert, nil)
 		})
 
 		It("errors when Config doesn't exist", func() {
 			t := GinkgoT()
 			body := bytes.NewBuffer(mocks.MustMarshalJSON(t, alerts.Config{
-				UserID:     mocks.TestUserID1,
-				FollowedID: mocks.TestUserID2,
+				UserID:         mocks.TestUserID1,
+				FollowedUserID: mocks.TestUserID2,
 			}))
 			dCtx := mocks.NewContext(t, "", "", body)
 			repo := newMockRepo()
@@ -142,29 +149,11 @@ var _ = Describe("Alerts endpoints", func() {
 		})
 
 		It("rejects users without alerting permissions", func() {
-			testPermissions(func(dCtx dataservice.Context) {
-				dCtx.Request().PathParams["followedID"] = mocks.TestUserID2
+			testUserHasFollowPermission(func(dCtx dataservice.Context) {
+				dCtx.Request().PathParams["followedUserID"] = mocks.TestUserID2
 
 				GetAlert(dCtx)
 			})
-		})
-	})
-
-	Describe("Upsert", func() {
-		It("rejects unauthenticated users", func() {
-			testAuthentication(UpsertAlert)
-		})
-
-		It("uses the authenticated user's userID", func() {
-			testUserID(UpsertAlert)
-		})
-
-		It("errors on invalid JSON", func() {
-			testInvalidJSON(UpsertAlert)
-		})
-
-		It("rejects users without alerting permissions", func() {
-			testPermissions(UpsertAlert)
 		})
 	})
 })
@@ -180,10 +169,6 @@ func newMockRepo() *mockRepo {
 
 func (r *mockRepo) ReturnsError(err error) {
 	r.Error = err
-}
-
-func (r *mockRepo) ExpectsOwnerID(ownerID string) {
-	r.UserID = ownerID
 }
 
 func (r *mockRepo) Upsert(ctx context.Context, conf *alerts.Config) error {

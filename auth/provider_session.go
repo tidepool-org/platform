@@ -245,7 +245,7 @@ func (p *ProviderSession) Validate(validator structure.Validator) {
 	validator.Time("modifiedTime", p.ModifiedTime).After(p.CreatedTime).BeforeNow(time.Second)
 }
 
-func (p *ProviderSession) Sanitize(details request.Details) error {
+func (p *ProviderSession) Sanitize(details request.AuthDetails) error {
 	if details != nil && details.IsService() {
 		return nil
 	}
@@ -254,7 +254,7 @@ func (p *ProviderSession) Sanitize(details request.Details) error {
 
 type ProviderSessions []*ProviderSession
 
-func (p ProviderSessions) Sanitize(details request.Details) error {
+func (p ProviderSessions) Sanitize(details request.AuthDetails) error {
 	for _, providerSession := range p {
 		if err := providerSession.Sanitize(details); err != nil {
 			return err

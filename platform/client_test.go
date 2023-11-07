@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -321,7 +321,7 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				serviceSecret = ""
 				sessionToken = authTest.NewSessionToken()
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
 			})
 
 			JustBeforeEach(func() {
@@ -345,7 +345,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns an error if details are not in context", func() {
-					mutators, err := clnt.Mutators(request.NewContextWithDetails(ctx, nil))
+					mutators, err := clnt.Mutators(request.NewContextWithAuthDetails(ctx, nil))
 					Expect(err).To(MatchError("details is missing"))
 					Expect(mutators).To(BeNil())
 				})

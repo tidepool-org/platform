@@ -68,7 +68,7 @@ func (u *User) IsPatient() bool {
 	return false
 }
 
-func (u *User) Sanitize(details request.Details) error {
+func (u *User) Sanitize(details request.AuthDetails) error {
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
 		u.Username = nil
 		u.EmailVerified = nil
@@ -80,7 +80,7 @@ func (u *User) Sanitize(details request.Details) error {
 
 type UserArray []*User
 
-func (u UserArray) Sanitize(details request.Details) error {
+func (u UserArray) Sanitize(details request.AuthDetails) error {
 	for _, datum := range u {
 		if err := datum.Sanitize(details); err != nil {
 			return err

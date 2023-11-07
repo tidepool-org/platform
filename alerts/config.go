@@ -5,116 +5,168 @@ package alerts
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
-// Config models a user's desired alerts.
+// Config wraps Alerts to include user relationships.
+//
+// As a wrapper type, Config provides a clear demarcation of what a user
+// controls (Alerts) and what is set by the service (the other values in
+// Config).
 type Config struct {
-	// UserID receives the alerts, and owns this Config.
+	// UserID receives the configured alerts and owns this Config.
 	UserID string `json:"userId" bson:"userId"`
-	// FollowedID is the user whose data generates alerts, and has granted
+
+	// FollowedUserID is the user whose data generates alerts, and has granted
 	// UserID permission to that data.
-	FollowedID      string                 `json:"followedId" bson:"followedId"`
-	UrgentLow       *WithThreshold         `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
-	Low             *WithDelayAndThreshold `json:"low,omitempty" bson:"low,omitempty"`
-	High            *WithDelayAndThreshold `json:"high,omitempty" bson:"high,omitempty"`
-	NotLooping      *WithDelay             `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
-	NoCommunication *WithDelay             `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
+	FollowedUserID string `json:"followedUserId" bson:"followedUserId"`
+
+	Alerts `bson:",inline,omitempty"`
+}
+
+// Alerts models a user's desired alerts.
+type Alerts struct {
+	UrgentLow       *UrgentLowAlert       `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
+	Low             *LowAlert             `json:"low,omitempty" bson:"low,omitempty"`
+	High            *HighAlert            `json:"high,omitempty" bson:"high,omitempty"`
+	NotLooping      *NotLoopingAlert      `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+	NoCommunication *NoCommunicationAlert `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
 }
 
 func (c Config) Validate(validator structure.Validator) {
 	validator.String("UserID", &c.UserID).Using(user.IDValidator)
-	validator.String("FollowedID", &c.FollowedID).Using(user.IDValidator)
-	if c.Low != nil {
-		c.Low.Validate(validator)
+	validator.String("FollowedUserID", &c.FollowedUserID).Using(user.IDValidator)
+	c.Alerts.Validate(validator)
+}
+
+func (a Alerts) Validate(validator structure.Validator) {
+	if a.UrgentLow != nil {
+		a.UrgentLow.Validate(validator)
 	}
-	if c.UrgentLow != nil {
-		c.UrgentLow.Validate(validator)
+	if a.Low != nil {
+		a.Low.Validate(validator)
 	}
-	if c.High != nil {
-		c.High.Validate(validator)
+	if a.High != nil {
+		a.High.Validate(validator)
 	}
-	if c.NotLooping != nil {
-		c.NotLooping.Validate(validator)
+	if a.NotLooping != nil {
+		a.NotLooping.Validate(validator)
 	}
-	if c.NoCommunication != nil {
-		c.NoCommunication.Validate(validator)
+	if a.NoCommunication != nil {
+		a.NoCommunication.Validate(validator)
 	}
 }
 
 // Base describes the minimum specifics of a desired alert.
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
-	Enabled bool
+	Enabled bool `json:"enabled" bson:"enabled"`
 	// Repeat is measured in minutes.
-	Repeat DurationMinutes `json:"repeat"`
+	//
+	// A value of 0 (the default) disables repeat notifications.
+	Repeat DurationMinutes `json:"repeat,omitempty" bson:"repeat"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
 	dur := b.Repeat.Duration()
-	validator.Duration("repeat", &dur).GreaterThan(0 * time.Minute)
+	validator.Duration("repeat", &dur).Using(validateRepeat)
 }
 
-// DelayMixin adds a configurable delay.
-type DelayMixin struct {
-	// Delay is measured in minutes.
-	Delay DurationMinutes `json:"delay,omitempty"`
+const (
+	// RepeatMin is the minimum duration for a repeat setting (if not 0).
+	RepeatMin = 15 * time.Minute
+	// RepeatMax is the maximum duration for a repeat setting.
+	RepeatMax = 4 * time.Hour
+	// RepeatDisabled specifies that a repeat is not desired.
+	RepeatDisabled = 0 * time.Second
+)
+
+func validateRepeat(value time.Duration, errorReporter structure.ErrorReporter) {
+	if value == RepeatDisabled {
+		return
+	}
+	if value < RepeatMin {
+		errorReporter.ReportError(validator.ErrorValueNotGreaterThanOrEqualTo(value, RepeatMin))
+	}
+	if value > RepeatMax {
+		errorReporter.ReportError(validator.ErrorValueNotLessThanOrEqualTo(value, RepeatMax))
+	}
 }
 
-func (d DelayMixin) Validate(validator structure.Validator) {
-	dur := d.Delay.Duration()
-	validator.Duration("delay", &dur).GreaterThan(0 * time.Minute)
-}
-
-// ThresholdMixin adds a configurable threshold.
-type ThresholdMixin struct {
+// UrgentLowAlert extends Base with a threshold.
+type UrgentLowAlert struct {
+	Base `bson:",inline"`
 	// Threshold is compared the current value to determine if an alert should
 	// be triggered.
 	Threshold `json:"threshold"`
 }
 
-func (t ThresholdMixin) Validate(validator structure.Validator) {
-	t.Threshold.Validate(validator)
+func (a UrgentLowAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	a.Threshold.Validate(validator)
 }
 
-// WithThreshold extends Base with ThresholdMixin.
-type WithThreshold struct {
-	Base           `bson:",inline"`
-	ThresholdMixin `bson:",inline"`
+// NotLoopingAlert extends Base with a delay.
+type NotLoopingAlert struct {
+	Base  `bson:",inline"`
+	Delay DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d WithThreshold) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	d.ThresholdMixin.Validate(validator)
+func (a NotLoopingAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	dur := a.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
 }
 
-// WithDelay extends Base with DelayMixin.
-type WithDelay struct {
-	Base       `bson:",inline"`
-	DelayMixin `bson:",inline"`
+// NoCommunicationAlert extends Base with a delay.
+type NoCommunicationAlert struct {
+	Base  `bson:",inline"`
+	Delay DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d WithDelay) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	d.DelayMixin.Validate(validator)
+func (a NoCommunicationAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	dur := a.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
 }
 
-// WithDelayAndThreshold extends Base with both DelayMixin and ThresholdMixin.
-type WithDelayAndThreshold struct {
-	Base           `bson:",inline"`
-	DelayMixin     `bson:",inline"`
-	ThresholdMixin `bson:",inline"`
+// LowAlert extends Base with threshold and a delay.
+type LowAlert struct {
+	Base `bson:",inline"`
+	// Threshold is compared the current value to determine if an alert should
+	// be triggered.
+	Threshold `json:"threshold"`
+	Delay     DurationMinutes `json:"delay,omitempty"`
 }
 
-func (d WithDelayAndThreshold) Validate(validator structure.Validator) {
-	d.Base.Validate(validator)
-	d.DelayMixin.Validate(validator)
-	d.ThresholdMixin.Validate(validator)
+func (a LowAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	dur := a.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
+	a.Threshold.Validate(validator)
+}
+
+// HighAlert extends Base with a threshold and a delay.
+type HighAlert struct {
+	Base `bson:",inline"`
+	// Threshold is compared the current value to determine if an alert should
+	// be triggered.
+	Threshold `json:"threshold"`
+	Delay     DurationMinutes `json:"delay,omitempty"`
+}
+
+func (a HighAlert) Validate(validator structure.Validator) {
+	a.Base.Validate(validator)
+	a.Threshold.Validate(validator)
+	dur := a.Delay.Duration()
+	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.
@@ -135,6 +187,11 @@ func (m *DurationMinutes) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (m *DurationMinutes) MarshalJSON() ([]byte, error) {
+	minutes := time.Duration(*m) / time.Minute
+	return json.Marshal(minutes)
+}
+
 func (m DurationMinutes) Duration() time.Duration {
 	return time.Duration(m)
 }
@@ -151,8 +208,25 @@ type ValueWithUnits struct {
 type Threshold ValueWithUnits
 
 // Validate implements structure.Validatable
-func (t Threshold) Validate(validator structure.Validator) {
-	validator.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
+func (t Threshold) Validate(v structure.Validator) {
+	v.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
+	// This is a sanity check. Client software will likely further constrain these values. The
+	// broadness of these values allows clients to change their own min and max values
+	// independently, and it sidesteps rounding and conversion conflicts between the backend and
+	// clients.
+	var max, min float64
+	switch t.Units {
+	case glucose.MgdL, glucose.Mgdl:
+		max = glucose.MgdLMaximum
+		min = glucose.MgdLMinimum
+		v.Float64("value", &t.Value).InRange(min, max)
+	case glucose.MmolL, glucose.Mmoll:
+		max = glucose.MmolLMaximum
+		min = glucose.MmolLMinimum
+		v.Float64("value", &t.Value).InRange(min, max)
+	default:
+		v.WithReference("value").ReportError(validator.ErrorValueNotValid())
+	}
 }
 
 // Repository abstracts persistent storage for Config data.

@@ -2,10 +2,8 @@ package v1
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,39 +13,42 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	platform "github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/api"
 )
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
-		service.MakeRoute("GET", "/v1/alerts/:userID/:followedID", Authenticate(GetAlert)),
-		service.MakeRoute("POST", "/v1/alerts/:userID", Authenticate(UpsertAlert)),
-		service.MakeRoute("DELETE", "/v1/alerts/:userID", Authenticate(DeleteAlert)),
+		service.Get("/v1/alerts/:userID/:followedUserID", GetAlert, api.RequireAuth),
+		service.Post("/v1/alerts/:userID/:followedUserID", UpsertAlert, api.RequireAuth),
+		service.Delete("/v1/alerts/:userID/:followedUserID", DeleteAlert, api.RequireAuth),
 	}
 }
 
 func DeleteAlert(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
-	details := request.DetailsFromContext(ctx)
+	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
 
-	if err := checkAuthentication(details, r.PathParam("userID")); err != nil {
+	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{}
-	if err := request.DecodeRequestBody(r.Request, cfg); err != nil {
-		dCtx.RespondWithError(platform.ErrorJSONMalformed())
+	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
 	}
 
+	followedUserID := r.PathParam("followedUserID")
+	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, details.UserID(), cfg.FollowedID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg.UserID = details.UserID()
+	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
 	if err := repo.Delete(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -57,22 +58,28 @@ func DeleteAlert(dCtx service.Context) {
 func GetAlert(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
-	details := request.DetailsFromContext(ctx)
+	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
 
-	if err := checkAuthentication(details, r.PathParam("userID")); err != nil {
+	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	followedID := r.PathParam("followedID")
+	followedUserID := r.PathParam("followedUserID")
+	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, details.UserID(), followedID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{UserID: details.UserID(), FollowedID: followedID}
+	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
 	alert, err := repo.Get(ctx, cfg)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -91,26 +98,34 @@ func GetAlert(dCtx service.Context) {
 func UpsertAlert(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
-	details := request.DetailsFromContext(ctx)
+	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
 
-	if err := checkAuthentication(details, r.PathParam("userID")); err != nil {
+	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{}
-	if err := json.NewDecoder(r.Body).Decode(cfg); err != nil {
+	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	a := &alerts.Alerts{}
+	if err := request.DecodeRequestBody(r.Request, a); err != nil {
 		dCtx.RespondWithError(platform.ErrorJSONMalformed())
+		return
 	}
 
+	followedUserID := r.PathParam("followedUserID")
+	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, details.UserID(), cfg.FollowedID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg.UserID = details.UserID()
+	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID, Alerts: *a}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -119,20 +134,38 @@ func UpsertAlert(dCtx service.Context) {
 
 var ErrUnauthorized = fmt.Errorf("unauthorized")
 
-func checkAuthentication(details request.Details, userID string) error {
+// checkUserIDConsistency verifies the userIDs in a request.
+//
+// For safety reasons, if these values don't agree, return an error.
+func checkUserIDConsistency(details request.AuthDetails, userIDFromPath string) error {
+	if details.IsService() && details.UserID() == "" {
+		return nil
+	}
+	if details.IsUser() && userIDFromPath == details.UserID() {
+		return nil
+	}
+
+	return ErrUnauthorized
+}
+
+// checkAuthentication ensures that the request has an authentication token.
+func checkAuthentication(details request.AuthDetails) error {
+	if details.Token() == "" {
+		return ErrUnauthorized
+	}
 	if details.IsUser() {
-		if details.UserID() != userID {
-			log.Printf("warning: URL userID doesn't match token userID, token wins ")
-		}
+		return nil
+	}
+	if details.IsService() {
 		return nil
 	}
 	return ErrUnauthorized
 }
 
 // checkUserAuthorization returns nil if userID is permitted to have alerts
-// based on followedID's data.
-func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, followedID string) error {
-	perms, err := pc.GetUserPermissions(ctx, userID, followedID)
+// based on followedUserID's data.
+func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, followedUserID string) error {
+	perms, err := pc.GetUserPermissions(ctx, userID, followedUserID)
 	if err != nil {
 		return err
 	}
@@ -142,4 +175,19 @@ func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, f
 		}
 	}
 	return fmt.Errorf("user isn't authorized for alerting: %q", userID)
+}
+
+// userIDWithServiceFallback returns the user's ID.
+//
+// If the request is from a user, the userID found in the token will be
+// returned. This could be an empty string if the request details are
+// malformed.
+//
+// If the request is from a service, then the service fallback value is used,
+// as no userID is passed with the details in the event of a service request.
+func userIDWithServiceFallback(details request.AuthDetails, serviceFallback string) string {
+	if details.IsUser() {
+		return details.UserID()
+	}
+	return serviceFallback
 }

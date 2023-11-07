@@ -265,6 +265,9 @@ type ClientInterface interface {
 
 	UpdateSuppressedNotifications(ctx context.Context, clinicId ClinicId, body UpdateSuppressedNotificationsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// TideReport request
+	TideReport(ctx context.Context, clinicId ClinicId, params *TideReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// UpdateTier request with any body
 	UpdateTierWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1075,6 +1078,18 @@ func (c *Client) UpdateSuppressedNotificationsWithBody(ctx context.Context, clin
 
 func (c *Client) UpdateSuppressedNotifications(ctx context.Context, clinicId ClinicId, body UpdateSuppressedNotificationsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateSuppressedNotificationsRequest(c.Server, clinicId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) TideReport(ctx context.Context, clinicId ClinicId, params *TideReportParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTideReportRequest(c.Server, clinicId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2830,6 +2845,22 @@ func NewListPatientsRequest(server string, clinicId ClinicId, params *ListPatien
 
 		}
 
+		if params.OffsetPeriods != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offsetPeriods", runtime.ParamLocationQuery, *params.OffsetPeriods); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.CgmTimeCGMUsePercent != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cgm.timeCGMUsePercent", runtime.ParamLocationQuery, *params.CgmTimeCGMUsePercent); err != nil {
@@ -4075,6 +4106,110 @@ func NewUpdateSuppressedNotificationsRequestWithBody(server string, clinicId Cli
 	return req, nil
 }
 
+// NewTideReportRequest generates requests for TideReport
+func NewTideReportRequest(server string, clinicId ClinicId, params *TideReportParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/tide_report", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Period != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "period", runtime.ParamLocationQuery, *params.Period); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Tags != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "tags", runtime.ParamLocationQuery, *params.Tags); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.CgmLastUploadDateFrom != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cgm.lastUploadDateFrom", runtime.ParamLocationQuery, *params.CgmLastUploadDateFrom); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.CgmLastUploadDateTo != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "cgm.lastUploadDateTo", runtime.ParamLocationQuery, *params.CgmLastUploadDateTo); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewUpdateTierRequest calls the generic UpdateTier builder with application/json body
 func NewUpdateTierRequest(server string, clinicId ClinicId, body UpdateTierJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -4693,6 +4828,9 @@ type ClientWithResponsesInterface interface {
 	UpdateSuppressedNotificationsWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSuppressedNotificationsResponse, error)
 
 	UpdateSuppressedNotificationsWithResponse(ctx context.Context, clinicId ClinicId, body UpdateSuppressedNotificationsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSuppressedNotificationsResponse, error)
+
+	// TideReport request
+	TideReportWithResponse(ctx context.Context, clinicId ClinicId, params *TideReportParams, reqEditors ...RequestEditorFn) (*TideReportResponse, error)
 
 	// UpdateTier request with any body
 	UpdateTierWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateTierResponse, error)
@@ -5711,6 +5849,28 @@ func (r UpdateSuppressedNotificationsResponse) StatusCode() int {
 	return 0
 }
 
+type TideReportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Tide
+}
+
+// Status returns HTTPResponse.Status
+func (r TideReportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TideReportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type UpdateTierResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6465,6 +6625,15 @@ func (c *ClientWithResponses) UpdateSuppressedNotificationsWithResponse(ctx cont
 		return nil, err
 	}
 	return ParseUpdateSuppressedNotificationsResponse(rsp)
+}
+
+// TideReportWithResponse request returning *TideReportResponse
+func (c *ClientWithResponses) TideReportWithResponse(ctx context.Context, clinicId ClinicId, params *TideReportParams, reqEditors ...RequestEditorFn) (*TideReportResponse, error) {
+	rsp, err := c.TideReport(ctx, clinicId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTideReportResponse(rsp)
 }
 
 // UpdateTierWithBodyWithResponse request with arbitrary body returning *UpdateTierResponse
@@ -7619,6 +7788,32 @@ func ParseUpdateSuppressedNotificationsResponse(rsp *http.Response) (*UpdateSupp
 	response := &UpdateSuppressedNotificationsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseTideReportResponse parses an HTTP response from a TideReportWithResponse call
+func ParseTideReportResponse(rsp *http.Response) (*TideReportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TideReportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Tide
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

@@ -1,6 +1,8 @@
 package test
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/task/store"
 )
 
@@ -23,6 +25,14 @@ func (s *Store) NewTaskRepository() store.TaskRepository {
 	output := s.NewTaskRepositoryOutputs[0]
 	s.NewTaskRepositoryOutputs = s.NewTaskRepositoryOutputs[1:]
 	return output
+}
+
+func (s *Store) WithTypeFilter(typeFilter string) store.Store {
+	return s
+}
+
+func (s *Store) Terminate(ctx context.Context) error {
+	return nil
 }
 
 func (s *Store) UnusedOutputsCount() int {

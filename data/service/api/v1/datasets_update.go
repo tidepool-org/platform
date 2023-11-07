@@ -3,8 +3,11 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data/summary"
+
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
@@ -35,7 +38,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	if !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
@@ -90,6 +93,10 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}
+
+		updatesSummary := make(map[string]struct{})
+		summary.CheckDataSetUpdatesSummary(ctx, dataServiceContext.DataRepository(), updatesSummary, dataSetID)
+		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

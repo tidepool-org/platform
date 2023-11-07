@@ -1,10 +1,8 @@
 package v1
 
 import (
-	"context"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/tidepool-org/platform/data/summary"
 
@@ -42,7 +40,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
 		if err != nil {
@@ -97,15 +95,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	updatesSummary := make(map[string]struct{})
-
 	datumArray = append(datumArray, normalizer.Data()...)
-
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-
-		CheckDatumUpdatesSummary(updatesSummary, datum)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -119,48 +112,15 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID)
+	updatesSummary := make(map[string]struct{})
+	for _, datum := range datumArray {
+		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+	}
+	summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 
 	dataServiceContext.RespondWithStatusAndData(http.StatusOK, []struct{}{})
-}
-
-// The following 2 functions are pulled out of the above so that they can be unit tested independently.
-func MaybeUpdateSummary(ctx context.Context, registry *summary.SummarizerRegistry, updatesSummary map[string]struct{}, userId string) map[string]*time.Time {
-	outdatedSinceMap := make(map[string]*time.Time)
-	lgr := log.LoggerFromContext(ctx)
-
-	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
-		summarizer := summary.GetSummarizer[types.CGMStats, *types.CGMStats](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set cgm summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
-	}
-
-	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
-		summarizer := summary.GetSummarizer[types.BGMStats, *types.BGMStats](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set bgm summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
-	}
-
-	return outdatedSinceMap
-}
-
-func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
-	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	for _, typ := range types.DeviceDataTypes {
-		if datum.GetType() == typ && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
-			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
-		}
-	}
 }

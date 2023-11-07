@@ -2,7 +2,7 @@ package context_test
 
 import (
 	"github.com/ant0ine/go-json-rest/rest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -14,12 +14,12 @@ import (
 
 var _ = Describe("Context", func() {
 	Context("with request and response", func() {
-		var details request.Details
+		var details request.AuthDetails
 		var res *testRest.ResponseWriter
 		var req *rest.Request
 
 		BeforeEach(func() {
-			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+			details = request.NewAuthDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 			res = testRest.NewResponseWriter()
 			req = testRest.NewRequest()
 			req.Env["AUTH-DETAILS"] = details

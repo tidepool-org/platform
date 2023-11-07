@@ -73,7 +73,13 @@ type Runner interface {
 	Run(ctx context.Context, tsk *task.Task) bool
 }
 
-type Queue struct {
+type Queue interface {
+	RegisterRunner(Runner) error
+	Start()
+	Stop()
+}
+
+type queue struct {
 	logger            log.Logger
 	store             store.Store
 	workers           int
@@ -89,7 +95,9 @@ type Queue struct {
 	iterator          *mongo.Cursor
 }
 
-func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
+var _ Queue = &queue{}
+
+func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -107,7 +115,7 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
 	workers := cfg.Workers
 	delay := cfg.Delay
 
-	return &Queue{
+	return &queue{
 		logger:            lgr,
 		store:             str,
 		workers:           workers,
@@ -118,7 +126,7 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
 	}, nil
 }
 
-func (q *Queue) RegisterRunner(runner Runner) error {
+func (q *queue) RegisterRunner(runner Runner) error {
 	if runner == nil {
 		return errors.New("runner is missing")
 	}
@@ -127,7 +135,7 @@ func (q *Queue) RegisterRunner(runner Runner) error {
 	return nil
 }
 
-func (q *Queue) Start() {
+func (q *queue) Start() {
 	if q.cancelFunc == nil {
 		ctx, cancelFunc := context.WithCancel(log.NewContextWithLogger(context.Background(), q.logger))
 		q.cancelFunc = cancelFunc
@@ -137,7 +145,7 @@ func (q *Queue) Start() {
 	}
 }
 
-func (q *Queue) Stop() {
+func (q *queue) Stop() {
 	if q.cancelFunc != nil {
 		q.cancelFunc()
 		q.cancelFunc = nil
@@ -146,13 +154,13 @@ func (q *Queue) Stop() {
 	}
 }
 
-func (q *Queue) startWorkers(ctx context.Context) {
+func (q *queue) startWorkers(ctx context.Context) {
 	for q.workersAvailable = 0; q.workersAvailable < q.workers; q.workersAvailable++ {
 		q.startWorker(ctx)
 	}
 }
 
-func (q *Queue) startWorker(ctx context.Context) {
+func (q *queue) startWorker(ctx context.Context) {
 	q.waitGroup.Add(1)
 	go func() {
 		defer q.waitGroup.Done()
@@ -169,7 +177,7 @@ func (q *Queue) startWorker(ctx context.Context) {
 	}()
 }
 
-func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
+func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
 	defer func() {
@@ -198,13 +206,13 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	tsk.AppendError(errors.New("runner not found for task"))
 }
 
-func (q *Queue) startManager(ctx context.Context) {
+func (q *queue) startManager(ctx context.Context) {
 	q.waitGroup.Add(1)
 
 	go func() {
 		defer q.waitGroup.Done()
 
-		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
+		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
 		defer q.stopTimer()
 
 		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
@@ -231,7 +239,7 @@ func (q *Queue) startManager(ctx context.Context) {
 	}()
 }
 
-func (q *Queue) unstickTasks(ctx context.Context) {
+func (q *queue) unstickTasks(ctx context.Context) {
 	repository := q.store.NewTaskRepository()
 	count, err := repository.UnstickTasks(ctx)
 	if err != nil {
@@ -242,7 +250,7 @@ func (q *Queue) unstickTasks(ctx context.Context) {
 	}
 }
 
-func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
+func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 	defer q.stopPendingIterator()
 	for q.workersAvailable > 0 {
 		iter := q.startPendingIterator(ctx)
@@ -263,7 +271,7 @@ func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 	return q.delay
 }
 
-func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
+func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
 	repository := q.store.NewTaskRepository()
@@ -292,7 +300,7 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	q.dispatchChannel <- tsk
 }
 
-func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
+func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
 	q.workersAvailable++
@@ -314,7 +322,7 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-func (q *Queue) computeState(tsk *task.Task) {
+func (q *queue) computeState(tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
 		if tsk.AvailableTime == nil || time.Now().After(*tsk.AvailableTime) {
@@ -334,7 +342,7 @@ func (q *Queue) computeState(tsk *task.Task) {
 	}
 }
 
-func (q *Queue) startTimer(delay time.Duration) {
+func (q *queue) startTimer(delay time.Duration) {
 	if delay > 0 {
 		if q.timer == nil {
 			q.timer = time.NewTimer(delay)
@@ -344,7 +352,7 @@ func (q *Queue) startTimer(delay time.Duration) {
 	}
 }
 
-func (q *Queue) stopTimer() {
+func (q *queue) stopTimer() {
 	if q.timer != nil {
 		if !q.timer.Stop() {
 			<-q.timer.C
@@ -352,7 +360,7 @@ func (q *Queue) stopTimer() {
 	}
 }
 
-func (q *Queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
+func (q *queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
 	if q.taskRepository == nil {
 		q.taskRepository = q.store.NewTaskRepository()
 	}
@@ -363,7 +371,7 @@ func (q *Queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
 	return q.iterator
 }
 
-func (q *Queue) stopPendingIterator() {
+func (q *queue) stopPendingIterator() {
 	if q.iterator != nil {
 		q.iterator = nil
 	}

@@ -19,7 +19,7 @@ func UsersDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}

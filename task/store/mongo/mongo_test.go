@@ -8,8 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/tidepool-org/platform/errors"
-	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"errors"
+
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -17,7 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
@@ -179,14 +179,14 @@ var _ = Describe("Mongo", func() {
 					It("returns an error when the context is missing", func() {
 						ctx = nil
 						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(err).To(MatchError("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the updated task is missing", func() {
 						updated = nil
 						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						errorsTest.ExpectEqual(err, errors.New("task is missing"))
+						Expect(err).To(MatchError("task is missing"))
 						Expect(result).To(BeNil())
 					})
 
