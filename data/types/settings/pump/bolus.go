@@ -88,11 +88,11 @@ func (b *BolusMap) Normalize(normalizer data.Normalizer) {
 
 func (b *BolusMap) Validate(validator structure.Validator) {
 	for _, name := range b.sortedNames() {
-		datumArrayValidator := validator.WithReference(name)
-		if datumArray := b.Get(name); datumArray != nil {
-			datumArray.Validate(datumArrayValidator)
+		datumValidator := validator.WithReference(name)
+		if datum := b.Get(name); datum != nil {
+			datum.Validate(datumValidator)
 		} else {
-			datumArrayValidator.ReportError(structureValidator.ErrorValueNotExists())
+			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
 }

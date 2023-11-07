@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/test"
 )
@@ -22,14 +24,14 @@ func CloneBolus(datum *pump.Bolus) *pump.Bolus {
 	return clone
 }
 
-func RandomBolusName() string {
-	return test.RandomStringFromRange(1, 20)
+func BolusName(index int) string {
+	return fmt.Sprintf("bolus-%d", index)
 }
 
 func NewRandomBolusMap(minimumLength int, maximumLength int) *pump.BolusMap {
 	datum := pump.NewBolusMap()
 	for count := test.RandomIntFromRange(minimumLength, maximumLength); count > 0; count-- {
-		datum.Set(RandomBolusName(), NewRandomBolus())
+		datum.Set(BolusName(count), NewRandomBolus())
 	}
 	return datum
 }
