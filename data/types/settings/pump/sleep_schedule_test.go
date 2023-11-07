@@ -31,7 +31,7 @@ var _ = Describe("SleepSchedule", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataTypesSettingsPump.SleepScheduleMap), expectedErrors ...error) {
-					datum := dataTypesSettingsPumpTest.RandomSleepSchedules(1, 3)
+					datum := dataTypesSettingsPumpTest.RandomSleepSchedules(3)
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
 				},
@@ -45,12 +45,12 @@ var _ = Describe("SleepSchedule", func() {
 				),
 				Entry("has one",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(1, 1)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(1)
 					},
 				),
 				Entry("has many",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(100, 100)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(19)
 					},
 				),
 				Entry("entry missing",
@@ -61,7 +61,7 @@ var _ = Describe("SleepSchedule", func() {
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(3, 3)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(3)
 						(*datum)[dataTypesSettingsPumpTest.SleepScheduleName(1)] = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/%s", dataTypesSettingsPumpTest.SleepScheduleName(1))),

@@ -14,8 +14,7 @@ func SleepScheduleName(index int) string {
 	return fmt.Sprintf("schedule-%d", index)
 }
 
-func RandomSleepSchedules(minimumLength int, maximumLength int) *dataTypesSettingsPump.SleepScheduleMap {
-	count := test.RandomIntFromRange(minimumLength, maximumLength)
+func RandomSleepSchedules(count int) *dataTypesSettingsPump.SleepScheduleMap {
 	datum := dataTypesSettingsPump.NewSleepScheduleMap()
 	for i := 0; i < count; i++ {
 		(*datum)[SleepScheduleName(i)] = RandomSleepSchedule()

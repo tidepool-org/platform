@@ -634,13 +634,13 @@ var _ = Describe("Pump", func() {
 				Entry("sleep schedules valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pumpTest.RandomSleepSchedules(0, 10)
+						datum.SleepSchedules = pumpTest.RandomSleepSchedules(3)
 					},
 				),
 				Entry("sleep schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pumpTest.RandomSleepSchedules(2, 2)
+						datum.SleepSchedules = pumpTest.RandomSleepSchedules(2)
 						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(0)].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(
