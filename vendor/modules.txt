@@ -425,7 +425,7 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/cpuid/v2 v2.2.6
 ## explicit; go 1.15
 github.com/klauspost/cpuid/v2
-# github.com/labstack/echo/v4 v4.11.2
+# github.com/labstack/echo/v4 v4.11.3
 ## explicit; go 1.17
 github.com/labstack/echo/v4
 # github.com/labstack/gommon v0.4.0
