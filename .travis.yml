@@ -15,8 +15,6 @@ env:
     - DIST=jammy
 
 before_install:
-  - curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
-  - sudo echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu ${DIST}/mongodb-org/7.0 multiverse" /etc/apt/sources.list.d/mongodb-org-7.0.list
   - sudo apt update
   - sudo apt install -y mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGODB} mongodb-org-mongos=${MONGODB} mongodb-org-tools=${MONGODB}
   - mkdir /tmp/data
@@ -25,6 +23,10 @@ before_install:
   - /usr/bin/mongosh --host 127.0.0.1 --port 27017 --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
 
 addons:
+  apt:
+    sources:
+      - sourceline: 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu ${DIST}/mongodb-org/7.0 multiverse'
+        key_url: 'https://pgp.mongodb.com/server-7.0.asc'
   artifacts:
     s3_region: us-west-2
     paths:
