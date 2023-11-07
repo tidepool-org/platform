@@ -11,15 +11,12 @@ go_import_path: github.com/tidepool-org/platform
 
 env:
   global:
-    - MONGODB=6.0.11
-    - MONGOSH=1.10.6
+    - MONGODB=7.0.2
     - DIST=jammy
 
 before_install:
-  - sudo apt-get remove -y mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
-  - wget -nv https://repo.mongodb.org/apt/ubuntu/dists/${DIST}/mongodb-org/6.0/multiverse/binary-amd64/mongodb-org-server_${MONGODB}_amd64.deb -O /tmp/mongodb.deb
-  - wget -nv https://downloads.mongodb.com/compass/mongodb-mongosh_${MONGOSH}_amd64.deb -O /tmp/mongosh.deb
-  - sudo apt install /tmp/mongodb.deb /tmp/mongosh.deb
+  - sudo echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" /etc/apt/sources.list.d/mongodb-org-7.0.list
+  - sudo apt install -y mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGODB} mongodb-org-mongos=${MONGODB} mongodb-org-tools=${MONGODB}
   - mkdir /tmp/data
   - /usr/bin/mongod --replSet rs0 --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
