@@ -25,7 +25,7 @@ before_install:
 addons:
   apt:
     sources:
-      - sourceline: 'deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu ${DIST}/mongodb-org/7.0 multiverse'
+      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse'
         key_url: 'https://pgp.mongodb.com/server-7.0.asc'
   artifacts:
     s3_region: us-west-2
