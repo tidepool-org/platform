@@ -1,6 +1,8 @@
 package test
 
 import (
+	"fmt"
+
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 
 	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
@@ -8,26 +10,31 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func RandomSleepSchedules(minimumLength int, maximumLength int) *dataTypesSettingsPump.SleepSchedules {
-	datum := make(dataTypesSettingsPump.SleepSchedules, test.RandomIntFromRange(minimumLength, maximumLength))
-	for index := range datum {
-		datum[index] = RandomSleepSchedule()
-	}
-	return &datum
+func SleepScheduleName(index int) string {
+	return fmt.Sprintf("schedule-%d", index)
 }
 
-func CloneSleepSchedules(datum *dataTypesSettingsPump.SleepSchedules) *dataTypesSettingsPump.SleepSchedules {
+func RandomSleepSchedules(minimumLength int, maximumLength int) *dataTypesSettingsPump.SleepScheduleMap {
+	count := test.RandomIntFromRange(minimumLength, maximumLength)
+	datum := dataTypesSettingsPump.NewSleepScheduleMap()
+	for i := 0; i < count; i++ {
+		(*datum)[SleepScheduleName(i)] = RandomSleepSchedule()
+	}
+	return datum
+}
+
+func CloneSleepSchedules(datum *dataTypesSettingsPump.SleepScheduleMap) *dataTypesSettingsPump.SleepScheduleMap {
 	if datum == nil {
 		return nil
 	}
-	clone := make(dataTypesSettingsPump.SleepSchedules, len(*datum))
+	clone := make(dataTypesSettingsPump.SleepScheduleMap, len(*datum))
 	for index, d := range *datum {
 		clone[index] = CloneSleepSchedule(d)
 	}
 	return &clone
 }
 
-func NewArrayFromSleepSchedules(datum *dataTypesSettingsPump.SleepSchedules, objectFormat test.ObjectFormat) []interface{} {
+func NewArrayFromSleepSchedules(datum *dataTypesSettingsPump.SleepScheduleMap, objectFormat test.ObjectFormat) []interface{} {
 	if datum == nil {
 		return nil
 	}
@@ -40,7 +47,7 @@ func NewArrayFromSleepSchedules(datum *dataTypesSettingsPump.SleepSchedules, obj
 
 func RandomSleepSchedule() *dataTypesSettingsPump.SleepSchedule {
 	datum := dataTypesSettingsPump.NewSleepSchedule()
-	// enabled by default, if not enbaled days, start and end not required
+	// enabled by default, if not enabled days, start and end not required
 	datum.Enabled = pointer.FromBool(true)
 	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.DaysOfWeek()), dataTypesCommon.DaysOfWeek()))
 	datum.Start = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum, dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum))

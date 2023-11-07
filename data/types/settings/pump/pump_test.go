@@ -1,6 +1,7 @@
 package pump_test
 
 import (
+	"fmt"
 	"sort"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -627,7 +628,7 @@ var _ = Describe("Pump", func() {
 				Entry("sleep schedules empty",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pump.NewSleepSchedules()
+						datum.SleepSchedules = pump.NewSleepScheduleMap()
 					},
 				),
 				Entry("sleep schedules valid",
@@ -636,20 +637,16 @@ var _ = Describe("Pump", func() {
 						datum.SleepSchedules = pumpTest.RandomSleepSchedules(0, 10)
 					},
 				),
-				Entry("sleep schedules length out of range (upper)",
-					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pumpTest.RandomSleepSchedules(11, 11)
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(11, 10), "/sleepSchedules", pumpTest.NewMeta()),
-				),
 				Entry("sleep schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.SleepSchedules = pumpTest.RandomSleepSchedules(2, 2)
-						(*datum.SleepSchedules)[0].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
+						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(0)].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.SleepSchedulesMidnightOffsetMaximum+1, 0, pump.SleepSchedulesMidnightOffsetMaximum), "/sleepSchedules/0/end", pumpTest.NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(
+						pump.SleepSchedulesMidnightOffsetMaximum+1, 0,
+						pump.SleepSchedulesMidnightOffsetMaximum),
+						fmt.Sprintf("/sleepSchedules/%s/end", pumpTest.SleepScheduleName(0)), pumpTest.NewMeta()),
 				),
 				Entry("software version missing",
 					pointer.FromString("mmol/L"),

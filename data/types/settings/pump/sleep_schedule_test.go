@@ -1,8 +1,9 @@
 package pump_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	"fmt"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
@@ -16,25 +17,10 @@ import (
 )
 
 var _ = Describe("SleepSchedule", func() {
-	It("SleepSchedulesLengthMaximum is expected", func() {
-		Expect(dataTypesSettingsPump.SleepSchedulesLengthMaximum).To(Equal(10))
-	})
-
-	It("SleepSchedulesLengthMinimum is expected", func() {
-		Expect(dataTypesSettingsPump.SleepSchedulesLengthMinimum).To(Equal(0))
-	})
-
-	It("SleepSchedulesLengthMaximum is expected", func() {
-		Expect(dataTypesSettingsPump.SleepSchedulesLengthMaximum).To(Equal(10))
-	})
-
-	It("SleepSchedulesLengthMinimum is expected", func() {
-		Expect(dataTypesSettingsPump.SleepSchedulesLengthMinimum).To(Equal(0))
-	})
 
 	Context("NewSleepSchedules", func() {
 		It("returns successfully with default values", func() {
-			datum := dataTypesSettingsPump.NewSleepSchedules()
+			datum := dataTypesSettingsPump.NewSleepScheduleMap()
 			Expect(datum).ToNot(BeNil())
 			Expect(*datum).To(BeEmpty())
 		})
@@ -44,46 +30,41 @@ var _ = Describe("SleepSchedule", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *dataTypesSettingsPump.SleepSchedules), expectedErrors ...error) {
+				func(mutator func(datum *dataTypesSettingsPump.SleepScheduleMap), expectedErrors ...error) {
 					datum := dataTypesSettingsPumpTest.RandomSleepSchedules(1, 3)
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *dataTypesSettingsPump.SleepSchedules) {},
+					func(datum *dataTypesSettingsPump.SleepScheduleMap) {},
 				),
 				Entry("empty",
-					func(datum *dataTypesSettingsPump.SleepSchedules) { *datum = *dataTypesSettingsPump.NewSleepSchedules() },
+					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
+						*datum = *dataTypesSettingsPump.NewSleepScheduleMap()
+					},
 				),
-				Entry("length in range (lower)",
-					func(datum *dataTypesSettingsPump.SleepSchedules) {
+				Entry("has one",
+					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
 						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(1, 1)
 					},
 				),
-				Entry("length in range (upper)",
-					func(datum *dataTypesSettingsPump.SleepSchedules) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(10, 10)
+				Entry("has many",
+					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
+						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(100, 100)
 					},
-				),
-				Entry("length out of range (upper)",
-					func(datum *dataTypesSettingsPump.SleepSchedules) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(11, 11)
-					},
-					structureValidator.ErrorLengthNotLessThanOrEqualTo(11, 10),
 				),
 				Entry("entry missing",
-					func(datum *dataTypesSettingsPump.SleepSchedules) {
-						(*datum)[0] = nil
+					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
+						(*datum)[dataTypesSettingsPumpTest.SleepScheduleName(0)] = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/%s", dataTypesSettingsPumpTest.SleepScheduleName(0))),
 				),
 				Entry("multiple errors",
-					func(datum *dataTypesSettingsPump.SleepSchedules) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(11, 11)
-						(*datum)[1] = nil
+					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
+						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(3, 3)
+						(*datum)[dataTypesSettingsPumpTest.SleepScheduleName(1)] = nil
 					},
-					structureValidator.ErrorLengthNotLessThanOrEqualTo(11, 10),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/%s", dataTypesSettingsPumpTest.SleepScheduleName(1))),
 				),
 			)
 		})

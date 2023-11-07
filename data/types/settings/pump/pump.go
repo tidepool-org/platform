@@ -57,7 +57,7 @@ type Pump struct {
 	OverridePresets                    *OverridePresetMap               `json:"overridePresets,omitempty" bson:"overridePresets,omitempty"`
 	ScheduleTimeZoneOffset             *int                             `json:"scheduleTimeZoneOffset,omitempty" bson:"scheduleTimeZoneOffset,omitempty"`
 	SerialNumber                       *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
-	SleepSchedules                     *SleepSchedules                  `json:"sleepSchedules,omitempty" bson:"sleepSchedules,omitempty"`
+	SleepSchedules                     *SleepScheduleMap                `json:"sleepSchedules,omitempty" bson:"sleepSchedules,omitempty"`
 	SoftwareVersion                    *string                          `json:"softwareVersion,omitempty" bson:"softwareVersion,omitempty"`
 	Units                              *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
@@ -100,7 +100,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Name = parser.String("name")
 	p.OverridePresets = ParseOverridePresetMap(parser.WithReferenceObjectParser("overridePresets"))
 	p.ScheduleTimeZoneOffset = parser.Int("scheduleTimeZoneOffset")
-	p.SleepSchedules = ParseSleepSchedules(parser.WithReferenceArrayParser("sleepSchedules"))
+	p.SleepSchedules = ParseSleepScheduleMap(parser.WithReferenceObjectParser("sleepSchedules"))
 	p.SerialNumber = parser.String("serialNumber")
 	p.SoftwareVersion = parser.String("softwareVersion")
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))

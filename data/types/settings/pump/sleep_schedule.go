@@ -1,7 +1,7 @@
 package pump
 
 import (
-	"strconv"
+	"sort"
 
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/structure"
@@ -12,46 +12,58 @@ import (
 const (
 	SleepSchedulesMidnightOffsetMaximum = 86400
 	SleepSchedulesMidnightOffsetMinimum = 0
-
-	SleepSchedulesLengthMaximum = 10
-	SleepSchedulesLengthMinimum = 0
 )
 
-type SleepSchedules []*SleepSchedule
+type SleepScheduleMap map[string]*SleepSchedule
 
-func ParseSleepSchedules(parser structure.ArrayParser) *SleepSchedules {
+func ParseSleepScheduleMap(parser structure.ObjectParser) *SleepScheduleMap {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewSleepSchedules()
+	datum := NewSleepScheduleMap()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewSleepSchedules() *SleepSchedules {
-	return &SleepSchedules{}
+func NewSleepScheduleMap() *SleepScheduleMap {
+	return &SleepScheduleMap{}
 }
 
-func (s *SleepSchedules) Parse(parser structure.ArrayParser) {
+func (s *SleepScheduleMap) Parse(parser structure.ObjectParser) {
 	for _, reference := range parser.References() {
-		*s = append(*s, ParseSleepSchedule(parser.WithReferenceObjectParser(reference)))
+		s.Set(reference, ParseSleepSchedule(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
-func (s *SleepSchedules) Validate(validator structure.Validator) {
-	length := len(*s)
-
-	if length > SleepSchedulesLengthMaximum {
-		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(length, SleepSchedulesLengthMaximum))
-	}
-
-	for index, datum := range *s {
-		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
+func (s *SleepScheduleMap) Validate(validator structure.Validator) {
+	for _, name := range s.sortedNames() {
+		datumValidator := validator.WithReference(name)
+		if datum := s.Get(name); datum != nil {
 			datum.Validate(datumValidator)
 		} else {
 			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
+}
+
+func (s *SleepScheduleMap) Get(name string) *SleepSchedule {
+	if datum, exists := (*s)[name]; exists {
+		return datum
+	}
+	return nil
+}
+
+func (s *SleepScheduleMap) Set(name string, datum *SleepSchedule) {
+	(*s)[name] = datum
+}
+
+func (s *SleepScheduleMap) sortedNames() []string {
+	names := []string{}
+	for name := range *s {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 type SleepSchedule struct {
