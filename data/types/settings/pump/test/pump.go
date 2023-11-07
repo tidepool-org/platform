@@ -85,6 +85,7 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.CloneTarget(datum.BloodGlucoseTargetPreprandial)
 	clone.BloodGlucoseTargetSchedule = CloneBloodGlucoseTargetStartArray(datum.BloodGlucoseTargetSchedule)
 	clone.BloodGlucoseTargetSchedules = CloneBloodGlucoseTargetStartArrayMap(datum.BloodGlucoseTargetSchedules)
+	clone.Bolus = CloneBolus(datum.Bolus)
 	clone.Boluses = CloneBolusMap(datum.Boluses)
 	clone.CarbohydrateRatioSchedule = CloneCarbohydrateRatioStartArray(datum.CarbohydrateRatioSchedule)
 	clone.CarbohydrateRatioSchedules = CloneCarbohydrateRatioStartArrayMap(datum.CarbohydrateRatioSchedules)

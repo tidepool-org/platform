@@ -43,6 +43,7 @@ var _ = Describe("Pump", func() {
 			Expect(datum.BloodGlucoseTargetPreprandial).To(BeNil())
 			Expect(datum.BloodGlucoseTargetSchedule).To(BeNil())
 			Expect(datum.BloodGlucoseTargetSchedules).To(BeNil())
+			Expect(datum.Bolus).To(BeNil())
 			Expect(datum.Boluses).To(BeNil())
 			Expect(datum.CarbohydrateRatioSchedule).To(BeNil())
 			Expect(datum.CarbohydrateRatioSchedules).To(BeNil())
@@ -277,6 +278,28 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTargetSchedules.Set("one", pumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose))
 					},
 				),
+				Entry("bolus missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.Bolus = nil
+					},
+				),
+				Entry("bolus invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.Boluses = nil
+						datum.Bolus = pumpTest.NewRandomBolus()
+						datum.Bolus.Calculator.Enabled = nil
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/calculator/enabled", pumpTest.NewMeta()),
+				),
+				Entry("bolus valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.Boluses = nil
+						datum.Bolus = pumpTest.NewRandomBolus()
+					},
+				),
 				Entry("boluses missing",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Boluses = nil },
@@ -284,14 +307,22 @@ var _ = Describe("Pump", func() {
 				Entry("boluses invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.Bolus = nil
 						datum.Boluses = pumpTest.NewRandomBolusMap(2, 2)
-						(*datum.Boluses)[pumpTest.BolusName(1)].Extended.Enabled = nil
+						(*datum.Boluses)[pumpTest.BolusName(1)].AmountMaximum.Units = nil
+						(*datum.Boluses)[pumpTest.BolusName(2)].Extended.Enabled = nil
+						(*datum.Boluses)[pumpTest.BolusName(1)].Calculator.Enabled = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/extended/enabled", pumpTest.BolusName(1)), pumpTest.NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/amountMaximum/units", pumpTest.BolusName(1)), pumpTest.NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/calculator/enabled", pumpTest.BolusName(1)), pumpTest.NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/extended/enabled", pumpTest.BolusName(2)), pumpTest.NewMeta()),
 				),
 				Entry("boluses valid",
 					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) { datum.Boluses = pumpTest.NewRandomBolusMap(1, 5) },
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.Bolus = nil
+						datum.Boluses = pumpTest.NewRandomBolusMap(1, 5)
+					},
 				),
 				Entry("carbohydrate ratio schedule and carbohydrate ratio schedules missing",
 					pointer.FromString("mmol/L"),
@@ -676,7 +707,6 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTargetSchedules = nil
 						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucose.NewTarget()
 						datum.BloodGlucoseTargetPreprandial = dataBloodGlucose.NewTarget()
-						datum.BloodGlucoseTargetSchedules = nil
 						invalidCarbohydrateRatioSchedule := pumpTest.NewCarbohydrateRatioStartArray()
 						(*invalidCarbohydrateRatioSchedule)[0].Start = nil
 						datum.CarbohydrateRatioSchedule = invalidCarbohydrateRatioSchedule

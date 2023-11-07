@@ -41,6 +41,7 @@ type Pump struct {
 	BloodGlucoseTargetPreprandial      *dataBloodGlucose.Target         `json:"bgTargetPreprandial,omitempty" bson:"bgTargetPreprandial,omitempty"`
 	BloodGlucoseTargetSchedule         *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`   // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
 	BloodGlucoseTargetSchedules        *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"` // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
+	Bolus                              *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
 	Boluses                            *BolusMap                        `json:"boluses,omitempty" bson:"boluses,omitempty"`
 	CarbohydrateRatioSchedule          *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules         *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
@@ -84,6 +85,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BloodGlucoseTargetPreprandial = dataBloodGlucose.ParseTarget(parser.WithReferenceObjectParser("bgTargetPreprandial"))
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
+	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
 	p.Boluses = ParseBolusMap(parser.WithReferenceObjectParser("boluses"))
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
@@ -148,7 +150,12 @@ func (p *Pump) Validate(validator structure.Validator) {
 		p.BloodGlucoseTargetSchedules.Validate(validator.WithReference("bgTargets"), unitsBloodGlucose)
 	}
 
-	if p.Boluses != nil {
+	if p.Bolus != nil {
+		p.Bolus.Validate(validator.WithReference("bolus"))
+		if p.Boluses != nil {
+			validator.WithReference("boluses").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if p.Boluses != nil {
 		p.Boluses.Validate(validator.WithReference("boluses"))
 	}
 
@@ -230,6 +237,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.BloodGlucoseTargetSchedules != nil {
 		p.BloodGlucoseTargetSchedules.Normalize(normalizer.WithReference("bgTargets"), unitsBloodGlucose)
+	}
+	if p.Bolus != nil {
+		p.Bolus.Normalize(normalizer.WithReference("bolus"))
 	}
 	if p.Boluses != nil {
 		p.Boluses.Normalize(normalizer.WithReference("boluses"))

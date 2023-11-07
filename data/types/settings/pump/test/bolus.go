@@ -11,6 +11,7 @@ func NewRandomBolus() *pump.Bolus {
 	datum := pump.NewBolus()
 	datum.AmountMaximum = NewBolusAmountMaximum()
 	datum.Extended = NewBolusExtended()
+	datum.Calculator = NewBolusCalculator()
 	return datum
 }
 
@@ -21,6 +22,7 @@ func CloneBolus(datum *pump.Bolus) *pump.Bolus {
 	clone := pump.NewBolus()
 	clone.AmountMaximum = CloneBolusAmountMaximum(datum.AmountMaximum)
 	clone.Extended = CloneBolusExtended(datum.Extended)
+	clone.Calculator = CloneBolusCalculator(datum.Calculator)
 	return clone
 }
 
