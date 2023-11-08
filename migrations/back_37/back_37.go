@@ -121,6 +121,23 @@ func createDatumHash(bsonData bson.M) (string, error) {
 	return deduplicator.GenerateIdentityHash(identityFields)
 }
 
+func updateIfExistsPumpSettingsBolus(bsonData bson.M) (interface{}, error) {
+	dataType, err := getValidatedString(bsonData, "type")
+	if err != nil {
+		return nil, err
+	}
+	if dataType == "pumpSettings" {
+		if bolus := bsonData["bolus"]; bolus != nil {
+			boluses, ok := bolus.(map[string]interface{})
+			if !ok {
+				return nil, errors.Newf("pumpSettings.bolus is not the expected type %v", bolus)
+			}
+			return boluses, nil
+		}
+	}
+	return nil, nil
+}
+
 func getBGValuePlatformPrecision(mmolVal float64) float64 {
 	if len(fmt.Sprintf("%v", mmolVal)) > 7 {
 		mgdlVal := mmolVal * glucose.MmolLToMgdLConversionFactor
@@ -233,17 +250,26 @@ func (m *Migration) migrateDocument(jfDatum bson.M) (bool, error) {
 		return false, err
 	}
 
+	updates := bson.M{}
 	hash, err := createDatumHash(jfDatum)
 	if err != nil {
 		return false, err
 	}
-	update := bson.M{
-		"$set": bson.M{"_deduplicator": bson.M{"hash": hash}},
+
+	updates["_deduplicator"] = bson.M{"hash": hash}
+
+	if boluses, err := updateIfExistsPumpSettingsBolus(jfDatum); err != nil {
+		return false, err
+	} else if boluses != nil {
+		updates["pumpSettings"] = bson.M{"boluses": boluses}
 	}
+
 	result, err := m.dataRepository.UpdateOne(m.ctx, bson.M{
 		"_id":          datumID,
 		"modifiedTime": jfDatum["modifiedTime"],
-	}, update)
+	}, bson.M{
+		"$set": updates,
+	})
 
 	if err != nil {
 		return false, err
