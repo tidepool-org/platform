@@ -46,7 +46,14 @@ func (s *SleepScheduleMap) Validate(validator structure.Validator) {
 	}
 }
 
-func (s *SleepScheduleMap) Normalize(normalizer data.Normalizer) {}
+func (s *SleepScheduleMap) Normalize(normalizer data.Normalizer) {
+	for _, name := range s.sortedNames() {
+		datumNormalizer := normalizer.WithReference(name)
+		if datum := s.Get(name); datum != nil {
+			datum.Normalize(datumNormalizer)
+		}
+	}
+}
 
 func (s *SleepScheduleMap) Get(name string) *SleepSchedule {
 	if datum, exists := (*s)[name]; exists {
@@ -106,4 +113,8 @@ func (s *SleepSchedule) Validate(validator structure.Validator) {
 	}
 }
 
-func (s *SleepSchedule) Normalize(normalizer data.Normalizer) {}
+func (s *SleepSchedule) Normalize(normalizer data.Normalizer) {
+	if s.Days != nil {
+		sort.Sort(common.DaysOfWeekByDayIndex(*s.Days))
+	}
+}
