@@ -3,7 +3,7 @@ dist: jammy
 language: go
 
 go:
-  - 1.21.3
+  - 1.21.4
 
 services:
   - docker
