@@ -58,6 +58,7 @@ type Pump struct {
 	OverridePresets                    *OverridePresetMap               `json:"overridePresets,omitempty" bson:"overridePresets,omitempty"`
 	ScheduleTimeZoneOffset             *int                             `json:"scheduleTimeZoneOffset,omitempty" bson:"scheduleTimeZoneOffset,omitempty"`
 	SerialNumber                       *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	SleepSchedules                     *SleepScheduleMap                `json:"sleepSchedules,omitempty" bson:"sleepSchedules,omitempty"`
 	SoftwareVersion                    *string                          `json:"softwareVersion,omitempty" bson:"softwareVersion,omitempty"`
 	Units                              *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
@@ -101,6 +102,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Name = parser.String("name")
 	p.OverridePresets = ParseOverridePresetMap(parser.WithReferenceObjectParser("overridePresets"))
 	p.ScheduleTimeZoneOffset = parser.Int("scheduleTimeZoneOffset")
+	p.SleepSchedules = ParseSleepScheduleMap(parser.WithReferenceObjectParser("sleepSchedules"))
 	p.SerialNumber = parser.String("serialNumber")
 	p.SoftwareVersion = parser.String("softwareVersion")
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
@@ -194,6 +196,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 	if p.OverridePresets != nil {
 		p.OverridePresets.Validate(validator.WithReference("overridePresets"), unitsBloodGlucose)
 	}
+	if p.SleepSchedules != nil {
+		p.SleepSchedules.Validate(validator.WithReference("sleepSchedules"))
+	}
 	validator.Int("scheduleTimeZoneOffset", p.ScheduleTimeZoneOffset).InRange(ScheduleTimeZoneOffsetMinimum, ScheduleTimeZoneOffsetMaximum)
 	validator.String("serialNumber", p.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
 	validator.String("softwareVersion", p.SoftwareVersion).NotEmpty().LengthLessThanOrEqualTo(SoftwareVersionLengthMaximum)
@@ -269,6 +274,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.OverridePresets != nil {
 		p.OverridePresets.Normalize(normalizer.WithReference("overridePresets"), unitsBloodGlucose)
+	}
+	if p.SleepSchedules != nil {
+		p.SleepSchedules.Normalize(normalizer.WithReference("sleepSchedules"))
 	}
 	if p.Units != nil {
 		p.Units.Normalize(normalizer.WithReference("units"))

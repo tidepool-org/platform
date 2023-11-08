@@ -59,6 +59,7 @@ var _ = Describe("Pump", func() {
 			Expect(datum.Name).To(BeNil())
 			Expect(datum.OverridePresets).To(BeNil())
 			Expect(datum.ScheduleTimeZoneOffset).To(BeNil())
+			Expect(datum.SleepSchedules).To(BeNil())
 			Expect(datum.SerialNumber).To(BeNil())
 			Expect(datum.SoftwareVersion).To(BeNil())
 			Expect(datum.Units).To(BeNil())
@@ -651,6 +652,35 @@ var _ = Describe("Pump", func() {
 						datum.SerialNumber = pointer.FromString(test.RandomStringFromRange(101, 101))
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/serialNumber", pumpTest.NewMeta()),
+				),
+				Entry("sleep schedules missing",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.SleepSchedules = nil
+					},
+				),
+				Entry("sleep schedules empty",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.SleepSchedules = pump.NewSleepScheduleMap()
+					},
+				),
+				Entry("sleep schedules valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.SleepSchedules = pumpTest.RandomSleepSchedules(3)
+					},
+				),
+				Entry("sleep schedules invalid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.SleepSchedules = pumpTest.RandomSleepSchedules(2)
+						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(0)].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(
+						pump.SleepSchedulesMidnightOffsetMaximum+1, 0,
+						pump.SleepSchedulesMidnightOffsetMaximum),
+						fmt.Sprintf("/sleepSchedules/%s/end", pumpTest.SleepScheduleName(0)), pumpTest.NewMeta()),
 				),
 				Entry("software version missing",
 					pointer.FromString("mmol/L"),

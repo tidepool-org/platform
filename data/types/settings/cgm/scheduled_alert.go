@@ -3,6 +3,7 @@ package cgm
 import (
 	"strconv"
 
+	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -12,32 +13,12 @@ const (
 
 	ScheduledAlertNameLengthMaximum = 100
 
-	ScheduledAlertDaysSunday    = "sunday"
-	ScheduledAlertDaysMonday    = "monday"
-	ScheduledAlertDaysTuesday   = "tuesday"
-	ScheduledAlertDaysWednesday = "wednesday"
-	ScheduledAlertDaysThursday  = "thursday"
-	ScheduledAlertDaysFriday    = "friday"
-	ScheduledAlertDaysSaturday  = "saturday"
-
 	ScheduledAlertStartMaximum = 86400000
 	ScheduledAlertStartMinimum = 0
 
 	ScheduledAlertEndMaximum = 86400000
 	ScheduledAlertEndMinimum = 0
 )
-
-func ScheduledAlertDays() []string {
-	return []string{
-		ScheduledAlertDaysSunday,
-		ScheduledAlertDaysMonday,
-		ScheduledAlertDaysTuesday,
-		ScheduledAlertDaysWednesday,
-		ScheduledAlertDaysThursday,
-		ScheduledAlertDaysFriday,
-		ScheduledAlertDaysSaturday,
-	}
-}
 
 type ScheduledAlerts []*ScheduledAlert
 
@@ -107,7 +88,7 @@ func (s *ScheduledAlert) Parse(parser structure.ObjectParser) {
 
 func (s *ScheduledAlert) Validate(validator structure.Validator) {
 	validator.String("name", s.Name).NotEmpty().LengthLessThanOrEqualTo(ScheduledAlertNameLengthMaximum)
-	validator.StringArray("days", s.Days).Exists().EachOneOf(ScheduledAlertDays()...).EachUnique()
+	validator.StringArray("days", s.Days).Exists().EachOneOf(common.DaysOfWeek()...).EachUnique()
 	validator.Int("start", s.Start).Exists().InRange(ScheduledAlertStartMinimum, ScheduledAlertStartMaximum)
 	validator.Int("end", s.End).Exists().InRange(ScheduledAlertEndMinimum, ScheduledAlertEndMaximum)
 	if alertsValidator := validator.WithReference("alerts"); s.Alerts != nil {
