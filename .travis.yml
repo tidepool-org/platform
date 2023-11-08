@@ -13,7 +13,6 @@ env:
   global:
     - MONGODB=7.0.2
     - MONGOSH=2.0.2
-    - DIST=jammy
 
 before_install:
   - sudo apt update
