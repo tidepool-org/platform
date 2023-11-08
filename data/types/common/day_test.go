@@ -49,4 +49,28 @@ var _ = Describe("Day", func() {
 			common.DaySaturday,
 		}))
 	})
+
+	Context("DayIndex", func() {
+		DescribeTable("return the expected index when the day",
+			func(day string, expectedIndex int) {
+				Expect(common.DayIndex(day)).To(Equal(expectedIndex))
+			},
+			Entry("is an empty string", "", 0),
+			Entry("is sunday", "sunday", 1),
+			Entry("is constant sunday", common.DaySunday, 1),
+			Entry("is monday", "monday", 2),
+			Entry("is constant monday", common.DayMonday, 2),
+			Entry("is tuesday", "tuesday", 3),
+			Entry("is constant tuesday", common.DayTuesday, 3),
+			Entry("is wednesday", "wednesday", 4),
+			Entry("isconstant  wednesday", common.DayWednesday, 4),
+			Entry("is thursday", "thursday", 5),
+			Entry("is constant thursday", common.DayThursday, 5),
+			Entry("is friday", "friday", 6),
+			Entry("is constant friday", common.DayFriday, 6),
+			Entry("is saturday", "saturday", 7),
+			Entry("is constant saturday", common.DaySaturday, 7),
+			Entry("is an invalid string", "invalid", 0),
+		)
+	})
 })
