@@ -707,6 +707,9 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTargetSchedules = nil
 						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucose.NewTarget()
 						datum.BloodGlucoseTargetPreprandial = dataBloodGlucose.NewTarget()
+						datum.Boluses = nil
+						datum.Bolus = pumpTest.NewRandomBolus()
+						datum.Bolus.Extended.Enabled = nil
 						invalidCarbohydrateRatioSchedule := pumpTest.NewCarbohydrateRatioStartArray()
 						(*invalidCarbohydrateRatioSchedule)[0].Start = nil
 						datum.CarbohydrateRatioSchedule = invalidCarbohydrateRatioSchedule
@@ -737,6 +740,7 @@ var _ = Describe("Pump", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPhysicalActivity/target", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTargetPreprandial/target", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgTarget/0/start", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/extended/enabled", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/carbRatio/0/start", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/display/bloodGlucose/units", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/firmwareVersion", &dataTypes.Meta{Type: "invalidType"}),
