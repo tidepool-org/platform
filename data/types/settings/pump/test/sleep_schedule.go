@@ -3,9 +3,8 @@ package test
 import (
 	"fmt"
 
-	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
-
 	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )

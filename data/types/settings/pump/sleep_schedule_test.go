@@ -8,10 +8,9 @@ import (
 
 	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
-	"github.com/tidepool-org/platform/pointer"
-
 	dataTypesSettingsPumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )

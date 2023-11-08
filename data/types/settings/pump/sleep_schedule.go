@@ -3,9 +3,9 @@ package pump
 import (
 	"sort"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/structure"
-
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -45,6 +45,8 @@ func (s *SleepScheduleMap) Validate(validator structure.Validator) {
 		}
 	}
 }
+
+func (s *SleepScheduleMap) Normalize(normalizer data.Normalizer) {}
 
 func (s *SleepScheduleMap) Get(name string) *SleepSchedule {
 	if datum, exists := (*s)[name]; exists {
@@ -103,3 +105,5 @@ func (s *SleepSchedule) Validate(validator structure.Validator) {
 		}
 	}
 }
+
+func (s *SleepSchedule) Normalize(normalizer data.Normalizer) {}

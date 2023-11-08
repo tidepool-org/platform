@@ -263,6 +263,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	if p.OverridePresets != nil {
 		p.OverridePresets.Normalize(normalizer.WithReference("overridePresets"), unitsBloodGlucose)
 	}
+	if p.SleepSchedules != nil {
+		p.SleepSchedules.Normalize(normalizer.WithReference("sleepSchedules"))
+	}
 	if p.Units != nil {
 		p.Units.Normalize(normalizer.WithReference("units"))
 	}
