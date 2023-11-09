@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli"
@@ -12,13 +15,16 @@ import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/errors"
 	migrationMongo "github.com/tidepool-org/platform/migration/mongo"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -121,12 +127,44 @@ func createDatumHash(bsonData bson.M) (string, error) {
 	return deduplicator.GenerateIdentityHash(identityFields)
 }
 
+func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (interface{}, error) {
+	dataType, err := getValidatedString(bsonData, "type")
+	if err != nil {
+		return nil, err
+	}
+
+	if dataType == pump.Type {
+		if sleepSchedules := bsonData["sleepSchedules"]; sleepSchedules != nil {
+			schedules, ok := sleepSchedules.(*pump.SleepScheduleMap)
+			if !ok {
+				return nil, errors.Newf("pumpSettings.sleepSchedules is not the expected type %s", sleepSchedules)
+			}
+			for key := range *schedules {
+				days := (*schedules)[key].Days
+				updatedDays := []string{}
+				for _, day := range *days {
+					log.Println("day is: ", day)
+					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
+						return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+					}
+					updatedDays = append(updatedDays, strings.ToLower(day))
+				}
+				(*schedules)[key].Days = &updatedDays
+			}
+			//sorts schedules based on day
+			schedules.Normalize(normalizer.New())
+			return schedules, nil
+		}
+	}
+	return nil, nil
+}
+
 func updateIfExistsPumpSettingsBolus(bsonData bson.M) (interface{}, error) {
 	dataType, err := getValidatedString(bsonData, "type")
 	if err != nil {
 		return nil, err
 	}
-	if dataType == "pumpSettings" {
+	if dataType == pump.Type {
 		if bolus := bsonData["bolus"]; bolus != nil {
 			boluses, ok := bolus.(map[string]interface{})
 			if !ok {
