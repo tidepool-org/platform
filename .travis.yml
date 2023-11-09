@@ -10,7 +10,7 @@ services:
 
 env:
   global:
-    - MONGODB=mongodb-linux-x86_64-ubuntu2204-6.0.10
+    - MONGODB=mongodb-linux-x86_64-ubuntu2204-6.0.11
     - MONGOSH=mongosh-2.0.2-linux-x64
 
 cache:
