@@ -27,6 +27,8 @@ const (
 var (
 	ErrCoastalConfigEmpty       = errors.New("empty Coastal config")
 	ErrCoastalInvalidPrivateKey = errors.New("invalid Coastal private key")
+
+	ErrInvalidPartnerPayload = errors.New("invalid partner payload")
 )
 
 type CoastalSecretsConfig struct {
@@ -135,7 +137,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	}
 
 	if err := structValidator.New().Validate(payload); err != nil {
-		return nil, fmt.Errorf("unable to validate Coastal payload: %w", err)
+		return nil, fmt.Errorf("Coastal: %w: %w", ErrInvalidPartnerPayload, err)
 	}
 
 	internalPayload, signature, err := payload.toInternalPayload(c.pk)

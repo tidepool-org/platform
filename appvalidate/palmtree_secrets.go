@@ -118,7 +118,7 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 	}
 
 	if err := structValidator.New().Validate(payload); err != nil {
-		return nil, fmt.Errorf("unable to validate PalmTree payload: %w", err)
+		return nil, fmt.Errorf("PalmTree: %w: %w", ErrInvalidPartnerPayload, err)
 	}
 
 	var buf bytes.Buffer
