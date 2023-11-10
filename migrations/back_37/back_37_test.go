@@ -1,10 +1,10 @@
 package main
 
 import (
-	"reflect"
 	"strings"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -13,208 +13,116 @@ import (
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 )
 
-func Test_getBGValuePlatformPrecision(t *testing.T) {
+var _ = Describe("back-37", func() {
 
-	tests := []struct {
-		name             string
-		mmolJellyfishVal float64
-		mmolPlatformVal  float64
-	}{
-		{
-			name:             "original mmol/L value",
-			mmolJellyfishVal: 10.1,
-			mmolPlatformVal:  10.1,
-		},
-		{
-			name:             "converted mgd/L of 100",
-			mmolJellyfishVal: 5.550747991045533,
-			mmolPlatformVal:  5.55075,
-		},
-		{
-			name:             "converted mgd/L of 150.0",
-			mmolJellyfishVal: 8.3261219865683,
-			mmolPlatformVal:  8.32612,
-		},
-		{
-			name:             "converted mgd/L of 65.0",
-			mmolJellyfishVal: 3.6079861941795968,
-			mmolPlatformVal:  3.60799,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getBGValuePlatformPrecision(tt.mmolJellyfishVal); got != tt.mmolPlatformVal {
-				t.Errorf("getBGValuePlatformPrecision() mmolJellyfishVal = %v, want %v", got, tt.mmolPlatformVal)
+	Context("getBGValuePlatformPrecision", func() {
+		DescribeTable("return the expected mmol/L value",
+			func(jellyfishVal float64, expectedVal float64) {
+				actual := getBGValuePlatformPrecision(jellyfishVal)
+				Expect(actual).To(Equal(expectedVal))
+			},
+			Entry("original mmol/L value", 10.1, 10.1),
+			Entry("converted mgd/L of 100", 5.550747991045533, 5.55075),
+			Entry("converted mgd/L of 150", 8.3261219865683, 8.32612),
+			Entry("converted mgd/L of 65", 3.6079861941795968, 3.60799),
+		)
+	})
+
+	Context("updateIfExistsPumpSettingsBolus", func() {
+		var bolusData map[string]interface{}
+
+		BeforeEach(func() {
+			bolusData = map[string]interface{}{
+				"bolous-1": pumpTest.NewRandomBolus(),
+				"bolous-2": pumpTest.NewRandomBolus(),
 			}
+			Expect(bolusData).ToNot(BeNil())
 		})
-	}
-}
 
-func Test_updateIfExistsPumpSettingsBolus(t *testing.T) {
-	type args struct {
-		bsonData bson.M
-	}
-
-	bolusData := map[string]interface{}{
-		"bolous-1": pumpTest.NewRandomBolus(),
-		"bolous-2": pumpTest.NewRandomBolus(),
-	}
-
-	tests := []struct {
-		name    string
-		args    args
-		want    interface{}
-		wantErr bool
-	}{
-		{
-			name: "when not pumpSettings",
-			args: args{
-				bsonData: bson.M{"type": "other"},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "pumpSettings but no bolus",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings"},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "pumpSettings bolus wrong type",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings", "bolus": "wrong"},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "pumpSettings bolus valid type",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings", "bolus": bolusData},
-			},
-			want:    bolusData,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := updateIfExistsPumpSettingsBolus(tt.args.bsonData)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("updateIfExistsPumpSettingsBolus() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("updateIfExistsPumpSettingsBolus() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_updateIfExistsPumpSettingsSleepSchedules(t *testing.T) {
-
-	type args struct {
-		bsonData bson.M
-	}
-
-	sleepSchedulesExpected := &pump.SleepScheduleMap{
-		"schedule-1": pumpTest.RandomSleepSchedule(),
-		"schedule-2": pumpTest.RandomSleepSchedule(),
-	}
-	sleepSchedulesStored := pumpTest.CloneSleepSchedules(sleepSchedulesExpected)
-	sleepSchedulesInvalidDays := pumpTest.CloneSleepSchedules(sleepSchedulesExpected)
-
-	//ensure sorting
-	sleepSchedulesExpected.Normalize(normalizer.New())
-
-	s1Days := (*sleepSchedulesStored)["schedule-1"].Days
-	for key, day := range *s1Days {
-		(*s1Days)[key] = strings.ToUpper(day)
-	}
-	(*sleepSchedulesStored)["schedule-1"].Days = s1Days
-
-	s2Days := (*sleepSchedulesStored)["schedule-2"].Days
-
-	for key, day := range *s2Days {
-		(*s2Days)[key] = strings.ToUpper(day)
-	}
-	(*sleepSchedulesStored)["schedule-2"].Days = s2Days
-
-	(*sleepSchedulesInvalidDays)["schedule-2"].Days = &[]string{"not-a-day", common.DayFriday}
-
-	tests := []struct {
-		name    string
-		args    args
-		want    *pump.SleepScheduleMap
-		wantErr bool
-	}{
-		{
-			name: "when not pumpSettings type",
-			args: args{
-				bsonData: bson.M{"type": "other"},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "pumpSettings but no sleepSchedules",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings"},
-			},
-			want:    nil,
-			wantErr: false,
-		},
-		{
-			name: "pumpSettings sleepSchedules wrong type",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings", "sleepSchedules": "wrong"},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "pumpSettings sleepSchedules days invalid",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings", "sleepSchedules": sleepSchedulesInvalidDays},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name: "pumpSettings sleepSchedules valid type",
-			args: args{
-				bsonData: bson.M{"type": "pumpSettings", "sleepSchedules": sleepSchedulesStored},
-			},
-			want:    sleepSchedulesExpected,
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := updateIfExistsPumpSettingsSleepSchedules(tt.args.bsonData)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("updateIfExistsPumpSettingsSleepSchedules() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if tt.want != nil {
-				gotSleepSchedules, ok := got.(*pump.SleepScheduleMap)
-				if !ok {
-					t.Errorf("updateIfExistsPumpSettingsSleepSchedules() = %v, want %v", got, tt.want)
+		DescribeTable("should",
+			func(input bson.M, expected interface{}, expectError bool) {
+				actual, err := updateIfExistsPumpSettingsBolus(input)
+				if expectError {
+					Expect(err).ToNot(BeNil())
+					Expect(actual).To(BeNil())
 					return
 				}
-
-				for key, wantSchedule := range *tt.want {
-					if gotSchedule := (*gotSleepSchedules)[key]; gotSchedule != nil {
-						if !reflect.DeepEqual((*gotSchedule).Days, (*wantSchedule).Days) {
-							t.Errorf("updateIfExistsPumpSettingsSleepSchedules() = %v, want %v", (*gotSchedule).Days, (*wantSchedule).Days)
-						}
-					} else {
-						t.Errorf("missing schedule %s", key)
-					}
+				Expect(err).To(BeNil())
+				if expected != nil {
+					Expect(actual).To(Equal(expected))
+				} else {
+					Expect(actual).To(BeNil())
 				}
+			},
+			Entry("do nothing when wrong type", bson.M{"type": "other"}, nil, false),
+			Entry("do nothing when has no bolus", bson.M{"type": "pumpSettings"}, nil, false),
+			Entry("error when bolus is invalid", bson.M{"type": "pumpSettings", "bolus": "wrong"}, nil, true),
+			Entry("return bolus when valid", bson.M{"type": "pumpSettings", "bolus": bolusData}, bolusData, false),
+		)
+	})
+
+	Context("updateIfExistsPumpSettingsSleepSchedules", func() {
+		var sleepSchedulesExpected *pump.SleepScheduleMap
+		var sleepSchedulesStored *pump.SleepScheduleMap
+		var sleepSchedulesInvalidDays *pump.SleepScheduleMap
+
+		BeforeEach(func() {
+			sleepSchedulesExpected = &pump.SleepScheduleMap{
+				"schedule-1": pumpTest.RandomSleepSchedule(),
+				"schedule-2": pumpTest.RandomSleepSchedule(),
 			}
+			sleepSchedulesInvalidDays = pumpTest.CloneSleepSchedules(sleepSchedulesExpected)
+			(*sleepSchedulesInvalidDays)["schedule-2"].Days = &[]string{"not-a-day", common.DayFriday}
+
+			sleepSchedulesStored = pumpTest.CloneSleepSchedules(sleepSchedulesExpected)
+
+			s1Days := (*sleepSchedulesStored)["schedule-1"].Days
+			for key, day := range *s1Days {
+				(*s1Days)[key] = strings.ToUpper(day)
+			}
+			(*sleepSchedulesStored)["schedule-1"].Days = s1Days
+
+			s2Days := (*sleepSchedulesStored)["schedule-2"].Days
+			for key, day := range *s2Days {
+				(*s2Days)[key] = strings.ToUpper(day)
+			}
+			(*sleepSchedulesStored)["schedule-2"].Days = s2Days
+
+			//ensure sorting
+			sleepSchedulesExpected.Normalize(normalizer.New())
+
+			Expect(sleepSchedulesExpected).ToNot(BeNil())
+			Expect(sleepSchedulesStored).ToNot(BeNil())
+			Expect(sleepSchedulesInvalidDays).ToNot(BeNil())
 		})
-	}
-}
+
+		It("does nothing when wrong type", func() {
+			actual, err := updateIfExistsPumpSettingsSleepSchedules(bson.M{"type": "other"})
+			Expect(err).To(BeNil())
+			Expect(actual).To(BeNil())
+		})
+		It("does nothing when no sleepSchedules", func() {
+			actual, err := updateIfExistsPumpSettingsSleepSchedules(bson.M{"type": "pumpSettings"})
+			Expect(err).To(BeNil())
+			Expect(actual).To(BeNil())
+		})
+		It("returns error when sleepSchedules is invalid", func() {
+			actual, err := updateIfExistsPumpSettingsSleepSchedules(bson.M{"type": "pumpSettings", "sleepSchedules": "wrong"})
+			Expect(err).ToNot(BeNil())
+			Expect(actual).To(BeNil())
+		})
+		It("returns updated sleepSchedules when valid", func() {
+			actual, err := updateIfExistsPumpSettingsSleepSchedules(bson.M{"type": "pumpSettings", "sleepSchedules": sleepSchedulesStored})
+			Expect(err).To(BeNil())
+			Expect(actual).ToNot(BeNil())
+			actualSchedules, ok := actual.(*pump.SleepScheduleMap)
+			Expect(ok).To(BeTrue())
+			Expect(actualSchedules).To(Equal(sleepSchedulesExpected))
+		})
+		It("returns updated sleepSchedules when valid", func() {
+			actual, err := updateIfExistsPumpSettingsSleepSchedules(bson.M{"type": "pumpSettings", "sleepSchedules": sleepSchedulesInvalidDays})
+			Expect(err).ToNot(BeNil())
+			Expect(actual).To(BeNil())
+		})
+	})
+})

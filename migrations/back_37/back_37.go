@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -143,7 +142,6 @@ func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (interface{}, err
 				days := (*schedules)[key].Days
 				updatedDays := []string{}
 				for _, day := range *days {
-					log.Println("day is: ", day)
 					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
 						return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
 					}
