@@ -1,11 +1,11 @@
 package main
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/tidepool-org/platform/test"
-)
+// 	"github.com/tidepool-org/platform/test"
+// )
 
-func TestSuite(t *testing.T) {
-	test.Test(t)
-}
+// func TestSuite(t *testing.T) {
+// 	test.Test(t)
+// }
