@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
@@ -17,7 +16,6 @@ type AuthorizeAs int
 const (
 	AuthorizeAsService AuthorizeAs = iota
 	AuthorizeAsUser
-	DefaultTimeout = 60 * time.Second
 )
 
 type Client struct {
@@ -48,22 +46,12 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 	// 		return errors.New("service secret is missing")
 	// 	}
 	// }
-	var timeout time.Duration
-	if cfg.Timeout != nil {
-		timeout = *cfg.Timeout
-	} else {
-		timeout = DefaultTimeout
-	}
-
-	httpClient := &http.Client{
-		Timeout: timeout,
-	}
 
 	return &Client{
 		Client:        clnt,
 		authorizeAs:   authorizeAs,
 		serviceSecret: cfg.ServiceSecret,
-		httpClient:    httpClient,
+		httpClient:    &http.Client{},
 	}, nil
 }
 
@@ -83,6 +71,10 @@ func (c *Client) Mutators(ctx context.Context) ([]request.RequestMutator, error)
 		} else if serverSessionToken := auth.ServerSessionTokenFromContext(ctx); serverSessionToken != "" {
 			authorizationMutator = NewSessionTokenHeaderMutator(serverSessionToken)
 		} else {
+			// TODO: Should this really error? It might be nice to allow other
+			// clients the option of handling authentication on their own if
+			// they'd like, rather than enforcing that this method must be
+			// used.
 			return nil, errors.New("service secret is missing")
 		}
 	} else {

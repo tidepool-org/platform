@@ -45,23 +45,21 @@ var _ = Describe("Config", func() {
 
 		Context("Load", func() {
 			var configReporter *configTest.Reporter
+			var loader platform.ConfigLoader
 
 			BeforeEach(func() {
 				configReporter = configTest.NewReporter()
 				configReporter.Config["address"] = address
 				configReporter.Config["user_agent"] = userAgent
 				configReporter.Config["service_secret"] = serviceSecret
-			})
-
-			It("returns an error if config reporter is missing", func() {
-				Expect(cfg.Load(nil)).To(MatchError("config reporter is missing"))
+				loader = platform.NewConfigReporterLoader(configReporter)
 			})
 
 			It("uses existing address if not set", func() {
 				existingAddress := testHttp.NewAddress()
 				cfg.Address = existingAddress
 				delete(configReporter.Config, "address")
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Address).To(Equal(existingAddress))
 				Expect(cfg.UserAgent).To(Equal(userAgent))
 				Expect(cfg.ServiceSecret).To(Equal(serviceSecret))
@@ -71,7 +69,7 @@ var _ = Describe("Config", func() {
 				existingUserAgent := testHttp.NewUserAgent()
 				cfg.UserAgent = existingUserAgent
 				delete(configReporter.Config, "user_agent")
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Config).ToNot(BeNil())
 				Expect(cfg.Address).To(Equal(address))
 				Expect(cfg.UserAgent).To(Equal(existingUserAgent))
@@ -82,14 +80,14 @@ var _ = Describe("Config", func() {
 				existingServiceSecret := test.RandomStringFromRangeAndCharset(1, 64, test.CharsetText)
 				cfg.ServiceSecret = existingServiceSecret
 				delete(configReporter.Config, "service_secret")
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Address).To(Equal(address))
 				Expect(cfg.UserAgent).To(Equal(userAgent))
 				Expect(cfg.ServiceSecret).To(Equal(existingServiceSecret))
 			})
 
 			It("returns successfully and uses values from config reporter", func() {
-				Expect(cfg.Load(configReporter)).To(Succeed())
+				Expect(cfg.Load(loader)).To(Succeed())
 				Expect(cfg.Config).ToNot(BeNil())
 				Expect(cfg.Address).To(Equal(address))
 				Expect(cfg.UserAgent).To(Equal(userAgent))
@@ -113,11 +111,6 @@ var _ = Describe("Config", func() {
 				It("returns an error if the address is not a parseable URL", func() {
 					cfg.Address = "Not%Parseable"
 					Expect(cfg.Validate()).To(MatchError("address is invalid"))
-				})
-
-				It("returns an error if the user agent is missing", func() {
-					cfg.UserAgent = ""
-					Expect(cfg.Validate()).To(MatchError("user agent is missing"))
 				})
 
 				It("returns success", func() {

@@ -11,14 +11,15 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	ExtendedTimeout = 300 * time.Second
+	// ExtendedTimeout is used by requests that we expect to take longer than
+	// usual.
+	ExtendedTimeout = 5 * time.Minute
 )
 
 // TODO: Move interface to data package once upload dependency broken
@@ -51,15 +52,8 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, e
 		return nil, err
 	}
 
-	cfg.Timeout = pointer.FromDuration(ExtendedTimeout)
-	extendedTimeoutClient, err := platform.NewClient(cfg, authorizeAs)
-	if err != nil {
-		return nil, err
-	}
-
 	return &ClientImpl{
-		client:                clnt,
-		extendedTimeoutClient: extendedTimeoutClient,
+		client: clnt,
 	}, nil
 }
 
@@ -217,9 +211,11 @@ func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*type
 
 func (c *ClientImpl) BackfillSummaries(ctx context.Context, typ string) (int, error) {
 	var count int
-	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries", "backfill", typ)
+	url := c.client.ConstructURL("v1", "summaries", "backfill", typ)
 
-	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, ExtendedTimeout)
+	defer cancel()
+	if err := c.client.RequestData(ctxWithTimeout, http.MethodPost, url, nil, nil, &count); err != nil {
 		return count, errors.Wrap(err, "backfill request returned an error")
 	}
 
