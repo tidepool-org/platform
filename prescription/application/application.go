@@ -19,6 +19,7 @@ var Prescription = fx.Options(
 	client.ProvideServiceName("prescription"),
 	client.ExternalClientModule,
 	fx.Provide(
+		client.ProvideExternalLoader,
 		prescriptionMongo.NewStore,
 		prescriptionMongo.NewStatusReporter,
 		service.NewDeviceSettingsValidator,
