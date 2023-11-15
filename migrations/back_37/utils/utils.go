@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -20,7 +22,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/errors"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func GetValidatedString(bsonData bson.M, fieldName string) (string, error) {
