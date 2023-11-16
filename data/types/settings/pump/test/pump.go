@@ -48,7 +48,7 @@ func NewPump(unitsBloodGlucose *string) *pump.Pump {
 	datum.BloodGlucoseTargetPreprandial = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 	datum.BloodGlucoseTargetSchedules = pump.NewBloodGlucoseTargetStartArrayMap()
 	datum.BloodGlucoseTargetSchedules.Set(scheduleName, RandomBloodGlucoseTargetStartArray(unitsBloodGlucose))
-	datum.Boluses = NewRandomBolusMap(2, 4)
+	datum.Bolus = NewRandomBolus()
 	datum.CarbohydrateRatioSchedules = pump.NewCarbohydrateRatioStartArrayMap()
 	datum.CarbohydrateRatioSchedules.Set(scheduleName, NewCarbohydrateRatioStartArray())
 	datum.Display = NewDisplay()
