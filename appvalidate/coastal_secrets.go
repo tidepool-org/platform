@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -148,9 +149,9 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 		return nil, fmt.Errorf("unable to genarate internal Coastal payload: %w", err)
 	}
 
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(internalPayload); err != nil {
-		return nil, err
+	b, err := json.Marshal(internalPayload)
+	if err != nil {
+		return nil, fmt.Errorf("Coastal marshal error: %w", err)
 	}
 
 	u, err := url.Parse(c.Config.BaseURL)
@@ -159,7 +160,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	}
 	u.Path = path.Join(u.Path, "devices/api/v1/certificates")
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), &buf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +178,11 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	defer res.Body.Close()
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return nil, fmt.Errorf("unsuccessful Coastal API response: %v: %v", res.StatusCode, res.Status)
+		var msg string
+		if bits, err := io.ReadAll(res.Body); err == nil {
+			msg = string(bits)
+		}
+		return nil, fmt.Errorf("unsuccessful Coastal API response: %v: %v: %v", res.StatusCode, res.Status, msg)
 	}
 
 	var response CoastalResponse
