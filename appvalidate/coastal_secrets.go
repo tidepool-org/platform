@@ -62,6 +62,9 @@ func NewCoastalSecrets(c *CoastalSecretsConfig) (*CoastalSecrets, error) {
 		return nil, ErrCoastalInvalidPrivateKey
 	}
 	keyBlock, _ := pem.Decode(c.KeyData)
+	if keyBlock == nil {
+		return nil, fmt.Errorf("Coastal key data is not in PEM format: %w", ErrCoastalInvalidPrivateKey)
+	}
 	privKeyAny, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	if err != nil {
 		return &CoastalSecrets{
