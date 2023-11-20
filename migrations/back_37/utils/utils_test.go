@@ -16,9 +16,7 @@ import (
 )
 
 var _ = Describe("back-37", func() {
-
 	var _ = Describe("utils", func() {
-
 		Context("GetBGValuePlatformPrecision", func() {
 			DescribeTable("return the expected mmol/L value",
 				func(jellyfishVal float64, expectedVal float64) {

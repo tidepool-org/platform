@@ -77,7 +77,6 @@ func (m *Migration) execute() error {
 	hashUpdatedCount, errorCount := m.migrateJellyfishDocuments()
 	m.Logger().Infof("Migrated %d jellyfish documents", hashUpdatedCount)
 	m.Logger().Infof("%d errors occurred", errorCount)
-
 	return nil
 }
 
@@ -130,30 +129,10 @@ func (m *Migration) migrateDocument(jfDatum bson.M) (bool, error) {
 		return false, err
 	}
 
-	// updates := bson.M{}
-	// hash, err := utils.CreateDatumHash(jfDatum)
-	// if err != nil {
-	// 	return false, err
-	// }
-
-	// updates["_deduplicator"] = bson.M{"hash": hash}
-
 	updates, err := utils.GetDatumUpdates(jfDatum)
 	if err != nil {
 		return false, err
 	}
-
-	// if boluses, err := utils.UpdateIfExistsPumpSettingsBolus(jfDatum); err != nil {
-	// 	return false, err
-	// } else if boluses != nil {
-	// 	updates["boluses"] = boluses
-	// }
-
-	// if sleepSchedules, err := utils.UpdateIfExistsPumpSettingsSleepSchedules(jfDatum); err != nil {
-	// 	return false, err
-	// } else if sleepSchedules != nil {
-	// 	updates["sleepSchedules"] = sleepSchedules
-	// }
 
 	result, err := m.dataRepository.UpdateOne(m.ctx, bson.M{
 		"_id":          datumID,
