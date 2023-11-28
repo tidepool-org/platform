@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
-	"github.com/tidepool-org/platform/migrations/back_37/utils"
+	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 )
 
 var _ = Describe("back-37", func() {
