@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
@@ -9,7 +10,6 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -149,11 +149,12 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	}
 
 	logger.Debugf("Starting summary calculation for %s", userId)
-
-	status, err := c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A]())
+	status := &types.UserLastUpdated{}
+	err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
 		return nil, err
 	}
+	types.SetStartTime(userSummary, status)
 
 	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
 	if userSummary != nil && status.LastData.IsZero() {
@@ -169,36 +170,30 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 
 	if userSummary.Config.SchemaVersion != types.SchemaVersion {
 		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
+		userSummary.Dates.Reset()
 	}
 
-	startTime := types.GetStartTime(userSummary, status)
-
-	var userData []*glucoseDatum.Glucose
-	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, status.LastData)
+	var cursor *mongo.Cursor
+	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
 		return nil, err
 	}
+	defer cursor.Close(ctx)
 
-	// skip past data
-	bucketsLen := userSummary.Stats.GetBucketsLen()
-	if bucketsLen > 0 {
-		userData, err = types.SkipUntil(userSummary.Stats.GetBucketDate(bucketsLen-1), userData)
-	}
+	//// skip past data
+	//bucketsLen := userSummary.Stats.GetBucketsLen()
+	//if bucketsLen > 0 {
+	//	userData, err = types.SkipUntil(userSummary.Stats.GetBucketDate(bucketsLen-1), userData)
+	//}
 
-	// if there is no new data
-	if len(userData) < 0 {
-		userSummary.UpdateWithoutChangeCount++
-		logger.Infof("User %s has an outdated summary with no forward data, summary will not be calculated.", userId)
-	}
-
-	err = userSummary.Stats.Update(userData)
+	err = userSummary.Stats.Update(ctx, cursor)
 	if err != nil {
 		return nil, err
 	}
 
 	userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
 
-	err = c.summaries.UpsertSummary(ctx, userSummary)
+	err = c.summaries.ReplaceSummary(ctx, userSummary)
 
 	return userSummary, err
 }

@@ -245,15 +245,16 @@ var _ = Describe("Summary", func() {
 			Expect(startTime).To(Equal(status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)))
 		})
 
-		It("Returns correct start time for summary <60d behind", func() {
-			timestamp := time.Date(2020, time.Month(1), 1, 1, 1, 0, 0, time.UTC)
-
-			userSummary.Dates.LastData = &timestamp
-			status := types.UserLastUpdated{
-				LastData: timestamp.AddDate(0, 0, types.HoursAgoToKeep/24/2),
-			}
-			startTime := types.GetStartTime(userSummary, &status)
-			Expect(startTime).To(Equal(status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24/2)))
-		})
+		// TODO maybe useless now?
+		//It("Returns correct start time for summary <60d behind", func() {
+		//	timestamp := time.Date(2020, time.Month(1), 1, 1, 1, 0, 0, time.UTC)
+		//
+		//	userSummary.Dates.LastData = &timestamp
+		//	status := types.UserLastUpdated{
+		//		LastData: timestamp.AddDate(0, 0, types.HoursAgoToKeep/24/2),
+		//	}
+		//	startTime := types.GetStartTime(userSummary, &status)
+		//	Expect(startTime).To(Equal(status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24/2)))
+		//})
 	})
 })

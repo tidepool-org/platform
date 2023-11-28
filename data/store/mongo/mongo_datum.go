@@ -5,13 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/insulin"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -38,10 +31,6 @@ const (
 var ErrSelectorsInvalid = errors.New("selectors is invalid")
 
 func (d *DatumRepository) EnsureIndexes() error {
-	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
-	if err != nil {
-		return err
-	}
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -60,19 +49,11 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
 				{Key: "type", Value: 1},
+				{Key: "time", Value: 1},
 				{Key: "modifiedTime", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
-				SetPartialFilterExpression(bson.D{
-					{
-						Key: "modifiedTime",
-						Value: bson.D{
-							{Key: "$gt", Value: modifiedTime},
-						},
-					},
-				}).
-				SetName("UserIdTypeModifiedTime"),
+				SetName("UserIdActiveTypeTimeModifiedTime"),
 		},
 		{
 			Keys: bson.D{
@@ -598,80 +579,7 @@ func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, d
 	return true, nil
 }
 
-func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-
-	if userId == "" {
-		return errors.New("userId is empty")
-	}
-
-	if typ == "" {
-		return errors.New("typ is empty")
-	}
-
-	// This is never expected to be an upload.
-	if isTypeUpload(typ) {
-		return fmt.Errorf("unexpected type: %v", upload.Type)
-	}
-
-	switch v := dataRecords.(type) {
-	case *[]*glucose.Glucose:
-		if typ != continuous.Type && typ != selfmonitored.Type {
-			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into glucose slice", typ)
-		}
-	case *[]*insulin.Insulin:
-		if typ != bolus.Type && typ != basal.Type {
-			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into insulin slice", typ)
-		}
-	case *[]interface{}:
-		// we cant check the type match, but at least the structure should work
-	default:
-		return fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
-	}
-
-	// quit early if range is 0
-	if startTime.Equal(endTime) {
-		return nil
-	}
-
-	// return error if ranges are inverted, as this can produce unexpected results
-	if startTime.After(endTime) {
-		return fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
-	}
-
-	selector := bson.M{
-		"_active": true,
-		"_userId": userId,
-		"type":    typ,
-		"time": bson.M{
-			"$gt":  startTime,
-			"$lte": endTime,
-		},
-	}
-
-	opts := options.Find()
-	opts.SetSort(bson.D{{Key: "time", Value: 1}})
-
-	cursor, err := d.Find(ctx, selector, opts)
-	if err != nil {
-		return fmt.Errorf("unable to get cgm data in date range for user: %w", err)
-	}
-
-	if err = cursor.All(ctx, dataRecords); err != nil {
-		return fmt.Errorf("unable to decode data sets, %w", err)
-	}
-
-	return nil
-}
-
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error) {
-	var err error
-	var cursor *mongo.Cursor
-	var status = &types.UserLastUpdated{}
-	var dataSet []*baseDatum.Base
-
+func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -684,13 +592,160 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, errors.New("typ is empty")
 	}
 
-	// This is never expected to by an upload.
+	// This is never expected to be an upload.
 	if isTypeUpload(typ) {
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
-	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
+	//switch v := dataRecords.(type) {
+	//case *[]*glucose.Glucose:
+	//	if typ != continuous.Type && typ != selfmonitored.Type {
+	//		return nil, fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into glucose slice", typ)
+	//	}
+	//case *[]*insulin.Insulin:
+	//	if typ != bolus.Type && typ != basal.Type {
+	//		return nil, fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into insulin slice", typ)
+	//	}
+	//case *[]interface{}:
+	//	// we cant check the type match, but at least the structure should work
+	//default:
+	//	return nil, fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
+	//}
+
+	startTime := status.FirstData
+	endTime := status.LastData
+
+	// quit early if range is 0
+	if startTime.Equal(endTime) {
+		return nil, nil
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if startTime.After(endTime) {
+		return nil, fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
+	}
+
+	selector := bson.M{
+		"_active": true,
+		"_userId": userId,
+		"type":    typ,
+		"time": bson.M{
+			"$gt":  startTime,
+			"$lte": endTime,
+		},
+		"modifiedTime": bson.M{
+			"$gt":  status.LastUpdated,
+			"$lte": status.NextLastUpdated,
+		},
+	}
+
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "time", Value: 1}})
+
+	cursor, err := d.Find(ctx, selector, opts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get %s data in date range for user: %w", typ, err)
+	}
+
+	return cursor, nil
+}
+
+//func (d *DatumRepository) GetModifiedBucketsInRange(ctx context.Context, userId string, typ string, startTime time.Time, endTime time.Time, fromModified time.Time) (modifiedPeriods []types.ModifiedPeriod, err error) {
+//	if ctx == nil {
+//		return nil, errors.New("context is missing")
+//	}
+//
+//	if userId == "" {
+//		return nil, errors.New("userId is empty")
+//	}
+//
+//	if typ == "" {
+//		return nil, errors.New("typ is empty")
+//	}
+//
+//	// This is never expected to be an upload.
+//	if isTypeUpload(typ) {
+//		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
+//	}
+//
+//	// quit early if range is 0
+//	if startTime.Equal(endTime) {
+//		return nil, nil
+//	}
+//
+//	// return error if ranges are inverted, as this can produce unexpected results
+//	if startTime.After(endTime) {
+//		return nil, fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
+//	}
+//
+//	if fromModified.IsZero() {
+//		return nil, fmt.Errorf("fromModified is zero")
+//	}
+//
+//	if fromModified.Before(startTime) {
+//		return nil, fmt.Errorf("fromModified is before startTime")
+//	}
+//
+//	pipeline := mongo.Pipeline{
+//		bson.D{
+//			{"$match", bson.D{
+//				{"_active", true},
+//				{"_userId", userId},
+//				{"type", typ},
+//				{"time", bson.D{
+//					{"$gt", startTime},
+//					{"$lte", endTime},
+//				}},
+//				{"modifiedTime", bson.D{
+//					{"$gt", fromModified},
+//				}},
+//			}},
+//		},
+//		bson.D{
+//			{"$group", bson.D{
+//				{"_id", bson.M{"$dateTrunc": bson.M{"date": "$modifiedTime", "unit": "hour"}}},
+//				{"minTime", bson.M{"$min": "$time"}},
+//			}},
+//		},
+//	}
+//
+//	var cursor *mongo.Cursor
+//	if cursor, err = d.Aggregate(ctx, pipeline); err != nil {
+//		return nil, fmt.Errorf("unable to get modified %s buckets in date range for user: %w", typ, err)
+//	}
+//
+//	if err = cursor.All(ctx, modifiedPeriods); err != nil {
+//		return nil, fmt.Errorf("unable to decode modified ranges, %w", err)
+//	}
+//
+//	return
+//}
+
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) error {
+	var err error
+	var cursor *mongo.Cursor
+	var dataSet []*baseDatum.Base
+
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if userId == "" {
+		return errors.New("userId is empty")
+	}
+
+	if typ == "" {
+		return errors.New("typ is empty")
+	}
+
+	// This is never expected to by an upload.
+	if isTypeUpload(typ) {
+		return fmt.Errorf("unexpected type: %v", upload.Type)
+	}
+
+	timestamp := time.Now().UTC()
+	futureCutoff := timestamp.AddDate(0, 0, 1)
+	pastCutoff := timestamp.AddDate(-2, 0, 0)
 
 	selector := bson.M{
 		"_active": true,
@@ -708,25 +763,26 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get last %s date: %w", typ, err)
+		return fmt.Errorf("unable to get last %s date: %w", typ, err)
 	}
 
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, fmt.Errorf("unable to decode last %s date: %w", typ, err)
+		return fmt.Errorf("unable to decode last %s date: %w", typ, err)
 	}
 
 	// if we have no record
 	if len(dataSet) < 1 {
-		return status, nil
+		return nil
 	}
 
-	status.LastUpload = *dataSet[0].CreatedTime
-	status.LastUpload = status.LastUpload.UTC()
+	// TODO query for latest modified record within range separately
 
-	status.LastData = *dataSet[0].Time
-	status.LastData = status.LastData.UTC()
+	// TODO needs to be the MAX of the ModifiedTime
+	status.LastUpload = (*dataSet[0].ModifiedTime).UTC()
+	status.LastData = (*dataSet[0].Time).UTC()
+	status.NextLastUpdated = timestamp
 
-	return status, nil
+	return nil
 }
 
 func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {

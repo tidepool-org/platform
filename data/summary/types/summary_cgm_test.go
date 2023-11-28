@@ -429,6 +429,41 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.Buckets[4].Data.HighRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(10))
 			})
+
+			It("Returns correct hourly stats for days uploaded in reverse", func() {
+				var expectedTotalGlucose float64
+				var lastRecordTime time.Time
+				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+
+				// Datasets use +1 and +2 offset to allow for checking via iteration
+				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, inTargetBloodGlucose)
+				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -1), 24, inTargetBloodGlucose+1)
+				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose+2)
+
+				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(72))
+
+				for i := len(userCGMSummary.Stats.Buckets) - 1; i >= 0; i-- {
+					f := fmt.Sprintf("hour %d", i+1)
+					By(f)
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(12))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes).To(Equal(60))
+
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userCGMSummary.Stats.Buckets)-i-1) - 5*time.Minute)
+					Expect(userCGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
+
+					expectedTotalGlucose = (inTargetBloodGlucose + float64(i/24)) * 12 * 5
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", expectedTotalGlucose, 0.001))
+				}
+			})
 		})
 
 		Context("CalculateDelta", func() {

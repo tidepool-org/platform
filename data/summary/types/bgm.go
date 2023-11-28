@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -127,7 +128,7 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *BGMStats) Update(userData any) error {
+func (s *BGMStats) Update(ctx context.Context, userData any) error {
 	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
 	if !ok {
 		return errors.New("BGM records for calculation is not compatible with Glucose type")
@@ -140,7 +141,7 @@ func (s *BGMStats) Update(userData any) error {
 	}
 
 	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[BGMBucketData, *BGMBucketData](&s.Buckets, userDataTyped)
+	err := AddData[BGMBucketData, *BGMBucketData](ctx, &s.Buckets, userDataTyped)
 	if err != nil {
 		return err
 	}

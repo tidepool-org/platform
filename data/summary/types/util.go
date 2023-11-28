@@ -6,6 +6,7 @@ import (
 	"time"
 
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"golang.org/x/exp/constraints"
 )
 
 func SkipUntil[T RecordTypes, A RecordTypesPt[T]](date time.Time, userData []A) ([]A, error) {
@@ -58,4 +59,15 @@ func CalculateRealMinutes(i int, lastRecordTime time.Time, lastRecordDuration in
 		return realMinutes
 	}
 	return potentialRealMinutes
+}
+
+type Number interface {
+	constraints.Float | constraints.Integer
+}
+
+func Abs[T Number](x T) T {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

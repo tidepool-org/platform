@@ -101,7 +101,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summary[T, A]) error {
+func (r *Repo[T, A]) ReplaceSummary(ctx context.Context, userSummary *types.Summary[T, A]) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -118,13 +118,12 @@ func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summa
 		return errors.New("summary is missing UserID")
 	}
 
-	opts := options.Update().SetUpsert(true)
 	selector := bson.M{
 		"userId": userSummary.UserID,
 		"type":   userSummary.Type,
 	}
 
-	_, err := r.UpdateOne(ctx, selector, bson.M{"$set": userSummary}, opts)
+	_, err := r.ReplaceOne(ctx, selector, userSummary)
 
 	return err
 }
@@ -206,7 +205,7 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	}
 
 	userSummary.SetOutdated(reason)
-	err = r.UpsertSummary(ctx, userSummary)
+	err = r.ReplaceSummary(ctx, userSummary)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update user %s outdatedSince date for type %s: %w", userId, userSummary.Type, err)
 	}
