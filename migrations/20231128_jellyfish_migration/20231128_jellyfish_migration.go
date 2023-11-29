@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -13,7 +14,6 @@ import (
 	"github.com/tidepool-org/platform/application"
 	migrationMongo "github.com/tidepool-org/platform/migration/mongo"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
-	"github.com/urfave/cli"
 )
 
 type Config struct {
