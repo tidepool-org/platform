@@ -2,7 +2,6 @@ package v1
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -13,6 +12,10 @@ import (
 	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/structure"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+var (
+	ErrPartnerSecretsNotInitialized = errors.New("partner secrets not initialized")
 )
 
 func (r *Router) AppValidateRoutes() []*rest.Route {
@@ -138,49 +141,28 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 
 	// Assertion has succeeded, at this point, we would access some secret
 	// from a DB, partner API, etc, depending on the AssertionVerify object.
-	switch assertVerify.ClientData.Partner {
-	case appvalidate.PartnerCoastal:
-		secret, err := r.CoastalSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
-		if err != nil {
-			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch Coastal secrets")
-			if errors.Is(err, appvalidate.ErrInvalidPartnerPayload) {
-				responder.Error(http.StatusBadRequest, err)
-				return
-			}
-			// Don't leak error?
-			if errors.Is(err, appvalidate.ErrCoastalInvalidPrivateKey) {
-				responder.InternalServerError(errors.New("invalid Coastal config"))
-				return
-			}
-			responder.InternalServerError(err)
-			return
-		}
-		responder.Data(http.StatusOK, appvalidate.AssertionResponse{
-			Data: secret,
-		})
-	case appvalidate.PartnerPalmTree:
-		secret, err := r.PalmTreeSecrets().GetSecret(ctx, []byte(assertVerify.ClientData.PartnerData))
-		if err != nil {
-			log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to create fetch PalmTree secrets")
-			if errors.Is(err, appvalidate.ErrInvalidPartnerPayload) {
-				responder.Error(http.StatusBadRequest, err)
-				return
-			}
-			// Don't leak error?
-			if errors.Is(err, appvalidate.ErrPalmTreeInvalidTLS) {
-				responder.InternalServerError(errors.New("invalid PalmTree config"))
-				return
-			}
-			responder.InternalServerError(err)
-			return
-		}
-		responder.Data(http.StatusOK, appvalidate.AssertionResponse{
-			Data: secret,
-		})
-	default:
-		responder.Error(http.StatusBadRequest, fmt.Errorf("unknown partner, %s", assertVerify.ClientData.Partner))
+	ps := r.PartnerSecrets()
+	if ps == nil {
+		responder.Error(http.StatusInternalServerError, ErrPartnerSecretsNotInitialized)
+		return
 	}
-
+	secret, err := ps.GetSecret(ctx, assertVerify.ClientData)
+	if err != nil {
+		log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Errorf("unable to create fetch %v secrets", assertVerify.ClientData.Partner)
+		if errors.Is(err, appvalidate.ErrInvalidPartnerPayload) {
+			responder.Error(http.StatusBadRequest, err)
+			return
+		}
+		if errors.Is(err, appvalidate.ErrInvalidPartnerCredentials) {
+			responder.InternalServerError(err)
+			return
+		}
+		responder.InternalServerError(err)
+		return
+	}
+	responder.Data(http.StatusOK, appvalidate.AssertionResponse{
+		Data: secret,
+	})
 }
 
 func decodeValidateBodyFailed(responder *request.Responder, req *http.Request, body structure.Validatable) bool {

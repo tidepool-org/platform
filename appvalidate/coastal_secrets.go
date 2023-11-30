@@ -25,13 +25,6 @@ const (
 	PartnerCoastal = "Coastal"
 )
 
-var (
-	ErrCoastalConfigEmpty       = errors.New("empty Coastal config")
-	ErrCoastalInvalidPrivateKey = errors.New("invalid Coastal private key")
-
-	ErrInvalidPartnerPayload = errors.New("invalid partner payload")
-)
-
 type CoastalSecretsConfig struct {
 	APIKey       string `envconfig:"COASTAL_API_KEY"`
 	BaseURL      string `envconfig:"COASTAL_BASE_URL"`
@@ -47,7 +40,15 @@ type CoastalSecrets struct {
 	pk     ed25519.PrivateKey
 }
 
-func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
+func NewCoastalSecrets() (*CoastalSecrets, error) {
+	cfg, err := newCoastalSecretsConfig()
+	if err != nil {
+		return nil, err
+	}
+	return newCoastalSecrets(cfg)
+}
+
+func newCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
 	cfg := &CoastalSecretsConfig{}
 	if err := envconfig.Process("", cfg); err != nil {
 		return nil, err
@@ -55,22 +56,22 @@ func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
 	return cfg, nil
 }
 
-func NewCoastalSecrets(c *CoastalSecretsConfig) (*CoastalSecrets, error) {
+func newCoastalSecrets(c *CoastalSecretsConfig) (*CoastalSecrets, error) {
 	if c == nil {
-		return nil, ErrCoastalConfigEmpty
+		return nil, fmt.Errorf("Coastal: %w", ErrEmptySecretsConfig)
 	}
 	if len(c.KeyData) == 0 {
-		return nil, ErrCoastalInvalidPrivateKey
+		return nil, ErrInvalidPartnerCredentials
 	}
 	keyBlock, _ := pem.Decode(c.KeyData)
 	if keyBlock == nil {
-		return nil, fmt.Errorf("Coastal key data is not in PEM format: %w", ErrCoastalInvalidPrivateKey)
+		return nil, fmt.Errorf("Coastal key data is not in PEM format: %w", ErrInvalidPartnerCredentials)
 	}
 	privKeyAny, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	if err != nil {
 		return &CoastalSecrets{
 			Config: *c,
-		}, errors.Join(ErrCoastalInvalidPrivateKey, fmt.Errorf("unable to parse EC private key: %w", err))
+		}, errors.Join(ErrInvalidPartnerCredentials, fmt.Errorf("unable to parse EC private key: %w", err))
 	}
 	privateKey, ok := privKeyAny.(ed25519.PrivateKey)
 	if !ok {
@@ -133,7 +134,7 @@ type CoastalResponse struct {
 
 func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (*CoastalResponse, error) {
 	if c.pk == nil {
-		return nil, ErrCoastalInvalidPrivateKey
+		return nil, ErrInvalidPartnerCredentials
 	}
 	payload := newCoastalPayload(c.Config.RCTypeID)
 	if err := json.Unmarshal(partnerDataRaw, payload); err != nil {

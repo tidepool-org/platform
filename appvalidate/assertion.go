@@ -48,7 +48,7 @@ func NewAssertionVerify(userID string) *AssertionVerify {
 func (av *AssertionVerify) Validate(v structure.Validator) {
 	v.String("assertion", &av.Assertion).NotEmpty().Matches(base64Chars)
 	v.String("clientData.challenge", &av.ClientData.Challenge).NotEmpty()
-	v.String("clientData.partner", &av.ClientData.Partner).OneOf(PartnerCoastal, PartnerPalmTree)
+	v.String("clientData.partner", &av.ClientData.Partner).OneOf(partners...)
 
 	v.String("userId", &av.UserID).NotEmpty()
 	v.String("keyId", &av.KeyID).NotEmpty()

@@ -56,6 +56,7 @@ type Service struct {
 	userEventsHandler  events.Runner
 	deviceCheck        apple.DeviceCheck
 	appValidator       *appvalidate.Validator
+	partnerSecrets     *appvalidate.PartnerSecrets
 	coastalSecrets     *appvalidate.CoastalSecrets
 	palmTreeSecrets    *appvalidate.PalmTreeSecrets
 }
@@ -113,10 +114,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAppValidate(); err != nil {
 		return err
 	}
-	if err := s.initializeCoastalSecrets(); err != nil {
-		return err
-	}
-	if err := s.initializePalmTreeSecrets(); err != nil {
+	if err := s.initializePartnerSecrets(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -170,12 +168,8 @@ func (s *Service) AppValidator() *appvalidate.Validator {
 	return s.appValidator
 }
 
-func (s *Service) CoastalSecrets() *appvalidate.CoastalSecrets {
-	return s.coastalSecrets
-}
-
-func (s *Service) PalmTreeSecrets() *appvalidate.PalmTreeSecrets {
-	return s.palmTreeSecrets
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return s.partnerSecrets
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -476,35 +470,11 @@ func (s *Service) initializeAppValidate() error {
 	return nil
 }
 
-func (s *Service) initializeCoastalSecrets() error {
-	cfg, err := appvalidate.NewCoastalSecretsConfig()
-	if err != nil {
-		return err
-	}
-
-	s.coastalSecrets, err = appvalidate.NewCoastalSecrets(cfg)
-	if err != nil {
-		s.Logger().Warnf("unable to initialize Coastal secrets: %v", err)
-	}
-	// Allow system to not fail if there is no private key to Coastal
-	if err != nil && !stdErrors.Is(err, appvalidate.ErrCoastalInvalidPrivateKey) {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Service) initializePalmTreeSecrets() error {
-	cfg, err := appvalidate.NewPalmTreeSecretsConfig()
-	if err != nil {
-		return err
-	}
-	s.palmTreeSecrets, err = appvalidate.NewPalmTreeSecrets(cfg)
-	if err != nil {
-		s.Logger().Warnf("unable to initialize PalmTree secrets: %v", err)
-	}
-	// Allow system to not fail if there are no credentials to PalmTree
-	if err != nil && !stdErrors.Is(err, appvalidate.ErrPalmTreeInvalidTLS) {
+func (s *Service) initializePartnerSecrets() error {
+	var err error
+	s.partnerSecrets, err = appvalidate.NewPartnerSecrets()
+	// Allow system to not fail if there are no credentials loaded.
+	if err != nil && !stdErrors.Is(err, appvalidate.ErrInvalidPartnerCredentials) {
 		return err
 	}
 	return nil

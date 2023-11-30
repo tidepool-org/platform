@@ -18,8 +18,12 @@ import (
 )
 
 var (
-	ErrPalmTreeInvalidTLS  = errors.New("invalid PalmTree TLS credentials")
 	ErrPalmTreeEmptyConfig = errors.New("empty PalmTree config")
+
+	partners = []string{
+		PartnerCoastal,
+		PartnerPalmTree,
+	}
 )
 
 const (
@@ -41,7 +45,15 @@ type PalmTreeSecrets struct {
 	client *http.Client
 }
 
-func NewPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
+func NewPalmTreeSecrets() (*PalmTreeSecrets, error) {
+	cfg, err := newPalmTreeSecretsConfig()
+	if err != nil {
+		return nil, err
+	}
+	return newPalmTreeSecrets(cfg)
+}
+
+func newPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
 	cfg := &PalmTreeSecretsConfig{}
 	if err := envconfig.Process("", cfg); err != nil {
 		return nil, err
@@ -49,16 +61,16 @@ func NewPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
 	return cfg, nil
 }
 
-func NewPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
+func newPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
 	if c == nil {
-		return nil, ErrPalmTreeEmptyConfig
+		return nil, fmt.Errorf("PalmTree: %w", ErrEmptySecretsConfig)
 	}
 	cert, err := tls.X509KeyPair(c.CertData, c.KeyData)
 	if err != nil {
 		return &PalmTreeSecrets{
 			Config: *c,
 			client: http.DefaultClient,
-		}, errors.Join(ErrPalmTreeInvalidTLS, err)
+		}, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
 
 	tr := &http.Transport{
@@ -109,7 +121,7 @@ type PalmTreeResponse struct {
 
 func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (*PalmTreeResponse, error) {
 	if len(pt.Config.CertData) == 0 {
-		return nil, ErrPalmTreeInvalidTLS
+		return nil, ErrInvalidPartnerCredentials
 	}
 	payload := newPalmtreePayload(pt.Config.ProfileID)
 

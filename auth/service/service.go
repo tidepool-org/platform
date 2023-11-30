@@ -29,10 +29,7 @@ type Service interface {
 
 	AppValidator() *appvalidate.Validator
 
-	// As there are only 2 secrets for now, I will keep them separated as
-	// opposed to having a more "factory" of secrets.
-	CoastalSecrets() *appvalidate.CoastalSecrets
-	PalmTreeSecrets() *appvalidate.PalmTreeSecrets
+	PartnerSecrets() *appvalidate.PartnerSecrets
 }
 
 type Status struct {

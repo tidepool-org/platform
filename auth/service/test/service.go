@@ -93,11 +93,7 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	return output
 }
 
-func (s *Service) CoastalSecrets() *appvalidate.CoastalSecrets {
-	return nil
-}
-
-func (s *Service) PalmTreeSecrets() *appvalidate.PalmTreeSecrets {
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 	return nil
 }
 
