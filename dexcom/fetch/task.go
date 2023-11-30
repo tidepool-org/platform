@@ -52,11 +52,12 @@ func FailTask(l log.Logger, t *task.Task, err error) error {
 }
 
 func shouldTaskError(t *task.Task) bool {
-	if t.Data[dexcomTaskRetryField] != nil {
-		count, ok := t.Data[dexcomTaskRetryField].(int)
-		if ok {
-			return count >= 3
-		}
+	if t.Data[dexcomTaskRetryField] == nil {
+		t.Data[dexcomTaskRetryField] = 0
+	}
+	count, ok := t.Data[dexcomTaskRetryField].(int)
+	if ok {
+		return count >= 3
 	}
 	return true
 }
