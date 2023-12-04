@@ -193,6 +193,10 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 		set.Append(s.Dates.OutdatedReason...)
 	}
 
+	if reason == OutdatedReasonSchemaMigration {
+		*s = *Create[T, A](s.UserID)
+	}
+
 	s.Dates.OutdatedReason = set.ToSlice()
 
 	timestamp := time.Now().Truncate(time.Millisecond).UTC()

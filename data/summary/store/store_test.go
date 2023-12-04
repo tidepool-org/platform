@@ -622,6 +622,38 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(*userCGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(now))
 					})
 
+					It("With an existing outdated CGM summary with schema migration reason", func() {
+						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						now := time.Now().UTC().Truncate(time.Millisecond)
+						fiveMinutesAgo := now.Add(time.Duration(-5) * time.Minute)
+
+						userCGMSummary = test.RandomCGMSummary(userId)
+						userCGMSummary.Dates.OutdatedSince = &fiveMinutesAgo
+						userCGMSummary.Dates.OutdatedReason = []string{types.OutdatedReasonUploadCompleted}
+						userCGMSummary.Dates.OutdatedSinceLimit = pointer.FromAny(fiveMinutesAgo.Add(28 * time.Minute))
+						Expect(userCGMSummary.Stats.Buckets).ToNot(HaveLen(0))
+						Expect(userCGMSummary.Stats.Periods).ToNot(HaveLen(0))
+
+						err = cgmStore.UpsertSummary(ctx, userCGMSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						outdatedSince, err = cgmStore.SetOutdated(ctx, userId, types.OutdatedReasonSchemaMigration)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSince).ToNot(BeNil())
+
+						userCGMSummaryWritten, err = cgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userCGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(userCGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userCGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(outdatedSince.Add(28 * time.Minute)))
+						Expect(userCGMSummaryWritten.Stats.Buckets).To(HaveLen(0))
+						Expect(userCGMSummaryWritten.Stats.Periods).To(HaveLen(0))
+						Expect(userCGMSummaryWritten.Dates.LastData).To(BeNil())
+						Expect(userCGMSummaryWritten.Dates.FirstData).To(BeNil())
+						Expect(userCGMSummaryWritten.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+						Expect(userCGMSummaryWritten.Dates.LastUploadDate).To(BeNil())
+					})
+
 					It("With no existing BGM summary", func() {
 						outdatedSince, err = bgmStore.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
 						Expect(err).ToNot(HaveOccurred())
@@ -695,6 +727,38 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(userBGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(*userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(now))
 						Expect(*userBGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(now))
+					})
+
+					It("With an existing outdated BGM summary with schema migration reason", func() {
+						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						now := time.Now().UTC().Truncate(time.Millisecond)
+						fiveMinutesAgo := now.Add(time.Duration(-5) * time.Minute)
+
+						userBGMSummary = test.RandomBGMSummary(userId)
+						userBGMSummary.Dates.OutdatedSince = &fiveMinutesAgo
+						userBGMSummary.Dates.OutdatedReason = []string{types.OutdatedReasonUploadCompleted}
+						userBGMSummary.Dates.OutdatedSinceLimit = pointer.FromAny(fiveMinutesAgo.Add(28 * time.Minute))
+						Expect(userBGMSummary.Stats.Buckets).ToNot(HaveLen(0))
+						Expect(userBGMSummary.Stats.Periods).ToNot(HaveLen(0))
+
+						err = bgmStore.UpsertSummary(ctx, userBGMSummary)
+						Expect(err).ToNot(HaveOccurred())
+
+						outdatedSince, err = bgmStore.SetOutdated(ctx, userId, types.OutdatedReasonSchemaMigration)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(outdatedSince).ToNot(BeNil())
+
+						userBGMSummaryWritten, err = bgmStore.GetSummary(ctx, userId)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(userBGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
+						Expect(userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
+						Expect(*userBGMSummaryWritten.Dates.OutdatedSinceLimit).To(Equal(outdatedSince.Add(28 * time.Minute)))
+						Expect(userBGMSummaryWritten.Stats.Buckets).To(HaveLen(0))
+						Expect(userBGMSummaryWritten.Stats.Periods).To(HaveLen(0))
+						Expect(userBGMSummaryWritten.Dates.LastData).To(BeNil())
+						Expect(userBGMSummaryWritten.Dates.FirstData).To(BeNil())
+						Expect(userBGMSummaryWritten.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+						Expect(userBGMSummaryWritten.Dates.LastUploadDate).To(BeNil())
 					})
 				})
 

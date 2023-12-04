@@ -11,8 +11,9 @@ go_import_path: github.com/tidepool-org/platform
 
 env:
   global:
-    - MONGODB=7.0.2
+    - MONGODB=6.0.11
     - MONGOSH=2.0.2
+    - DIST=jammy
 
 before_install:
   - sudo apt update
@@ -25,8 +26,8 @@ before_install:
 addons:
   apt:
     sources:
-      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse'
-        key_url: 'https://pgp.mongodb.com/server-7.0.asc'
+      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse'
+        key_url: 'https://pgp.mongodb.com/server-6.0.asc'
   artifacts:
     s3_region: us-west-2
     paths:

@@ -154,7 +154,9 @@ func (s *Standard) initializeMetricClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("metric", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load metric client config")
 	}
 
@@ -174,7 +176,9 @@ func (s *Standard) initializePermissionClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load permission client config")
 	}
 
