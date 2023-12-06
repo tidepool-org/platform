@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -44,6 +45,7 @@ type Migration struct {
 }
 
 const oplogName = "oplog.rs"
+const DryRunFlag = "dry-run"
 
 func main() {
 	ctx := context.Background()
@@ -75,6 +77,12 @@ func (m *Migration) Initialize(provider application.Provider) error {
 		},
 	}
 	m.CLI().Flags = append(m.CLI().Flags,
+
+		cli.BoolFlag{
+			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
+			Usage: "dry run only; do not migrate",
+		},
+
 		cli.Int64Flag{
 			Name:        "batch-size",
 			Usage:       "number of records to read each time",
@@ -121,7 +129,7 @@ func (m *Migration) Initialize(provider application.Provider) error {
 
 	m.CLI().Action = func(ctx *cli.Context) error {
 		if !m.ParseContext(ctx) {
-			return nil
+			return errors.New("could not parse context")
 		}
 		if err := m.prepare(); err != nil {
 			return nil
@@ -196,6 +204,10 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 
 }
 
+func calculateBatchSize(oplogSize int, oplogEntryBytes int, oplogMinWindow int, nopPercent int) int64 {
+	return int64(math.Floor(float64(oplogSize) / float64(oplogEntryBytes) / float64(oplogMinWindow) / (float64(nopPercent) / 7)))
+}
+
 func (m *Migration) setWriteBatchSize() error {
 	if m.oplogC != nil {
 		m.Logger().Debug("Getting oplog duration...")
@@ -206,7 +218,7 @@ func (m *Migration) setWriteBatchSize() error {
 		if err := m.oplogC.Database().RunCommand(m.ctx, bson.M{"collStats": oplogName}).Decode(&metaData); err != nil {
 			return err
 		}
-		writeBatchSize := int64(metaData.MaxSize / m.config.expectedOplogEntrySize / m.config.minOplogWindow / (m.config.nopPercent / 7))
+		writeBatchSize := calculateBatchSize(metaData.MaxSize, m.config.expectedOplogEntrySize, m.config.minOplogWindow, m.config.nopPercent)
 		m.writeBatchSize = &writeBatchSize
 		return nil
 	}
