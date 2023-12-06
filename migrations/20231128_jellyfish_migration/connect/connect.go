@@ -67,6 +67,7 @@ func (m *Migration) RunAndExit() {
 	m.CLI().Action = func(ctx *cli.Context) error {
 		log.Println("before prepare")
 		if err := m.prepare(); err != nil {
+			log.Printf("error %s", err)
 			return err
 		}
 		return nil
@@ -143,7 +144,7 @@ func (m *Migration) Initialize() error {
 }
 
 func (m *Migration) prepare() error {
-	log.Println("running prepare ...")
+	log.Println("Prepare ...")
 	var err error
 	m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(m.config.uri))
 	if err != nil {
@@ -192,6 +193,7 @@ func (m *Migration) setWriteBatchSize() error {
 }
 
 func (m *Migration) checkFreeSpace() error {
+	log.Println("check free space...")
 	type MongoMetaData struct {
 		FsTotalSize int `json:"fsTotalSize"`
 		FsUsedSize  int `json:"fsUsedSize"`
@@ -200,15 +202,15 @@ func (m *Migration) checkFreeSpace() error {
 	log.Println("Getting DB free space...")
 	err := m.deviceDataC.Database().RunCommand(m.ctx, bson.M{"dbStats": 1}).Decode(&metaData)
 	if err != nil {
+
 		return err
 	}
-
-	log.Printf("Stats ... %v ", metaData)
+	log.Printf("DB free space: %v", metaData)
 	bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
 	percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
 	log.Printf("DB disk currently has %d%% (%d) free.", percentFree*100, bytesFree)
 
-	if percentFree > m.config.minFreePercent {
+	if m.config.minFreePercent > percentFree {
 		return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
 	}
 	return nil

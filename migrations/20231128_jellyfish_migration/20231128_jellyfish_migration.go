@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"log"
 	"math"
+	"os"
 	"time"
 
 	"github.com/urfave/cli"
@@ -12,8 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/application"
-	migrationMongo "github.com/tidepool-org/platform/migration/mongo"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 )
 
@@ -35,8 +34,9 @@ type Config struct {
 
 type Migration struct {
 	ctx    context.Context
+	cli    *cli.App
 	config *Config
-	*migrationMongo.Migration
+	//*migrationMongo.Migration
 	client         *mongo.Client
 	oplogC         *mongo.Collection
 	deviceDataC    *mongo.Collection
@@ -51,22 +51,48 @@ func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	application.RunAndExit(NewMigration(ctx))
+	//application.RunAndExit(NewMigration(ctx))
+
+	migration := NewMigration(ctx)
+	migration.RunAndExit()
 }
 
 func NewMigration(ctx context.Context) *Migration {
 	return &Migration{
-		ctx:       ctx,
-		Migration: migrationMongo.NewMigration(),
-		config:    &Config{},
-		updates:   []mongo.WriteModel{},
+		ctx: ctx,
+		cli: cli.NewApp(),
+		//Migration: migrationMongo.NewMigration(),
+		config:  &Config{},
+		updates: []mongo.WriteModel{},
 	}
 }
 
-func (m *Migration) Initialize(provider application.Provider) error {
-	if err := m.Migration.Initialize(provider); err != nil {
-		return err
+func (m *Migration) RunAndExit() {
+	if err := m.Initialize(); err != nil {
+		os.Exit(1)
 	}
+
+	m.CLI().Action = func(ctx *cli.Context) error {
+		log.Printf("config %#v", m.config)
+		if err := m.prepare(); err != nil {
+			log.Printf("error %s", err)
+			return err
+		}
+		return nil
+	}
+
+	if err := m.CLI().Run(os.Args); err != nil {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func (m *Migration) Initialize() error {
+	log.Println("init")
+	// if err := m.Migration.Initialize(provider); err != nil {
+	// 	return err
+	// }
 
 	m.CLI().Usage = "BACK-37: Migrate all existing data to add required Platform deduplication hash fields"
 	m.CLI().Description = "BACK-37: To fully migrate devices from the `jellyfish` upload API to the `platform` upload API"
@@ -127,19 +153,24 @@ func (m *Migration) Initialize(provider application.Provider) error {
 		},
 	)
 
-	m.CLI().Action = func(ctx *cli.Context) error {
-		if !m.ParseContext(ctx) {
-			return errors.New("could not parse context")
-		}
-		if err := m.prepare(); err != nil {
-			return nil
-		}
-		return m.execute()
-	}
+	// m.CLI().Action = func(ctx *cli.Context) error {
+	// 	// if !m.ParseContext(ctx) {
+	// 	// 	return errors.New("could not parse context")
+	// 	// }
+	// 	if err := m.prepare(); err != nil {
+	// 		return nil
+	// 	}
+	// 	return m.execute()
+	// }
 	return nil
 }
 
+func (m *Migration) CLI() *cli.App {
+	return m.cli
+}
+
 func (m *Migration) prepare() error {
+	log.Println("prepare")
 	var err error
 	m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(m.config.uri))
 	if err != nil {
@@ -166,11 +197,11 @@ func (m *Migration) execute() error {
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
-			m.Logger().WithError(err).Error("failed writing batch")
+			log.Printf("failed writing batch %s", err)
 			return err
 		}
 		totalMigrated = totalMigrated + updatedCount
-		m.Logger().Debugf("migrated %d for a total of %d migrated items", updatedCount, totalMigrated)
+		log.Printf("migrated %d for a total of %d migrated items", updatedCount, totalMigrated)
 	}
 	return nil
 }
@@ -195,10 +226,10 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 			return 0, err
 		}
 		oplogDuration := oldest.Wall.Sub(oldest.Wall)
-		m.Logger().Debugf("oplog duration is currently: %v\n", oplogDuration)
+		log.Printf("oplog duration is currently: %v\n", oplogDuration)
 		return oplogDuration, nil
 	}
-	m.Logger().Debug("Not clustered, not retrieving oplog duration.")
+	log.Println("Not clustered, not retrieving oplog duration.")
 	oplogDuration := time.Duration(m.config.minOplogWindow+1) * time.Second
 	return oplogDuration, nil
 
@@ -209,8 +240,9 @@ func calculateBatchSize(oplogSize int, oplogEntryBytes int, oplogMinWindow int, 
 }
 
 func (m *Migration) setWriteBatchSize() error {
+	log.Println("set write batch size...")
 	if m.oplogC != nil {
-		m.Logger().Debug("Getting oplog duration...")
+		log.Println("Getting oplog stats...")
 		type MongoMetaData struct {
 			MaxSize int `json:"maxSize"`
 		}
@@ -218,39 +250,43 @@ func (m *Migration) setWriteBatchSize() error {
 		if err := m.oplogC.Database().RunCommand(m.ctx, bson.M{"collStats": oplogName}).Decode(&metaData); err != nil {
 			return err
 		}
+		log.Printf("oplog maxSize: %d", metaData.MaxSize)
 		writeBatchSize := calculateBatchSize(metaData.MaxSize, m.config.expectedOplogEntrySize, m.config.minOplogWindow, m.config.nopPercent)
 		m.writeBatchSize = &writeBatchSize
+		log.Printf("writeBatchSize: %d", writeBatchSize)
 		return nil
 	}
 	var writeBatchSize = int64(30000)
-	m.Logger().Debugf("MongoDB is not clustered, removing write batch limit, setting to %d documents.", writeBatchSize)
+	log.Printf("MongoDB is not clustered, removing write batch limit, setting to %d documents.", writeBatchSize)
 	m.writeBatchSize = &writeBatchSize
 	return nil
 }
 
 func (m *Migration) checkFreeSpace() error {
+	log.Println("check free space...")
 	type MongoMetaData struct {
 		FsTotalSize int `json:"fsTotalSize"`
 		FsUsedSize  int `json:"fsUsedSize"`
 	}
 	var metaData MongoMetaData
-	m.Logger().Debug("Getting DB free space...")
+	log.Println("Getting DB free space...")
 	err := m.deviceDataC.Database().RunCommand(m.ctx, bson.M{"dbStats": 1}).Decode(&metaData)
 	if err != nil {
 		return err
 	}
+	log.Printf("DB free space: %v", metaData)
 	bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
 	percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
-	m.Logger().Debugf("DB disk currently has %d%% (%d) free.", percentFree*100, bytesFree)
+	log.Printf("DB disk currently has %d%% (%d) free.", percentFree*100, bytesFree)
 
-	if percentFree > m.config.minFreePercent {
+	if m.config.minFreePercent > percentFree {
 		return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
 	}
 	return nil
 }
 
 func (m *Migration) getWaitTime() (float64, error) {
-	m.Logger().Debug("Loading DB replication status...")
+	log.Println("Loading DB replication status...")
 
 	type Member struct {
 		Name   string `json:"name"`
@@ -265,11 +301,11 @@ func (m *Migration) getWaitTime() (float64, error) {
 
 	var metaData MongoMetaData
 	m.client.Database("admin").RunCommand(m.ctx, bson.M{"replSetGetStatus": 1}).Decode(&metaData)
-	m.Logger().Debug("DB replication status loaded.")
+	log.Println("DB replication status loaded.")
 
 	for _, member := range metaData.Members {
 		if member.State < 1 || member.State > 2 || member.Health != 1 || member.Uptime < 120 {
-			m.Logger().Debugf("DB member %s down or not ready.", member.Name)
+			log.Printf("DB member %s down or not ready.", member.Name)
 			return 240, nil
 		}
 	}
@@ -280,7 +316,7 @@ func (m *Migration) getWaitTime() (float64, error) {
 	}
 	if oplogDuration.Seconds() < float64(m.config.minOplogWindow) {
 		minOplogWindowTime := time.Duration(m.config.minOplogWindow) * time.Second
-		m.Logger().Debugf("DB OPLOG shorter than requested duration of %s, currently %s.", minOplogWindowTime, oplogDuration)
+		log.Printf("DB OPLOG shorter than requested duration of %s, currently %s.", minOplogWindowTime, oplogDuration)
 		waitTime := float64(m.config.minOplogWindow) - oplogDuration.Seconds()
 		waitTime *= 1.15
 		if waitTime < 600 {
@@ -300,9 +336,9 @@ func (m *Migration) blockUntilDBReady() error {
 	for waitTime > 0 {
 		totalWait += waitTime
 		if totalWait > 1800 {
-			m.Logger().Debugf("Long total wait of %s, possibly high load, or sustained DB outage. If neither, adjust NOP_PERCENT to reduce overshoot.", time.Duration(totalWait)*time.Second)
+			log.Printf("Long total wait of %s, possibly high load, or sustained DB outage. If neither, adjust NOP_PERCENT to reduce overshoot.", time.Duration(totalWait)*time.Second)
 		}
-		m.Logger().Debugf("Sleeping for %d", time.Duration(waitTime)*time.Second)
+		log.Printf("Sleeping for %d", time.Duration(waitTime)*time.Second)
 		time.Sleep(time.Duration(waitTime) * time.Second)
 		waitTime, err = m.getWaitTime()
 		if err != nil {
@@ -324,7 +360,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		&options.FindOptions{Limit: &m.config.readBatchSize},
 	)
 	if err != nil {
-		m.Logger().WithError(err).Error("failed to select data")
+		log.Printf("failed to select data: %s", err)
 		return false
 	}
 
@@ -334,19 +370,19 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	for dDataCursor.Next(m.ctx) {
 		err = dDataCursor.Decode(&dDataResult)
 		if err != nil {
-			m.Logger().WithError(err).Error("failed decoding data")
+			log.Printf("failed decoding data: %s", err)
 			return false
 		}
 
 		datumID, err := utils.GetValidatedString(dDataResult, "_id")
 		if err != nil {
-			m.Logger().WithError(err).Error("failed getting dutum _id")
+			log.Printf("failed getting dutum _id: %s", err)
 			return false
 		}
 
 		updates, err := utils.GetDatumUpdates(dDataResult)
 		if err != nil {
-			m.Logger().WithError(err).Error("failed getting datum updates")
+			log.Printf("failed getting datum updates: %s", err)
 			return false
 		}
 
