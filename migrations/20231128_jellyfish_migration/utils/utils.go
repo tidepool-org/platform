@@ -52,25 +52,29 @@ func getValidatedTime(bsonData bson.M, fieldName string) (string, error) {
 }
 
 func datumHash(bsonData bson.M) (string, error) {
+
 	identityFields := []string{}
 	if datumUserID, err := GetValidatedString(bsonData, "_userId"); err != nil {
+		log.Printf("invalid data _userId: %#v", bsonData)
 		return "", err
 	} else {
 		identityFields = append(identityFields, datumUserID)
 	}
 	if deviceID, err := GetValidatedString(bsonData, "deviceId"); err != nil {
+		log.Printf("invalid data deviceId: %#v", bsonData)
 		return "", err
 	} else {
 		identityFields = append(identityFields, deviceID)
 	}
 	if datumTime, err := getValidatedTime(bsonData, "time"); err != nil {
+		log.Printf("invalid data time: %#v", bsonData)
 		return "", err
 	} else {
 		identityFields = append(identityFields, datumTime)
 	}
 	datumType, err := GetValidatedString(bsonData, "type")
 	if err != nil {
-		log.Printf("invalid data: %#v", bsonData)
+		log.Printf("invalid data type: %#v", bsonData)
 		return "", err
 	}
 	identityFields = append(identityFields, datumType)
