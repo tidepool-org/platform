@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -36,19 +37,18 @@ func GetValidatedString(bsonData bson.M, fieldName string) (string, error) {
 	}
 }
 
-func getValidatedTime(bsonData bson.M, fieldName string) (time.Time, error) {
+func getValidatedTime(bsonData bson.M, fieldName string) (string, error) {
 	if valRaw, ok := bsonData[fieldName]; !ok {
-		return time.Time{}, errors.Newf("%s is missing", fieldName)
-	} else if val, ok := valRaw.(time.Time); !ok {
-		if tStr, ok := valRaw.(string); ok {
-			return time.Parse(time.RFC3339, tStr)
+		return "", errors.Newf("%s is missing", fieldName)
+	} else if val, ok := valRaw.(string); !ok {
+		t, err := time.Parse(types.TimeFormat, val)
+		if err != nil {
+			return "", err
 		}
-		return time.Time{}, errors.Newf("%s is not of expected type", fieldName)
-	} else if val.IsZero() {
-		return time.Time{}, errors.Newf("%s is empty", fieldName)
-	} else {
-		return val, nil
+		return t.Format(types.TimeFormat), nil
 	}
+	log.Printf("invalid data %#v", bsonData)
+	return "", errors.Newf("%s is missing", fieldName)
 }
 
 func datumHash(bsonData bson.M) (string, error) {
@@ -66,10 +66,11 @@ func datumHash(bsonData bson.M) (string, error) {
 	if datumTime, err := getValidatedTime(bsonData, "time"); err != nil {
 		return "", err
 	} else {
-		identityFields = append(identityFields, datumTime.Format(types.TimeFormat))
+		identityFields = append(identityFields, datumTime)
 	}
 	datumType, err := GetValidatedString(bsonData, "type")
 	if err != nil {
+		log.Printf("invalid data: %#v", bsonData)
 		return "", err
 	}
 	identityFields = append(identityFields, datumType)
