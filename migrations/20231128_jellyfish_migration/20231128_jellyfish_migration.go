@@ -55,6 +55,7 @@ func main() {
 
 	migration := NewMigration(ctx)
 	migration.RunAndExit()
+	log.Println("finished migration")
 }
 
 func NewMigration(ctx context.Context) *Migration {
@@ -75,17 +76,20 @@ func (m *Migration) RunAndExit() {
 	m.CLI().Action = func(ctx *cli.Context) error {
 		log.Printf("config %#v", m.config)
 		if err := m.prepare(); err != nil {
-			log.Printf("error %s", err)
+			log.Printf("prepare failed: %s", err)
 			return err
 		}
+		if err := m.execute(); err != nil {
+			log.Printf("execute failed: %s", err)
+			return err
+		}
+		log.Println("finished prepare")
 		return nil
 	}
 
 	if err := m.CLI().Run(os.Args); err != nil {
 		os.Exit(1)
 	}
-
-	os.Exit(0)
 }
 
 func (m *Migration) Initialize() error {
@@ -113,7 +117,7 @@ func (m *Migration) Initialize() error {
 			Name:        "batch-size",
 			Usage:       "number of records to read each time",
 			Destination: &m.config.readBatchSize,
-			Value:       3000,
+			Value:       30,
 			Required:    false,
 		},
 		cli.IntFlag{
@@ -277,7 +281,7 @@ func (m *Migration) checkFreeSpace() error {
 	log.Printf("DB free space: %v", metaData)
 	bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
 	percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
-	log.Printf("DB disk currently has %d%% (%d) free.", percentFree*100, bytesFree)
+	log.Printf("DB disk currently has %d%% (%d bytes) free.", percentFree, bytesFree)
 
 	if m.config.minFreePercent > percentFree {
 		return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
@@ -304,6 +308,7 @@ func (m *Migration) getWaitTime() (float64, error) {
 	log.Println("DB replication status loaded.")
 
 	for _, member := range metaData.Members {
+		log.Printf("member %#v ", member)
 		if member.State < 1 || member.State > 2 || member.Health != 1 || member.Uptime < 120 {
 			log.Printf("DB member %s down or not ready.", member.Name)
 			return 240, nil
@@ -314,6 +319,7 @@ func (m *Migration) getWaitTime() (float64, error) {
 	if err != nil {
 		return 0, err
 	}
+	log.Printf("oplogDuration %v ", oplogDuration)
 	if oplogDuration.Seconds() < float64(m.config.minOplogWindow) {
 		minOplogWindowTime := time.Duration(m.config.minOplogWindow) * time.Second
 		log.Printf("DB OPLOG shorter than requested duration of %s, currently %s.", minOplogWindowTime, oplogDuration)
@@ -328,6 +334,7 @@ func (m *Migration) getWaitTime() (float64, error) {
 }
 
 func (m *Migration) blockUntilDBReady() error {
+	log.Println("blocking...")
 	waitTime, err := m.getWaitTime()
 	if err != nil {
 		return err
@@ -342,6 +349,7 @@ func (m *Migration) blockUntilDBReady() error {
 		time.Sleep(time.Duration(waitTime) * time.Second)
 		waitTime, err = m.getWaitTime()
 		if err != nil {
+			log.Printf("failed getting wait time  %d", time.Duration(waitTime)*time.Second)
 			return err
 		}
 	}
@@ -353,6 +361,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		// jellyfish uses a generated _id that is not an mongo objectId
 		"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
 		"_deduplicator": bson.M{"$exists": false},
+		// testing based on _userId for jamie+qa3_1@tidepool.org
+		"_userId": "5e8cac61-6bef-4728-b490-c1d82087ed9c",
 	}
 	m.updates = []mongo.WriteModel{}
 
@@ -419,11 +429,16 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		if err := m.checkFreeSpace(); err != nil {
 			return updateCount, err
 		}
-		results, err := m.deviceDataC.BulkWrite(m.ctx, batch)
-		if err != nil {
-			return updateCount, err
-		}
-		updateCount = updateCount + int(results.ModifiedCount)
+		log.Printf("updates to write %d", len(batch))
+
+		updateCount += len(batch)
+		log.Printf("updates applied so far %d", updateCount)
+		// results, err := m.deviceDataC.BulkWrite(m.ctx, batch)
+		// if err != nil {
+		// 	return updateCount, err
+		// }
+		// updateCount = updateCount + int(results.ModifiedCount)
 	}
+	log.Printf("applied %d updates", updateCount)
 	return updateCount, nil
 }
