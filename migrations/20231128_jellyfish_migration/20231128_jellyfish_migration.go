@@ -73,7 +73,7 @@ func (m *Migration) RunAndExit() {
 	}
 
 	m.CLI().Action = func(ctx *cli.Context) error {
-		log.Println("prepare")
+		log.Println("running")
 		var err error
 		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(m.config.uri))
 		if err != nil {
@@ -95,6 +95,10 @@ func (m *Migration) RunAndExit() {
 	}
 
 	if err := m.CLI().Run(os.Args); err != nil {
+		if m.client != nil {
+			m.client.Disconnect(m.ctx)
+		}
+
 		os.Exit(1)
 	}
 }
