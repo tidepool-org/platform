@@ -40,6 +40,9 @@ func getValidatedTime(bsonData bson.M, fieldName string) (time.Time, error) {
 	if valRaw, ok := bsonData[fieldName]; !ok {
 		return time.Time{}, errors.Newf("%s is missing", fieldName)
 	} else if val, ok := valRaw.(time.Time); !ok {
+		if tStr, ok := valRaw.(string); ok {
+			return time.Parse(time.RFC3339, tStr)
+		}
 		return time.Time{}, errors.Newf("%s is not of expected type", fieldName)
 	} else if val.IsZero() {
 		return time.Time{}, errors.Newf("%s is empty", fieldName)
