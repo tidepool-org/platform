@@ -98,7 +98,6 @@ func (m *Migration) RunAndExit() {
 		if m.client != nil {
 			m.client.Disconnect(m.ctx)
 		}
-
 		os.Exit(1)
 	}
 }

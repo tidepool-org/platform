@@ -40,12 +40,10 @@ func GetValidatedString(bsonData bson.M, fieldName string) (string, error) {
 func getValidatedTime(bsonData bson.M, fieldName string) (string, error) {
 	if valRaw, ok := bsonData[fieldName]; !ok {
 		return "", errors.Newf("%s is missing", fieldName)
-	} else if val, ok := valRaw.(string); !ok {
-		t, err := time.Parse(types.TimeFormat, val)
-		if err != nil {
-			return "", err
+	} else if ms, ok := valRaw.(int64); !ok {
+		if t := time.Unix(0, ms*int64(time.Millisecond)); !t.IsZero() {
+			return t.Format(types.TimeFormat), nil
 		}
-		return t.Format(types.TimeFormat), nil
 	}
 	log.Printf("invalid data %#v", bsonData)
 	return "", errors.Newf("%s is missing", fieldName)
