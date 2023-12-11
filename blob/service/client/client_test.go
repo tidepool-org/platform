@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
@@ -215,7 +214,7 @@ var _ = Describe("Client", func() {
 
 							BeforeEach(func() {
 								blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
-									size, _ = io.Copy(ioutil.Discard, reader)
+									size, _ = io.Copy(io.Discard, reader)
 									return nil
 								}
 							})
@@ -223,7 +222,7 @@ var _ = Describe("Client", func() {
 							When("the size exceeds maximum", func() {
 								BeforeEach(func() {
 									body := make([]byte, 104857601)
-									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									content.Body = io.NopCloser(bytes.NewReader(body))
 									content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
 								})
 
@@ -361,7 +360,7 @@ var _ = Describe("Client", func() {
 									When("the size is maximum", func() {
 										BeforeEach(func() {
 											body := make([]byte, 104857600)
-											content.Body = ioutil.NopCloser(bytes.NewReader(body))
+											content.Body = io.NopCloser(bytes.NewReader(body))
 											content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
 										})
 
@@ -455,7 +454,7 @@ var _ = Describe("Client", func() {
 
 							BeforeEach(func() {
 								blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
-									size, _ = io.Copy(ioutil.Discard, reader)
+									size, _ = io.Copy(io.Discard, reader)
 									return nil
 								}
 							})
@@ -463,7 +462,7 @@ var _ = Describe("Client", func() {
 							When("the size exceeds maximum", func() {
 								BeforeEach(func() {
 									body := make([]byte, 104857601)
-									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									content.Body = io.NopCloser(bytes.NewReader(body))
 									content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
 								})
 
@@ -720,7 +719,7 @@ var _ = Describe("Client", func() {
 
 					It("returns successfully when the blob unstructured store get returns successfully", func() {
 						body := test.RandomBytes()
-						reader := ioutil.NopCloser(bytes.NewReader(body))
+						reader := io.NopCloser(bytes.NewReader(body))
 						blobUnstructuredStore.GetOutputs = []blobStoreUnstructuredTest.GetOutput{{Reader: reader, Error: nil}}
 						result, err := client.GetContent(ctx, id)
 						Expect(err).ToNot(HaveOccurred())

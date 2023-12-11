@@ -8,7 +8,7 @@ import (
 	"github.com/tidepool-org/platform/structure/validator"
 	test2 "github.com/tidepool-org/platform/test"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/prescription"

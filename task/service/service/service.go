@@ -168,7 +168,9 @@ func (s *Service) initializeDataClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("data", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load data client config")
 	}
 
@@ -195,7 +197,9 @@ func (s *Service) initializeDataSourceClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("data_source", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load data source client config")
 	}
 
@@ -228,7 +232,9 @@ func (s *Service) initializeDexcomClient() error {
 
 		cfg := client.NewConfig()
 		cfg.UserAgent = s.UserAgent()
-		if err = cfg.Load(s.ConfigReporter().WithScopes("dexcom", "client")); err != nil {
+		reporter := s.ConfigReporter().WithScopes("dexcom", "client")
+		loader := client.NewConfigReporterLoader(reporter)
+		if err = cfg.Load(loader); err != nil {
 			return errors.Wrap(err, "unable to load dexcom client config")
 		}
 

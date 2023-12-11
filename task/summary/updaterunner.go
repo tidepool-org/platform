@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/page"
 
-	"github.com/pkg/errors"
+	"errors"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -122,14 +123,14 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	config := r.GetConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
+		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
 	} else {
 		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 
 		if taskRunner, tErr := NewUpdateTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
+			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
 		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-			tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+			tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
 		}
 	}
 

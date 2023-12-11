@@ -10,9 +10,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	mapset "github.com/deckarep/golang-set/v2"
+
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -25,12 +26,21 @@ const (
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
 	HoursAgoToKeep       = 60 * 24
-	setOutdatedBuffer    = 2 * time.Minute
+
+	setOutdatedBuffer = 2 * time.Minute
+	setOutdatedLimit  = 30 * time.Minute
+
+	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
+	OutdatedReasonDataAdded       = "DATA_ADDED"
+	OutdatedReasonSchemaMigration = "SCHEMA_MIGRATION"
+	OutdatedReasonBackfill        = "BACKFILL"
 )
 
 var stopPoints = [...]int{1, 7, 14, 30}
 
-var DeviceDataTypes = [...]string{continuous.Type, selfmonitored.Type}
+var DeviceDataTypes = []string{continuous.Type, selfmonitored.Type}
+var DeviceDataTypesSet = mapset.NewSet[string](DeviceDataTypes...)
+
 var DeviceDataToSummaryTypes = map[string]string{
 	continuous.Type:    SummaryTypeCGM,
 	selfmonitored.Type: SummaryTypeBGM,
@@ -72,7 +82,8 @@ type Config struct {
 }
 
 type Dates struct {
-	LastUpdatedDate time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	LastUpdatedDate   time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	LastUpdatedReason []string  `json:"lastUpdatedReason" bson:"lastUpdatedReason"`
 
 	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
 	LastUploadDate    *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
@@ -83,28 +94,15 @@ type Dates struct {
 	HasLastData bool       `json:"hasLastData" bson:"hasLastData"`
 	LastData    *time.Time `json:"lastData" bson:"lastData"`
 
-	HasOutdatedSince bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
-	OutdatedSince    *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-}
-
-func (d *Dates) ZeroOut() {
-	d.LastUpdatedDate = time.Now().UTC()
-
-	d.HasLastUploadDate = false
-	d.LastUploadDate = nil
-
-	d.HasFirstData = false
-	d.FirstData = nil
-
-	d.HasLastData = false
-	d.LastData = nil
-
-	d.HasOutdatedSince = false
-	d.OutdatedSince = nil
+	HasOutdatedSince   bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
+	OutdatedSince      *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+	OutdatedSinceLimit *time.Time `json:"outdatedSinceLimit" bson:"outdatedSinceLimit"`
+	OutdatedReason     []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
 func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 	d.LastUpdatedDate = time.Now().UTC()
+	d.LastUpdatedReason = d.OutdatedReason
 
 	d.HasLastUploadDate = true
 	d.LastUploadDate = &status.LastUpload
@@ -117,6 +115,8 @@ func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 
 	d.HasOutdatedSince = false
 	d.OutdatedSince = nil
+	d.OutdatedSinceLimit = nil
+	d.OutdatedReason = nil
 }
 
 type Bucket[T BucketData, S BucketDataPt[T]] struct {
@@ -177,14 +177,35 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[T, A]) SetOutdated() {
-	s.Dates.OutdatedSince = pointer.FromAny(time.Now().Add(setOutdatedBuffer).UTC().Truncate(time.Millisecond))
-	s.Dates.HasOutdatedSince = true
+func (s *Summary[T, A]) SetOutdated(reason string) {
+	set := mapset.NewSet[string](reason)
+	if len(s.Dates.OutdatedReason) > 0 {
+		set.Append(s.Dates.OutdatedReason...)
+	}
+
+	if reason == OutdatedReasonSchemaMigration {
+		*s = *Create[T, A](s.UserID)
+	}
+
+	s.Dates.OutdatedReason = set.ToSlice()
+
+	timestamp := time.Now().Truncate(time.Millisecond).UTC()
+	if s.Dates.OutdatedSinceLimit == nil {
+		newOutdatedSinceLimit := timestamp.Add(setOutdatedLimit)
+		s.Dates.OutdatedSinceLimit = &newOutdatedSinceLimit
+	}
+
+	if s.Dates.OutdatedSince == nil || s.Dates.OutdatedSince.Before(*s.Dates.OutdatedSinceLimit) {
+		newOutdatedSince := timestamp.Add(setOutdatedBuffer)
+		s.Dates.OutdatedSince = &newOutdatedSince
+		s.Dates.HasOutdatedSince = true
+	}
 }
 
 func NewDates() Dates {
 	return Dates{
-		LastUpdatedDate: time.Time{},
+		LastUpdatedDate:   time.Time{},
+		LastUpdatedReason: nil,
 
 		HasLastUploadDate: false,
 		LastUploadDate:    nil,
@@ -195,8 +216,10 @@ func NewDates() Dates {
 		HasLastData: false,
 		LastData:    nil,
 
-		HasOutdatedSince: false,
-		OutdatedSince:    nil,
+		HasOutdatedSince:   false,
+		OutdatedSince:      nil,
+		OutdatedSinceLimit: nil,
+		OutdatedReason:     nil,
 	}
 }
 

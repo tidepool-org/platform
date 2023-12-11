@@ -3,9 +3,11 @@ package store_test
 import (
 	"testing"
 
-	"github.com/tidepool-org/platform/test"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestSuite(t *testing.T) {
-	test.Test(t)
+func TestSummaryStore(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "data/summary/store")
 }

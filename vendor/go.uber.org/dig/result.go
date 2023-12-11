@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Uber Technologies, Inc.
+// Copyright (c) 2019-2021 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,10 @@
 package dig
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
+	"go.uber.org/dig/internal/digerror"
 	"go.uber.org/dig/internal/dot"
 )
 
@@ -37,12 +37,13 @@ import (
 //                 another result.
 //   resultGrouped A value produced by a constructor that is part of a value
 //                 group.
+
 type result interface {
 	// Extracts the values for this result from the provided value and
 	// stores them into the provided containerWriter.
 	//
 	// This MAY panic if the result does not consume a single value.
-	Extract(containerWriter, reflect.Value)
+	Extract(containerWriter, bool, reflect.Value)
 
 	// DotResult returns a slice of dot.Result(s).
 	DotResult() []*dot.Result
@@ -61,43 +62,64 @@ type resultOptions struct {
 	// For Result Objects, name:".." tags on fields override this.
 	Name  string
 	Group string
+	As    []interface{}
 }
 
 // newResult builds a result from the given type.
 func newResult(t reflect.Type, opts resultOptions) (result, error) {
 	switch {
 	case IsIn(t) || (t.Kind() == reflect.Ptr && IsIn(t.Elem())) || embedsType(t, _inPtrType):
-		return nil, errf("cannot provide parameter objects", "%v embeds a dig.In", t)
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"cannot provide parameter objects: %v embeds a dig.In", t), nil)
 	case isError(t):
-		return nil, errf("cannot return an error here, return it from the constructor instead")
+		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
 	case IsOut(t):
 		return newResultObject(t, opts)
 	case embedsType(t, _outPtrType):
-		return nil, errf(
-			"cannot build a result object by embedding *dig.Out, embed dig.Out instead",
-			"%v embeds *dig.Out", t)
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"cannot build a result object by embedding *dig.Out, embed dig.Out instead: %v embeds *dig.Out", t), nil)
 	case t.Kind() == reflect.Ptr && IsOut(t.Elem()):
-		return nil, errf(
-			"cannot return a pointer to a result object, use a value instead",
-			"%v is a pointer to a struct that embeds dig.Out", t)
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"cannot return a pointer to a result object, use a value instead: %v is a pointer to a struct that embeds dig.Out", t), nil)
 	case len(opts.Group) > 0:
 		g, err := parseGroupString(opts.Group)
 		if err != nil {
-			return nil, errf(
-				"cannot parse group %q", opts.Group, err)
+			return nil, newErrInvalidInput(
+				fmt.Sprintf("cannot parse group %q", opts.Group), err)
 		}
 		rg := resultGrouped{Type: t, Group: g.Name, Flatten: g.Flatten}
+		if len(opts.As) > 0 {
+			var asTypes []reflect.Type
+			for _, as := range opts.As {
+				ifaceType := reflect.TypeOf(as).Elem()
+				if ifaceType == t {
+					continue
+				}
+				if !t.Implements(ifaceType) {
+					return nil, newErrInvalidInput(
+						fmt.Sprintf("invalid dig.As: %v does not implement %v", t, ifaceType), nil)
+				}
+				asTypes = append(asTypes, ifaceType)
+			}
+			if len(asTypes) > 0 {
+				rg.Type = asTypes[0]
+				rg.As = asTypes[1:]
+			}
+		}
+		if g.Soft {
+			return nil, newErrInvalidInput(fmt.Sprintf(
+				"cannot use soft with result value groups: soft was used with group:%q", g.Name), nil)
+		}
 		if g.Flatten {
 			if t.Kind() != reflect.Slice {
-				return nil, errf(
-					"flatten can be applied to slices only",
-					"%v is not a slice", t)
+				return nil, newErrInvalidInput(fmt.Sprintf(
+					"flatten can be applied to slices only: %v is not a slice", t), nil)
 			}
 			rg.Type = rg.Type.Elem()
 		}
 		return rg, nil
 	default:
-		return resultSingle{Type: t, Name: opts.Name}, nil
+		return newResultSingle(t, opts)
 	}
 }
 
@@ -165,11 +187,7 @@ func walkResult(r result, v resultVisitor) {
 			}
 		}
 	default:
-		panic(fmt.Sprintf(
-			"It looks like you have found a bug in dig. "+
-				"Please file an issue at https://github.com/uber-go/dig/issues/ "+
-				"and provide the following message: "+
-				"received unknown result type %T", res))
+		digerror.BugPanicf("received unknown result type %T", res)
 	}
 }
 
@@ -194,14 +212,15 @@ func (rl resultList) DotResult() []*dot.Result {
 }
 
 func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
+	numOut := ctype.NumOut()
 	rl := resultList{
 		ctype:         ctype,
-		Results:       make([]result, 0, ctype.NumOut()),
-		resultIndexes: make([]int, ctype.NumOut()),
+		Results:       make([]result, 0, numOut),
+		resultIndexes: make([]int, numOut),
 	}
 
 	resultIdx := 0
-	for i := 0; i < ctype.NumOut(); i++ {
+	for i := 0; i < numOut; i++ {
 		t := ctype.Out(i)
 		if isError(t) {
 			rl.resultIndexes[i] = -1
@@ -210,7 +229,7 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 
 		r, err := newResult(t, opts)
 		if err != nil {
-			return rl, errf("bad result %d", i+1, err)
+			return rl, newErrInvalidInput(fmt.Sprintf("bad result %d", i+1), err)
 		}
 
 		rl.Results = append(rl.Results, r)
@@ -221,17 +240,14 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 	return rl, nil
 }
 
-func (resultList) Extract(containerWriter, reflect.Value) {
-	panic("It looks like you have found a bug in dig. " +
-		"Please file an issue at https://github.com/uber-go/dig/issues/ " +
-		"and provide the following message: " +
-		"resultList.Extract() must never be called")
+func (resultList) Extract(containerWriter, bool, reflect.Value) {
+	digerror.BugPanicf("resultList.Extract() must never be called")
 }
 
-func (rl resultList) ExtractList(cw containerWriter, values []reflect.Value) error {
+func (rl resultList) ExtractList(cw containerWriter, decorated bool, values []reflect.Value) error {
 	for i, v := range values {
 		if resultIdx := rl.resultIndexes[i]; resultIdx >= 0 {
-			rl.Results[resultIdx].Extract(cw, v)
+			rl.Results[resultIdx].Extract(cw, decorated, v)
 			continue
 		}
 
@@ -250,21 +266,74 @@ func (rl resultList) ExtractList(cw containerWriter, values []reflect.Value) err
 type resultSingle struct {
 	Name string
 	Type reflect.Type
+
+	// If specified, this is a list of types which the value will be made
+	// available as, in addition to its own type.
+	As []reflect.Type
+}
+
+func newResultSingle(t reflect.Type, opts resultOptions) (resultSingle, error) {
+	r := resultSingle{
+		Type: t,
+		Name: opts.Name,
+	}
+
+	var asTypes []reflect.Type
+
+	for _, as := range opts.As {
+		ifaceType := reflect.TypeOf(as).Elem()
+		if ifaceType == t {
+			// Special case:
+			//   c.Provide(func() io.Reader, As(new(io.Reader)))
+			// Ignore instead of erroring out.
+			continue
+		}
+		if !t.Implements(ifaceType) {
+			return r, newErrInvalidInput(
+				fmt.Sprintf("invalid dig.As: %v does not implement %v", t, ifaceType), nil)
+		}
+		asTypes = append(asTypes, ifaceType)
+	}
+
+	if len(asTypes) == 0 {
+		return r, nil
+	}
+
+	return resultSingle{
+		Type: asTypes[0],
+		Name: opts.Name,
+		As:   asTypes[1:],
+	}, nil
 }
 
 func (rs resultSingle) DotResult() []*dot.Result {
-	return []*dot.Result{
-		{
-			Node: &dot.Node{
-				Type: rs.Type,
-				Name: rs.Name,
-			},
+	dotResults := make([]*dot.Result, 0, len(rs.As)+1)
+	dotResults = append(dotResults, &dot.Result{
+		Node: &dot.Node{
+			Type: rs.Type,
+			Name: rs.Name,
 		},
+	})
+
+	for _, asType := range rs.As {
+		dotResults = append(dotResults, &dot.Result{
+			Node: &dot.Node{Type: asType, Name: rs.Name},
+		})
 	}
+
+	return dotResults
 }
 
-func (rs resultSingle) Extract(cw containerWriter, v reflect.Value) {
+func (rs resultSingle) Extract(cw containerWriter, decorated bool, v reflect.Value) {
+	if decorated {
+		cw.setDecoratedValue(rs.Name, rs.Type, v)
+		return
+	}
 	cw.setValue(rs.Name, rs.Type, v)
+
+	for _, asType := range rs.As {
+		cw.setValue(rs.Name, asType, v)
+	}
 }
 
 // resultObject is a dig.Out struct where each field is another result.
@@ -287,13 +356,13 @@ func (ro resultObject) DotResult() []*dot.Result {
 func newResultObject(t reflect.Type, opts resultOptions) (resultObject, error) {
 	ro := resultObject{Type: t}
 	if len(opts.Name) > 0 {
-		return ro, errf(
-			"cannot specify a name for result objects", "%v embeds dig.Out", t)
+		return ro, newErrInvalidInput(fmt.Sprintf(
+			"cannot specify a name for result objects: %v embeds dig.Out", t), nil)
 	}
 
 	if len(opts.Group) > 0 {
-		return ro, errf(
-			"cannot specify a group for result objects", "%v embeds dig.Out", t)
+		return ro, newErrInvalidInput(fmt.Sprintf(
+			"cannot specify a group for result objects: %v embeds dig.Out", t), nil)
 	}
 
 	for i := 0; i < t.NumField(); i++ {
@@ -305,7 +374,7 @@ func newResultObject(t reflect.Type, opts resultOptions) (resultObject, error) {
 
 		rof, err := newResultObjectField(i, f, opts)
 		if err != nil {
-			return ro, errf("bad field %q of %v", f.Name, t, err)
+			return ro, newErrInvalidInput(fmt.Sprintf("bad field %q of %v", f.Name, t), err)
 		}
 
 		ro.Fields = append(ro.Fields, rof)
@@ -313,9 +382,9 @@ func newResultObject(t reflect.Type, opts resultOptions) (resultObject, error) {
 	return ro, nil
 }
 
-func (ro resultObject) Extract(cw containerWriter, v reflect.Value) {
+func (ro resultObject) Extract(cw containerWriter, decorated bool, v reflect.Value) {
 	for _, f := range ro.Fields {
-		f.Result.Extract(cw, v.Field(f.FieldIndex))
+		f.Result.Extract(cw, decorated, v.Field(f.FieldIndex))
 	}
 }
 
@@ -349,8 +418,8 @@ func newResultObjectField(idx int, f reflect.StructField, opts resultOptions) (r
 	var r result
 	switch {
 	case f.PkgPath != "":
-		return rof, errf(
-			"unexported fields not allowed in dig.Out, did you mean to export %q (%v)?", f.Name, f.Type)
+		return rof, newErrInvalidInput(
+			fmt.Sprintf("unexported fields not allowed in dig.Out, did you mean to export %q (%v)?", f.Name, f.Type), nil)
 
 	case f.Tag.Get(_groupTag) != "":
 		var err error
@@ -390,17 +459,27 @@ type resultGrouped struct {
 	// as a group. Requires the value's slice to be a group. If set, Type will be
 	// the type of individual elements rather than the group.
 	Flatten bool
+
+	// If specified, this is a list of types which the value will be made
+	// available as, in addition to its own type.
+	As []reflect.Type
 }
 
 func (rt resultGrouped) DotResult() []*dot.Result {
-	return []*dot.Result{
-		{
-			Node: &dot.Node{
-				Type:  rt.Type,
-				Group: rt.Group,
-			},
+	dotResults := make([]*dot.Result, 0, len(rt.As)+1)
+	dotResults = append(dotResults, &dot.Result{
+		Node: &dot.Node{
+			Type:  rt.Type,
+			Group: rt.Group,
 		},
+	})
+
+	for _, asType := range rt.As {
+		dotResults = append(dotResults, &dot.Result{
+			Node: &dot.Node{Type: asType, Group: rt.Group},
+		})
 	}
+	return dotResults
 }
 
 // newResultGrouped(f) builds a new resultGrouped from the provided field.
@@ -418,14 +497,16 @@ func newResultGrouped(f reflect.StructField) (resultGrouped, error) {
 	optional, _ := isFieldOptional(f)
 	switch {
 	case g.Flatten && f.Type.Kind() != reflect.Slice:
-		return rg, errf("flatten can be applied to slices only",
-			"field %q (%v) is not a slice", f.Name, f.Type)
+		return rg, newErrInvalidInput(fmt.Sprintf(
+			"flatten can be applied to slices only: field %q (%v) is not a slice", f.Name, f.Type), nil)
+	case g.Soft:
+		return rg, newErrInvalidInput(fmt.Sprintf(
+			"cannot use soft with result value groups: soft was used with group %q", rg.Group), nil)
 	case name != "":
-		return rg, errf(
-			"cannot use named values with value groups",
-			"name:%q provided with group:%q", name, rg.Group)
+		return rg, newErrInvalidInput(fmt.Sprintf(
+			"cannot use named values with value groups: name:%q provided with group:%q", name, rg.Group), nil)
 	case optional:
-		return rg, errors.New("value groups cannot be optional")
+		return rg, newErrInvalidInput("value groups cannot be optional", nil)
 	}
 	if g.Flatten {
 		rg.Type = f.Type.Elem()
@@ -434,9 +515,18 @@ func newResultGrouped(f reflect.StructField) (resultGrouped, error) {
 	return rg, nil
 }
 
-func (rt resultGrouped) Extract(cw containerWriter, v reflect.Value) {
-	if !rt.Flatten {
+func (rt resultGrouped) Extract(cw containerWriter, decorated bool, v reflect.Value) {
+	// Decorated values are always flattened.
+	if !decorated && !rt.Flatten {
 		cw.submitGroupedValue(rt.Group, rt.Type, v)
+		for _, asType := range rt.As {
+			cw.submitGroupedValue(rt.Group, asType, v)
+		}
+		return
+	}
+
+	if decorated {
+		cw.submitDecoratedGroupedValue(rt.Group, rt.Type, v)
 		return
 	}
 	for i := 0; i < v.Len(); i++ {

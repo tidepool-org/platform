@@ -3,7 +3,7 @@ package validator_test
 import (
 	"math/rand"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/pointer"

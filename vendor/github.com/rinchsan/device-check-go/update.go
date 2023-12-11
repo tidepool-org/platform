@@ -2,7 +2,6 @@ package devicecheck
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -39,19 +38,13 @@ func (client *Client) UpdateTwoBits(deviceToken string, bit0, bit1 bool) error {
 		Bit1:          bit1,
 	}
 
-	resp, err := client.api.do(jwt, updateTwoBitsPath, body)
+	code, respBody, err := client.api.do(jwt, updateTwoBitsPath, body)
 	if err != nil {
 		return fmt.Errorf("devicecheck: failed to update two bits: %w", err)
 	}
-	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("devicecheck: failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("divececheck: %w", newError(resp.StatusCode, string(respBody)))
+	if code != http.StatusOK {
+		return fmt.Errorf("devicecheck: %w", newError(code, respBody))
 	}
 
 	return nil
