@@ -206,7 +206,7 @@ func (m *Migration) execute() error {
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
-			log.Printf("failed writing batch %s", err)
+			log.Printf("failed writing batch: %s", err)
 			return err
 		}
 		totalMigrated = totalMigrated + updatedCount
@@ -315,10 +315,9 @@ func (m *Migration) getWaitTime() (float64, error) {
 
 	var metaData MongoMetaData
 	m.client.Database("admin").RunCommand(m.ctx, bson.M{"replSetGetStatus": 1}).Decode(&metaData)
-	log.Println("DB replication status loaded.")
+	log.Printf("DB replication status loaded. %#v", metaData)
 
 	for _, member := range metaData.Members {
-		log.Printf("member %#v ", member)
 		if member.State < 1 || member.State > 2 || member.Health != 1 || member.Uptime < 120 {
 			log.Printf("DB member %s down or not ready.", member.Name)
 			return 240, nil
@@ -427,7 +426,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
 			end := i + chunkSize
-
 			if end > len(m.updates) {
 				end = len(m.updates)
 			}
@@ -435,13 +433,15 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		}
 		return batches
 	}
-
 	updateCount := 0
+	log.Printf("write batch size %d", *m.writeBatchSize)
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(); err != nil {
+			log.Printf("writeBatchUpdates-blocking error: %s", err)
 			return updateCount, err
 		}
 		if err := m.checkFreeSpace(); err != nil {
+			log.Printf("writeBatchUpdates-freespace error: %s", err)
 			return updateCount, err
 		}
 		log.Printf("updates to write %d", len(batch))
