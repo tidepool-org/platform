@@ -216,32 +216,42 @@ func (m *Migration) execute() error {
 }
 
 func (m *Migration) getOplogDuration() (time.Duration, error) {
-	type MongoMetaData struct {
-		Wall int64 `json:"wall"`
-	}
+	// type MongoMetaData struct {
+	// 	Wall int64 `json:"wall"`
+	// }
+
 	log.Println("checking oplog duration ")
 	if oplogC := m.getOplogCollection(); oplogC != nil {
-		var oldest MongoMetaData
+		oldest := map[string]interface{}{}
 
-		if err := oplogC.FindOne(
+		if result := oplogC.FindOne(
 			m.ctx,
 			bson.M{"wall": bson.M{"$exists": true}},
-			options.FindOne().SetSort("$natural")).Decode(&oldest); err != nil {
-			return 0, err
+			options.FindOne().SetSort("$natural")); result != nil {
+			if result.Err() != nil {
+				return 0, result.Err()
+			}
+			result.Decode(&oldest)
+			log.Printf("oldest: %#v", oldest)
 		}
 
 		log.Printf("oldest %v ", oldest)
-		var newest MongoMetaData
-		if err := oplogC.FindOne(
+		//var newest MongoMetaData
+		newest := map[string]interface{}{}
+
+		if result := oplogC.FindOne(
 			m.ctx,
 			bson.M{"wall": bson.M{"$exists": true}},
-			options.FindOne().SetSort("-$natural")).Decode(&newest); err != nil {
-			return 0, err
+			options.FindOne().SetSort("-$natural")); result != nil {
+			if result.Err() != nil {
+				return 0, result.Err()
+			}
+			result.Decode(&newest)
+			log.Printf("newest: %#v", newest)
 		}
-		log.Printf("newest %v ", newest)
-		oldestT := time.UnixMilli(oldest.Wall)
-		newestT := time.UnixMilli(newest.Wall)
-		oplogDuration := newestT.Sub(oldestT)
+		//oldestT := time.UnixMilli(oldest.Wall)
+		//newestT := time.UnixMilli(newest.Wall)
+		oplogDuration := time.Duration(0) //newestT.Sub(oldestT)
 		log.Printf("oplog duration is currently: %v\n", oplogDuration)
 		return oplogDuration, nil
 	}
