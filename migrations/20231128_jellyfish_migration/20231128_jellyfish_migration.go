@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/urfave/cli"
@@ -69,9 +70,9 @@ func (m *Migration) RunAndExit() {
 	}
 
 	m.CLI().Action = func(ctx *cli.Context) error {
-		log.Println("running")
 		var err error
-		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(m.config.uri))
+		mongoURI := strings.ReplaceAll(m.config.uri, " ", "")
+		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(mongoURI))
 		if err != nil {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
@@ -151,10 +152,12 @@ func (m *Migration) Initialize() error {
 			Name:        "uri",
 			Usage:       "mongo connection URI",
 			Destination: &m.config.uri,
-			Value:       "mongodb://localhost:27017",
+			Value:       "",
 			Required:    false,
+			FilePath:    "./uri",
 		},
 	)
+
 	return nil
 }
 
