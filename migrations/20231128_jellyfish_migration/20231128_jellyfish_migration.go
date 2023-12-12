@@ -71,8 +71,7 @@ func (m *Migration) RunAndExit() {
 
 	m.CLI().Action = func(ctx *cli.Context) error {
 		var err error
-		mongoURI := strings.ReplaceAll(m.config.uri, " ", "")
-		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(mongoURI))
+		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(strings.TrimSpace(m.config.uri)))
 		if err != nil {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
@@ -152,7 +151,6 @@ func (m *Migration) Initialize() error {
 			Name:        "uri",
 			Usage:       "mongo connection URI",
 			Destination: &m.config.uri,
-			Value:       "",
 			Required:    false,
 			FilePath:    "./uri",
 		},
