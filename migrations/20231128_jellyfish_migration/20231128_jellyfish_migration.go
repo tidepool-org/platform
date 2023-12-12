@@ -216,45 +216,33 @@ func (m *Migration) execute() error {
 }
 
 func (m *Migration) getOplogDuration() (time.Duration, error) {
-	// type MongoMetaData struct {
-	// 	Wall int64 `json:"wall"`
-	// }
+	type MongoMetaData struct {
+		Wall int64 `json:"wall"`
+	}
 
 	log.Println("checking oplog duration ")
 	if oplogC := m.getOplogCollection(); oplogC != nil {
-		oldest := map[string]interface{}{}
-
-		if result := oplogC.FindOne(
+		oldest := MongoMetaData{}
+		if err := oplogC.FindOne(
 			m.ctx,
 			bson.M{"wall": bson.M{"$exists": true}},
-			options.FindOne().SetSort(bson.M{"$natural": 1})); result != nil {
-
-			log.Printf("oldest walltime mongo result %#v", result)
-			if result.Err() != nil {
-				return 0, result.Err()
-			}
-			result.Decode(&oldest)
-			log.Printf("oldest: %#v", oldest)
+			options.FindOne().SetSort(bson.M{"$natural": 1})).Decode(&oldest); err != nil {
+			log.Printf("oldest walltime mongo err %v", err)
+			return 0, err
 		}
 
-		log.Printf("oldest %v ", oldest)
-		//var newest MongoMetaData
-		newest := map[string]interface{}{}
-
-		if result := oplogC.FindOne(
+		newest := MongoMetaData{}
+		if err := oplogC.FindOne(
 			m.ctx,
 			bson.M{"wall": bson.M{"$exists": true}},
-			options.FindOne().SetSort(bson.M{"$natural": -1})); result != nil {
-			if result.Err() != nil {
-				return 0, result.Err()
-			}
-			result.Decode(&newest)
-			log.Printf("newest: %#v", newest)
+			options.FindOne().SetSort(bson.M{"$natural": -1})).Decode(&newest); err != nil {
+			log.Printf("newest walltime mongo err %v", err)
+			return 0, err
 		}
-		//oldestT := time.UnixMilli(oldest.Wall)
-		//newestT := time.UnixMilli(newest.Wall)
-		oplogDuration := time.Duration(0) //newestT.Sub(oldestT)
-		log.Printf("oplog duration is currently: %v\n", oplogDuration)
+		oldestT := time.UnixMilli(oldest.Wall)
+		newestT := time.UnixMilli(newest.Wall)
+		oplogDuration := newestT.Sub(oldestT)
+		log.Printf("oplog duration is currently: %v", oplogDuration)
 		return oplogDuration, nil
 	}
 	log.Println("Not clustered, not retrieving oplog duration.")
