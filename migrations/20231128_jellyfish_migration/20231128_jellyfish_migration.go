@@ -183,7 +183,7 @@ func (m *Migration) prepare() error {
 func (m *Migration) execute() error {
 	log.Println("about to run execute")
 	totalMigrated := 0
-	testingCapSize := 100
+	testingCapSize := 10
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
@@ -364,10 +364,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			return false
 		}
 
-		var dDataResult bson.M
-
 		defer dDataCursor.Close(m.ctx)
 		for dDataCursor.Next(m.ctx) {
+			var dDataResult bson.M
 			if err = dDataCursor.Decode(&dDataResult); err != nil {
 				log.Printf("failed decoding data: %s", err)
 				return false
@@ -385,6 +384,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
+			log.Printf("updates [%s] to apply [%#v]", datumID, updates)
+
 			m.updates = append(m.updates, mongo.NewUpdateOneModel().SetFilter(
 				bson.M{
 					"_id":          datumID,
@@ -393,6 +394,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				"$set": updates,
 			}))
 		}
+
+		log.Printf("all updates [%#v]", m.updates)
+
 		return len(m.updates) > 0
 	}
 	return false
