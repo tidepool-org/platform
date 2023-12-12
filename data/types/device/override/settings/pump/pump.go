@@ -15,7 +15,7 @@ const (
 	BasalRateScaleFactorMinimum          = 0.1
 	CarbohydrateRatioScaleFactorMaximum  = 10.0
 	CarbohydrateRatioScaleFactorMinimum  = 0.1
-	DurationMaximum                      = 604800 // 7 days in seconds
+	DurationMaximum                      = 604800000 // 7 days in milliseconds
 	DurationMinimum                      = 0
 	InsulinSensitivityScaleFactorMaximum = 10.0
 	InsulinSensitivityScaleFactorMinimum = 0.1

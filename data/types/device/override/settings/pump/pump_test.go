@@ -48,7 +48,7 @@ var _ = Describe("Pump", func() {
 	})
 
 	It("DurationMaximum is expected", func() {
-		Expect(dataTypesDeviceOverrideSettingsPump.DurationMaximum).To(Equal(604800))
+		Expect(dataTypesDeviceOverrideSettingsPump.DurationMaximum).To(Equal(604800000))
 	})
 
 	It("DurationMinimum is expected", func() {

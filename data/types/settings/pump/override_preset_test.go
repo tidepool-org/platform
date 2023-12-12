@@ -40,7 +40,7 @@ var _ = Describe("OverridePreset", func() {
 	})
 
 	It("DurationMaximum is expected", func() {
-		Expect(dataTypesSettingsPump.DurationMaximum).To(Equal(604800))
+		Expect(dataTypesSettingsPump.DurationMaximum).To(Equal(604800000))
 	})
 
 	It("DurationMinimum is expected", func() {
