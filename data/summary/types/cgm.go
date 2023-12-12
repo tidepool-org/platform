@@ -587,7 +587,7 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 
 		HasTimeInAnyHighMinutes: true,
-		TimeInAnyHighMinutes:    pointer.FromAny(totalStats.LowMinutes + totalStats.VeryLowMinutes),
+		TimeInAnyHighMinutes:    pointer.FromAny(totalStats.HighMinutes + totalStats.VeryHighMinutes),
 
 		HasTimeInAnyHighRecords: true,
 		TimeInAnyHighRecords:    pointer.FromAny(totalStats.HighRecords + totalStats.VeryHighRecords),
