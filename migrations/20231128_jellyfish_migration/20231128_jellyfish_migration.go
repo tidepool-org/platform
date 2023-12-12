@@ -227,7 +227,9 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 		if result := oplogC.FindOne(
 			m.ctx,
 			bson.M{"wall": bson.M{"$exists": true}},
-			options.FindOne().SetSort("$natural")); result != nil {
+			options.FindOne().SetSort(bson.M{"$natural": 1})); result != nil {
+
+			log.Printf("oldest walltime mongo result %#v", result)
 			if result.Err() != nil {
 				return 0, result.Err()
 			}
@@ -242,7 +244,7 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 		if result := oplogC.FindOne(
 			m.ctx,
 			bson.M{"wall": bson.M{"$exists": true}},
-			options.FindOne().SetSort("-$natural")); result != nil {
+			options.FindOne().SetSort(bson.M{"$natural": -1})); result != nil {
 			if result.Err() != nil {
 				return 0, result.Err()
 			}
