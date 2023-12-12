@@ -217,7 +217,7 @@ func (m *Migration) execute() error {
 
 func (m *Migration) getOplogDuration() (time.Duration, error) {
 	type MongoMetaData struct {
-		Wall int64 `json:"wall"`
+		Wall time.Time `json:"wall"`
 	}
 
 	log.Println("checking oplog duration ")
@@ -239,9 +239,9 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 			log.Printf("newest walltime mongo err %v", err)
 			return 0, err
 		}
-		oldestT := time.UnixMilli(oldest.Wall)
-		newestT := time.UnixMilli(newest.Wall)
-		oplogDuration := newestT.Sub(oldestT)
+		//oldestT := time.UnixMilli(oldest.Wall)
+		//newestT := time.UnixMilli(newest.Wall)
+		oplogDuration := newest.Wall.Sub(oldest.Wall)
 		log.Printf("oplog duration is currently: %v", oplogDuration)
 		return oplogDuration, nil
 	}
