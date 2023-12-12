@@ -291,7 +291,8 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct daily stats for days with different averages", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				var currentBucket *types.Bucket[*types.CGMBucketData, types.CGMBucketData]
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				// Datasets use +1 and +2 offset to allow for checking via iteration
 				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, inTargetBloodGlucose)
@@ -300,7 +301,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = append(dataSetCGMDataOne, dataSetCGMDataTwo...)
 				dataSetCGMData = append(dataSetCGMData, dataSetCGMDataThree...)
 
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				currentBucket, err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, currentBucket)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(72))

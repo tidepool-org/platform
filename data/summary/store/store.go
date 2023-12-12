@@ -44,7 +44,7 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 		return nil, errors.New("userId is missing")
 	}
 
-	summary := types.Create[T, A](userId)
+	summary := types.Create[A](userId)
 	selector := bson.M{
 		"userId": userId,
 		"type":   summary.Type,
@@ -201,7 +201,7 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	}
 
 	if userSummary == nil {
-		userSummary = types.Create[T, A](userId)
+		userSummary = types.Create[A](userId)
 	}
 
 	userSummary.SetOutdated(reason)

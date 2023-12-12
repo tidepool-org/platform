@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"time"
@@ -128,21 +129,30 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *BGMStats) Update(ctx context.Context, userData *mongo.Cursor) error {
-	//userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	//if !ok {
-	//	return errors.New("BGM records for calculation is not compatible with Glucose type")
-	//}
-	//
-	//for i, v := range userDataTyped {
-	//	if v.Type != selfmonitored.Type {
-	//		return fmt.Errorf("Non-BGM data provided for BGM summary update at position %d", i)
-	//	}
-	//}
+func (s *BGMStats) Update(ctx context.Context, cursor *mongo.Cursor) error {
+	var userData []*glucoseDatum.Glucose = nil
+	var r *glucoseDatum.Glucose
+	var currentBucket *Bucket[*BGMBucketData, BGMBucketData]
+	var err error
 
-	err := AddData[*glucoseDatum.Glucose](ctx, &s.Buckets, userData)
-	if err != nil {
-		return err
+	for cursor.Next(ctx) {
+		if userData == nil {
+			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+		}
+
+		if err = cursor.Decode(r); err != nil {
+			return fmt.Errorf("unable to decode userData: %w", err)
+		}
+		userData = append(userData, r)
+
+		// we call AddData before each network call to the db to reduce thrashing
+		if cursor.RemainingBatchLength() != 0 {
+			currentBucket, err = AddData(&s.Buckets, userData, currentBucket)
+			if err != nil {
+				return err
+			}
+			userData = nil
+		}
 	}
 
 	s.CalculateSummary()

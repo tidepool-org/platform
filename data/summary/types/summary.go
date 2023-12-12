@@ -195,7 +195,7 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 	}
 
 	if reason == OutdatedReasonSchemaMigration {
-		*s = *Create[T, A](s.UserID)
+		*s = *Create[A](s.UserID)
 	}
 
 	s.Dates.OutdatedReason = set.ToSlice()
@@ -234,7 +234,7 @@ func NewDates() Dates {
 	}
 }
 
-func Create[T Stats, A StatsPt[T]](userId string) *Summary[T, A] {
+func Create[A StatsPt[T], T Stats](userId string) *Summary[T, A] {
 	s := new(Summary[T, A])
 	s.UserID = userId
 	s.Stats = new(T)
@@ -260,16 +260,15 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat *Bucket[A, T]) error {
-	// NOTE This is only partially able to handle editing the past, and will break if given a bucket which
-	//      must be prepended
+func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newBucket *Bucket[A, T]) error {
 	if len(*buckets) == 0 {
-		*buckets = append(*buckets, newStat)
+		*buckets = append(*buckets, newBucket)
+		return nil
 	}
 
 	lastBucketPeriod := (*buckets)[len(*buckets)-1].Date
 	firstBucketPeriod := (*buckets)[0].Date
-	newPeriod := newStat.Date
+	newPeriod := newBucket.Date
 	statsGap := 0
 	var gapStart time.Time
 	var gapEnd time.Time
@@ -308,7 +307,7 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 		if !(*buckets)[offset].Date.Equal(newPeriod) {
 			return errors.New("Potentially damaged buckets, offset jump did not find intended record when replacing bucket.")
 		}
-		(*buckets)[offset] = newStat
+		(*buckets)[offset] = newBucket
 		return nil
 	}
 
@@ -319,9 +318,9 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	}
 
 	if newPeriod.After(lastBucketPeriod) {
-		*buckets = append(*buckets, newStat)
+		*buckets = append(*buckets, newBucket)
 	} else if newPeriod.Before(firstBucketPeriod) {
-		*buckets = append([]*Bucket[A, T]{newStat}, *buckets...)
+		*buckets = append(S{newBucket}, *buckets...)
 	} else {
 		return errors.New("eh? bucket not before or after, but not existing?")
 	}
@@ -329,15 +328,10 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	return nil
 }
 
-func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes](ctx context.Context, buckets *Buckets[T, A], userData *mongo.Cursor) error {
-	var r D
-	var newBucket *Bucket[A, T]
+func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes](buckets *Buckets[T, A], userData []D, newBucket *Bucket[A, T]) (*Bucket[A, T], error) {
 	lastPeriod := time.Time{}
 
-	for userData.Next(ctx) {
-		if err := userData.Decode(r); err != nil {
-			return errors.New("Unable to decode userData")
-		}
+	for _, r := range userData {
 		recordTime := r.GetTime()
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
@@ -348,7 +342,7 @@ func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes]
 		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
 			err := AddBin(buckets, newBucket)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			newBucket = nil
 		}
@@ -369,7 +363,7 @@ func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes]
 						newBucket = (*buckets)[len(*buckets)-gap-1]
 						fmt.Println(newBucket.Date, "!=", currentPeriod)
 						if !newBucket.Date.Equal(currentPeriod) {
-							return errors.New("Potentially damaged buckets, offset jump did not find intended record when adding data.")
+							return nil, errors.New("Potentially damaged buckets, offset jump did not find intended record when adding data.")
 						}
 					}
 				}
@@ -390,7 +384,7 @@ func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes]
 
 		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if !skipped {
 			newBucket.LastRecordTime = *recordTime
@@ -401,32 +395,32 @@ func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes]
 	if newBucket != nil {
 		err := AddBin(buckets, newBucket)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return newBucket, nil
 }
 
-func SetStartTime[T Stats, A StatsPt[T]](userSummary *Summary[T, A], status *UserLastUpdated) {
-	// remove HoursAgoToKeep/24 days for start time
-	status.FirstData = status.LastData.AddDate(0, 0, -HoursAgoToKeep/24)
-	status.LastUpdated = userSummary.Dates.LastUpdatedDate
-
-	//if userSummary.Dates.LastData != nil {
-	//	// if summary already exists with a last data checkpoint, start data pull there
-	//	if startTime.Before(*userSummary.Dates.LastData) {
-	//		startTime = *userSummary.Dates.LastData
-	//	}
-	//
-	//	// ensure LastData does not move backwards by capping it at summary LastData
-	//	if status.LastData.Before(*userSummary.Dates.LastData) {
-	//		status.LastData = *userSummary.Dates.LastData
-	//	}
-	//}
-	//
-	//return startTime
-}
+//func SetStartTime[T Stats, A StatsPt[T]](userSummary *Summary[T, A], status *UserLastUpdated) {
+//	// remove HoursAgoToKeep/24 days for start time
+//	status.FirstData = status.LastData.AddDate(0, 0, -HoursAgoToKeep/24)
+//	status.LastUpdated = userSummary.Dates.LastUpdatedDate
+//
+//	//if userSummary.Dates.LastData != nil {
+//	//	// if summary already exists with a last data checkpoint, start data pull there
+//	//	if startTime.Before(*userSummary.Dates.LastData) {
+//	//		startTime = *userSummary.Dates.LastData
+//	//	}
+//	//
+//	//	// ensure LastData does not move backwards by capping it at summary LastData
+//	//	if status.LastData.Before(*userSummary.Dates.LastData) {
+//	//		status.LastData = *userSummary.Dates.LastData
+//	//	}
+//	//}
+//	//
+//	//return startTime
+//}
 
 func (d *Dates) Reset() {
 	*d = Dates{

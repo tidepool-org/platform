@@ -121,7 +121,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 
 	summaries := make([]*types.Summary[T, A], 0, len(userIDsReqBackfill))
 	for _, userID := range userIDsReqBackfill {
-		s := types.Create[T, A](userID)
+		s := types.Create[A](userID)
 		s.SetOutdated(types.OutdatedReasonBackfill)
 		summaries = append(summaries, s)
 
@@ -165,7 +165,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 
 	// user has no usable summary for incremental update
 	if userSummary == nil {
-		userSummary = types.Create[T, A](userId)
+		userSummary = types.Create[A](userId)
 	}
 
 	if userSummary.Config.SchemaVersion != types.SchemaVersion {

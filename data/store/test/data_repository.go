@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -148,16 +149,15 @@ type GetLastUpdatedForUserOutput struct {
 }
 
 type GetDataRangeInput struct {
-	Context     context.Context
-	DataRecords interface{}
-	ID          string
-	Type        string
-	StartTime   time.Time
-	EndTime     time.Time
+	Context context.Context
+	UserId  string
+	Typ     string
+	Status  *types.UserLastUpdated
 }
 
 type GetDataRangeOutput struct {
-	Error error
+	Error  error
+	Cursor *mongo.Cursor
 }
 
 type GetUsersWithBGDataSinceInput struct {
@@ -495,16 +495,16 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId strin
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, dataRecords interface{}, id string, typ string, startTime time.Time, endTime time.Time) error {
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
 	d.GetDataRangeInvocations++
 
-	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, DataRecords: dataRecords, ID: id, Type: typ, StartTime: startTime, EndTime: endTime})
+	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})
 
 	gomega.Expect(d.GetDataRangeOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.GetDataRangeOutputs[0]
 	d.GetDataRangeOutputs = d.GetDataRangeOutputs[1:]
-	return output.Error
+	return output.Cursor, output.Error
 }
 
 func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {

@@ -597,6 +597,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
+	// TODO remove?
 	//switch v := dataRecords.(type) {
 	//case *[]*glucose.Glucose:
 	//	if typ != continuous.Type && typ != selfmonitored.Type {
@@ -641,6 +642,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
+	opts.SetBatchSize(300)
 
 	cursor, err := d.Find(ctx, selector, opts)
 	if err != nil {
@@ -649,77 +651,6 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 
 	return cursor, nil
 }
-
-//func (d *DatumRepository) GetModifiedBucketsInRange(ctx context.Context, userId string, typ string, startTime time.Time, endTime time.Time, fromModified time.Time) (modifiedPeriods []types.ModifiedPeriod, err error) {
-//	if ctx == nil {
-//		return nil, errors.New("context is missing")
-//	}
-//
-//	if userId == "" {
-//		return nil, errors.New("userId is empty")
-//	}
-//
-//	if typ == "" {
-//		return nil, errors.New("typ is empty")
-//	}
-//
-//	// This is never expected to be an upload.
-//	if isTypeUpload(typ) {
-//		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
-//	}
-//
-//	// quit early if range is 0
-//	if startTime.Equal(endTime) {
-//		return nil, nil
-//	}
-//
-//	// return error if ranges are inverted, as this can produce unexpected results
-//	if startTime.After(endTime) {
-//		return nil, fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
-//	}
-//
-//	if fromModified.IsZero() {
-//		return nil, fmt.Errorf("fromModified is zero")
-//	}
-//
-//	if fromModified.Before(startTime) {
-//		return nil, fmt.Errorf("fromModified is before startTime")
-//	}
-//
-//	pipeline := mongo.Pipeline{
-//		bson.D{
-//			{"$match", bson.D{
-//				{"_active", true},
-//				{"_userId", userId},
-//				{"type", typ},
-//				{"time", bson.D{
-//					{"$gt", startTime},
-//					{"$lte", endTime},
-//				}},
-//				{"modifiedTime", bson.D{
-//					{"$gt", fromModified},
-//				}},
-//			}},
-//		},
-//		bson.D{
-//			{"$group", bson.D{
-//				{"_id", bson.M{"$dateTrunc": bson.M{"date": "$modifiedTime", "unit": "hour"}}},
-//				{"minTime", bson.M{"$min": "$time"}},
-//			}},
-//		},
-//	}
-//
-//	var cursor *mongo.Cursor
-//	if cursor, err = d.Aggregate(ctx, pipeline); err != nil {
-//		return nil, fmt.Errorf("unable to get modified %s buckets in date range for user: %w", typ, err)
-//	}
-//
-//	if err = cursor.All(ctx, modifiedPeriods); err != nil {
-//		return nil, fmt.Errorf("unable to decode modified ranges, %w", err)
-//	}
-//
-//	return
-//}
 
 func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) error {
 	var err error
