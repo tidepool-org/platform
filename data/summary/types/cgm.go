@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"time"
 
@@ -183,20 +183,19 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *CGMStats) Update(ctx context.Context, userData any) error {
-	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	if !ok {
-		return errors.New("CGM records for calculation is not compatible with Glucose type")
-	}
+func (s *CGMStats) Update(ctx context.Context, userData *mongo.Cursor) error {
+	//userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
+	//if !ok {
+	//	return errors.New("CGM records for calculation is not compatible with Glucose type")
+	//}
+	//
+	//for i, v := range userDataTyped {
+	//	if v.Type != continuous.Type {
+	//		return fmt.Errorf("Non-CGM data provided for CGM summary update at position %d", i)
+	//	}
+	//}
 
-	for i, v := range userDataTyped {
-		if v.Type != continuous.Type {
-			return fmt.Errorf("Non-CGM data provided for CGM summary update at position %d", i)
-		}
-	}
-
-	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[CGMBucketData, *CGMBucketData](ctx, &s.Buckets, userDataTyped)
+	err := AddData[*glucoseDatum.Glucose](ctx, &s.Buckets, userData)
 	if err != nil {
 		return err
 	}

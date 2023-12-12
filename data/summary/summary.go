@@ -149,12 +149,12 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	}
 
 	logger.Debugf("Starting summary calculation for %s", userId)
-	status := &types.UserLastUpdated{}
+	status := &types.UserLastUpdated{LastUpdated: userSummary.Dates.LastUpdatedDate}
+
 	err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
 		return nil, err
 	}
-	types.SetStartTime(userSummary, status)
 
 	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
 	if userSummary != nil && status.LastData.IsZero() {

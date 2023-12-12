@@ -723,8 +723,6 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 
 func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) error {
 	var err error
-	var cursor *mongo.Cursor
-	var dataSet []*baseDatum.Base
 
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -747,13 +745,14 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
 
+	// get latest active record
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
 		"type":    typ,
 		"time": bson.M{
-			"$lte": futureCutoff,
 			"$gte": pastCutoff,
+			"$lte": futureCutoff,
 		},
 	}
 
@@ -761,26 +760,74 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
 
+	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get last %s date: %w", typ, err)
+		return fmt.Errorf("unable to get last %s time: %w", typ, err)
 	}
 
+	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode last %s date: %w", typ, err)
+		return fmt.Errorf("unable to decode last %s time: %w", typ, err)
 	}
 
 	// if we have no record
-	if len(dataSet) < 1 {
-		return nil
+	if len(dataSet) > 0 {
+		status.LastData = dataSet[0].Time.UTC()
+		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
+	}
+	status.NextLastUpdated = timestamp
+
+	// get latest modified record
+	selector = bson.M{
+		"_active": bson.M{"$ne": -1111},
+		"_userId": userId,
+		"type":    typ,
+		"time": bson.M{
+			"$gte": status.FirstData,
+			"$lte": status.LastData,
+		},
+	}
+	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
+	cursor, err = d.Find(ctx, selector, findOptions)
+	if err != nil {
+		return fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
+	}
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
 	}
 
-	// TODO query for latest modified record within range separately
+	// if we have no record
+	if len(dataSet) > 0 {
+		status.LastUpload = dataSet[0].ModifiedTime.UTC()
+	}
 
-	// TODO needs to be the MAX of the ModifiedTime
-	status.LastUpload = (*dataSet[0].ModifiedTime).UTC()
-	status.LastData = (*dataSet[0].Time).UTC()
-	status.NextLastUpdated = timestamp
+	// get earliest modified record which is newer than LastUpdated
+	selector = bson.M{
+		"_active": bson.M{"$ne": -1111},
+		"_userId": userId,
+		"type":    typ,
+		"time": bson.M{
+			"$gte": status.FirstData,
+			"$lte": status.LastData,
+		},
+		"modifiedTime": bson.M{
+			"$gte": status.LastUpdated,
+		},
+	}
+	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+	cursor, err = d.Find(ctx, selector, findOptions)
+	if err != nil {
+		return fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
+	}
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
+	}
+
+	// if we have no record
+	if len(dataSet) > 0 {
+		status.LastUpload = dataSet[0].ModifiedTime.UTC()
+	}
 
 	return nil
 }

@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"time"
 
@@ -128,20 +128,19 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *BGMStats) Update(ctx context.Context, userData any) error {
-	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	if !ok {
-		return errors.New("BGM records for calculation is not compatible with Glucose type")
-	}
+func (s *BGMStats) Update(ctx context.Context, userData *mongo.Cursor) error {
+	//userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
+	//if !ok {
+	//	return errors.New("BGM records for calculation is not compatible with Glucose type")
+	//}
+	//
+	//for i, v := range userDataTyped {
+	//	if v.Type != selfmonitored.Type {
+	//		return fmt.Errorf("Non-BGM data provided for BGM summary update at position %d", i)
+	//	}
+	//}
 
-	for i, v := range userDataTyped {
-		if v.Type != selfmonitored.Type {
-			return fmt.Errorf("Non-BGM data provided for BGM summary update at position %d", i)
-		}
-	}
-
-	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[BGMBucketData, *BGMBucketData](ctx, &s.Buckets, userDataTyped)
+	err := AddData[*glucoseDatum.Glucose](ctx, &s.Buckets, userData)
 	if err != nil {
 		return err
 	}

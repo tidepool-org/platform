@@ -176,7 +176,7 @@ func getFieldName(f reflect.StructField) string {
 
 // Create a map of field names that we'll see in the deepObject to reflect
 // field indices on the given type.
-func fieldIndicesByJsonTag(i interface{}) (map[string]int, error) {
+func fieldIndicesByJSONTag(i interface{}) (map[string]int, error) {
 	t := reflect.TypeOf(i)
 	if t.Kind() != reflect.Struct {
 		return nil, errors.New("expected a struct as input")
@@ -271,7 +271,7 @@ func assignPathValues(dst interface{}, pathValues fieldOrValue) error {
 			}
 			dst.Set(reflect.ValueOf(tm))
 		}
-		fieldMap, err := fieldIndicesByJsonTag(iv.Interface())
+		fieldMap, err := fieldIndicesByJSONTag(iv.Interface())
 		if err != nil {
 			return fmt.Errorf("failed enumerating fields: %w", err)
 		}

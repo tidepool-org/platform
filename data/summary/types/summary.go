@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -129,7 +130,7 @@ func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 	d.OutdatedReason = nil
 }
 
-type Bucket[T BucketData, S BucketDataPt[T]] struct {
+type Bucket[S BucketDataPt[T], T BucketData] struct {
 	Date           time.Time `json:"date" bson:"date"`
 	LastRecordTime time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
 
@@ -141,14 +142,14 @@ type BucketDataPt[T BucketData] interface {
 	CalculateStats(interface{}, *time.Time) (bool, error)
 }
 
-func CreateBucket[T BucketData, A BucketDataPt[T]](t time.Time) *Bucket[T, A] {
-	bucket := new(Bucket[T, A])
+func CreateBucket[A BucketDataPt[T], T BucketData](t time.Time) *Bucket[A, T] {
+	bucket := new(Bucket[A, T])
 	bucket.Date = t
 	bucket.Data = new(T)
 	return bucket
 }
 
-type Buckets[T BucketData, S BucketDataPt[T]] []*Bucket[T, S]
+type Buckets[T BucketData, S BucketDataPt[T]] []*Bucket[S, T]
 
 type Stats interface {
 	CGMStats | BGMStats
@@ -161,7 +162,7 @@ type StatsPt[T Stats] interface {
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
-	Update(context.Context, any) error
+	Update(context.Context, *mongo.Cursor) error
 }
 
 type Summary[T Stats, A StatsPt[T]] struct {
@@ -259,7 +260,7 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat *Bucket[T, A]) error {
+func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat *Bucket[A, T]) error {
 	// NOTE This is only partially able to handle editing the past, and will break if given a bucket which
 	//      must be prepended
 	if len(*buckets) == 0 {
@@ -283,7 +284,6 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 			gapEnd = newPeriod
 			statsGap = int(newPeriod.Sub(lastBucketPeriod).Hours())
 
-			// TODO move to the After block
 			// remove extra hours to cap at X hours of buckets
 			if len(*buckets) > HoursAgoToKeep {
 				// zero out any to-be-trimmed buckets to lower their impact until reallocation
@@ -315,13 +315,13 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	// TODO move to CreateEmptyBucketsBetween
 	gapBuckets := make(S, 0, Abs(statsGap))
 	for i := gapStart; i.Before(gapEnd); i = i.Add(time.Hour) {
-		gapBuckets = append(gapBuckets, CreateBucket[T, A](i))
+		gapBuckets = append(gapBuckets, CreateBucket[A](i))
 	}
 
 	if newPeriod.After(lastBucketPeriod) {
 		*buckets = append(*buckets, newStat)
 	} else if newPeriod.Before(firstBucketPeriod) {
-		*buckets = append([]*Bucket[T, A]{newStat}, *buckets...)
+		*buckets = append([]*Bucket[A, T]{newStat}, *buckets...)
 	} else {
 		return errors.New("eh? bucket not before or after, but not existing?")
 	}
@@ -329,12 +329,15 @@ func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newSta
 	return nil
 }
 
-func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D RecordTypesPt[R]](ctx context.Context, buckets *S, userData []D) error {
+func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes](ctx context.Context, buckets *Buckets[T, A], userData *mongo.Cursor) error {
+	var r D
+	var newBucket *Bucket[A, T]
 	lastPeriod := time.Time{}
-	var newBucket *Bucket[T, A]
-	targetBuckets := buckets
 
-	for _, r := range userData {
+	for userData.Next(ctx) {
+		if err := userData.Decode(r); err != nil {
+			return errors.New("Unable to decode userData")
+		}
 		recordTime := r.GetTime()
 
 		// truncate time is not timezone/DST safe here, even if we do expect UTC
@@ -343,7 +346,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 		// store stats for the period, if we are now on a different period
 		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
-			err := AddBin(targetBuckets, newBucket)
+			err := AddBin(buckets, newBucket)
 			if err != nil {
 				return err
 			}
@@ -353,25 +356,20 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 		if newBucket == nil {
 			// pull stats if they already exist
 			// we assume the list is fully populated with empty hours for any gaps, so the length should be predictable
-			if len(*targetBuckets) > 0 {
-				lastBucketHour := (*targetBuckets)[len(*targetBuckets)-1].Date
+			if len(*buckets) > 0 {
+				lastBucketHour := (*buckets)[len(*buckets)-1].Date
 
 				// if we need to look for an existing bucket
 				if currentPeriod.Equal(lastBucketHour) || currentPeriod.Before(lastBucketHour) {
 					fmt.Println("getting existing bucket")
 					gap := int(lastBucketHour.Sub(currentPeriod).Hours())
 
-					fmt.Println("going back", gap, "buckets, have", len(*targetBuckets), "buckets")
-					if gap < len(*targetBuckets) {
-						newBucket = (*targetBuckets)[len(*targetBuckets)-gap-1]
+					fmt.Println("going back", gap, "buckets, have", len(*buckets), "buckets")
+					if gap < len(*buckets) {
+						newBucket = (*buckets)[len(*buckets)-gap-1]
 						fmt.Println(newBucket.Date, "!=", currentPeriod)
 						if !newBucket.Date.Equal(currentPeriod) {
 							return errors.New("Potentially damaged buckets, offset jump did not find intended record when adding data.")
-						}
-
-						if newBucket.LastRecordTime.After(*recordTime) {
-							// we have a new record in the past, pull old records before this, and recurse.
-							// TODO
 						}
 					}
 				}
@@ -379,15 +377,15 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 			// we still don't have a bucket, make a new one.
 			if newBucket == nil {
-				newBucket = CreateBucket[T, A](currentPeriod)
+				newBucket = CreateBucket[A](currentPeriod)
 			}
 		}
 
 		lastPeriod = currentPeriod
 
 		// if on fresh hour, pull LastRecordTime from last day if possible
-		if newBucket.LastRecordTime.IsZero() && len(*targetBuckets) > 0 {
-			newBucket.LastRecordTime = (*targetBuckets)[len(*targetBuckets)-1].LastRecordTime
+		if newBucket.LastRecordTime.IsZero() && len(*buckets) > 0 {
+			newBucket.LastRecordTime = (*buckets)[len(*buckets)-1].LastRecordTime
 		}
 
 		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
@@ -401,7 +399,7 @@ func AddData[T BucketData, A BucketDataPt[T], S Buckets[T, A], R RecordTypes, D 
 
 	// store any partial bucket
 	if newBucket != nil {
-		err := AddBin(targetBuckets, newBucket)
+		err := AddBin(buckets, newBucket)
 		if err != nil {
 			return err
 		}
