@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
-	"strconv"
 	"strings"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -19,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -39,249 +36,38 @@ func GetValidatedString(bsonData bson.M, fieldName string) (string, error) {
 	}
 }
 
-func getValidatedTime(bsonData bson.M, fieldName string) (string, error) {
-	if valRaw, ok := bsonData[fieldName]; !ok {
-		return "", errors.Newf("%s is missing", fieldName)
-	} else if ms, ok := valRaw.(int64); !ok {
-		if t := time.UnixMilli(ms); !t.IsZero() {
-			return t.Format(types.TimeFormat), nil
-		}
+func updateIfExistsPumpSettingsSleepSchedules(datum *pump.Pump) (*pump.SleepScheduleMap, error) {
+	sleepSchedules := datum.SleepSchedules
+	if sleepSchedules == nil {
+		return nil, nil
 	}
-	log.Printf("invalid data %#v", bsonData)
-	return "", errors.Newf("%s is missing", fieldName)
+	for key := range *sleepSchedules {
+		days := (*sleepSchedules)[key].Days
+		updatedDays := []string{}
+		for _, day := range *days {
+			if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
+				return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+			}
+			updatedDays = append(updatedDays, strings.ToLower(day))
+		}
+		(*sleepSchedules)[key].Days = &updatedDays
+	}
+	//sorts schedules based on day
+	sleepSchedules.Normalize(normalizer.New())
+	return sleepSchedules, nil
+
 }
 
-func datumHash_1(bsonData bson.M) (string, error) {
-
-	identityFields := []string{}
-	if datumUserID, err := GetValidatedString(bsonData, "_userId"); err != nil {
-		log.Printf("invalid data _userId: %#v", bsonData)
-		return "", err
-	} else {
-		identityFields = append(identityFields, datumUserID)
+func updateIfExistsPumpSettingsBolus(datum *pump.Pump) (*pump.BolusMap, error) {
+	bolus := datum.Bolus
+	if bolus == nil {
+		return nil, nil
 	}
-	if deviceID, err := GetValidatedString(bsonData, "deviceId"); err != nil {
-		log.Printf("invalid data deviceId: %#v", bsonData)
-		return "", err
-	} else {
-		identityFields = append(identityFields, deviceID)
+	boluses := &pump.BolusMap{
+		"one": bolus,
 	}
-	if datumTime, err := getValidatedTime(bsonData, "time"); err != nil {
-		log.Printf("invalid data time: %#v", bsonData)
-		return "", err
-	} else {
-		identityFields = append(identityFields, datumTime)
-	}
-	datumType, err := GetValidatedString(bsonData, "type")
-	if err != nil {
-		log.Printf("invalid data type: %#v", bsonData)
-		return "", err
-	}
-	identityFields = append(identityFields, datumType)
+	return boluses, nil
 
-	switch datumType {
-	case basal.Type:
-		if deliveryType, err := GetValidatedString(bsonData, "deliveryType"); err != nil {
-			return "", err
-		} else {
-			identityFields = append(identityFields, deliveryType)
-		}
-	case bolus.Type, device.Type:
-		if subType, err := GetValidatedString(bsonData, "subType"); err != nil {
-			return "", err
-		} else {
-			identityFields = append(identityFields, subType)
-		}
-	case selfmonitored.Type, ketone.Type, continuous.Type:
-		units, err := GetValidatedString(bsonData, "units")
-		if err != nil {
-			return "", err
-		} else {
-			identityFields = append(identityFields, units)
-		}
-
-		if valueRaw, ok := bsonData["value"]; !ok {
-			return "", errors.New("value is missing")
-		} else if val, ok := valueRaw.(float64); !ok {
-			return "", errors.New("value is not of expected type")
-		} else {
-			if units != glucose.MgdL && units != glucose.Mgdl {
-				// NOTE: we need to ensure the same precision for the
-				// converted value as it is used to calculate the hash
-				val = GetBGValuePlatformPrecision(val)
-			}
-			identityFields = append(identityFields, strconv.FormatFloat(val, 'f', -1, 64))
-		}
-	}
-	return deduplicator.GenerateIdentityHash(identityFields)
-}
-
-func datumHash(bsonData bson.M) (string, error) {
-
-	identityFields := []string{}
-	var datumType string
-	var errorDebug = func(err error) (string, error) {
-		log.Printf("error [%s] creating hash for datum %v", err, bsonData)
-		return "", err
-	}
-
-	datumType, err := GetValidatedString(bsonData, "type")
-	if err != nil {
-		return errorDebug(err)
-	}
-
-	switch datumType {
-	case basal.Type:
-		var basalDatum *basal.Basal
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &basalDatum)
-		identityFields, err = basalDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	case bolus.Type:
-		var bolusDatum *bolus.Bolus
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &bolusDatum)
-		identityFields, err = bolusDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	case device.Type:
-		var deviceDatum *device.Device
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &deviceDatum)
-		identityFields, err = deviceDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	case selfmonitored.Type:
-		var smbgDatum *selfmonitored.SelfMonitored
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &smbgDatum)
-		if *smbgDatum.Units != glucose.MgdL && *smbgDatum.Units != glucose.Mgdl {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			val := GetBGValuePlatformPrecision(*smbgDatum.Value)
-			smbgDatum.Value = &val
-		}
-		identityFields, err = smbgDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	case ketone.Type:
-		var ketoneDatum *ketone.Ketone
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &ketoneDatum)
-		if *ketoneDatum.Units != glucose.MgdL && *ketoneDatum.Units != glucose.Mgdl {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			val := GetBGValuePlatformPrecision(*ketoneDatum.Value)
-			ketoneDatum.Value = &val
-		}
-
-		identityFields, err = ketoneDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	case continuous.Type:
-		var cbgDatum *continuous.Continuous
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &cbgDatum)
-
-		if *cbgDatum.Units != glucose.MgdL && *cbgDatum.Units != glucose.Mgdl {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			val := GetBGValuePlatformPrecision(*cbgDatum.Value)
-			cbgDatum.Value = &val
-		}
-
-		identityFields, err = cbgDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	case calculator.Type:
-		var calcDatum *calculator.Calculator
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return errorDebug(err)
-		}
-		bson.Unmarshal(dataBytes, &calcDatum)
-		identityFields, err = calcDatum.IdentityFields()
-		if err != nil {
-			return errorDebug(err)
-		}
-	}
-	if len(identityFields) == 0 {
-		return errorDebug(errors.New("missing identity fields"))
-	}
-	return deduplicator.GenerateIdentityHash(identityFields)
-}
-
-func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
-	dataType, err := GetValidatedString(bsonData, "type")
-	if err != nil {
-		return nil, err
-	}
-
-	if dataType == pump.Type {
-		if sleepSchedules := bsonData["sleepSchedules"]; sleepSchedules != nil {
-			schedules, ok := sleepSchedules.(*pump.SleepScheduleMap)
-			if !ok {
-				return nil, errors.Newf("pumpSettings.sleepSchedules is not the expected type %s", sleepSchedules)
-			}
-			for key := range *schedules {
-				days := (*schedules)[key].Days
-				updatedDays := []string{}
-				for _, day := range *days {
-					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
-						return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
-					}
-					updatedDays = append(updatedDays, strings.ToLower(day))
-				}
-				(*schedules)[key].Days = &updatedDays
-			}
-			//sorts schedules based on day
-			schedules.Normalize(normalizer.New())
-			return schedules, nil
-		}
-	}
-	return nil, nil
-}
-
-func updateIfExistsPumpSettingsBolus(bsonData bson.M) (*pump.BolusMap, error) {
-	dataType, err := GetValidatedString(bsonData, "type")
-	if err != nil {
-		return nil, err
-	}
-	if dataType == pump.Type {
-		if bolus := bsonData["bolus"]; bolus != nil {
-			boluses, ok := bolus.(*pump.BolusMap)
-			if !ok {
-				return nil, errors.Newf("pumpSettings.bolus is not the expected type %v", bolus)
-			}
-			return boluses, nil
-		}
-	}
-	return nil, nil
 }
 
 func GetBGValuePlatformPrecision(mmolVal float64) float64 {
@@ -293,28 +79,156 @@ func GetBGValuePlatformPrecision(mmolVal float64) float64 {
 	return mmolVal
 }
 
-func GetDatumUpdates(bsonData bson.M) (bson.M, error) {
+func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 	updates := bson.M{}
+	datumID := ""
+	var identityFields []string
 
-	hash, err := datumHash(bsonData)
+	// while doing test runs
+	var errorDebug = func(err error) (string, bson.M, error) {
+		log.Printf("[%s] error [%s] creating hash for datum %v", datumID, err, bsonData)
+		return datumID, nil, err
+	}
+
+	datumType, err := GetValidatedString(bsonData, "type")
 	if err != nil {
-		return nil, err
+		return errorDebug(err)
+	}
+
+	dataBytes, err := bson.Marshal(bsonData)
+	if err != nil {
+		return errorDebug(err)
+	}
+
+	switch datumType {
+	case basal.Type:
+		var datum *basal.Basal
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	case bolus.Type:
+		var datum *bolus.Bolus
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	case device.Type:
+		var datum *bolus.Bolus
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	case pump.Type:
+		var datum *pump.Pump
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+
+		boluses, err := updateIfExistsPumpSettingsBolus(datum)
+		if err != nil {
+			return errorDebug(err)
+		} else if boluses != nil {
+			updates["boluses"] = boluses
+		}
+
+		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(datum)
+		if err != nil {
+			return errorDebug(err)
+		} else if sleepSchedules != nil {
+			updates["sleepSchedules"] = sleepSchedules
+		}
+
+	case selfmonitored.Type:
+		var datum *selfmonitored.SelfMonitored
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := GetBGValuePlatformPrecision(*datum.Value)
+			datum.Value = &val
+		}
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	case ketone.Type:
+		var datum *ketone.Ketone
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := GetBGValuePlatformPrecision(*datum.Value)
+			datum.Value = &val
+		}
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	case continuous.Type:
+		var datum *continuous.Continuous
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := GetBGValuePlatformPrecision(*datum.Value)
+			datum.Value = &val
+		}
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	default:
+		var datum *types.Base
+		err = bson.Unmarshal(dataBytes, &datum)
+		if err != nil {
+			return errorDebug(err)
+		}
+		datumID = *datum.ID
+		identityFields, err = datum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	}
+
+	hash, err := deduplicator.GenerateIdentityHash(identityFields)
+	if err != nil {
+		return errorDebug(err)
 	}
 	updates["_deduplicator"] = bson.M{"hash": hash}
 
-	boluses, err := updateIfExistsPumpSettingsBolus(bsonData)
-	if err != nil {
-		return nil, err
-	} else if boluses != nil {
-		updates["boluses"] = boluses
-	}
-
-	sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(bsonData)
-	if err != nil {
-		return nil, err
-	} else if sleepSchedules != nil {
-		updates["sleepSchedules"] = sleepSchedules
-	}
-
-	return updates, nil
+	return datumID, updates, nil
 }

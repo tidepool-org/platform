@@ -356,13 +356,11 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	}
 
 	m.updates = []mongo.WriteModel{}
-	sLimit := int64(5) //Testing only get small group at a time
 
 	if dataC := m.getDataCollection(); dataC != nil {
 		dDataCursor, err := dataC.Find(m.ctx, selector,
-			//&options.FindOptions{Limit: &m.config.readBatchSize},
 			&options.FindOptions{
-				Limit: &sLimit,
+				Limit: &m.config.readBatchSize,
 				Sort:  bson.M{"_id": 1},
 			},
 		)
@@ -379,13 +377,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
-			datumID, err := utils.GetValidatedString(dDataResult, "_id")
-			if err != nil {
-				log.Printf("failed getting dutum _id: %s", err)
-				return false
-			}
-
-			updates, err := utils.GetDatumUpdates(dDataResult)
+			datumID, updates, err := utils.GetDatumUpdates(dDataResult)
 			if err != nil {
 				log.Printf("failed getting datum updates: %s", err)
 				return false
