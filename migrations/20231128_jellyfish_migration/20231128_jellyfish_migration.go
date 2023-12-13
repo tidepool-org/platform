@@ -341,18 +341,18 @@ func (m *Migration) blockUntilDBReady() error {
 func (m *Migration) fetchAndUpdateBatch() bool {
 	selector := bson.M{
 		// jellyfish uses a generated _id that is not an mongo objectId
-		"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
 		"_deduplicator": bson.M{"$exists": false},
 		// testing based on _userId for jamie+qa3_1@tidepool.org
 		"_userId": "5e8cac61-6bef-4728-b490-c1d82087ed9c",
 	}
 
 	if m.lastUpdatedId != "" {
-		selector["_id"] = bson.M{"$and": []interface{}{
-			bson.M{"$gt": m.lastUpdatedId},
-			bson.M{"$type": "objectId"},
-		}}
-		log.Printf("selector with _id $gt %#v", selector)
+		selector["$and"] = []interface{}{
+			bson.M{"_id": bson.M{"$gt": m.lastUpdatedId}},
+			bson.M{"_id": bson.M{"$not": bson.M{"$type": "objectId"}}},
+		}
+	} else {
+		selector["_id"] = bson.M{"$not": bson.M{"$type": "objectId"}}
 	}
 
 	m.updates = []mongo.WriteModel{}
