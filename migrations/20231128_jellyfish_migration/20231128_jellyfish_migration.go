@@ -41,6 +41,7 @@ type Migration struct {
 	client         *mongo.Client
 	writeBatchSize *int64
 	updates        []mongo.WriteModel
+	dryRun         bool
 }
 
 const oplogName = "oplog.rs"
@@ -61,6 +62,7 @@ func NewMigration(ctx context.Context) *Migration {
 		cli:     cli.NewApp(),
 		config:  &Config{},
 		updates: []mongo.WriteModel{},
+		dryRun:  true,
 	}
 }
 
@@ -76,7 +78,6 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
-
 		log.Printf("config %#v", m.config)
 		if err := m.prepare(); err != nil {
 			log.Printf("prepare failed: %s", err)
@@ -86,7 +87,6 @@ func (m *Migration) RunAndExit() {
 			log.Printf("execute failed: %s", err)
 			return err
 		}
-		log.Println("finished execute")
 		return nil
 	}
 
@@ -109,8 +109,9 @@ func (m *Migration) Initialize() error {
 	}
 	m.CLI().Flags = append(m.CLI().Flags,
 		cli.BoolFlag{
-			Name:  fmt.Sprintf("%s,%s", DryRunFlag, "n"),
-			Usage: "dry run only; do not migrate",
+			Name:        fmt.Sprintf("%s,%s", DryRunFlag, "n"),
+			Usage:       "dry run only; do not migrate",
+			Destination: &m.dryRun,
 		},
 		cli.Int64Flag{
 			Name:        "batch-size",
@@ -155,7 +156,6 @@ func (m *Migration) Initialize() error {
 			FilePath:    "./uri",
 		},
 	)
-
 	return nil
 }
 
@@ -181,7 +181,6 @@ func (m *Migration) prepare() error {
 }
 
 func (m *Migration) execute() error {
-	log.Println("about to run execute")
 	totalMigrated := 0
 	testingCapSize := 10
 	for m.fetchAndUpdateBatch() {
@@ -201,7 +200,6 @@ func (m *Migration) execute() error {
 }
 
 func (m *Migration) getOplogDuration() (time.Duration, error) {
-	log.Println("checking oplog duration ...")
 	type MongoMetaData struct {
 		Wall time.Time `json:"wall"`
 	}
@@ -222,7 +220,7 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 			return 0, err
 		}
 		oplogDuration := newest.Wall.Sub(oldest.Wall)
-		log.Printf("oplog duration is currently: %v", oplogDuration)
+		log.Printf("oplog duration: %v", oplogDuration)
 		return oplogDuration, nil
 	}
 	log.Println("Not clustered, not retrieving oplog duration.")
@@ -236,7 +234,6 @@ func calculateBatchSize(oplogSize int, oplogEntryBytes int, oplogMinWindow int, 
 }
 
 func (m *Migration) setWriteBatchSize() error {
-	log.Println("set writeBatchSize...")
 	if oplogC := m.getOplogCollection(); oplogC != nil {
 		type MongoMetaData struct {
 			MaxSize int `json:"maxSize"`
@@ -245,10 +242,9 @@ func (m *Migration) setWriteBatchSize() error {
 		if err := oplogC.Database().RunCommand(m.ctx, bson.M{"collStats": oplogName}).Decode(&metaData); err != nil {
 			return err
 		}
-		log.Printf("oplog maxSize: %d", metaData.MaxSize)
 		writeBatchSize := calculateBatchSize(metaData.MaxSize, m.config.expectedOplogEntrySize, m.config.minOplogWindow, m.config.nopPercent)
 		m.writeBatchSize = &writeBatchSize
-		log.Printf("writeBatchSize: %d", writeBatchSize)
+		log.Printf("calculated writeBatchSize: %d", writeBatchSize)
 		return nil
 	}
 	var writeBatchSize = int64(30000)
@@ -258,7 +254,6 @@ func (m *Migration) setWriteBatchSize() error {
 }
 
 func (m *Migration) checkFreeSpace() error {
-	log.Println("check free space...")
 	type MongoMetaData struct {
 		FsTotalSize int `json:"fsTotalSize"`
 		FsUsedSize  int `json:"fsUsedSize"`
@@ -268,7 +263,6 @@ func (m *Migration) checkFreeSpace() error {
 		if err := dataC.Database().RunCommand(m.ctx, bson.M{"dbStats": 1}).Decode(&metaData); err != nil {
 			return err
 		}
-		log.Printf("dbStats: %#v", metaData)
 		bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
 		percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
 		log.Printf("DB disk currently has %d%% (%d bytes) free.", percentFree, bytesFree)
@@ -281,8 +275,6 @@ func (m *Migration) checkFreeSpace() error {
 }
 
 func (m *Migration) getWaitTime() (float64, error) {
-	log.Println("getting wait time ...")
-
 	type Member struct {
 		Name   string `json:"name"`
 		Health int    `json:"health"`
@@ -355,9 +347,11 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		"_userId": "5e8cac61-6bef-4728-b490-c1d82087ed9c",
 	}
 	m.updates = []mongo.WriteModel{}
+	sLimit := int64(5) //Testing only get small group at a time
 	if dataC := m.getDataCollection(); dataC != nil {
 		dDataCursor, err := dataC.Find(m.ctx, selector,
-			&options.FindOptions{Limit: &m.config.readBatchSize},
+			//&options.FindOptions{Limit: &m.config.readBatchSize},
+			&options.FindOptions{Limit: &sLimit},
 		)
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
@@ -384,7 +378,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
-			log.Printf("updates [%s] to apply [%#v]", datumID, updates)
+			log.Printf("updates [%s] to apply [%#v] using [%#v]", datumID, updates, dDataResult)
 
 			m.updates = append(m.updates, mongo.NewUpdateOneModel().SetFilter(
 				bson.M{
@@ -394,9 +388,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				"$set": updates,
 			}))
 		}
-
-		log.Printf("all updates [%#v]", m.updates)
-
 		return len(m.updates) > 0
 	}
 	return false
@@ -429,16 +420,19 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		log.Printf("updates to write %d", len(batch))
 
 		updateCount += len(batch)
-		log.Printf("updates applied so far %d", updateCount)
-		if deviceC := m.getDataCollection(); deviceC != nil {
-			results, err := deviceC.BulkWrite(m.ctx, batch)
-			if err != nil {
-				log.Printf("error writing batch updates %v", err)
-				return updateCount, err
+		m.dryRun = true
+
+		if !m.dryRun {
+			if deviceC := m.getDataCollection(); deviceC != nil {
+				results, err := deviceC.BulkWrite(m.ctx, batch)
+				if err != nil {
+					log.Printf("error writing batch updates %v", err)
+					return updateCount, err
+				}
+				updateCount = updateCount + int(results.ModifiedCount)
 			}
-			log.Printf("update resuts %#v", results)
-			updateCount = updateCount + int(results.ModifiedCount)
 		}
+
 	}
 	log.Printf("applied %d updates", updateCount)
 	return updateCount, nil
