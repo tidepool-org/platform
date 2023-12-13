@@ -19,9 +19,11 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -213,6 +215,17 @@ func datumHash(bsonData bson.M) (string, error) {
 		}
 
 		identityFields, err = cbgDatum.IdentityFields()
+		if err != nil {
+			return errorDebug(err)
+		}
+	case calculator.Type:
+		var calcDatum *calculator.Calculator
+		dataBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return errorDebug(err)
+		}
+		bson.Unmarshal(dataBytes, &calcDatum)
+		identityFields, err = calcDatum.IdentityFields()
 		if err != nil {
 			return errorDebug(err)
 		}
