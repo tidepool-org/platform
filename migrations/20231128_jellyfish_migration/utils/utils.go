@@ -41,7 +41,7 @@ func getValidatedTime(bsonData bson.M, fieldName string) (string, error) {
 	if valRaw, ok := bsonData[fieldName]; !ok {
 		return "", errors.Newf("%s is missing", fieldName)
 	} else if ms, ok := valRaw.(int64); !ok {
-		if t := time.Unix(0, ms*int64(time.Millisecond)); !t.IsZero() {
+		if t := time.UnixMilli(ms); !t.IsZero() {
 			return t.Format(types.TimeFormat), nil
 		}
 	}
@@ -49,7 +49,7 @@ func getValidatedTime(bsonData bson.M, fieldName string) (string, error) {
 	return "", errors.Newf("%s is missing", fieldName)
 }
 
-func datumHash(bsonData bson.M) (string, error) {
+func datumHash_1(bsonData bson.M) (string, error) {
 
 	identityFields := []string{}
 	if datumUserID, err := GetValidatedString(bsonData, "_userId"); err != nil {
@@ -110,6 +110,108 @@ func datumHash(bsonData bson.M) (string, error) {
 			}
 			identityFields = append(identityFields, strconv.FormatFloat(val, 'f', -1, 64))
 		}
+	}
+	return deduplicator.GenerateIdentityHash(identityFields)
+}
+
+func datumHash(bsonData bson.M) (string, error) {
+
+	datumType, err := GetValidatedString(bsonData, "type")
+	if err != nil {
+		log.Printf("invalid data type: %#v", bsonData)
+		return "", err
+	}
+	identityFields := []string{}
+
+	switch datumType {
+	case basal.Type:
+		var basalDatum *basal.Basal
+		bsonBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return "", err
+		}
+		bson.Unmarshal(bsonBytes, &basalDatum)
+		identityFields, err = basalDatum.IdentityFields()
+		if err != nil {
+			return "", err
+		}
+	case bolus.Type:
+		var bolusDatum *bolus.Bolus
+		bsonBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return "", err
+		}
+		bson.Unmarshal(bsonBytes, &bolusDatum)
+		identityFields, err = bolusDatum.IdentityFields()
+		if err != nil {
+			return "", err
+		}
+	case device.Type:
+		var deviceDatum *device.Device
+		bsonBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return "", err
+		}
+		bson.Unmarshal(bsonBytes, &deviceDatum)
+		identityFields, err = deviceDatum.IdentityFields()
+		if err != nil {
+			return "", err
+		}
+	case selfmonitored.Type:
+		var smbgDatum *selfmonitored.SelfMonitored
+		bsonBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return "", err
+		}
+		bson.Unmarshal(bsonBytes, &smbgDatum)
+		if *smbgDatum.Units != glucose.MgdL && *smbgDatum.Units != glucose.Mgdl {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := GetBGValuePlatformPrecision(*smbgDatum.Value)
+			smbgDatum.Value = &val
+		}
+		identityFields, err = smbgDatum.IdentityFields()
+		if err != nil {
+			return "", err
+		}
+	case ketone.Type:
+		var ketoneDatum *ketone.Ketone
+		bsonBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return "", err
+		}
+		bson.Unmarshal(bsonBytes, &ketoneDatum)
+		if *ketoneDatum.Units != glucose.MgdL && *ketoneDatum.Units != glucose.Mgdl {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := GetBGValuePlatformPrecision(*ketoneDatum.Value)
+			ketoneDatum.Value = &val
+		}
+
+		identityFields, err = ketoneDatum.IdentityFields()
+		if err != nil {
+			return "", err
+		}
+	case continuous.Type:
+		var cbgDatum *continuous.Continuous
+		bsonBytes, err := bson.Marshal(bsonData)
+		if err != nil {
+			return "", err
+		}
+		bson.Unmarshal(bsonBytes, &cbgDatum)
+
+		if *cbgDatum.Units != glucose.MgdL && *cbgDatum.Units != glucose.Mgdl {
+			// NOTE: we need to ensure the same precision for the
+			// converted value as it is used to calculate the hash
+			val := GetBGValuePlatformPrecision(*cbgDatum.Value)
+			cbgDatum.Value = &val
+		}
+
+		identityFields, err = cbgDatum.IdentityFields()
+		if err != nil {
+			return "", err
+		}
+
 	}
 	return deduplicator.GenerateIdentityHash(identityFields)
 }
