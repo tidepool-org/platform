@@ -216,7 +216,9 @@ func datumHash(bsonData bson.M) (string, error) {
 		if err != nil {
 			return errorDebug(err)
 		}
-
+	}
+	if len(identityFields) == 0 {
+		return errorDebug(errors.New("missing identity fields"))
 	}
 	return deduplicator.GenerateIdentityHash(identityFields)
 }
