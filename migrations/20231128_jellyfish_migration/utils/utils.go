@@ -116,54 +116,59 @@ func datumHash_1(bsonData bson.M) (string, error) {
 
 func datumHash(bsonData bson.M) (string, error) {
 
-	datumType, err := GetValidatedString(bsonData, "type")
-	if err != nil {
-		log.Printf("invalid data type: %#v", bsonData)
+	identityFields := []string{}
+	var datumType string
+	var errorDebug = func(err error) (string, error) {
+		log.Printf("error [%s] creating hash for datum %v", err, bsonData)
 		return "", err
 	}
-	identityFields := []string{}
+
+	datumType, err := GetValidatedString(bsonData, "type")
+	if err != nil {
+		return errorDebug(err)
+	}
 
 	switch datumType {
 	case basal.Type:
 		var basalDatum *basal.Basal
-		bsonBytes, err := bson.Marshal(bsonData)
+		dataBytes, err := bson.Marshal(bsonData)
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
-		bson.Unmarshal(bsonBytes, &basalDatum)
+		bson.Unmarshal(dataBytes, &basalDatum)
 		identityFields, err = basalDatum.IdentityFields()
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
 	case bolus.Type:
 		var bolusDatum *bolus.Bolus
-		bsonBytes, err := bson.Marshal(bsonData)
+		dataBytes, err := bson.Marshal(bsonData)
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
-		bson.Unmarshal(bsonBytes, &bolusDatum)
+		bson.Unmarshal(dataBytes, &bolusDatum)
 		identityFields, err = bolusDatum.IdentityFields()
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
 	case device.Type:
 		var deviceDatum *device.Device
-		bsonBytes, err := bson.Marshal(bsonData)
+		dataBytes, err := bson.Marshal(bsonData)
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
-		bson.Unmarshal(bsonBytes, &deviceDatum)
+		bson.Unmarshal(dataBytes, &deviceDatum)
 		identityFields, err = deviceDatum.IdentityFields()
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
 	case selfmonitored.Type:
 		var smbgDatum *selfmonitored.SelfMonitored
-		bsonBytes, err := bson.Marshal(bsonData)
+		dataBytes, err := bson.Marshal(bsonData)
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
-		bson.Unmarshal(bsonBytes, &smbgDatum)
+		bson.Unmarshal(dataBytes, &smbgDatum)
 		if *smbgDatum.Units != glucose.MgdL && *smbgDatum.Units != glucose.Mgdl {
 			// NOTE: we need to ensure the same precision for the
 			// converted value as it is used to calculate the hash
@@ -172,15 +177,15 @@ func datumHash(bsonData bson.M) (string, error) {
 		}
 		identityFields, err = smbgDatum.IdentityFields()
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
 	case ketone.Type:
 		var ketoneDatum *ketone.Ketone
-		bsonBytes, err := bson.Marshal(bsonData)
+		dataBytes, err := bson.Marshal(bsonData)
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
-		bson.Unmarshal(bsonBytes, &ketoneDatum)
+		bson.Unmarshal(dataBytes, &ketoneDatum)
 		if *ketoneDatum.Units != glucose.MgdL && *ketoneDatum.Units != glucose.Mgdl {
 			// NOTE: we need to ensure the same precision for the
 			// converted value as it is used to calculate the hash
@@ -190,15 +195,15 @@ func datumHash(bsonData bson.M) (string, error) {
 
 		identityFields, err = ketoneDatum.IdentityFields()
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
 	case continuous.Type:
 		var cbgDatum *continuous.Continuous
-		bsonBytes, err := bson.Marshal(bsonData)
+		dataBytes, err := bson.Marshal(bsonData)
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
-		bson.Unmarshal(bsonBytes, &cbgDatum)
+		bson.Unmarshal(dataBytes, &cbgDatum)
 
 		if *cbgDatum.Units != glucose.MgdL && *cbgDatum.Units != glucose.Mgdl {
 			// NOTE: we need to ensure the same precision for the
@@ -209,7 +214,7 @@ func datumHash(bsonData bson.M) (string, error) {
 
 		identityFields, err = cbgDatum.IdentityFields()
 		if err != nil {
-			return "", err
+			return errorDebug(err)
 		}
 
 	}

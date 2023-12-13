@@ -391,7 +391,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
-			log.Printf("updates [%s] to apply [%#v] using [%#v]", datumID, updates, dDataResult)
+			log.Printf("[id=%s] [%v]", datumID, updates)
 
 			m.updates = append(m.updates, mongo.NewUpdateOneModel().SetFilter(
 				bson.M{
