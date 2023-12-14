@@ -118,7 +118,7 @@ func (m *Migration) Initialize() error {
 			Name:        "batch-size",
 			Usage:       "number of records to read each time",
 			Destination: &m.config.readBatchSize,
-			Value:       10,
+			Value:       300,
 			Required:    false,
 		},
 		cli.IntFlag{
@@ -183,7 +183,7 @@ func (m *Migration) prepare() error {
 
 func (m *Migration) execute() error {
 	totalMigrated := 0
-	testingCapSize := 20
+	testingCapSize := 1000
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
@@ -426,7 +426,7 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		log.Printf("updates to write %d", len(batch))
 
 		updateCount += len(batch)
-		m.dryRun = true
+		//m.dryRun = true
 
 		if !m.dryRun {
 			if deviceC := m.getDataCollection(); deviceC != nil {
