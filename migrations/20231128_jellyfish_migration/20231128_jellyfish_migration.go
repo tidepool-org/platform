@@ -183,7 +183,7 @@ func (m *Migration) prepare() error {
 
 func (m *Migration) execute() error {
 	totalMigrated := 0
-	testingCapSize := 1000
+	//testingCapSize := 1000
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
@@ -192,10 +192,10 @@ func (m *Migration) execute() error {
 		}
 		totalMigrated = totalMigrated + updatedCount
 		log.Printf("migrated %d for a total of %d migrated items", updatedCount, totalMigrated)
-		if totalMigrated >= testingCapSize {
-			log.Println("migrated docs up to cap so exiting")
-			break
-		}
+		// if totalMigrated >= testingCapSize {
+		// 	log.Println("migrated docs up to cap so exiting")
+		// 	break
+		// }
 	}
 	return nil
 }
