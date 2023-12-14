@@ -63,7 +63,6 @@ func NewMigration(ctx context.Context) *Migration {
 		cli:     cli.NewApp(),
 		config:  &Config{},
 		updates: []mongo.WriteModel{},
-		dryRun:  true,
 	}
 }
 
@@ -132,12 +131,12 @@ func (m *Migration) Initialize() error {
 			Name:        "nop-percent",
 			Usage:       "how much of the oplog is NOP",
 			Destination: &m.config.nopPercent,
-			Value:       100,
+			Value:       50,
 			Required:    false,
 		},
 		cli.IntFlag{
 			Name:        "oplog-entry-size",
-			Usage:       "minimum free disk space percent",
+			Usage:       "expected oplog entry size",
 			Destination: &m.config.expectedOplogEntrySize,
 			Value:       420,
 			Required:    false,
@@ -154,7 +153,8 @@ func (m *Migration) Initialize() error {
 			Usage:       "mongo connection URI",
 			Destination: &m.config.uri,
 			Required:    false,
-			FilePath:    "./uri",
+			//uri string comes from file called `uri`
+			FilePath: "./uri",
 		},
 	)
 	return nil
@@ -183,7 +183,7 @@ func (m *Migration) prepare() error {
 
 func (m *Migration) execute() error {
 	totalMigrated := 0
-	//testingCapSize := 1000
+	testingCapSize := 300
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
@@ -192,10 +192,10 @@ func (m *Migration) execute() error {
 		}
 		totalMigrated = totalMigrated + updatedCount
 		log.Printf("migrated %d for a total of %d migrated items", updatedCount, totalMigrated)
-		// if totalMigrated >= testingCapSize {
-		// 	log.Println("migrated docs up to cap so exiting")
-		// 	break
-		// }
+		if totalMigrated >= testingCapSize {
+			log.Printf("migrated %d docs up to cap so exiting", totalMigrated)
+			break
+		}
 	}
 	return nil
 }
@@ -354,6 +354,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	} else {
 		selector["_id"] = bson.M{"$not": bson.M{"$type": "objectId"}}
 	}
+	log.Printf("selector: %#v", selector)
 
 	m.updates = []mongo.WriteModel{}
 
@@ -383,7 +384,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
-			log.Printf("[id=%s] [%v]", datumID, updates)
+			//log.Printf("[id=%s] [%v]", datumID, updates)
 
 			m.updates = append(m.updates, mongo.NewUpdateOneModel().SetFilter(
 				bson.M{
@@ -425,20 +426,20 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		}
 		log.Printf("updates to write %d", len(batch))
 
-		updateCount += len(batch)
-		//m.dryRun = true
-
-		if !m.dryRun {
-			if deviceC := m.getDataCollection(); deviceC != nil {
-				results, err := deviceC.BulkWrite(m.ctx, batch)
-				if err != nil {
-					log.Printf("error writing batch updates %v", err)
-					return updateCount, err
-				}
-				updateCount = updateCount + int(results.ModifiedCount)
-			}
+		if m.dryRun {
+			updateCount += len(batch)
+			log.Println("dry run so not applying changes")
+			continue
 		}
 
+		if deviceC := m.getDataCollection(); deviceC != nil {
+			results, err := deviceC.BulkWrite(m.ctx, batch)
+			if err != nil {
+				log.Printf("error writing batch updates %v", err)
+				return updateCount, err
+			}
+			updateCount = updateCount + int(results.ModifiedCount)
+		}
 	}
 	log.Printf("applied %d updates", updateCount)
 	return updateCount, nil
