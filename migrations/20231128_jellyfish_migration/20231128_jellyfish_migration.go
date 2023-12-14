@@ -340,7 +340,6 @@ func (m *Migration) blockUntilDBReady() error {
 
 func (m *Migration) fetchAndUpdateBatch() bool {
 	selector := bson.M{
-		// jellyfish uses a generated _id that is not an mongo objectId
 		"_deduplicator": bson.M{"$exists": false},
 		// testing based on _userId for jamie+qa3_1@tidepool.org
 		"_userId": "5e8cac61-6bef-4728-b490-c1d82087ed9c",
@@ -352,6 +351,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			bson.M{"_id": bson.M{"$not": bson.M{"$type": "objectId"}}},
 		}
 	} else {
+		// jellyfish uses a generated _id that is not an mongo objectId
 		selector["_id"] = bson.M{"$not": bson.M{"$type": "objectId"}}
 	}
 	log.Printf("selector: %#v", selector)
@@ -438,7 +438,8 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 				log.Printf("error writing batch updates %v", err)
 				return updateCount, err
 			}
-			updateCount = updateCount + int(results.ModifiedCount)
+			log.Printf("update results %v", results)
+			updateCount += int(results.ModifiedCount)
 		}
 	}
 	log.Printf("applied %d updates", updateCount)
