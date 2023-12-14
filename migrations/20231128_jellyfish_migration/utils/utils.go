@@ -24,18 +24,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-func GetValidatedString(bsonData bson.M, fieldName string) (string, error) {
-	if valRaw, ok := bsonData[fieldName]; !ok {
-		return "", errors.Newf("%s is missing", fieldName)
-	} else if val, ok := valRaw.(string); !ok {
-		return "", errors.Newf("%s is not of expected type", fieldName)
-	} else if val == "" {
-		return "", errors.Newf("%s is empty", fieldName)
-	} else {
-		return val, nil
-	}
-}
-
 func updateIfExistsPumpSettingsSleepSchedules(datum *pump.Pump) (*pump.SleepScheduleMap, error) {
 	sleepSchedules := datum.SleepSchedules
 	if sleepSchedules == nil {
@@ -58,16 +46,15 @@ func updateIfExistsPumpSettingsSleepSchedules(datum *pump.Pump) (*pump.SleepSche
 
 }
 
-func updateIfExistsPumpSettingsBolus(datum *pump.Pump) (*pump.BolusMap, error) {
-	bolus := datum.Bolus
-	if bolus == nil {
-		return nil, nil
+func updateIfExistsPumpSettingsBolus(bsonData bson.M) (*pump.BolusMap, error) {
+	if bolus := bsonData["bolus"]; bolus != nil {
+		boluses, ok := bolus.(*pump.BolusMap)
+		if !ok {
+			return nil, errors.Newf("data %v is not the expected boluses type", bolus)
+		}
+		return boluses, nil
 	}
-	boluses := &pump.BolusMap{
-		"one": bolus,
-	}
-	return boluses, nil
-
+	return nil, nil
 }
 
 func GetBGValuePlatformPrecision(mmolVal float64) float64 {
@@ -90,9 +77,9 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		return datumID, nil, err
 	}
 
-	datumType, err := GetValidatedString(bsonData, "type")
-	if err != nil {
-		return errorDebug(err)
+	datumType, ok := bsonData["type"].(string)
+	if !ok {
+		return errorDebug(errors.New("cannot get the datum type"))
 	}
 
 	dataBytes, err := bson.Marshal(bsonData)
@@ -146,7 +133,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(err)
 		}
 
-		boluses, err := updateIfExistsPumpSettingsBolus(datum)
+		boluses, err := updateIfExistsPumpSettingsBolus(bsonData)
 		if err != nil {
 			return errorDebug(err)
 		} else if boluses != nil {
