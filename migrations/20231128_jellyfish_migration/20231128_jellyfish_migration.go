@@ -230,11 +230,12 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 
 }
 
-func calculateBatchSize(oplogSize int, oplogEntryBytes int, oplogMinWindow int, nopPercent int) int64 {
-	return int64(math.Floor(float64(oplogSize) / float64(oplogEntryBytes) / float64(oplogMinWindow) / (float64(nopPercent) / 7)))
-}
-
 func (m *Migration) setWriteBatchSize() error {
+
+	var calculateBatchSize = func(oplogSize int, oplogEntryBytes int, oplogMinWindow int, nopPercent int) int64 {
+		return int64(math.Floor(float64(oplogSize) / float64(oplogEntryBytes) / float64(oplogMinWindow) / (float64(nopPercent) / 7)))
+	}
+
 	if oplogC := m.getOplogCollection(); oplogC != nil {
 		type MongoMetaData struct {
 			MaxSize int `json:"maxSize"`
@@ -345,14 +346,16 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		"_userId": "5e8cac61-6bef-4728-b490-c1d82087ed9c",
 	}
 
+	// jellyfish uses a generated _id that is not an mongo objectId
+	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
+
 	if m.lastUpdatedId != "" {
 		selector["$and"] = []interface{}{
 			bson.M{"_id": bson.M{"$gt": m.lastUpdatedId}},
-			bson.M{"_id": bson.M{"$not": bson.M{"$type": "objectId"}}},
+			bson.M{"_id": idNotObjectID},
 		}
 	} else {
-		// jellyfish uses a generated _id that is not an mongo objectId
-		selector["_id"] = bson.M{"$not": bson.M{"$type": "objectId"}}
+		selector["_id"] = idNotObjectID
 	}
 	log.Printf("selector: %#v", selector)
 
