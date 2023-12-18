@@ -99,7 +99,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("basal %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -110,7 +109,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("bolus %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -121,7 +119,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("device %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -132,7 +129,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("pump %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -164,8 +160,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			datum.Value = &val
 		}
 		identityFields, err = datum.IdentityFields()
-
-		log.Printf("smbg %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -182,7 +176,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			datum.Value = &val
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("ketone %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -199,7 +192,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			datum.Value = &val
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("cbg %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -210,7 +202,6 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
-		log.Printf("default %s id  %v", datumID, identityFields)
 		if err != nil {
 			return errorDebug(datumID, err)
 		}
@@ -221,8 +212,5 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		return errorDebug(datumID, err)
 	}
 	updates["_deduplicator"] = bson.M{"hash": hash}
-
-	log.Printf("datum %s updates  %v", datumID, updates)
-
 	return datumID, updates, nil
 }
