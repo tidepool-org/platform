@@ -381,20 +381,20 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
-			datumID, updates, err := utils.GetDatumUpdates(dDataResult)
+			datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
 			if err != nil {
 				log.Printf("failed getting datum updates: %s", err)
 				return false
 			}
 
-			//log.Printf("[id=%s] [%v]", datumID, updates)
+			log.Printf("[id=%s] [%v]", datumID, datumUpdates)
 
 			m.updates = append(m.updates, mongo.NewUpdateOneModel().SetFilter(
 				bson.M{
 					"_id":          datumID,
 					"modifiedTime": dDataResult["modifiedTime"],
 				}).SetUpdate(bson.M{
-				"$set": updates,
+				"$set": datumUpdates,
 			}))
 			m.lastUpdatedId = datumID
 		}
@@ -428,6 +428,7 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			return updateCount, err
 		}
 		log.Printf("updates to write %d", len(batch))
+		log.Printf("first to write %v", batch[0])
 
 		if m.dryRun {
 			updateCount += len(batch)
