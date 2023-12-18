@@ -391,7 +391,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 			updateOp := mongo.NewUpdateOneModel()
 			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
-			updateOp.SetUpdate(datumUpdates)
+			updateOp.SetUpdate(bson.M{"$set": datumUpdates})
 			m.updates = append(m.updates, updateOp)
 			m.lastUpdatedId = datumID
 		}
@@ -432,9 +432,11 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			log.Println("dry run so not applying changes")
 			continue
 		}
+		bulkOption := options.BulkWriteOptions{}
+		bulkOption.SetOrdered(true)
 
 		if deviceC := m.getDataCollection(); deviceC != nil {
-			results, err := deviceC.BulkWrite(m.ctx, batch)
+			results, err := deviceC.BulkWrite(m.ctx, batch, &bulkOption)
 			if err != nil {
 				log.Printf("error writing batch updates %v", err)
 				return updateCount, err
