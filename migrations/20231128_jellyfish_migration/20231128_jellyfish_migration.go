@@ -402,7 +402,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 func (m *Migration) writeBatchUpdates() (int, error) {
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
-		log.Printf("updates to apply count: %d", len(m.updates))
+		//log.Printf("updates to apply count: %d", len(m.updates))
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
 			end := i + chunkSize
@@ -414,7 +414,7 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		return batches
 	}
 	updateCount := 0
-	log.Printf("write batch size %d", *m.writeBatchSize)
+	//log.Printf("write batch size %d", *m.writeBatchSize)
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(); err != nil {
 			log.Printf("writeBatchUpdates-blocking error: %s", err)
@@ -425,18 +425,15 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			return updateCount, err
 		}
 		log.Printf("updates to write %d", len(batch))
-		log.Printf("first to write %v", batch[0])
 
 		if m.dryRun {
 			updateCount += len(batch)
 			log.Println("dry run so not applying changes")
 			continue
 		}
-		bulkOption := options.BulkWriteOptions{}
-		bulkOption.SetOrdered(true)
 
 		if deviceC := m.getDataCollection(); deviceC != nil {
-			results, err := deviceC.BulkWrite(m.ctx, batch, &bulkOption)
+			results, err := deviceC.BulkWrite(m.ctx, batch)
 			if err != nil {
 				log.Printf("error writing batch updates %v", err)
 				return updateCount, err
