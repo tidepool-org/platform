@@ -389,13 +389,10 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 			log.Printf("[id=%s] [%v]", datumID, datumUpdates)
 
-			m.updates = append(m.updates, mongo.NewUpdateOneModel().SetFilter(
-				bson.M{
-					"_id":          datumID,
-					"modifiedTime": dDataResult["modifiedTime"],
-				}).SetUpdate(bson.M{
-				"$set": datumUpdates,
-			}))
+			updateOp := mongo.NewUpdateOneModel()
+			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
+			updateOp.SetUpdate(datumUpdates)
+			m.updates = append(m.updates, updateOp)
 			m.lastUpdatedId = datumID
 		}
 		return len(m.updates) > 0
