@@ -181,11 +181,8 @@ func (m *Migration) prepare() error {
 }
 
 func (m *Migration) execute() error {
-
 	log.Printf("configured read batch size %d nop percent %d", m.config.readBatchSize, m.config.nopPercent)
-
 	totalMigrated := 0
-	//testingCapSize := 300
 	for m.fetchAndUpdateBatch() {
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
@@ -194,10 +191,6 @@ func (m *Migration) execute() error {
 		}
 		totalMigrated = totalMigrated + updatedCount
 		log.Printf("migrated %d for a total of %d migrated items", updatedCount, totalMigrated)
-		// if totalMigrated >= testingCapSize {
-		// 	log.Printf("migrated %d docs up to cap so exiting", totalMigrated)
-		// 	break
-		// }
 	}
 	return nil
 }
