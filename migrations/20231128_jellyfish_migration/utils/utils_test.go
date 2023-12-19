@@ -51,6 +51,7 @@ var _ = Describe("back-37", func() {
 				theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
 				*datum.Time = theTime
 				existingBolusDatum = getBSONData(datum)
+				existingBolusDatum["_id"] = expectedID
 				Expect(existingBolusDatum).ToNot(BeNil())
 			})
 
@@ -108,7 +109,7 @@ var _ = Describe("back-37", func() {
 					*pumpSettingsDatum.Time = theTime
 				})
 
-				Context("with incorrect jellyfish bolus", func() {
+				Context("with mis-named jellyfish bolus", func() {
 					var bolusData = &pump.BolusMap{
 						"bolus-1": pumpTest.NewRandomBolus(),
 						"bolus-2": pumpTest.NewRandomBolus(),
@@ -117,8 +118,8 @@ var _ = Describe("back-37", func() {
 
 					BeforeEach(func() {
 						settingsBolusDatum = getBSONData(pumpSettingsDatum)
-						//as currently set in jellyfish
 						settingsBolusDatum["bolus"] = bolusData
+						settingsBolusDatum["_id"] = expectedID
 					})
 
 					DescribeTable("should",
@@ -175,43 +176,36 @@ var _ = Describe("back-37", func() {
 					)
 				})
 				Context("unordered sleepSchedules", func() {
-					var sleepSchedulesExpected *pump.SleepScheduleMap
-					var sleepSchedulesStored *pump.SleepScheduleMap
-					var sleepSchedulesInvalidDays *pump.SleepScheduleMap
+					expectedSleepSchedulesMap := &pump.SleepScheduleMap{}
+					var invalidDays *pump.SleepSchedule
+					var s1Days *pump.SleepSchedule
+					var s2Days *pump.SleepSchedule
 					var sleepSchedulesDatum bson.M
-
 					BeforeEach(func() {
-						sleepSchedulesExpected = &pump.SleepScheduleMap{
-							"schedule-1": pumpTest.RandomSleepSchedule(),
-							"schedule-2": pumpTest.RandomSleepSchedule(),
+						s1 := pumpTest.RandomSleepSchedule()
+						s2 := pumpTest.RandomSleepSchedule()
+						(*expectedSleepSchedulesMap)["One"] = s1
+						(*expectedSleepSchedulesMap)["Two"] = s2
+
+						s1Days = pumpTest.CloneSleepSchedule(s1)
+						for key, day := range *s1Days.Days {
+							(*s1Days.Days)[key] = strings.ToUpper(day)
 						}
-						sleepSchedulesInvalidDays = pumpTest.CloneSleepSchedules(sleepSchedulesExpected)
-						(*sleepSchedulesInvalidDays)["schedule-2"].Days = &[]string{"not-a-day", common.DayFriday}
-
-						sleepSchedulesStored = pumpTest.CloneSleepSchedules(sleepSchedulesExpected)
-
-						s1Days := (*sleepSchedulesStored)["schedule-1"].Days
-						for key, day := range *s1Days {
-							(*s1Days)[key] = strings.ToUpper(day)
+						s2Days = pumpTest.CloneSleepSchedule(s2)
+						for key, day := range *s2Days.Days {
+							(*s2Days.Days)[key] = strings.ToUpper(day)
 						}
-						(*sleepSchedulesStored)["schedule-1"].Days = s1Days
+						invalidDays = pumpTest.CloneSleepSchedule(s2)
+						invalidDays.Days = &[]string{"not-a-day", common.DayFriday}
 
-						s2Days := (*sleepSchedulesStored)["schedule-2"].Days
-						for key, day := range *s2Days {
-							(*s2Days)[key] = strings.ToUpper(day)
-						}
-						(*sleepSchedulesStored)["schedule-2"].Days = s2Days
+						//to ensure correct sorting
+						expectedSleepSchedulesMap.Normalize(normalizer.New())
 
-						//ensure sorting
-						sleepSchedulesExpected.Normalize(normalizer.New())
-
-						Expect(sleepSchedulesExpected).ToNot(BeNil())
-						Expect(sleepSchedulesStored).ToNot(BeNil())
-						Expect(sleepSchedulesExpected).ToNot(Equal(sleepSchedulesStored))
-						Expect(sleepSchedulesInvalidDays).ToNot(BeNil())
-						pumpSettingsDatum.SleepSchedules = sleepSchedulesStored
+						Expect(expectedSleepSchedulesMap).ToNot(BeNil())
+						pumpSettingsDatum.SleepSchedules = nil
 						sleepSchedulesDatum = getBSONData(pumpSettingsDatum)
-						sleepSchedulesDatum["bolus"] = nil //remove as not testng here
+						sleepSchedulesDatum["_id"] = expectedID
+						sleepSchedulesDatum["bolus"] = nil //remove as not testing here
 					})
 
 					It("does nothing when wrong type", func() {
@@ -226,16 +220,15 @@ var _ = Describe("back-37", func() {
 						Expect(actual).To(Equal(bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}))
 					})
 					It("returns updated sleepSchedules when valid", func() {
-						Expect(sleepSchedulesExpected).ToNot(Equal(sleepSchedulesStored))
-						sleepSchedulesDatum["sleepSchedules"] = sleepSchedulesStored
+						sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{s1Days, s2Days}
 						_, actual, err := utils.GetDatumUpdates(sleepSchedulesDatum)
 						Expect(err).To(BeNil())
 						Expect(actual).ToNot(BeNil())
 						Expect(actual["sleepSchedules"]).ToNot(BeNil())
-						Expect(actual["sleepSchedules"]).To(Equal(sleepSchedulesExpected))
+						Expect(actual["sleepSchedules"]).To(Equal(expectedSleepSchedulesMap))
 					})
 					It("returns error when sleepSchedules have invalid days", func() {
-						sleepSchedulesDatum["sleepSchedules"] = sleepSchedulesInvalidDays
+						sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{invalidDays}
 						_, actual, err := utils.GetDatumUpdates(sleepSchedulesDatum)
 						Expect(err).ToNot(BeNil())
 						Expect(err.Error()).To(Equal("pumpSettings.sleepSchedules has an invalid day of week not-a-day"))

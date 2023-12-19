@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"slices"
@@ -24,26 +25,37 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-func updateIfExistsPumpSettingsSleepSchedules(datum *pump.Pump) (*pump.SleepScheduleMap, error) {
-	sleepSchedules := datum.SleepSchedules
-	if sleepSchedules == nil {
-		return nil, nil
-	}
-	for key := range *sleepSchedules {
-		days := (*sleepSchedules)[key].Days
-		updatedDays := []string{}
-		for _, day := range *days {
-			if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
-				return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
-			}
-			updatedDays = append(updatedDays, strings.ToLower(day))
-		}
-		(*sleepSchedules)[key].Days = &updatedDays
-	}
-	//sorts schedules based on day
-	sleepSchedules.Normalize(normalizer.New())
-	return sleepSchedules, nil
+func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
+	scheduleNames := map[int]string{0: "One", 1: "Two", 2: "Three", 3: "Four", 4: "Five"}
 
+	if schedules := bsonData["sleepSchedules"]; schedules != nil {
+		sleepScheduleMap := pump.SleepScheduleMap{}
+		dataBytes, err := json.Marshal(schedules)
+		if err != nil {
+			return nil, err
+		}
+		schedulesArray := []*pump.SleepSchedule{}
+		err = json.Unmarshal(dataBytes, &schedulesArray)
+		if err != nil {
+			return nil, err
+		}
+		for i, schedule := range schedulesArray {
+			days := schedule.Days
+			updatedDays := []string{}
+			for _, day := range *days {
+				if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
+					return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+				}
+				updatedDays = append(updatedDays, strings.ToLower(day))
+			}
+			schedule.Days = &updatedDays
+			sleepScheduleMap[scheduleNames[i]] = schedule
+		}
+		//sorts schedules based on day
+		sleepScheduleMap.Normalize(normalizer.New())
+		return &sleepScheduleMap, nil
+	}
+	return nil, nil
 }
 
 func updateIfExistsPumpSettingsBolus(bsonData bson.M) (*pump.BolusMap, error) {
@@ -123,7 +135,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 	case pump.Type:
-		var datum *pump.Pump
+		var datum *types.Base
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
 			return errorDebug(datumID, err)
@@ -140,13 +152,12 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			updates["boluses"] = boluses
 		}
 
-		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(datum)
+		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(bsonData)
 		if err != nil {
 			return errorDebug(datumID, err)
 		} else if sleepSchedules != nil {
 			updates["sleepSchedules"] = sleepSchedules
 		}
-
 	case selfmonitored.Type:
 		var datum *selfmonitored.SelfMonitored
 		err = bson.Unmarshal(dataBytes, &datum)
