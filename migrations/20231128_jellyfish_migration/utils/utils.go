@@ -60,11 +60,16 @@ func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepSched
 
 func updateIfExistsPumpSettingsBolus(bsonData bson.M) (*pump.BolusMap, error) {
 	if bolus := bsonData["bolus"]; bolus != nil {
-		boluses, ok := bolus.(*pump.BolusMap)
-		if !ok {
-			return nil, errors.Newf("data %v is not the expected boluses type", bolus)
+		boluses := pump.BolusMap{}
+		dataBytes, err := json.Marshal(bolus)
+		if err != nil {
+			return nil, err
 		}
-		return boluses, nil
+		err = json.Unmarshal(dataBytes, &boluses)
+		if err != nil {
+			return nil, err
+		}
+		return &boluses, nil
 	}
 	return nil, nil
 }
