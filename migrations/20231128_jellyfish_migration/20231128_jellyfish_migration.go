@@ -78,7 +78,6 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
-		log.Printf("config %#v", m.config)
 		if err := m.prepare(); err != nil {
 			log.Printf("prepare failed: %s", err)
 			return err
@@ -182,6 +181,9 @@ func (m *Migration) prepare() error {
 }
 
 func (m *Migration) execute() error {
+
+	log.Printf("configured read batch size %d nop percent %d", m.config.readBatchSize, m.config.nopPercent)
+
 	totalMigrated := 0
 	//testingCapSize := 300
 	for m.fetchAndUpdateBatch() {
@@ -357,7 +359,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	} else {
 		selector["_id"] = idNotObjectID
 	}
-	log.Printf("selector: %#v", selector)
 
 	m.updates = []mongo.WriteModel{}
 
@@ -387,8 +388,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				return false
 			}
 
-			log.Printf("[id=%s] [%v]", datumID, datumUpdates)
-
 			updateOp := mongo.NewUpdateOneModel()
 			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
 			updateOp.SetUpdate(bson.M{"$set": datumUpdates})
@@ -402,7 +401,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 func (m *Migration) writeBatchUpdates() (int, error) {
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
-		//log.Printf("updates to apply count: %d", len(m.updates))
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
 			end := i + chunkSize
@@ -414,7 +412,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		return batches
 	}
 	updateCount := 0
-	//log.Printf("write batch size %d", *m.writeBatchSize)
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(); err != nil {
 			log.Printf("writeBatchUpdates-blocking error: %s", err)
@@ -424,7 +421,7 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			log.Printf("writeBatchUpdates-freespace error: %s", err)
 			return updateCount, err
 		}
-		log.Printf("updates to write %d", len(batch))
+		log.Printf("batch size to write %d", len(batch))
 
 		if m.dryRun {
 			updateCount += len(batch)
@@ -438,10 +435,8 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 				log.Printf("error writing batch updates %v", err)
 				return updateCount, err
 			}
-			log.Printf("update results %v", results)
 			updateCount += int(results.ModifiedCount)
 		}
 	}
-	log.Printf("applied %d updates", updateCount)
 	return updateCount, nil
 }
