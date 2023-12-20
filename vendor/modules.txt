@@ -93,6 +93,12 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 ## explicit
 github.com/aymerick/douceur/css
 github.com/aymerick/douceur/parser
+# github.com/bas-d/appattest v0.1.0
+## explicit; go 1.15
+github.com/bas-d/appattest/assertion
+github.com/bas-d/appattest/attestation
+github.com/bas-d/appattest/authenticator
+github.com/bas-d/appattest/utils
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
@@ -757,7 +763,9 @@ golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 ## explicit; go 1.20
+golang.org/x/exp/constraints
 golang.org/x/exp/maps
+golang.org/x/exp/slices
 # golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 ## explicit; go 1.11
 golang.org/x/lint
