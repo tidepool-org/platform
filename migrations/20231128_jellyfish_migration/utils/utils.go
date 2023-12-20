@@ -239,6 +239,9 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 	if rename != nil {
 		updates["$rename"] = rename
 	}
-	log.Printf("datum [%s] updates took %s", datumType, time.Since(start))
+	duration := time.Since(start)
+	if duration > (time.Millisecond * 3) {
+		log.Printf("slow datum [%s] updates took %s", datumType, time.Since(start))
+	}
 	return datumID, updates, nil
 }
