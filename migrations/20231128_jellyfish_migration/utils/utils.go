@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"slices"
 	"strings"
 
@@ -81,25 +80,23 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 	var rename bson.M
 	var identityFields []string
 
-	// while doing test runs
-	var errorDebug = func(id string, err error) (string, bson.M, error) {
-		log.Printf("[%s] error [%s] creating hash for datum %v", id, err, bsonData)
+	var errorHandler = func(id string, err error) (string, bson.M, error) {
 		return id, nil, err
 	}
 
 	datumID, ok := bsonData["_id"].(string)
 	if !ok {
-		return errorDebug("", errors.New("cannot get the datum id"))
+		return errorHandler("", errors.New("cannot get the datum id"))
 	}
 
 	datumType, ok := bsonData["type"].(string)
 	if !ok {
-		return errorDebug(datumID, errors.New("cannot get the datum type"))
+		return errorHandler(datumID, errors.New("cannot get the datum type"))
 	}
 
 	dataBytes, err := bson.Marshal(bsonData)
 	if err != nil {
-		return errorDebug(datumID, err)
+		return errorHandler(datumID, err)
 	}
 
 	switch datumType {
@@ -107,41 +104,41 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		var datum *basal.Basal
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	case bolus.Type:
 		var datum *bolus.Bolus
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	case device.Type:
 		var datum *bolus.Bolus
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	case pump.Type:
 		var datum *types.Base
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 
 		if pumpSettingsHasBolus(bsonData) {
@@ -150,7 +147,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 
 		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(bsonData)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		} else if sleepSchedules != nil {
 			set["sleepSchedules"] = sleepSchedules
 		}
@@ -158,7 +155,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		var datum *selfmonitored.SelfMonitored
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
 			// NOTE: we need to ensure the same precision for the
@@ -168,13 +165,13 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	case ketone.Type:
 		var datum *ketone.Ketone
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
 			// NOTE: we need to ensure the same precision for the
@@ -184,13 +181,13 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	case continuous.Type:
 		var datum *continuous.Continuous
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
 			// NOTE: we need to ensure the same precision for the
@@ -200,23 +197,23 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	default:
 		var datum *types.Base
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
-			return errorDebug(datumID, err)
+			return errorHandler(datumID, err)
 		}
 	}
 
 	hash, err := deduplicator.GenerateIdentityHash(identityFields)
 	if err != nil {
-		return errorDebug(datumID, err)
+		return errorHandler(datumID, err)
 	}
 	set["_deduplicator"] = bson.M{"hash": hash}
 

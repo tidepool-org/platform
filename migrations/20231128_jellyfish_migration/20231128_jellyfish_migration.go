@@ -117,7 +117,7 @@ func (m *Migration) Initialize() error {
 		cli.BoolFlag{
 			Name:        "stop-error",
 			Usage:       "stop migration on error",
-			Destination: &m.dryRun,
+			Destination: &m.stopOnErr,
 		},
 		cli.Int64Flag{
 			Name:        "batch-size",
@@ -175,6 +175,23 @@ func (m *Migration) getDataCollection() *mongo.Collection {
 }
 func (m *Migration) getOplogCollection() *mongo.Collection {
 	return m.client.Database("local").Collection(oplogName)
+}
+func (m *Migration) onError(err error, id string, msg string) {
+	var errFormat = "[id=%s] %s %s"
+	if err != nil {
+		if m.stopOnErr {
+			log.Printf(errFormat, id, msg, err.Error())
+			os.Exit(1)
+		}
+		f, err := os.OpenFile("error.log",
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		f.WriteString(fmt.Sprintf(errFormat, id, msg, err.Error()))
+	}
 }
 
 func (m *Migration) prepare() error {
@@ -387,8 +404,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 			datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
 			if err != nil {
-				log.Printf("failed getting datum updates: %s", err)
-				return false
+				m.onError(err, datumID, "failed getting updates")
+				continue
 			}
 
 			updateOp := mongo.NewUpdateOneModel()
