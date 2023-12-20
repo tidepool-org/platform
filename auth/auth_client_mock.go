@@ -271,10 +271,10 @@ func (mr *MockAuthClientMockRecorder) UpdateRestrictedToken(arg0, arg1, arg2 int
 }
 
 // ValidateSessionToken mocks base method.
-func (m *MockAuthClient) ValidateSessionToken(arg0 context.Context, arg1 string) (request.Details, error) {
+func (m *MockAuthClient) ValidateSessionToken(arg0 context.Context, arg1 string) (request.AuthDetails, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateSessionToken", arg0, arg1)
-	ret0, _ := ret[0].(request.Details)
+	ret0, _ := ret[0].(request.AuthDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

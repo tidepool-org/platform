@@ -26,7 +26,7 @@ func (r *Router) AppValidateRoutes() []*rest.Route {
 
 func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
@@ -53,7 +53,7 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 
 func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
@@ -80,7 +80,7 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 
 func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	ctx := req.Context()
 
 	attestVerify := appvalidate.NewAttestationVerify(details.UserID())
@@ -112,7 +112,7 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	ctx := req.Context()
 
 	assertVerify := appvalidate.NewAssertionVerify(details.UserID())
