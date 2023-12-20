@@ -3,8 +3,10 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -76,6 +78,7 @@ func GetBGValuePlatformPrecision(mmolVal float64) float64 {
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
+	start := time.Now()
 	set := bson.M{}
 	var rename bson.M
 	var identityFields []string
@@ -94,13 +97,17 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		return errorHandler(datumID, errors.New("cannot get the datum type"))
 	}
 
+	log.Printf("updates bsonData marshal start %s", time.Since(start))
 	dataBytes, err := bson.Marshal(bsonData)
 	if err != nil {
 		return errorHandler(datumID, err)
 	}
 
+	log.Printf("updates bsonData marshal end %s", time.Since(start))
+
 	switch datumType {
 	case basal.Type:
+		log.Printf("updating basal start %s", time.Since(start))
 		var datum *basal.Basal
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -111,6 +118,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorHandler(datumID, err)
 		}
 	case bolus.Type:
+		log.Printf("updating bolus start %s", time.Since(start))
 		var datum *bolus.Bolus
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -121,6 +129,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorHandler(datumID, err)
 		}
 	case device.Type:
+		log.Printf("updating device event start %s", time.Since(start))
 		var datum *bolus.Bolus
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -131,6 +140,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorHandler(datumID, err)
 		}
 	case pump.Type:
+		log.Printf("updating pump settings start %s", time.Since(start))
 		var datum *types.Base
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -152,6 +162,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			set["sleepSchedules"] = sleepSchedules
 		}
 	case selfmonitored.Type:
+		log.Printf("updating smbg start %s", time.Since(start))
 		var datum *selfmonitored.SelfMonitored
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -168,6 +179,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorHandler(datumID, err)
 		}
 	case ketone.Type:
+		log.Printf("updating ketone start %s", time.Since(start))
 		var datum *ketone.Ketone
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -184,6 +196,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorHandler(datumID, err)
 		}
 	case continuous.Type:
+		log.Printf("updating cbg start %s", time.Since(start))
 		var datum *continuous.Continuous
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -200,6 +213,7 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorHandler(datumID, err)
 		}
 	default:
+		log.Printf("updating generic start %s", time.Since(start))
 		var datum *types.Base
 		err = bson.Unmarshal(dataBytes, &datum)
 		if err != nil {
@@ -211,10 +225,14 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 		}
 	}
 
+	log.Printf("updates made end %s", time.Since(start))
+	log.Printf("generate hash start %s", time.Since(start))
 	hash, err := deduplicator.GenerateIdentityHash(identityFields)
 	if err != nil {
 		return errorHandler(datumID, err)
 	}
+
+	log.Printf("generate hash end %s", time.Since(start))
 	set["_deduplicator"] = bson.M{"hash": hash}
 
 	var updates = bson.M{"$set": set}
