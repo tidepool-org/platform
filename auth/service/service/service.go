@@ -454,6 +454,7 @@ func (s *Service) initializeDeviceCheck() error {
 }
 
 func (s *Service) initializeAppValidate() error {
+	s.Logger().Debug("Initializing app validate")
 	cfg, err := appvalidate.NewValidatorConfig()
 	if err != nil {
 		return err
@@ -471,9 +472,13 @@ func (s *Service) initializeAppValidate() error {
 }
 
 func (s *Service) initializePartnerSecrets() error {
+	s.Logger().Debug("Initializing partner secrets")
 	var err error
 	s.partnerSecrets, err = appvalidate.NewPartnerSecrets()
 	// Allow system to not fail if there are no credentials loaded.
+	if err != nil {
+		s.Logger().Warnf("error initializing partner secrets: %v", err)
+	}
 	if err != nil && !stdErrors.Is(err, appvalidate.ErrInvalidPartnerCredentials) {
 		return err
 	}
