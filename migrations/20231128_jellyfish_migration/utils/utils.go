@@ -221,6 +221,5 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 	if rename != nil {
 		updates["$rename"] = rename
 	}
-
 	return datumID, updates, nil
 }

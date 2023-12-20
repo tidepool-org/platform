@@ -360,7 +360,7 @@ func (m *Migration) blockUntilDBReady() error {
 }
 
 func (m *Migration) fetchAndUpdateBatch() bool {
-	start := time.Now()
+	fetchAndUpdateStart := time.Now()
 
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
@@ -383,6 +383,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	m.updates = []mongo.WriteModel{}
 
 	if dataC := m.getDataCollection(); dataC != nil {
+
+		fetchStart := time.Now()
+
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
 				Limit: &m.config.readBatchSize,
@@ -395,6 +398,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		}
 
 		defer dDataCursor.Close(m.ctx)
+
+		log.Printf("fetch took %s", time.Since(fetchStart))
+		updateStart := time.Now()
 		for dDataCursor.Next(m.ctx) {
 			var dDataResult bson.M
 			if err = dDataCursor.Decode(&dDataResult); err != nil {
@@ -413,7 +419,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			m.updates = append(m.updates, updateOp)
 			m.lastUpdatedId = datumID
 		}
-		log.Printf("selector took %s", time.Since(start))
+
+		log.Printf("update took %s", time.Since(updateStart))
+		log.Printf("fetch and update took %s", time.Since(fetchAndUpdateStart))
 		return len(m.updates) > 0
 	}
 	return false
