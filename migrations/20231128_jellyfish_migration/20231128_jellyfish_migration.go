@@ -42,6 +42,7 @@ type Migration struct {
 	writeBatchSize *int64
 	updates        []mongo.WriteModel
 	dryRun         bool
+	stopOnErr      bool
 	lastUpdatedId  string
 }
 
@@ -59,10 +60,11 @@ func main() {
 
 func NewMigration(ctx context.Context) *Migration {
 	return &Migration{
-		ctx:     ctx,
-		cli:     cli.NewApp(),
-		config:  &Config{},
-		updates: []mongo.WriteModel{},
+		ctx:       ctx,
+		cli:       cli.NewApp(),
+		config:    &Config{},
+		updates:   []mongo.WriteModel{},
+		stopOnErr: false,
 	}
 }
 
@@ -110,6 +112,11 @@ func (m *Migration) Initialize() error {
 		cli.BoolFlag{
 			Name:        fmt.Sprintf("%s,%s", DryRunFlag, "n"),
 			Usage:       "dry run only; do not migrate",
+			Destination: &m.dryRun,
+		},
+		cli.BoolFlag{
+			Name:        "stop-error",
+			Usage:       "stop migration on error",
 			Destination: &m.dryRun,
 		},
 		cli.Int64Flag{
@@ -184,6 +191,7 @@ func (m *Migration) execute() error {
 	log.Printf("configured read batch size %d nop percent %d", m.config.readBatchSize, m.config.nopPercent)
 	totalMigrated := 0
 	for m.fetchAndUpdateBatch() {
+
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
 			log.Printf("failed writing batch: %s", err)
@@ -335,6 +343,8 @@ func (m *Migration) blockUntilDBReady() error {
 }
 
 func (m *Migration) fetchAndUpdateBatch() bool {
+	start := time.Now()
+
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
 		// testing based on _userId for jamie+qa3_1@tidepool.org
@@ -383,16 +393,18 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 			updateOp := mongo.NewUpdateOneModel()
 			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
-			updateOp.SetUpdate(bson.M{"$set": datumUpdates})
+			updateOp.SetUpdate(datumUpdates)
 			m.updates = append(m.updates, updateOp)
 			m.lastUpdatedId = datumID
 		}
+		log.Printf("selector took %s", time.Since(start))
 		return len(m.updates) > 0
 	}
 	return false
 }
 
 func (m *Migration) writeBatchUpdates() (int, error) {
+	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
@@ -431,5 +443,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			updateCount += int(results.ModifiedCount)
 		}
 	}
+	log.Printf("update took %s", time.Since(start))
 	return updateCount, nil
 }

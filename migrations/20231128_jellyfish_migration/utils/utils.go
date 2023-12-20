@@ -21,12 +21,12 @@ import (
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-
 	"github.com/tidepool-org/platform/errors"
 )
 
 func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
-	scheduleNames := map[int]string{0: "One", 1: "Two", 2: "Three", 3: "Four", 4: "Five"}
+	//TODO: currently an array but should be a map for consistency. On pump is "Sleep Schedule 1", "Sleep Schedule 2"
+	scheduleNames := map[int]string{0: "1", 1: "2"}
 
 	if schedules := bsonData["sleepSchedules"]; schedules != nil {
 		sleepScheduleMap := pump.SleepScheduleMap{}
@@ -58,20 +58,13 @@ func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepSched
 	return nil, nil
 }
 
-func updateIfExistsPumpSettingsBolus(bsonData bson.M) (*pump.BolusMap, error) {
+func pumpSettingsHasBolus(bsonData bson.M) bool {
 	if bolus := bsonData["bolus"]; bolus != nil {
-		boluses := pump.BolusMap{}
-		dataBytes, err := json.Marshal(bolus)
-		if err != nil {
-			return nil, err
+		if _, ok := bolus.(*pump.BolusMap); ok {
+			return true
 		}
-		err = json.Unmarshal(dataBytes, &boluses)
-		if err != nil {
-			return nil, err
-		}
-		return &boluses, nil
 	}
-	return nil, nil
+	return false
 }
 
 func GetBGValuePlatformPrecision(mmolVal float64) float64 {
@@ -84,7 +77,8 @@ func GetBGValuePlatformPrecision(mmolVal float64) float64 {
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
-	updates := bson.M{}
+	set := bson.M{}
+	var rename bson.M
 	var identityFields []string
 
 	// while doing test runs
@@ -150,18 +144,15 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 			return errorDebug(datumID, err)
 		}
 
-		boluses, err := updateIfExistsPumpSettingsBolus(bsonData)
-		if err != nil {
-			return errorDebug(datumID, err)
-		} else if boluses != nil {
-			updates["boluses"] = boluses
+		if pumpSettingsHasBolus(bsonData) {
+			rename = bson.M{"bolus": "boluses"}
 		}
 
 		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(bsonData)
 		if err != nil {
 			return errorDebug(datumID, err)
 		} else if sleepSchedules != nil {
-			updates["sleepSchedules"] = sleepSchedules
+			set["sleepSchedules"] = sleepSchedules
 		}
 	case selfmonitored.Type:
 		var datum *selfmonitored.SelfMonitored
@@ -227,6 +218,12 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 	if err != nil {
 		return errorDebug(datumID, err)
 	}
-	updates["_deduplicator"] = bson.M{"hash": hash}
+	set["_deduplicator"] = bson.M{"hash": hash}
+
+	var updates = bson.M{"$set": set}
+	if rename != nil {
+		updates["$rename"] = rename
+	}
+
 	return datumID, updates, nil
 }

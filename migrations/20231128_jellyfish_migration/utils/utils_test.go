@@ -91,7 +91,7 @@ var _ = Describe("back-37", func() {
 					}, nil, true),
 					Entry("adds hash when vaild", func() bson.M {
 						return existingBolusDatum
-					}, bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}, false),
+					}, bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}}, false),
 				)
 			})
 
@@ -143,7 +143,7 @@ var _ = Describe("back-37", func() {
 							func() bson.M {
 								return existingBolusDatum
 							},
-							bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}},
+							bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}},
 							false,
 						),
 						Entry("do nothing when has no bolus",
@@ -151,16 +151,8 @@ var _ = Describe("back-37", func() {
 								settingsBolusDatum["bolus"] = nil
 								return settingsBolusDatum
 							},
-							bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}},
+							bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}},
 							false,
-						),
-						Entry("error bolus when invalid",
-							func() bson.M {
-								settingsBolusDatum["bolus"] = "wrong"
-								return settingsBolusDatum
-							},
-							nil,
-							true,
 						),
 						Entry("add boluses when bolus found",
 							func() bson.M {
@@ -168,8 +160,8 @@ var _ = Describe("back-37", func() {
 								return settingsBolusDatum
 							},
 							bson.M{
-								"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="},
-								"boluses":       bolusData,
+								"$set":    bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}},
+								"$rename": bson.M{"bolus": "boluses"},
 							},
 							false,
 						),
@@ -184,8 +176,8 @@ var _ = Describe("back-37", func() {
 					BeforeEach(func() {
 						s1 := pumpTest.RandomSleepSchedule()
 						s2 := pumpTest.RandomSleepSchedule()
-						(*expectedSleepSchedulesMap)["One"] = s1
-						(*expectedSleepSchedulesMap)["Two"] = s2
+						(*expectedSleepSchedulesMap)["1"] = s1
+						(*expectedSleepSchedulesMap)["2"] = s2
 
 						s1Days = pumpTest.CloneSleepSchedule(s1)
 						for key, day := range *s1Days.Days {
@@ -211,21 +203,22 @@ var _ = Describe("back-37", func() {
 					It("does nothing when wrong type", func() {
 						_, actual, err := utils.GetDatumUpdates(existingBolusDatum)
 						Expect(err).To(BeNil())
-						Expect(actual).To(Equal(bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}))
+						Expect(actual).To(Equal(bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}}))
 					})
 					It("does nothing when no sleepSchedules", func() {
 						sleepSchedulesDatum["sleepSchedules"] = nil
 						_, actual, err := utils.GetDatumUpdates(sleepSchedulesDatum)
 						Expect(err).To(BeNil())
-						Expect(actual).To(Equal(bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}))
+						Expect(actual).To(Equal(bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}}))
 					})
 					It("returns updated sleepSchedules when valid", func() {
 						sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{s1Days, s2Days}
 						_, actual, err := utils.GetDatumUpdates(sleepSchedulesDatum)
 						Expect(err).To(BeNil())
 						Expect(actual).ToNot(BeNil())
-						Expect(actual["sleepSchedules"]).ToNot(BeNil())
-						Expect(actual["sleepSchedules"]).To(Equal(expectedSleepSchedulesMap))
+						setData := actual["$set"].(bson.M)
+						Expect(setData["sleepSchedules"]).ToNot(BeNil())
+						Expect(setData["sleepSchedules"]).To(Equal(expectedSleepSchedulesMap))
 					})
 					It("returns error when sleepSchedules have invalid days", func() {
 						sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{invalidDays}
