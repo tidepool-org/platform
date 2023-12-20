@@ -383,9 +383,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	m.updates = []mongo.WriteModel{}
 
 	if dataC := m.getDataCollection(); dataC != nil {
-
 		fetchStart := time.Now()
-
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
 				Limit: &m.config.readBatchSize,
@@ -420,7 +418,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			m.lastUpdatedId = datumID
 		}
 
-		log.Printf("update took %s", time.Since(updateStart))
+		log.Printf("batch update took %s", time.Since(updateStart))
 		log.Printf("fetch and update took %s", time.Since(fetchAndUpdateStart))
 		return len(m.updates) > 0
 	}
