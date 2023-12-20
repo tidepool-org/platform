@@ -363,7 +363,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	start := time.Now()
 
 	selector := bson.M{
-		//"_deduplicator": bson.M{"$exists": false},
+		"_deduplicator": bson.M{"$exists": false},
 		// testing based on _userId for jamie+qa3_2@tidepool.org
 		"_userId": "db0157c8-565e-4f67-92a5-dfb6b0f4c385",
 	}
@@ -401,19 +401,17 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				log.Printf("failed decoding data: %s", err)
 				return false
 			}
-			if dDataResult["_deduplicator"] == nil {
-				datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
-				if err != nil {
-					m.onError(err, datumID, "failed getting updates")
-					continue
-				}
-
-				updateOp := mongo.NewUpdateOneModel()
-				updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
-				updateOp.SetUpdate(datumUpdates)
-				m.updates = append(m.updates, updateOp)
-				m.lastUpdatedId = datumID
+			datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
+			if err != nil {
+				m.onError(err, datumID, "failed getting updates")
+				continue
 			}
+
+			updateOp := mongo.NewUpdateOneModel()
+			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
+			updateOp.SetUpdate(datumUpdates)
+			m.updates = append(m.updates, updateOp)
+			m.lastUpdatedId = datumID
 		}
 		log.Printf("selector took %s", time.Since(start))
 		return len(m.updates) > 0
