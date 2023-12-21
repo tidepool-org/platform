@@ -388,7 +388,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		dataSet := []bson.M{}
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
-				Limit:     &m.config.readBatchSize,
 				Sort:      bson.M{"_id": 1},
 				BatchSize: &size,
 			},
