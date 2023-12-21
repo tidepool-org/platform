@@ -14,8 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 )
 
 type Config struct {
@@ -390,6 +388,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				Sort:  bson.M{"_id": 1},
 			},
 		)
+		//dDataCursor.SetBatchSize(1000)
+
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
 			return false
@@ -399,33 +399,30 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		log.Printf("fetch took %s", time.Since(fetchStart))
 		updateStart := time.Now()
-		var totalDuration time.Duration
 		for dDataCursor.Next(m.ctx) {
 
-			start := time.Now()
-			var dDataResult bson.M
-			if err = dDataCursor.Decode(&dDataResult); err != nil {
-				log.Printf("failed decoding data: %s", err)
-				return false
-			}
-			log.Printf("cursor decode %s", time.Since(start))
-			datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
-			if err != nil {
-				m.onError(err, datumID, "failed getting updates")
-				continue
-			}
-			log.Printf("datum updates %s", time.Since(start))
-			updateOp := mongo.NewUpdateOneModel()
-			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
-			updateOp.SetUpdate(datumUpdates)
-			m.updates = append(m.updates, updateOp)
-			m.lastUpdatedId = datumID
-			log.Printf("added to updates %s", time.Since(start))
-			totalDuration += time.Since(start)
+			// start := time.Now()
+			// var dDataResult bson.M
+			// if err = dDataCursor.Decode(&dDataResult); err != nil {
+			// 	log.Printf("failed decoding data: %s", err)
+			// 	return false
+			// }
+			// log.Printf("cursor decode %s", time.Since(start))
+			// datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
+			// if err != nil {
+			// 	m.onError(err, datumID, "failed getting updates")
+			// 	continue
+			// }
+			// log.Printf("datum updates %s", time.Since(start))
+			// updateOp := mongo.NewUpdateOneModel()
+			// updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
+			// updateOp.SetUpdate(datumUpdates)
+			// m.updates = append(m.updates, updateOp)
+			// m.lastUpdatedId = datumID
+			// log.Printf("added to updates %s", time.Since(start))
 		}
-		log.Printf("all datum %s", totalDuration)
 
-		log.Printf("batch update took %s", time.Since(updateStart))
+		log.Printf("batch iteration took %s", time.Since(updateStart))
 		log.Printf("fetch and update took %s", time.Since(fetchAndUpdateStart))
 		return len(m.updates) > 0
 	}
@@ -433,6 +430,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 }
 
 func (m *Migration) writeBatchUpdates() (int, error) {
+	if len(m.updates) == 0 {
+		return 0, nil
+	}
 	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
