@@ -401,26 +401,21 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		log.Printf("fetch took %s", time.Since(fetchStart))
 		updateStart := time.Now()
 		for dDataCursor.Next(m.ctx) {
-
-			start := time.Now()
 			var dDataResult bson.M
 			if err = dDataCursor.Decode(&dDataResult); err != nil {
 				log.Printf("failed decoding data: %s", err)
 				return false
 			}
-			log.Printf("cursor decode %s", time.Since(start))
 			datumID, datumUpdates, err := utils.GetDatumUpdates(dDataResult)
 			if err != nil {
 				m.onError(err, datumID, "failed getting updates")
 				continue
 			}
-			log.Printf("datum updates %s", time.Since(start))
 			updateOp := mongo.NewUpdateOneModel()
 			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": dDataResult["modifiedTime"]})
 			updateOp.SetUpdate(datumUpdates)
 			m.updates = append(m.updates, updateOp)
 			m.lastUpdatedId = datumID
-			log.Printf("added to updates %s", time.Since(start))
 		}
 
 		log.Printf("batch iteration took %s", time.Since(updateStart))
