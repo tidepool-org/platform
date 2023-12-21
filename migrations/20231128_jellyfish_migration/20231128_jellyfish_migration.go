@@ -381,15 +381,17 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 	m.updates = []mongo.WriteModel{}
 
+	size := int32(1000)
+
 	if dataC := m.getDataCollection(); dataC != nil {
 		fetchStart := time.Now()
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
-				Limit: &m.config.readBatchSize,
-				Sort:  bson.M{"_id": 1},
+				Limit:     &m.config.readBatchSize,
+				Sort:      bson.M{"_id": 1},
+				BatchSize: &size,
 			},
 		)
-		dDataCursor.SetBatchSize(1000)
 
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
