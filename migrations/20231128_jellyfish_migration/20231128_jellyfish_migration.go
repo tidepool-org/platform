@@ -10,11 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 )
 
 type Config struct {
