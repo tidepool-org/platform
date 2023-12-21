@@ -8,6 +8,7 @@ import (
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/data/types/device/override/settings/pump"
 	dataTypesDeviceOverrideSettingsPump "github.com/tidepool-org/platform/data/types/device/override/settings/pump"
 	dataTypesDeviceOverrideSettingsPumpTest "github.com/tidepool-org/platform/data/types/device/override/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -369,7 +370,7 @@ var _ = Describe("Pump", func() {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/duration", NewMeta()),
 				),
 				Entry("duration; in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -388,15 +389,15 @@ var _ = Describe("Pump", func() {
 				Entry("duration; out of range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
-						datum.Duration = pointer.FromInt(604801)
+						datum.Duration = pointer.FromInt(pump.DurationMaximum + 1)
 						datum.DurationExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604801, 0, 604800), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.DurationMaximum+1, 0, pump.DurationMaximum), "/duration", NewMeta()),
 				),
 				Entry("duration expected missing",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
-						datum.Duration = pointer.FromInt(test.RandomIntFromRange(0, 604800))
+						datum.Duration = pointer.FromInt(test.RandomIntFromRange(0, pump.DurationMaximum))
 						datum.DurationExpected = nil
 					},
 				),
@@ -406,7 +407,7 @@ var _ = Describe("Pump", func() {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration expected; duration missing; in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -419,16 +420,16 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.FromInt(604800)
+						datum.DurationExpected = pointer.FromInt(pump.DurationMaximum)
 					},
 				),
 				Entry("duration expected; duration missing; out of range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
 						datum.Duration = nil
-						datum.DurationExpected = pointer.FromInt(604801)
+						datum.DurationExpected = pointer.FromInt(pump.DurationMaximum + 1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604801, 0, 604800), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.DurationMaximum+1, 0, pump.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration expected; duration out of range; out of range (lower)",
 					pointer.FromString("mmol/L"),
@@ -436,8 +437,8 @@ var _ = Describe("Pump", func() {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/duration", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration expected; duration out of range; in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -445,7 +446,7 @@ var _ = Describe("Pump", func() {
 						datum.Duration = pointer.FromInt(-1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/duration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/duration", NewMeta()),
 				),
 				Entry("duration expected; out of range (lower)",
 					pointer.FromString("mmol/L"),
@@ -453,7 +454,7 @@ var _ = Describe("Pump", func() {
 						datum.Duration = pointer.FromInt(3600)
 						datum.DurationExpected = pointer.FromInt(3599)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(3599, 3600, 604800), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(3599, 3600, pump.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration expected; in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -473,9 +474,9 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(3600)
-						datum.DurationExpected = pointer.FromInt(604801)
+						datum.DurationExpected = pointer.FromInt(pump.DurationMaximum + 1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604801, 3600, 604800), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(pump.DurationMaximum+1, 3600, pump.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
 				Entry("units mmol/L; blood glucose target missing",
 					pointer.FromString("mmol/L"),
@@ -707,8 +708,8 @@ var _ = Describe("Pump", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/overrideType", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/overridePreset", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"automatic", "manual"}), "/method", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/duration", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/expectedDuration", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/duration", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, pump.DurationMaximum), "/expectedDuration", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/basalRateScaleFactor", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/carbRatioScaleFactor", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/insulinSensitivityScaleFactor", &dataTypesDevice.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
