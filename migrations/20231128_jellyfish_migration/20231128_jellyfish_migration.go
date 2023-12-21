@@ -364,7 +364,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
 		// testing based on _userId for jamie+qa3_2@tidepool.org
-		"_userId": "e63e0997-5f92-4c8e-9707-0697f3339052",
+		"_userId": "6d1ca155-68e6-4cd6-9ed2-1b8e743d5f4a",
 	}
 
 	// jellyfish uses a generated _id that is not an mongo objectId
