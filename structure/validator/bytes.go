@@ -24,3 +24,10 @@ func (b *Bytes) NotEmpty() structure.Bytes {
 	}
 	return b
 }
+
+func (b *Bytes) LengthLessThanOrEqualTo(limit int) structure.Bytes {
+	if length := len(b.value); length > limit {
+		b.base.ReportError(ErrorLengthNotLessThanOrEqualTo(length, limit))
+	}
+	return b
+}

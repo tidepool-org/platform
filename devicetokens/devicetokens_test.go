@@ -2,6 +2,7 @@ package devicetokens
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -50,24 +51,29 @@ var _ = Describe("DeviceToken", func() {
 		buf = buff(`{"apple":{"token":"not-base64","environment":"sandbox"}}`)
 		err = request.DecodeObject(nil, buf, token)
 		Expect(err).To(MatchError("json is malformed"))
+
+		testToken := buildTokenLongerThan(MaxTokenLen)
+		buf = buff(`{"apple":{"token":"%s","environment":"sandbox"}}`, testToken)
+		err = request.DecodeObject(nil, buf, token)
+		Expect(err).To(MatchError(ContainSubstring("is not less than or equal to")))
 	})
 
 	It("apple must exist (there's no other supported device yet)", func() {
 		token := &DeviceToken{}
 		buf := buff(`{}`)
 		err := request.DecodeObject(nil, buf, token)
-		Expect(err).To(MatchError(ContainSubstring("value is empty")))
+		Expect(err).To(MatchError(ContainSubstring("no token found")))
 	})
 
 	Describe("NewDocument", func() {
 		It("generates a TokenID", func() {
 			token := DeviceToken{
-				Apple: AppleDeviceToken{Environment: "sandbox", Token: []byte("blah")},
+				Apple: &AppleDeviceToken{Environment: "sandbox", Token: []byte("blah")},
 			}
 			doc := NewDocument(mockUserID1, token)
 
-			Expect(doc.TokenID).To(HaveLen(64))
-			Expect(doc.TokenID).To(MatchRegexp("[a-fA-F0-9]{64}"))
+			Expect(doc.TokenKey).To(HaveLen(64))
+			Expect(doc.TokenKey).To(MatchRegexp("[a-fA-F0-9]{64}"))
 		})
 	})
 
@@ -87,4 +93,13 @@ var _ = Describe("DeviceToken", func() {
 // buff is a helper for generating a JSON []byte representation.
 func buff(format string, args ...interface{}) *bytes.Buffer {
 	return bytes.NewBufferString(fmt.Sprintf(format, args...))
+}
+
+// buildTokenLongerThan builds a token that's just TOO long.
+func buildTokenLongerThan(limit int) string {
+	var tooLong = []byte{}
+	for i := 0; i < limit+1; i++ {
+		tooLong = append(tooLong, 'a')
+	}
+	return base64.StdEncoding.EncodeToString(tooLong)
 }
