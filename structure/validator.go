@@ -227,4 +227,5 @@ type Array interface {
 
 type Bytes interface {
 	NotEmpty() Bytes
+	LengthLessThanOrEqualTo(limit int) Bytes
 }

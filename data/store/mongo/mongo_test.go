@@ -2709,8 +2709,8 @@ var _ = Describe("Mongo", func() {
 
 			prep := func(upsertDoc bool) (context.Context, *devicetokens.Document, bson.M) {
 				doc := &devicetokens.Document{
-					UserID:  "user-id",
-					TokenID: "foo",
+					UserID:   "user-id",
+					TokenKey: "foo",
 				}
 				ctx := context.Background()
 				filter := bson.M{}
@@ -2718,7 +2718,7 @@ var _ = Describe("Mongo", func() {
 					Expect(deviceTokensRepository.Upsert(ctx, doc)).
 						To(Succeed())
 					filter["userId"] = doc.UserID
-					filter["tokenId"] = doc.TokenID
+					filter["tokenKey"] = doc.TokenKey
 				}
 
 				return ctx, doc, filter
@@ -2737,7 +2737,7 @@ var _ = Describe("Mongo", func() {
 						err := res.Decode(newDoc)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(newDoc.UserID).To(Equal(doc.UserID))
-						Expect(newDoc.TokenID).To(Equal(doc.TokenID))
+						Expect(newDoc.TokenKey).To(Equal(doc.TokenKey))
 					})
 				})
 
@@ -2749,7 +2749,7 @@ var _ = Describe("Mongo", func() {
 					Expect(err).To(MatchError("UserID may not be empty"))
 
 					doc.UserID = "user-id"
-					doc.TokenID = ""
+					doc.TokenKey = ""
 					err = deviceTokensRepository.Upsert(ctx, doc)
 					Expect(err).To(MatchError("TokenID may not be empty"))
 				})
@@ -2768,7 +2768,7 @@ var _ = Describe("Mongo", func() {
 						err = cur.Decode(newDoc)
 						Expect(err).To(Succeed())
 						Expect(newDoc.UserID).To(Equal("user-id"))
-						Expect(newDoc.TokenID).To(Equal("foo"))
+						Expect(newDoc.TokenKey).To(Equal("foo"))
 					}
 				})
 			})
