@@ -1,4 +1,7 @@
 TIMESTAMP ?= $(shell date +%s)
+# ensure that we use the same timestamps in sub-makes. We've seen cases where
+# these can vary by 1 second
+export TIMESTAMP
 
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
@@ -128,8 +131,8 @@ imports-write-changed: goimports
 vet: tmp
 	@echo "go vet"
 	cd $(ROOT_DIRECTORY) && \
-    		go vet ./... > _tmp/govet.out 2>&1 || \
-    		(diff .govetignore _tmp/govet.out && exit 1)
+		go vet ./... > _tmp/govet.out 2>&1 || \
+		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
@@ -292,7 +295,7 @@ ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_PULL_REQUEST_BRANCH
 	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
- 	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
+	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 else
 	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
 	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
