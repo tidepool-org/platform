@@ -68,6 +68,8 @@ type ExternalConfig struct {
 	*platform.Config
 	ServerSessionTokenSecret  string        `envconfig:"TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_SECRET"`
 	ServerSessionTokenTimeout time.Duration `envconfig:"TIDEPOOL_AUTH_CLIENT_EXTERNAL_SERVER_SESSION_TOKEN_TIMEOUT" default:"1h"`
+	// PathPrefix to prepend to the path of any service calls (if any).
+	PathPrefix string `envconfig:"TIDEPOOL_AUTH_CLIENT_EXTERNAL_PATH_PREFIX" default:"auth"`
 }
 
 func NewExternalConfig() *ExternalConfig {
@@ -107,6 +109,7 @@ type External struct {
 	serverSessionTokenMutex   sync.Mutex
 	serverSessionTokenSafe    string
 	closingChannel            chan chan bool
+	PathPrefix                string // PathPrefix is the prefix to prepend to all external URL path calls to the auth service (if any)
 }
 
 func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name string, lgr log.Logger) (*External, error) {
@@ -135,6 +138,7 @@ func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name str
 		name:                      name,
 		serverSessionTokenSecret:  cfg.ServerSessionTokenSecret,
 		serverSessionTokenTimeout: cfg.ServerSessionTokenTimeout,
+		PathPrefix:                cfg.PathPrefix,
 	}, nil
 }
 
@@ -200,7 +204,7 @@ func (e *External) ValidateSessionToken(ctx context.Context, token string) (requ
 		IsServer bool
 		UserID   string
 	}
-	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL("auth", "token", token), nil, nil, &result); err != nil {
+	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL(e.PathPrefix, "token", token), nil, nil, &result); err != nil {
 		return nil, err
 	}
 
@@ -301,7 +305,7 @@ func (e *External) refreshServerSessionToken() error {
 	e.logger.Debug("Refreshing server session token")
 
 	requestMethod := "POST"
-	requestURL := e.client.ConstructURL("auth", "serverlogin")
+	requestURL := e.client.ConstructURL(e.PathPrefix, "serverlogin")
 	request, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new request for %s %s", requestMethod, requestURL)
