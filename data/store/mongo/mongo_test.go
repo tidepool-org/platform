@@ -554,6 +554,13 @@ var _ = Describe("Mongo", func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "modifiedTime", "time")),
+						"Name": Equal("TestUserIdActiveTypeModifiedTimeTime"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
 						"Background": Equal(true),
 						"Name":       Equal("OriginId"),
