@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
@@ -129,10 +130,17 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
+func (s *BGMStats) ClearInvalidatedBuckets(status *UserLastUpdated) {
+	offset := int(status.EarliestModified.Sub(s.Buckets[0].Date).Hours())
+
+	for i := offset; i < len(s.Buckets); i++ {
+		s.Buckets[i] = nil
+	}
+	s.Buckets = s.Buckets[offset:]
+}
+
 func (s *BGMStats) Update(ctx context.Context, cursor *mongo.Cursor) error {
 	var userData []*glucoseDatum.Glucose = nil
-	var r *glucoseDatum.Glucose
-	var currentBucket *Bucket[*BGMBucketData, BGMBucketData]
 	var err error
 
 	for cursor.Next(ctx) {
@@ -140,19 +148,29 @@ func (s *BGMStats) Update(ctx context.Context, cursor *mongo.Cursor) error {
 			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
 		}
 
-		if err = cursor.Decode(r); err != nil {
+		r := glucoseDatum.Glucose{}
+		if err = cursor.Decode(&r); err != nil {
 			return fmt.Errorf("unable to decode userData: %w", err)
 		}
-		userData = append(userData, r)
+		userData = append(userData, &r)
 
 		// we call AddData before each network call to the db to reduce thrashing
 		if cursor.RemainingBatchLength() != 0 {
-			currentBucket, err = AddData(&s.Buckets, userData, currentBucket)
+			err = AddData(&s.Buckets, userData)
 			if err != nil {
 				return err
 			}
 			userData = nil
 		}
+	}
+
+	// add the final partial batch
+	if userData != nil {
+		err = AddData(&s.Buckets, userData)
+		if err != nil {
+			return err
+		}
+		userData = nil
 	}
 
 	s.CalculateSummary()

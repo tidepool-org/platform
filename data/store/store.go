@@ -2,8 +2,9 @@ package store
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/mongo"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/summary/types"

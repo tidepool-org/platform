@@ -5,8 +5,9 @@ import (
 	"strings"
 	"time"
 
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"golang.org/x/exp/constraints"
+
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 )
 
 func SkipUntil[T RecordTypes, A RecordTypesPt[T]](date time.Time, userData []A) ([]A, error) {

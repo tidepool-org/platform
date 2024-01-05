@@ -2,8 +2,9 @@ package summary
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/mongo"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
 
@@ -173,8 +174,15 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		userSummary.Dates.Reset()
 	}
 
+	// we currently don't just pull modified records, even if some code supports it, make a copy of status without these
+	dataRange := *status
+	dataRange.LastUpdated = time.Time{}
+	dataRange.NextLastUpdated = time.Now()
+
+	userSummary.Stats.ClearInvalidatedBuckets(status)
+
 	var cursor *mongo.Cursor
-	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
+	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), &dataRange)
 	if err != nil {
 		return nil, err
 	}

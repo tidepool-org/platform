@@ -118,12 +118,13 @@ func (r *Repo[T, A]) ReplaceSummary(ctx context.Context, userSummary *types.Summ
 		return errors.New("summary is missing UserID")
 	}
 
+	opts := options.Replace().SetUpsert(true)
 	selector := bson.M{
 		"userId": userSummary.UserID,
 		"type":   userSummary.Type,
 	}
 
-	_, err := r.ReplaceOne(ctx, selector, userSummary)
+	_, err := r.ReplaceOne(ctx, selector, userSummary, opts)
 
 	return err
 }

@@ -115,7 +115,7 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
-	var insertData []mongo.WriteModel
+	insertData := make([]mongo.WriteModel, 0, len(dataSetData))
 
 	for _, datum := range dataSetData {
 		datum.SetUserID(dataSet.UserID)
@@ -613,17 +613,24 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	//	return nil, fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
 	//}
 
-	startTime := status.FirstData
-	endTime := status.LastData
-
 	// quit early if range is 0
-	if startTime.Equal(endTime) {
+	if status.FirstData.Equal(status.LastData) {
 		return nil, nil
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
-	if startTime.After(endTime) {
-		return nil, fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
+	if status.FirstData.After(status.LastData) {
+		return nil, fmt.Errorf("FirstData (%s) after LastData (%s) for user %s", status.FirstData, status.LastData, userId)
+	}
+
+	// quit early if range is 0
+	if status.LastUpdated.Equal(status.LastData) {
+		return nil, nil
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if status.LastUpdated.After(status.NextLastUpdated) {
+		return nil, fmt.Errorf("LastUpdated (%s) after NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userId)
 	}
 
 	selector := bson.M{
@@ -631,8 +638,8 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 		"_userId": userId,
 		"type":    typ,
 		"time": bson.M{
-			"$gt":  startTime,
-			"$lte": endTime,
+			"$gt":  status.FirstData,
+			"$lte": status.LastData,
 		},
 		"modifiedTime": bson.M{
 			"$gt":  status.LastUpdated,
@@ -657,6 +664,10 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 
 	if ctx == nil {
 		return errors.New("context is missing")
+	}
+
+	if status == nil {
+		return errors.New("status is missing")
 	}
 
 	if userId == "" {
@@ -702,7 +713,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return fmt.Errorf("unable to decode last %s time: %w", typ, err)
 	}
 
-	// if we have no record
+	// if we have a record
 	if len(dataSet) > 0 {
 		status.LastData = dataSet[0].Time.UTC()
 		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
@@ -728,7 +739,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
 	}
 
-	// if we have no record
+	// if we have a record
 	if len(dataSet) > 0 {
 		status.LastUpload = dataSet[0].ModifiedTime.UTC()
 	}
@@ -755,9 +766,9 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
 	}
 
-	// if we have no record
+	// if we have a record
 	if len(dataSet) > 0 {
-		status.LastUpload = dataSet[0].ModifiedTime.UTC()
+		status.EarliestModified = dataSet[0].Time.UTC()
 	}
 
 	return nil

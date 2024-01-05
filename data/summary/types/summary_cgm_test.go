@@ -1,10 +1,16 @@
 package types_test
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 
 	userTest "github.com/tidepool-org/platform/user/test"
 
@@ -80,10 +86,14 @@ var _ = Describe("CGM Summary", func() {
 	var userId string
 	var datumTime time.Time
 	var deviceId string
+	var logger log.Logger
+	var ctx context.Context
 	var err error
 	var dataSetCGMData []*glucose.Glucose
 
 	BeforeEach(func() {
+		logger = logTest.NewLogger()
+		ctx = log.NewContextWithLogger(context.Background(), logger)
 		userId = userTest.RandomID()
 		deviceId = "SummaryTestDevice"
 		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
@@ -91,7 +101,7 @@ var _ = Describe("CGM Summary", func() {
 
 	Context("CreateCGMSummary", func() {
 		It("Correctly initializes a cgm summary", func() {
-			summary := types.Create[types.CGMStats, *types.CGMStats](userId)
+			summary := types.Create[*types.CGMStats](userId)
 			Expect(summary).To(Not(BeNil()))
 			Expect(summary.Type).To(Equal("cgm"))
 		})
@@ -104,27 +114,27 @@ var _ = Describe("CGM Summary", func() {
 
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 336, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(336))
 			})
 
 			It("Returns correct hour count when given 1 week", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(168))
 			})
 
 			It("Returns correct hour count when given 3 weeks", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 504, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(504))
@@ -133,7 +143,7 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct record count when given overlapping records", func() {
 				var doubledCGMData = make([]*glucose.Glucose, 288*2)
 
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
 				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
 
@@ -142,7 +152,7 @@ var _ = Describe("CGM Summary", func() {
 					doubledCGMData[i*2] = dataSetCGMData[i]
 					doubledCGMData[i*2+1] = dataSetCGMDataTwo[i]
 				}
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(24))
@@ -150,14 +160,14 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct record count when given overlapping records across multiple calculations", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(24))
@@ -165,20 +175,20 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct records when given >60d of data", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime, 5, NewDataRangesSingle(lowBloodGlucose-0.5))
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
 
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime.Add(1*time.Hour), 1, NewDataRangesSingle(highBloodGlucose+0.5))
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
 
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime.Add(24*60*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userCGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(10))
 
@@ -189,14 +199,14 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct records when given data a full 60d ahead of previous data", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime, 1, NewDataRangesSingle(lowBloodGlucose-0.5))
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime.Add(24*62*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
@@ -211,10 +221,10 @@ var _ = Describe("CGM Summary", func() {
 				var newHourlyStatsLen int
 				secondDatumTime := datumTime.AddDate(0, 0, 15)
 				secondRequestedAvgGlucose := lowBloodGlucose
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(168))
@@ -229,7 +239,7 @@ var _ = Describe("CGM Summary", func() {
 				}
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, secondDatumTime, 168, secondRequestedAvgGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(528)) // 22 days
@@ -254,10 +264,10 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct stats when given multiple batches in a day", func() {
 				var incrementalDatumTime time.Time
 				var lastRecordTime time.Time
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 144, inTargetBloodGlucose)
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(144))
@@ -266,7 +276,7 @@ var _ = Describe("CGM Summary", func() {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetCGMData = NewDataSetCGMDataAvg(deviceId, incrementalDatumTime, 1, float64(i))
 
-					err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMData)
+					err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(144 + i))
@@ -291,7 +301,6 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct daily stats for days with different averages", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
-				var currentBucket *types.Bucket[*types.CGMBucketData, types.CGMBucketData]
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				// Datasets use +1 and +2 offset to allow for checking via iteration
@@ -301,7 +310,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = append(dataSetCGMDataOne, dataSetCGMDataTwo...)
 				dataSetCGMData = append(dataSetCGMData, dataSetCGMDataThree...)
 
-				currentBucket, err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, currentBucket)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(72))
@@ -322,7 +331,7 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Returns correct hourly stats for hours with different Time in Range", func() {
 				var lastRecordTime time.Time
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				veryLowRange := NewDataRangesSingle(veryLowBloodGlucose - 0.5)
 				lowRange := NewDataRangesSingle(lowBloodGlucose - 0.5)
 				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
@@ -336,15 +345,15 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMDataFive := NewDataSetCGMDataRanges(deviceId, datumTime, 1, veryHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataFour)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFour)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataFive)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(5))
@@ -434,27 +443,26 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct hourly stats for days uploaded in reverse", func() {
 				var expectedTotalGlucose float64
 				var lastRecordTime time.Time
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				// Datasets use +1 and +2 offset to allow for checking via iteration
 				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -2), 24, inTargetBloodGlucose)
 				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, -1), 24, inTargetBloodGlucose+1)
 				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose+2)
 
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = types.AddData[types.CGMBucketData, *types.CGMBucketData](&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(72))
 
 				for i := len(userCGMSummary.Stats.Buckets) - 1; i >= 0; i-- {
-					f := fmt.Sprintf("hour %d", i+1)
-					By(f)
+					By(fmt.Sprintf("hour %d", i+1))
 					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(12))
 					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes).To(Equal(60))
 
@@ -469,7 +477,7 @@ var _ = Describe("CGM Summary", func() {
 
 		Context("CalculateDelta", func() {
 			It("Returns correct deltas for periods", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				for i, period := range periodKeys {
 					vFloat := float64(i) * 7.5
@@ -591,7 +599,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct nil deltas with nil latest stats", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				for _, period := range periodKeys {
 					userCGMSummary.Stats.Periods[period] = &types.CGMPeriod{
@@ -705,7 +713,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct nil deltas with nil offset stats", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				for _, period := range periodKeys {
 					userCGMSummary.Stats.Periods[period] = &types.CGMPeriod{
@@ -821,13 +829,15 @@ var _ = Describe("CGM Summary", func() {
 
 		Context("CalculateSummary/Update", func() {
 			var newDatumTime time.Time
+			var dataSetCGMDataCursor *mongo.Cursor
 
 			It("Returns correct time in range for stats", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				ranges := NewDataRanges()
 				dataSetCGMData = NewDataSetCGMDataRanges(deviceId, datumTime, 720, ranges)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -921,11 +931,13 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct average glucose for stats", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				expectedGMI := types.CalculateGMI(inTargetBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -949,11 +961,13 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Correctly removes GMI when CGM use drop below 0.7", func() {
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				expectedGMI := types.CalculateGMI(inTargetBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -977,8 +991,9 @@ var _ = Describe("CGM Summary", func() {
 
 				// start the real test
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime.AddDate(0, 0, 31), 16, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(1440))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(60 * 24)) // 60 days currently capped
@@ -1003,11 +1018,13 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with no rolling", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				expectedGMI := types.CalculateGMI(inTargetBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1031,12 +1048,14 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with rolling <100% cgm use", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 1, lowBloodGlucose)
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
 				expectedGMI := types.CalculateGMI(highBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 1, lowBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(1))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(1))
@@ -1061,8 +1080,9 @@ var _ = Describe("CGM Summary", func() {
 
 				// start the actual test
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 720, highBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(721))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(721))
@@ -1086,12 +1106,14 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with rolling 100% cgm use", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				newDatumTime = datumTime.Add(time.Duration(23) * time.Hour)
 				expectedGMIFirst := types.CalculateGMI(lowBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1115,8 +1137,9 @@ var _ = Describe("CGM Summary", func() {
 
 				// start the actual test
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 23, highBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(743))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(743))
@@ -1142,12 +1165,14 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly non-rolling summary with two 30 day windows", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, highBloodGlucose)
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 31)
 				expectedGMISecond := types.CalculateGMI(highBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 24, highBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(24))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(24))
@@ -1175,8 +1200,9 @@ var _ = Describe("CGM Summary", func() {
 
 				// start the actual test
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 168, highBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(768))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(768)) // 30 days
@@ -1210,12 +1236,14 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correctly calculated summary with rolling dropping cgm use", func() {
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 				newDatumTime = datumTime.AddDate(0, 0, 30)
 				expectedGMI := types.CalculateGMI(lowBloodGlucose)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1239,8 +1267,9 @@ var _ = Describe("CGM Summary", func() {
 
 				// start the actual test
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, newDatumTime, 1, highBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMData)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(1440)) // 60 days
@@ -1264,7 +1293,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			//It("Returns correct record count when given single buckets in strange places", func() {
-			//	userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+			//	userCGMSummary = types.Create[*types.CGMStats](userId)
 			//
 			//	// initial single bucket
 			//	dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, datumTime, 1, inTargetBloodGlucose)
@@ -1308,7 +1337,7 @@ var _ = Describe("CGM Summary", func() {
 				// 30d regular -- (high+veryHigh+low+veryLow)/4, 288*4 (1152) readings (from 1d + 2d + 14d + 28d)
 				// 30d offset  -- target, 288 readings (from 60d)
 
-				userCGMSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				newDatumTimeOne := datumTime.AddDate(0, 0, -59)
 				newDatumTimeTwo := datumTime.AddDate(0, 0, -27)
@@ -1317,12 +1346,21 @@ var _ = Describe("CGM Summary", func() {
 				newDatumTimeFive := datumTime
 
 				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceId, newDatumTimeOne, 24, inTargetBloodGlucose)
-				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, newDatumTimeTwo, 24, veryHighBloodGlucose)
-				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, newDatumTimeThree, 24, veryLowBloodGlucose)
-				dataSetCGMDataFour := NewDataSetCGMDataAvg(deviceId, newDatumTimeFour, 24, highBloodGlucose)
-				dataSetCGMDataFive := NewDataSetCGMDataAvg(deviceId, newDatumTimeFive, 24, lowBloodGlucose)
+				dataSetCGMDataOneCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMDataOne), nil, nil)
 
-				err = userCGMSummary.Stats.Update(dataSetCGMDataOne)
+				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceId, newDatumTimeTwo, 24, veryHighBloodGlucose)
+				dataSetCGMDataTwoCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMDataTwo), nil, nil)
+
+				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceId, newDatumTimeThree, 24, veryLowBloodGlucose)
+				dataSetCGMDataThreeCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMDataThree), nil, nil)
+
+				dataSetCGMDataFour := NewDataSetCGMDataAvg(deviceId, newDatumTimeFour, 24, highBloodGlucose)
+				dataSetCGMDataFourCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMDataFour), nil, nil)
+
+				dataSetCGMDataFive := NewDataSetCGMDataAvg(deviceId, newDatumTimeFive, 24, lowBloodGlucose)
+				dataSetCGMDataFiveCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMDataFive), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataOneCursor)
 				Expect(err).ToNot(HaveOccurred())
 
 				// first day, should have 24 buckets
@@ -1333,7 +1371,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(24 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(0))
 
-				err = userCGMSummary.Stats.Update(dataSetCGMDataTwo)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataTwoCursor)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 33 days elapsed, should have 33*24 (792) buckets
@@ -1344,7 +1382,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 12))
 
-				err = userCGMSummary.Stats.Update(dataSetCGMDataThree)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataThreeCursor)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 47 days elapsed, should have 47*24 (1128) buckets
@@ -1353,7 +1391,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 2 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 12))
 
-				err = userCGMSummary.Stats.Update(dataSetCGMDataFour)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataFourCursor)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 59 days elapsed, should have 59*24 (1416) buckets
@@ -1362,7 +1400,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 3 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 1 * 12))
 
-				err = userCGMSummary.Stats.Update(dataSetCGMDataFive)
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataFiveCursor)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 60 days elapsed, should have 60*24 (1440) buckets
