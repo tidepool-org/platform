@@ -620,6 +620,12 @@ var _ = Describe("BGM Summary", func() {
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowPercent).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(0.200))
 
+					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowRecords).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyLowRecords).To(Equal(24 * 2 * v))
+
+					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowPercent).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyLowPercent).To(Equal(0.400))
+
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInLowRecords).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInLowRecords).To(Equal(24 * v))
 
@@ -637,6 +643,12 @@ var _ = Describe("BGM Summary", func() {
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighPercent).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(0.200))
+
+					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyHighRecords).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyHighRecords).To(Equal(24 * 2 * v))
+
+					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyHighPercent).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyHighPercent).To(Equal(0.400))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTotalRecords).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(120 * v))

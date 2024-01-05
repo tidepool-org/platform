@@ -101,6 +101,18 @@ type CGMPeriod struct {
 	TimeInVeryLowRecords      *int `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
 	TimeInVeryLowRecordsDelta *int `json:"timeInVeryLowRecordsDelta" bson:"timeInVeryLowRecordsDelta"`
 
+	HasTimeInAnyLowPercent   bool     `json:"hasTimeInAnyLowPercent" bson:"hasTimeInAnyLowPercent"`
+	TimeInAnyLowPercent      *float64 `json:"timeInAnyLowPercent" bson:"timeInAnyLowPercent"`
+	TimeInAnyLowPercentDelta *float64 `json:"timeInAnyLowPercentDelta" bson:"timeInAnyLowPercentDelta"`
+
+	HasTimeInAnyLowMinutes   bool `json:"hasTimeInAnyLowMinutes" bson:"hasTimeInAnyLowMinutes"`
+	TimeInAnyLowMinutes      *int `json:"timeInAnyLowMinutes" bson:"timeInAnyLowMinutes"`
+	TimeInAnyLowMinutesDelta *int `json:"timeInAnyLowMinutesDelta" bson:"timeInAnyLowMinutesDelta"`
+
+	HasTimeInAnyLowRecords   bool `json:"hasTimeInAnyLowRecords" bson:"hasTimeInAnyLowRecords"`
+	TimeInAnyLowRecords      *int `json:"timeInAnyLowRecords" bson:"timeInAnyLowRecords"`
+	TimeInAnyLowRecordsDelta *int `json:"timeInAnyLowRecordsDelta" bson:"timeInAnyLowRecordsDelta"`
+
 	HasTimeInHighPercent   bool     `json:"hasTimeInHighPercent" bson:"hasTimeInHighPercent"`
 	TimeInHighPercent      *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
 	TimeInHighPercentDelta *float64 `json:"timeInHighPercentDelta" bson:"timeInHighPercentDelta"`
@@ -124,6 +136,18 @@ type CGMPeriod struct {
 	HasTimeInVeryHighRecords   bool `json:"hasTimeInVeryHighRecords" bson:"hasTimeInVeryHighRecords"`
 	TimeInVeryHighRecords      *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta" bson:"timeInVeryHighRecordsDelta"`
+
+	HasTimeInAnyHighPercent   bool     `json:"hasTimeInAnyHighPercent" bson:"hasTimeInAnyHighPercent"`
+	TimeInAnyHighPercent      *float64 `json:"timeInAnyHighPercent" bson:"timeInAnyHighPercent"`
+	TimeInAnyHighPercentDelta *float64 `json:"timeInAnyHighPercentDelta" bson:"timeInAnyHighPercentDelta"`
+
+	HasTimeInAnyHighMinutes   bool `json:"hasTimeInAnyHighMinutes" bson:"hasTimeInAnyHighMinutes"`
+	TimeInAnyHighMinutes      *int `json:"timeInAnyHighMinutes" bson:"timeInAnyHighMinutes"`
+	TimeInAnyHighMinutesDelta *int `json:"timeInAnyHighMinutesDelta" bson:"timeInAnyHighMinutesDelta"`
+
+	HasTimeInAnyHighRecords   bool `json:"hasTimeInAnyHighRecords" bson:"hasTimeInAnyHighRecords"`
+	TimeInAnyHighRecords      *int `json:"timeInAnyHighRecords" bson:"timeInAnyHighRecords"`
+	TimeInAnyHighRecordsDelta *int `json:"timeInAnyHighRecordsDelta" bson:"timeInAnyHighRecordsDelta"`
 }
 
 type CGMPeriods map[string]*CGMPeriod
@@ -426,6 +450,27 @@ func (s *CGMStats) CalculateDelta() {
 			s.OffsetPeriods[k].TimeInVeryLowMinutesDelta = pointer.FromAny(-delta)
 		}
 
+		if s.Periods[k].TimeInAnyLowPercent != nil && s.OffsetPeriods[k].TimeInAnyLowPercent != nil {
+			delta := *s.Periods[k].TimeInAnyLowPercent - *s.OffsetPeriods[k].TimeInAnyLowPercent
+
+			s.Periods[k].TimeInAnyLowPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInAnyLowPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInAnyLowRecords != nil && s.OffsetPeriods[k].TimeInAnyLowRecords != nil {
+			delta := *s.Periods[k].TimeInAnyLowRecords - *s.OffsetPeriods[k].TimeInAnyLowRecords
+
+			s.Periods[k].TimeInAnyLowRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInAnyLowRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInAnyLowMinutes != nil && s.OffsetPeriods[k].TimeInAnyLowMinutes != nil {
+			delta := *s.Periods[k].TimeInAnyLowMinutes - *s.OffsetPeriods[k].TimeInAnyLowMinutes
+
+			s.Periods[k].TimeInAnyLowMinutesDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInAnyLowMinutesDelta = pointer.FromAny(-delta)
+		}
+
 		if s.Periods[k].TimeInHighPercent != nil && s.OffsetPeriods[k].TimeInHighPercent != nil {
 			delta := *s.Periods[k].TimeInHighPercent - *s.OffsetPeriods[k].TimeInHighPercent
 
@@ -467,6 +512,27 @@ func (s *CGMStats) CalculateDelta() {
 			s.Periods[k].TimeInVeryHighMinutesDelta = pointer.FromAny(delta)
 			s.OffsetPeriods[k].TimeInVeryHighMinutesDelta = pointer.FromAny(-delta)
 		}
+
+		if s.Periods[k].TimeInAnyHighPercent != nil && s.OffsetPeriods[k].TimeInAnyHighPercent != nil {
+			delta := *s.Periods[k].TimeInAnyHighPercent - *s.OffsetPeriods[k].TimeInAnyHighPercent
+
+			s.Periods[k].TimeInAnyHighPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInAnyHighPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInAnyHighRecords != nil && s.OffsetPeriods[k].TimeInAnyHighRecords != nil {
+			delta := *s.Periods[k].TimeInAnyHighRecords - *s.OffsetPeriods[k].TimeInAnyHighRecords
+
+			s.Periods[k].TimeInAnyHighRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInAnyHighRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInAnyHighMinutes != nil && s.OffsetPeriods[k].TimeInAnyHighMinutes != nil {
+			delta := *s.Periods[k].TimeInAnyHighMinutes - *s.OffsetPeriods[k].TimeInAnyHighMinutes
+
+			s.Periods[k].TimeInAnyHighMinutesDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInAnyHighMinutesDelta = pointer.FromAny(-delta)
+		}
 	}
 }
 
@@ -502,6 +568,12 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 		HasTimeInVeryLowRecords: true,
 		TimeInVeryLowRecords:    pointer.FromAny(totalStats.VeryLowRecords),
 
+		HasTimeInAnyLowMinutes: true,
+		TimeInAnyLowMinutes:    pointer.FromAny(totalStats.LowMinutes + totalStats.VeryLowMinutes),
+
+		HasTimeInAnyLowRecords: true,
+		TimeInAnyLowRecords:    pointer.FromAny(totalStats.LowRecords + totalStats.VeryLowRecords),
+
 		HasTimeInHighMinutes: true,
 		TimeInHighMinutes:    pointer.FromAny(totalStats.HighMinutes),
 
@@ -513,6 +585,12 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 
 		HasTimeInVeryHighRecords: true,
 		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
+
+		HasTimeInAnyHighMinutes: true,
+		TimeInAnyHighMinutes:    pointer.FromAny(totalStats.HighMinutes + totalStats.VeryHighMinutes),
+
+		HasTimeInAnyHighRecords: true,
+		TimeInAnyHighRecords:    pointer.FromAny(totalStats.HighRecords + totalStats.VeryHighRecords),
 	}
 
 	if totalStats.TotalRecords != 0 {
@@ -532,11 +610,18 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 			newPeriod.HasTimeInVeryLowPercent = true
 			newPeriod.TimeInVeryLowPercent = pointer.FromAny(float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalMinutes))
 
+			newPeriod.HasTimeInAnyLowPercent = true
+			newPeriod.TimeInAnyLowPercent = pointer.FromAny(float64(totalStats.VeryLowRecords+totalStats.LowRecords) / float64(totalStats.TotalRecords))
+
 			newPeriod.HasTimeInHighPercent = true
 			newPeriod.TimeInHighPercent = pointer.FromAny(float64(totalStats.HighMinutes) / float64(totalStats.TotalMinutes))
 
 			newPeriod.HasTimeInVeryHighPercent = true
 			newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalMinutes))
+
+			newPeriod.HasTimeInAnyHighPercent = true
+			newPeriod.TimeInAnyHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords+totalStats.HighRecords) / float64(totalStats.TotalRecords))
+
 		}
 
 		newPeriod.HasAverageGlucoseMmol = true
