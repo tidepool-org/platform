@@ -164,7 +164,7 @@ github.com/deckarep/golang-set/v2
 ## explicit; go 1.20
 github.com/deepmap/oapi-codegen/pkg/runtime
 github.com/deepmap/oapi-codegen/pkg/types
-# github.com/dvsekhvalnov/jose2go v1.5.0
+# github.com/dvsekhvalnov/jose2go v1.6.0
 ## explicit; go 1.15
 github.com/dvsekhvalnov/jose2go
 github.com/dvsekhvalnov/jose2go/aes
