@@ -43,6 +43,7 @@ type Migration struct {
 	updates        []mongo.WriteModel
 	dryRun         bool
 	stopOnErr      bool
+	migrateItemID  string
 	lastUpdatedId  string
 }
 
@@ -161,6 +162,12 @@ func (m *Migration) Initialize() error {
 			Required:    false,
 			//uri string comes from file called `uri`
 			FilePath: "./uri",
+		},
+		cli.StringFlag{
+			Name:        "test-id",
+			Usage:       "id of single user to migrate",
+			Destination: &m.migrateItemID,
+			Required:    false,
 		},
 	)
 	return nil
@@ -364,8 +371,16 @@ func (m *Migration) blockUntilDBReady() error {
 func (m *Migration) fetchAndUpdateBatch() bool {
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
-		// testing based on _userId for jamie+qa3_2@tidepool.org
-		"_userId": "6d1ca155-68e6-4cd6-9ed2-1b8e743d5f4a",
+	}
+
+	if m.migrateItemID != "" {
+		selector["_userId"] = m.migrateItemID
+		log.Printf("setting id of single user %v ", selector)
+	}
+
+	if selector["_userId"] == nil {
+		log.Printf("testing so we need a user id %v", selector)
+		return false
 	}
 
 	// jellyfish uses a generated _id that is not an mongo objectId
