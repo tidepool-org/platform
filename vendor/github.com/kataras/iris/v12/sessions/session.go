@@ -21,7 +21,7 @@ type (
 		mu      sync.RWMutex // for flashes.
 		// Lifetime it contains the expiration data, use it for read-only information.
 		// See `Sessions.UpdateExpiration` too.
-		Lifetime *LifeTime
+		Lifetime *memstore.LifeTime
 		// Man is the sessions manager that this session created of.
 		Man *Sessions
 
@@ -44,7 +44,7 @@ type (
 //
 // Use the session's manager `Destroy(ctx)` in order to remove the cookie instead.
 func (s *Session) Destroy() {
-	s.provider.deleteSession(s)
+	s.provider.Destroy(s.sid)
 }
 
 // ID returns the session's ID.

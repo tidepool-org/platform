@@ -2380,6 +2380,15 @@ func (ctx *Context) FormFiles(key string, before ...func(*Context, *multipart.Fi
 	return nil, nil, http.ErrMissingFile
 }
 
+var (
+	// ValidFileNameRegexp is used to validate the user input by using a regular expression.
+	// See `Context.UploadFormFiles` method.
+	ValidFilenameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_\-\.]+$`)
+	// ValidExtensionRegexp acts as an allowlist of valid extensions. It's optional. Defaults to nil (all file extensions are allowed to be uploaded).
+	// See `Context.UploadFormFiles` method.
+	ValidExtensionRegexp *regexp.Regexp
+)
+
 // UploadFormFiles uploads any received file(s) from the client
 // to the system physical location "destDirectory".
 //
@@ -2418,17 +2427,56 @@ func (ctx *Context) UploadFormFiles(destDirectory string, before ...func(*Contex
 			for _, files := range fhs {
 			innerLoop:
 				for _, file := range files {
-					// Security fix for go < 1.17.5:
-					// Reported by Kirill Efimov (snyk.io) through security reports.
-					file.Filename = filepath.Base(file.Filename)
-
 					for _, b := range before {
 						if !b(ctx, file) {
 							continue innerLoop
 						}
 					}
 
-					n0, err0 := ctx.SaveFormFile(file, filepath.Join(destDirectory, file.Filename))
+					// Security fix for go < 1.17.5:
+					// Reported by Kirill Efimov (snyk.io) through security reports.
+					filename := filepath.Base(filepath.ToSlash(file.Filename))
+
+					// CWE-99.
+
+					// Sanitize the user input by using a regular expression
+					// and an allowlist of valid extensions
+					isValidFilename := ValidFilenameRegexp.MatchString(filename)
+					if !isValidFilename {
+						// Reject the input as it is invalid or unsafe.
+						continue innerLoop
+					}
+
+					if ValidExtensionRegexp != nil && !ValidExtensionRegexp.MatchString(filename) {
+						// Reject the input as it is invalid or unsafe.
+						continue innerLoop
+					}
+
+					// Join the sanitized input with the destination directory.
+					destPath := filepath.Join(destDirectory, filename)
+
+					// Get the canonical path of the destination
+					// canonicalDestPath, err := filepath.EvalSymlinks(destPath)
+					// if err != nil {
+					// 	return nil, 0, fmt.Errorf("dest path: %s: eval symlinks: %w", destPath, err)
+					// }
+					// ^ No, it will try to find the file before uploaded.
+
+					// Get the canonical path of the destination directory.
+					canonicalDestDir, err := filepath.EvalSymlinks(destDirectory) // the destDirectory should exists.
+					if err != nil {
+						return nil, 0, fmt.Errorf("dest directory: %s: eval symlinks: %w", destDirectory, err)
+					}
+
+					// Check if the destination path is within the destination directory.
+					if !strings.HasPrefix(destPath, canonicalDestDir) {
+						// Reject the input as it is a path traversal attempt.
+						continue innerLoop
+					}
+
+					file.Filename = filename
+
+					n0, err0 := ctx.SaveFormFile(file, destPath)
 					if err0 != nil {
 						return nil, 0, err0
 					}
@@ -5865,7 +5913,7 @@ func (ctx *Context) GetRequestCookie(name string, options ...CookieOption) (*htt
 
 var (
 	// CookieExpireDelete may be set on Cookie.Expire for expiring the given cookie.
-	CookieExpireDelete = time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	CookieExpireDelete = memstore.ExpireDelete
 
 	// CookieExpireUnlimited indicates that does expires after 24 years.
 	CookieExpireUnlimited = time.Now().AddDate(24, 10, 10)
