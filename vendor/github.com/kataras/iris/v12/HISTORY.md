@@ -23,6 +23,19 @@ Developers are not forced to upgrade if they don't really need it. Upgrade whene
 
 Changes apply to `main` branch.
 
+# Sun, 05 Nov 2023 | v12.2.8
+
+- A new way to customize the handler's parameter among with the `hero` and `mvc` packages. New `iris.NewContextWrapper` and
+ `iris.NewContextPool` methods were added to wrap a handler (`.Handler`, `.Handlers`, `.HandlerReturnError`, `HandlerReturnDuration`, `Filter` and `FallbackViewFunc` methods) and use a custom context instead of the iris.Context directly. Example at: https://github.com/kataras/iris/tree/main/_examples/routing/custom-context.
+
+- The `cache` sub-package has an update, 4 years after:
+
+    - Add support for custom storage on `cache` package, through the `Handler#Store` method.
+    - Add support for custom expiration duration on `cache` package, trough the `Handler#MaxAge` method.
+    - Improve the overral performance of the `cache` package.
+    - The `cache.Handler` input and output arguments remain as it is.
+    - The `cache.Cache` input argument changed from `time.Duration` to `func(iris.Context) time.Duration`.
+
 # Mon, 25 Sep 2023 | v12.2.7
 
 Minor bug fixes and support of multiple `block` and `define` directives in multiple layouts and templates in the `Blocks` view engine.

@@ -19,7 +19,7 @@ import (
 const (
 	SummaryTypeCGM = "cgm"
 	SummaryTypeBGM = "bgm"
-	SchemaVersion  = 2
+	SchemaVersion  = 3
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0
@@ -181,6 +181,10 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
 		set.Append(s.Dates.OutdatedReason...)
+	}
+
+	if reason == OutdatedReasonSchemaMigration {
+		*s = *Create[T, A](s.UserID)
 	}
 
 	s.Dates.OutdatedReason = set.ToSlice()
