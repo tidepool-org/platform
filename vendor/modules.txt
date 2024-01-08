@@ -33,7 +33,7 @@ github.com/apapsch/go-jsonmerge/v2
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/aws/aws-sdk-go v1.49.15
+# github.com/aws/aws-sdk-go v1.49.17
 ## explicit; go 1.19
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -574,7 +574,7 @@ github.com/schollz/closestmatch
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/tdewolff/minify/v2 v2.20.10
+# github.com/tdewolff/minify/v2 v2.20.12
 ## explicit; go 1.18
 github.com/tdewolff/minify/v2
 github.com/tdewolff/minify/v2/css
@@ -593,7 +593,7 @@ github.com/tdewolff/parse/v2/js
 github.com/tdewolff/parse/v2/json
 github.com/tdewolff/parse/v2/strconv
 github.com/tdewolff/parse/v2/xml
-# github.com/tidepool-org/clinic/client v0.0.0-20231130132900-fa671533ce9f
+# github.com/tidepool-org/clinic/client v0.0.0-20240105042120-0e825159ca41
 ## explicit; go 1.21
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
@@ -757,7 +757,7 @@ go.uber.org/zap/zapcore
 # golang.org/x/arch v0.7.0
 ## explicit; go 1.18
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.17.0
+# golang.org/x/crypto v0.18.0
 ## explicit; go 1.18
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -780,7 +780,7 @@ golang.org/x/lint/golint
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.19.0
+# golang.org/x/net v0.20.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
@@ -796,7 +796,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.15.0
+# golang.org/x/oauth2 v0.16.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
@@ -877,7 +877,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20240102182953-50ed04b92917
+# google.golang.org/genproto v0.0.0-20240108191215-35c7eff3a6b1
 ## explicit; go 1.19
 google.golang.org/genproto/internal
 # google.golang.org/genproto/googleapis/api v0.0.0-20240102182953-50ed04b92917
@@ -885,7 +885,7 @@ google.golang.org/genproto/internal
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20240102182953-50ed04b92917
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240108191215-35c7eff3a6b1
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.60.1
