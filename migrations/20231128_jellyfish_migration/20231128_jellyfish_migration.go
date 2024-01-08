@@ -369,18 +369,14 @@ func (m *Migration) blockUntilDBReady() error {
 }
 
 func (m *Migration) fetchAndUpdateBatch() bool {
+	if m.migrateItemID == "" {
+		log.Print("testing so we need a user id `--test-id=`")
+		return false
+	}
+
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
-	}
-
-	if m.migrateItemID != "" {
-		selector["_userId"] = m.migrateItemID
-		log.Printf("setting id of single user %v ", selector)
-	}
-
-	if selector["_userId"] == nil {
-		log.Printf("testing so we need a user id %v", selector)
-		return false
+		"_userId":       m.migrateItemID,
 	}
 
 	// jellyfish uses a generated _id that is not an mongo objectId
@@ -397,6 +393,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 	m.updates = []mongo.WriteModel{}
 
+	// TODO: balance with batch write size?
 	size := int32(1000)
 
 	if dataC := m.getDataCollection(); dataC != nil {
@@ -408,10 +405,13 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				BatchSize: &size,
 			},
 		)
+
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
 			return false
 		}
+
+		defer dDataCursor.Close(m.ctx)
 
 		log.Printf("1. data fetch took [%s]", time.Since(fetchStart))
 
@@ -422,8 +422,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			log.Printf("decoding data: %s", err)
 			return false
 		}
-
-		defer dDataCursor.Close(m.ctx)
 
 		log.Printf("2. data decode took [%s] for [%d] items", time.Since(decodeStart), len(dataSet))
 		updateStart := time.Now()
