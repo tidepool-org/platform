@@ -203,7 +203,7 @@ func (m *Migration) onError(err error, id string, msg string) {
 		defer f.Close()
 		f.WriteString(fmt.Sprintf(errFormat, id, msg, err.Error()))
 
-		writeLastItemUpdate(m.lastUpdatedId)
+		writeLastItemUpdate(m.lastUpdatedId, m.dryRun)
 
 		if m.stopOnErr {
 			log.Printf(errFormat, id, msg, err.Error())
@@ -212,7 +212,11 @@ func (m *Migration) onError(err error, id string, msg string) {
 	}
 }
 
-func writeLastItemUpdate(itemID string) {
+func writeLastItemUpdate(itemID string, dryRun bool) {
+	if dryRun {
+		log.Printf("dry run so not setting lastUpdatedId %s", itemID)
+		return
+	}
 	f, err := os.OpenFile("./lastUpdatedId",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -476,7 +480,7 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 	if len(m.updates) == 0 {
 		return 0, nil
 	}
-	writeLastItemUpdate(m.lastUpdatedId)
+	writeLastItemUpdate(m.lastUpdatedId, m.dryRun)
 	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
