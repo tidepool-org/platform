@@ -421,6 +421,12 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		selector["_id"] = idNotObjectID
 	}
 
+	log.Printf("selector %v", selector)
+	if m.dryRun {
+		log.Println("bailing as a dry run")
+		return false
+	}
+
 	m.updates = []mongo.WriteModel{}
 
 	// TODO: balance with batch write size?
