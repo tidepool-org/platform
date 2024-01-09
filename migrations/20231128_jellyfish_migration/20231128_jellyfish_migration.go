@@ -43,8 +43,8 @@ type Migration struct {
 	updates        []mongo.WriteModel
 	dryRun         bool
 	stopOnErr      bool
-	migrateItemID  string
-	lastUpdatedId  string
+	migrateItemID  *string
+	lastUpdatedId  *string
 }
 
 const oplogName = "oplog.rs"
@@ -166,7 +166,7 @@ func (m *Migration) Initialize() error {
 		cli.StringFlag{
 			Name:        "datum-id",
 			Usage:       "id of last datum updated",
-			Destination: &m.lastUpdatedId,
+			Destination: m.lastUpdatedId,
 			Required:    false,
 			//id of last datum updated read and written to file `lastUpdatedId`
 			FilePath: "./lastUpdatedId",
@@ -174,7 +174,7 @@ func (m *Migration) Initialize() error {
 		cli.StringFlag{
 			Name:        "test-id",
 			Usage:       "id of single user to migrate",
-			Destination: &m.migrateItemID,
+			Destination: m.migrateItemID,
 			Required:    false,
 		},
 	)
@@ -212,9 +212,12 @@ func (m *Migration) onError(err error, id string, msg string) {
 	}
 }
 
-func writeLastItemUpdate(itemID string, dryRun bool) {
+func writeLastItemUpdate(itemID *string, dryRun bool) {
+	if itemID == nil {
+		return
+	}
 	if dryRun {
-		log.Printf("dry run so not setting lastUpdatedId %s", itemID)
+		log.Printf("dry run so not setting lastUpdatedId %s", *itemID)
 		return
 	}
 	f, err := os.OpenFile("./lastUpdatedId",
@@ -224,7 +227,7 @@ func writeLastItemUpdate(itemID string, dryRun bool) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(itemID)
+	f.WriteString(*itemID)
 }
 
 func (m *Migration) prepare() error {
@@ -399,22 +402,22 @@ func (m *Migration) blockUntilDBReady() error {
 }
 
 func (m *Migration) fetchAndUpdateBatch() bool {
-	if m.migrateItemID == "" {
-		log.Print("testing so we need a user id `--test-id=`")
-		return false
-	}
 
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
-		"_userId":       m.migrateItemID,
+	}
+
+	if m.migrateItemID != nil {
+		log.Print("focused test so we need a user id `--test-id=`")
+		selector["_userId"] = *m.migrateItemID
 	}
 
 	// jellyfish uses a generated _id that is not an mongo objectId
 	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
 
-	if m.lastUpdatedId != "" {
+	if m.lastUpdatedId != nil {
 		selector["$and"] = []interface{}{
-			bson.M{"_id": bson.M{"$gt": m.lastUpdatedId}},
+			bson.M{"_id": bson.M{"$gt": *m.lastUpdatedId}},
 			bson.M{"_id": idNotObjectID},
 		}
 	} else {
@@ -478,7 +481,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				updateOp.SetUpdate(update)
 				m.updates = append(m.updates, updateOp)
 			}
-			m.lastUpdatedId = datumID
+			m.lastUpdatedId = &datumID
 		}
 
 		log.Printf("3. data update took [%s] for [%d] items", time.Since(updateStart), len(m.updates))
