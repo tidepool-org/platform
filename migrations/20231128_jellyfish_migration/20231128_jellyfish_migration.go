@@ -463,7 +463,12 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			}
 			for _, update := range datumUpdates {
 				updateOp := mongo.NewUpdateOneModel()
-				updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
+				if update["$rename"] != nil {
+					log.Printf("rename op, 2 ops for same datum")
+					updateOp.SetFilter(bson.M{"_id": datumID})
+				} else {
+					updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
+				}
 				updateOp.SetUpdate(update)
 				m.updates = append(m.updates, updateOp)
 			}
