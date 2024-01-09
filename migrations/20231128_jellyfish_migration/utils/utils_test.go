@@ -57,7 +57,7 @@ var _ = Describe("back-37", func() {
 
 			Context("_deduplicator hash", func() {
 				DescribeTable("should",
-					func(getInput func() bson.M, expectedUpdates bson.M, expectError bool) {
+					func(getInput func() bson.M, expectedUpdates []bson.M, expectError bool) {
 						input := getInput()
 						actualID, actualUpdates, err := utils.GetDatumUpdates(input)
 						if expectError {
@@ -91,7 +91,12 @@ var _ = Describe("back-37", func() {
 					}, nil, true),
 					Entry("adds hash when vaild", func() bson.M {
 						return existingBolusDatum
-					}, bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}}, false),
+					},
+						[]bson.M{
+							{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}},
+						},
+						false,
+					),
 				)
 			})
 
@@ -123,7 +128,7 @@ var _ = Describe("back-37", func() {
 					})
 
 					DescribeTable("should",
-						func(getInput func() bson.M, expected bson.M, expectError bool) {
+						func(getInput func() bson.M, expected []bson.M, expectError bool) {
 							input := getInput()
 							_, actual, err := utils.GetDatumUpdates(input)
 							if expectError {
@@ -143,7 +148,7 @@ var _ = Describe("back-37", func() {
 							func() bson.M {
 								return existingBolusDatum
 							},
-							bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}},
+							[]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}}},
 							false,
 						),
 						Entry("do nothing when has no bolus",
@@ -151,7 +156,7 @@ var _ = Describe("back-37", func() {
 								settingsBolusDatum["bolus"] = nil
 								return settingsBolusDatum
 							},
-							bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}},
+							[]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}}},
 							false,
 						),
 						Entry("add boluses when bolus found",
@@ -159,9 +164,9 @@ var _ = Describe("back-37", func() {
 								settingsBolusDatum["bolus"] = bolusData
 								return settingsBolusDatum
 							},
-							bson.M{
-								"$set":    bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}},
-								"$rename": bson.M{"bolus": "boluses"},
+							[]bson.M{
+								{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}},
+								{"$rename": bson.M{"bolus": "boluses"}},
 							},
 							false,
 						),
@@ -203,20 +208,22 @@ var _ = Describe("back-37", func() {
 					It("does nothing when wrong type", func() {
 						_, actual, err := utils.GetDatumUpdates(existingBolusDatum)
 						Expect(err).To(BeNil())
-						Expect(actual).To(Equal(bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}}))
+						Expect(len(actual)).To(Equal(1))
+						Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "FVjexdlY6mWkmoh5gdmtdhzVH4R03+iGE81ro08/KcE="}}}}))
 					})
 					It("does nothing when no sleepSchedules", func() {
 						sleepSchedulesDatum["sleepSchedules"] = nil
 						_, actual, err := utils.GetDatumUpdates(sleepSchedulesDatum)
 						Expect(err).To(BeNil())
-						Expect(actual).To(Equal(bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}}))
+						Expect(len(actual)).To(Equal(1))
+						Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "RlrPcuPDfRim29UwnM7Yf0Ib0Ht4F35qvHu62CCYXnM="}}}}))
 					})
 					It("returns updated sleepSchedules when valid", func() {
 						sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{s1Days, s2Days}
 						_, actual, err := utils.GetDatumUpdates(sleepSchedulesDatum)
 						Expect(err).To(BeNil())
-						Expect(actual).ToNot(BeNil())
-						setData := actual["$set"].(bson.M)
+						Expect(len(actual)).To(Equal(1))
+						setData := actual[0]["$set"].(bson.M)
 						Expect(setData["sleepSchedules"]).ToNot(BeNil())
 						Expect(setData["sleepSchedules"]).To(Equal(expectedSleepSchedulesMap))
 					})

@@ -75,7 +75,8 @@ func GetBGValuePlatformPrecision(mmolVal float64) float64 {
 	return mmolVal
 }
 
-func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
+func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
+	updates := []bson.M{}
 	set := bson.M{}
 	var rename bson.M
 	var identityFields []string
@@ -241,13 +242,9 @@ func GetDatumUpdates(bsonData bson.M) (string, bson.M, error) {
 
 	set["_deduplicator"] = bson.M{"hash": hash}
 
-	var updates = bson.M{"$set": set}
+	updates = append(updates, bson.M{"$set": set})
 	if rename != nil {
-		updates["$rename"] = rename
+		updates = append(updates, bson.M{"$rename": rename})
 	}
-	//	duration := time.Since(start)
-	// if duration > (time.Millisecond * 3) {
-	// 	log.Printf("slow datum [%s] updates took %s", datumType, time.Since(start))
-	// }
 	return datumID, updates, nil
 }

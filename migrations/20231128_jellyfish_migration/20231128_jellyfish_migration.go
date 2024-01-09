@@ -164,6 +164,14 @@ func (m *Migration) Initialize() error {
 			FilePath: "./uri",
 		},
 		cli.StringFlag{
+			Name:        "datum-id",
+			Usage:       "id of last datum updated",
+			Destination: &m.lastUpdatedId,
+			Required:    false,
+			//id of last datum updated read and written to file `lastUpdatedId`
+			FilePath: "./lastUpdatedId",
+		},
+		cli.StringFlag{
 			Name:        "test-id",
 			Usage:       "id of single user to migrate",
 			Destination: &m.migrateItemID,
@@ -186,10 +194,6 @@ func (m *Migration) getOplogCollection() *mongo.Collection {
 func (m *Migration) onError(err error, id string, msg string) {
 	var errFormat = "[id=%s] %s %s"
 	if err != nil {
-		if m.stopOnErr {
-			log.Printf(errFormat, id, msg, err.Error())
-			os.Exit(1)
-		}
 		f, err := os.OpenFile("error.log",
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -198,7 +202,25 @@ func (m *Migration) onError(err error, id string, msg string) {
 		}
 		defer f.Close()
 		f.WriteString(fmt.Sprintf(errFormat, id, msg, err.Error()))
+
+		writeLastItemUpdate(m.lastUpdatedId)
+
+		if m.stopOnErr {
+			log.Printf(errFormat, id, msg, err.Error())
+			os.Exit(1)
+		}
 	}
+}
+
+func writeLastItemUpdate(itemID string) {
+	f, err := os.OpenFile("./lastUpdatedId",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	f.WriteString(itemID)
 }
 
 func (m *Migration) prepare() error {
@@ -260,6 +282,7 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 }
 
 func (m *Migration) setWriteBatchSize() error {
+	// pass in config and mongo oplog collection
 
 	var calculateBatchSize = func(oplogSize int, oplogEntryBytes int, oplogMinWindow int, nopPercent int) int64 {
 		return int64(math.Floor(float64(oplogSize) / float64(oplogEntryBytes) / float64(oplogMinWindow) / (float64(nopPercent) / 7)))
@@ -285,6 +308,8 @@ func (m *Migration) setWriteBatchSize() error {
 }
 
 func (m *Migration) checkFreeSpace() error {
+	// pass in config and mongo collection being migrated
+
 	type MongoMetaData struct {
 		FsTotalSize int `json:"fsTotalSize"`
 		FsUsedSize  int `json:"fsUsedSize"`
@@ -306,6 +331,7 @@ func (m *Migration) checkFreeSpace() error {
 }
 
 func (m *Migration) getWaitTime() (float64, error) {
+	// pass config and mongo admin db
 	type Member struct {
 		Name   string `json:"name"`
 		Health int    `json:"health"`
@@ -431,10 +457,12 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				m.onError(err, datumID, "failed getting updates")
 				continue
 			}
-			updateOp := mongo.NewUpdateOneModel()
-			updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
-			updateOp.SetUpdate(datumUpdates)
-			m.updates = append(m.updates, updateOp)
+			for _, update := range datumUpdates {
+				updateOp := mongo.NewUpdateOneModel()
+				updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
+				updateOp.SetUpdate(update)
+				m.updates = append(m.updates, updateOp)
+			}
 			m.lastUpdatedId = datumID
 		}
 
@@ -448,6 +476,7 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 	if len(m.updates) == 0 {
 		return 0, nil
 	}
+	writeLastItemUpdate(m.lastUpdatedId)
 	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
