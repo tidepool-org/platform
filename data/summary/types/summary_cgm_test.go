@@ -1435,5 +1435,97 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(288))
 			})
 		})
+
+		Context("ClearInvalidatedBuckets", func() {
+			It("trims the correct buckets", func() {
+				var dataSetCGMDataCursor *mongo.Cursor
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
+
+				status := &types.UserLastUpdated{EarliestModified: datumTime.Add(-5 * time.Hour)}
+
+				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(5))
+
+				// we didn't overshoot and nil something we shouldn't have
+				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+			})
+
+			It("doesnt trim if only modified in the future", func() {
+				var dataSetCGMDataCursor *mongo.Cursor
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
+
+				status := &types.UserLastUpdated{EarliestModified: datumTime.Add(time.Hour)}
+
+				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+
+				// we didn't overshoot and nil something we shouldn't have
+				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+			})
+
+			It("doesnt trim if only modified on the same hour, but after the bucket time", func() {
+				var dataSetCGMDataCursor *mongo.Cursor
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				midDatumTime := datumTime.Add(30 * time.Minute)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, midDatumTime, 9, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
+
+				status := &types.UserLastUpdated{EarliestModified: midDatumTime.Add(10 * time.Minute)}
+
+				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+
+				// we didn't overshoot and nil something we shouldn't have
+				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+			})
+
+			It("trims if modified on the same hour, and before the bucket time", func() {
+				var dataSetCGMDataCursor *mongo.Cursor
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				midDatumTime := datumTime.Add(30 * time.Minute)
+				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, midDatumTime, 9, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
+
+				status := &types.UserLastUpdated{EarliestModified: midDatumTime.Add(-10 * time.Minute)}
+
+				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(9))
+
+				// we didn't overshoot and nil something we shouldn't have
+				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+			})
+		})
 	})
 })

@@ -190,7 +190,7 @@ service-restart-all:
 
 test: ginkgo
 	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --fail-fast --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
 
 test-until-failure: ginkgo
 	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)"

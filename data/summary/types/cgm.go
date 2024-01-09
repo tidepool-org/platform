@@ -186,21 +186,25 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 }
 
 func (s *CGMStats) ClearInvalidatedBuckets(status *UserLastUpdated) {
-	offset := int(status.EarliestModified.Sub(s.Buckets[0].Date).Hours())
+	if status.EarliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		return
+	}
+
+	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(status.EarliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
 
 	for i := offset; i < len(s.Buckets); i++ {
 		s.Buckets[i] = nil
 	}
-	s.Buckets = s.Buckets[offset:]
+	s.Buckets = s.Buckets[:offset]
+
+	status.FirstData = s.Buckets[len(s.Buckets)-1].LastRecordTime
 }
 
 func (s *CGMStats) Update(ctx context.Context, cursor *mongo.Cursor) error {
 	var userData []*glucoseDatum.Glucose = nil
 	var err error
 
-	count := 0
 	for cursor.Next(ctx) {
-		count++
 		if userData == nil {
 			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
 		}
