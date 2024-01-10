@@ -252,10 +252,13 @@ func (m *Migration) execute() error {
 			log.Printf("failed writing batch: %s", err)
 			return err
 		}
-		log.Printf("3. data write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
+		log.Printf("3. write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
 		totalMigrated = totalMigrated + updatedCount
 	}
-	log.Printf("migration took [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
+	log.Printf("migration completed in [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
+	if m.dryRun {
+		log.Println("no updates applied as run as a dry-run")
+	}
 	return nil
 }
 
@@ -513,7 +516,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 
 		if m.dryRun {
 			updateCount += len(batch)
-			log.Println("dry run so not applying changes")
 			continue
 		}
 
@@ -526,6 +528,8 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			updateCount += int(results.ModifiedCount)
 		}
 	}
-	log.Printf("mongo bulk write took %s", time.Since(start))
+	if !m.dryRun {
+		log.Printf("bulk write took %s", time.Since(start))
+	}
 	return updateCount, nil
 }
