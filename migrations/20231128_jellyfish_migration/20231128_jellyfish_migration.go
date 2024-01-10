@@ -43,7 +43,7 @@ type Migration struct {
 	updates        []mongo.WriteModel
 	dryRun         bool
 	stopOnErr      bool
-	migrateItemID  *string
+	userID         *string
 	lastUpdatedId  *string
 }
 
@@ -172,9 +172,9 @@ func (m *Migration) Initialize() error {
 			FilePath: "./lastUpdatedId",
 		},
 		cli.StringFlag{
-			Name:        "test-id",
+			Name:        "user-id",
 			Usage:       "id of single user to migrate",
-			Destination: m.migrateItemID,
+			Destination: m.userID,
 			Required:    false,
 		},
 	)
@@ -191,8 +191,8 @@ func (m *Migration) getDataCollection() *mongo.Collection {
 func (m *Migration) getOplogCollection() *mongo.Collection {
 	return m.client.Database("local").Collection(oplogName)
 }
-func (m *Migration) onError(err error, id string, msg string) {
-	if err != nil {
+func (m *Migration) onError(errToReport error, id string, msg string) {
+	if errToReport != nil {
 		var errFormat = "[id=%s] %s %s"
 		f, err := os.OpenFile("error.log",
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -201,12 +201,12 @@ func (m *Migration) onError(err error, id string, msg string) {
 			os.Exit(1)
 		}
 		defer f.Close()
-		f.WriteString(fmt.Sprintf(errFormat, id, msg, err.Error()))
+		f.WriteString(fmt.Sprintf(errFormat, id, msg, errToReport.Error()))
 
 		writeLastItemUpdate(m.lastUpdatedId, m.dryRun)
 
 		if m.stopOnErr {
-			log.Printf(errFormat, id, msg, err.Error())
+			log.Printf(errFormat, id, msg, errToReport.Error())
 			os.Exit(1)
 		}
 	}
@@ -407,9 +407,12 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		"_deduplicator": bson.M{"$exists": false},
 	}
 
-	if m.migrateItemID != nil {
-		log.Print("focused test so we need a user id `--test-id=`")
-		selector["_userId"] = *m.migrateItemID
+	if m.userID != nil {
+		log.Print("focused test so we need a user id `--user-id=`")
+		selector["_userId"] = *m.userID
+	} else {
+		log.Print("for testing we need a single user to migrate `--user-id=`")
+		return false
 	}
 
 	// jellyfish uses a generated _id that is not an mongo objectId
