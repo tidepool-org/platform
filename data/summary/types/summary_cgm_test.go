@@ -1526,6 +1526,19 @@ var _ = Describe("CGM Summary", func() {
 				// we didn't overshoot and nil something we shouldn't have
 				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
 			})
+
+			It("successfully does nothing if there are no buckets", func() {
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
+				Expect(userCGMSummary.Stats.TotalHours).To(Equal(0))
+
+				status := &types.UserLastUpdated{EarliestModified: datumTime}
+
+				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
+			})
 		})
 	})
 })

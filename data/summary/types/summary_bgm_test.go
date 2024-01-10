@@ -1008,6 +1008,19 @@ var _ = Describe("BGM Summary", func() {
 				// we didn't overshoot and nil something we shouldn't have
 				Expect(userBGMSummary.Stats.Buckets[len(userBGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
 			})
+
+			It("successfully does nothing if there are no buckets", func() {
+				userBGMSummary = types.Create[*types.BGMStats](userId)
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(0))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(0))
+
+				status := &types.UserLastUpdated{EarliestModified: datumTime}
+
+				userBGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(0))
+			})
 		})
 	})
 })
