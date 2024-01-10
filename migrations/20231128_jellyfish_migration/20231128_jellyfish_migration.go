@@ -43,8 +43,8 @@ type Migration struct {
 	updates        []mongo.WriteModel
 	dryRun         bool
 	stopOnErr      bool
-	userID         *string
-	lastUpdatedId  *string
+	userID         string
+	lastUpdatedId  string
 }
 
 const oplogName = "oplog.rs"
@@ -168,7 +168,7 @@ func (m *Migration) Initialize() error {
 		cli.StringFlag{
 			Name:        "datum-id",
 			Usage:       "id of last datum updated",
-			Destination: m.lastUpdatedId,
+			Destination: &m.lastUpdatedId,
 			Required:    false,
 			//id of last datum updated read and written to file `lastUpdatedId`
 			FilePath: "./lastUpdatedId",
@@ -176,7 +176,7 @@ func (m *Migration) Initialize() error {
 		cli.StringFlag{
 			Name:        "user-id",
 			Usage:       "id of single user to migrate",
-			Destination: m.userID,
+			Destination: &m.userID,
 			Required:    false,
 		},
 	)
@@ -214,12 +214,12 @@ func (m *Migration) onError(errToReport error, id string, msg string) {
 	}
 }
 
-func writeLastItemUpdate(itemID *string, dryRun bool) {
-	if itemID == nil {
+func writeLastItemUpdate(itemID string, dryRun bool) {
+	if strings.TrimSpace(itemID) == "" {
 		return
 	}
 	if dryRun {
-		log.Printf("dry run so not setting lastUpdatedId %s", *itemID)
+		log.Printf("dry run so not setting lastUpdatedId %s", itemID)
 		return
 	}
 	f, err := os.OpenFile("./lastUpdatedId",
@@ -229,7 +229,7 @@ func writeLastItemUpdate(itemID *string, dryRun bool) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(*itemID)
+	f.WriteString(itemID)
 }
 
 func (m *Migration) prepare() error {
@@ -408,9 +408,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		"_deduplicator": bson.M{"$exists": false},
 	}
 
-	if m.userID != nil {
+	if strings.TrimSpace(m.userID) != "" {
 		log.Print("focused test so we need a user id `--user-id=`")
-		selector["_userId"] = *m.userID
+		selector["_userId"] = m.userID
 	} else {
 		log.Print("for testing we need a single user to migrate `--user-id=`")
 		return false
@@ -419,9 +419,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	// jellyfish uses a generated _id that is not an mongo objectId
 	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
 
-	if m.lastUpdatedId != nil {
+	if strings.TrimSpace(m.lastUpdatedId) != "" {
 		selector["$and"] = []interface{}{
-			bson.M{"_id": bson.M{"$gt": *m.lastUpdatedId}},
+			bson.M{"_id": bson.M{"$gt": m.lastUpdatedId}},
 			bson.M{"_id": idNotObjectID},
 		}
 	} else {
@@ -451,16 +451,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		log.Printf("1. data fetch [%v] took [%s]", selector, time.Since(fetchStart))
 
-		// decodeStart := time.Now()
-		// var dataSet []bson.M
-		// if err := dDataCursor.All(m.ctx, &dataSet); err != nil {
-		// 	log.Printf("error decoding data: %s", err)
-		// 	return false
-		// }
-		// log.Printf("2. data decode took [%s] for [%d] items", time.Since(decodeStart), len(dataSet))
-
 		updateStart := time.Now()
-		// for _, item := range dataSet {
 
 		for dDataCursor.Next(m.ctx) {
 
@@ -487,7 +478,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				updateOp.SetUpdate(update)
 				m.updates = append(m.updates, updateOp)
 			}
-			m.lastUpdatedId = &datumID
+			m.lastUpdatedId = datumID
 		}
 
 		log.Printf("3. data update took [%s] for [%d] items", time.Since(updateStart), len(m.updates))
