@@ -197,7 +197,7 @@ func (m *Migration) getOplogCollection() *mongo.Collection {
 
 func (m *Migration) onError(errToReport error, id string, msg string) {
 	if errToReport != nil {
-		var errFormat = "[id=%s] %s %s"
+		var errFormat = "[id=%s] %s %s\n"
 		f, err := os.OpenFile("error.log",
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -222,8 +222,7 @@ func writeLastItemUpdate(itemID string, dryRun bool) {
 		log.Printf("dry run so not setting lastUpdatedId %s", itemID)
 		return
 	}
-	f, err := os.OpenFile("./lastUpdatedId",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.Create("./lastUpdatedId")
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
