@@ -80,8 +80,8 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 
 	for _, inspector := range inspectors {
 		if err = inspector.InspectResponse(res); err != nil {
-			drainAndClose(res.Body)
-			return nil, err
+			log.LoggerFromContext(ctx).WithError(err).Warn("inspecting response")
+			continue
 		}
 	}
 

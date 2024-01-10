@@ -336,10 +336,10 @@ var _ = Describe("Client", func() {
 					errorInspector.AssertOutputsEmpty()
 				})
 
-				It("returns error if inspector returns an error", func() {
+				It("doesn't return an error if inspector returns an error", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, nil, append(inspectors, errorInspector), httpClient)
-					Expect(err).To(MatchError(responseErr))
-					Expect(reader).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -738,11 +738,11 @@ var _ = Describe("Client", func() {
 					errorInspector.AssertOutputsEmpty()
 				})
 
-				It("returns error if inspector returns an error", func() {
-					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, nil, responseBody, append(inspectors, errorInspector), httpClient)).To(MatchError(responseErr))
+				It("doesn't return an error if inspector returns an error", func() {
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, nil, responseBody, append(inspectors, errorInspector), httpClient)).ToNot(HaveOccurred())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 					Expect(responseBody).ToNot(BeNil())
-					Expect(responseBody.Response).To(BeEmpty())
+					Expect(responseBody.Response).To(Equal(responseString))
 				})
 			})
 
