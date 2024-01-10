@@ -431,31 +431,41 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 	if dataC := m.getDataCollection(); dataC != nil {
 		fetchStart := time.Now()
-		dataSet := []bson.M{}
+
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
 				Sort:      bson.M{"_id": 1},
 				BatchSize: &size,
 			},
 		)
-
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
 			return false
 		}
 
-		log.Printf("1. data fetch [%v] took [%s]", selector, time.Since(fetchStart))
-
-		decodeStart := time.Now()
-		if err := dDataCursor.All(m.ctx, &dataSet); err != nil {
-			log.Printf("error decoding data: %s", err)
-			return false
-		}
-		log.Printf("2. data decode took [%s] for [%d] items", time.Since(decodeStart), len(dataSet))
 		defer dDataCursor.Close(m.ctx)
 
+		log.Printf("1. data fetch [%v] took [%s]", selector, time.Since(fetchStart))
+
+		// decodeStart := time.Now()
+		// var dataSet []bson.M
+		// if err := dDataCursor.All(m.ctx, &dataSet); err != nil {
+		// 	log.Printf("error decoding data: %s", err)
+		// 	return false
+		// }
+		// log.Printf("2. data decode took [%s] for [%d] items", time.Since(decodeStart), len(dataSet))
+
 		updateStart := time.Now()
-		for _, item := range dataSet {
+		// for _, item := range dataSet {
+
+		for dDataCursor.Next(m.ctx) {
+
+			var item bson.M
+			if err := dDataCursor.Decode(&item); err != nil {
+				log.Printf("error decoding data: %s", err)
+				return false
+			}
+
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
 			if err != nil {
 				m.onError(err, datumID, "failed getting updates")
