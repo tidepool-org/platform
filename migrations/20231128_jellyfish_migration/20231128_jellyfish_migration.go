@@ -431,8 +431,10 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 	m.updates = []mongo.WriteModel{}
 
-	// TODO: balance with batch write size?
-	size := int32(1000)
+	// TODO: balance with batch write batchSize??
+
+	batchSize := int32(10000)
+	limit := int64(50000)
 
 	if dataC := m.getDataCollection(); dataC != nil {
 		fetchStart := time.Now()
@@ -440,7 +442,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
 				Sort:      bson.M{"_id": 1},
-				BatchSize: &size,
+				BatchSize: &batchSize,
+				Limit:     &limit,
 			},
 		)
 		if err != nil {
