@@ -92,6 +92,8 @@ func (m *Migration) RunAndExit() {
 		return nil
 	}
 
+	log.Printf("args %v", os.Args)
+
 	if err := m.CLI().Run(os.Args); err != nil {
 		if m.client != nil {
 			m.client.Disconnect(m.ctx)
@@ -188,9 +190,11 @@ func (m *Migration) CLI() *cli.App {
 func (m *Migration) getDataCollection() *mongo.Collection {
 	return m.client.Database("data").Collection("deviceData")
 }
+
 func (m *Migration) getOplogCollection() *mongo.Collection {
 	return m.client.Database("local").Collection(oplogName)
 }
+
 func (m *Migration) onError(errToReport error, id string, msg string) {
 	if errToReport != nil {
 		var errFormat = "[id=%s] %s %s"
@@ -202,9 +206,7 @@ func (m *Migration) onError(errToReport error, id string, msg string) {
 		}
 		defer f.Close()
 		f.WriteString(fmt.Sprintf(errFormat, id, msg, errToReport.Error()))
-
 		writeLastItemUpdate(m.lastUpdatedId, m.dryRun)
-
 		if m.stopOnErr {
 			log.Printf(errFormat, id, msg, errToReport.Error())
 			os.Exit(1)
@@ -245,7 +247,6 @@ func (m *Migration) execute() error {
 	migrateStart := time.Now()
 	for m.fetchAndUpdateBatch() {
 		writeStart := time.Now()
-
 		updatedCount, err := m.writeBatchUpdates()
 		if err != nil {
 			log.Printf("failed writing batch: %s", err)
