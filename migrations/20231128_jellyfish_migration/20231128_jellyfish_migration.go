@@ -451,9 +451,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			log.Printf("error decoding data: %s", err)
 			return false
 		}
-		defer dDataCursor.Close(m.ctx)
-
 		log.Printf("2. data decode took [%s] for [%d] items", time.Since(decodeStart), len(dataSet))
+		//defer dDataCursor.Close(m.ctx)
+
 		updateStart := time.Now()
 		for _, item := range dataSet {
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)

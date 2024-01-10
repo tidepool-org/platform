@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"strings"
 
@@ -244,7 +245,11 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 
 	updates = append(updates, bson.M{"$set": set})
 	if rename != nil {
+		log.Printf("rename %v", rename)
 		updates = append(updates, bson.M{"$rename": rename})
+	}
+	if len(updates) != 1 {
+		log.Printf("datum updates %d", len(updates))
 	}
 	return datumID, updates, nil
 }
