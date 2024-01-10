@@ -254,6 +254,10 @@ func (m *Migration) execute() error {
 		}
 		log.Printf("3. write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
 		totalMigrated = totalMigrated + updatedCount
+		if totalMigrated > 500000 {
+			log.Println("quitting after 500K records")
+			break
+		}
 	}
 	log.Printf("migration completed in [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
 	if m.dryRun {
@@ -410,10 +414,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	}
 
 	if strings.TrimSpace(m.userID) != "" {
+		log.Printf("fetching for user %s", m.userID)
 		selector["_userId"] = m.userID
-	} else {
-		log.Print("for testing we need a single user to migrate `--user-id=`")
-		return false
 	}
 
 	// jellyfish uses a generated _id that is not an mongo objectId
@@ -491,7 +493,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 		return 0, nil
 	}
 	writeLastItemUpdate(m.lastUpdatedId, m.dryRun)
-	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
@@ -527,9 +528,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			}
 			updateCount += int(results.ModifiedCount)
 		}
-	}
-	if !m.dryRun {
-		log.Printf("bulk write took %s", time.Since(start))
 	}
 	return updateCount, nil
 }
