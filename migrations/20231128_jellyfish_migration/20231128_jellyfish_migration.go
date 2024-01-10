@@ -192,8 +192,8 @@ func (m *Migration) getOplogCollection() *mongo.Collection {
 	return m.client.Database("local").Collection(oplogName)
 }
 func (m *Migration) onError(err error, id string, msg string) {
-	var errFormat = "[id=%s] %s %s"
 	if err != nil {
+		var errFormat = "[id=%s] %s %s"
 		f, err := os.OpenFile("error.log",
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -460,11 +460,12 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		for dDataCursor.Next(m.ctx) {
 
-			var item bson.M
+			item := bson.M{}
 			if err := dDataCursor.Decode(&item); err != nil {
 				log.Printf("error decoding data: %s", err)
 				return false
 			}
+			log.Printf("got %v", item)
 
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
 			if err != nil {
