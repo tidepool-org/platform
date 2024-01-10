@@ -280,7 +280,6 @@ func (m *Migration) getOplogDuration() (time.Duration, error) {
 			return 0, err
 		}
 		oplogDuration := newest.Wall.Sub(oldest.Wall)
-		log.Printf("current oplog duration: %v", oplogDuration)
 		return oplogDuration, nil
 	}
 	log.Println("Not clustered, not retrieving oplog duration.")
@@ -329,7 +328,6 @@ func (m *Migration) checkFreeSpace() error {
 		}
 		bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
 		percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
-		log.Printf("DB disk currently has %d%% (%d bytes) free.", percentFree, bytesFree)
 		if m.config.minFreePercent > percentFree {
 			return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
 		}
@@ -459,7 +457,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				log.Printf("error decoding data: %s", err)
 				return false
 			}
-			log.Printf("got %v", item)
 
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
 			if err != nil {
@@ -513,7 +510,6 @@ func (m *Migration) writeBatchUpdates() (int, error) {
 			log.Printf("writeBatchUpdates-freespace error: %s", err)
 			return updateCount, err
 		}
-		log.Printf("batch size to write %d", len(batch))
 
 		if m.dryRun {
 			updateCount += len(batch)
