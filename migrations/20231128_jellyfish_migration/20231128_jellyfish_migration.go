@@ -444,7 +444,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			return false
 		}
 
-		log.Printf("1. data fetch took [%s]", time.Since(fetchStart))
+		log.Printf("1. data fetch [%v] took [%s]", selector, time.Since(fetchStart))
 
 		decodeStart := time.Now()
 		if err := dDataCursor.All(m.ctx, &dataSet); err != nil {
@@ -452,7 +452,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			return false
 		}
 		log.Printf("2. data decode took [%s] for [%d] items", time.Since(decodeStart), len(dataSet))
-		//defer dDataCursor.Close(m.ctx)
+		defer dDataCursor.Close(m.ctx)
 
 		updateStart := time.Now()
 		for _, item := range dataSet {
