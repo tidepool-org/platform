@@ -252,7 +252,7 @@ func (m *Migration) execute() error {
 			log.Printf("failed writing batch: %s", err)
 			return err
 		}
-		log.Printf("4. data write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
+		log.Printf("3. data write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
 		totalMigrated = totalMigrated + updatedCount
 	}
 	log.Printf("migration took [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
@@ -409,7 +409,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	}
 
 	if strings.TrimSpace(m.userID) != "" {
-		log.Print("focused test so we need a user id `--user-id=`")
 		selector["_userId"] = m.userID
 	} else {
 		log.Print("for testing we need a single user to migrate `--user-id=`")
@@ -481,7 +480,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			m.lastUpdatedId = datumID
 		}
 
-		log.Printf("3. data update took [%s] for [%d] items", time.Since(updateStart), len(m.updates))
+		log.Printf("2. data update took [%s] for [%d] items", time.Since(updateStart), len(m.updates))
 		return len(m.updates) > 0
 	}
 	return false
