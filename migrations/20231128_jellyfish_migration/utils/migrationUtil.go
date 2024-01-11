@@ -107,12 +107,16 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		totalMigrated = totalMigrated + updatedCount
 
 		if m.config.cap != nil {
+			log.Println("check cap")
 			if totalMigrated >= *m.config.cap {
 				break
 			}
 		}
 	}
 	log.Printf("migration took [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
+	if m.config.dryRun {
+		log.Println("dry-run so no changes applied")
+	}
 	return nil
 }
 
@@ -246,7 +250,6 @@ func (m *migrationUtil) getOplogDuration(ctx context.Context) (time.Duration, er
 			return 0, err
 		}
 		oplogDuration := newest.Wall.Sub(oldest.Wall)
-		log.Printf("current oplog duration: %v", oplogDuration)
 		return oplogDuration, nil
 	}
 	log.Println("Not clustered, not retrieving oplog duration.")
@@ -296,7 +299,6 @@ func (m *migrationUtil) checkFreeSpace(ctx context.Context, dataC *mongo.Collect
 		}
 		bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
 		percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
-		log.Printf("DB disk currently has %d%% (%d bytes) free.", percentFree, bytesFree)
 		if m.config.minFreePercent > percentFree {
 			return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
 		}
@@ -390,18 +392,14 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	updateCount := 0
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(ctx); err != nil {
-			//log.Printf("writeBatchUpdates-blocking error: %s", err)
 			return updateCount, err
 		}
 		if err := m.checkFreeSpace(ctx, dataC); err != nil {
-			//log.Printf("writeBatchUpdates-freespace error: %s", err)
 			return updateCount, err
 		}
-		log.Printf("batch size to write %d", len(batch))
 
 		if m.config.dryRun {
 			updateCount += len(batch)
-			log.Println("dry run so not applying changes")
 			continue
 		}
 		results, err := dataC.BulkWrite(ctx, batch)
