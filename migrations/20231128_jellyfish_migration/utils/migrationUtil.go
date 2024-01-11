@@ -69,8 +69,6 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		return nil, err
 	}
 
-	log.Printf("migration util configuration: %v", config)
-
 	m := &migrationUtil{
 		client:  client,
 		config:  config,
@@ -83,7 +81,6 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 }
 
 func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection) error {
-	log.Print("Initialize migrationUtil")
 	if err := m.checkFreeSpace(ctx, dataC); err != nil {
 		return err
 	}
@@ -96,6 +93,7 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error {
 	totalMigrated := 0
 	migrateStart := time.Now()
+
 	for fetchAndUpdateFn() {
 		writeStart := time.Now()
 		updatedCount, err := m.writeUpdates(ctx, dataC)
@@ -105,9 +103,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		}
 		log.Printf("4. data write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
 		totalMigrated = totalMigrated + updatedCount
-
 		if m.config.cap != nil {
-			log.Println("check cap")
 			if totalMigrated >= *m.config.cap {
 				break
 			}
@@ -152,8 +148,9 @@ func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int, cap 
 	if nopPercent != nil {
 		cfg.SetNopPercent(*nopPercent)
 	}
-	if cap != nil {
+	if cap != nil && *cap > 0 {
 		cfg.cap = cap
+		log.Printf("capped at %d items")
 	}
 	return cfg
 }
@@ -188,7 +185,7 @@ func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig 
 // - write error to file `error.log` in directory cli is running in
 // - optionally stop the operation if stopOnErr is true in the config
 func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
-	var errFormat = "[id=%s] %s %s"
+	var errFormat = "[id=%s] %s %s\n"
 	if reportErr != nil {
 		f, err := os.OpenFile("error.log",
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)

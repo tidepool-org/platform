@@ -25,14 +25,13 @@ type Migration struct {
 }
 
 type config struct {
-	uri            string
-	dryRun         bool
-	stopOnErr      bool
-	userID         string
-	lastUpdatedId  string
-	minFreePercent int
-	nopPercent     int
-	readBatchSize  int64
+	cap           int
+	uri           string
+	dryRun        bool
+	stopOnErr     bool
+	userID        string
+	lastUpdatedId string
+	nopPercent    int
 }
 
 const DryRunFlag = "dry-run"
@@ -69,7 +68,7 @@ func (m *Migration) RunAndExit() {
 		defer m.client.Disconnect(m.ctx)
 
 		log.Println("## create new migrationUtil")
-		cap := 50000 // while testing
+		cap := m.config.cap // while testing
 		m.migrationUtil, err = utils.NewMigrationUtil(
 			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent, &cap),
 			m.client,
@@ -118,18 +117,10 @@ func (m *Migration) Initialize() error {
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
 		},
-		cli.Int64Flag{
-			Name:        "batch-size",
-			Usage:       "number of records to read each time",
-			Destination: &m.config.readBatchSize,
-			Value:       300,
-			Required:    false,
-		},
 		cli.IntFlag{
-			Name:        "min-free-percent",
-			Usage:       "minimum free disk space percent",
-			Destination: &m.config.minFreePercent,
-			Value:       10,
+			Name:        "cap",
+			Usage:       "max number of records migrate",
+			Destination: &m.config.cap,
 			Required:    false,
 		},
 		cli.IntFlag{
