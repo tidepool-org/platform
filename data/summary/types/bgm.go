@@ -131,7 +131,10 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 }
 
 func (s *BGMStats) ClearInvalidatedBuckets(status *UserLastUpdated) {
-	if len(s.Buckets) == 0 || status.EarliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+	if len(s.Buckets) == 0 {
+		return
+	} else if status.EarliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		status.FirstData = s.Buckets[len(s.Buckets)-1].LastRecordTime
 		return
 	}
 
