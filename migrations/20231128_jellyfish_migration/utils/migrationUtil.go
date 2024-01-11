@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -42,15 +43,18 @@ type migrationUtil struct {
 
 type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
-	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func(updates []mongo.WriteModel) bool) error
+	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(reportErr error, id string, msg string)
+	SetData(update *mongo.UpdateOneModel, lastID string)
+	GetLastID() string
+	GetUpdatesCount() int
 }
 
 const oplogName = "oplog.rs"
 
 // MigrationUtil helps managed the migration process
 // errors written to
-func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client) (MigrationUtil, error) {
+func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID *string) (MigrationUtil, error) {
 	var err error
 	if config == nil {
 		err = errors.Join(err, errors.New("missing required configuration"))
@@ -65,15 +69,19 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client) (Migrat
 
 	log.Printf("migration util configuration: %v", config)
 
-	return &migrationUtil{
+	m := &migrationUtil{
 		client:  client,
 		config:  config,
 		updates: []mongo.WriteModel{},
-	}, nil
+	}
+	if lastID != nil {
+		m.lastUpdatedId = *lastID
+	}
+	return m, nil
 }
 
 func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection) error {
-
+	log.Print("Initialize migrationUtil")
 	if err := m.checkFreeSpace(ctx, dataC); err != nil {
 		return err
 	}
@@ -83,10 +91,10 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 	return nil
 }
 
-func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func(updates []mongo.WriteModel) bool) error {
+func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error {
 	totalMigrated := 0
 	migrateStart := time.Now()
-	for fetchAndUpdateFn(m.updates) {
+	for fetchAndUpdateFn() {
 		writeStart := time.Now()
 		updatedCount, err := m.writeUpdates(ctx, dataC)
 		if err != nil {
@@ -98,6 +106,20 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	}
 	log.Printf("migration took [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
 	return nil
+}
+
+func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
+	log.Printf("last id [%s] now [%s]", m.lastUpdatedId, lastID)
+	m.lastUpdatedId = lastID
+	m.updates = append(m.updates, update)
+}
+
+func (m *migrationUtil) GetUpdatesCount() int {
+	return len(m.updates)
+}
+
+func (m *migrationUtil) GetLastID() string {
+	return m.lastUpdatedId
 }
 
 func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int) *MigrationUtilConfig {
@@ -162,9 +184,6 @@ func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 		}
 		defer f.Close()
 		f.WriteString(fmt.Sprintf(errFormat, id, msg, reportErr.Error()))
-
-		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
-
 		if m.config.stopOnErr {
 			log.Printf(errFormat, id, msg, reportErr.Error())
 			os.Exit(1)
@@ -181,17 +200,19 @@ func (m *migrationUtil) getAdminDB() *mongo.Database {
 }
 
 func writeLastItemUpdate(itemID string, dryRun bool) {
-	if dryRun {
-		log.Printf("dry run so not setting lastUpdatedId %s", itemID)
-		return
+	if strings.TrimSpace(itemID) != "" {
+		if dryRun {
+			log.Printf("dry run so not setting lastUpdatedId %s", itemID)
+			return
+		}
+		f, err := os.Create("./lastUpdatedId")
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		f.WriteString(itemID)
 	}
-	f, err := os.Create("./lastUpdatedId")
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	defer f.Close()
-	f.WriteString(itemID)
 }
 
 func (m *migrationUtil) getOplogDuration(ctx context.Context) (time.Duration, error) {
@@ -344,8 +365,6 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	if len(m.updates) == 0 {
 		return 0, nil
 	}
-
-	writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
 	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
@@ -380,7 +399,9 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 			log.Printf("error writing batch updates %v", err)
 			return updateCount, err
 		}
+
 		updateCount += int(results.ModifiedCount)
+		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
 	}
 	log.Printf("mongo bulk write took %s", time.Since(start))
 	return updateCount, nil

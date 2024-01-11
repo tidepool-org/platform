@@ -68,9 +68,11 @@ func (m *Migration) RunAndExit() {
 		}
 		defer m.client.Disconnect(m.ctx)
 
+		log.Println("## create new migrationUtil")
 		m.migrationUtil, err = utils.NewMigrationUtil(
 			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent),
 			m.client,
+			&m.config.lastUpdatedId,
 		)
 		if err != nil {
 			return fmt.Errorf("unable init migration utils : %w", err)
@@ -174,7 +176,9 @@ func (m *Migration) onError(errToReport error, id string, msg string) {
 	m.migrationUtil.OnError(errToReport, id, msg)
 }
 
-func (m *Migration) fetchAndUpdateBatch(updates []mongo.WriteModel) bool {
+func (m *Migration) fetchAndUpdateBatch() bool {
+
+	log.Println("## fetching")
 
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
@@ -188,9 +192,9 @@ func (m *Migration) fetchAndUpdateBatch(updates []mongo.WriteModel) bool {
 	// jellyfish uses a generated _id that is not an mongo objectId
 	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
 
-	if strings.TrimSpace(m.config.lastUpdatedId) != "" {
+	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
 		selector["$and"] = []interface{}{
-			bson.M{"_id": bson.M{"$gt": m.config.lastUpdatedId}},
+			bson.M{"_id": bson.M{"$gt": lastID}},
 			bson.M{"_id": idNotObjectID},
 		}
 	} else {
@@ -243,13 +247,12 @@ func (m *Migration) fetchAndUpdateBatch(updates []mongo.WriteModel) bool {
 					updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
 				}
 				updateOp.SetUpdate(update)
-				updates = append(updates, updateOp)
+				m.migrationUtil.SetData(updateOp, datumID)
 			}
-			m.config.lastUpdatedId = datumID
 		}
 
-		log.Printf("2. data update took [%s] for [%d] items", time.Since(updateStart), len(updates))
-		return len(updates) > 0
+		log.Printf("2. data update took [%s] for [%d] items", time.Since(updateStart), m.migrationUtil.GetUpdatesCount())
+		return m.migrationUtil.GetUpdatesCount() > 0
 	}
 	return false
 }
