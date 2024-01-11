@@ -33,7 +33,7 @@ github.com/apapsch/go-jsonmerge/v2
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/aws/aws-sdk-go v1.49.17
+# github.com/aws/aws-sdk-go v1.49.18
 ## explicit; go 1.19
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -363,7 +363,7 @@ github.com/kataras/blocks
 # github.com/kataras/golog v0.1.11
 ## explicit; go 1.21
 github.com/kataras/golog
-# github.com/kataras/iris/v12 v12.2.8
+# github.com/kataras/iris/v12 v12.2.9
 ## explicit; go 1.21
 github.com/kataras/iris/v12
 github.com/kataras/iris/v12/cache
@@ -397,6 +397,7 @@ github.com/kataras/iris/v12/sessions
 github.com/kataras/iris/v12/view
 github.com/kataras/iris/v12/x/client
 github.com/kataras/iris/v12/x/errors
+github.com/kataras/iris/v12/x/pagination
 # github.com/kataras/pio v0.0.13
 ## explicit; go 1.20
 github.com/kataras/pio
@@ -593,7 +594,7 @@ github.com/tdewolff/parse/v2/js
 github.com/tdewolff/parse/v2/json
 github.com/tdewolff/parse/v2/strconv
 github.com/tdewolff/parse/v2/xml
-# github.com/tidepool-org/clinic/client v0.0.0-20240105042120-0e825159ca41
+# github.com/tidepool-org/clinic/client v0.0.0-20240110033014-3fc666a89d20
 ## explicit; go 1.21
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
@@ -767,7 +768,7 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/scrypt
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
+# golang.org/x/exp v0.0.0-20240110193028-0dcbfd608b1e
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps

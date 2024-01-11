@@ -293,6 +293,14 @@ type (
 	FallbackViewLayout = context.FallbackViewLayout
 )
 
+// Component returns a new Handler which can be registered as a main handler for a route.
+// It's a shortcut handler that renders the given component as HTML through Context.RenderComponent.
+func Component(component context.Component) Handler {
+	return func(ctx Context) {
+		ctx.RenderComponent(component)
+	}
+}
+
 // PrefixDir returns a new FileSystem that opens files
 // by adding the given "prefix" to the directory tree of "fs".
 //
@@ -507,6 +515,15 @@ var (
 	// A shortcut of the `cache#Cache304`.
 	Cache304 = cache.Cache304
 
+	// CookieOverride is a CookieOption which overrides the cookie explicitly to the given "cookie".
+	//
+	// A shortcut for the `context#CookieOverride`.
+	CookieOverride = context.CookieOverride
+	// CookieDomain is a CookieOption which sets the cookie's Domain field.
+	// If empty then the current domain is used.
+	//
+	// A shortcut for the `context#CookieDomain`.
+	CookieDomain = context.CookieDomain
 	// CookieAllowReclaim accepts the Context itself.
 	// If set it will add the cookie to (on `CookieSet`, `CookieSetKV`, `CookieUpsert`)
 	// or remove the cookie from (on `CookieRemove`) the Request object too.

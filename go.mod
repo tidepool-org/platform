@@ -7,7 +7,7 @@ toolchain go1.21.0
 require (
 	github.com/IBM/sarama v1.42.1
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.49.17
+	github.com/aws/aws-sdk-go v1.49.18
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.30.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240105042120-0e825159ca41
+	github.com/tidepool-org/clinic/client v0.0.0-20240110033014-3fc666a89d20
 	github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
 	github.com/tidepool-org/go-common v0.11.0
 	github.com/tidepool-org/hydrophone/client v0.0.0-20230915144349-ccec1a4d1782
@@ -30,7 +30,7 @@ require (
 	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/fx v1.20.1
 	golang.org/x/crypto v0.18.0
-	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
+	golang.org/x/exp v0.0.0-20240110193028-0dcbfd608b1e
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/sync v0.6.0
@@ -99,7 +99,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/blocks v0.0.8 // indirect
 	github.com/kataras/golog v0.1.11 // indirect
-	github.com/kataras/iris/v12 v12.2.8 // indirect
+	github.com/kataras/iris/v12 v12.2.9 // indirect
 	github.com/kataras/pio v0.0.13 // indirect
 	github.com/kataras/sitemap v0.0.6 // indirect
 	github.com/kataras/tunnel v0.0.4 // indirect

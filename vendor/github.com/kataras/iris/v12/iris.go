@@ -38,7 +38,7 @@ import (
 )
 
 // Version is the current version of the Iris Web Framework.
-const Version = "12.2.8"
+const Version = "12.2.9"
 
 // Byte unit helpers.
 const (
@@ -443,10 +443,10 @@ func (app *Application) GetContextPool() *context.Pool {
 //
 //	 type contextErrorHandler struct{}
 //	 func (e *contextErrorHandler) HandleContextError(ctx iris.Context, err error) {
-//		 errors.InvalidArgument.Err(ctx, err)
+//		 errors.HandleError(ctx, err)
 //	 }
 //	 ...
-//		app.SetContextErrorHandler(new(contextErrorHandler))
+//	 app.SetContextErrorHandler(new(contextErrorHandler))
 func (app *Application) SetContextErrorHandler(errHandler context.ErrorHandler) *Application {
 	app.contextErrorHandler = errHandler
 	return app
