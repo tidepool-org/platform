@@ -31,6 +31,8 @@ type MigrationUtilConfig struct {
 	nopPercent int
 	// minimum free disk space percent
 	minFreePercent int
+	// cap for number of items to migrate
+	cap *int
 }
 
 type migrationUtil struct {
@@ -103,13 +105,18 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		}
 		log.Printf("4. data write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
 		totalMigrated = totalMigrated + updatedCount
+
+		if m.config.cap != nil {
+			if totalMigrated >= *m.config.cap {
+				break
+			}
+		}
 	}
 	log.Printf("migration took [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
 	return nil
 }
 
 func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
-	log.Printf("last id [%s] now [%s]", m.lastUpdatedId, lastID)
 	m.lastUpdatedId = lastID
 	m.updates = append(m.updates, update)
 }
@@ -122,7 +129,7 @@ func (m *migrationUtil) GetLastID() string {
 	return m.lastUpdatedId
 }
 
-func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int) *MigrationUtilConfig {
+func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int, cap *int) *MigrationUtilConfig {
 	cfg := &MigrationUtilConfig{
 		minOplogWindow:         28800, // 8hrs
 		minFreePercent:         10,
@@ -140,6 +147,9 @@ func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int) *Mig
 	}
 	if nopPercent != nil {
 		cfg.SetNopPercent(*nopPercent)
+	}
+	if cap != nil {
+		cfg.cap = cap
 	}
 	return cfg
 }

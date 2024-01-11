@@ -69,8 +69,9 @@ func (m *Migration) RunAndExit() {
 		defer m.client.Disconnect(m.ctx)
 
 		log.Println("## create new migrationUtil")
+		cap := 50000 // while testing
 		m.migrationUtil, err = utils.NewMigrationUtil(
-			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent),
+			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent, &cap),
 			m.client,
 			&m.config.lastUpdatedId,
 		)
