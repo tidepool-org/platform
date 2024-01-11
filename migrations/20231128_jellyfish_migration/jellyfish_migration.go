@@ -66,8 +66,6 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
-
-		log.Println("## create new migrationUtil")
 		cap := m.config.cap // while testing
 		m.migrationUtil, err = utils.NewMigrationUtil(
 			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent, &cap),
@@ -170,8 +168,6 @@ func (m *Migration) onError(errToReport error, id string, msg string) {
 
 func (m *Migration) fetchAndUpdateBatch() bool {
 
-	log.Println("## fetching")
-
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
 	}
@@ -217,14 +213,13 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		updateStart := time.Now()
 
-		for dDataCursor.Next(m.ctx) {
+		results := []bson.M{}
+		if err := dDataCursor.All(m.ctx, &results); err != nil {
+			log.Printf("decoding find results: %s", err)
+			return false
+		}
 
-			item := bson.M{}
-			if err := dDataCursor.Decode(&item); err != nil {
-				log.Printf("error decoding data: %s", err)
-				return false
-			}
-
+		for _, item := range results {
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
 			if err != nil {
 				m.onError(err, datumID, "failed getting updates")

@@ -374,7 +374,6 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	if len(m.updates) == 0 {
 		return 0, nil
 	}
-	start := time.Now()
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
@@ -408,6 +407,5 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		updateCount += int(results.ModifiedCount)
 		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
 	}
-	log.Printf("mongo bulk write took %s", time.Since(start))
 	return updateCount, nil
 }
