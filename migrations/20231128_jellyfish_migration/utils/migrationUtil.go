@@ -150,7 +150,7 @@ func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int, cap 
 	}
 	if cap != nil && *cap > 0 {
 		cfg.cap = cap
-		log.Printf("capped at %d items")
+		log.Printf("capped at %d items", *cfg.cap)
 	}
 	return cfg
 }
