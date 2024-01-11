@@ -31,8 +31,7 @@ const (
 	veryHighBloodGlucose = 13.9
 	HoursAgoToKeep       = 60 * 24
 
-	setOutdatedBuffer = 2 * time.Minute
-	setOutdatedLimit  = 30 * time.Minute
+	setOutdatedLimit = 30 * time.Minute
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"
@@ -213,8 +212,7 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 	}
 
 	if s.Dates.OutdatedSince == nil || s.Dates.OutdatedSince.Before(*s.Dates.OutdatedSinceLimit) {
-		newOutdatedSince := timestamp.Add(setOutdatedBuffer)
-		s.Dates.OutdatedSince = &newOutdatedSince
+		s.Dates.OutdatedSince = &timestamp
 		s.Dates.HasOutdatedSince = true
 	}
 }
