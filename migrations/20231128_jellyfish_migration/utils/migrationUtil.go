@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Config struct {
+type MigrationUtilConfig struct {
 	//apply no changes
 	dryRun bool
 	//halt on error
@@ -35,32 +35,45 @@ type Config struct {
 type migrationUtil struct {
 	writeBatchSize *int64
 	client         *mongo.Client
-	config         *Config
+	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
 	lastUpdatedId  string
+}
+
+type MigrationUtil interface {
+	Initialize(ctx context.Context, dataC *mongo.Collection) error
+	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func(updates []mongo.WriteModel) bool) error
+	OnError(reportErr error, id string, msg string)
 }
 
 const oplogName = "oplog.rs"
 
 // MigrationUtil helps managed the migration process
 // errors written to
-func NewMigrationUtil(client *mongo.Client, config *Config) (*migrationUtil, error) {
+func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client) (MigrationUtil, error) {
 	var err error
-	if client == nil {
-		err = errors.Join(err, errors.New("missing required mongo client"))
-	}
 	if config == nil {
 		err = errors.Join(err, errors.New("missing required configuration"))
 	}
+	if client == nil {
+		err = errors.Join(err, errors.New("missing required mongo client"))
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("migration util configuration: %v", config)
 
 	return &migrationUtil{
 		client:  client,
 		config:  config,
 		updates: []mongo.WriteModel{},
-	}, err
+	}, nil
 }
 
 func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection) error {
+
 	if err := m.checkFreeSpace(ctx, dataC); err != nil {
 		return err
 	}
@@ -87,6 +100,78 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	return nil
 }
 
+func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int) *MigrationUtilConfig {
+	cfg := &MigrationUtilConfig{
+		minOplogWindow:         28800, // 8hrs
+		minFreePercent:         10,
+		expectedOplogEntrySize: 420,
+
+		dryRun:     true,
+		stopOnErr:  true,
+		nopPercent: 25,
+	}
+	if dryRun != nil {
+		cfg.SetDryRun(*dryRun)
+	}
+	if stopOnErr != nil {
+		cfg.SetStopOnErr(*stopOnErr)
+	}
+	if nopPercent != nil {
+		cfg.SetNopPercent(*nopPercent)
+	}
+	return cfg
+}
+
+func (c *MigrationUtilConfig) SetNopPercent(nopPercent int) *MigrationUtilConfig {
+	c.nopPercent = nopPercent
+	return c
+}
+
+func (c *MigrationUtilConfig) SetMinOplogWindow(minOplogWindow int) *MigrationUtilConfig {
+	c.minOplogWindow = minOplogWindow
+	return c
+}
+func (c *MigrationUtilConfig) SetExpectedOplogEntrySize(expectedOplogEntrySize int) *MigrationUtilConfig {
+	c.expectedOplogEntrySize = expectedOplogEntrySize
+	return c
+}
+func (c *MigrationUtilConfig) SetMinFreePercent(minFreePercent int) *MigrationUtilConfig {
+	c.minFreePercent = minFreePercent
+	return c
+}
+func (c *MigrationUtilConfig) SetDryRun(dryRun bool) *MigrationUtilConfig {
+	c.dryRun = dryRun
+	return c
+}
+func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig {
+	c.stopOnErr = stopOnErr
+	return c
+}
+
+// OnError
+// - write error to file `error.log` in directory cli is running in
+// - optionally stop the operation if stopOnErr is true in the config
+func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
+	var errFormat = "[id=%s] %s %s"
+	if reportErr != nil {
+		f, err := os.OpenFile("error.log",
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		f.WriteString(fmt.Sprintf(errFormat, id, msg, reportErr.Error()))
+
+		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
+
+		if m.config.stopOnErr {
+			log.Printf(errFormat, id, msg, reportErr.Error())
+			os.Exit(1)
+		}
+	}
+}
+
 func (m *migrationUtil) getOplogCollection() *mongo.Collection {
 	return m.client.Database("local").Collection(oplogName)
 }
@@ -95,34 +180,12 @@ func (m *migrationUtil) getAdminDB() *mongo.Database {
 	return m.client.Database("admin")
 }
 
-func (m *migrationUtil) onError(err error, id string, msg string) {
-	var errFormat = "[id=%s] %s %s"
-	if err != nil {
-		f, err := os.OpenFile("error.log",
-			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		defer f.Close()
-		f.WriteString(fmt.Sprintf(errFormat, id, msg, err.Error()))
-
-		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
-
-		if m.config.stopOnErr {
-			log.Printf(errFormat, id, msg, err.Error())
-			os.Exit(1)
-		}
-	}
-}
-
 func writeLastItemUpdate(itemID string, dryRun bool) {
 	if dryRun {
 		log.Printf("dry run so not setting lastUpdatedId %s", itemID)
 		return
 	}
-	f, err := os.OpenFile("./lastUpdatedId",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.Create("./lastUpdatedId")
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
@@ -298,11 +361,11 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	updateCount := 0
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(ctx); err != nil {
-			log.Printf("writeBatchUpdates-blocking error: %s", err)
+			//log.Printf("writeBatchUpdates-blocking error: %s", err)
 			return updateCount, err
 		}
 		if err := m.checkFreeSpace(ctx, dataC); err != nil {
-			log.Printf("writeBatchUpdates-freespace error: %s", err)
+			//log.Printf("writeBatchUpdates-freespace error: %s", err)
 			return updateCount, err
 		}
 		log.Printf("batch size to write %d", len(batch))
