@@ -34,7 +34,7 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 			OffsetPeriods: make(map[string]*types.CGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-			Buckets: make(types.Buckets[types.CGMBucketData, *types.CGMBucketData], 2),
+			Buckets: make([]*types.Bucket[*types.CGMBucketData, types.CGMBucketData], 2),
 		},
 	}
 
@@ -274,7 +274,7 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 			OffsetPeriods: make(map[string]*types.BGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-			Buckets: make(types.Buckets[types.BGMBucketData, *types.BGMBucketData], 2),
+			Buckets: make([]*types.Bucket[*types.BGMBucketData, types.BGMBucketData], 2),
 		},
 	}
 

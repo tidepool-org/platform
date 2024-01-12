@@ -156,10 +156,10 @@ type CGMPeriod struct {
 type CGMPeriods map[string]*CGMPeriod
 
 type CGMStats struct {
-	Periods       CGMPeriods                             `json:"periods" bson:"periods"`
-	OffsetPeriods CGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
-	Buckets       Buckets[CGMBucketData, *CGMBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
+	Periods       CGMPeriods                               `json:"periods" bson:"periods"`
+	OffsetPeriods CGMPeriods                               `json:"offsetPeriods" bson:"offsetPeriods"`
+	Buckets       []*Bucket[*CGMBucketData, CGMBucketData] `json:"buckets" bson:"buckets"`
+	TotalHours    int                                      `json:"totalHours" bson:"totalHours"`
 }
 
 func (*CGMStats) GetType() string {
@@ -171,7 +171,7 @@ func (*CGMStats) GetDeviceDataType() string {
 }
 
 func (s *CGMStats) Init() {
-	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
+	s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
 	s.Periods = make(map[string]*CGMPeriod)
 	s.OffsetPeriods = make(map[string]*CGMPeriod)
 	s.TotalHours = 0
@@ -193,7 +193,7 @@ func (s *CGMStats) ClearInvalidatedBuckets(status *UserLastUpdated) {
 		return
 	} else if status.EarliestModified.Before(s.Buckets[0].Date) {
 		// we are before all existing buckets, remake for GC
-		s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
+		s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
 		return
 	}
 
