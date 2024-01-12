@@ -136,6 +136,10 @@ func (s *BGMStats) ClearInvalidatedBuckets(status *UserLastUpdated) {
 	} else if status.EarliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
 		status.FirstData = s.Buckets[len(s.Buckets)-1].LastRecordTime
 		return
+	} else if status.EarliestModified.Before(s.Buckets[0].Date) {
+		// we are before all existing buckets, remake for GC
+		s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
+		return
 	}
 
 	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(status.EarliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)

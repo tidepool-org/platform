@@ -941,6 +941,25 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.Buckets[len(userBGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
 			})
 
+			It("trims the all buckets with data beyond the beginning of the buckets", func() {
+				var dataSetCGMDataCursor *mongo.Cursor
+				userBGMSummary = types.Create[*types.BGMStats](userId)
+				dataSetBGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
+
+				err = userBGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
+				Expect(userBGMSummary.Stats.TotalHours).To(Equal(10))
+
+				status := &types.UserLastUpdated{EarliestModified: datumTime.Add(-15 * time.Hour)}
+
+				userBGMSummary.Stats.ClearInvalidatedBuckets(status)
+
+				// we have the right length
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(0))
+			})
+
 			It("doesnt trim if only modified in the future", func() {
 				var dataSetBGMDataCursor *mongo.Cursor
 				userBGMSummary = types.Create[*types.BGMStats](userId)
