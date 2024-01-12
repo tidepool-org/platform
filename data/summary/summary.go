@@ -146,11 +146,14 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	logger := log.LoggerFromContext(ctx)
 	userSummary, err := c.GetSummary(ctx, userId)
 	if err != nil {
-		return userSummary, err
+		return nil, err
 	}
 
 	logger.Debugf("Starting summary calculation for %s", userId)
-	status := &types.UserLastUpdated{LastUpdated: userSummary.Dates.LastUpdatedDate}
+	status := &types.UserLastUpdated{}
+	if userSummary != nil {
+		status.LastUpdated = userSummary.Dates.LastUpdatedDate
+	}
 
 	err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
@@ -175,14 +178,11 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	}
 
 	// we currently don't only pull modified records, even if some code supports it, make a copy of status without these
-
 	userSummary.Stats.ClearInvalidatedBuckets(status)
-	dataRange := *status
-	dataRange.LastUpdated = time.Time{}
-	dataRange.NextLastUpdated = time.Now()
+	status.NextLastUpdated = time.Now().UTC()
 
 	var cursor *mongo.Cursor
-	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), &dataRange)
+	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
 		return nil, err
 	}
