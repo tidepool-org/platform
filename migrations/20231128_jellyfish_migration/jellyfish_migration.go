@@ -213,13 +213,14 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		updateStart := time.Now()
 
-		results := []bson.M{}
-		if err := dDataCursor.All(m.ctx, &results); err != nil {
-			log.Printf("decoding find results: %s", err)
-			return false
-		}
+		for dDataCursor.Next(m.ctx) {
 
-		for _, item := range results {
+			item := bson.M{}
+			if err := dDataCursor.Decode(&item); err != nil {
+				log.Printf("error decoding data: %s", err)
+				return false
+			}
+
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
 			if err != nil {
 				m.onError(err, datumID, "failed getting updates")
