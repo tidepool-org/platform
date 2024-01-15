@@ -153,8 +153,6 @@ func CreateBucket[A BucketDataPt[T], T BucketData](t time.Time) *Bucket[A, T] {
 	return bucket
 }
 
-type Buckets[T BucketData, S BucketDataPt[T]] []*Bucket[S, T]
-
 type Stats interface {
 	CGMStats | BGMStats
 }
@@ -264,138 +262,103 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-//func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newStat *Bucket[A, T]) error {
-//	// NOTE This is only partially able to handle editing the past, and will break if given a bucket which
-//	//      must be prepended
-//	existingHour := false
-//
-//	// we assume the list is fully populated with empty hours for any gaps, so the length should be predictable
-//	if len(*buckets) > 0 {
-//		lastBucketPeriod := (*buckets)[len(*buckets)-1].Date
-//		currentPeriod := newStat.Date
-//
-//		// if we need to look for an existing bucket
-//		if currentPeriod.Equal(lastBucketPeriod) || currentPeriod.Before(lastBucketPeriod) {
-//
-//			gapPeriods := int(lastBucketPeriod.Sub(currentPeriod).Hours())
-//			if gapPeriods < len(*buckets) {
-//				if !(*buckets)[len(*buckets)-gapPeriods-1].Date.Equal(currentPeriod) {
-//					return errors.New("Potentially damaged buckets, offset jump did not find intended record.")
-//				}
-//				(*buckets)[len(*buckets)-gapPeriods-1] = newStat
-//				existingHour = true
-//			}
-//		}
-//
-//		// add hours for any gaps that this new bucket skipped
-//		statsGap := int(newStat.Date.Sub((*buckets)[len(*buckets)-1].Date).Hours())
-//		// only add gap buckets if the gap is shorter than max tracking amount
-//		if statsGap > 0 && statsGap < HoursAgoToKeep {
-//			gapBuckets := make(S, 0, statsGap)
-//			for i := statsGap; i > 1; i-- {
-//				newStatsTime := newStat.Date.Add(time.Duration(-i+1) * time.Hour)
-//				gapBuckets = append(gapBuckets, CreateBucket[A](newStatsTime))
-//			}
-//
-//			*buckets = append(*buckets, gapBuckets...)
-//		} else if statsGap > HoursAgoToKeep {
-//			// otherwise, the gap is larger than our tracking, delete all the old buckets for a clean state
-//			*buckets = make(S, 0, 1)
-//		}
-//	}
-//
-//	if existingHour == false {
-//		*buckets = append(*buckets, newStat)
-//	}
-//
-//	// remove extra hours to cap at X hours of buckets
-//	if len(*buckets) > HoursAgoToKeep {
-//		// zero out any to-be-trimmed buckets to lower their impact until reallocation
-//		for i := 0; i < len(*buckets)-HoursAgoToKeep; i++ {
-//			(*buckets)[i] = nil
-//		}
-//		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep:]
-//	}
-//
-//	return nil
-//}
-
-func AddBin[T BucketData, A BucketDataPt[T], S Buckets[T, A]](buckets *S, newBucket *Bucket[A, T]) error {
+func AddBin[T BucketData, A BucketDataPt[T]](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
 	if len(*buckets) == 0 {
 		*buckets = append(*buckets, newBucket)
 		return nil
 	}
 
-	lastBucketPeriod := (*buckets)[len(*buckets)-1].Date
-	firstBucketPeriod := (*buckets)[0].Date
-	newPeriod := newBucket.Date
-	statsGap := 0
-	var gapStart time.Time
-	var gapEnd time.Time
+	if lastBucket := (*buckets)[len(*buckets)-1]; newBucket.Date.After(lastBucket.Date) {
+		return addBinAfter(buckets, newBucket)
+	} else if firstBucket := (*buckets)[0]; newBucket.Date.Before(firstBucket.Date) {
+		return addBinBefore(buckets, newBucket)
+	}
+	return replaceBin(buckets, newBucket)
+}
 
-	// get the gap range
-	if newPeriod.After(lastBucketPeriod) {
-		// check if we are so far ahead that we should just nuke it
-		if newPeriod.Add(-HoursAgoToKeep * time.Hour).After(lastBucketPeriod) {
-			*buckets = make(S, 0, 1)
-		} else {
-			statsGap = int(newPeriod.Sub(lastBucketPeriod).Hours())
-			gapStart = lastBucketPeriod.Add(time.Hour)
-			gapEnd = newPeriod
-		}
-	} else if newPeriod.Before(firstBucketPeriod) {
-		// check if we are so far behind that we are irrelevant
-		if newPeriod.Before(lastBucketPeriod.Add(HoursAgoToKeep * -time.Hour)) {
-			return errors.New("given irrelevant bucket, too old")
-		} else {
-			statsGap = int(firstBucketPeriod.Sub(newPeriod).Hours())
-			gapStart = newPeriod.Add(time.Hour)
-			gapEnd = firstBucketPeriod
-		}
-	} else { // we are replacing an existing bucket
-		// check if bucket being replaced has the right date
-		offset := int(newPeriod.Sub(firstBucketPeriod).Hours())
-		if !(*buckets)[offset].Date.Equal(newPeriod) {
-			return fmt.Errorf("potentially damaged buckets, offset jump did not find intended record. Found %s, wanted %s", (*buckets)[offset].Date, newPeriod)
-		}
-		(*buckets)[offset] = newBucket
+// MaxBucketGap denotes the duration after which a bucket isn't useful.
+const MaxBucketGap = -time.Hour * HoursAgoToKeep
+
+// addBinAfter readjusts buckets so that newBucket is at the end.
+//
+// addBinAfter assumes that newBucket comes after the last element of
+// buckets. Any gaps between buckets and newBucket are padded appropriately.
+func addBinAfter[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
+	var newDate = newBucket.Date
+	var lastBucket = (*buckets)[len(*buckets)-1]
+
+	if newDate.Add(MaxBucketGap).After(lastBucket.Date) {
+		*buckets = []*Bucket[A, T]{newBucket}
 		return nil
 	}
 
-	gapBuckets := make(S, 0, Abs(statsGap))
+	var gapStart, gapEnd = lastBucket.Date.Add(time.Hour), newDate
+	var gapBucketsLen = int(newDate.Sub(lastBucket.Date).Hours())
+	var gapBuckets = make([]*Bucket[A, T], 0, gapBucketsLen)
 	for i := gapStart; i.Before(gapEnd); i = i.Add(time.Hour) {
 		gapBuckets = append(gapBuckets, CreateBucket[A](i))
 	}
+	*buckets = append(*buckets, gapBuckets...)
+	*buckets = append(*buckets, newBucket)
 
-	if newPeriod.After(lastBucketPeriod) {
-		if len(gapBuckets) > 0 {
-			*buckets = append(*buckets, gapBuckets...)
-		}
-
-		*buckets = append(*buckets, newBucket)
-	} else if newPeriod.Before(firstBucketPeriod) {
-		if len(gapBuckets) > 0 {
-			*buckets = append(gapBuckets, *buckets...)
-		}
-
-		*buckets = append(S{newBucket}, *buckets...)
-	} else {
-		return errors.New("bucket not before or after, but not existing?")
-	}
-
-	// remove extra hours to cap at X hours of buckets
-	if len(*buckets) > HoursAgoToKeep {
-		// zero out any to-be-trimmed buckets to lower their impact until reallocation
-		for i := 0; i < len(*buckets)-HoursAgoToKeep; i++ {
-			(*buckets)[i] = nil
-		}
-		*buckets = (*buckets)[len(*buckets)-HoursAgoToKeep:]
-	}
+	removeExcessBuckets(buckets)
 
 	return nil
 }
 
-func AddData[T BucketData, A BucketDataPt[T], R RecordTypes, D RecordTypesPt[R]](buckets *Buckets[T, A], userData []D) error {
+// addBinBefore readjusts buckets to that newBucket is at the start.
+//
+// addBinBefore assumes that newBucket comes before the first element of
+// buckets. Any gaps between buckets and newBucket are padded appropriately.
+func addBinBefore[T BucketData, A BucketDataPt[T]](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
+	var newDate = newBucket.Date
+	var lastBucket = (*buckets)[len(*buckets)-1]
+
+	if newDate.Before(lastBucket.Date.Add(MaxBucketGap)) {
+		return errors.New("bucket is too old")
+	}
+
+	var firstBucket = (*buckets)[0]
+	var gapStart, gapEnd = newDate.Add(time.Hour), firstBucket.Date
+	var gapBucketsLen = Abs(int(firstBucket.Date.Sub(newDate).Hours()))
+	var gapBuckets = make([]*Bucket[A, T], 0, gapBucketsLen)
+	for i := gapStart; i.Before(gapEnd); i = i.Add(time.Hour) {
+		gapBuckets = append(gapBuckets, CreateBucket[A](i))
+	}
+
+	*buckets = append(gapBuckets, *buckets...)
+	*buckets = append([]*Bucket[A, T]{newBucket}, *buckets...)
+
+	removeExcessBuckets(buckets)
+
+	return nil
+}
+
+func replaceBin[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
+	var newDate = newBucket.Date
+	var offset = int(newDate.Sub((*buckets)[0].Date).Hours())
+	var toReplace = (*buckets)[offset]
+	if !toReplace.Date.Equal(newDate) {
+		return fmt.Errorf("potentially damaged buckets, offset jump did not find intended record. Found %s, wanted %s",
+			toReplace.Date, newDate)
+	}
+	(*buckets)[offset] = newBucket
+	return nil
+}
+
+func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T]) {
+	var excess = len(*buckets) - HoursAgoToKeep
+	if excess < 1 {
+		return
+	}
+	// zero out excess buckets to lower their impact until reallocation
+	for i := 0; i < excess; i++ {
+		(*buckets)[i] = nil
+	}
+	*buckets = (*buckets)[excess:]
+}
+
+func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 
