@@ -40,6 +40,7 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
+	errorsCount    int
 	lastUpdatedId  string
 }
 
@@ -49,7 +50,7 @@ type MigrationUtil interface {
 	OnError(reportErr error, id string, msg string)
 	SetData(update *mongo.UpdateOneModel, lastID string)
 	GetLastID() string
-	GetUpdatesCount() int
+	GetUpdateCounts() (int, int)
 }
 
 // MigrationUtil helps managed the migration process
@@ -119,8 +120,8 @@ func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
 	m.updates = append(m.updates, update)
 }
 
-func (m *migrationUtil) GetUpdatesCount() int {
-	return len(m.updates)
+func (m *migrationUtil) GetUpdateCounts() (int, int) {
+	return len(m.updates), m.errorsCount
 }
 
 func (m *migrationUtil) GetLastID() string {
@@ -185,6 +186,7 @@ func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig 
 func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 	var errFormat = "[id=%s] %s %s\n"
 	if reportErr != nil {
+		m.errorsCount++
 		f, err := os.OpenFile("error.log",
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
