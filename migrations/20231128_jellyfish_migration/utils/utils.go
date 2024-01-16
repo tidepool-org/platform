@@ -92,6 +92,10 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		return datumID, nil, errors.New("cannot get the datum type")
 	}
 
+	//remove as uneeded and can cause issues if invalid type
+	delete(bsonData, "payload")
+	delete(bsonData, "annotations")
+
 	switch datumType {
 	case basal.Type:
 		var datum *basal.Basal

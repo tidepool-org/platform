@@ -66,6 +66,7 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
+		//TODO: just capping while doing test runs, but probably good to have as a general ability
 		cap := m.config.cap // while testing
 		m.migrationUtil, err = utils.NewMigrationUtil(
 			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent, &cap),

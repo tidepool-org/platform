@@ -52,8 +52,6 @@ type MigrationUtil interface {
 	GetUpdatesCount() int
 }
 
-const oplogName = "oplog.rs"
-
 // MigrationUtil helps managed the migration process
 // errors written to
 func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID *string) (MigrationUtil, error) {
@@ -203,7 +201,7 @@ func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 }
 
 func (m *migrationUtil) getOplogCollection() *mongo.Collection {
-	return m.client.Database("local").Collection(oplogName)
+	return m.client.Database("local").Collection("oplog.rs")
 }
 
 func (m *migrationUtil) getAdminDB() *mongo.Database {
@@ -265,7 +263,7 @@ func (m *migrationUtil) setWriteBatchSize(ctx context.Context) error {
 			MaxSize int `json:"maxSize"`
 		}
 		var metaData MongoMetaData
-		if err := oplogC.Database().RunCommand(ctx, bson.M{"collStats": oplogName}).Decode(&metaData); err != nil {
+		if err := oplogC.Database().RunCommand(ctx, bson.M{"collStats": "oplog.rs"}).Decode(&metaData); err != nil {
 			return err
 		}
 		writeBatchSize := calculateBatchSize(metaData.MaxSize, m.config.expectedOplogEntrySize, m.config.minOplogWindow, m.config.nopPercent)

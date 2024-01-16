@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
+	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils/test"
 )
 
 var _ = Describe("back-37", func() {
@@ -235,6 +236,43 @@ var _ = Describe("back-37", func() {
 						Expect(actual).To(BeNil())
 					})
 				})
+			})
+			Context("Historic datum", func() {
+
+				It("g5 dexcom", func() {
+					actualID, actual, err := utils.GetDatumUpdates(getBSONData(test.CBGDexcomG5MobDatum))
+					Expect(err).To(BeNil())
+					Expect(actual).ToNot(BeNil())
+					Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "TKJurm+/SuA5tarn/nATa7Nw0LXgwGel67lgJihUctM="}}}}))
+					Expect(actualID).ToNot(BeEmpty())
+				})
+
+				It("carelink medtronic pumpSettings", func() {
+					actualID, actual, err := utils.GetDatumUpdates(getBSONData(test.PumpSettingsCarelink))
+					Expect(err).To(BeNil())
+					Expect(actual).ToNot(BeNil())
+
+					Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "NC17pw1UAaab50iChhQXJ+N9dTi6GduTy9UjsMHolow="}}}}))
+					Expect(actualID).ToNot(BeEmpty())
+				})
+
+				It("tandem pumpSettings", func() {
+					actualID, actual, err := utils.GetDatumUpdates(getBSONData(test.PumpSettingsTandem))
+					Expect(err).To(BeNil())
+					Expect(actual).ToNot(BeNil())
+					Expect(len(actual)).To(Equal(1))
+					Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "bpKLJbi5JfqD7N0WJ1vj0ck03c9EZ3U0H09TCLhdd3k="}}}}))
+					Expect(actualID).ToNot(BeEmpty())
+				})
+
+				It("omnipod pumpSettings", func() {
+					actualID, actual, err := utils.GetDatumUpdates(getBSONData(test.PumpSettingsOmnipod))
+					Expect(err).To(BeNil())
+					Expect(actual).ToNot(BeNil())
+					Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "oH7/6EEgUjRTeafEpm74fVTYMBvMdQ65/rhg0oFoev8="}}}}))
+					Expect(actualID).ToNot(BeEmpty())
+				})
+
 			})
 		})
 	})
