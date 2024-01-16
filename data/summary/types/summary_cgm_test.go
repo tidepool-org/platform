@@ -1448,13 +1448,15 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-5 * time.Hour))
+				firstData := userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-5 * time.Hour))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(5))
 
 				// we didn't overshoot and nil something we shouldn't have
 				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+
+				Expect(firstData).To(Equal(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1].LastRecordTime))
 			})
 
 			It("trims the all buckets with data beyond the beginning of the buckets", func() {
@@ -1468,11 +1470,12 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				// TODO check returned firstData
-				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-15 * time.Hour))
+				firstData := userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-15 * time.Hour))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
+
+				Expect(firstData.IsZero()).To(BeTrue())
 			})
 
 			It("doesnt trim if only modified in the future", func() {
@@ -1486,13 +1489,15 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(time.Hour))
+				firstData := userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(time.Hour))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 
 				// we didn't overshoot and nil something we shouldn't have
 				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+
+				Expect(firstData).To(Equal(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1].LastRecordTime))
 			})
 
 			It("doesnt trim if only modified on the same hour, but after the bucket time", func() {
@@ -1507,13 +1512,15 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(10 * time.Minute))
+				firstData := userCGMSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(10 * time.Minute))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 
 				// we didn't overshoot and nil something we shouldn't have
 				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+
+				Expect(firstData).To(Equal(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1].LastRecordTime))
 			})
 
 			It("trims if modified on the same hour, and before the bucket time", func() {
@@ -1528,13 +1535,15 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(-10 * time.Minute))
+				firstData := userCGMSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(-10 * time.Minute))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(9))
 
 				// we didn't overshoot and nil something we shouldn't have
 				Expect(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1]).ToNot(BeNil())
+
+				Expect(firstData).To(Equal(userCGMSummary.Stats.Buckets[len(userCGMSummary.Stats.Buckets)-1].LastRecordTime))
 			})
 
 			It("successfully does nothing if there are no buckets", func() {
@@ -1542,10 +1551,12 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(0))
 
-				userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime)
+				firstData := userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime)
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
+
+				Expect(firstData.IsZero()).To(BeTrue())
 			})
 		})
 	})
