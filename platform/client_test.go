@@ -242,7 +242,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
@@ -305,7 +305,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -457,7 +457,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
@@ -520,7 +520,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})

@@ -132,13 +132,12 @@ func (c *Client) sendRequest(ctx context.Context, method, url string, mutators [
 type promDexcomInstrumentor struct{}
 
 // InspectResponse implements request.ResponseInspector.
-func (i *promDexcomInstrumentor) InspectResponse(r *http.Response) error {
+func (i *promDexcomInstrumentor) InspectResponse(r *http.Response) {
 	labels := prometheus.Labels{
 		"code": strconv.Itoa(r.StatusCode),
 		"path": r.Request.URL.Path,
 	}
 	promDexcomCounter.With(labels).Inc()
-	return nil
 }
 
 // promDexcomCounter instruments the Dexcom API paths and status codes called.
