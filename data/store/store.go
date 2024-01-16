@@ -64,7 +64,7 @@ type DatumRepository interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) error
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (status *types.UserLastUpdated, err error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
 
 	CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error)

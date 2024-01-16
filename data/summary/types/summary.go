@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/tidepool-org/platform/errors"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -62,11 +60,11 @@ type RecordTypesPt[T RecordTypes] interface {
 	GetTime() *time.Time
 }
 
-// Glucose reimplementation with only the fields we need, to avoid inheriting Base, which does
-// not belong in this collection
-type Glucose struct {
-	Units string  `json:"units" bson:"units"`
-	Value float64 `json:"value" bson:"value"`
+type DeviceDataCursor interface {
+	Decode(val interface{}) error
+	RemainingBatchLength() int
+	Next(ctx context.Context) bool
+	Close(ctx context.Context) error
 }
 
 type UserLastUpdated struct {
@@ -79,11 +77,6 @@ type UserLastUpdated struct {
 
 	LastUpdated     time.Time
 	NextLastUpdated time.Time
-}
-
-type ModifiedPeriod struct {
-	Bucket       time.Time `bson:"_id"`
-	EarliestTime time.Time `bson:"minTime"`
 }
 
 type Config struct {
@@ -115,7 +108,7 @@ type Dates struct {
 	OutdatedReason     []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
-func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
+func (d *Dates) Update(status *UserLastUpdated, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
 	d.LastUpdatedReason = d.OutdatedReason
 
@@ -123,7 +116,7 @@ func (d *Dates) Update(status *UserLastUpdated, firstData time.Time) {
 	d.LastUploadDate = &status.LastUpload
 
 	d.HasFirstData = true
-	d.FirstData = &firstData
+	d.FirstData = &firstBucketDate
 
 	d.HasLastData = true
 	d.LastData = &status.LastData
@@ -164,8 +157,8 @@ type StatsPt[T Stats] interface {
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
-	Update(context.Context, *mongo.Cursor) error
-	ClearInvalidatedBuckets(status *UserLastUpdated)
+	Update(context.Context, DeviceDataCursor) error
+	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
 }
 
 type Summary[T Stats, A StatsPt[T]] struct {
@@ -438,100 +431,6 @@ func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]]
 
 	return nil
 }
-
-//func AddData[D RecordTypesPt[R], A BucketDataPt[T], T BucketData, R RecordTypes](buckets *Buckets[T, A], userData []D, newBucket *Bucket[A, T]) (*Bucket[A, T], error) {
-//	lastPeriod := time.Time{}
-//
-//	for _, r := range userData {
-//		recordTime := r.GetTime()
-//
-//		// truncate time is not timezone/DST safe here, even if we do expect UTC
-//		currentPeriod := time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
-//			recordTime.Hour(), 0, 0, 0, recordTime.Location())
-//
-//		// store stats for the period, if we are now on a different period
-//		if !lastPeriod.IsZero() && currentPeriod.After(lastPeriod) {
-//			err := AddBin(buckets, newBucket)
-//			if err != nil {
-//				return nil, err
-//			}
-//			newBucket = nil
-//		}
-//
-//		if newBucket == nil {
-//			// pull stats if they already exist
-//			// we assume the list is fully populated with empty hours for any gaps, so the length should be predictable
-//			if len(*buckets) > 0 {
-//				lastBucketHour := (*buckets)[len(*buckets)-1].Date
-//
-//				// if we need to look for an existing bucket
-//				if currentPeriod.Equal(lastBucketHour) || currentPeriod.Before(lastBucketHour) {
-//					fmt.Println("getting existing bucket")
-//					gap := int(lastBucketHour.Sub(currentPeriod).Hours())
-//
-//					fmt.Println("going back", gap, "buckets, have", len(*buckets), "buckets")
-//					if gap < len(*buckets) {
-//						newBucket = (*buckets)[len(*buckets)-gap-1]
-//						fmt.Println(newBucket.Date, "!=", currentPeriod)
-//						if !newBucket.Date.Equal(currentPeriod) {
-//							return nil, errors.New("Potentially damaged buckets, offset jump did not find intended record when adding data.")
-//						}
-//					}
-//				}
-//			}
-//
-//			// we still don't have a bucket, make a new one.
-//			if newBucket == nil {
-//				newBucket = CreateBucket[A](currentPeriod)
-//			}
-//		}
-//
-//		lastPeriod = currentPeriod
-//
-//		// if on fresh hour, pull LastRecordTime from last day if possible
-//		if newBucket.LastRecordTime.IsZero() && len(*buckets) > 0 {
-//			newBucket.LastRecordTime = (*buckets)[len(*buckets)-1].LastRecordTime
-//		}
-//
-//		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
-//		if err != nil {
-//			return nil, err
-//		}
-//		if !skipped {
-//			newBucket.LastRecordTime = *recordTime
-//		}
-//	}
-//
-//	// store any partial bucket
-//	if newBucket != nil {
-//		err := AddBin(buckets, newBucket)
-//		if err != nil {
-//			return nil, err
-//		}
-//	}
-//
-//	return newBucket, nil
-//}
-
-//func SetStartTime[T Stats, A StatsPt[T]](userSummary *Summary[T, A], status *UserLastUpdated) {
-//	// remove HoursAgoToKeep/24 days for start time
-//	status.FirstData = status.LastData.AddDate(0, 0, -HoursAgoToKeep/24)
-//	status.LastUpdated = userSummary.Dates.LastUpdatedDate
-//
-//	//if userSummary.Dates.LastData != nil {
-//	//	// if summary already exists with a last data checkpoint, start data pull there
-//	//	if startTime.Before(*userSummary.Dates.LastData) {
-//	//		startTime = *userSummary.Dates.LastData
-//	//	}
-//	//
-//	//	// ensure LastData does not move backwards by capping it at summary LastData
-//	//	if status.LastData.Before(*userSummary.Dates.LastData) {
-//	//		status.LastData = *userSummary.Dates.LastData
-//	//	}
-//	//}
-//	//
-//	//return startTime
-//}
 
 func (d *Dates) Reset() {
 	*d = Dates{

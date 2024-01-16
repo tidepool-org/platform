@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -185,29 +183,28 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *CGMStats) ClearInvalidatedBuckets(status *UserLastUpdated) {
+func (s *CGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstData time.Time) {
 	if len(s.Buckets) == 0 {
 		return
-	} else if status.EarliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
-		status.FirstData = s.Buckets[len(s.Buckets)-1].LastRecordTime
-		return
-	} else if status.EarliestModified.Before(s.Buckets[0].Date) {
+	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	} else if earliestModified.Before(s.Buckets[0].Date) {
 		// we are before all existing buckets, remake for GC
 		s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
 		return
 	}
 
-	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(status.EarliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
+	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(earliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
 
 	for i := offset; i < len(s.Buckets); i++ {
 		s.Buckets[i] = nil
 	}
 	s.Buckets = s.Buckets[:offset]
 
-	status.FirstData = s.Buckets[len(s.Buckets)-1].LastRecordTime
+	return s.Buckets[len(s.Buckets)-1].LastRecordTime
 }
 
-func (s *CGMStats) Update(ctx context.Context, cursor *mongo.Cursor) error {
+func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
 	var userData []*glucoseDatum.Glucose = nil
 	var err error
 
@@ -216,11 +213,11 @@ func (s *CGMStats) Update(ctx context.Context, cursor *mongo.Cursor) error {
 			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
 		}
 
-		r := glucoseDatum.Glucose{}
-		if err = cursor.Decode(&r); err != nil {
+		r := &glucoseDatum.Glucose{}
+		if err = cursor.Decode(r); err != nil {
 			return fmt.Errorf("unable to decode userData: %w", err)
 		}
-		userData = append(userData, &r)
+		userData = append(userData, r)
 
 		// we call AddData before each network call to the db to reduce thrashing
 		if cursor.RemainingBatchLength() != 0 {

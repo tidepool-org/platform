@@ -597,22 +597,6 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	// TODO remove?
-	//switch v := dataRecords.(type) {
-	//case *[]*glucose.Glucose:
-	//	if typ != continuous.Type && typ != selfmonitored.Type {
-	//		return nil, fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into glucose slice", typ)
-	//	}
-	//case *[]*insulin.Insulin:
-	//	if typ != bolus.Type && typ != basal.Type {
-	//		return nil, fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into insulin slice", typ)
-	//	}
-	//case *[]interface{}:
-	//	// we cant check the type match, but at least the structure should work
-	//default:
-	//	return nil, fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
-	//}
-
 	// quit early if range is 0
 	if status.FirstData.Equal(status.LastData) {
 		return nil, nil
@@ -624,7 +608,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	}
 
 	// quit early if range is 0
-	if status.LastUpdated.Equal(status.LastData) {
+	if status.LastUpdated.Equal(status.NextLastUpdated) {
 		return nil, nil
 	}
 
@@ -659,28 +643,24 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	return cursor, nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) error {
-	var err error
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (status *types.UserLastUpdated, err error) {
+	status = &types.UserLastUpdated{}
 
 	if ctx == nil {
-		return errors.New("context is missing")
-	}
-
-	if status == nil {
-		return errors.New("status is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	if userId == "" {
-		return errors.New("userId is empty")
+		return nil, errors.New("userId is empty")
 	}
 
 	if typ == "" {
-		return errors.New("typ is empty")
+		return nil, errors.New("typ is empty")
 	}
 
 	// This is never expected to by an upload.
 	if isTypeUpload(typ) {
-		return fmt.Errorf("unexpected type: %v", upload.Type)
+		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
 	timestamp := time.Now().UTC()
@@ -705,12 +685,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get last %s time: %w", typ, err)
+		return nil, fmt.Errorf("unable to get last %s time: %w", typ, err)
 	}
 
 	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode last %s time: %w", typ, err)
+		return nil, fmt.Errorf("unable to decode last %s time: %w", typ, err)
 	}
 
 	// if we have a record
@@ -719,6 +699,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
 	}
 	status.NextLastUpdated = timestamp
+	status.LastUpdated = lastUpdated
 
 	// get latest modified record
 	selector = bson.M{
@@ -733,10 +714,10 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
+		return nil, fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
 	}
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
+		return nil, fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
 	}
 
 	// if we have a record
@@ -754,16 +735,16 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 			"$lte": status.LastData,
 		},
 		"modifiedTime": bson.M{
-			"$gte": status.LastUpdated,
+			"$gte": lastUpdated,
 		},
 	}
 	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
+		return nil, fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
 	}
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
+		return nil, fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
 	}
 
 	// if we have a record
@@ -771,7 +752,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		status.EarliestModified = dataSet[0].Time.UTC()
 	}
 
-	return nil
+	return
 }
 
 func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {

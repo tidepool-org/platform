@@ -829,7 +829,7 @@ var _ = Describe("CGM Summary", func() {
 
 		Context("CalculateSummary/Update", func() {
 			var newDatumTime time.Time
-			var dataSetCGMDataCursor *mongo.Cursor
+			var dataSetCGMDataCursor types.DeviceDataCursor
 
 			It("Returns correct time in range for stats", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
@@ -1438,7 +1438,7 @@ var _ = Describe("CGM Summary", func() {
 
 		Context("ClearInvalidatedBuckets", func() {
 			It("trims the correct buckets", func() {
-				var dataSetCGMDataCursor *mongo.Cursor
+				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
@@ -1448,9 +1448,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				status := &types.UserLastUpdated{EarliestModified: datumTime.Add(-5 * time.Hour)}
-
-				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-5 * time.Hour))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(5))
@@ -1460,7 +1458,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("trims the all buckets with data beyond the beginning of the buckets", func() {
-				var dataSetCGMDataCursor *mongo.Cursor
+				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
@@ -1470,16 +1468,15 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				status := &types.UserLastUpdated{EarliestModified: datumTime.Add(-15 * time.Hour)}
-
-				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+				// TODO check returned firstData
+				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-15 * time.Hour))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
 			})
 
 			It("doesnt trim if only modified in the future", func() {
-				var dataSetCGMDataCursor *mongo.Cursor
+				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
@@ -1489,9 +1486,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				status := &types.UserLastUpdated{EarliestModified: datumTime.Add(time.Hour)}
-
-				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(time.Hour))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
@@ -1501,7 +1496,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("doesnt trim if only modified on the same hour, but after the bucket time", func() {
-				var dataSetCGMDataCursor *mongo.Cursor
+				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				midDatumTime := datumTime.Add(30 * time.Minute)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, midDatumTime, 9, inTargetBloodGlucose)
@@ -1512,9 +1507,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				status := &types.UserLastUpdated{EarliestModified: midDatumTime.Add(10 * time.Minute)}
-
-				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(10 * time.Minute))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
@@ -1524,7 +1517,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("trims if modified on the same hour, and before the bucket time", func() {
-				var dataSetCGMDataCursor *mongo.Cursor
+				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				midDatumTime := datumTime.Add(30 * time.Minute)
 				dataSetCGMData = NewDataSetCGMDataAvg(deviceId, midDatumTime, 9, inTargetBloodGlucose)
@@ -1535,9 +1528,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
 
-				status := &types.UserLastUpdated{EarliestModified: midDatumTime.Add(-10 * time.Minute)}
-
-				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+				_ = userCGMSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(-10 * time.Minute))
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(9))
@@ -1551,9 +1542,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(0))
 
-				status := &types.UserLastUpdated{EarliestModified: datumTime}
-
-				userCGMSummary.Stats.ClearInvalidatedBuckets(status)
+				userCGMSummary.Stats.ClearInvalidatedBuckets(datumTime)
 
 				// we have the right length
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(0))

@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/tidepool-org/platform/data"
 
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -150,26 +148,23 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	}
 
 	logger.Debugf("Starting summary calculation for %s", userId)
-	status := &types.UserLastUpdated{}
-	if userSummary != nil {
-		status.LastUpdated = userSummary.Dates.LastUpdatedDate
+
+	// user has no usable summary for incremental update
+	if userSummary == nil {
+		userSummary = types.Create[A](userId)
 	}
 
-	err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
+	var status *types.UserLastUpdated
+	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), userSummary.Dates.LastUpdatedDate)
 	if err != nil {
 		return nil, err
 	}
 
 	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
-	if userSummary != nil && status.LastData.IsZero() {
+	if userSummary.Dates.LastData != nil && status.LastData.IsZero() {
 		// user's data is inactive/deleted, or this summary shouldn't have been created
 		logger.Warnf("User %s has a summary, but no data, deleting summary", userId)
 		return nil, c.summaries.DeleteSummary(ctx, userId)
-	}
-
-	// user has no usable summary for incremental update
-	if userSummary == nil {
-		userSummary = types.Create[A](userId)
 	}
 
 	if userSummary.Config.SchemaVersion != types.SchemaVersion {
@@ -178,21 +173,16 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	}
 
 	// we currently don't only pull modified records, even if some code supports it, make a copy of status without these
-	userSummary.Stats.ClearInvalidatedBuckets(status)
-	status.NextLastUpdated = time.Now().UTC()
+	if first := userSummary.Stats.ClearInvalidatedBuckets(status.EarliestModified); !first.IsZero() {
+		status.FirstData = first
+	}
 
-	var cursor *mongo.Cursor
+	var cursor types.DeviceDataCursor
 	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-
-	//// skip past data
-	//bucketsLen := userSummary.Stats.GetBucketsLen()
-	//if bucketsLen > 0 {
-	//	userData, err = types.SkipUntil(userSummary.Stats.GetBucketDate(bucketsLen-1), userData)
-	//}
 
 	err = userSummary.Stats.Update(ctx, cursor)
 	if err != nil {
