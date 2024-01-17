@@ -214,7 +214,7 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	return userSummary.Dates.OutdatedSince, nil
 }
 
-func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
+func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -241,17 +241,26 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
 
-	var summaries []*types.Summary[T, A]
-	if err = cursor.All(ctx, &summaries); err != nil {
-		return nil, fmt.Errorf("unable to decode outdated summaries: %w", err)
+	response := &types.OutdatedSummariesResponse{
+		UserIds: make([]string, 0, cursor.RemainingBatchLength()),
 	}
 
-	var userIDs = make([]string, len(summaries))
-	for i := 0; i < len(summaries); i++ {
-		userIDs[i] = summaries[i].UserID
+	userSummary := &types.Summary[T, A]{}
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(userSummary); err != nil {
+			return nil, fmt.Errorf("unable to decode Summary: %w", err)
+		}
+
+		response.UserIds = append(response.UserIds, userSummary.UserID)
+
+		if response.Start.IsZero() {
+			response.Start = *userSummary.Dates.OutdatedSince
+		}
 	}
 
-	return userIDs, nil
+	response.End = *userSummary.Dates.OutdatedSince
+
+	return response, nil
 }
 
 func (r *Repo[T, A]) GetMigratableUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {

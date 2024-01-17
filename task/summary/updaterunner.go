@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/tidepool-org/platform/data/summary/types"
+
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/page"
@@ -25,12 +27,14 @@ import (
 )
 
 const (
-	DefaultUpdateAvailableAfterDurationMaximum = 3 * time.Minute
-	DefaultUpdateAvailableAfterDurationMinimum = 3 * time.Minute
+	DefaultUpdateAvailableAfterDurationMaximum = 20 * time.Second
+	DefaultUpdateAvailableAfterDurationMinimum = 30 * time.Second
 	UpdateTaskDurationMaximum                  = 2 * time.Minute
 	DefaultUpdateWorkerBatchSize               = 500
-	UpdateWorkerCount                          = 4
+	UpdateWorkerCount                          = 10
 	UpdateType                                 = "org.tidepool.summary.update"
+
+	IterLimit = 4
 )
 
 type UpdateRunner struct {
@@ -173,43 +177,70 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 
 	t.context = ctx
 	t.validator = structureValidator.New()
+	targetTime := time.Now().UTC().Add(-1 * time.Minute)
 
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
-	t.logger.Info("Searching for User CGM Summaries requiring Update")
-	outdatedCGMSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
+	t.logger.Info("Searching for User BGM Summaries requiring Update")
+	outdatedBGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Info("Searching for User BGM Summaries requiring Update")
-	outdatedBGMSummaryUserIDs, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
-	if err != nil {
-		return err
-	}
+	var outdatedCGM *types.OutdatedSummariesResponse
 
 	t.logger.Debug("Starting User CGM Summary Update")
-	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
-		return err
+	iCount := 0
+	for outdatedCGM.End.Before(targetTime) {
+		t.logger.Info("Searching for User CGM Summaries requiring Update")
+		outdatedCGM, err = t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
+		if err != nil {
+			return err
+		}
+
+		if err = t.UpdateCGMSummaries(outdatedCGM.UserIds); err != nil {
+			return err
+		}
+
+		if iCount > IterLimit {
+			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
+			break
+		}
+		iCount++
 	}
 	t.logger.Debug("Finished User CGM Summary Update")
 
 	t.logger.Debug("Starting User BGM Summary Update")
-	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
-		return err
+	iCount = 0
+	for outdatedBGM.End.Before(targetTime) {
+		t.logger.Info("Searching for User BGM Summaries requiring Update")
+		outdatedBGM, err = t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
+		if err != nil {
+			return err
+		}
+
+		if err = t.UpdateBGMSummaries(outdatedBGM.UserIds); err != nil {
+			return err
+		}
+
+		if iCount > IterLimit {
+			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
+			break
+		}
+		iCount++
 	}
 	t.logger.Debug("Finished User BGM Summary Update")
 
 	return nil
 }
 
-func (t *UpdateTaskRunner) UpdateCGMSummaries(userIDs []string) error {
+func (t *UpdateTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(UpdateWorkerCount)
-		for _, userID := range userIDs {
+		for _, userID := range outdatedUserIds {
 			if err := sem.Acquire(ctx, 1); err != nil {
 				return err
 			}
@@ -220,7 +251,17 @@ func (t *UpdateTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 			userID := userID
 			eg.Go(func() error {
 				defer sem.Release(1)
-				return t.UpdateCGMUserSummary(userID)
+				t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
+
+				// update summary
+				_, err := t.dataClient.UpdateCGMSummary(t.context, userID)
+				if err != nil {
+					return err
+				}
+
+				t.logger.WithField("UserID", userID).Debug("Finished Updating User CGM Summary")
+
+				return nil
 			})
 		}
 
@@ -229,12 +270,12 @@ func (t *UpdateTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 	return eg.Wait()
 }
 
-func (t *UpdateTaskRunner) UpdateBGMSummaries(userIDs []string) error {
+func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(UpdateWorkerCount)
-		for _, userID := range userIDs {
+		for _, userID := range outdatedUserIds {
 			if err := sem.Acquire(ctx, 1); err != nil {
 				return err
 			}
@@ -245,39 +286,21 @@ func (t *UpdateTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 			userID := userID
 			eg.Go(func() error {
 				defer sem.Release(1)
-				return t.UpdateBGMUserSummary(userID)
+				t.logger.WithField("UserID", userID).Debug("Updating User BGM Summary")
+
+				// update summary
+				_, err := t.dataClient.UpdateBGMSummary(t.context, userID)
+				if err != nil {
+					return err
+				}
+
+				t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
+
+				return nil
 			})
 		}
 
 		return nil
 	})
 	return eg.Wait()
-}
-
-func (t *UpdateTaskRunner) UpdateCGMUserSummary(userID string) error {
-	t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
-
-	// update summary
-	_, err := t.dataClient.UpdateCGMSummary(t.context, userID)
-	if err != nil {
-		return err
-	}
-
-	t.logger.WithField("UserID", userID).Debug("Finished Updating User CGM Summary")
-
-	return nil
-}
-
-func (t *UpdateTaskRunner) UpdateBGMUserSummary(userID string) error {
-	t.logger.WithField("UserID", userID).Debug("Updating User BGM Summary")
-
-	// update summary
-	_, err := t.dataClient.UpdateBGMSummary(t.context, userID)
-	if err != nil {
-		return err
-	}
-
-	t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
-
-	return nil
 }
