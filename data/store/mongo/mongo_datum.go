@@ -643,26 +643,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	return cursor, nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (status *types.UserLastUpdated, err error) {
-	status = &types.UserLastUpdated{}
-
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-
-	if userId == "" {
-		return nil, errors.New("userId is empty")
-	}
-
-	if typ == "" {
-		return nil, errors.New("typ is empty")
-	}
-
-	// This is never expected to by an upload.
-	if isTypeUpload(typ) {
-		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
-	}
-
+func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	timestamp := time.Now().UTC()
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
@@ -685,12 +666,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get last %s time: %w", typ, err)
+		return fmt.Errorf("unable to get last %s time: %w", typ, err)
 	}
 
 	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, fmt.Errorf("unable to decode last %s time: %w", typ, err)
+		return fmt.Errorf("unable to decode last %s time: %w", typ, err)
 	}
 
 	// if we have a record
@@ -699,10 +680,13 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
 	}
 	status.NextLastUpdated = timestamp
-	status.LastUpdated = lastUpdated
 
+	return nil
+}
+
+func (d *DatumRepository) getLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	// get latest modified record
-	selector = bson.M{
+	selector := bson.M{
 		"_active": bson.M{"$ne": -1111},
 		"_userId": userId,
 		"type":    typ,
@@ -711,13 +695,19 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 			"$lte": status.LastData,
 		},
 	}
+	findOptions := options.Find()
+	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
+
+	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
+		return fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
 	}
+
+	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
+		return fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
 	}
 
 	// if we have a record
@@ -725,8 +715,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		status.LastUpload = dataSet[0].ModifiedTime.UTC()
 	}
 
+	return nil
+}
+
+func (d *DatumRepository) getEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	// get earliest modified record which is newer than LastUpdated
-	selector = bson.M{
+	selector := bson.M{
 		"_active": bson.M{"$ne": -1111},
 		"_userId": userId,
 		"type":    typ,
@@ -735,16 +729,23 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 			"$lte": status.LastData,
 		},
 		"modifiedTime": bson.M{
-			"$gte": lastUpdated,
+			"$gte": status.LastUpdated,
 		},
 	}
+
+	findOptions := options.Find()
+	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+
+	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
+		return fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
 	}
+
+	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
+		return fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
 	}
 
 	// if we have a record
@@ -752,7 +753,47 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		status.EarliestModified = dataSet[0].Time.UTC()
 	}
 
-	return
+	return nil
+}
+
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+	var err error
+
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	if userId == "" {
+		return nil, errors.New("userId is empty")
+	}
+
+	if typ == "" {
+		return nil, errors.New("typ is empty")
+	}
+
+	// This is never expected to by an upload.
+	if isTypeUpload(typ) {
+		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
+	}
+
+	status := &types.UserLastUpdated{LastUpdated: lastUpdated}
+
+	err = d.getTimeRange(ctx, userId, typ, status)
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.getLastUpload(ctx, userId, typ, status)
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.getEarliestModified(ctx, userId, typ, status)
+	if err != nil {
+		return nil, err
+	}
+
+	return status, nil
 }
 
 func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
