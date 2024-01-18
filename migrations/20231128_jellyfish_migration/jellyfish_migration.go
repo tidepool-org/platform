@@ -25,13 +25,15 @@ type Migration struct {
 }
 
 type config struct {
-	cap           int
-	uri           string
-	dryRun        bool
-	stopOnErr     bool
-	userID        string
-	lastUpdatedId string
-	nopPercent    int
+	cap            int
+	uri            string
+	dryRun         bool
+	stopOnErr      bool
+	userID         string
+	lastUpdatedId  string
+	nopPercent     int
+	queryBatchSize int64
+	queryLimit     int64
 }
 
 const DryRunFlag = "dry-run"
@@ -151,6 +153,20 @@ func (m *Migration) Initialize() error {
 			Destination: &m.config.userID,
 			Required:    false,
 		},
+		cli.Int64Flag{
+			Name:        "query-limit",
+			Usage:       "max number of items to return",
+			Destination: &m.config.queryLimit,
+			Value:       50000,
+			Required:    false,
+		},
+		cli.Int64Flag{
+			Name:        "query-batch",
+			Usage:       "max number of items in each query batch",
+			Destination: &m.config.queryBatchSize,
+			Value:       10000,
+			Required:    false,
+		},
 	)
 	return nil
 }
@@ -190,8 +206,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		selector["_id"] = idNotObjectID
 	}
 
-	batchSize := int32(5000)
-	limit := int64(10000)
+	batchSize := int32(m.config.queryBatchSize)
 
 	if dataC := m.getDataCollection(); dataC != nil {
 		fetchStart := time.Now()
@@ -200,7 +215,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			&options.FindOptions{
 				Sort:      bson.M{"_id": 1},
 				BatchSize: &batchSize,
-				Limit:     &limit,
+				Limit:     &m.config.queryLimit,
 			},
 		)
 		if err != nil {
