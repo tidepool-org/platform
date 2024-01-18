@@ -41,6 +41,7 @@ type migrationUtil struct {
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
 	errorsCount    int
+	updatedCount   int
 	lastUpdatedId  string
 }
 
@@ -69,9 +70,11 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 	}
 
 	m := &migrationUtil{
-		client:  client,
-		config:  config,
-		updates: []mongo.WriteModel{},
+		client:       client,
+		config:       config,
+		updates:      []mongo.WriteModel{},
+		errorsCount:  0,
+		updatedCount: 0,
 	}
 	if lastID != nil {
 		m.lastUpdatedId = *lastID
@@ -90,27 +93,16 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 }
 
 func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error {
-	totalMigrated := 0
-	migrateStart := time.Now()
-
 	for fetchAndUpdateFn() {
-		writeStart := time.Now()
-		updatedCount, err := m.writeUpdates(ctx, dataC)
-		if err != nil {
+		if err := m.writeUpdates(ctx, dataC); err != nil {
 			log.Printf("failed writing batch: %s", err)
 			return err
 		}
-		log.Printf("4. data write took [%s] for [%d] items", time.Since(writeStart), updatedCount)
-		totalMigrated = totalMigrated + updatedCount
 		if m.config.cap != nil {
-			if totalMigrated >= *m.config.cap {
+			if m.updatedCount >= *m.config.cap {
 				break
 			}
 		}
-	}
-	log.Printf("migration took [%s] for [%d] items ", time.Since(migrateStart), totalMigrated)
-	if m.config.dryRun {
-		log.Println("dry-run so no changes applied")
 	}
 	return nil
 }
@@ -121,7 +113,7 @@ func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
 }
 
 func (m *migrationUtil) GetUpdateCounts() (int, int) {
-	return len(m.updates), m.errorsCount
+	return m.updatedCount, m.errorsCount
 }
 
 func (m *migrationUtil) GetLastID() string {
@@ -367,13 +359,14 @@ func (m *migrationUtil) blockUntilDBReady(ctx context.Context) error {
 	return nil
 }
 
-func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collection) (int, error) {
+func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collection) error {
 	if dataC == nil {
-		return 0, errors.New("missing required collection to write updates to")
+		return errors.New("missing required collection to write updates to")
 	}
 	if len(m.updates) == 0 {
-		return 0, nil
+		return nil
 	}
+
 	var getBatches = func(chunkSize int) [][]mongo.WriteModel {
 		batches := [][]mongo.WriteModel{}
 		for i := 0; i < len(m.updates); i += chunkSize {
@@ -385,27 +378,34 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		}
 		return batches
 	}
-	updateCount := 0
+	writtenCount := 0
+	writeStart := time.Now()
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(ctx); err != nil {
-			return updateCount, err
+			return err
 		}
 		if err := m.checkFreeSpace(ctx, dataC); err != nil {
-			return updateCount, err
+			return err
 		}
 
 		if m.config.dryRun {
-			updateCount += len(batch)
+			writtenCount += len(batch)
 			continue
 		}
 		results, err := dataC.BulkWrite(ctx, batch)
 		if err != nil {
 			log.Printf("error writing batch updates %v", err)
-			return updateCount, err
+			return err
 		}
 
-		updateCount += int(results.ModifiedCount)
+		writtenCount += int(results.ModifiedCount)
 		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
 	}
-	return updateCount, nil
+	m.updates = []mongo.WriteModel{}
+	m.updatedCount = m.updatedCount + writtenCount
+	log.Printf("bulk write took [%s] for [%d] items for a total of [%d]", time.Since(writeStart), m.updatedCount, writtenCount)
+	if m.config.dryRun {
+		log.Println("dry-run so no changes applied")
+	}
+	return nil
 }

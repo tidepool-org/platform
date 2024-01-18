@@ -238,7 +238,6 @@ var _ = Describe("back-37", func() {
 				})
 			})
 			Context("Historic datum", func() {
-
 				It("g5 dexcom", func() {
 					actualID, actual, err := utils.GetDatumUpdates(getBSONData(test.CBGDexcomG5MobDatum))
 					Expect(err).To(BeNil())
@@ -251,7 +250,6 @@ var _ = Describe("back-37", func() {
 					actualID, actual, err := utils.GetDatumUpdates(getBSONData(test.PumpSettingsCarelink))
 					Expect(err).To(BeNil())
 					Expect(actual).ToNot(BeNil())
-
 					Expect(actual).To(Equal([]bson.M{{"$set": bson.M{"_deduplicator": bson.M{"hash": "NC17pw1UAaab50iChhQXJ+N9dTi6GduTy9UjsMHolow="}}}}))
 					Expect(actualID).ToNot(BeEmpty())
 				})

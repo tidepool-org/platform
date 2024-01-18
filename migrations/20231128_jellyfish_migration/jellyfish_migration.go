@@ -190,8 +190,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		selector["_id"] = idNotObjectID
 	}
 
-	batchSize := int32(10000)
-	limit := int64(50000)
+	batchSize := int32(5000)
+	limit := int64(10000)
 
 	if dataC := m.getDataCollection(); dataC != nil {
 		fetchStart := time.Now()
@@ -210,7 +210,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		defer dDataCursor.Close(m.ctx)
 
-		log.Printf("1. data fetch [%v] took [%s]", selector, time.Since(fetchStart))
+		log.Printf("fetch [%v] took [%s]", selector, time.Since(fetchStart))
 
 		updateStart := time.Now()
 
@@ -240,7 +240,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			}
 		}
 		updated, errored := m.migrationUtil.GetUpdateCounts()
-		log.Printf("2. data update took [%s] for [%d] items and [%d] errors", time.Since(updateStart), updated, errored)
+		log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), updated, errored)
 		return updated > 0
 	}
 	return false
