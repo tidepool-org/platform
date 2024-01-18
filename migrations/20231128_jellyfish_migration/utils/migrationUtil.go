@@ -51,7 +51,7 @@ type MigrationUtil interface {
 	OnError(reportErr error, id string, msg string)
 	SetData(update *mongo.UpdateOneModel, lastID string)
 	GetLastID() string
-	GetUpdateCounts() (int, int)
+	GetCounts() (int, int, int)
 }
 
 // MigrationUtil helps managed the migration process
@@ -112,8 +112,10 @@ func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
 	m.updates = append(m.updates, update)
 }
 
-func (m *migrationUtil) GetUpdateCounts() (int, int) {
-	return m.updatedCount, m.errorsCount
+// GetCounts
+// updates, migrated, errored
+func (m *migrationUtil) GetCounts() (int, int, int) {
+	return len(m.updates), m.updatedCount, m.errorsCount
 }
 
 func (m *migrationUtil) GetLastID() string {
