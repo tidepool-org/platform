@@ -209,7 +209,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	batchSize := int32(m.config.queryBatchSize)
 
 	if dataC := m.getDataCollection(); dataC != nil {
-		fetchStart := time.Now()
+		//fetchStart := time.Now()
 
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
@@ -225,7 +225,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		defer dDataCursor.Close(m.ctx)
 
-		log.Printf("fetch took [%v] with query [%s] ", time.Since(fetchStart), selector)
+		//log.Printf("fetch took [%v] with query [%s] ", time.Since(fetchStart), selector)
 
 		updateStart := time.Now()
 
@@ -255,7 +255,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			}
 		}
 		stats := m.migrationUtil.GetStats()
-		log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), stats.ToApply, stats.Errored)
+		if stats.Errored > 0 {
+			log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), stats.ToApply, stats.Errored)
+		}
 		return stats.ToApply > 0
 	}
 	return false
