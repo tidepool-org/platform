@@ -102,8 +102,11 @@ var _ = Describe("CGM Summary", func() {
 	Context("CreateCGMSummary", func() {
 		It("Correctly initializes a cgm summary", func() {
 			summary := types.Create[*types.CGMStats](userId)
-			Expect(summary).To(Not(BeNil()))
+			Expect(summary).ToNot(BeNil())
 			Expect(summary.Type).To(Equal("cgm"))
+
+			Expect(summary.UserID).To(Equal(userId))
+			Expect(summary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
 		})
 	})
 

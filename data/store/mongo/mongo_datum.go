@@ -25,12 +25,17 @@ type DatumRepository struct {
 }
 
 const (
-	ModifiedTimeIndexRaw = "2023-04-01T00:00:00Z"
+	LowerTimeIndexRaw = "2022-01-01T00:00:00Z"
 )
 
 var ErrSelectorsInvalid = errors.New("selectors is invalid")
 
 func (d *DatumRepository) EnsureIndexes() error {
+	lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw)
+	if err != nil {
+		return err
+	}
+
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -53,7 +58,15 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "modifiedTime", Value: 1},
 			},
 			Options: options.Index().
-				SetName("UserIdActiveTypeTimeModifiedTime"),
+				SetName("UserIdActiveTypeTimeModifiedTime").
+				SetPartialFilterExpression(bson.D{
+					{
+						Key: "time",
+						Value: bson.D{
+							{Key: "$gt", Value: lowerTimeBound},
+						},
+					},
+				}),
 		},
 		{
 			Keys: bson.D{
@@ -599,7 +612,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 
 	// quit early if range is 0
 	if status.FirstData.Equal(status.LastData) {
-		return nil, nil
+		return nil, fmt.Errorf("FirstData (%s) equals LastData (%s) for user %s", status.FirstData, status.LastData, userId)
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
@@ -609,7 +622,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 
 	// quit early if range is 0
 	if status.LastUpdated.Equal(status.NextLastUpdated) {
-		return nil, nil
+		return nil, fmt.Errorf("LastUpdated (%s) equals NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userId)
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
@@ -679,12 +692,11 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 		status.LastData = dataSet[0].Time.UTC()
 		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
 	}
-	status.NextLastUpdated = timestamp
 
 	return nil
 }
 
-func (d *DatumRepository) getLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	// get latest modified record
 	selector := bson.M{
 		"_active": bson.M{"$ne": -1111},
@@ -718,7 +730,7 @@ func (d *DatumRepository) getLastUpload(ctx context.Context, userId string, typ 
 	return nil
 }
 
-func (d *DatumRepository) getEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
 		"_active": bson.M{"$ne": -1111},
@@ -776,19 +788,22 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	status := &types.UserLastUpdated{LastUpdated: lastUpdated}
+	status := &types.UserLastUpdated{
+		LastUpdated:     lastUpdated,
+		NextLastUpdated: time.Now().UTC(),
+	}
 
 	err = d.getTimeRange(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.getLastUpload(ctx, userId, typ, status)
+	err = d.populateLastUpload(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.getEarliestModified(ctx, userId, typ, status)
+	err = d.populateEarliestModified(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
 	}

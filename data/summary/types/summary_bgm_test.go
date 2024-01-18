@@ -100,6 +100,9 @@ var _ = Describe("BGM Summary", func() {
 			summary := types.Create[*types.BGMStats](userId)
 			Expect(summary).To(Not(BeNil()))
 			Expect(summary.Type).To(Equal("bgm"))
+
+			Expect(summary.UserID).To(Equal(userId))
+			Expect(summary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
 		})
 	})
 
