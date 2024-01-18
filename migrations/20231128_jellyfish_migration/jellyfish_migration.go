@@ -254,9 +254,9 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 				m.migrationUtil.SetData(updateOp, datumID)
 			}
 		}
-		updated, _, errored := m.migrationUtil.GetCounts()
-		log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), updated, errored)
-		return updated > 0
+		stats := m.migrationUtil.GetStats()
+		log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), stats.ToApply, stats.Errored)
+		return stats.ToApply > 0
 	}
 	return false
 }

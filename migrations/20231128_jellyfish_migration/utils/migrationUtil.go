@@ -43,6 +43,14 @@ type migrationUtil struct {
 	errorsCount    int
 	updatedCount   int
 	lastUpdatedId  string
+	startedAt      time.Time
+}
+
+type MigrationStats struct {
+	Errored int
+	Applied int
+	ToApply int
+	Elapsed time.Duration
 }
 
 type MigrationUtil interface {
@@ -51,7 +59,7 @@ type MigrationUtil interface {
 	OnError(reportErr error, id string, msg string)
 	SetData(update *mongo.UpdateOneModel, lastID string)
 	GetLastID() string
-	GetCounts() (int, int, int)
+	GetStats() MigrationStats
 }
 
 // MigrationUtil helps managed the migration process
@@ -75,6 +83,7 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		updates:      []mongo.WriteModel{},
 		errorsCount:  0,
 		updatedCount: 0,
+		startedAt:    time.Now(),
 	}
 	if lastID != nil {
 		m.lastUpdatedId = *lastID
@@ -104,6 +113,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 			}
 		}
 	}
+	m.GetStats().report()
 	return nil
 }
 
@@ -112,10 +122,17 @@ func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
 	m.updates = append(m.updates, update)
 }
 
-// GetCounts
-// updates, migrated, errored
-func (m *migrationUtil) GetCounts() (int, int, int) {
-	return len(m.updates), m.updatedCount, m.errorsCount
+func (m *migrationUtil) GetStats() MigrationStats {
+	return MigrationStats{
+		Errored: m.errorsCount,
+		ToApply: len(m.updates),
+		Applied: m.updatedCount,
+		Elapsed: time.Since(m.startedAt),
+	}
+}
+
+func (c MigrationStats) report() {
+	log.Printf("migrated [%d] items with [%d] errors and an elapsed time of [%s]\n", c.Applied, c.Errored, c.Elapsed)
 }
 
 func (m *migrationUtil) GetLastID() string {
@@ -405,7 +422,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	}
 	m.updates = []mongo.WriteModel{}
 	m.updatedCount = m.updatedCount + writtenCount
-	log.Printf("bulk write took [%s] for [%d] items for a total of [%d]", time.Since(writeStart), m.updatedCount, writtenCount)
+	log.Printf("bulk write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
 	if m.config.dryRun {
 		log.Println("dry-run so no changes applied")
 	}
