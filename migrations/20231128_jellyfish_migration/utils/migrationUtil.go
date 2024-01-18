@@ -127,7 +127,7 @@ func (m *migrationUtil) GetStats() MigrationStats {
 		Errored: m.errorsCount,
 		ToApply: len(m.updates),
 		Applied: m.updatedCount,
-		Elapsed: time.Since(m.startedAt),
+		Elapsed: time.Since(m.startedAt).Truncate(time.Millisecond),
 	}
 }
 
@@ -422,9 +422,10 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	}
 	m.updates = []mongo.WriteModel{}
 	m.updatedCount = m.updatedCount + writtenCount
-	log.Printf("bulk write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
 	if m.config.dryRun {
 		log.Println("dry-run so no changes applied")
+	} else {
+		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
 	}
 	return nil
 }

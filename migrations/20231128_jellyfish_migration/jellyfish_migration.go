@@ -225,7 +225,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 		defer dDataCursor.Close(m.ctx)
 
-		log.Printf("fetch [%v] took [%s]", selector, time.Since(fetchStart))
+		log.Printf("fetch took [%v] with query [%s] ", time.Since(fetchStart), selector)
 
 		updateStart := time.Now()
 
