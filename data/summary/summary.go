@@ -179,7 +179,6 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		return userSummary, c.summaries.ReplaceSummary(ctx, userSummary)
 	}
 
-	// we currently don't only pull modified records, even if some code supports it, make a copy of status without these
 	if first := userSummary.Stats.ClearInvalidatedBuckets(status.EarliestModified); !first.IsZero() {
 		status.FirstData = first
 	}

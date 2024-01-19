@@ -638,11 +638,13 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 			"$gt":  status.FirstData,
 			"$lte": status.LastData,
 		},
-		"modifiedTime": bson.M{
-			"$gt":  status.LastUpdated,
-			"$lte": status.NextLastUpdated,
-		},
 	}
+
+	// we have everything we need to pull only modified records, but other areas are not ready for this yet
+	//selector["modifiedTime"]= bson.M{
+	//	"$gt":  status.LastUpdated,
+	//	"$lte": status.NextLastUpdated,
+	//}
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
