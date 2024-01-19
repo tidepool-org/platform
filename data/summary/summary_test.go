@@ -424,5 +424,19 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 		})
+
+		It("summary calc with very old data", func() {
+			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
+			var deviceData []mongo.WriteModel
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime.AddDate(-3, 0, 0), 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).To(BeNil())
+		})
 	})
 })
