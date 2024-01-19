@@ -300,7 +300,7 @@ var _ = Describe("Summary", func() {
 			datumTime = time.Now().UTC().Truncate(time.Hour)
 		})
 
-		It("repeat summary calc", func() {
+		It("repeat out of order cgm summary calc", func() {
 			var userSummary *types.Summary[types.CGMStats, *types.CGMStats]
 			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
@@ -350,7 +350,7 @@ var _ = Describe("Summary", func() {
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(22))
 		})
 
-		It("repeat summary calc", func() {
+		It("repeat out of order bgm summary calc", func() {
 			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
 			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
@@ -398,6 +398,31 @@ var _ = Describe("Summary", func() {
 			Expect(userSummary).ToNot(BeNil())
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(28))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(22))
+		})
+
+		It("repeat summary calc without new data", func() {
+			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
+			var deviceData []mongo.WriteModel
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
+
+			_, err = bgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 		})
 	})
 })

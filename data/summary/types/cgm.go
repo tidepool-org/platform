@@ -180,8 +180,6 @@ func (s *CGMStats) GetBucketsLen() int {
 }
 
 func (s *CGMStats) GetBucketDate(i int) time.Time {
-	fmt.Println("buckets len:", len(s.Buckets))
-	fmt.Printf("requested bucket: %+v\n", s.Buckets[i])
 	return s.Buckets[i].Date
 }
 

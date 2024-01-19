@@ -724,7 +724,13 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 
 	// if we have a record
 	if len(dataSet) > 0 {
-		status.LastUpload = dataSet[0].ModifiedTime.UTC()
+		// handle data without modifiedTime, as older data may not have it
+		// this will only be triggered on fresh summaries of old data
+		if dataSet[0].ModifiedTime != nil {
+			status.LastUpload = dataSet[0].ModifiedTime.UTC()
+		} else {
+			status.LastUpload = dataSet[0].CreatedTime.UTC()
+		}
 	}
 
 	return nil
@@ -740,9 +746,15 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
-		"modifiedTime": bson.M{
-			"$gte": status.LastUpdated,
-		},
+	}
+
+	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
+	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
+	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
+	if !status.LastUpdated.IsZero() {
+		selector["modifiedTime"] = bson.M{
+			"$gt": status.LastUpdated,
+		}
 	}
 
 	findOptions := options.Find()

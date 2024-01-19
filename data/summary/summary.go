@@ -147,7 +147,7 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		return nil, err
 	}
 
-	logger.Debugf("Starting summary calculation for %s", userId)
+	logger.Debugf("Starting %s summary calculation for %s", types.GetTypeString[T, A](), userId)
 
 	// user has no usable summary for incremental update
 	if userSummary == nil {
@@ -170,6 +170,13 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		// user's data is inactive/deleted, or this summary shouldn't have been created
 		logger.Warnf("User %s has a summary, but no data, deleting summary", userId)
 		return nil, c.summaries.DeleteSummary(ctx, userId)
+	}
+
+	// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
+	if status.EarliestModified.IsZero() {
+		logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userId, types.GetTypeString[T, A]())
+		userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
+		return userSummary, c.summaries.ReplaceSummary(ctx, userSummary)
 	}
 
 	// we currently don't only pull modified records, even if some code supports it, make a copy of status without these
