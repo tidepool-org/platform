@@ -28,6 +28,7 @@ type config struct {
 	cap            int
 	uri            string
 	dryRun         bool
+	audit          bool
 	stopOnErr      bool
 	userID         string
 	lastUpdatedId  string
@@ -49,9 +50,11 @@ func main() {
 
 func NewMigration(ctx context.Context) *Migration {
 	return &Migration{
-		config: &config{},
-		ctx:    ctx,
-		cli:    cli.NewApp(),
+		config: &config{
+			audit: false,
+		},
+		ctx: ctx,
+		cli: cli.NewApp(),
 	}
 }
 
@@ -83,7 +86,9 @@ func (m *Migration) RunAndExit() {
 			log.Printf("prepare failed: %s", err)
 			return err
 		}
-		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
+		if m.config.audit {
+			m.audit()
+		} else if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
 			log.Printf("execute failed: %s", err)
 			return err
 		}
@@ -117,6 +122,11 @@ func (m *Migration) Initialize() error {
 			Name:        "stop-error",
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
+		},
+		cli.BoolFlag{
+			Name:        "audit",
+			Usage:       "run audit",
+			Destination: &m.config.audit,
 		},
 		cli.IntFlag{
 			Name:        "cap",
@@ -209,7 +219,6 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	batchSize := int32(m.config.queryBatchSize)
 
 	if dataC := m.getDataCollection(); dataC != nil {
-		//fetchStart := time.Now()
 
 		dDataCursor, err := dataC.Find(m.ctx, selector,
 			&options.FindOptions{
@@ -222,10 +231,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			log.Printf("failed to select data: %s", err)
 			return false
 		}
-
 		defer dDataCursor.Close(m.ctx)
-
-		//log.Printf("fetch took [%v] with query [%s] ", time.Since(fetchStart), selector)
 
 		updateStart := time.Now()
 
@@ -261,4 +267,17 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		return stats.ToApply > 0
 	}
 	return false
+}
+
+func (m *Migration) audit() {
+	m.migrationUtil.Audit(m.ctx, m.getDataCollection(), map[string]interface{}{
+		"to migrate": bson.M{
+			"_deduplicator": bson.M{"$exists": false},
+			"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
+		},
+		"migrated": bson.M{
+			"_deduplicator": bson.M{"$exists": true},
+			"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
+		},
+	})
 }

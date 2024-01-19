@@ -60,6 +60,7 @@ type MigrationUtil interface {
 	SetData(update *mongo.UpdateOneModel, lastID string)
 	GetLastID() string
 	GetStats() MigrationStats
+	Audit(ctx context.Context, dataC *mongo.Collection, queries map[string]interface{})
 }
 
 // MigrationUtil helps managed the migration process
@@ -429,4 +430,15 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		m.GetStats().report()
 	}
 	return nil
+}
+
+func (m *migrationUtil) Audit(ctx context.Context, dataC *mongo.Collection, queries map[string]interface{}) {
+	for context, query := range queries {
+		count, err := dataC.CountDocuments(ctx, query)
+		if err != nil {
+			log.Printf("failed to run audit query: %s", err)
+			return
+		}
+		log.Printf("%s returns [%d] items", context, count)
+	}
 }
