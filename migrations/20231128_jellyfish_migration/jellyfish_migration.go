@@ -86,9 +86,8 @@ func (m *Migration) RunAndExit() {
 			log.Printf("prepare failed: %s", err)
 			return err
 		}
-		if m.config.audit {
-			m.audit()
-		} else if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
+
+		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
 			log.Printf("execute failed: %s", err)
 			return err
 		}
