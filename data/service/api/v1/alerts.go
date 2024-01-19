@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	platform "github.com/tidepool-org/platform/service"
@@ -100,6 +101,7 @@ func UpsertAlert(dCtx service.Context) {
 	ctx := r.Context()
 	authDetails := request.GetAuthDetails(ctx)
 	repo := dCtx.AlertsRepository()
+	lgr := log.LoggerFromContext(ctx)
 
 	if err := checkAuthentication(authDetails); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
@@ -128,6 +130,7 @@ func UpsertAlert(dCtx service.Context) {
 	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID, Alerts: *a}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		lgr.WithError(err).Error("upserting alerts config")
 		return
 	}
 }

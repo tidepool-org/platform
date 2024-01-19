@@ -3,32 +3,33 @@ dist: jammy
 language: go
 
 go:
-  - 1.21.5
+  - 1.21.6
 
 services:
   - docker
 
 env:
   global:
-    - MONGODB=mongodb-linux-x86_64-ubuntu2204-6.0.12
-    - MONGOSH=mongosh-2.1.1-linux-x64
+    - MONGODB=6.0.12
+    - MONGOSH=2.1.1
 
 cache:
   directories:
     - $HOME/.cache/go-build
 
 before_install:
-  - sudo apt-get remove -y mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
-  - wget https://fastdl.mongodb.org/linux/${MONGODB}.tgz -O /tmp/mongodb.tgz
-  - tar -xf /tmp/mongodb.tgz
-  - wget https://downloads.mongodb.com/compass/${MONGOSH}.tgz -O /tmp/mongosh.tgz
-  - tar -xf /tmp/mongosh.tgz
+  - sudo apt update
+  - sudo apt install -y docker-buildx mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools=${MONGODB}
   - mkdir /tmp/data
-  - ${PWD}/${MONGODB}/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --replSet rs0 --logpath ${PWD}/mongod.log &> /dev/null &
+  - /usr/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --replSet rs0 --logpath ${PWD}/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
-  - ${PWD}/${MONGOSH}/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
+  - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
 
 addons:
+  apt:
+    sources:
+      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse'
+        key_url: 'https://pgp.mongodb.com/server-7.0.asc'
   artifacts:
     s3_region: us-west-2
     paths:

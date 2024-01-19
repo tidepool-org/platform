@@ -430,8 +430,10 @@ func (n Comment) String() string {
 
 // JS writes JavaScript to writer.
 func (n Comment) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write(n.Value)
-	w.Write([]byte("\n"))
 }
 
 // BlockStmt is a block statement.
@@ -974,6 +976,9 @@ func (n ImportStmt) String() string {
 
 // JS writes JavaScript to writer.
 func (n ImportStmt) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write([]byte("import"))
 	if n.Default != nil {
 		w.Write([]byte(" "))
@@ -1047,6 +1052,9 @@ func (n ExportStmt) String() string {
 
 // JS writes JavaScript to writer.
 func (n ExportStmt) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write([]byte("export"))
 	if n.Decl != nil {
 		if n.Default {
@@ -1092,6 +1100,9 @@ func (n DirectivePrologueStmt) String() string {
 
 // JS writes JavaScript to writer.
 func (n DirectivePrologueStmt) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write(n.Value)
 	w.Write([]byte(";"))
 }
@@ -1160,6 +1171,9 @@ func (n PropertyName) JS(w io.Writer) {
 		w.Write([]byte("]"))
 		return
 	}
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write(n.Literal.Data)
 }
 
@@ -1182,6 +1196,8 @@ func (n BindingArray) String() string {
 			s += ","
 		}
 		s += " ...Binding(" + n.Rest.String() + ")"
+	} else if 0 < len(n.List) && n.List[len(n.List)-1].Binding == nil {
+		s += ","
 	}
 	return s + " ]"
 }
@@ -1191,9 +1207,14 @@ func (n BindingArray) JS(w io.Writer) {
 	w.Write([]byte("["))
 	for j, item := range n.List {
 		if j != 0 {
-			w.Write([]byte(", "))
+			w.Write([]byte(","))
 		}
-		item.JS(w)
+		if item.Binding != nil {
+			if j != 0 {
+				w.Write([]byte(" "))
+			}
+			item.JS(w)
+		}
 	}
 	if n.Rest != nil {
 		if len(n.List) != 0 {
@@ -1201,6 +1222,8 @@ func (n BindingArray) JS(w io.Writer) {
 		}
 		w.Write([]byte("..."))
 		n.Rest.JS(w)
+	} else if 0 < len(n.List) && n.List[len(n.List)-1].Binding == nil {
+		w.Write([]byte(","))
 	}
 	w.Write([]byte("]"))
 }
@@ -1632,12 +1655,15 @@ func (n LiteralExpr) String() string {
 
 // JS writes JavaScript to writer.
 func (n LiteralExpr) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	w.Write(n.Data)
 }
 
 // JSON writes JSON to writer.
 func (n LiteralExpr) JSON(w io.Writer) error {
-	if n.TokenType == TrueToken || n.TokenType == FalseToken || n.TokenType == NullToken || n.TokenType == DecimalToken {
+	if n.TokenType == TrueToken || n.TokenType == FalseToken || n.TokenType == NullToken || n.TokenType == DecimalToken || n.TokenType == IntegerToken {
 		w.Write(n.Data)
 		return nil
 	} else if n.TokenType == StringToken {
@@ -1894,6 +1920,9 @@ func (n TemplateExpr) String() string {
 
 // JS writes JavaScript to writer.
 func (n TemplateExpr) JS(w io.Writer) {
+	if wi, ok := w.(Indenter); ok {
+		w = wi.w
+	}
 	if n.Tag != nil {
 		n.Tag.JS(w)
 		if n.Optional {
@@ -1967,7 +1996,7 @@ func (n DotExpr) String() string {
 // JS writes JavaScript to writer.
 func (n DotExpr) JS(w io.Writer) {
 	lit, ok := n.X.(*LiteralExpr)
-	group := ok && !n.Optional && lit.TokenType == DecimalToken
+	group := ok && !n.Optional && (lit.TokenType == DecimalToken || lit.TokenType == IntegerToken)
 	if group {
 		w.Write([]byte("("))
 	}
@@ -2139,7 +2168,7 @@ func (n UnaryExpr) JS(w io.Writer) {
 
 // JSON writes JSON to writer.
 func (n UnaryExpr) JSON(w io.Writer) error {
-	if lit, ok := n.X.(*LiteralExpr); ok && n.Op == NegToken && lit.TokenType == DecimalToken {
+	if lit, ok := n.X.(*LiteralExpr); ok && n.Op == NegToken && (lit.TokenType == DecimalToken || lit.TokenType == IntegerToken) {
 		w.Write([]byte("-"))
 		w.Write(lit.Data)
 		return nil

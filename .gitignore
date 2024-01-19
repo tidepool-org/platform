@@ -1,5 +1,6 @@
 *.coverprofile
 *.test
+coverprofile.out
 /_bin
 /_data
 /_log

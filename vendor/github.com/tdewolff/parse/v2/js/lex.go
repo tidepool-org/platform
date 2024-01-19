@@ -538,31 +538,40 @@ func (l *Lexer) consumeNumericToken() TokenType {
 			if l.consumeHexDigit() {
 				for l.consumeHexDigit() || l.consumeNumericSeparator(l.consumeHexDigit) {
 				}
+				if l.r.Peek(0) == 'n' {
+					l.r.Move(1)
+				}
 				return HexadecimalToken
 			}
-			l.err = parse.NewErrorLexer(l.r, "invalid hexadecimal number")
-			return ErrorToken
+			l.r.Move(-1)
+			return IntegerToken
 		} else if l.r.Peek(0) == 'b' || l.r.Peek(0) == 'B' {
 			l.r.Move(1)
 			if l.consumeBinaryDigit() {
 				for l.consumeBinaryDigit() || l.consumeNumericSeparator(l.consumeBinaryDigit) {
 				}
+				if l.r.Peek(0) == 'n' {
+					l.r.Move(1)
+				}
 				return BinaryToken
 			}
-			l.err = parse.NewErrorLexer(l.r, "invalid binary number")
-			return ErrorToken
+			l.r.Move(-1)
+			return IntegerToken
 		} else if l.r.Peek(0) == 'o' || l.r.Peek(0) == 'O' {
 			l.r.Move(1)
 			if l.consumeOctalDigit() {
 				for l.consumeOctalDigit() || l.consumeNumericSeparator(l.consumeOctalDigit) {
 				}
+				if l.r.Peek(0) == 'n' {
+					l.r.Move(1)
+				}
 				return OctalToken
 			}
-			l.err = parse.NewErrorLexer(l.r, "invalid octal number")
-			return ErrorToken
+			l.r.Move(-1)
+			return IntegerToken
 		} else if l.r.Peek(0) == 'n' {
 			l.r.Move(1)
-			return BigIntToken
+			return IntegerToken
 		} else if '0' <= l.r.Peek(0) && l.r.Peek(0) <= '9' {
 			l.err = parse.NewErrorLexer(l.r, "legacy octal numbers are not supported")
 			return ErrorToken
@@ -588,7 +597,9 @@ func (l *Lexer) consumeNumericToken() TokenType {
 		}
 	} else if c == 'n' {
 		l.r.Move(1)
-		return BigIntToken
+		return IntegerToken
+	} else if c != 'e' && c != 'E' {
+		return IntegerToken
 	}
 	if c == 'e' || c == 'E' {
 		l.r.Move(1)

@@ -12,7 +12,7 @@ import (
 
 var (
 	// PackageName is the Iris Go module package name.
-	PackageName = strings.TrimSuffix(reflect.TypeOf(Handlers{}).PkgPath(), "/context")
+	PackageName = strings.TrimSuffix(reflect.TypeOf(Context{}).PkgPath(), "/context")
 
 	// WorkingDir is the (initial) current directory.
 	WorkingDir, _ = os.Getwd()
@@ -104,12 +104,12 @@ func (expr *NameExpr) MatchString(s string) bool {
 //
 // If Handler panics, the server (the caller of Handler) assumes that the effect of the panic was isolated to the active request.
 // It recovers the panic, logs a stack trace to the server error log, and hangs up the connection.
-type Handler func(*Context)
+type Handler = func(*Context)
 
 // Handlers is just a type of slice of []Handler.
 //
 // See `Handler` for more.
-type Handlers []Handler
+type Handlers = []Handler
 
 func valueOf(v interface{}) reflect.Value {
 	if val, ok := v.(reflect.Value); ok {

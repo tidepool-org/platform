@@ -19,7 +19,7 @@ import (
 const (
 	SummaryTypeCGM = "cgm"
 	SummaryTypeBGM = "bgm"
-	SchemaVersion  = 2
+	SchemaVersion  = 3
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0

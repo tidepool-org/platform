@@ -216,6 +216,13 @@ func WithTimeout(timeoutDur time.Duration, htmlBody ...string) Configurator {
 	}
 }
 
+// NonBlocking sets the `Configuration.NonBlocking` field to true.
+func NonBlocking() Configurator {
+	return func(app *Application) {
+		app.config.NonBlocking = true
+	}
+}
+
 // WithoutServerError will cause to ignore the matched "errors"
 // from the main application's `Run/Listen` function.
 //
@@ -677,6 +684,10 @@ type Configuration struct {
 	// TimeoutMessage specifies the HTML body when a handler hits its life time based
 	// on the Timeout configuration field.
 	TimeoutMessage string `ini:"timeout_message" json:"timeoutMessage" yaml:"TimeoutMessage" toml:"TimeoutMessage"`
+	// NonBlocking, if set to true then the server will start listening for incoming connections
+	// without blocking the main goroutine. Use the Application.Wait method to block and wait for the server to be up and running.
+	NonBlocking bool `ini:"non_blocking" json:"nonBlocking" yaml:"NonBlocking" toml:"NonBlocking"`
+
 	// Tunneling can be optionally set to enable ngrok http(s) tunneling for this Iris app instance.
 	// See the `WithTunneling` Configurator too.
 	Tunneling TunnelingConfiguration `ini:"tunneling" json:"tunneling,omitempty" yaml:"Tunneling" toml:"Tunneling"`
@@ -969,9 +980,15 @@ type Configuration struct {
 
 var _ context.ConfigurationReadOnly = (*Configuration)(nil)
 
-// GetVHost returns the non-exported vhost config field.
+// GetVHost returns the VHost config field.
 func (c *Configuration) GetVHost() string {
-	return c.VHost
+	vhost := c.VHost
+	return vhost
+}
+
+// SetVHost sets the VHost config field.
+func (c *Configuration) SetVHost(s string) {
+	c.VHost = s
 }
 
 // GetLogLevel returns the LogLevel field.
@@ -992,6 +1009,11 @@ func (c *Configuration) GetKeepAlive() time.Duration {
 // GetTimeout returns the Timeout field.
 func (c *Configuration) GetTimeout() time.Duration {
 	return c.Timeout
+}
+
+// GetNonBlocking returns the NonBlocking field.
+func (c *Configuration) GetNonBlocking() bool {
+	return c.NonBlocking
 }
 
 // GetTimeoutMessage returns the TimeoutMessage field.
@@ -1201,6 +1223,10 @@ func WithConfiguration(c Configuration) Configurator {
 			main.TimeoutMessage = v
 		}
 
+		if v := c.NonBlocking; v {
+			main.NonBlocking = v
+		}
+
 		if len(c.Tunneling.Tunnels) > 0 {
 			main.Tunneling = c.Tunneling
 		}
@@ -1375,6 +1401,7 @@ func DefaultConfiguration() Configuration {
 		KeepAlive:                         0,
 		Timeout:                           0,
 		TimeoutMessage:                    DefaultTimeoutMessage,
+		NonBlocking:                       false,
 		DisableStartupLog:                 false,
 		DisableInterruptHandler:           false,
 		DisablePathCorrection:             false,
