@@ -170,8 +170,6 @@ type Summary[T Stats, A StatsPt[T]] struct {
 
 	Dates Dates `json:"dates" bson:"dates"`
 	Stats A     `json:"stats" bson:"stats"`
-
-	UpdateWithoutChangeCount int `json:"updateWithoutChangeCount" bson:"updateWithoutChangeCount"`
 }
 
 func NewConfig() Config {
