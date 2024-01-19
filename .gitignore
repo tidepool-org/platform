@@ -6,4 +6,5 @@
 /_tmp
 /deploy
 /.idea
+/coverprofile.out
 .DS_Store
