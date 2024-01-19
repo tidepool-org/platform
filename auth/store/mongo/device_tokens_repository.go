@@ -12,12 +12,12 @@ import (
 	structuredmongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-// deviceTokensRepo implements devicetokens.Repository, writing data to a
+// deviceTokenRepo implements devicetokens.Repository, writing data to a
 // MongoDB collection.
-type deviceTokensRepo structuredmongo.Repository
+type deviceTokenRepo structuredmongo.Repository
 
 // Upsert will create or update the given Config.
-func (r *deviceTokensRepo) Upsert(ctx context.Context, doc *devicetokens.Document) error {
+func (r *deviceTokenRepo) Upsert(ctx context.Context, doc *devicetokens.Document) error {
 	// The presence of UserID and TokenID should be enforced with a mongodb
 	// index, but better safe than sorry.
 	if doc.UserID == "" {
@@ -36,7 +36,7 @@ func (r *deviceTokensRepo) Upsert(ctx context.Context, doc *devicetokens.Documen
 }
 
 // EnsureIndexes to maintain index constraints.
-func (r *deviceTokensRepo) EnsureIndexes() error {
+func (r *deviceTokenRepo) EnsureIndexes() error {
 	repo := structuredmongo.Repository(*r)
 	return (&repo).CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
@@ -51,7 +51,7 @@ func (r *deviceTokensRepo) EnsureIndexes() error {
 	})
 }
 
-func (r *deviceTokensRepo) filter(doc *devicetokens.Document) interface{} {
+func (r *deviceTokenRepo) filter(doc *devicetokens.Document) interface{} {
 	return &devicetokens.Document{
 		UserID:   doc.UserID,
 		TokenKey: doc.TokenKey,
