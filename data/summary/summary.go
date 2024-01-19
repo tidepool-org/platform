@@ -154,6 +154,11 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		userSummary = types.Create[A](userId)
 	}
 
+	if userSummary.Config.SchemaVersion != types.SchemaVersion {
+		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
+		userSummary.Dates.Reset()
+	}
+
 	var status *types.UserLastUpdated
 	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), userSummary.Dates.LastUpdatedDate)
 	if err != nil {
@@ -165,11 +170,6 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		// user's data is inactive/deleted, or this summary shouldn't have been created
 		logger.Warnf("User %s has a summary, but no data, deleting summary", userId)
 		return nil, c.summaries.DeleteSummary(ctx, userId)
-	}
-
-	if userSummary.Config.SchemaVersion != types.SchemaVersion {
-		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
-		userSummary.Dates.Reset()
 	}
 
 	// we currently don't only pull modified records, even if some code supports it, make a copy of status without these
