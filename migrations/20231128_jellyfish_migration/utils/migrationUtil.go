@@ -132,7 +132,7 @@ func (m *migrationUtil) GetStats() MigrationStats {
 }
 
 func (c MigrationStats) report() {
-	log.Printf("migrated [%d] items with [%d] errors and an elapsed time of [%s]\n", c.Applied, c.Errored, c.Elapsed)
+	log.Printf("elapsed [%s] for [%d] items migrated with [%d] errors\n", c.Elapsed, c.Applied, c.Errored)
 }
 
 func (m *migrationUtil) GetLastID() string {
@@ -426,6 +426,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		log.Println("dry-run so no changes applied")
 	} else {
 		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
+		m.GetStats().report()
 	}
 	return nil
 }
