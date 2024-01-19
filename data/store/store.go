@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/summary/types"
-	"github.com/tidepool-org/platform/devicetokens"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -21,7 +20,6 @@ type Store interface {
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
 	NewAlertsRepository() alerts.Repository
-	NewDeviceTokensRepository() devicetokens.Repository
 }
 
 // DataSetRepository is the interface for interacting and modifying

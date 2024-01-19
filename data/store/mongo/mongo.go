@@ -3,7 +3,6 @@ package mongo
 import (
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/devicetokens"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -26,7 +25,6 @@ func (s *Store) EnsureIndexes() error {
 	dataRepository := s.NewDataRepository()
 	summaryRepository := s.NewSummaryRepository()
 	alertsRepository := s.NewAlertsRepository()
-	deviceTokensRepository := s.NewDeviceTokensRepository()
 
 	if err := dataRepository.EnsureIndexes(); err != nil {
 		return err
@@ -37,10 +35,6 @@ func (s *Store) EnsureIndexes() error {
 	}
 
 	if err := alertsRepository.EnsureIndexes(); err != nil {
-		return err
-	}
-
-	if err := deviceTokensRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 
@@ -66,10 +60,5 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 
 func (s *Store) NewAlertsRepository() alerts.Repository {
 	r := alertsRepo(*s.Store.GetRepository("alerts"))
-	return &r
-}
-
-func (s *Store) NewDeviceTokensRepository() devicetokens.Repository {
-	r := deviceTokensRepo(*s.Store.GetRepository("deviceTokens"))
 	return &r
 }

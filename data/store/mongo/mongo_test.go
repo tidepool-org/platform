@@ -31,7 +31,6 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
-	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
@@ -247,7 +246,6 @@ var _ = Describe("Mongo", func() {
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
 	var alertsRepository alerts.Repository
-	var deviceTokensRepository devicetokens.Repository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -633,23 +631,14 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
-		Context("NewDeviceTokensRepository", func() {
-			It("returns a new repository", func() {
-				deviceTokensRepository = store.NewDeviceTokensRepository()
-				Expect(deviceTokensRepository).ToNot(BeNil())
-			})
-		})
-
 		Context("with a new repository", func() {
 			BeforeEach(func() {
 				repository = store.NewDataRepository()
 				summaryRepository = store.NewSummaryRepository()
 				alertsRepository = store.NewAlertsRepository()
-				deviceTokensRepository = store.NewDeviceTokensRepository()
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
 				Expect(alertsRepository).ToNot(BeNil())
-				Expect(deviceTokensRepository).ToNot(BeNil())
 			})
 
 			AfterEach(func() {
@@ -2691,85 +2680,6 @@ var _ = Describe("Mongo", func() {
 
 					res := store.GetCollection("alerts").FindOne(ctx, filter)
 					Expect(res.Err()).To(MatchError(mongo.ErrNoDocuments))
-				})
-			})
-		})
-
-		Context("device tokens", func() {
-			BeforeEach(func() {
-				var err error
-				store, err = dataStoreMongo.NewStore(config)
-				Expect(err).To(Succeed())
-				_, err = store.GetCollection("deviceTokens").DeleteMany(context.Background(), bson.D{})
-				Expect(err).To(Succeed())
-
-				deviceTokensRepository = store.NewDeviceTokensRepository()
-				Expect(deviceTokensRepository).ToNot(BeNil())
-			})
-
-			prep := func(upsertDoc bool) (context.Context, *devicetokens.Document, bson.M) {
-				doc := &devicetokens.Document{
-					UserID:   "user-id",
-					TokenKey: "foo",
-				}
-				ctx := context.Background()
-				filter := bson.M{}
-				if upsertDoc {
-					Expect(deviceTokensRepository.Upsert(ctx, doc)).
-						To(Succeed())
-					filter["userId"] = doc.UserID
-					filter["tokenKey"] = doc.TokenKey
-				}
-
-				return ctx, doc, filter
-			}
-
-			Describe("Upsert", func() {
-				Context("when no document exists", func() {
-					It("creates a new document", func() {
-						ctx, doc, filter := prep(false)
-
-						Expect(deviceTokensRepository.Upsert(ctx, doc)).To(Succeed())
-
-						res := store.GetCollection("deviceTokens").FindOne(ctx, filter)
-						Expect(res.Err()).To(Succeed())
-						newDoc := &devicetokens.Document{}
-						err := res.Decode(newDoc)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(newDoc.UserID).To(Equal(doc.UserID))
-						Expect(newDoc.TokenKey).To(Equal(doc.TokenKey))
-					})
-				})
-
-				It("requires UserID and TokenID", func() {
-					ctx, doc, _ := prep(false)
-
-					doc.UserID = ""
-					err := deviceTokensRepository.Upsert(ctx, doc)
-					Expect(err).To(MatchError("UserID may not be empty"))
-
-					doc.UserID = "user-id"
-					doc.TokenKey = ""
-					err = deviceTokensRepository.Upsert(ctx, doc)
-					Expect(err).To(MatchError("TokenID may not be empty"))
-				})
-
-				It("updates the existing document, instead of creating a duplicate", func() {
-					ctx, doc, filter := prep(true)
-
-					err := deviceTokensRepository.Upsert(ctx, doc)
-					Expect(err).To(Succeed())
-
-					cur, err := store.GetCollection("deviceTokens").Find(ctx, filter)
-					Expect(err).To(Succeed())
-					Expect(cur.RemainingBatchLength()).To(Equal(1))
-					for cur.Next(ctx) {
-						newDoc := &devicetokens.Document{}
-						err = cur.Decode(newDoc)
-						Expect(err).To(Succeed())
-						Expect(newDoc.UserID).To(Equal("user-id"))
-						Expect(newDoc.TokenKey).To(Equal("foo"))
-					}
 				})
 			})
 		})

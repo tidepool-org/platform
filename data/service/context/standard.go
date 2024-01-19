@@ -13,7 +13,6 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -36,7 +35,6 @@ type Standard struct {
 	dataClient              dataClient.Client
 	dataSourceClient        dataSource.Client
 	alertsRepository        alerts.Repository
-	deviceTokensRepository  devicetokens.Repository
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
@@ -122,9 +120,6 @@ func (s *Standard) Close() {
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
-	if s.deviceTokensRepository != nil {
-		s.deviceTokensRepository = nil
-	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -187,11 +182,4 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 		s.alertsRepository = s.dataStore.NewAlertsRepository()
 	}
 	return s.alertsRepository
-}
-
-func (s *Standard) DeviceTokensRepository() devicetokens.Repository {
-	if s.deviceTokensRepository == nil {
-		s.deviceTokensRepository = s.dataStore.NewDeviceTokensRepository()
-	}
-	return s.deviceTokensRepository
 }
