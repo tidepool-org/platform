@@ -459,6 +459,7 @@ func (s *Service) initializeAppValidate() error {
 	if err != nil {
 		return err
 	}
+	s.Logger().Infof("Initialized AppValidate with: %#v", *cfg)
 	authStore := s.AuthStore()
 	if authStore == nil {
 		return errors.New("auth store should be initialized before app validate")
