@@ -87,6 +87,11 @@ func (m *Migration) RunAndExit() {
 			return err
 		}
 
+		if m.config.audit {
+			log.Println("running audit ...")
+			return m.audit()
+		}
+
 		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
 			log.Printf("execute failed: %s", err)
 			return err
@@ -268,15 +273,39 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 	return false
 }
 
-func (m *Migration) audit() {
-	m.migrationUtil.Audit(m.ctx, m.getDataCollection(), map[string]interface{}{
-		"to migrate": bson.M{
-			"_deduplicator": bson.M{"$exists": false},
-			"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
-		},
-		"migrated": bson.M{
+func (m *Migration) audit() error {
+	return m.migrationUtil.Audit(m.ctx, m.getDataCollection(), map[string]interface{}{
+		"pumpSettings_boluses": bson.M{
 			"_deduplicator": bson.M{"$exists": true},
 			"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
+			"type":          "pumpSettings",
+			"bolus":         bson.M{"$exists": false},
+			"boluses":       bson.M{"$exists": true},
 		},
+		"pumpSettings_sleepSchedules": bson.M{
+			"_deduplicator":  bson.M{"$exists": true},
+			"_id":            bson.M{"$not": bson.M{"$type": "objectId"}},
+			"type":           "pumpSettings",
+			"sleepSchedules": bson.M{"$exists": true},
+		},
+		// "smbg_value": bson.M{
+		// 	"_deduplicator": bson.M{"$exists": true},
+		// 	"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
+		// 	"type":          selfmonitored.Type,
+		// 	"units":         bson.M{"$not": bson.M{"$in": []string{glucose.MgdL, glucose.Mgdl}}},
+		// },
+		// "cbg_value": bson.M{
+		// 	"_deduplicator": bson.M{"$exists": true},
+		// 	"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
+		// 	"type":          continuous.Type,
+		// 	"units":         bson.M{"$not": bson.M{"$in": []string{glucose.MgdL, glucose.Mgdl}}},
+		// },
+		// "ketone_value": bson.M{
+		// 	"_deduplicator": bson.M{"$exists": true},
+		// 	"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
+		// 	"type":          ketone.Type,
+		// 	"units":         bson.M{"$not": bson.M{"$in": []string{glucose.MgdL, glucose.Mgdl}}},
+		// 	"$where":        "this.value.length > ",
+		// },
 	})
 }
