@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
@@ -175,7 +176,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	}
 
 	url := c.client.ConstructURL("v1", "blobs", id, "content")
-	headersInspector := request.NewHeadersInspector()
+	headersInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 	body, err := c.client.RequestStream(ctx, http.MethodGet, url, nil, nil, headersInspector)
 	if err != nil {
 		if request.IsErrorResourceNotFound(err) {

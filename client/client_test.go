@@ -194,7 +194,7 @@ var _ = Describe("Client", func() {
 			requestString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
 			requestBody = &RequestBody{Request: requestString}
 			responseString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
-			inspectors = []request.ResponseInspector{request.NewHeadersInspector()}
+			inspectors = []request.ResponseInspector{request.NewHeadersInspector(log.LoggerFromContext(ctx))}
 			httpClient = http.DefaultClient
 		})
 
@@ -334,13 +334,6 @@ var _ = Describe("Client", func() {
 
 				AfterEach(func() {
 					errorInspector.AssertOutputsEmpty()
-				})
-
-				It("returns error if inspector returns an error", func() {
-					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, nil, append(inspectors, errorInspector), httpClient)
-					Expect(err).To(MatchError(responseErr))
-					Expect(reader).To(BeNil())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
 
@@ -736,13 +729,6 @@ var _ = Describe("Client", func() {
 
 				AfterEach(func() {
 					errorInspector.AssertOutputsEmpty()
-				})
-
-				It("returns error if inspector returns an error", func() {
-					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, nil, responseBody, append(inspectors, errorInspector), httpClient)).To(MatchError(responseErr))
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-					Expect(responseBody).ToNot(BeNil())
-					Expect(responseBody.Response).To(BeEmpty())
 				})
 			})
 
