@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 
 	"github.com/bas-d/appattest/utils"
 	"github.com/ugorji/go/codec"
@@ -225,7 +226,8 @@ func (a *AuthenticatorData) Verify(appIDHash []byte, credentialId []byte, produc
 		copy(aaguid, []byte("appattestdevelop"))
 	}
 	if !bytes.Equal(a.AttData.AAGUID, aaguid) {
-		return utils.ErrVerification.WithDetails("AAGUID was not appattestdevelop\n")
+		log.Printf("AuthenticatorData is: %#v\n", *a)
+		return utils.ErrVerification.WithDetails(fmt.Sprintf("AAGUID was not \"%s\": production: %v\n", string(aaguid), production))
 	}
 
 	// 9. Verify that the authenticator data’s credentialId field is the same as the key identifier.
