@@ -182,13 +182,9 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
-	t.logger.Info("Searching for User BGM Summaries requiring Update")
-	outdatedBGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
-	if err != nil {
-		return err
-	}
-
 	var outdatedCGM *types.OutdatedSummariesResponse
+	var outdatedBGM *types.OutdatedSummariesResponse
+	var err error
 
 	t.logger.Debug("Starting User CGM Summary Update")
 	iCount := 0

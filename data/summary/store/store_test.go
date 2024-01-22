@@ -1134,6 +1134,14 @@ var _ = Describe("Summary Stats Mongo", func() {
 						}
 					})
 
+					It("With no outdated summaries", func() {
+						var pagination = page.NewPagination()
+
+						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, pagination)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(len(userIds.UserIds)).To(Equal(0))
+					})
+
 				})
 
 			})

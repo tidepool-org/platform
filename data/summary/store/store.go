@@ -235,9 +235,7 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	opts.SetProjection(bson.M{"stats": 0})
 
 	cursor, err := r.Find(ctx, selector, opts)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
 
@@ -258,7 +256,10 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		}
 	}
 
-	response.End = *userSummary.Dates.OutdatedSince
+	// if we saw at least one summary
+	if !response.Start.IsZero() {
+		response.End = *userSummary.Dates.OutdatedSince
+	}
 
 	return response, nil
 }
