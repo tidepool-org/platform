@@ -48,9 +48,9 @@ var DeviceDataToSummaryTypes = map[string]string{
 }
 
 type OutdatedSummariesResponse struct {
-	UserIds []string
-	Start   time.Time
-	End     time.Time
+	UserIds []string  `json:"userIds"`
+	Start   time.Time `json:"start"`
+	End     time.Time `json:"end"`
 }
 
 type BucketData interface {

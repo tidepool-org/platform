@@ -237,7 +237,7 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, paginat
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	var response *types.OutdatedSummariesResponse
+	response := &types.OutdatedSummariesResponse{}
 	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, response)
 
 	return response, err
