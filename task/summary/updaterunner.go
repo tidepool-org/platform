@@ -182,13 +182,15 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
-	var outdatedCGM *types.OutdatedSummariesResponse
-	var outdatedBGM *types.OutdatedSummariesResponse
+	outdatedCGM := &types.OutdatedSummariesResponse{}
+	outdatedBGM := &types.OutdatedSummariesResponse{}
 	var err error
 
 	t.logger.Debug("Starting User CGM Summary Update")
 	iCount := 0
-	for outdatedCGM.End.Before(targetTime) {
+	// this loop is a bit odd looking, we are iterating until the end of the previous loop is past the target
+	// this avoids a round trip, and allows the default time zero value to work as a starter
+	for !outdatedCGM.End.After(targetTime) {
 		t.logger.Info("Searching for User CGM Summaries requiring Update")
 		outdatedCGM, err = t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
 		if err != nil {
@@ -209,7 +211,7 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 
 	t.logger.Debug("Starting User BGM Summary Update")
 	iCount = 0
-	for outdatedBGM.End.Before(targetTime) {
+	for !outdatedBGM.End.After(targetTime) {
 		t.logger.Info("Searching for User BGM Summaries requiring Update")
 		outdatedBGM, err = t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
 		if err != nil {
