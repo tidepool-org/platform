@@ -36,7 +36,7 @@ type Client interface {
 	GetBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
 	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
 	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
-	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
+	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
 	GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context, t string) (int, error)
 }
@@ -222,7 +222,7 @@ func (c *ClientImpl) BackfillSummaries(ctx context.Context, typ string) (int, er
 	return count, nil
 }
 
-func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -237,15 +237,10 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, paginat
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	var userIDs []string
-	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return userIDs, err
-	}
+	var response *types.OutdatedSummariesResponse
+	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, response)
 
-	return userIDs, nil
+	return response, err
 }
 
 func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
@@ -264,14 +259,9 @@ func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagin
 	}
 
 	var userIDs []string
-	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return userIDs, err
-	}
+	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs)
 
-	return userIDs, nil
+	return userIDs, err
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

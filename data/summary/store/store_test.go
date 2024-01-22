@@ -967,7 +967,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 				})
 
 				Context("GetOutdatedUserIDs", func() {
-					var userIds []string
+					var userIds *types.OutdatedSummariesResponse
 					var userIdTwo string
 					var userIdThree string
 
@@ -1007,7 +1007,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, page.NewPagination())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
+						Expect(userIds.UserIds).To(ConsistOf([]string{userId, userIdTwo}))
 					})
 
 					It("With outdated BGM summaries", func() {
@@ -1027,7 +1027,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userIds, err = bgmStore.GetOutdatedUserIDs(ctx, page.NewPagination())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(userIds).To(ConsistOf([]string{userIdOther, userIdTwo}))
+						Expect(userIds.UserIds).To(ConsistOf([]string{userIdOther, userIdTwo}))
 					})
 
 					It("Get outdated CGM summaries with both types present", func() {
@@ -1055,7 +1055,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, page.NewPagination())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(userIds).To(ConsistOf([]string{userId}))
+						Expect(userIds.UserIds).To(ConsistOf([]string{userId}))
 					})
 
 					It("Get outdated BGM summaries with both types present", func() {
@@ -1083,7 +1083,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userIds, err = bgmStore.GetOutdatedUserIDs(ctx, page.NewPagination())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(userIds).To(ConsistOf([]string{userIdThree}))
+						Expect(userIds.UserIds).To(ConsistOf([]string{userIdThree}))
 					})
 
 					It("With a specific pagination size", func() {
@@ -1106,8 +1106,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, pagination)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(len(userIds)).To(Equal(3))
-						Expect(userIds).To(ConsistOf([]string{userId, userIdOther, userIdTwo}))
+						Expect(len(userIds.UserIds)).To(Equal(3))
+						Expect(userIds.UserIds).To(ConsistOf([]string{userId, userIdOther, userIdTwo}))
 					})
 
 					It("Check sort order", func() {
@@ -1126,11 +1126,11 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, page.NewPagination())
 						Expect(err).ToNot(HaveOccurred())
-						Expect(len(userIds)).To(Equal(3))
+						Expect(len(userIds.UserIds)).To(Equal(3))
 
 						// we expect these to come back in reverse order than inserted
-						for i := 0; i < len(userIds); i++ {
-							Expect(userIds[i]).To(Equal(cgmSummaries[len(cgmSummaries)-i-1].UserID))
+						for i := 0; i < len(userIds.UserIds); i++ {
+							Expect(userIds.UserIds[i]).To(Equal(cgmSummaries[len(cgmSummaries)-i-1].UserID))
 						}
 					})
 

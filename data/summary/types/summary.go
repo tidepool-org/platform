@@ -47,6 +47,12 @@ var DeviceDataToSummaryTypes = map[string]string{
 	selfmonitored.Type: SummaryTypeBGM,
 }
 
+type OutdatedSummariesResponse struct {
+	UserIds []string
+	Start   time.Time
+	End     time.Time
+}
+
 type BucketData interface {
 	CGMBucketData | BGMBucketData
 }

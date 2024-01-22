@@ -45,7 +45,7 @@ type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
 	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
-	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
 	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
 }
@@ -81,7 +81,7 @@ func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId, reaso
 	return c.summaries.SetOutdated(ctx, userId, reason)
 }
 
-func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	return c.summaries.GetOutdatedUserIDs(ctx, pagination)
 }
 
