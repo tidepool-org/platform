@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	DefaultMigrationAvailableAfterDurationMinimum = 5 * time.Minute
+	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	MigrationTaskDurationMaximum                  = 4 * time.Minute
 	DefaultMigrationWorkerBatchSize               = 500
 	MigrationWorkerCount                          = 1
@@ -73,8 +73,8 @@ func (r *MigrationRunner) GetRunnerMaximumDuration() time.Duration {
 }
 
 func (r *MigrationRunner) GenerateNextTime(interval MinuteRange) time.Duration {
-	Min := time.Duration(interval.Min) * time.Minute
-	Max := time.Duration(interval.Max) * time.Minute
+	Min := time.Duration(interval.Min) * time.Second
+	Max := time.Duration(interval.Max) * time.Second
 
 	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
 	return Min + randTime

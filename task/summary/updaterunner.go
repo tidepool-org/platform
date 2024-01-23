@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	DefaultUpdateAvailableAfterDurationMaximum = 20 * time.Second
-	DefaultUpdateAvailableAfterDurationMinimum = 30 * time.Second
+	DefaultUpdateAvailableAfterDurationMinimum = 20 * time.Second
+	DefaultUpdateAvailableAfterDurationMaximum = 30 * time.Second
 	UpdateTaskDurationMaximum                  = 2 * time.Minute
 	DefaultUpdateWorkerBatchSize               = 500
 	UpdateWorkerCount                          = 10

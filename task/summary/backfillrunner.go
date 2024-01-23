@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
 	DefaultBackfillAvailableAfterDurationMinimum = 23 * time.Hour
+	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
 	BackfillTaskDurationMaximum                  = 5 * time.Minute
 	BackfillType                                 = "org.tidepool.summary.backfill"
 )
@@ -69,8 +69,8 @@ func (r *BackfillRunner) GetRunnerMaximumDuration() time.Duration {
 
 func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 
-	Min := time.Duration(interval.Min) * time.Minute
-	Max := time.Duration(interval.Max) * time.Minute
+	Min := time.Duration(interval.Min) * time.Second
+	Max := time.Duration(interval.Max) * time.Second
 
 	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
 	return Min + randTime
