@@ -6,8 +6,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary/types"
-
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/page"
@@ -182,17 +180,13 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
-	outdatedCGM := &types.OutdatedSummariesResponse{}
-	outdatedBGM := &types.OutdatedSummariesResponse{}
-	var err error
-
 	t.logger.Debug("Starting User CGM Summary Update")
 	iCount := 0
 	// this loop is a bit odd looking, we are iterating until the end of the previous loop is past the target
 	// this avoids a round trip, and allows the default time zero value to work as a starter
-	for !outdatedCGM.End.After(targetTime) {
+	for {
 		t.logger.Info("Searching for User CGM Summaries requiring Update")
-		outdatedCGM, err = t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
+		outdatedCGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
 		if err != nil {
 			return err
 		}
@@ -205,15 +199,23 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
 			break
 		}
+
+		if outdatedCGM.End.After(targetTime) || outdatedCGM.End.IsZero() {
+			fmt.Println("exiting with end", outdatedCGM.End)
+			// we are sufficiently caught up
+			break
+		}
+		fmt.Println("looping:", outdatedCGM.End, "not after", targetTime)
+
 		iCount++
 	}
 	t.logger.Debug("Finished User CGM Summary Update")
 
 	t.logger.Debug("Starting User BGM Summary Update")
 	iCount = 0
-	for !outdatedBGM.End.After(targetTime) {
+	for {
 		t.logger.Info("Searching for User BGM Summaries requiring Update")
-		outdatedBGM, err = t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
+		outdatedBGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
 		if err != nil {
 			return err
 		}
@@ -223,9 +225,17 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 		}
 
 		if iCount > IterLimit {
-			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
+			t.logger.Warn("Exiting BGM batch loop early, too many iterations")
 			break
 		}
+
+		if outdatedBGM.End.After(targetTime) || outdatedBGM.End.IsZero() {
+			fmt.Println("exiting with end", outdatedBGM.End)
+			// we are sufficiently caught up
+			break
+		}
+		fmt.Println("looping:", outdatedBGM.End, "not after", targetTime)
+
 		iCount++
 	}
 	t.logger.Debug("Finished User BGM Summary Update")

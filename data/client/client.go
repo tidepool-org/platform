@@ -183,7 +183,7 @@ func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, userId string) (*type
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
-		return summary, err
+		return nil, err
 	}
 
 	return summary, nil
@@ -203,7 +203,7 @@ func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*type
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
-		return summary, err
+		return nil, err
 	}
 
 	return summary, nil
