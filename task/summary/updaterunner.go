@@ -77,8 +77,8 @@ func (r *UpdateRunner) GetRunnerMaximumDuration() time.Duration {
 }
 
 func (r *UpdateRunner) GenerateNextTime(interval MinuteRange) time.Duration {
-	Min := time.Duration(interval.Min) * time.Minute
-	Max := time.Duration(interval.Max) * time.Minute
+	Min := time.Duration(interval.Min) * time.Second
+	Max := time.Duration(interval.Max) * time.Second
 
 	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
 	return Min + randTime
@@ -201,11 +201,9 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 		}
 
 		if outdatedCGM.End.After(targetTime) || outdatedCGM.End.IsZero() {
-			fmt.Println("exiting with end", outdatedCGM.End)
 			// we are sufficiently caught up
 			break
 		}
-		fmt.Println("looping:", outdatedCGM.End, "not after", targetTime)
 
 		iCount++
 	}
@@ -230,11 +228,9 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 		}
 
 		if outdatedBGM.End.After(targetTime) || outdatedBGM.End.IsZero() {
-			fmt.Println("exiting with end", outdatedBGM.End)
 			// we are sufficiently caught up
 			break
 		}
-		fmt.Println("looping:", outdatedBGM.End, "not after", targetTime)
 
 		iCount++
 	}
