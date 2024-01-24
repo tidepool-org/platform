@@ -14,7 +14,7 @@ import (
 
 func (r *Router) DeviceTokensRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/device-tokens/:userID", api.RequireAuth(r.UpsertDeviceToken)),
+		rest.Post("/v1/device_tokens/:userID", api.RequireAuth(r.UpsertDeviceToken)),
 	}
 }
 
