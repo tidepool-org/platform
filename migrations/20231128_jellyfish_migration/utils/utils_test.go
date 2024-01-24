@@ -8,30 +8,21 @@ import (
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	glucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	bolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils/test"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 var _ = Describe("back-37", func() {
 	var _ = Describe("utils", func() {
-		Context("GetBGValuePlatformPrecision", func() {
-			DescribeTable("return the expected mmol/L value",
-				func(jellyfishVal float64, expectedVal float64) {
-					actual := utils.GetBGValuePlatformPrecision(jellyfishVal)
-					Expect(actual).To(Equal(expectedVal))
-				},
-				Entry("original mmol/L value", 10.1, 10.1),
-				Entry("converted mgd/L of 100", 5.550747991045533, 5.55075),
-				Entry("converted mgd/L of 150", 8.3261219865683, 8.32612),
-				Entry("converted mgd/L of 65", 3.6079861941795968, 3.60799),
-			)
-		})
-
 		var _ = Describe("GetDatumUpdates", func() {
 			var existingBolusDatum bson.M
 			const expectedID = "some-id"
@@ -236,6 +227,70 @@ var _ = Describe("back-37", func() {
 						Expect(actual).To(BeNil())
 					})
 				})
+			})
+			Context("datum with glucose", func() {
+
+				var newContinuous = func(units *string) *continuous.Continuous {
+					datum := continuous.New()
+					datum.Glucose = *glucoseTest.NewGlucose(units)
+					datum.Type = "cbg"
+					*datum.ID = expectedID
+					*datum.UserID = "some-user-id"
+					*datum.DeviceID = "some-device-id"
+					theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+					*datum.Time = theTime
+					return datum
+				}
+
+				DescribeTable("should",
+					func(getInput func() bson.M, expected []bson.M, expectError bool) {
+						input := getInput()
+						_, actual, err := utils.GetDatumUpdates(input)
+						if expectError {
+							Expect(err).ToNot(BeNil())
+							Expect(actual).To(BeNil())
+							return
+						}
+						Expect(err).To(BeNil())
+						if expected != nil {
+							Expect(actual).To(BeEquivalentTo(expected))
+						} else {
+							Expect(actual).To(BeNil())
+						}
+					},
+
+					Entry("do nothing when not normailzed",
+						func() bson.M {
+							mmolL := glucose.MmolL
+							cbg := newContinuous(&mmolL)
+							cbgData := getBSONData(cbg)
+							cbgData["_id"] = expectedID
+							cbgData["value"] = 9.5
+							return cbgData
+						},
+						[]bson.M{{"$set": bson.M{
+							"_deduplicator": bson.M{"hash": "lLCOZJMLvNaBx7dMc31bbX4zwSfPvxcUd0Z1uU/YIAs="},
+						}}},
+						false,
+					),
+					Entry("update value when normailzed",
+						func() bson.M {
+							mgdL := glucose.MgdL
+							cbg := newContinuous(&mgdL)
+							cbgData := getBSONData(cbg)
+							cbgData["_id"] = expectedID
+							cbgData["value"] = 180
+
+							return cbgData
+						},
+						[]bson.M{{"$set": bson.M{
+							"_deduplicator": bson.M{"hash": "FZtVRkliues5vAt25ZK+WDAqa4Q6tAAe9h2PdKM15Q4="},
+							"value":         pointer.FromFloat64(9.99135),
+							"units":         pointer.FromString(glucose.MmolL),
+						}}},
+						false,
+					),
+				)
 			})
 			Context("Historic datum", func() {
 				It("g5 dexcom", func() {

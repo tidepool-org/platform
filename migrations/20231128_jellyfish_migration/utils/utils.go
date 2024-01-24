@@ -2,14 +2,12 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"slices"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
@@ -67,15 +65,6 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func GetBGValuePlatformPrecision(mmolVal float64) float64 {
-	if len(fmt.Sprintf("%v", mmolVal)) > 7 {
-		mgdlVal := mmolVal * glucose.MmolLToMgdLConversionFactor
-		mgdL := glucose.MgdL
-		mmolVal = *glucose.NormalizeValueForUnits(&mgdlVal, &mgdL)
-	}
-	return mmolVal
-}
-
 func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 	updates := []bson.M{}
 	set := bson.M{}
@@ -92,7 +81,8 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		return datumID, nil, errors.New("cannot get the datum type")
 	}
 
-	//remove as uneeded and can cause issues if invalid type
+	// TODO: based on discussions we want to ensure that these are the correct type
+	// even though we are not using them for the hash generation
 	delete(bsonData, "payload")
 	delete(bsonData, "annotations")
 
@@ -174,11 +164,16 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		if err != nil {
 			return datumID, nil, err
 		}
-		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			val := GetBGValuePlatformPrecision(*datum.Value)
-			datum.Value = &val
+		beforeVal := datum.Value
+		beforeUnits := datum.Units
+		datum.Normalize(normalizer.New())
+		afterVal := datum.Value
+		afterUnits := datum.Units
+		if *beforeVal != *afterVal {
+			set["value"] = afterVal
+		}
+		if *beforeUnits != *afterUnits {
+			set["units"] = afterUnits
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
@@ -194,11 +189,16 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		if err != nil {
 			return datumID, nil, err
 		}
-		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			val := GetBGValuePlatformPrecision(*datum.Value)
-			datum.Value = &val
+		beforeVal := datum.Value
+		beforeUnits := datum.Units
+		datum.Normalize(normalizer.New())
+		afterVal := datum.Value
+		afterUnits := datum.Units
+		if *beforeVal != *afterVal {
+			set["value"] = afterVal
+		}
+		if *beforeUnits != *afterUnits {
+			set["units"] = afterUnits
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {
@@ -214,11 +214,19 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		if err != nil {
 			return datumID, nil, err
 		}
-		if *datum.Units != glucose.MgdL && *datum.Units != glucose.Mgdl {
-			// NOTE: we need to ensure the same precision for the
-			// converted value as it is used to calculate the hash
-			val := GetBGValuePlatformPrecision(*datum.Value)
-			datum.Value = &val
+		// NOTE: applies to any type that has a `Glucose` property
+		// we need to normalise so that we can get the correct `Units`` and `Value`` precsion that we would if ingested via the platform.
+		// as these are both being used in the hash calc via the IdentityFields we want to persist these changes if they are infact updated.
+		beforeVal := datum.Value
+		beforeUnits := datum.Units
+		datum.Normalize(normalizer.New())
+		afterVal := datum.Value
+		afterUnits := datum.Units
+		if *beforeVal != *afterVal {
+			set["value"] = afterVal
+		}
+		if *beforeUnits != *afterUnits {
+			set["units"] = afterUnits
 		}
 		identityFields, err = datum.IdentityFields()
 		if err != nil {

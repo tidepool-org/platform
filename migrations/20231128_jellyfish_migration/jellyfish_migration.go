@@ -28,7 +28,6 @@ type config struct {
 	cap            int
 	uri            string
 	dryRun         bool
-	audit          bool
 	stopOnErr      bool
 	userID         string
 	lastUpdatedId  string
@@ -50,11 +49,9 @@ func main() {
 
 func NewMigration(ctx context.Context) *Migration {
 	return &Migration{
-		config: &config{
-			audit: false,
-		},
-		ctx: ctx,
-		cli: cli.NewApp(),
+		config: &config{},
+		ctx:    ctx,
+		cli:    cli.NewApp(),
 	}
 }
 
@@ -85,11 +82,6 @@ func (m *Migration) RunAndExit() {
 		if err := m.migrationUtil.Initialize(m.ctx, m.getDataCollection()); err != nil {
 			log.Printf("prepare failed: %s", err)
 			return err
-		}
-
-		if m.config.audit {
-			log.Println("running audit ...")
-			return m.audit()
 		}
 
 		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
@@ -126,11 +118,6 @@ func (m *Migration) Initialize() error {
 			Name:        "stop-error",
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
-		},
-		cli.BoolFlag{
-			Name:        "audit",
-			Usage:       "run audit",
-			Destination: &m.config.audit,
 		},
 		cli.IntFlag{
 			Name:        "cap",
@@ -271,41 +258,4 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 		return stats.ToApply > 0
 	}
 	return false
-}
-
-func (m *Migration) audit() error {
-	return m.migrationUtil.Audit(m.ctx, m.getDataCollection(), map[string]interface{}{
-		"pumpSettings_boluses": bson.M{
-			"_deduplicator": bson.M{"$exists": true},
-			"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
-			"type":          "pumpSettings",
-			"bolus":         bson.M{"$exists": false},
-			"boluses":       bson.M{"$exists": true},
-		},
-		"pumpSettings_sleepSchedules": bson.M{
-			"_deduplicator":  bson.M{"$exists": true},
-			"_id":            bson.M{"$not": bson.M{"$type": "objectId"}},
-			"type":           "pumpSettings",
-			"sleepSchedules": bson.M{"$exists": true},
-		},
-		// "smbg_value": bson.M{
-		// 	"_deduplicator": bson.M{"$exists": true},
-		// 	"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
-		// 	"type":          selfmonitored.Type,
-		// 	"units":         bson.M{"$not": bson.M{"$in": []string{glucose.MgdL, glucose.Mgdl}}},
-		// },
-		// "cbg_value": bson.M{
-		// 	"_deduplicator": bson.M{"$exists": true},
-		// 	"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
-		// 	"type":          continuous.Type,
-		// 	"units":         bson.M{"$not": bson.M{"$in": []string{glucose.MgdL, glucose.Mgdl}}},
-		// },
-		// "ketone_value": bson.M{
-		// 	"_deduplicator": bson.M{"$exists": true},
-		// 	"_id":           bson.M{"$not": bson.M{"$type": "objectId"}},
-		// 	"type":          ketone.Type,
-		// 	"units":         bson.M{"$not": bson.M{"$in": []string{glucose.MgdL, glucose.Mgdl}}},
-		// 	"$where":        "this.value.length > ",
-		// },
-	})
 }
