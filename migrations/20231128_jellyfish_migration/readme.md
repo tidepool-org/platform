@@ -27,7 +27,7 @@ GLOBAL OPTIONS:
 
 ```
 - test migration for a user:
-    `go run jellyfish_migration.go --stop-error --dry-run --user-id=924edd2e-b8fc-45ad-b3f4-3032bb6b0a45`
+    `go run jellyfish_migration.go --user-id=924edd2e-b8fc-45ad-b3f4-3032bb6b0a45 --stop-error --dry-run`
 
 - run migration:
     `go run jellyfish_migration.go --user-id=924edd2e-b8fc-45ad-b3f4-3032bb6b0a45`
