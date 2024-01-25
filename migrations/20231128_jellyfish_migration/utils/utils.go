@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -77,6 +78,8 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 
 func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, error) {
 
+	start := time.Now()
+
 	preprocessedDatumArray := []interface{}{}
 
 	for _, item := range rawDatumArray {
@@ -128,6 +131,8 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, error) {
 	if err := normalizer.Error(); err != nil {
 		processErr = cErrors.Join(processErr, err)
 	}
+
+	log.Printf("processed [%d] in [%s] [%t]", len(datumArray), time.Since(start).Truncate(time.Millisecond), processErr != nil)
 
 	return datumArray, processErr
 }
