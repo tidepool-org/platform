@@ -308,18 +308,19 @@ func (m *Migration) fetchAndProcess() bool {
 		}
 		defer dDataCursor.Close(m.ctx)
 
-		results := []map[string]interface{}{}
-		if err := dDataCursor.All(m.ctx, &results); err != nil {
+		items := []bson.M{}
+		//results := []map[string]interface{}{}
+		if err := dDataCursor.All(m.ctx, &items); err != nil {
 			log.Printf("error decoding data: %s", err)
 			return false
 		}
-		m.migrationUtil.SetFetched(results)
-		if _, errs := utils.ProcessData(results); errs != nil {
+		m.migrationUtil.SetFetched(items)
+		if _, errs := utils.ProcessData(items); errs != nil {
 			for _, err := range errs {
 				m.migrationUtil.OnError(err, "", "processing data")
 			}
 		}
-		return len(results) > 0
+		return len(items) > 0
 	}
 	return false
 }

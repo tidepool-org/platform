@@ -40,7 +40,7 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
-	rawData        []map[string]interface{}
+	rawData        []bson.M
 	errorsCount    int
 	updatedCount   int
 	lastUpdatedId  string
@@ -60,7 +60,7 @@ type MigrationUtil interface {
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(reportErr error, id string, msg string)
 	SetUpdates(lastID string, update ...*mongo.UpdateOneModel)
-	SetFetched(raw []map[string]interface{})
+	SetFetched(raw []bson.M)
 	GetLastID() string
 	GetStats() MigrationStats
 }
@@ -84,7 +84,7 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		client:       client,
 		config:       config,
 		updates:      []mongo.WriteModel{},
-		rawData:      []map[string]interface{}{},
+		rawData:      []bson.M{},
 		errorsCount:  0,
 		updatedCount: 0,
 		startedAt:    time.Now(),
@@ -135,7 +135,7 @@ func (m *migrationUtil) SetUpdates(lastID string, update ...*mongo.UpdateOneMode
 	}
 }
 
-func (m *migrationUtil) SetFetched(raw []map[string]interface{}) {
+func (m *migrationUtil) SetFetched(raw []bson.M) {
 	m.rawData = append(m.rawData, raw...)
 	log.Printf("fetched [%d]", len(m.rawData))
 }

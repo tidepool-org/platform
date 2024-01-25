@@ -27,7 +27,6 @@ import (
 	"github.com/tidepool-org/platform/metadata"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -75,22 +74,25 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error) {
+func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 
 	start := time.Now()
 
 	preprocessedDatumArray := []interface{}{}
+	datumArray := []data.Datum{}
 
-	for i, item := range rawDatumArray {
+	for i, item := range bsonDataArray {
 
-		log.Printf("[%d] [%v]\n\n", i, item)
+		dType := fmt.Sprintf("%v", item["type"])
 
-		if fmt.Sprintf("%v", item["type"]) == pump.Type {
+		// FIX
+		if dType == pump.Type {
 			if boluses := item["bolus"]; boluses != nil {
 				item["boluses"] = boluses
 				delete(item, "bolus")
 			}
 		}
+
 		if payload := item["payload"]; payload != nil {
 			if payloadMetadata, ok := payload.(*metadata.Metadata); ok {
 				item["payload"] = payloadMetadata
@@ -101,6 +103,49 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 				item["annotations"] = metadataArray
 			}
 		}
+
+		log.Printf("[%d] [%v]\n\n", i, item)
+
+		//
+		switch dType {
+		case pump.Type:
+			var datum *pump.Pump
+			dataBytes, err := bson.Marshal(item)
+			if err != nil {
+				log.Printf("%s %s", dType, err)
+				break
+			}
+			err = bson.Unmarshal(dataBytes, &datum)
+			if err != nil {
+				log.Printf("%s %s", dType, err)
+			}
+			datumArray = append(datumArray, datum)
+		case continuous.Type:
+			var datum *continuous.Continuous
+			dataBytes, err := bson.Marshal(item)
+			if err != nil {
+				log.Printf("%s %s", dType, err)
+				break
+			}
+			err = bson.Unmarshal(dataBytes, &datum)
+			if err != nil {
+				log.Printf("%s %s", dType, err)
+			}
+			datumArray = append(datumArray, datum)
+
+		case selfmonitored.Type:
+			var datum *selfmonitored.SelfMonitored
+			dataBytes, err := bson.Marshal(item)
+			if err != nil {
+				log.Printf("%s %s", dType, err)
+				break
+			}
+			err = bson.Unmarshal(dataBytes, &datum)
+			if err != nil {
+				log.Printf("%s %s", dType, err)
+			}
+			datumArray = append(datumArray, datum)
+		}
 		preprocessedDatumArray = append(preprocessedDatumArray, item)
 	}
 
@@ -109,14 +154,18 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
-	datumArray := []data.Datum{}
-	for _, reference := range parser.References() {
-		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
-			log.Printf("Datum: [%d] [%v]\n\n", reference, *datum)
-			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
-			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
-			datumArray = append(datumArray, *datum)
-		}
+	// for _, reference := range parser.References() {
+	// 	if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
+	// 		log.Printf("Datum: [%d] [%v]\n\n", reference, *datum)
+	// 		(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
+	// 		(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
+	// 		datumArray = append(datumArray, *datum)
+	// 	}
+	// }
+
+	for i, datum := range datumArray {
+		(datum).Validate(validator.WithReference(strconv.Itoa(i)))
+		(datum).Normalize(normalizer.WithReference(strconv.Itoa(i)))
 	}
 
 	parser.NotParsed()
@@ -133,7 +182,7 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 		errs = append(errs, err)
 	}
 
-	log.Printf("processed [%d] in [%s] [%t]", len(rawDatumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
+	log.Printf("processed [%d] in [%s] [%t]", len(bsonDataArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
 
 	return datumArray, errs
 }
