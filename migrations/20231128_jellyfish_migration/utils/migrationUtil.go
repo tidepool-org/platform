@@ -137,6 +137,7 @@ func (m *migrationUtil) SetUpdates(lastID string, update ...*mongo.UpdateOneMode
 
 func (m *migrationUtil) SetFetched(raw ...interface{}) {
 	m.rawData = append(m.rawData, raw...)
+	log.Printf("fetched [%d]", len(m.rawData))
 }
 
 func (m *migrationUtil) GetStats() MigrationStats {

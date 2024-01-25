@@ -129,7 +129,7 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 		errs = append(errs, err)
 	}
 
-	log.Printf("processed [%d] in [%s] [%t]", len(datumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
+	log.Printf("processed [%d] in [%s] [%t]", len(rawDatumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
 
 	return datumArray, errs
 }
