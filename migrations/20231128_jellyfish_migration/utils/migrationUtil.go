@@ -40,6 +40,7 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
+	rawData        []interface{}
 	errorsCount    int
 	updatedCount   int
 	lastUpdatedId  string
@@ -48,6 +49,7 @@ type migrationUtil struct {
 
 type MigrationStats struct {
 	Errored int
+	Fetched int
 	Applied int
 	ToApply int
 	Elapsed time.Duration
@@ -57,7 +59,8 @@ type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(reportErr error, id string, msg string)
-	SetData(update *mongo.UpdateOneModel, lastID string)
+	SetUpdates(lastID string, update ...*mongo.UpdateOneModel)
+	SetFetched(raw ...interface{})
 	GetLastID() string
 	GetStats() MigrationStats
 }
@@ -81,6 +84,7 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		client:       client,
 		config:       config,
 		updates:      []mongo.WriteModel{},
+		rawData:      []interface{}{},
 		errorsCount:  0,
 		updatedCount: 0,
 		startedAt:    time.Now(),
@@ -117,14 +121,21 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	return nil
 }
 
-func (m *migrationUtil) SetData(update *mongo.UpdateOneModel, lastID string) {
+func (m *migrationUtil) SetUpdates(lastID string, update ...*mongo.UpdateOneModel) {
 	m.lastUpdatedId = lastID
-	m.updates = append(m.updates, update)
+	for _, u := range update {
+		m.updates = append(m.updates, u)
+	}
+}
+
+func (m *migrationUtil) SetFetched(raw ...interface{}) {
+	m.rawData = append(m.rawData, raw...)
 }
 
 func (m *migrationUtil) GetStats() MigrationStats {
 	return MigrationStats{
 		Errored: m.errorsCount,
+		Fetched: len(m.rawData),
 		ToApply: len(m.updates),
 		Applied: m.updatedCount,
 		Elapsed: time.Since(m.startedAt).Truncate(time.Millisecond),
@@ -132,6 +143,10 @@ func (m *migrationUtil) GetStats() MigrationStats {
 }
 
 func (c MigrationStats) report() {
+	if c.Applied == 0 && c.Fetched > 0 {
+		log.Printf("elapsed [%s] for [%d] items fetched with [%d] errors\n", c.Elapsed, c.Fetched, c.Errored)
+		return
+	}
 	log.Printf("elapsed [%s] for [%d] items migrated with [%d] errors\n", c.Elapsed, c.Applied, c.Errored)
 }
 

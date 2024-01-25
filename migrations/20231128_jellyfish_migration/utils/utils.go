@@ -2,12 +2,16 @@ package utils
 
 import (
 	"encoding/json"
+	cErrors "errors"
+	"fmt"
 	"log"
 	"slices"
+	"strconv"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
@@ -20,6 +24,12 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/metadata"
+
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
@@ -63,6 +73,64 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 		}
 	}
 	return false
+}
+
+func ProcessData(rawDatumArray []interface{}) ([]data.Datum, error) {
+
+	preprocessedDatumArray := []interface{}{}
+
+	for _, rawDatum := range rawDatumArray {
+		item := rawDatum.(map[string]interface{})
+		if fmt.Sprintf("%v", item["type"]) == pump.Type {
+			if boluses := item["bolus"]; boluses != nil {
+				item["boluses"] = boluses
+				delete(item, "bolus")
+			}
+		}
+		if payload := item["payload"]; payload != nil {
+			if payloadMetadata, ok := payload.(*metadata.Metadata); ok {
+				item["payload"] = payloadMetadata
+			}
+		}
+		if annotations := item["annotations"]; annotations != nil {
+			if metadataArray, ok := annotations.(*metadata.MetadataArray); ok {
+				item["annotations"] = metadataArray
+			}
+		}
+		preprocessedDatumArray = append(preprocessedDatumArray, item)
+	}
+
+	var processErr error
+	parser := structureParser.NewArray(&preprocessedDatumArray)
+	validator := structureValidator.New()
+	normalizer := dataNormalizer.New()
+
+	datumArray := []data.Datum{}
+	for _, reference := range parser.References() {
+		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
+			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
+			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
+			datumArray = append(datumArray, *datum)
+		}
+	}
+
+	if err := parser.NotParsed(); err != nil {
+		processErr = cErrors.Join(processErr, err)
+	}
+
+	if err := parser.Error(); err != nil {
+		processErr = cErrors.Join(processErr, err)
+	}
+
+	if err := validator.Error(); err != nil {
+		processErr = cErrors.Join(processErr, err)
+	}
+
+	if err := normalizer.Error(); err != nil {
+		processErr = cErrors.Join(processErr, err)
+	}
+
+	return datumArray, processErr
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {

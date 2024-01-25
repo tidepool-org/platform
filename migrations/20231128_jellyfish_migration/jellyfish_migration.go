@@ -28,6 +28,7 @@ type config struct {
 	cap            int
 	uri            string
 	dryRun         bool
+	audit          bool
 	stopOnErr      bool
 	userID         string
 	lastUpdatedId  string
@@ -84,9 +85,17 @@ func (m *Migration) RunAndExit() {
 			return err
 		}
 
-		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
-			log.Printf("execute failed: %s", err)
-			return err
+		if m.config.audit {
+			log.Println("auditing")
+			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
+				log.Printf("audit failed: %s", err)
+				return err
+			}
+		} else {
+			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
+				log.Printf("execute failed: %s", err)
+				return err
+			}
 		}
 		return nil
 	}
@@ -118,6 +127,11 @@ func (m *Migration) Initialize() error {
 			Name:        "stop-error",
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
+		},
+		cli.BoolFlag{
+			Name:        "audit",
+			Usage:       "audit data",
+			Destination: &m.config.audit,
 		},
 		cli.IntFlag{
 			Name:        "cap",
@@ -180,10 +194,6 @@ func (m *Migration) getDataCollection() *mongo.Collection {
 	return m.client.Database("data").Collection("deviceData")
 }
 
-func (m *Migration) onError(errToReport error, id string, msg string) {
-	m.migrationUtil.OnError(errToReport, id, msg)
-}
-
 func (m *Migration) fetchAndUpdateBatch() bool {
 
 	selector := bson.M{
@@ -236,7 +246,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 
 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
 			if err != nil {
-				m.onError(err, datumID, "failed getting updates")
+				m.migrationUtil.OnError(err, datumID, "failed applying updates")
 				continue
 			}
 			for _, update := range datumUpdates {
@@ -248,7 +258,7 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 					updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
 				}
 				updateOp.SetUpdate(update)
-				m.migrationUtil.SetData(updateOp, datumID)
+				m.migrationUtil.SetUpdates(datumID, updateOp)
 			}
 		}
 		stats := m.migrationUtil.GetStats()
@@ -256,6 +266,58 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 			log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), stats.ToApply, stats.Errored)
 		}
 		return stats.ToApply > 0
+	}
+	return false
+}
+
+func (m *Migration) fetchAndProcess() bool {
+
+	selector := bson.M{}
+
+	if strings.TrimSpace(m.config.userID) != "" {
+		log.Printf("fetching for user %s", m.config.userID)
+		selector["_userId"] = m.config.userID
+	}
+
+	// jellyfish uses a generated _id that is not an mongo objectId
+	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
+
+	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
+		selector["$and"] = []interface{}{
+			bson.M{"_id": bson.M{"$gt": lastID}},
+			bson.M{"_id": idNotObjectID},
+		}
+	} else {
+		selector["_id"] = idNotObjectID
+	}
+
+	batchSize := int32(m.config.queryBatchSize)
+
+	if dataC := m.getDataCollection(); dataC != nil {
+
+		dDataCursor, err := dataC.Find(m.ctx, selector,
+			&options.FindOptions{
+				Sort:      bson.M{"_id": 1},
+				BatchSize: &batchSize,
+				Limit:     &m.config.queryLimit,
+			},
+		)
+		if err != nil {
+			log.Printf("failed to select data: %s", err)
+			return false
+		}
+		defer dDataCursor.Close(m.ctx)
+
+		results := []interface{}{}
+		if err := dDataCursor.All(m.ctx, &results); err != nil {
+			log.Printf("error decoding data: %s", err)
+			return false
+		}
+		if _, err := utils.ProcessData(results); err != nil {
+			m.migrationUtil.OnError(err, "", "processing data")
+		}
+		m.migrationUtil.SetFetched(results)
+		return len(results) > 0
 	}
 	return false
 }
