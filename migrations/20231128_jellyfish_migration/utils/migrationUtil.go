@@ -105,17 +105,23 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 	return nil
 }
 
+func (m *migrationUtil) capReached() bool {
+	stats := m.GetStats()
+	log.Printf("cap [%d] updated [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
+	if *m.config.cap >= stats.Applied || *m.config.cap >= stats.Fetched {
+		return true
+	}
+	return false
+}
+
 func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error {
 	for fetchAndUpdateFn() {
 		if err := m.writeUpdates(ctx, dataC); err != nil {
 			log.Printf("failed writing batch: %s", err)
 			return err
 		}
-		if m.config.cap != nil {
-			if m.updatedCount >= *m.config.cap || len(m.rawData) >= *m.config.cap {
-				break
-			}
-
+		if m.capReached() {
+			break
 		}
 	}
 	m.GetStats().report()
