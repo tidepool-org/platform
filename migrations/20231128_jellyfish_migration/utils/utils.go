@@ -75,12 +75,11 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func ProcessData(rawDatumArray []interface{}) ([]data.Datum, error) {
+func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, error) {
 
 	preprocessedDatumArray := []interface{}{}
 
-	for _, rawDatum := range rawDatumArray {
-		item := rawDatum.(map[string]interface{})
+	for _, item := range rawDatumArray {
 		if fmt.Sprintf("%v", item["type"]) == pump.Type {
 			if boluses := item["bolus"]; boluses != nil {
 				item["boluses"] = boluses
