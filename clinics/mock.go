@@ -50,6 +50,21 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinician", reflect.TypeOf((*MockClient)(nil).GetClinician), ctx, clinicID, clinicianID)
 }
 
+// ListEHREnabledClinics mocks base method.
+func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]api.Clinic, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEHREnabledClinics", ctx)
+	ret0, _ := ret[0].([]api.Clinic)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEHREnabledClinics indicates an expected call of ListEHREnabledClinics.
+func (mr *MockClientMockRecorder) ListEHREnabledClinics(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEHREnabledClinics", reflect.TypeOf((*MockClient)(nil).ListEHREnabledClinics), ctx)
+}
+
 // SharePatientAccount mocks base method.
 func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*api.Patient, error) {
 	m.ctrl.T.Helper()
@@ -63,4 +78,18 @@ func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientI
 func (mr *MockClientMockRecorder) SharePatientAccount(ctx, clinicID, patientID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SharePatientAccount", reflect.TypeOf((*MockClient)(nil).SharePatientAccount), ctx, clinicID, patientID)
+}
+
+// SyncEHRData mocks base method.
+func (m *MockClient) SyncEHRData(ctx context.Context, clinicID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SyncEHRData", ctx, clinicID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SyncEHRData indicates an expected call of SyncEHRData.
+func (mr *MockClientMockRecorder) SyncEHRData(ctx, clinicID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncEHRData", reflect.TypeOf((*MockClient)(nil).SyncEHRData), ctx, clinicID)
 }

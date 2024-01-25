@@ -197,7 +197,7 @@ func (r *RestrictedToken) Authenticates(req *http.Request) bool {
 	return true
 }
 
-func (r *RestrictedToken) Sanitize(details request.Details) error {
+func (r *RestrictedToken) Sanitize(details request.AuthDetails) error {
 	if details != nil && (details.IsService() || details.UserID() == r.UserID) {
 		return nil
 	}
@@ -206,7 +206,7 @@ func (r *RestrictedToken) Sanitize(details request.Details) error {
 
 type RestrictedTokens []*RestrictedToken
 
-func (r RestrictedTokens) Sanitize(details request.Details) error {
+func (r RestrictedTokens) Sanitize(details request.AuthDetails) error {
 	for _, restrictedToken := range r {
 		if err := restrictedToken.Sanitize(details); err != nil {
 			return err

@@ -7,18 +7,26 @@ import (
 )
 
 type Provider struct {
-	AuthClientInvocations            int
-	AuthClientStub                   func() auth.Client
-	AuthClientOutputs                []auth.Client
-	AuthClientOutput                 *auth.Client
-	BlobStructuredStoreInvocations   int
-	BlobStructuredStoreStub          func() blobStoreStructured.Store
-	BlobStructuredStoreOutputs       []blobStoreStructured.Store
-	BlobStructuredStoreOutput        *blobStoreStructured.Store
-	BlobUnstructuredStoreInvocations int
-	BlobUnstructuredStoreStub        func() blobStoreUnstructured.Store
-	BlobUnstructuredStoreOutputs     []blobStoreUnstructured.Store
-	BlobUnstructuredStoreOutput      *blobStoreUnstructured.Store
+	AuthClientInvocations                     int
+	AuthClientStub                            func() auth.Client
+	AuthClientOutputs                         []auth.Client
+	AuthClientOutput                          *auth.Client
+	BlobStructuredStoreInvocations            int
+	BlobStructuredStoreStub                   func() blobStoreStructured.Store
+	BlobStructuredStoreOutputs                []blobStoreStructured.Store
+	BlobStructuredStoreOutput                 *blobStoreStructured.Store
+	BlobUnstructuredStoreInvocations          int
+	BlobUnstructuredStoreStub                 func() blobStoreUnstructured.Store
+	BlobUnstructuredStoreOutputs              []blobStoreUnstructured.Store
+	BlobUnstructuredStoreOutput               *blobStoreUnstructured.Store
+	DeviceLogsStructuredStoreInvocations      int
+	DeviceLogsStructuredStoreStub             func() blobStoreStructured.Store
+	DeviceLogsStructuredStoreOutputs          []blobStoreStructured.Store
+	DeviceLogsStructuredStoreOutput           *blobStoreStructured.Store
+	DeviceLogBlobUnstructuredStoreInvocations int
+	DeviceLogBlobUnstructuredStoreStub        func() blobStoreUnstructured.Store
+	DeviceLogBlobUnstructuredStoreOutputs     []blobStoreUnstructured.Store
+	DeviceLogBlobUnstructuredStoreOutput      *blobStoreUnstructured.Store
 }
 
 func NewProvider() *Provider {
@@ -73,6 +81,38 @@ func (p *Provider) BlobUnstructuredStore() blobStoreUnstructured.Store {
 	panic("BlobUnstructuredStore has no output")
 }
 
+func (p *Provider) DeviceLogsUnstructuredStore() blobStoreUnstructured.Store {
+	p.DeviceLogBlobUnstructuredStoreInvocations++
+	if p.DeviceLogBlobUnstructuredStoreStub != nil {
+		return p.DeviceLogBlobUnstructuredStoreStub()
+	}
+	if len(p.DeviceLogBlobUnstructuredStoreOutputs) > 0 {
+		output := p.DeviceLogBlobUnstructuredStoreOutputs[0]
+		p.DeviceLogBlobUnstructuredStoreOutputs = p.DeviceLogBlobUnstructuredStoreOutputs[1:]
+		return output
+	}
+	if p.DeviceLogBlobUnstructuredStoreOutput != nil {
+		return *p.DeviceLogBlobUnstructuredStoreOutput
+	}
+	panic("DeviceLogsUnstructuredStore has no output")
+}
+
+func (p *Provider) DeviceLogsStructuredStore() blobStoreStructured.Store {
+	p.DeviceLogsStructuredStoreInvocations++
+	if p.DeviceLogsStructuredStoreStub != nil {
+		return p.DeviceLogsStructuredStoreStub()
+	}
+	if len(p.DeviceLogsStructuredStoreOutputs) > 0 {
+		output := p.DeviceLogsStructuredStoreOutputs[0]
+		p.DeviceLogsStructuredStoreOutputs = p.DeviceLogsStructuredStoreOutputs[1:]
+		return output
+	}
+	if p.DeviceLogsStructuredStoreOutput != nil {
+		return *p.DeviceLogsStructuredStoreOutput
+	}
+	panic("DeviceLogsStructuredStore has no output")
+}
+
 func (p *Provider) AssertOutputsEmpty() {
 	if len(p.AuthClientOutputs) > 0 {
 		panic("AuthClientOutputs is not empty")
@@ -82,5 +122,11 @@ func (p *Provider) AssertOutputsEmpty() {
 	}
 	if len(p.BlobUnstructuredStoreOutputs) > 0 {
 		panic("BlobUnstructuredStoreOutputs is not empty")
+	}
+	if len(p.DeviceLogBlobUnstructuredStoreOutputs) > 0 {
+		panic("DeviceLogBlobUnstructuredStoreOutputs is not empty")
+	}
+	if len(p.DeviceLogsStructuredStoreOutputs) > 0 {
+		panic("DeviceLogsStructuredStoreOutputs is not empty")
 	}
 }

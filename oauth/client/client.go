@@ -41,7 +41,7 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return c.client.AppendURLQuery(urlString, query)
 }
 
-func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, httpClientSource oauth.HTTPClientSource) error {
+func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClientSource oauth.HTTPClientSource) error {
 	if httpClientSource == nil {
 		return errors.New("http client source is missing")
 	}
@@ -51,5 +51,5 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 		return err
 	}
 
-	return c.client.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, nil, httpClient)
+	return c.client.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 }

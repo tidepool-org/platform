@@ -138,7 +138,7 @@ type ListUserDataSetsOutput struct {
 
 type GetLastUpdatedForUserInput struct {
 	Context context.Context
-	ID      string
+	UserID  string
 	Typ     string
 }
 
@@ -178,6 +178,19 @@ type DistinctUserIDsInput struct {
 type DistinctUserIDsOutput struct {
 	UserIDs []string
 	Error   error
+}
+
+type CheckDataSetContainsTypeInRangeInput struct {
+	Context   context.Context
+	DataSetID string
+	Typ       string
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+type CheckDataSetContainsTypeInRangeOutput struct {
+	Status bool
+	Error  error
 }
 
 type DataRepository struct {
@@ -249,6 +262,10 @@ type DataRepository struct {
 	DistinctUserIDsInvocations int
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
+
+	CheckDataSetContainsTypeInRangeInvocations int
+	CheckDataSetContainsTypeInRangeInputs      []CheckDataSetContainsTypeInRangeInput
+	CheckDataSetContainsTypeInRangeOutputs     []CheckDataSetContainsTypeInRangeOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -466,10 +483,10 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string, typ string) (*types.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error) {
 	d.GetLastUpdatedForUserInvocations++
 
-	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, ID: id, Typ: typ})
+	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ})
 
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
 
@@ -512,6 +529,18 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	output := d.DistinctUserIDsOutputs[0]
 	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
+}
+
+func (d *DataRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
+	d.CheckDataSetContainsTypeInRangeInvocations++
+
+	d.CheckDataSetContainsTypeInRangeInputs = append(d.CheckDataSetContainsTypeInRangeInputs, CheckDataSetContainsTypeInRangeInput{Context: ctx, Typ: typ, DataSetID: dataSetId, StartTime: startTime, EndTime: endTime})
+
+	gomega.Expect(d.CheckDataSetContainsTypeInRangeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.CheckDataSetContainsTypeInRangeOutputs[0]
+	d.CheckDataSetContainsTypeInRangeOutputs = d.CheckDataSetContainsTypeInRangeOutputs[1:]
+	return output.Status, output.Error
 }
 
 func (d *DataRepository) Expectations() {

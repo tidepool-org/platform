@@ -3,7 +3,7 @@ package summary
 import (
 	"time"
 
-	"github.com/tidepool-org/platform/errors"
+	"errors"
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
@@ -83,6 +83,28 @@ func NewDefaultUpdateTaskCreate() *task.TaskCreate {
 		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
 		Data: map[string]interface{}{
 			"config": NewDefaultUpdateConfig(),
+		},
+	}
+}
+
+func NewDefaultMigrationConfig() TaskConfiguration {
+	return TaskConfiguration{
+		Interval: MinuteRange{
+			int(DefaultMigrationAvailableAfterDurationMinimum.Minutes()),
+			int(DefaultMigrationAvailableAfterDurationMaximum.Minutes())},
+		Batch: pointer.FromAny(DefaultMigrationWorkerBatchSize),
+	}
+}
+
+func NewDefaultMigrationTaskCreate() *task.TaskCreate {
+	return &task.TaskCreate{
+		Name:           pointer.FromAny(MigrationType),
+		Type:           MigrationType,
+		Priority:       5,
+		AvailableTime:  pointer.FromAny(time.Now().UTC()),
+		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
+		Data: map[string]interface{}{
+			"config": NewDefaultMigrationConfig(),
 		},
 	}
 }

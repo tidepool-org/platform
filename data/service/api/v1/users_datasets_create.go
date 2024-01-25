@@ -25,7 +25,8 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	var details = request.GetAuthDetails(ctx)
+	if !details.IsService() {
 		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), targetUserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
@@ -68,6 +69,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	}
 
 	dataSet.SetUserID(&targetUserID)
+	dataSet.SetCreatedUserID(pointer.FromString(details.UserID()))
 
 	dataSet.Normalize(normalizer)
 

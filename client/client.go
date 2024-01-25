@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -80,17 +79,14 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 	}
 
 	for _, inspector := range inspectors {
-		if err = inspector.InspectResponse(res); err != nil {
-			drainAndClose(res.Body)
-			return nil, err
-		}
+		inspector.InspectResponse(res)
 	}
 
 	return c.handleResponse(ctx, res, req)
 }
 
 func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
-	headerInspector := request.NewHeadersInspector()
+	headerInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, append(inspectors, headerInspector), httpClient)
 	if err != nil {
 		return err
@@ -118,7 +114,9 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 		return nil, errors.New("url is missing")
 	}
 
-	mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+	if c.userAgent != "" {
+		mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+	}
 
 	var body io.Reader
 	if requestBody != nil {
@@ -173,7 +171,7 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 
 	serializable := &errors.Serializable{}
 
-	if bites, err := ioutil.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+	if bites, err := io.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
 		return nil, errors.Wrap(err, "unable to read response body")
 	} else if len(bites) == 0 {
 		logger.Error("Response body is empty, using defacto error for status code")
@@ -228,6 +226,6 @@ func responseBodyFromBytes(bites []byte) interface{} {
 }
 
 func drainAndClose(reader io.ReadCloser) {
-	io.Copy(ioutil.Discard, reader)
+	io.Copy(io.Discard, reader)
 	reader.Close()
 }

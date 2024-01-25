@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/tidepool-org/platform/pointer"
+
 	"github.com/kelseyhightower/envconfig"
 	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
@@ -22,6 +24,8 @@ var ClientModule = fx.Provide(NewClient)
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
+	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
+	SyncEHRData(ctx context.Context, clinicID string) error
 }
 
 type config struct {
@@ -76,6 +80,38 @@ func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID 
 	return response.JSON200, nil
 }
 
+func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error) {
+	offset := 0
+	batchSize := 1000
+
+	clinics := make([]clinic.Clinic, 0)
+	for {
+		response, err := d.httpClient.ListClinicsWithResponse(ctx, &clinic.ListClinicsParams{
+			EhrEnabled: pointer.FromBool(true),
+			Offset:     &offset,
+			Limit:      &batchSize,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if response.StatusCode() != http.StatusOK {
+			return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		}
+		if response.JSON200 == nil {
+			break
+		}
+
+		clinics = append(clinics, *response.JSON200...)
+		offset = offset + batchSize
+
+		if len(*response.JSON200) < batchSize {
+			break
+		}
+	}
+
+	return clinics, nil
+}
+
 func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
 	permission := make(map[string]interface{}, 0)
 	body := clinic.CreatePatientFromUserJSONRequestBody{
@@ -96,6 +132,17 @@ func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patie
 		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return response.JSON200, nil
+}
+
+func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error {
+	response, err := d.httpClient.SyncEHRDataWithResponse(ctx, clinicID)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() != http.StatusAccepted {
+		return fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+	}
+	return nil
 }
 
 func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {

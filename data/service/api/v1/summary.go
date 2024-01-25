@@ -7,6 +7,7 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/service/api"
 
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
@@ -16,22 +17,25 @@ import (
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/cgm/:userId", Authenticate(GetSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/bgm/:userId", Authenticate(GetSummary[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("POST", "/v1/summaries/cgm/:userId", Authenticate(UpdateSummary[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/bgm/:userId", Authenticate(UpdateSummary[types.BGMStats, *types.BGMStats])),
+		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("POST", "/v1/summaries/cgm", Authenticate(BackfillSummaries[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("POST", "/v1/summaries/bgm", Authenticate(BackfillSummaries[types.BGMStats, *types.BGMStats])),
+		dataService.Post("/v1/summaries/backfill/cgm", BackfillSummaries[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/backfill/bgm", BackfillSummaries[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.MakeRoute("GET", "/v1/summaries/cgm", Authenticate(GetOutdatedUserIDs[types.CGMStats, *types.CGMStats])),
-		dataService.MakeRoute("GET", "/v1/summaries/bgm", Authenticate(GetOutdatedUserIDs[types.BGMStats, *types.BGMStats])),
+		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
+
+		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
 	}
 }
 
 func CheckPermissions(ctx context.Context, dataServiceContext dataService.Context, id string) bool {
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	if !details.IsService() {
 		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), id)
@@ -65,13 +69,13 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	summary, err := summarizer.GetSummary(ctx, id)
+	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
+	} else if userSummary == nil {
 		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
@@ -89,13 +93,13 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	summary, err := summarizer.UpdateSummary(ctx, id)
+	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
+	} else if userSummary == nil {
 		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
@@ -106,7 +110,7 @@ func BackfillSummaries[T types.Stats, A types.StatsPt[T]](dataServiceContext dat
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
@@ -128,7 +132,7 @@ func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext da
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
@@ -141,6 +145,34 @@ func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext da
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
 	userIDs, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, userIDs)
+}
+
+func GetMigratableUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	responder := request.MustNewResponder(res, req)
+
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
+	}
+
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

@@ -3,11 +3,10 @@ package pump_test
 import (
 	"math"
 
-	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/settings/pump"

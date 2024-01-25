@@ -1,8 +1,8 @@
 package queue_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("Queue", func() {
+var _ = Describe("queue", func() {
 })

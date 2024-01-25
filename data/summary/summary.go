@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
+
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -42,9 +44,10 @@ func GetSummarizer[T types.Stats, A types.StatsPt[T]](reg *SummarizerRegistry) S
 
 type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
-	SetOutdated(ctx context.Context, userId string) (*time.Time, error)
+	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
 }
 
@@ -75,12 +78,16 @@ func (c *GlucoseSummarizer[T, A]) GetSummary(ctx context.Context, userId string)
 	return c.summaries.GetSummary(ctx, userId)
 }
 
-func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId string) (*time.Time, error) {
-	return c.summaries.SetOutdated(ctx, userId)
+func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+	return c.summaries.SetOutdated(ctx, userId, reason)
 }
 
 func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	return c.summaries.GetOutdatedUserIDs(ctx, pagination)
+}
+
+func (c *GlucoseSummarizer[T, A]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	return c.summaries.GetMigratableUserIDs(ctx, pagination)
 }
 
 func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, error) {
@@ -115,7 +122,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 	summaries := make([]*types.Summary[T, A], 0, len(userIDsReqBackfill))
 	for _, userID := range userIDsReqBackfill {
 		s := types.Create[T, A](userID)
-		s.SetOutdated()
+		s.SetOutdated(types.OutdatedReasonBackfill)
 		summaries = append(summaries, s)
 
 		if len(summaries) >= backfillInsertBatch {
@@ -148,39 +155,23 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 		return nil, err
 	}
 
-	// this filters out users which require no update, as they have no data of type T, but have an outdated summary
-	if status.LastData.IsZero() {
-		if userSummary != nil {
-			// user's data is inactive/deleted, or this summary shouldn't have been created
-			userSummary.Dates.ZeroOut()
-			logger.Warnf("User %s has an outdated summary with no data, skipping calc.", userId)
-			err = c.summaries.UpsertSummary(ctx, userSummary)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return userSummary, nil
+	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
+	if userSummary != nil && status.LastData.IsZero() {
+		// user's data is inactive/deleted, or this summary shouldn't have been created
+		logger.Warnf("User %s has a summary, but no data, deleting summary", userId)
+		return nil, c.summaries.DeleteSummary(ctx, userId)
 	}
 
-	// user exists (has relevant data), but no summary, create a blank one
+	// user has no usable summary for incremental update
 	if userSummary == nil {
 		userSummary = types.Create[T, A](userId)
 	}
 
-	// remove 30 days for start time
-	startTime := status.LastData.AddDate(0, 0, -30)
-
-	if userSummary.Dates.LastData != nil {
-		// if summary already exists with a last data checkpoint, start data pull there
-		if startTime.Before(*userSummary.Dates.LastData) {
-			startTime = *userSummary.Dates.LastData
-		}
-
-		// ensure LastData does not move backwards by capping it at summary LastData
-		if status.LastData.Before(*userSummary.Dates.LastData) {
-			status.LastData = *userSummary.Dates.LastData
-		}
+	if userSummary.Config.SchemaVersion != types.SchemaVersion {
+		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
 	}
+
+	startTime := types.GetStartTime(userSummary, status)
 
 	var userData []*glucoseDatum.Glucose
 	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, status.LastData)
@@ -210,4 +201,58 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	err = c.summaries.UpsertSummary(ctx, userSummary)
 
 	return userSummary, err
+}
+
+func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
+	outdatedSinceMap := make(map[string]*time.Time)
+	lgr := log.LoggerFromContext(ctx)
+
+	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
+		summarizer := GetSummarizer[types.CGMStats, *types.CGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set cgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
+	}
+
+	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
+		summarizer := GetSummarizer[types.BGMStats, *types.BGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set bgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
+	}
+
+	return outdatedSinceMap
+}
+
+func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
+	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
+	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
+	if datum.IsActive() {
+		typ := datum.GetType()
+		if types.DeviceDataTypesSet.Contains(typ) && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
+			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+		}
+	}
+}
+
+func CheckDataSetUpdatesSummary(ctx context.Context, repository dataStore.DataRepository, updatesSummary map[string]struct{}, dataSetId string) {
+	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	for _, typ := range types.DeviceDataTypes {
+		status, err := repository.CheckDataSetContainsTypeInRange(ctx, dataSetId, typ, twoYearsPast, oneDayFuture)
+		if err != nil {
+			return
+		}
+		if status {
+			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+		}
+	}
 }

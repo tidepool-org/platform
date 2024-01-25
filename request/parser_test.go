@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
@@ -229,6 +230,57 @@ var _ = Describe("Parser", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result).ToNot(BeNil())
 				Expect(*result).To(Equal(value))
+			})
+		})
+		Context("ParseTimeHeader", func() {
+			var value string
+			var layout string
+
+			BeforeEach(func() {
+				layout = time.RFC3339
+				value = time.Now().Format(layout)
+			})
+
+			It("returns nil if the header is nil", func() {
+				header = nil
+				result, err := request.ParseTimeHeader(header, key, layout)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeNil())
+			})
+
+			It("returns nil if the key is not present", func() {
+				result, err := request.ParseTimeHeader(header, key, layout)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeNil())
+			})
+
+			It("returns nil if there are no values", func() {
+				header[key] = []string{}
+				result, err := request.ParseTimeHeader(header, key, layout)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeNil())
+			})
+
+			It("returns an error if there is more than one value", func() {
+				header[key] = []string{time.Now().Add(1 * time.Hour).Format(layout), value}
+				result, err := request.ParseTimeHeader(header, key, layout)
+				Expect(err).To(MatchError(fmt.Sprintf("header %q is invalid", key)))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns an error if the value is not valid", func() {
+				header[key] = []string{"abc"}
+				result, err := request.ParseTimeHeader(header, key, layout)
+				Expect(err).To(MatchError(fmt.Sprintf("header %q is invalid", key)))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns the value if there is exactly one and it is valid", func() {
+				header[key] = []string{value}
+				result, err := request.ParseTimeHeader(header, key, layout)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Format(layout)).To(Equal(value))
 			})
 		})
 	})

@@ -2788,4 +2788,3 @@ func ParseCancelInviteResponse(rsp *http.Response) (*CancelInviteResponse, error
 
 	return response, nil
 }
-

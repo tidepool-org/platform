@@ -69,7 +69,7 @@ endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/ginkgo && go install -mod=vendor .
+	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && go install -mod=vendor .
 endif
 
 goimports:
@@ -89,7 +89,7 @@ generate: esc mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 
-ci-generate: generate
+ci-generate: generate format-write-changed imports-write-changed
 	@cd $(ROOT_DIRECTORY) && \
 		O=`git diff` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
 
@@ -105,6 +105,10 @@ format-write:
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
+format-write-changed:
+	@cd $(ROOT_DIRECTORY) && \
+		git diff --name-only | xargs -I{} gofmt -e -s -w {}
+
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
@@ -116,6 +120,10 @@ imports-write: goimports
 	@cd $(ROOT_DIRECTORY) && \
 		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
+imports-write-changed: goimports
+	@cd $(ROOT_DIRECTORY) && \
+		git diff --name-only | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
 
 vet: tmp
 	@echo "go vet"
@@ -181,28 +189,28 @@ service-restart-all:
 	@cd $(ROOT_DIRECTORY) && for SERVICE in migrations tools; do $(MAKE) service-restart SERVICE="$${SERVICE}"; done
 
 test: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
 
 test-until-failure: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)
 
 test-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
+	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
 
 ci-test-until-failure: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)
 
 ci-test-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)
+	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)
 
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 

@@ -11,14 +11,15 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
-	ExtendedTimeout = 300 * time.Second
+	// ExtendedTimeout is used by requests that we expect to take longer than
+	// usual.
+	ExtendedTimeout = 5 * time.Minute
 )
 
 // TODO: Move interface to data package once upload dependency broken
@@ -36,6 +37,7 @@ type Client interface {
 	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error)
 	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error)
 	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
+	GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context, t string) (int, error)
 }
 
@@ -50,15 +52,8 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, e
 		return nil, err
 	}
 
-	cfg.Timeout = pointer.FromDuration(ExtendedTimeout)
-	extendedTimeoutClient, err := platform.NewClient(cfg, authorizeAs)
-	if err != nil {
-		return nil, err
-	}
-
 	return &ClientImpl{
-		client:                clnt,
-		extendedTimeoutClient: extendedTimeoutClient,
+		client: clnt,
 	}, nil
 }
 
@@ -216,9 +211,11 @@ func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*type
 
 func (c *ClientImpl) BackfillSummaries(ctx context.Context, typ string) (int, error) {
 	var count int
-	url := c.extendedTimeoutClient.ConstructURL("v1", "summaries", typ)
+	url := c.client.ConstructURL("v1", "summaries", "backfill", typ)
 
-	if err := c.extendedTimeoutClient.RequestData(ctx, http.MethodPost, url, nil, nil, &count); err != nil {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, ExtendedTimeout)
+	defer cancel()
+	if err := c.client.RequestData(ctxWithTimeout, http.MethodPost, url, nil, nil, &count); err != nil {
 		return count, errors.Wrap(err, "backfill request returned an error")
 	}
 
@@ -232,7 +229,33 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, paginat
 	if typ == "" {
 		return nil, errors.New("type is missing")
 	}
-	url := c.client.ConstructURL("v1", "summaries", typ)
+	url := c.client.ConstructURL("v1", "summaries", "outdated", typ)
+
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	var userIDs []string
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return userIDs, err
+	}
+
+	return userIDs, nil
+}
+
+func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if typ == "" {
+		return nil, errors.New("type is missing")
+	}
+	url := c.client.ConstructURL("v1", "summaries", "migratable", typ)
 
 	if pagination == nil {
 		pagination = page.NewPagination()

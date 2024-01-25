@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
@@ -39,26 +38,34 @@ import (
 var _ = Describe("Client", func() {
 	var authClient *authTest.Client
 	var blobStructuredStore *blobStoreStructuredTest.Store
+
 	var blobStructuredRepository *blobStoreStructuredTest.BlobRepository
+	var deviceLogsStructuredRepository *blobStoreStructuredTest.DeviceLogsRepository
 	var blobUnstructuredStore *blobStoreUnstructuredTest.Store
+
 	var provider *blobServiceClientTest.Provider
 
 	BeforeEach(func() {
 		authClient = authTest.NewClient()
 		blobStructuredStore = blobStoreStructuredTest.NewStore()
 		blobStructuredRepository = blobStoreStructuredTest.NewBlobRepository()
+		deviceLogsStructuredRepository = blobStoreStructuredTest.NewDeviceLogsRepository()
 		blobStructuredStore.NewRepositoryOutput = func(s blobStoreStructured.BlobRepository) *blobStoreStructured.BlobRepository { return &s }(blobStructuredRepository)
+		blobStructuredStore.NewDeviceLogsRepositoryOutput = func(s blobStoreStructured.DeviceLogsRepository) *blobStoreStructured.DeviceLogsRepository { return &s }(deviceLogsStructuredRepository)
 		blobUnstructuredStore = blobStoreUnstructuredTest.NewStore()
 		provider = blobServiceClientTest.NewProvider()
 		provider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
 		provider.BlobStructuredStoreOutput = func(s blobStoreStructured.Store) *blobStoreStructured.Store { return &s }(blobStructuredStore)
 		provider.BlobUnstructuredStoreOutput = func(s blobStoreUnstructured.Store) *blobStoreUnstructured.Store { return &s }(blobUnstructuredStore)
+		provider.DeviceLogBlobUnstructuredStoreOutput = func(s blobStoreUnstructured.Store) *blobStoreUnstructured.Store { return &s }(blobUnstructuredStore)
+		provider.DeviceLogsStructuredStoreOutput = func(s blobStoreStructured.Store) *blobStoreStructured.Store { return &s }(blobStructuredStore)
 	})
 
 	AfterEach(func() {
 		provider.AssertOutputsEmpty()
 		blobUnstructuredStore.AssertOutputsEmpty()
 		blobStructuredStore.AssertOutputsEmpty()
+		deviceLogsStructuredRepository.AssertOutputsEmpty()
 		authClient.AssertOutputsEmpty()
 	})
 
@@ -207,7 +214,7 @@ var _ = Describe("Client", func() {
 
 							BeforeEach(func() {
 								blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
-									size, _ = io.Copy(ioutil.Discard, reader)
+									size, _ = io.Copy(io.Discard, reader)
 									return nil
 								}
 							})
@@ -215,7 +222,7 @@ var _ = Describe("Client", func() {
 							When("the size exceeds maximum", func() {
 								BeforeEach(func() {
 									body := make([]byte, 104857601)
-									content.Body = ioutil.NopCloser(bytes.NewReader(body))
+									content.Body = io.NopCloser(bytes.NewReader(body))
 									content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
 								})
 
@@ -353,7 +360,7 @@ var _ = Describe("Client", func() {
 									When("the size is maximum", func() {
 										BeforeEach(func() {
 											body := make([]byte, 104857600)
-											content.Body = ioutil.NopCloser(bytes.NewReader(body))
+											content.Body = io.NopCloser(bytes.NewReader(body))
 											content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
 										})
 
@@ -361,6 +368,218 @@ var _ = Describe("Client", func() {
 											Expect(client.Create(ctx, userID, content)).To(Equal(updateBlob))
 										})
 									})
+								})
+							})
+						})
+					})
+				})
+			})
+
+			Context("CreateDeviceLogs", func() {
+				var content *blob.DeviceLogsContent
+
+				BeforeEach(func() {
+					content = blobTest.RandomDeviceLogsContent()
+				})
+
+				It("returns an error when content is missing", func() {
+					content = nil
+					result, err := client.CreateDeviceLogs(ctx, userID, content)
+					errorsTest.ExpectEqual(err, errors.New("content is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when content is invalid", func() {
+					content.Body = nil
+					result, err := client.CreateDeviceLogs(ctx, userID, content)
+					errorsTest.ExpectEqual(err, errors.New("content is invalid"))
+					Expect(result).To(BeNil())
+				})
+
+				When("the device-logs blob is created", func() {
+					AfterEach(func() {
+						structuredCreate := blobStoreStructured.NewCreate()
+						structuredCreate.MediaType = content.MediaType
+						Expect(deviceLogsStructuredRepository.CreateInputs).To(Equal([]blobStoreStructuredTest.CreateDeviceLogsInput{{UserID: userID, Create: structuredCreate}}))
+					})
+
+					It("returns an error when the blob repository create returns an error", func() {
+						responseErr := errorsTest.RandomError()
+						deviceLogsStructuredRepository.CreateOutputs = []blobStoreStructuredTest.CreateDeviceLogsOutput{{DeviceLogsBlob: nil, Error: responseErr}}
+						result, err := client.CreateDeviceLogs(ctx, userID, content)
+						errorsTest.ExpectEqual(err, responseErr)
+						Expect(result).To(BeNil())
+					})
+
+					When("the blob repository create returns successfully", func() {
+						var createDeviceLogsBlob *blob.DeviceLogsBlob
+
+						BeforeEach(func() {
+							createDeviceLogsBlob = blobTest.RandomDeviceLogsBlob()
+							createDeviceLogsBlob.UserID = pointer.FromString(userID)
+							createDeviceLogsBlob.DigestMD5 = nil
+							createDeviceLogsBlob.MediaType = content.MediaType
+							createDeviceLogsBlob.Size = nil
+							deviceLogsStructuredRepository.CreateOutputs = []blobStoreStructuredTest.CreateDeviceLogsOutput{{DeviceLogsBlob: createDeviceLogsBlob, Error: nil}}
+						})
+
+						AfterEach(func() {
+							Expect(blobUnstructuredStore.PutInputs).To(HaveLen(1))
+							Expect(blobUnstructuredStore.PutInputs[0].UserID).To(Equal(userID))
+							Expect(blobUnstructuredStore.PutInputs[0].ID).To(Equal(*createDeviceLogsBlob.ID))
+							Expect(blobUnstructuredStore.PutInputs[0].Reader).ToNot(BeNil())
+						})
+
+						It("returns an error when the blob unstructured store put returns an error", func() {
+							responseErr := errorsTest.RandomError()
+							blobUnstructuredStore.PutOutputs = []error{responseErr}
+							deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
+							result, err := client.CreateDeviceLogs(ctx, userID, content)
+							errorsTest.ExpectEqual(err, responseErr)
+							Expect(result).To(BeNil())
+						})
+
+						It("returns an error when the blob unstructured store put returns an error and logs an error when the blob repository destroy returns error", func() {
+							responseErr := errorsTest.RandomError()
+							blobUnstructuredStore.PutOutputs = []error{responseErr}
+							deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: responseErr}}
+							result, err := client.CreateDeviceLogs(ctx, userID, content)
+							errorsTest.ExpectEqual(err, responseErr)
+							Expect(result).To(BeNil())
+							logger.AssertError("Unable to destroy blob after failure to put blob content", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+						})
+
+						When("the blob unstructured store put returns successfully", func() {
+							var size int64
+
+							BeforeEach(func() {
+								blobUnstructuredStore.PutStub = func(ctx context.Context, userID string, id string, reader io.Reader, options *storeUnstructured.Options) error {
+									size, _ = io.Copy(io.Discard, reader)
+									return nil
+								}
+							})
+
+							When("the size exceeds maximum", func() {
+								BeforeEach(func() {
+									body := make([]byte, 104857601)
+									content.Body = io.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
+								})
+
+								AfterEach(func() {
+									Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{UserID: userID, ID: *createDeviceLogsBlob.ID}}))
+									Expect(deviceLogsStructuredRepository.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyDeviceLogsInput{{ID: *createDeviceLogsBlob.ID}}))
+								})
+
+								It("returns an error", func() {
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+									Expect(result).To(BeNil())
+								})
+
+								It("returns an error and logs an error when the unstructured store returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+									Expect(result).To(BeNil())
+									logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+								})
+
+								It("returns an error and logs an error when the structured store returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: false, Error: responseErr}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+									Expect(result).To(BeNil())
+									logger.AssertError("Unable to destroy blob exceeding maximum size", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+								})
+
+								It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: false, Error: responseErr}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, request.ErrorResourceTooLarge())
+									Expect(result).To(BeNil())
+									logger.AssertError("Unable to delete blob content exceeding maximum size", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+									logger.AssertError("Unable to destroy blob exceeding maximum size", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+								})
+							})
+
+							When("the digest does not match", func() {
+								var digestMD5 string
+
+								BeforeEach(func() {
+									digestMD5 = *content.DigestMD5
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+								})
+
+								AfterEach(func() {
+									Expect(blobUnstructuredStore.DeleteInputs).To(Equal([]blobStoreUnstructuredTest.DeleteInput{{UserID: userID, ID: *createDeviceLogsBlob.ID}}))
+									Expect(deviceLogsStructuredRepository.DestroyInputs).To(Equal([]blobStoreStructuredTest.DestroyDeviceLogsInput{{ID: *createDeviceLogsBlob.ID}}))
+								})
+
+								It("returns an error", func() {
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+									Expect(result).To(BeNil())
+								})
+
+								It("returns an error and logs an error when the unstructured store returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: true, Error: nil}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+									Expect(result).To(BeNil())
+									logger.AssertError("Unable to delete blob content with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+								})
+
+								It("returns an error and logs an error when the structured store returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: true, Error: nil}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: false, Error: responseErr}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+									Expect(result).To(BeNil())
+									logger.AssertError("Unable to destroy blob with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+								})
+
+								It("returns an error and logs an error when both the unstructured and structured store returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									blobUnstructuredStore.DeleteOutputs = []blobStoreUnstructuredTest.DeleteOutput{{Deleted: false, Error: responseErr}}
+									deviceLogsStructuredRepository.DestroyOutputs = []blobStoreStructuredTest.DestroyDeviceLogsOutput{{Destroyed: false, Error: responseErr}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), "/digestMD5"))
+									Expect(result).To(BeNil())
+									logger.AssertError("Unable to delete blob content with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+									logger.AssertError("Unable to destroy blob with incorrect MD5 digest", log.Fields{"userId": userID, "id": *createDeviceLogsBlob.ID, "error": errors.NewSerializable(responseErr)})
+								})
+							})
+
+							When("the digest and size are valid", func() {
+								AfterEach(func() {
+									update := blobStoreStructured.NewDeviceLogsUpdate()
+									update.DigestMD5 = pointer.CloneString(content.DigestMD5)
+									update.Size = pointer.FromInt(int(size))
+									update.StartAt = pointer.CloneTime(content.StartAt)
+									update.EndAt = pointer.CloneTime(content.EndAt)
+									Expect(deviceLogsStructuredRepository.UpdateInputs).To(Equal([]blobStoreStructuredTest.UpdateDeviceLogsInput{{ID: *createDeviceLogsBlob.ID, Update: update}}))
+								})
+
+								It("returns an error when blob repository update returns an error", func() {
+									responseErr := errorsTest.RandomError()
+									deviceLogsStructuredRepository.UpdateOutputs = []blobStoreStructuredTest.UpdateDeviceLogsOutput{{DeviceLogsBlob: nil, Error: responseErr}}
+									result, err := client.CreateDeviceLogs(ctx, userID, content)
+									errorsTest.ExpectEqual(err, responseErr)
+									Expect(result).To(BeNil())
 								})
 							})
 						})
@@ -500,7 +719,7 @@ var _ = Describe("Client", func() {
 
 					It("returns successfully when the blob unstructured store get returns successfully", func() {
 						body := test.RandomBytes()
-						reader := ioutil.NopCloser(bytes.NewReader(body))
+						reader := io.NopCloser(bytes.NewReader(body))
 						blobUnstructuredStore.GetOutputs = []blobStoreUnstructuredTest.GetOutput{{Reader: reader, Error: nil}}
 						result, err := client.GetContent(ctx, id)
 						Expect(err).ToNot(HaveOccurred())

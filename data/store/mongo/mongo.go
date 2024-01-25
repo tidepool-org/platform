@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/store"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -23,15 +24,21 @@ type Store struct {
 func (s *Store) EnsureIndexes() error {
 	dataRepository := s.NewDataRepository()
 	summaryRepository := s.NewSummaryRepository()
+	alertsRepository := s.NewAlertsRepository()
 
-	err := dataRepository.EnsureIndexes()
-	if err != nil {
+	if err := dataRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 
-	err = summaryRepository.EnsureIndexes()
+	if err := summaryRepository.EnsureIndexes(); err != nil {
+		return err
+	}
 
-	return err
+	if err := alertsRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Store) NewDataRepository() store.DataRepository {
@@ -49,4 +56,9 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 	return &SummaryRepository{
 		s.Store.GetRepository("summary"),
 	}
+}
+
+func (s *Store) NewAlertsRepository() alerts.Repository {
+	r := alertsRepo(*s.Store.GetRepository("alerts"))
+	return &r
 }

@@ -2,6 +2,11 @@ package service
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/ehr/reconcile"
+	"github.com/tidepool-org/platform/ehr/sync"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
@@ -28,12 +33,13 @@ import (
 
 type Service struct {
 	*serviceService.Authenticated
-	taskStore        *taskMongo.Store
+	taskStore        store.Store
 	taskClient       *Client
 	dataClient       dataClient.Client
 	dataSourceClient dataSource.Client
 	dexcomClient     dexcom.Client
-	taskQueue        *queue.Queue
+	taskQueue        queue.Queue
+	clinicsClient    clinics.Client
 }
 
 func New() *Service {
@@ -60,6 +66,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeDexcomClient(); err != nil {
+		return err
+	}
+	if err := s.initializeClinicsClient(); err != nil {
 		return err
 	}
 	if err := s.initializeTaskQueue(); err != nil {
@@ -112,19 +121,14 @@ func (s *Service) initializeTaskStore() error {
 
 	s.Logger().Debug("Ensuring task store indexes")
 
-	err = s.taskStore.EnsureIndexes()
+	err = taskStore.EnsureIndexes()
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure task store indexes")
 	}
 
-	err = s.taskStore.EnsureSummaryUpdateTask()
+	err = taskStore.EnsureDefaultTasks()
 	if err != nil {
-		return errors.Wrap(err, "unable to ensure task store contains summary update task")
-	}
-
-	err = s.taskStore.EnsureSummaryBackfillTask()
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure task store contains summary backfill task")
+		return errors.Wrap(err, "unable to ensure task store contains default tasks")
 	}
 
 	return nil
@@ -164,7 +168,9 @@ func (s *Service) initializeDataClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("data", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load data client config")
 	}
 
@@ -191,7 +197,9 @@ func (s *Service) initializeDataSourceClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("data_source", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load data source client config")
 	}
 
@@ -224,7 +232,9 @@ func (s *Service) initializeDexcomClient() error {
 
 		cfg := client.NewConfig()
 		cfg.UserAgent = s.UserAgent()
-		if err = cfg.Load(s.ConfigReporter().WithScopes("dexcom", "client")); err != nil {
+		reporter := s.ConfigReporter().WithScopes("dexcom", "client")
+		loader := client.NewConfigReporterLoader(reporter)
+		if err = cfg.Load(loader); err != nil {
 			return errors.Wrap(err, "unable to load dexcom client config")
 		}
 
@@ -247,6 +257,18 @@ func (s *Service) terminateDexcomClient() {
 	}
 }
 
+func (s *Service) initializeClinicsClient() error {
+	s.Logger().Debug("Creating clinics client")
+
+	clnt, err := clinics.NewClient(s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create clinics client")
+	}
+	s.clinicsClient = clnt
+
+	return nil
+}
+
 func (s *Service) initializeTaskQueue() error {
 	s.Logger().Debug("Loading task queue config")
 
@@ -257,13 +279,14 @@ func (s *Service) initializeTaskQueue() error {
 
 	s.Logger().Debug("Creating task queue")
 
-	taskQueue, err := queue.New(cfg, s.Logger(), s.TaskStore())
+	taskQueue, err := queue.NewMultiQueue(cfg, s.Logger(), s.TaskStore())
 	if err != nil {
 		return errors.Wrap(err, "unable to create task queue")
 	}
 
 	s.taskQueue = taskQueue
 
+	var runners []queue.Runner
 	if s.dexcomClient != nil {
 		s.Logger().Debug("Creating dexcom fetch runner")
 
@@ -272,29 +295,49 @@ func (s *Service) initializeTaskQueue() error {
 			return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
 		}
 
-		taskQueue.RegisterRunner(rnnr)
+		runners = append(runners, rnnr)
 	}
 
 	s.Logger().Debug("Creating summary update runner")
 
 	summaryUpdateRnnr, summaryUpdateRnnrErr := summaryUpdate.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-
 	if summaryUpdateRnnrErr != nil {
 		return errors.Wrap(summaryUpdateRnnrErr, "unable to create summary update runner")
 	}
-
-	taskQueue.RegisterRunner(summaryUpdateRnnr)
+	runners = append(runners, summaryUpdateRnnr)
 
 	summaryBackfillRnnr, summaryBackfillRnnrErr := summaryUpdate.NewBackfillRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-
 	if summaryBackfillRnnrErr != nil {
 		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
 	}
+	runners = append(runners, summaryBackfillRnnr)
 
-	taskQueue.RegisterRunner(summaryBackfillRnnr)
+	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+	if summaryMigrationRnnrErr != nil {
+		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
+	}
+	taskQueue.RegisterRunner(summaryMigrationRnnr)
+
+	ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create ehr reconcile runner")
+	}
+	runners = append(runners, ehrReconcileRnnr)
+
+	ehrSyncRnnr, err := sync.NewRunner(s.clinicsClient, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create ehr sync runner")
+	}
+	runners = append(runners, ehrSyncRnnr)
+
+	for _, r := range runners {
+		r := r
+		if err := taskQueue.RegisterRunner(r); err != nil {
+			return fmt.Errorf("unable to register runner %s: %w", r.GetRunnerType(), err)
+		}
+	}
 
 	s.Logger().Debug("Starting task queue")
-
 	s.taskQueue.Start()
 
 	return nil

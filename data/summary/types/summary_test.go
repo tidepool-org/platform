@@ -4,7 +4,9 @@ import (
 	"math"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	userTest "github.com/tidepool-org/platform/user/test"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -218,6 +220,40 @@ var _ = Describe("Summary", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 40, 0, 0, time.UTC)
 			realMinutes := types.CalculateRealMinutes(1, lastRecordTime, 15)
 			Expect(realMinutes).To(BeNumerically("==", 1440-5))
+		})
+	})
+
+	Context("GetStartTime", func() {
+		var userId string
+		var userSummary *types.Summary[types.CGMStats, *types.CGMStats]
+
+		BeforeEach(func() {
+			userId = userTest.RandomID()
+			userSummary = types.Create[types.CGMStats, *types.CGMStats](userId)
+		})
+
+		// NOTE we use CGM types here, but it doesn't matter for the test
+
+		It("Returns correct start time for summary >60d behind", func() {
+			timestamp := time.Date(2020, time.Month(1), 1, 1, 1, 0, 0, time.UTC)
+
+			userSummary.Dates.LastData = &timestamp
+			status := types.UserLastUpdated{
+				LastData: timestamp.AddDate(0, 0, types.HoursAgoToKeep/24+1),
+			}
+			startTime := types.GetStartTime(userSummary, &status)
+			Expect(startTime).To(Equal(status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)))
+		})
+
+		It("Returns correct start time for summary <60d behind", func() {
+			timestamp := time.Date(2020, time.Month(1), 1, 1, 1, 0, 0, time.UTC)
+
+			userSummary.Dates.LastData = &timestamp
+			status := types.UserLastUpdated{
+				LastData: timestamp.AddDate(0, 0, types.HoursAgoToKeep/24/2),
+			}
+			startTime := types.GetStartTime(userSummary, &status)
+			Expect(startTime).To(Equal(status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24/2)))
 		})
 	})
 })

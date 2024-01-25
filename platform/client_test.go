@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -242,7 +242,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
@@ -305,7 +305,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -321,7 +321,7 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				serviceSecret = ""
 				sessionToken = authTest.NewSessionToken()
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
 			})
 
 			JustBeforeEach(func() {
@@ -345,7 +345,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns an error if details are not in context", func() {
-					mutators, err := clnt.Mutators(request.NewContextWithDetails(ctx, nil))
+					mutators, err := clnt.Mutators(request.NewContextWithAuthDetails(ctx, nil))
 					Expect(err).To(MatchError("details is missing"))
 					Expect(mutators).To(BeNil())
 				})
@@ -457,7 +457,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
@@ -520,7 +520,7 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})

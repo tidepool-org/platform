@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Uber Technologies, Inc.
+// Copyright (c) 2020-2021 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,42 +21,71 @@
 package fxlog
 
 import (
-	"fmt"
-	"strings"
+	"reflect"
+	"sync"
+
+	"go.uber.org/fx/fxevent"
 )
 
-// Spy is an Fx Printer that captures logged statements. It may be used in
-// tests of Fx logs.
-type Spy struct {
-	msgs []string
-}
+// Events is a list of events captured by fxlog.Spy.
+type Events []fxevent.Event
 
-var _ Printer = &Spy{}
+// Len returns the number of events in this list.
+func (es Events) Len() int { return len(es) }
 
-// Printf logs the given message, formatting it in printf-style.
-func (s *Spy) Printf(msg string, args ...interface{}) {
-	s.msgs = append(s.msgs, fmt.Sprintf(msg, args...))
-}
-
-// Messages returns a copy of all captured messages.
-func (s *Spy) Messages() []string {
-	msgs := make([]string, len(s.msgs))
-	copy(msgs, s.msgs)
-	return msgs
-}
-
-// String returns all logged messages as a single newline-delimited string.
-func (s *Spy) String() string {
-	if len(s.msgs) == 0 {
-		return ""
+// SelectByTypeName returns a new list with only events matching the specified
+// type.
+func (es Events) SelectByTypeName(name string) Events {
+	var out Events
+	for _, e := range es {
+		if reflect.TypeOf(e).Elem().Name() == name {
+			out = append(out, e)
+		}
 	}
-
-	// trailing newline because all log entries should have a newline
-	// after them.
-	return strings.Join(s.msgs, "\n") + "\n"
+	return out
 }
 
-// Reset clears all messages from the Spy.
+// Spy is an Fx event logger that captures emitted events and/or logged
+// statements. It may be used in tests of Fx logs.
+type Spy struct {
+	mu     sync.RWMutex
+	events Events
+}
+
+var _ fxevent.Logger = &Spy{}
+
+// LogEvent appends an Event.
+func (s *Spy) LogEvent(event fxevent.Event) {
+	s.mu.Lock()
+	s.events = append(s.events, event)
+	s.mu.Unlock()
+}
+
+// Events returns all captured events.
+func (s *Spy) Events() Events {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	events := make(Events, len(s.events))
+	copy(events, s.events)
+	return events
+}
+
+// EventTypes returns all captured event types.
+func (s *Spy) EventTypes() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	types := make([]string, len(s.events))
+	for i, e := range s.events {
+		types[i] = reflect.TypeOf(e).Elem().Name()
+	}
+	return types
+}
+
+// Reset clears all messages and events from the Spy.
 func (s *Spy) Reset() {
-	s.msgs = s.msgs[:0]
+	s.mu.Lock()
+	s.events = s.events[:0]
+	s.mu.Unlock()
 }

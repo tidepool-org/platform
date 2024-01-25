@@ -2,7 +2,6 @@ package devicecheck
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -35,19 +34,13 @@ func (client *Client) ValidateDeviceToken(deviceToken string) error {
 		Timestamp:     time.Now().UTC().UnixNano() / int64(time.Millisecond),
 	}
 
-	resp, err := client.api.do(jwt, validateDeviceTokenPath, body)
+	code, respBody, err := client.api.do(jwt, validateDeviceTokenPath, body)
 	if err != nil {
 		return fmt.Errorf("devicecheck: failed to validate device token: %w", err)
 	}
-	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("devicecheck: failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("devicecheck: %w", newError(resp.StatusCode, string(respBody)))
+	if code != http.StatusOK {
+		return fmt.Errorf("devicecheck: %w", newError(code, respBody))
 	}
 
 	return nil
