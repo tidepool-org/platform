@@ -27,7 +27,6 @@ import (
 	"github.com/tidepool-org/platform/metadata"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -78,7 +77,7 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 
 	start := time.Now()
 
-	preprocessedDatumArray := []interface{}{}
+	//preprocessedDatumArray := []interface{}{}
 	datumArray := []data.Datum{}
 
 	for i, item := range bsonDataArray {
@@ -118,6 +117,7 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 			err = bson.Unmarshal(dataBytes, &datum)
 			if err != nil {
 				log.Printf("%s %s", dType, err)
+				break
 			}
 			datumArray = append(datumArray, datum)
 		case continuous.Type:
@@ -130,6 +130,7 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 			err = bson.Unmarshal(dataBytes, &datum)
 			if err != nil {
 				log.Printf("%s %s", dType, err)
+				break
 			}
 			datumArray = append(datumArray, datum)
 
@@ -143,14 +144,15 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 			err = bson.Unmarshal(dataBytes, &datum)
 			if err != nil {
 				log.Printf("%s %s", dType, err)
+				break
 			}
 			datumArray = append(datumArray, datum)
 		}
-		preprocessedDatumArray = append(preprocessedDatumArray, item)
+		//preprocessedDatumArray = append(preprocessedDatumArray, item)
 	}
 
 	errs := []error{}
-	parser := structureParser.NewArray(&preprocessedDatumArray)
+	//parser := structureParser.NewArray(&preprocessedDatumArray)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
@@ -168,11 +170,11 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 		(datum).Normalize(normalizer.WithReference(strconv.Itoa(i)))
 	}
 
-	parser.NotParsed()
+	// parser.NotParsed()
 
-	if err := parser.Error(); err != nil {
-		errs = append(errs, err)
-	}
+	// if err := parser.Error(); err != nil {
+	// 	errs = append(errs, err)
+	// }
 
 	if err := validator.Error(); err != nil {
 		errs = append(errs, err)
@@ -182,7 +184,7 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 		errs = append(errs, err)
 	}
 
-	log.Printf("processed [%d] in [%s] [%t]", len(bsonDataArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
+	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(datumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
 
 	return datumArray, errs
 }
