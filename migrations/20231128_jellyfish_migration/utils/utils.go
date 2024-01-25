@@ -79,6 +79,8 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 
 	start := time.Now()
 
+	log.Printf("to process [%d] datums", len(rawDatumArray))
+
 	preprocessedDatumArray := []interface{}{}
 
 	for _, item := range rawDatumArray {
@@ -117,9 +119,9 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 
 	parser.NotParsed()
 
-	// if err := parser.Error(); err != nil {
-	// 	errs = append(errs, err)
-	// }
+	if err := parser.Error(); err != nil {
+		errs = append(errs, err)
+	}
 
 	if err := validator.Error(); err != nil {
 		errs = append(errs, err)

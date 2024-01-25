@@ -313,12 +313,12 @@ func (m *Migration) fetchAndProcess() bool {
 			log.Printf("error decoding data: %s", err)
 			return false
 		}
+		m.migrationUtil.SetFetched(results)
 		if _, errs := utils.ProcessData(results); errs != nil {
 			for _, err := range errs {
 				m.migrationUtil.OnError(err, "", "processing data")
 			}
 		}
-		m.migrationUtil.SetFetched(results)
 		return len(results) > 0
 	}
 	return false
