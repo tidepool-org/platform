@@ -112,9 +112,10 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 			return err
 		}
 		if m.config.cap != nil {
-			if m.updatedCount >= *m.config.cap {
+			if m.updatedCount >= *m.config.cap || len(m.rawData) >= *m.config.cap {
 				break
 			}
+
 		}
 	}
 	m.GetStats().report()
@@ -398,6 +399,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		return errors.New("missing required collection to write updates to")
 	}
 	if len(m.updates) == 0 {
+		log.Println("no updates to apply")
 		return nil
 	}
 
