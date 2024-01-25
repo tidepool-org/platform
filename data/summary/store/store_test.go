@@ -1098,8 +1098,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						pagination.Size = 3
 
-						for i := 0; i < len(cgmSummaries); i++ {
-							cgmSummaries[i].Dates.OutdatedSince = &outdatedTime
+						for i := len(cgmSummaries) - 1; i >= 0; i-- {
+							cgmSummaries[i].Dates.OutdatedSince = pointer.FromAny(outdatedTime.Add(-time.Duration(i) * time.Second))
 						}
 						_, err = cgmStore.CreateSummaries(ctx, cgmSummaries)
 						Expect(err).ToNot(HaveOccurred())
@@ -1107,7 +1107,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 						userIds, err = cgmStore.GetOutdatedUserIDs(ctx, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(len(userIds.UserIds)).To(Equal(3))
-						Expect(userIds.UserIds).To(ConsistOf([]string{userId, userIdOther, userIdTwo}))
+						Expect(userIds.UserIds).To(ConsistOf([]string{userIdThree, userIdTwo, userIdOther}))
 					})
 
 					It("Check sort order", func() {
