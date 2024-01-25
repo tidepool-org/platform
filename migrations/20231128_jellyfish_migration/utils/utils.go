@@ -79,8 +79,6 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 
 	start := time.Now()
 
-	log.Printf("to process [%d] datums", len(rawDatumArray))
-
 	preprocessedDatumArray := []interface{}{}
 
 	for i, item := range rawDatumArray {
@@ -114,7 +112,7 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 	datumArray := []data.Datum{}
 	for _, reference := range parser.References() {
 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
-			log.Printf("Datum: [%d] [%v]\n\n", reference, datum)
+			log.Printf("Datum: [%d] [%v]\n\n", reference, *datum)
 			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
 			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
 			datumArray = append(datumArray, *datum)

@@ -108,7 +108,7 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 func (m *migrationUtil) capReached() bool {
 	stats := m.GetStats()
 	log.Printf("cap [%d] updated [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
-	if *m.config.cap >= stats.Applied || *m.config.cap >= stats.Fetched {
+	if *m.config.cap < stats.Applied || *m.config.cap < stats.Fetched {
 		return true
 	}
 	return false
