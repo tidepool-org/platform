@@ -3,8 +3,7 @@ package dexcom_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
@@ -71,7 +70,7 @@ var _ = Describe("DataRangeResponse", func() {
 			}),
 			Entry("required egvs are not set", func() *dexcom.DataRangeResponse {
 				dataRangeResp := test.RandomDataRangeResponse()
-				dataRangeResp.Egvs = nil
+				dataRangeResp.EGVs = nil
 				return dataRangeResp
 			}),
 		)
@@ -106,7 +105,7 @@ var _ = Describe("DataRangeResponse", func() {
 		When("Egvs start is oldest", func() {
 			It("it is returned", func() {
 				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
-				dataRangeResp.Egvs.Start.DisplayTime.Time = oldestTime
+				dataRangeResp.EGVs.Start.DisplayTime.Time = oldestTime
 				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
 			})
 		})

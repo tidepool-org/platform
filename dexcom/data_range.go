@@ -8,11 +8,11 @@ import (
 )
 
 type DataRange struct {
-	Start *DateRange `json:"start,omitempty"`
-	End   *DateRange `json:"end,omitempty"`
+	Start *Times `json:"start,omitempty"`
+	End   *Times `json:"end,omitempty"`
 }
 
-type DateRange struct {
+type Times struct {
 	SystemTime  *Time `json:"systemTime,omitempty"`
 	DisplayTime *Time `json:"displayTime,omitempty"`
 }
@@ -22,7 +22,7 @@ type DataRangeResponse struct {
 	RecordVersion *string    `json:"recordVersion,omitempty"`
 	UserID        *string    `json:"userId,omitempty"`
 	Calibrations  *DataRange `json:"calibrations,omitempty"`
-	Egvs          *DataRange `json:"egvs,omitempty"`
+	EGVs          *DataRange `json:"egvs,omitempty"`
 	Events        *DataRange `json:"events,omitempty"`
 }
 
@@ -44,27 +44,25 @@ func (d *DataRangeResponse) Parse(parser structure.ObjectParser) {
 	d.RecordType = parser.String("recordType")
 	d.RecordVersion = parser.String("recordVersion")
 	d.Calibrations = ParseDataRange(parser.WithReferenceObjectParser("calibrations"))
-	d.Egvs = ParseDataRange(parser.WithReferenceObjectParser("egvs"))
+	d.EGVs = ParseDataRange(parser.WithReferenceObjectParser("egvs"))
 	d.Events = ParseDataRange(parser.WithReferenceObjectParser("events"))
 }
 
 func (d *DataRangeResponse) GetOldestStartDate() time.Time {
 	oldest := time.Now().UTC()
-	if d.Calibrations.Start != nil {
-		if d.Calibrations.Start.DisplayTime.Time.Before(oldest) {
-			oldest = d.Calibrations.Start.DisplayTime.Time
-		}
+
+	if d.Calibrations.Start.DisplayTime.Time.Before(oldest) {
+		oldest = d.Calibrations.Start.DisplayTime.Time
 	}
-	if d.Events.Start != nil {
-		if d.Events.Start.DisplayTime.Time.Before(oldest) {
-			oldest = d.Events.Start.DisplayTime.Time
-		}
+
+	if d.Events.Start.DisplayTime.Time.Before(oldest) {
+		oldest = d.Events.Start.DisplayTime.Time
 	}
-	if d.Egvs.Start != nil {
-		if d.Egvs.Start.DisplayTime.Time.Before(oldest) {
-			oldest = d.Egvs.Start.DisplayTime.Time
-		}
+
+	if d.EGVs.Start.DisplayTime.Time.Before(oldest) {
+		oldest = d.EGVs.Start.DisplayTime.Time
 	}
+
 	return oldest
 }
 
@@ -75,8 +73,8 @@ func (d *DataRangeResponse) Validate(validator structure.Validator) {
 		calibrationsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 
-	if egvsValidator := validator.WithReference("egvs"); d.Egvs != nil {
-		d.Egvs.Validate(egvsValidator)
+	if egvsValidator := validator.WithReference("egvs"); d.EGVs != nil {
+		d.EGVs.Validate(egvsValidator)
 	} else {
 		egvsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
@@ -99,14 +97,14 @@ func ParseDataRange(parser structure.ObjectParser) *DataRange {
 
 func NewDataRange() *DataRange {
 	return &DataRange{
-		Start: NewDateRange(),
-		End:   NewDateRange(),
+		Start: NewTimes(),
+		End:   NewTimes(),
 	}
 }
 
 func (d *DataRange) Parse(parser structure.ObjectParser) {
-	d.Start = ParseNewDateRange(parser.WithReferenceObjectParser("start"))
-	d.End = ParseNewDateRange(parser.WithReferenceObjectParser("end"))
+	d.Start = ParseNewTimes(parser.WithReferenceObjectParser("start"))
+	d.End = ParseNewTimes(parser.WithReferenceObjectParser("end"))
 }
 
 func (d *DataRange) Validate(validator structure.Validator) {
@@ -123,28 +121,28 @@ func (d *DataRange) Validate(validator structure.Validator) {
 	}
 }
 
-func ParseNewDateRange(parser structure.ObjectParser) *DateRange {
+func ParseNewTimes(parser structure.ObjectParser) *Times {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewDateRange()
+	datum := NewTimes()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewDateRange() *DateRange {
-	return &DateRange{
+func NewTimes() *Times {
+	return &Times{
 		SystemTime:  NewTime(),
 		DisplayTime: NewTime(),
 	}
 }
 
-func (c *DateRange) Parse(parser structure.ObjectParser) {
+func (c *Times) Parse(parser structure.ObjectParser) {
 	c.SystemTime = TimeFromString(parser.String("systemTime"))
 	c.DisplayTime = TimeFromString(parser.String("displayTime"))
 }
 
-func (d *DateRange) Validate(validator structure.Validator) {
+func (d *Times) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(d)
 	validator.Time("systemTime", d.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
 	validator.Time("displayTime", d.DisplayTime.Raw()).Exists().NotZero()
