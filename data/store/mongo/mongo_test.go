@@ -599,14 +599,9 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("UserIDTypeUnique"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("dates.outdatedSince", "type")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "config.schemaVersion")),
 						"Background": Equal(false),
-						"Name":       Equal("OutdatedSince"),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("config.schemaVersion", "type", "dates.lastUpdatedDate")),
-						"Background": Equal(false),
-						"Name":       Equal("SchemaVersion"),
+						"Name":       Equal("OutdatedSinceSchema"),
 					}),
 				))
 			})

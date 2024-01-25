@@ -223,8 +223,8 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	}
 
 	selector := bson.M{
-		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 		"type":                types.GetTypeString[T, A](),
+		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 	}
 
 	opts := options.Find()
@@ -273,8 +273,9 @@ func (r *Repo[T, A]) GetMigratableUserIDs(ctx context.Context, page *page.Pagina
 	}
 
 	selector := bson.M{
-		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 		"type":                 types.GetTypeString[T, A](),
+		"dates.outdatedSince":  nil,
+		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
 
 	opts := options.Find()
