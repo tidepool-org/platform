@@ -83,7 +83,10 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 
 	preprocessedDatumArray := []interface{}{}
 
-	for _, item := range rawDatumArray {
+	for i, item := range rawDatumArray {
+
+		log.Printf("[%d] [%v]\n\n", i, item)
+
 		if fmt.Sprintf("%v", item["type"]) == pump.Type {
 			if boluses := item["bolus"]; boluses != nil {
 				item["boluses"] = boluses
@@ -111,6 +114,7 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 	datumArray := []data.Datum{}
 	for _, reference := range parser.References() {
 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
+			log.Printf("Datum: [%d] [%v]\n\n", reference, datum)
 			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
 			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
 			datumArray = append(datumArray, *datum)
