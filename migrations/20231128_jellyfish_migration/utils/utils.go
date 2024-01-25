@@ -117,9 +117,9 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error)
 
 	parser.NotParsed()
 
-	if err := parser.Error(); err != nil {
-		errs = append(errs, err)
-	}
+	// if err := parser.Error(); err != nil {
+	// 	errs = append(errs, err)
+	// }
 
 	if err := validator.Error(); err != nil {
 		errs = append(errs, err)
