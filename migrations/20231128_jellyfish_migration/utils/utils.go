@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	cErrors "errors"
 	"fmt"
 	"log"
 	"slices"
@@ -76,7 +75,7 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, error) {
+func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, []error) {
 
 	start := time.Now()
 
@@ -102,7 +101,7 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, error) {
 		preprocessedDatumArray = append(preprocessedDatumArray, item)
 	}
 
-	var processErr error
+	errs := []error{}
 	parser := structureParser.NewArray(&preprocessedDatumArray)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
@@ -116,25 +115,23 @@ func ProcessData(rawDatumArray []map[string]interface{}) ([]data.Datum, error) {
 		}
 	}
 
-	if err := parser.NotParsed(); err != nil {
-		processErr = cErrors.Join(processErr, err)
-	}
+	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		processErr = cErrors.Join(processErr, err)
+		errs = append(errs, err)
 	}
 
 	if err := validator.Error(); err != nil {
-		processErr = cErrors.Join(processErr, err)
+		errs = append(errs, err)
 	}
 
 	if err := normalizer.Error(); err != nil {
-		processErr = cErrors.Join(processErr, err)
+		errs = append(errs, err)
 	}
 
-	log.Printf("processed [%d] in [%s] [%t]", len(datumArray), time.Since(start).Truncate(time.Millisecond), processErr != nil)
+	log.Printf("processed [%d] in [%s] [%t]", len(datumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
 
-	return datumArray, processErr
+	return datumArray, errs
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
