@@ -28,7 +28,8 @@ func (r *deviceTokenRepo) Upsert(ctx context.Context, doc *devicetokens.Document
 	}
 
 	opts := options.Update().SetUpsert(true)
-	_, err := r.UpdateOne(ctx, r.filter(doc), bson.M{"$set": doc}, opts)
+	f := bson.M{"tokenKey": doc.TokenKey, "userId": doc.UserID}
+	_, err := r.UpdateOne(ctx, f, bson.M{"$set": doc}, opts)
 	if err != nil {
 		return errors.Wrap(err, "upserting device token")
 	}
@@ -49,11 +50,4 @@ func (r *deviceTokenRepo) EnsureIndexes() error {
 				SetName("UserIdTokenKeyTypeUnique"),
 		},
 	})
-}
-
-func (r *deviceTokenRepo) filter(doc *devicetokens.Document) interface{} {
-	return &devicetokens.Document{
-		UserID:   doc.UserID,
-		TokenKey: doc.TokenKey,
-	}
 }
