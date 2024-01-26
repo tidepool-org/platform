@@ -45,7 +45,7 @@ var _ = Describe("Device tokens endpoints", func() {
 			Expect(res.Code).To(Equal(http.StatusOK))
 		})
 
-		It("requires that the user's token matches the userID path param", func() {
+		It("requires that the user's token matches the userId path param", func() {
 			res := test.NewMockRestResponseWriter()
 			req := newDeviceTokensTestRequest(nil, nil, "bad")
 
@@ -89,7 +89,7 @@ func newDeviceTokensTestRequest(auth request.AuthDetails, body io.Reader, userID
 	Expect(err).ToNot(HaveOccurred())
 	return &rest.Request{
 		Request:    httpReq,
-		PathParams: map[string]string{"userID": userIDFromPath},
+		PathParams: map[string]string{"userId": userIDFromPath},
 	}
 
 }
