@@ -14,7 +14,7 @@ import (
 
 func (r *Router) DeviceTokensRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/device_tokens/:userID", api.RequireAuth(r.UpsertDeviceToken)),
+		rest.Post("/v1/users/:userId/device_tokens", api.RequireAuth(r.UpsertDeviceToken)),
 	}
 }
 
@@ -30,7 +30,7 @@ func (r *Router) UpsertDeviceToken(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	if err := checkUserIDConsistency(authDetails, req.PathParam("userID")); err != nil {
+	if err := checkUserIDConsistency(authDetails, req.PathParam("userId")); err != nil {
 		log.Printf("checkUserIDConsistency failed: %+v %q", authDetails, req.PathParam("userID"))
 		responder.Error(http.StatusForbidden, err)
 		return
@@ -42,7 +42,7 @@ func (r *Router) UpsertDeviceToken(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	userID := userIDWithServiceFallback(authDetails, req.PathParam("userID"))
+	userID := userIDWithServiceFallback(authDetails, req.PathParam("userId"))
 	doc := devicetokens.NewDocument(userID, deviceToken)
 	if err := repo.Upsert(ctx, doc); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
