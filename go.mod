@@ -5,7 +5,6 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	github.com/IBM/sarama v1.42.1
 	github.com/Shopify/sarama v1.38.1
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.50.6
@@ -56,8 +55,8 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
-	github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.15.0 // indirect
-	github.com/cloudevents/sdk-go/v2 v2.15.0 // indirect
+	github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.14.0 // indirect
+	github.com/cloudevents/sdk-go/v2 v2.14.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.16.2 // indirect

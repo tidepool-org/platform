@@ -98,7 +98,6 @@ type ceClient struct {
 	eventDefaulterFns         []EventDefaulter
 	pollGoroutines            int
 	blockingCallback          bool
-	ackMalformedEvent         bool
 }
 
 func (c *ceClient) applyOptions(opts ...Option) error {
@@ -203,13 +202,7 @@ func (c *ceClient) StartReceiver(ctx context.Context, fn interface{}) error {
 		return fmt.Errorf("client already has a receiver")
 	}
 
-	invoker, err := newReceiveInvoker(
-		fn,
-		c.observabilityService,
-		c.inboundContextDecorators,
-		c.eventDefaulterFns,
-		c.ackMalformedEvent,
-	)
+	invoker, err := newReceiveInvoker(fn, c.observabilityService, c.inboundContextDecorators, c.eventDefaulterFns...)
 	if err != nil {
 		return err
 	}
