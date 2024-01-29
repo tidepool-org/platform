@@ -3,8 +3,9 @@ package types
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/pointer"
 	"time"
+
+	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/tidepool-org/platform/errors"
 
