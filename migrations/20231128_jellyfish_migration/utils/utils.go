@@ -77,14 +77,18 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 
 	start := time.Now()
 
-	//preprocessedDatumArray := []interface{}{}
 	datumArray := []data.Datum{}
 
-	for i, item := range bsonDataArray {
+	jsonData, _ := json.Marshal(bsonDataArray)
+	converted := []map[string]interface{}{}
+
+	json.Unmarshal(jsonData, &converted)
+
+	for i, item := range converted {
 
 		dType := fmt.Sprintf("%v", item["type"])
 
-		// FIX
+		// FIXES
 		if dType == pump.Type {
 			if boluses := item["bolus"]; boluses != nil {
 				item["boluses"] = boluses
