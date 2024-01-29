@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -73,6 +74,19 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 		}
 	}
 	return false
+}
+
+func logUpdates(datumArray []data.Datum) {
+	f, err := os.OpenFile("updated.log",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	for _, d := range datumArray {
+		f.WriteString(fmt.Sprintf("%v\n", d))
+	}
 }
 
 func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
@@ -195,6 +209,9 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 		log.Println("Normalizer errors")
 		errs = append(errs, err)
 	}
+
+	// for debug
+	logUpdates(datumArray)
 
 	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(datumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
 
