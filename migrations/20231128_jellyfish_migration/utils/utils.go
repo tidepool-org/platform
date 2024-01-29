@@ -84,8 +84,11 @@ func logUpdates(datumArray []data.Datum) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	jsonData, _ := json.Marshal(datumArray)
-	f.WriteString(string(jsonData))
+	for _, v := range datumArray {
+		fields, _ := v.IdentityFields()
+		f.WriteString(fmt.Sprintf("%s - %s \n", v.GetType(), fields))
+	}
+
 }
 
 func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
@@ -180,7 +183,6 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 
 	for _, reference := range parser.References() {
 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
-			log.Printf("Datum: [%d] [%v]\n\n", reference, *datum)
 			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
 			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
 			datumArray = append(datumArray, *datum)
