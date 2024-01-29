@@ -775,12 +775,20 @@ type Clinics = []Clinic
 
 // CreatePatient defines model for CreatePatient.
 type CreatePatient struct {
-	AttestationSubmitted *bool `json:"attestationSubmitted,omitempty"`
-	IsMigrated           *bool `json:"isMigrated,omitempty"`
+	AttestationSubmitted *bool               `json:"attestationSubmitted,omitempty"`
+	BirthDate            *openapi_types.Date `json:"birthDate,omitempty"`
+
+	// FullName The full name of the patient
+	FullName   *string `json:"fullName,omitempty"`
+	IsMigrated *bool   `json:"isMigrated,omitempty"`
 
 	// LegacyClinicianId String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
-	LegacyClinicianId *TidepoolUserId     `json:"legacyClinicianId,omitempty"`
-	Permissions       *PatientPermissions `json:"permissions,omitempty"`
+	LegacyClinicianId *TidepoolUserId `json:"legacyClinicianId,omitempty"`
+
+	// Mrn The medical record number of the patient
+	Mrn         *string             `json:"mrn,omitempty"`
+	Permissions *PatientPermissions `json:"permissions,omitempty"`
+	Tags        *PatientTagIds      `json:"tags"`
 }
 
 // DataSource defines model for DataSource.

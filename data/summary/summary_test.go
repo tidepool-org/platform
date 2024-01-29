@@ -269,7 +269,7 @@ var _ = Describe("Summary", func() {
 		var dataStore dataStore.DataRepository
 		var userId string
 		//var cgmStore *dataStoreSummary.Repo[types.CGMStats, *types.CGMStats]
-		//var bgmStore *dataStoreSummary.Repo[types.BGMStats, *types.BGMStats]
+		var bgmStore *dataStoreSummary.Repo[types.BGMStats, *types.BGMStats]
 		var cgmSummarizer summary.Summarizer[types.CGMStats, *types.CGMStats]
 		var bgmSummarizer summary.Summarizer[types.BGMStats, *types.BGMStats]
 		var dataCollection *mongo.Collection
@@ -292,7 +292,7 @@ var _ = Describe("Summary", func() {
 			deviceId = "SummaryTestDevice"
 
 			//cgmStore = dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
-			//bgmStore = dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
+			bgmStore = dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
 
 			cgmSummarizer = summary.GetSummarizer[types.CGMStats, *types.CGMStats](registry)
 			bgmSummarizer = summary.GetSummarizer[types.BGMStats, *types.BGMStats](registry)
@@ -437,6 +437,40 @@ var _ = Describe("Summary", func() {
 			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userSummary).To(BeNil())
+		})
+
+		It("summary calc with jellyfish created summary", func() {
+			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
+			var deviceData []mongo.WriteModel
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			summaries := make([]*types.Summary[types.BGMStats, *types.BGMStats], 1)
+
+			// we don't use types.Create as we want to create a sparse jellyfish style upsert
+			summaries[0] = &types.Summary[types.BGMStats, *types.BGMStats]{
+				Type:   types.SummaryTypeBGM,
+				UserID: userId,
+				Dates: types.Dates{
+					OutdatedSince:    &time.Time{},
+					HasOutdatedSince: true,
+					OutdatedReason:   []string{"LEGACY_DATA_ADDED"},
+				},
+			}
+
+			count, err := bgmStore.CreateSummaries(ctx, summaries)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(1))
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
+			Expect(userSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", types.OutdatedReasonSchemaMigration))
 		})
 	})
 })

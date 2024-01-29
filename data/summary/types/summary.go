@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+	"github.com/tidepool-org/platform/pointer"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -28,8 +29,6 @@ const (
 	highBloodGlucose     = 10.0
 	veryHighBloodGlucose = 13.9
 	HoursAgoToKeep       = 60 * 24
-
-	setOutdatedLimit = 30 * time.Minute
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"
@@ -108,10 +107,9 @@ type Dates struct {
 	HasLastData bool       `json:"hasLastData" bson:"hasLastData"`
 	LastData    *time.Time `json:"lastData" bson:"lastData"`
 
-	HasOutdatedSince   bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
-	OutdatedSince      *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-	OutdatedSinceLimit *time.Time `json:"outdatedSinceLimit" bson:"outdatedSinceLimit"`
-	OutdatedReason     []string   `json:"outdatedReason" bson:"outdatedReason"`
+	HasOutdatedSince bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
+	OutdatedSince    *time.Time `json:"outdatedSince" bson:"outdatedSince"`
+	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
 func (d *Dates) Update(status *UserLastUpdated, firstBucketDate time.Time) {
@@ -129,7 +127,6 @@ func (d *Dates) Update(status *UserLastUpdated, firstBucketDate time.Time) {
 
 	d.HasOutdatedSince = false
 	d.OutdatedSince = nil
-	d.OutdatedSinceLimit = nil
 	d.OutdatedReason = nil
 }
 
@@ -200,14 +197,8 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 
 	s.Dates.OutdatedReason = set.ToSlice()
 
-	timestamp := time.Now().Truncate(time.Millisecond).UTC()
-	if s.Dates.OutdatedSinceLimit == nil {
-		newOutdatedSinceLimit := timestamp.Add(setOutdatedLimit)
-		s.Dates.OutdatedSinceLimit = &newOutdatedSinceLimit
-	}
-
-	if s.Dates.OutdatedSince == nil || s.Dates.OutdatedSince.Before(*s.Dates.OutdatedSinceLimit) {
-		s.Dates.OutdatedSince = &timestamp
+	if s.Dates.OutdatedSince == nil {
+		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Truncate(time.Millisecond).UTC())
 		s.Dates.HasOutdatedSince = true
 	}
 }
@@ -226,10 +217,9 @@ func NewDates() Dates {
 		HasLastData: false,
 		LastData:    nil,
 
-		HasOutdatedSince:   false,
-		OutdatedSince:      nil,
-		OutdatedSinceLimit: nil,
-		OutdatedReason:     nil,
+		HasOutdatedSince: false,
+		OutdatedSince:    nil,
+		OutdatedReason:   nil,
 	}
 }
 
