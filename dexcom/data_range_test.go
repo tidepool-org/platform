@@ -90,30 +90,59 @@ var _ = Describe("DataRangeResponse", func() {
 		})
 
 		When("the dates are after now", func() {
-			It("it returns now", func() {
+			It("it returns an error", func() {
 				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInFuture)
-				Expect(dataRangeResp.GetOldestStartDate().Truncate(5 * time.Minute)).To(Equal(nowTime.Truncate(5 * time.Minute)))
+				oldest, err := dataRangeResp.GetOldestStartDate()
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(Equal("the oldest start date should before now"))
+				Expect(oldest.IsZero()).To(Equal(true))
+			})
+		})
+		When("the dates is zero", func() {
+			It("it returns an error", func() {
+				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
+				dataRangeResp.Events.Start.DisplayTime.Time = time.Time{}
+				oldest, err := dataRangeResp.GetOldestStartDate()
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(Equal("invalid start display time"))
+				Expect(oldest.IsZero()).To(Equal(true))
+			})
+		})
+		When("start not set", func() {
+			It("it returns an error", func() {
+				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
+				dataRangeResp.EGVs.Start = nil
+				oldest, err := dataRangeResp.GetOldestStartDate()
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(Equal("invalid start display time"))
+				Expect(oldest.IsZero()).To(Equal(true))
 			})
 		})
 		When("Events start is oldest", func() {
 			It("it is returned", func() {
 				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
 				dataRangeResp.Events.Start.DisplayTime.Time = oldestTime
-				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
+				oldest, err := dataRangeResp.GetOldestStartDate()
+				Expect(err).To(BeNil())
+				Expect(oldest.Equal(oldestTime)).To(BeTrue())
 			})
 		})
 		When("Egvs start is oldest", func() {
 			It("it is returned", func() {
 				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
 				dataRangeResp.EGVs.Start.DisplayTime.Time = oldestTime
-				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
+				oldest, err := dataRangeResp.GetOldestStartDate()
+				Expect(err).To(BeNil())
+				Expect(oldest.Equal(oldestTime)).To(BeTrue())
 			})
 		})
 		When("Calibrations start is oldest", func() {
 			It("it is returned", func() {
 				dataRangeResp := test.RandomDataRangeResponseWithDate(dayInPast)
 				dataRangeResp.Calibrations.Start.DisplayTime.Time = oldestTime
-				Expect(dataRangeResp.GetOldestStartDate().Equal(oldestTime)).To(BeTrue())
+				oldest, err := dataRangeResp.GetOldestStartDate()
+				Expect(err).To(BeNil())
+				Expect(oldest.Equal(oldestTime)).To(BeTrue())
 			})
 		})
 	})

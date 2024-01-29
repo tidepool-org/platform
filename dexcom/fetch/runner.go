@@ -551,7 +551,10 @@ func (t *TaskRunner) fetchDataRangeStart() (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	oldest := response.GetOldestStartDate()
+	oldest, err := response.GetOldestStartDate()
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	t.logger.Debugf("dataRange start %s", oldest.Format(time.RFC3339))
 	return oldest, nil

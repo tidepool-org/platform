@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"errors"
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
@@ -48,22 +49,29 @@ func (d *DataRangeResponse) Parse(parser structure.ObjectParser) {
 	d.Events = ParseDataRange(parser.WithReferenceObjectParser("events"))
 }
 
-func (d *DataRangeResponse) GetOldestStartDate() time.Time {
-	oldest := time.Now().UTC()
+func (d *DataRangeResponse) GetOldestStartDate() (time.Time, error) {
+	now := time.Now().UTC()
+	var err error
 
-	if d.Calibrations.Start.DisplayTime.Time.Before(oldest) {
-		oldest = d.Calibrations.Start.DisplayTime.Time
+	oldest, err := d.Calibrations.getOlderTime(now)
+	if err != nil {
+		return time.Time{}, err
+	}
+	oldest, err = d.Events.getOlderTime(oldest)
+	if err != nil {
+		return time.Time{}, err
 	}
 
-	if d.Events.Start.DisplayTime.Time.Before(oldest) {
-		oldest = d.Events.Start.DisplayTime.Time
+	oldest, err = d.EGVs.getOlderTime(oldest)
+	if err != nil {
+		return time.Time{}, err
 	}
 
-	if d.EGVs.Start.DisplayTime.Time.Before(oldest) {
-		oldest = d.EGVs.Start.DisplayTime.Time
+	if oldest.Compare(now) == 0 {
+		return time.Time{}, errors.New("the oldest start date should before now")
 	}
 
-	return oldest
+	return oldest, nil
 }
 
 func (d *DataRangeResponse) Validate(validator structure.Validator) {
@@ -102,12 +110,26 @@ func NewDataRange() *DataRange {
 	}
 }
 
+func (d *DataRange) getOlderTime(t time.Time) (time.Time, error) {
+	if d.Start != nil {
+		if d.Start.DisplayTime != nil {
+			if !d.Start.DisplayTime.IsZero() {
+				if d.Start.DisplayTime.Before(t) {
+					return d.Start.DisplayTime.Time, nil
+				}
+				return t, nil
+			}
+		}
+	}
+	return time.Time{}, errors.New("invalid start display time")
+}
+
 func (d *DataRange) Parse(parser structure.ObjectParser) {
 	d.Start = ParseNewTimes(parser.WithReferenceObjectParser("start"))
 	d.End = ParseNewTimes(parser.WithReferenceObjectParser("end"))
 }
 
-func (d *DataRange) Validate(validator structure.Validator) {
+func (d *DataRange) Validate(validator structure.Validator) error {
 	validator = validator.WithMeta(d)
 	if startValidator := validator.WithReference("start"); d.Start != nil {
 		d.Start.Validate(startValidator)
@@ -119,6 +141,7 @@ func (d *DataRange) Validate(validator structure.Validator) {
 	} else {
 		endValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
+	return validator.Error()
 }
 
 func ParseNewTimes(parser structure.ObjectParser) *Times {
