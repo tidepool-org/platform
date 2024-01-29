@@ -84,9 +84,8 @@ func logUpdates(datumArray []data.Datum) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	for _, d := range datumArray {
-		f.WriteString(fmt.Sprintf("%v\n", d))
-	}
+	jsonData, _ := json.Marshal(datumArray)
+	f.WriteString(string(jsonData))
 }
 
 func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
