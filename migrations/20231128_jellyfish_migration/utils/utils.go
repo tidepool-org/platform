@@ -1,14 +1,13 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"slices"
-	"strconv"
 	"strings"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -75,7 +74,7 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func logUpdates(datumArray []data.Datum) {
+func logUpdates(updatesJSON []byte) {
 	f, err := os.OpenFile("update.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -83,80 +82,204 @@ func logUpdates(datumArray []data.Datum) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	for _, v := range datumArray {
-		fields, _ := v.IdentityFields()
-		f.WriteString(fmt.Sprintf("Type[%s] - IdentityFields[%v] \n", v.GetType(), fields))
+	buf := &bytes.Buffer{}
+	if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
+		f.WriteString(fmt.Sprintf("%s \n", buf.String()))
 	}
 }
 
-func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
+// func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 
-	start := time.Now()
+// 	errs := []error{}
+// 	start := time.Now()
 
-	data := []data.Datum{}
+// 	jsonData, err := json.Marshal(bsonDataArray)
+// 	if err != nil {
+// 		errs = append(errs, err)
+// 		return nil, errs
+// 	}
+// 	converted := []map[string]interface{}{}
+// 	//preprocessedDatumArray := []map[string]interface{}{}
 
-	jsonData, _ := json.Marshal(bsonDataArray)
-	converted := []map[string]interface{}{}
-	preprocessedDatumArray := []interface{}{}
+// 	if err := json.Unmarshal(jsonData, &converted); err != nil {
 
-	json.Unmarshal(jsonData, &converted)
+// 	}
 
-	for _, item := range converted {
-		dType := fmt.Sprintf("%v", item["type"])
-		// APPLY FIXES
-		if dType == pump.Type {
-			if boluses := item["bolus"]; boluses != nil {
-				item["boluses"] = boluses
-				delete(item, "bolus")
-			}
+// 	for _, item := range bsonDataArray {
+// 		dType := fmt.Sprintf("%v", item["type"])
+// 		// APPLY FIXES
+// 		if dType == pump.Type {
+// 			if boluses := item["bolus"]; boluses != nil {
+// 				item["boluses"] = boluses
+// 				delete(item, "bolus")
+// 			}
+// 		}
+// 		if payload := item["payload"]; payload != nil {
+
+// 			// if type is string decode as json then encode to metadata.Metadata
+// 			if payloadMetadata, ok := payload.(*metadata.Metadata); ok {
+// 				item["payload"] = payloadMetadata
+// 			}
+// 		}
+// 		if annotations := item["annotations"]; annotations != nil {
+// 			// as above
+// 			if metadataArray, ok := annotations.(*metadata.MetadataArray); ok {
+// 				item["annotations"] = metadataArray
+// 			}
+// 		}
+
+// 		//bsonDataArray[i] = item
+
+// 		//preprocessedDatumArray = append(preprocessedDatumArray, item)
+// 	}
+
+// 	//marshal to json pretty print as source of comparison
+
+// 	data := []data.Datum{}
+
+// 	// parser := structureParser.NewArray(&preprocessedDatumArray)
+// 	// validator := structureValidator.New()
+// 	// normalizer := dataNormalizer.New()
+
+// 	//loop throuh
+
+// 	for index, preprocessedDatumObj := range preprocessedDatumArray {
+
+// 		parser := structureParser.NewObject(&preprocessedDatumObj)
+// 		validator := structureValidator.New()
+// 		normalizer := dataNormalizer.New()
+
+// 		//for _, reference := range parser.References() {
+// 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(strconv.Itoa(index))); datum != nil && *datum != nil {
+// 			(*datum).Validate(validator.WithReference(strconv.Itoa(index)))
+// 			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(index)))
+// 			data = append(data, *datum)
+// 		} else {
+// 			data = append(data, nil)
+// 		}
+// 		//}
+// 		//}
+
+// 		parser.NotParsed()
+
+// 		if err := parser.Error(); err != nil {
+// 			errs = append(errs, errors.Wrap(err, "parser error"))
+// 			continue
+// 		}
+
+// 		if err := validator.Error(); err != nil {
+// 			errs = append(errs, errors.Wrap(err, "validation error"))
+// 			continue
+// 		}
+
+// 		if err := normalizer.Error(); err != nil {
+// 			errs = append(errs, errors.Wrap(err, "normalizer error"))
+// 			continue
+// 		}
+
+// 		// compare JSON before and after ...
+
+// 	}
+
+// 	// compare JSON
+
+// 	// ecode processed object back to json
+
+// 	// json pretty print original vs updated - compare strings and display dif to log
+
+// 	// for debug
+// 	logUpdates(data)
+
+// 	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(data), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
+
+// 	return data, errs
+// }
+
+func ProcessDatum(bsonData bson.M) (data.Datum, error) {
+
+	dType := fmt.Sprintf("%v", bsonData["type"])
+	if dType == pump.Type {
+		if boluses := bsonData["bolus"]; boluses != nil {
+			bsonData["boluses"] = boluses
+			delete(bsonData, "bolus")
 		}
-		if payload := item["payload"]; payload != nil {
-			if payloadMetadata, ok := payload.(*metadata.Metadata); ok {
-				item["payload"] = payloadMetadata
+	}
+	if payload := bsonData["payload"]; payload != nil {
+		if _, ok := payload.(string); ok {
+			dataBytes, err := bson.Marshal(payload)
+			if err != nil {
+				return nil, err
 			}
-		}
-		if annotations := item["annotations"]; annotations != nil {
-			if metadataArray, ok := annotations.(*metadata.MetadataArray); ok {
-				item["annotations"] = metadataArray
+			var payloadMetadata metadata.Metadata
+			err = bson.Unmarshal(dataBytes, &payloadMetadata)
+			if err != nil {
+				return nil, err
 			}
+			bsonData["payload"] = &payloadMetadata
 		}
-		preprocessedDatumArray = append(preprocessedDatumArray, item)
+	}
+	if annotations := bsonData["annotations"]; annotations != nil {
+		if _, ok := annotations.(string); ok {
+			dataBytes, err := bson.Marshal(annotations)
+			if err != nil {
+				return nil, err
+			}
+			var metadataArray metadata.MetadataArray
+			err = bson.Unmarshal(dataBytes, &metadataArray)
+			if err != nil {
+				return nil, err
+			}
+			bsonData["annotations"] = &metadataArray
+		}
 	}
 
-	errs := []error{}
-	parser := structureParser.NewArray(&preprocessedDatumArray)
+	//marshal to json pretty print as source of comparison
+	incomingJSONData, err := json.Marshal(bsonData)
+	if err != nil {
+		return nil, err
+	}
+	ojbData := map[string]interface{}{}
+
+	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
+		return nil, err
+	}
+
+	parser := structureParser.NewObject(&ojbData)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
-	for _, reference := range parser.References() {
-		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
-			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
-			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
-			data = append(data, *datum)
-		}
+	datum := dataTypesFactory.ParseDatum(parser)
+	if datum != nil && *datum != nil {
+		(*datum).Validate(validator)
+		(*datum).Normalize(normalizer)
+	} else {
+		return nil, errors.Newf("no datum returned for id=[%s]", ojbData["_id"])
 	}
 
-	// get error also?
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		errs = append(errs, errors.Wrap(err, "parser error"))
+		return nil, err
 	}
 
 	if err := validator.Error(); err != nil {
-		errs = append(errs, errors.Wrap(err, "validation error"))
+		return nil, err
 	}
 
 	if err := normalizer.Error(); err != nil {
-		errs = append(errs, errors.Wrap(err, "normalizer error"))
+		return nil, err
 	}
 
-	// for debug
-	logUpdates(data)
+	// compare JSON before and after ...
+	outgoingJSONData, err := json.Marshal(datum)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(data), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
-
-	return data, errs
+	if string(incomingJSONData) != string(outgoingJSONData) {
+		logUpdates(outgoingJSONData)
+	}
+	return *datum, nil
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
