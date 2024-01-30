@@ -178,7 +178,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	toApply := map[string]interface{}{}
 	//changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 
-	patchlog, _ := diff.Merge(ojbData, processedData, toApply)
+	patchlog, _ := diff.Merge(ojbData, processedData, &toApply)
 
 	if patchlog.HasErrors() {
 		log.Printf("merge errors %d", patchlog.ErrorCount())
