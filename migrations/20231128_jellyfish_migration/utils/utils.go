@@ -75,7 +75,7 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func logUpdates(id string, updates interface{}) {
+func logUpdates(updates interface{}) {
 	f, err := os.OpenFile("update.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -83,7 +83,7 @@ func logUpdates(id string, updates interface{}) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(fmt.Sprintf("%s %v \n", id, updates))
+	f.WriteString(fmt.Sprintf("%#v\n", updates))
 	// buf := &bytes.Buffer{}
 	// if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
 	// 	f.WriteString(fmt.Sprintf("%s \n", buf.String()))
@@ -175,8 +175,18 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	//get dif
-	changelog, _ := diff.Diff(ojbData, processedData)
-	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
+	toApply := map[string]interface{}{}
+	//changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
+
+	patchlog, _ := diff.Merge(ojbData, processedData, toApply)
+
+	if patchlog.HasErrors() {
+		log.Printf("merge errors %d", patchlog.ErrorCount())
+	}
+
+	toApply["_id"] = ojbData["_id"]
+
+	logUpdates(toApply)
 
 	// log.Printf("changes %v", changelog)
 
