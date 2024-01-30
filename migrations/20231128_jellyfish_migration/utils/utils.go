@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -76,7 +75,7 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func logUpdates(updates interface{}) {
+func logUpdates(id string, updates interface{}) {
 	f, err := os.OpenFile("update.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -84,12 +83,7 @@ func logUpdates(updates interface{}) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	//f.WriteString(fmt.Sprintf("%#v\n", updates))
-	updatesJSON, _ := json.Marshal(updates)
-	buf := &bytes.Buffer{}
-	if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
-		f.WriteString(fmt.Sprintf("%s \n", buf.String()))
-	}
+	f.WriteString(fmt.Sprintf("{id:%s, changes:%#v}\n", id, updates))
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -183,7 +177,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//toApply["_id"] = ojbData["_id"]
 
-	logUpdates(changelog)
+	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
 	return *datum, nil
 }
 
