@@ -1,9 +1,7 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -84,10 +82,11 @@ func logUpdates(updatesJSON []byte) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	buf := &bytes.Buffer{}
-	if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
-		f.WriteString(fmt.Sprintf("%s \n", buf.String()))
-	}
+	f.WriteString(fmt.Sprintf("%s \n", string(updatesJSON)))
+	// buf := &bytes.Buffer{}
+	// if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
+	// 	f.WriteString(fmt.Sprintf("%s \n", buf.String()))
+	// }
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -129,14 +128,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//marshal to json pretty print as source of comparison
 	incomingJSONData, err := json.Marshal(bsonData)
-
-	logUpdates(incomingJSONData)
-
 	if err != nil {
 		return nil, err
 	}
 	ojbData := map[string]interface{}{}
-
 	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
 		return nil, err
 	}
@@ -145,7 +140,6 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
-	var parseErr error
 	datum := dataTypesFactory.ParseDatum(parser)
 	if datum != nil && *datum != nil {
 		(*datum).Validate(validator)
@@ -156,23 +150,19 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	parser.NotParsed()
 
+	// TODO lots of `ErrorNotParsed` exceptions
 	// if err := parser.Error(); err != nil {
 	// 	parseErr = errors.Join(parseErr, err)
 	// }
 
 	if err := validator.Error(); err != nil {
-		parseErr = errors.Join(parseErr, err)
+		return nil, err
 	}
 
 	if err := normalizer.Error(); err != nil {
-		parseErr = errors.Join(parseErr, err)
+		return nil, err
 	}
 
-	if parseErr != nil {
-		return nil, parseErr
-	}
-
-	// compare JSON before and after ...
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
 		return nil, err
