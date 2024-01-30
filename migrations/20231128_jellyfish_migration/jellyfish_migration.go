@@ -309,7 +309,6 @@ func (m *Migration) fetchAndProcess() bool {
 		defer dDataCursor.Close(m.ctx)
 
 		items := []bson.M{}
-		//results := []map[string]interface{}{}
 		if err := dDataCursor.All(m.ctx, &items); err != nil {
 			log.Printf("error decoding data: %s", err)
 			return false

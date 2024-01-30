@@ -14,7 +14,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
-	"github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -61,7 +60,7 @@ func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepSched
 			sleepScheduleMap[scheduleNames[i]] = schedule
 		}
 		//sorts schedules based on day
-		sleepScheduleMap.Normalize(normalizer.New())
+		sleepScheduleMap.Normalize(dataNormalizer.New())
 		return &sleepScheduleMap, nil
 	}
 	return nil, nil
@@ -77,7 +76,7 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 }
 
 func logUpdates(datumArray []data.Datum) {
-	f, err := os.OpenFile("updated.log",
+	f, err := os.OpenFile("update.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
@@ -86,16 +85,15 @@ func logUpdates(datumArray []data.Datum) {
 	defer f.Close()
 	for _, v := range datumArray {
 		fields, _ := v.IdentityFields()
-		f.WriteString(fmt.Sprintf("%s - %s \n", v.GetType(), fields))
+		f.WriteString(fmt.Sprintf("Type[%s] - IdentityFields[%v] \n", v.GetType(), fields))
 	}
-
 }
 
 func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 
 	start := time.Now()
 
-	datumArray := []data.Datum{}
+	data := []data.Datum{}
 
 	jsonData, _ := json.Marshal(bsonDataArray)
 	converted := []map[string]interface{}{}
@@ -104,17 +102,14 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 	json.Unmarshal(jsonData, &converted)
 
 	for _, item := range converted {
-
 		dType := fmt.Sprintf("%v", item["type"])
-
-		// FIXES
+		// APPLY FIXES
 		if dType == pump.Type {
 			if boluses := item["bolus"]; boluses != nil {
 				item["boluses"] = boluses
 				delete(item, "bolus")
 			}
 		}
-
 		if payload := item["payload"]; payload != nil {
 			if payloadMetadata, ok := payload.(*metadata.Metadata); ok {
 				item["payload"] = payloadMetadata
@@ -125,54 +120,6 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 				item["annotations"] = metadataArray
 			}
 		}
-
-		//log.Printf("[%d] [%v]\n\n", i, item)
-
-		//
-		// switch dType {
-		// case pump.Type:
-		// 	var datum *pump.Pump
-		// 	dataBytes, err := bson.Marshal(item)
-		// 	if err != nil {
-		// 		log.Printf("%s %s", dType, err)
-		// 		break
-		// 	}
-		// 	err = bson.Unmarshal(dataBytes, &datum)
-		// 	if err != nil {
-		// 		log.Printf("%s %s", dType, err)
-		// 		break
-		// 	}
-		// 	datumArray = append(datumArray, datum)
-		// case continuous.Type:
-		// 	var datum *continuous.Continuous
-		// 	dataBytes, err := bson.Marshal(item)
-		// 	if err != nil {
-		// 		log.Printf("%s %s", dType, err)
-		// 		break
-		// 	}
-		// 	err = bson.Unmarshal(dataBytes, &datum)
-		// 	if err != nil {
-		// 		log.Printf("%s %s", dType, err)
-		// 		break
-		// 	}
-		// 	datumArray = append(datumArray, datum)
-
-		// case selfmonitored.Type:
-		// 	var datum *selfmonitored.SelfMonitored
-		// 	dataBytes, err := bson.Marshal(item)
-		// 	if err != nil {
-		// 		log.Printf("%s %s", dType, err)
-		// 		break
-		// 	}
-		// 	err = bson.Unmarshal(dataBytes, &datum)
-		// 	if err != nil {
-		// 		log.Printf("%s %s", dType, err)
-		// 		break
-		// 	}
-		// 	datumArray = append(datumArray, datum)
-		// default:
-
-		// }
 		preprocessedDatumArray = append(preprocessedDatumArray, item)
 	}
 
@@ -185,38 +132,31 @@ func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
 			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
 			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
-			datumArray = append(datumArray, *datum)
+			data = append(data, *datum)
 		}
 	}
 
-	// for i, datum := range datumArray {
-	// 	(datum).Validate(validator.WithReference(strconv.Itoa(i)))
-	// 	(datum).Normalize(normalizer.WithReference(strconv.Itoa(i)))
-	// }
-
-	// parser.NotParsed()
+	// get error also?
+	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		log.Println("Parser errors")
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrap(err, "parser error"))
 	}
 
 	if err := validator.Error(); err != nil {
-		log.Println("Validator errors")
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrap(err, "validation error"))
 	}
 
 	if err := normalizer.Error(); err != nil {
-		log.Println("Normalizer errors")
-		errs = append(errs, err)
+		errs = append(errs, errors.Wrap(err, "normalizer error"))
 	}
 
 	// for debug
-	logUpdates(datumArray)
+	logUpdates(data)
 
-	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(datumArray), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
+	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(data), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
 
-	return datumArray, errs
+	return data, errs
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
@@ -320,7 +260,7 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		}
 		beforeVal := datum.Value
 		beforeUnits := datum.Units
-		datum.Normalize(normalizer.New())
+		datum.Normalize(dataNormalizer.New())
 		afterVal := datum.Value
 		afterUnits := datum.Units
 		if *beforeVal != *afterVal {
@@ -345,7 +285,7 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		}
 		beforeVal := datum.Value
 		beforeUnits := datum.Units
-		datum.Normalize(normalizer.New())
+		datum.Normalize(dataNormalizer.New())
 		afterVal := datum.Value
 		afterUnits := datum.Units
 		if *beforeVal != *afterVal {
@@ -373,7 +313,7 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 		// as these are both being used in the hash calc via the IdentityFields we want to persist these changes if they are infact updated.
 		beforeVal := datum.Value
 		beforeUnits := datum.Units
-		datum.Normalize(normalizer.New())
+		datum.Normalize(dataNormalizer.New())
 		afterVal := datum.Value
 		afterUnits := datum.Units
 		if *beforeVal != *afterVal {
