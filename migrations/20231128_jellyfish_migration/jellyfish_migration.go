@@ -321,7 +321,7 @@ func (m *Migration) fetchAndProcess() bool {
 			if err != nil {
 				m.migrationUtil.OnError(err, fmt.Sprintf("%v", item["_id"]), fmt.Sprintf("type [%v]", item["type"]))
 			}
-
+			all = append(all, item)
 		}
 		m.migrationUtil.SetFetched(all)
 		return len(all) > 0

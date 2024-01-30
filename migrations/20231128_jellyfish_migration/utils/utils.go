@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/data"
@@ -74,7 +75,7 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func logUpdates(updatesJSON []byte) {
+func logUpdates(id string, updates interface{}) {
 	f, err := os.OpenFile("update.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -82,7 +83,7 @@ func logUpdates(updatesJSON []byte) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(fmt.Sprintf("%s \n", string(updatesJSON)))
+	f.WriteString(fmt.Sprintf("%s %v \n", id, updates))
 	// buf := &bytes.Buffer{}
 	// if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
 	// 	f.WriteString(fmt.Sprintf("%s \n", buf.String()))
@@ -168,9 +169,20 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	if string(incomingJSONData) != string(outgoingJSONData) {
-		logUpdates(outgoingJSONData)
+	processedData := map[string]interface{}{}
+	if err := json.Unmarshal(outgoingJSONData, &processedData); err != nil {
+		return nil, err
 	}
+
+	//get dif
+	changelog, _ := diff.Diff(ojbData, processedData)
+	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
+
+	// log.Printf("changes %v", changelog)
+
+	// if string(incomingJSONData) != string(outgoingJSONData) {
+	// 	logUpdates(outgoingJSONData)
+	// }
 	return *datum, nil
 }
 
