@@ -83,7 +83,13 @@ func logUpdates(id string, updates interface{}) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(fmt.Sprintf("{id:%s, changes:%#v}\n", id, updates))
+
+	updatesJSON, _ := json.Marshal(updates)
+	f.WriteString(fmt.Sprintf("{id:%s, updates:%s}\n", id, string(updatesJSON)))
+	// buf := &bytes.Buffer{}
+	// if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
+	// 	f.WriteString(fmt.Sprintf("%s \n", buf.String()))
+	// }
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -170,13 +176,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	//get dif
-	//toApply := map[string]interface{}{}
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
-	//patchlog := diff.Patch(changelog, &toApply)
-
-	//toApply["_id"] = ojbData["_id"]
-
 	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
 	return *datum, nil
 }
