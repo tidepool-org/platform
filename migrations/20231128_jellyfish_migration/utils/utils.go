@@ -176,23 +176,15 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//get dif
 	toApply := map[string]interface{}{}
-	//changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
-
-	patchlog, _ := diff.Merge(ojbData, processedData, &toApply)
+	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
+	patchlog := diff.Patch(changelog, &toApply)
 
 	if patchlog.HasErrors() {
-		log.Printf("merge errors %d", patchlog.ErrorCount())
+		log.Printf("patch errors %d", patchlog.ErrorCount())
 	}
-
 	toApply["_id"] = ojbData["_id"]
 
 	logUpdates(toApply)
-
-	// log.Printf("changes %v", changelog)
-
-	// if string(incomingJSONData) != string(outgoingJSONData) {
-	// 	logUpdates(outgoingJSONData)
-	// }
 	return *datum, nil
 }
 
