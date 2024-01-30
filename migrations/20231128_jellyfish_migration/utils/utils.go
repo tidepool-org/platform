@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -83,11 +84,12 @@ func logUpdates(updates interface{}) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(fmt.Sprintf("%#v\n", updates))
-	// buf := &bytes.Buffer{}
-	// if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
-	// 	f.WriteString(fmt.Sprintf("%s \n", buf.String()))
-	// }
+	//f.WriteString(fmt.Sprintf("%#v\n", updates))
+	updatesJSON, _ := json.Marshal(updates)
+	buf := &bytes.Buffer{}
+	if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
+		f.WriteString(fmt.Sprintf("%s \n", buf.String()))
+	}
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -175,16 +177,13 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	//get dif
-	toApply := map[string]interface{}{}
+	//toApply := map[string]interface{}{}
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
-	patchlog := diff.Patch(changelog, &toApply)
+	//patchlog := diff.Patch(changelog, &toApply)
 
-	if patchlog.HasErrors() {
-		log.Printf("patch errors %d", patchlog.ErrorCount())
-	}
-	toApply["_id"] = ojbData["_id"]
+	//toApply["_id"] = ojbData["_id"]
 
-	logUpdates(toApply)
+	logUpdates(changelog)
 	return *datum, nil
 }
 
