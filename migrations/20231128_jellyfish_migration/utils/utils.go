@@ -156,9 +156,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	parser.NotParsed()
 
-	if err := parser.Error(); err != nil {
-		parseErr = errors.Join(parseErr, err)
-	}
+	// if err := parser.Error(); err != nil {
+	// 	parseErr = errors.Join(parseErr, err)
+	// }
 
 	if err := validator.Error(); err != nil {
 		parseErr = errors.Join(parseErr, err)
