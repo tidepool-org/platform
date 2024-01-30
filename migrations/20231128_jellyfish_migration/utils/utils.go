@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/data"
+
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
@@ -22,7 +24,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-	"github.com/tidepool-org/platform/errors"
+	errorsP "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -51,7 +53,7 @@ func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepSched
 			updatedDays := []string{}
 			for _, day := range *days {
 				if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
-					return nil, errors.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+					return nil, errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
 				}
 				updatedDays = append(updatedDays, strings.ToLower(day))
 			}
@@ -106,7 +108,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 			var payloadMetadata metadata.Metadata
 			err = bson.Unmarshal(dataBytes, &payloadMetadata)
 			if err != nil {
-				return nil, errors.Newf("payload could not be set from %v ", string(dataBytes))
+				return nil, errorsP.Newf("payload could not be set from %v ", string(dataBytes))
 			}
 			bsonData["payload"] = &payloadMetadata
 		}
@@ -119,7 +121,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 			}
 			var metadataArray metadata.MetadataArray
 			if err := bson.Unmarshal(dataBytes, &metadataArray); err != nil {
-				return nil, errors.Newf("annotations could not be set from %v ", string(dataBytes))
+				return nil, errorsP.Newf("annotations could not be set from %v ", string(dataBytes))
 			}
 			bsonData["annotations"] = &metadataArray
 		}
@@ -143,26 +145,31 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
+	var parseErr error
 	datum := dataTypesFactory.ParseDatum(parser)
 	if datum != nil && *datum != nil {
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
 	} else {
-		return nil, errors.Newf("no datum returned for id=[%s]", ojbData["_id"])
+		return nil, errorsP.Newf("no datum returned for id=[%s]", ojbData["_id"])
 	}
 
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, err
+		parseErr = errors.Join(parseErr, err)
 	}
 
 	if err := validator.Error(); err != nil {
-		return nil, err
+		parseErr = errors.Join(parseErr, err)
 	}
 
 	if err := normalizer.Error(); err != nil {
-		return nil, err
+		parseErr = errors.Join(parseErr, err)
+	}
+
+	if parseErr != nil {
+		return nil, parseErr
 	}
 
 	// compare JSON before and after ...
@@ -185,12 +192,12 @@ func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
 
 	datumID, ok := bsonData["_id"].(string)
 	if !ok {
-		return "", nil, errors.New("cannot get the datum id")
+		return "", nil, errorsP.New("cannot get the datum id")
 	}
 
 	datumType, ok := bsonData["type"].(string)
 	if !ok {
-		return datumID, nil, errors.New("cannot get the datum type")
+		return datumID, nil, errorsP.New("cannot get the datum type")
 	}
 
 	// TODO: based on discussions we want to ensure that these are the correct type
