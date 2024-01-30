@@ -88,113 +88,6 @@ func logUpdates(updatesJSON []byte) {
 	}
 }
 
-// func ProcessData(bsonDataArray []bson.M) ([]data.Datum, []error) {
-
-// 	errs := []error{}
-// 	start := time.Now()
-
-// 	jsonData, err := json.Marshal(bsonDataArray)
-// 	if err != nil {
-// 		errs = append(errs, err)
-// 		return nil, errs
-// 	}
-// 	converted := []map[string]interface{}{}
-// 	//preprocessedDatumArray := []map[string]interface{}{}
-
-// 	if err := json.Unmarshal(jsonData, &converted); err != nil {
-
-// 	}
-
-// 	for _, item := range bsonDataArray {
-// 		dType := fmt.Sprintf("%v", item["type"])
-// 		// APPLY FIXES
-// 		if dType == pump.Type {
-// 			if boluses := item["bolus"]; boluses != nil {
-// 				item["boluses"] = boluses
-// 				delete(item, "bolus")
-// 			}
-// 		}
-// 		if payload := item["payload"]; payload != nil {
-
-// 			// if type is string decode as json then encode to metadata.Metadata
-// 			if payloadMetadata, ok := payload.(*metadata.Metadata); ok {
-// 				item["payload"] = payloadMetadata
-// 			}
-// 		}
-// 		if annotations := item["annotations"]; annotations != nil {
-// 			// as above
-// 			if metadataArray, ok := annotations.(*metadata.MetadataArray); ok {
-// 				item["annotations"] = metadataArray
-// 			}
-// 		}
-
-// 		//bsonDataArray[i] = item
-
-// 		//preprocessedDatumArray = append(preprocessedDatumArray, item)
-// 	}
-
-// 	//marshal to json pretty print as source of comparison
-
-// 	data := []data.Datum{}
-
-// 	// parser := structureParser.NewArray(&preprocessedDatumArray)
-// 	// validator := structureValidator.New()
-// 	// normalizer := dataNormalizer.New()
-
-// 	//loop throuh
-
-// 	for index, preprocessedDatumObj := range preprocessedDatumArray {
-
-// 		parser := structureParser.NewObject(&preprocessedDatumObj)
-// 		validator := structureValidator.New()
-// 		normalizer := dataNormalizer.New()
-
-// 		//for _, reference := range parser.References() {
-// 		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(strconv.Itoa(index))); datum != nil && *datum != nil {
-// 			(*datum).Validate(validator.WithReference(strconv.Itoa(index)))
-// 			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(index)))
-// 			data = append(data, *datum)
-// 		} else {
-// 			data = append(data, nil)
-// 		}
-// 		//}
-// 		//}
-
-// 		parser.NotParsed()
-
-// 		if err := parser.Error(); err != nil {
-// 			errs = append(errs, errors.Wrap(err, "parser error"))
-// 			continue
-// 		}
-
-// 		if err := validator.Error(); err != nil {
-// 			errs = append(errs, errors.Wrap(err, "validation error"))
-// 			continue
-// 		}
-
-// 		if err := normalizer.Error(); err != nil {
-// 			errs = append(errs, errors.Wrap(err, "normalizer error"))
-// 			continue
-// 		}
-
-// 		// compare JSON before and after ...
-
-// 	}
-
-// 	// compare JSON
-
-// 	// ecode processed object back to json
-
-// 	// json pretty print original vs updated - compare strings and display dif to log
-
-// 	// for debug
-// 	logUpdates(data)
-
-// 	log.Printf("fetched [%d] processed [%d]  in [%s] [%t]", len(bsonDataArray), len(data), time.Since(start).Truncate(time.Millisecond), len(errs) > 0)
-
-// 	return data, errs
-// }
-
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	dType := fmt.Sprintf("%v", bsonData["type"])
@@ -213,7 +106,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 			var payloadMetadata metadata.Metadata
 			err = bson.Unmarshal(dataBytes, &payloadMetadata)
 			if err != nil {
-				return nil, err
+				return nil, errors.Newf("payload could not be set from %v ", string(dataBytes))
 			}
 			bsonData["payload"] = &payloadMetadata
 		}
@@ -225,9 +118,8 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 				return nil, err
 			}
 			var metadataArray metadata.MetadataArray
-			err = bson.Unmarshal(dataBytes, &metadataArray)
-			if err != nil {
-				return nil, err
+			if err := bson.Unmarshal(dataBytes, &metadataArray); err != nil {
+				return nil, errors.Newf("annotations could not be set from %v ", string(dataBytes))
 			}
 			bsonData["annotations"] = &metadataArray
 		}
@@ -235,6 +127,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//marshal to json pretty print as source of comparison
 	incomingJSONData, err := json.Marshal(bsonData)
+
+	logUpdates(incomingJSONData)
+
 	if err != nil {
 		return nil, err
 	}

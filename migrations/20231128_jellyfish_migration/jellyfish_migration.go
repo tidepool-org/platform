@@ -319,7 +319,7 @@ func (m *Migration) fetchAndProcess() bool {
 			}
 			_, err := utils.ProcessDatum(item)
 			if err != nil {
-				m.migrationUtil.OnError(err, fmt.Sprintf("%v", item["_id"]), "processing datum")
+				m.migrationUtil.OnError(err, fmt.Sprintf("%v", item["_id"]), fmt.Sprintf("type [%v]", item["type"]))
 			}
 
 		}
