@@ -149,11 +149,14 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	log.Printf("INCOMING: id[%s] type[%s] feilds[%s]", dID, dType, maps.Keys(ojbData))
 
 	//remove fields
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
+	// _deduplicator _id _userId _active id payload time _version _schemaVersion deviceId guid units uploadId value _groupId type createdTime
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId", "guid", "id", "createdTime"}
 
 	for _, unparsed := range unparsedFields {
 		delete(ojbData, unparsed)
 	}
+
+	log.Printf("UPDATED: id[%s] type[%s] feilds[%s]", dID, dType, maps.Keys(ojbData))
 
 	parser := structureParser.NewObject(&ojbData)
 	validator := structureValidator.New()
