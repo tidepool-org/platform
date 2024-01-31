@@ -10,6 +10,7 @@ import (
 
 	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/exp/maps"
 
 	"github.com/tidepool-org/platform/data"
 
@@ -101,6 +102,7 @@ func logUpdates2(id string, updates []byte) {
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	dType := fmt.Sprintf("%v", bsonData["type"])
+	dID := fmt.Sprintf("%v", bsonData["_id"])
 	if dType == pump.Type {
 		if boluses := bsonData["bolus"]; boluses != nil {
 			bsonData["boluses"] = boluses
@@ -144,12 +146,14 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	//remove fields
-	// ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
+	log.Printf("INCOMING: id[%s] type[%s] feilds[%s]", dID, dType, maps.Keys(ojbData))
 
-	// for _, field := range ignoreFields {
-	// 	delete(ojbData, field)
-	// }
+	//remove fields
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
+
+	for _, unparsed := range unparsedFields {
+		delete(ojbData, unparsed)
+	}
 
 	parser := structureParser.NewObject(&ojbData)
 	validator := structureValidator.New()
@@ -160,7 +164,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
 	} else {
-		return nil, errorsP.Newf("no datum returned for id=[%s]", ojbData["_id"])
+		return nil, errorsP.Newf("no datum returned for id=[%s]", dID)
 	}
 
 	parser.NotParsed()
@@ -188,9 +192,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
-	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
+	logUpdates(dID, changelog)
 
-	logUpdates2(fmt.Sprintf("%s", ojbData["_id"]), outgoingJSONData)
+	logUpdates2(dID, outgoingJSONData)
 
 	return *datum, nil
 }
