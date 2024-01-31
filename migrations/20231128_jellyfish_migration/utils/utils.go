@@ -146,6 +146,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
+	log.Println("INCOMING")
+	log.Println(string(incomingJSONData))
+	log.Printf("%v", ojbData)
+
 	//marshal to json pretty print as source of comparison
 	// incomingJSONData, err := json.Marshal(bsonData)
 	// if err != nil {
@@ -157,11 +161,11 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	// }
 
 	//remove fields
-	ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
+	// ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
 
-	for _, field := range ignoreFields {
-		delete(ojbData, field)
-	}
+	// for _, field := range ignoreFields {
+	// 	delete(ojbData, field)
+	// }
 
 	parser := structureParser.NewObject(&ojbData)
 	validator := structureValidator.New()
@@ -194,6 +198,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println("PARSED")
+	log.Println(string(outgoingJSONData))
 
 	processedData := map[string]interface{}{}
 	if err := json.Unmarshal(outgoingJSONData, &processedData); err != nil {
