@@ -63,6 +63,20 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 			intValue := int(*value/MmolLToMgdLConversionFactor*MmolLToMgdLPrecisionFactor + 0.5)
 			floatValue := float64(intValue) / MmolLToMgdLPrecisionFactor
 			return &floatValue
+
+		case MmolL, Mmoll:
+
+			mgdlVal := *value * MmolLToMgdLConversionFactor
+
+			intValue := int(mgdlVal/MmolLToMgdLConversionFactor*MmolLToMgdLPrecisionFactor + 0.5)
+			floatValue := float64(intValue) / MmolLToMgdLPrecisionFactor
+			return &floatValue
+
+			//if len([]rune(strVal)) > 8 {
+			// floatValue := math.Floor(*value*MmolLToMgdLPrecisionFactor) / MmolLToMgdLPrecisionFactor
+			// return &floatValue
+			//}
+			//return value
 		}
 	}
 	return value

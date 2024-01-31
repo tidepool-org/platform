@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
+
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
@@ -103,12 +104,24 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	dType := fmt.Sprintf("%v", bsonData["type"])
 	dID := fmt.Sprintf("%v", bsonData["_id"])
-	if dType == pump.Type {
+
+	switch dType {
+	case pump.Type:
 		if boluses := bsonData["bolus"]; boluses != nil {
 			bsonData["boluses"] = boluses
 			delete(bsonData, "bolus")
 		}
+		// case selfmonitored.Type, ketone.Type, continuous.Type:
+		// 	units := fmt.Sprintf("%v", bsonData["units"])
+		// 	if units == glucose.MmolL || units == glucose.Mmoll {
+
+		// 		if val, ok := bsonData["value"].(float64); ok {
+
+		// 		}
+
+		// 	}
 	}
+
 	if payload := bsonData["payload"]; payload != nil {
 		if _, ok := payload.(string); ok {
 			dataBytes, err := bson.Marshal(payload)
@@ -147,8 +160,8 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	//cleanup
-	incomingKeys := maps.Keys(ojbData)
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime"}
+	//incomingKeys := maps.Keys(ojbData)
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion"}
 	for _, unparsed := range unparsedFields {
 		delete(ojbData, unparsed)
 	}
@@ -175,7 +188,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, errorsP.Wrap(err, fmt.Sprintf("_id[%s] type[%s] original[%s] cleaned[%s]", dID, dType, incomingKeys, cleanedKeys))
+		return nil, errorsP.Wrap(err, fmt.Sprintf("type[%s] cleaned[%s]", dType, cleanedKeys))
 	}
 
 	if err := validator.Error(); err != nil {

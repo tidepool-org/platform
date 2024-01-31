@@ -107,6 +107,7 @@ var _ = Describe("Glucose", func() {
 			Entry("returns unchanged value for mmol/l units", pointer.FromFloat64(10.0), pointer.FromString("mmol/l"), pointer.FromFloat64(10.0)),
 			Entry("returns converted value for mg/dL units", pointer.FromFloat64(180.0), pointer.FromString("mg/dL"), pointer.FromFloat64(9.99135)),
 			Entry("returns converted value for mg/dl units", pointer.FromFloat64(180.0), pointer.FromString("mg/dl"), pointer.FromFloat64(9.99135)),
+			Entry("returns converted value for mmol/L units with incorrect precision", pointer.FromFloat64(4.88465823212007), pointer.FromString("mmol/L"), pointer.FromFloat64(4.88466)),
 		)
 
 		It("properly normalizes a range of mmol/L values", func() {

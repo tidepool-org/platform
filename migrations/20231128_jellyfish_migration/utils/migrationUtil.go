@@ -218,7 +218,7 @@ func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig 
 // - write error to file `error.log` in directory cli is running in
 // - optionally stop the operation if stopOnErr is true in the config
 func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
-	var errFormat = "[id=%s] %s %s\n"
+	var errFormat = "[_id=%s] %s %s\n"
 	if reportErr != nil {
 		m.errorsCount++
 		f, err := os.OpenFile("error.log",
