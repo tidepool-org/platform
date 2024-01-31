@@ -76,8 +76,8 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 	return false
 }
 
-func logUpdates(id string, updates interface{}) {
-	f, err := os.OpenFile("update.log",
+func logDiff(id string, updates interface{}) {
+	f, err := os.OpenFile("diff.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
@@ -85,18 +85,18 @@ func logUpdates(id string, updates interface{}) {
 	}
 	defer f.Close()
 	updatesJSON, _ := json.Marshal(updates)
-	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}`, id, string(updatesJSON)))
+	f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
 }
 
-func logUpdates2(id string, original []byte, updated []byte) {
-	f, err := os.OpenFile("update2.log",
+func logBeforeAndAfter(id string, original []byte, updated []byte) {
+	f, err := os.OpenFile("changes.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(fmt.Sprintf(`{"_id":"%s", "jellyfish":%s "platform":%s},`, id, string(original), string(updated)))
+	f.WriteString(fmt.Sprintf(`{"_id":"%s","jellyfish":%s,"platform":%s},`, id, string(original), string(updated)))
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -148,7 +148,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//cleanup
 	incomingKeys := maps.Keys(ojbData)
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "id", "createdTime"}
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime"}
 	for _, unparsed := range unparsedFields {
 		delete(ojbData, unparsed)
 	}
@@ -197,9 +197,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
-	logUpdates(dID, changelog)
+	logDiff(dID, changelog)
 
-	logUpdates2(dID, cleanedJSONData, outgoingJSONData)
+	logBeforeAndAfter(dID, cleanedJSONData, outgoingJSONData)
 
 	return *datum, nil
 }
