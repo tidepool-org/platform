@@ -144,7 +144,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
 		return nil, err
 	}
-	log.Printf("INCOMING: %v\n", ojbData)
+	//log.Printf("INCOMING: %v\n", ojbData)
 
 	//remove fields
 	// ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
@@ -190,13 +190,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	log.Printf("PARSED: %v\n", processedData)
-
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
 
-	changelog2, _ := diff.Diff(processedData, ojbData, diff.StructMapKeySupport())
-	logUpdates2(fmt.Sprintf("%s", ojbData["_id"]), changelog2)
+	logUpdates2(fmt.Sprintf("%s", ojbData["_id"]), string(outgoingJSONData))
 
 	return *datum, nil
 }
