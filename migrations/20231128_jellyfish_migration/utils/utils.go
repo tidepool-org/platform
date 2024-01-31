@@ -162,10 +162,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//cleanup
 	//incomingKeys := maps.Keys(ojbData)
-	// unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime", "deviceTime"}
-	// for _, unparsed := range unparsedFields {
-	// 	delete(ojbData, unparsed)
-	// }
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime", "deviceTime", "time"}
+	for _, unparsed := range unparsedFields {
+		delete(ojbData, unparsed)
+	}
 	cleanedKeys := maps.Keys(ojbData)
 
 	cleanedJSONData, err := json.Marshal(ojbData)
