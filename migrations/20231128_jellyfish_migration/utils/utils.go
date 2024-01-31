@@ -84,10 +84,10 @@ func logUpdates(id string, updates interface{}) {
 	}
 	defer f.Close()
 	updatesJSON, _ := json.Marshal(updates)
-	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}\n`, id, string(updatesJSON)))
+	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}`, id, string(updatesJSON)))
 }
 
-func logUpdates2(id string, updates interface{}) {
+func logUpdates2(id string, updates []byte) {
 	f, err := os.OpenFile("update2.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -95,8 +95,7 @@ func logUpdates2(id string, updates interface{}) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	updatesJSON, _ := json.Marshal(updates)
-	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}\n`, id, string(updatesJSON)))
+	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}`, id, string(updates)))
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -144,7 +143,6 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
 		return nil, err
 	}
-	//log.Printf("INCOMING: %v\n", ojbData)
 
 	//remove fields
 	// ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
@@ -167,10 +165,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	parser.NotParsed()
 
-	// TODO lots of `ErrorNotParsed` exceptions
-	// if err := parser.Error(); err != nil {
-	// 	parseErr = errors.Join(parseErr, err)
-	// }
+	if err := parser.Error(); err != nil {
+		return nil, err
+	}
 
 	if err := validator.Error(); err != nil {
 		return nil, err
@@ -193,7 +190,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
 
-	logUpdates2(fmt.Sprintf("%s", ojbData["_id"]), string(outgoingJSONData))
+	logUpdates2(fmt.Sprintf("%s", ojbData["_id"]), outgoingJSONData)
 
 	return *datum, nil
 }
