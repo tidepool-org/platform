@@ -88,7 +88,7 @@ func logUpdates(id string, updates interface{}) {
 	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}`, id, string(updatesJSON)))
 }
 
-func logUpdates2(id string, updates []byte) {
+func logUpdates2(id string, original []byte, updated []byte) {
 	f, err := os.OpenFile("update2.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -96,7 +96,7 @@ func logUpdates2(id string, updates []byte) {
 		os.Exit(1)
 	}
 	defer f.Close()
-	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}`, id, string(updates)))
+	f.WriteString(fmt.Sprintf(`{"_id":"%s", "jellyfish":%s "platform":%s},`, id, string(original), string(updated)))
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -146,18 +146,20 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	log.Printf("INCOMING: id[%s] type[%s] feilds[%s]", dID, dType, maps.Keys(ojbData))
-
-	//remove fields
-	// _deduplicator _id _userId _active id payload time _version _schemaVersion deviceId guid units uploadId value _groupId type createdTime
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId", "guid", "id", "createdTime", "_schemaVersion"}
-
+	//cleanup
+	incomingKeys := maps.Keys(ojbData)
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "id", "createdTime"}
 	for _, unparsed := range unparsedFields {
 		delete(ojbData, unparsed)
 	}
+	cleanedKeys := maps.Keys(ojbData)
 
-	log.Printf("UPDATED: id[%s] type[%s] feilds[%s]", dID, dType, maps.Keys(ojbData))
+	cleanedJSONData, err := json.Marshal(ojbData)
+	if err != nil {
+		return nil, err
+	}
 
+	//parsing
 	parser := structureParser.NewObject(&ojbData)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
@@ -173,7 +175,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, err
+		return nil, errorsP.Wrap(err, fmt.Sprintf("_id[%s] type[%s] original[%s] cleaned[%s]", dID, dType, incomingKeys, cleanedKeys))
 	}
 
 	if err := validator.Error(); err != nil {
@@ -197,7 +199,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logUpdates(dID, changelog)
 
-	logUpdates2(dID, outgoingJSONData)
+	logUpdates2(dID, cleanedJSONData, outgoingJSONData)
 
 	return *datum, nil
 }
