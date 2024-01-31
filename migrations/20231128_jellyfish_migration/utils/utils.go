@@ -13,6 +13,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/structure"
 
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
@@ -161,10 +162,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//cleanup
 	//incomingKeys := maps.Keys(ojbData)
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion"}
-	for _, unparsed := range unparsedFields {
-		delete(ojbData, unparsed)
-	}
+	// unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime", "deviceTime"}
+	// for _, unparsed := range unparsedFields {
+	// 	delete(ojbData, unparsed)
+	// }
 	cleanedKeys := maps.Keys(ojbData)
 
 	cleanedJSONData, err := json.Marshal(ojbData)
@@ -173,8 +174,8 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	//parsing
-	parser := structureParser.NewObject(&ojbData)
-	validator := structureValidator.New()
+	parser := structureParser.NewObject(&ojbData).WithOrigin(structure.OriginStore)
+	validator := structureValidator.New().WithOrigin(structure.OriginStore)
 	normalizer := dataNormalizer.New()
 
 	datum := dataTypesFactory.ParseDatum(parser)
@@ -188,7 +189,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, errorsP.Wrap(err, fmt.Sprintf("type[%s] cleaned[%s]", dType, cleanedKeys))
+		return nil, errorsP.Wrap(err, fmt.Sprintf("type[%s] parsing datum keys%s", dType, cleanedKeys))
 	}
 
 	if err := validator.Error(); err != nil {
