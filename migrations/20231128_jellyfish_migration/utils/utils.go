@@ -174,8 +174,8 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	//parsing
-	parser := structureParser.NewObject(&ojbData).WithOrigin(structure.OriginStore)
-	validator := structureValidator.New().WithOrigin(structure.OriginStore)
+	parser := structureParser.NewObject(&ojbData).WithOrigin(structure.OriginInternal)
+	validator := structureValidator.New().WithOrigin(structure.OriginInternal)
 	normalizer := dataNormalizer.New()
 
 	datum := dataTypesFactory.ParseDatum(parser)
