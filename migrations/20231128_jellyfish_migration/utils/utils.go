@@ -83,13 +83,20 @@ func logUpdates(id string, updates interface{}) {
 		os.Exit(1)
 	}
 	defer f.Close()
-
 	updatesJSON, _ := json.Marshal(updates)
-	f.WriteString(fmt.Sprintf("{id:%s, updates:%s}\n", id, string(updatesJSON)))
-	// buf := &bytes.Buffer{}
-	// if err := json.Indent(buf, updatesJSON, "", "\t"); err == nil {
-	// 	f.WriteString(fmt.Sprintf("%s \n", buf.String()))
-	// }
+	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}\n`, id, string(updatesJSON)))
+}
+
+func logUpdates2(id string, updates interface{}) {
+	f, err := os.OpenFile("update2.log",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	updatesJSON, _ := json.Marshal(updates)
+	f.WriteString(fmt.Sprintf(`{"id":"%s", "updates":%s}\n`, id, string(updatesJSON)))
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -129,14 +136,31 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		}
 	}
 
-	//marshal to json pretty print as source of comparison
-	incomingJSONData, err := json.Marshal(bsonData)
+	incomingJSONData, err := bson.Marshal(bsonData)
 	if err != nil {
 		return nil, err
 	}
 	ojbData := map[string]interface{}{}
-	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
+	err = bson.Unmarshal(incomingJSONData, &ojbData)
+	if err != nil {
 		return nil, err
+	}
+
+	//marshal to json pretty print as source of comparison
+	// incomingJSONData, err := json.Marshal(bsonData)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// ojbData := map[string]interface{}{}
+	// if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
+	// 	return nil, err
+	// }
+
+	//remove fields
+	ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
+
+	for _, field := range ignoreFields {
+		delete(ojbData, field)
 	}
 
 	parser := structureParser.NewObject(&ojbData)
@@ -178,6 +202,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
+
+	changelog2, _ := diff.Diff(processedData, ojbData, diff.StructMapKeySupport())
+	logUpdates2(fmt.Sprintf("%s", ojbData["_id"]), changelog2)
+
 	return *datum, nil
 }
 
