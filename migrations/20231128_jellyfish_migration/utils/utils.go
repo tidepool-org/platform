@@ -136,29 +136,15 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		}
 	}
 
-	incomingJSONData, err := bson.Marshal(bsonData)
+	incomingJSONData, err := json.Marshal(bsonData)
 	if err != nil {
 		return nil, err
 	}
 	ojbData := map[string]interface{}{}
-	err = bson.Unmarshal(incomingJSONData, &ojbData)
-	if err != nil {
+	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
 		return nil, err
 	}
-
-	log.Println("INCOMING")
-	log.Println(string(incomingJSONData))
-	log.Printf("%v", ojbData)
-
-	//marshal to json pretty print as source of comparison
-	// incomingJSONData, err := json.Marshal(bsonData)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// ojbData := map[string]interface{}{}
-	// if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
-	// 	return nil, err
-	// }
+	log.Printf("INCOMING: %v\n", ojbData)
 
 	//remove fields
 	// ignoreFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId"}
@@ -199,13 +185,12 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	log.Println("PARSED")
-	log.Println(string(outgoingJSONData))
-
 	processedData := map[string]interface{}{}
 	if err := json.Unmarshal(outgoingJSONData, &processedData); err != nil {
 		return nil, err
 	}
+
+	log.Printf("PARSED: %v\n", processedData)
 
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logUpdates(fmt.Sprintf("%s", ojbData["_id"]), changelog)
