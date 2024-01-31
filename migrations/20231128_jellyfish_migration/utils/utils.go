@@ -161,7 +161,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//cleanup
 	//incomingKeys := maps.Keys(ojbData)
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime", "deviceTime", "time"}
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime"}
 	for _, unparsed := range unparsedFields {
 		delete(ojbData, unparsed)
 	}
@@ -188,15 +188,15 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, errorsP.Wrap(err, fmt.Sprintf("type[%s] parsing datum keys%s", dType, cleanedKeys))
+		return nil, errorsP.Wrap(err, fmt.Sprintf("parsing type[%s] with keys%s", dType, cleanedKeys))
 	}
 
 	if err := validator.Error(); err != nil {
-		return nil, err
+		return nil, errorsP.Wrap(err, fmt.Sprintf("validate type[%s] with keys%s", dType, cleanedKeys))
 	}
 
 	if err := normalizer.Error(); err != nil {
-		return nil, err
+		return nil, errorsP.Wrap(err, fmt.Sprintf("normalize type[%s] with keys%s", dType, cleanedKeys))
 	}
 
 	outgoingJSONData, err := json.Marshal(datum)
