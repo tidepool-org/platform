@@ -150,7 +150,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//remove fields
 	// _deduplicator _id _userId _active id payload time _version _schemaVersion deviceId guid units uploadId value _groupId type createdTime
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId", "guid", "id", "createdTime"}
+	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "uploadId", "guid", "id", "createdTime", "_schemaVersion"}
 
 	for _, unparsed := range unparsedFields {
 		delete(ojbData, unparsed)
