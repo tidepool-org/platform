@@ -13,7 +13,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/structure"
 
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
@@ -174,8 +173,8 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	//parsing
-	parser := structureParser.NewObject(&ojbData).WithOrigin(structure.OriginInternal)
-	validator := structureValidator.New().WithOrigin(structure.OriginInternal)
+	parser := structureParser.NewObject(&ojbData)
+	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
 	datum := dataTypesFactory.ParseDatum(parser)
