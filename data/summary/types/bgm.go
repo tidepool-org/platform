@@ -133,7 +133,7 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 		return
 	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
 		return s.Buckets[len(s.Buckets)-1].LastRecordTime
-	} else if earliestModified.Before(s.Buckets[0].Date) {
+	} else if earliestModified.Before(s.Buckets[0].Date) || earliestModified.Equal(s.Buckets[0].Date) {
 		// we are before all existing buckets, remake for GC
 		s.Buckets = make([]*Bucket[*BGMBucketData, BGMBucketData], 0)
 		return
@@ -146,7 +146,10 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	}
 	s.Buckets = s.Buckets[:offset]
 
-	return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	if len(s.Buckets) > 0 {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	}
+	return
 }
 
 func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
