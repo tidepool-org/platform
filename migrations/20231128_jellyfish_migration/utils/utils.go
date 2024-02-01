@@ -89,17 +89,6 @@ func logDiff(id string, updates interface{}) {
 	f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
 }
 
-// func logBeforeAndAfter(id string, original []byte, updated []byte) {
-// 	f, err := os.OpenFile("changes.log",
-// 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-// 	if err != nil {
-// 		log.Println(err)
-// 		os.Exit(1)
-// 	}
-// 	defer f.Close()
-// 	f.WriteString(fmt.Sprintf(`{"_id":"%s","jellyfish":%s,"platform":%s},`, id, string(original), string(updated)))
-// }
-
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	dType := fmt.Sprintf("%v", bsonData["type"])
@@ -190,6 +179,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator.String("_id", parser.String("_id")).Exists()
 	validator.String("_userId", parser.String("_userId")).Exists()
 	validator.Int("_version", parser.Int("_version")).Exists()
+	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
 	validator.String("uploadId", parser.String("uploadId")).Exists()
 	validator.String("guid", parser.String("guid")).Exists()

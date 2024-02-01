@@ -235,9 +235,7 @@ func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 			log.Println(err)
 			os.Exit(1)
 		}
-
-		f.WriteString(fmt.Sprintf("[_id=%s]\n", id))
-		f.WriteString(string(errBytes))
+		f.WriteString(fmt.Sprintf("[_id=%s] %s\n", id, string(errBytes)))
 		if m.config.stopOnErr {
 			log.Printf(errFormat, id, msg, reportErr.Error())
 			os.Exit(1)
