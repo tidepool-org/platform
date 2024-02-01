@@ -170,7 +170,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
 
-	validator.Int("_archivedTime", parser.Int("_archivedTime"))
+	validator.String("_archivedTime", parser.String("_archivedTime"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
 
 	validator.String("uploadId", parser.String("uploadId")).Exists()
