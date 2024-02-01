@@ -148,19 +148,6 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	//cleanup
-	//incomingKeys := maps.Keys(ojbData)
-	// unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime"}
-	// for _, unparsed := range unparsedFields {
-	// 	delete(ojbData, unparsed)
-	// }
-	// cleanedKeys := maps.Keys(ojbData)
-
-	// cleanedJSONData, err := json.Marshal(ojbData)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	//parsing
 	parser := structureParser.NewObject(&ojbData)
 	validator := structureValidator.New()
@@ -181,7 +168,6 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
-
 	validator.String("uploadId", parser.String("uploadId")).Exists()
 	validator.String("guid", parser.String("guid")).Exists()
 	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
@@ -212,9 +198,9 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	// these are extras that we want to leave on the original object
-	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator"}
+	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId"}
 	for _, key := range notRequired {
-		delete(processedData, key)
+		delete(ojbData, key)
 	}
 
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
