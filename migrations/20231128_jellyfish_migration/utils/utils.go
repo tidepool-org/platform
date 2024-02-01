@@ -181,6 +181,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
+
 	validator.String("uploadId", parser.String("uploadId")).Exists()
 	validator.String("guid", parser.String("guid")).Exists()
 	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
@@ -210,10 +211,14 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
+	// these are extras that we want to leave on the original object
+	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator"}
+	for _, key := range notRequired {
+		delete(processedData, key)
+	}
+
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logDiff(dID, changelog)
-
-	//logBeforeAndAfter(dID, cleanedJSONData, outgoingJSONData)
 
 	return *datum, nil
 }
