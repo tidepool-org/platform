@@ -78,15 +78,17 @@ func pumpSettingsHasBolus(bsonData bson.M) bool {
 }
 
 func logDiff(id string, updates interface{}) {
-	f, err := os.OpenFile("diff.log",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	defer f.Close()
 	updatesJSON, _ := json.Marshal(updates)
-	f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
+	if string(updatesJSON) != "[]" {
+		f, err := os.OpenFile("diff.log",
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
+	}
 }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
@@ -198,7 +200,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	// these are extras that we want to leave on the original object
-	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId"}
+	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId", "createdTime", "guid", "modifiedTime"}
 	for _, key := range notRequired {
 		delete(ojbData, key)
 	}
