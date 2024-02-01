@@ -10,7 +10,6 @@ import (
 
 	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/exp/maps"
 
 	"github.com/tidepool-org/platform/data"
 
@@ -161,16 +160,16 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
 	//cleanup
 	//incomingKeys := maps.Keys(ojbData)
-	unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime"}
-	for _, unparsed := range unparsedFields {
-		delete(ojbData, unparsed)
-	}
-	cleanedKeys := maps.Keys(ojbData)
+	// unparsedFields := []string{"_deduplicator", "_groupId", "_active", "_version", "_userId", "_id", "_schemaVersion", "uploadId", "guid", "createdTime", "modifiedTime"}
+	// for _, unparsed := range unparsedFields {
+	// 	delete(ojbData, unparsed)
+	// }
+	// cleanedKeys := maps.Keys(ojbData)
 
-	cleanedJSONData, err := json.Marshal(ojbData)
-	if err != nil {
-		return nil, err
-	}
+	// cleanedJSONData, err := json.Marshal(ojbData)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	//parsing
 	parser := structureParser.NewObject(&ojbData)
@@ -184,19 +183,26 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	} else {
 		return nil, errorsP.Newf("no datum returned for id=[%s]", dID)
 	}
+	// here
+
+	// validator.Bool("_active", parser.Bool("_active")).Exists()
+	// validator.String("_groupId", parser.String("_groupId")).Exists()
+	// validator.String("_id", parser.String("_id")).Exists()
+	// validator.String("_userId", parser.String("_userId")).Exists()
+	// validator.Int("_version", parser.Int("_version")).Exists()
 
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, errorsP.Wrap(err, fmt.Sprintf("parsing type[%s] with keys%s", dType, cleanedKeys))
+		return nil, err //errorsP.Wrap(err, fmt.Sprintf("parsing type[%s] with keys%s", dType, cleanedKeys))
 	}
 
 	if err := validator.Error(); err != nil {
-		return nil, errorsP.Wrap(err, fmt.Sprintf("validate type[%s] with keys%s", dType, cleanedKeys))
+		return nil, err // errorsP.Wrap(err, fmt.Sprintf("validate type[%s] with keys%s", dType, cleanedKeys))
 	}
 
 	if err := normalizer.Error(); err != nil {
-		return nil, errorsP.Wrap(err, fmt.Sprintf("normalize type[%s] with keys%s", dType, cleanedKeys))
+		return nil, err //errorsP.Wrap(err, fmt.Sprintf("normalize type[%s] with keys%s", dType, cleanedKeys))
 	}
 
 	outgoingJSONData, err := json.Marshal(datum)
@@ -212,7 +218,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
 	logDiff(dID, changelog)
 
-	logBeforeAndAfter(dID, cleanedJSONData, outgoingJSONData)
+	//logBeforeAndAfter(dID, cleanedJSONData, outgoingJSONData)
 
 	return *datum, nil
 }

@@ -228,7 +228,14 @@ func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 			os.Exit(1)
 		}
 		defer f.Close()
-		f.WriteString(fmt.Sprintf(errFormat, id, msg, reportErr.Error()))
+
+		errBytes, err := bson.Marshal(reportErr)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+
+		f.WriteString(fmt.Sprintf(errFormat, id, msg, string(errBytes)))
 		if m.config.stopOnErr {
 			log.Printf(errFormat, id, msg, reportErr.Error())
 			os.Exit(1)
