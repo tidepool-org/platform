@@ -169,9 +169,12 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	validator.String("_userId", parser.String("_userId")).Exists()
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
+
+	validator.Int("_archivedTime", parser.Int("_archivedTime"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
+
 	validator.String("uploadId", parser.String("uploadId")).Exists()
-	validator.String("guid", parser.String("guid")).Exists()
+	validator.String("guid", parser.String("guid"))
 	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
 	validator.Time("modifiedTime", parser.Time("modifiedTime", time.RFC3339Nano))
 
@@ -200,7 +203,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	}
 
 	// these are extras that we want to leave on the original object
-	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId", "createdTime", "guid", "modifiedTime"}
+	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId", "createdTime", "guid", "modifiedTime", "_archivedTime"}
 	for _, key := range notRequired {
 		delete(ojbData, key)
 	}
