@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
@@ -88,16 +89,16 @@ func logDiff(id string, updates interface{}) {
 	f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
 }
 
-func logBeforeAndAfter(id string, original []byte, updated []byte) {
-	f, err := os.OpenFile("changes.log",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	defer f.Close()
-	f.WriteString(fmt.Sprintf(`{"_id":"%s","jellyfish":%s,"platform":%s},`, id, string(original), string(updated)))
-}
+// func logBeforeAndAfter(id string, original []byte, updated []byte) {
+// 	f, err := os.OpenFile("changes.log",
+// 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+// 	if err != nil {
+// 		log.Println(err)
+// 		os.Exit(1)
+// 	}
+// 	defer f.Close()
+// 	f.WriteString(fmt.Sprintf(`{"_id":"%s","jellyfish":%s,"platform":%s},`, id, string(original), string(updated)))
+// }
 
 func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 
@@ -183,26 +184,30 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	} else {
 		return nil, errorsP.Newf("no datum returned for id=[%s]", dID)
 	}
-	// here
 
-	// validator.Bool("_active", parser.Bool("_active")).Exists()
-	// validator.String("_groupId", parser.String("_groupId")).Exists()
-	// validator.String("_id", parser.String("_id")).Exists()
-	// validator.String("_userId", parser.String("_userId")).Exists()
-	// validator.Int("_version", parser.Int("_version")).Exists()
+	validator.Bool("_active", parser.Bool("_active")).Exists()
+	validator.String("_groupId", parser.String("_groupId")).Exists()
+	validator.String("_id", parser.String("_id")).Exists()
+	validator.String("_userId", parser.String("_userId")).Exists()
+	validator.Int("_version", parser.Int("_version")).Exists()
+	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
+	validator.String("uploadId", parser.String("uploadId")).Exists()
+	validator.String("guid", parser.String("guid")).Exists()
+	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
+	validator.Time("modifiedTime", parser.Time("modifiedTime", time.RFC3339Nano))
 
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, err //errorsP.Wrap(err, fmt.Sprintf("parsing type[%s] with keys%s", dType, cleanedKeys))
+		return nil, err
 	}
 
 	if err := validator.Error(); err != nil {
-		return nil, err // errorsP.Wrap(err, fmt.Sprintf("validate type[%s] with keys%s", dType, cleanedKeys))
+		return nil, err
 	}
 
 	if err := normalizer.Error(); err != nil {
-		return nil, err //errorsP.Wrap(err, fmt.Sprintf("normalize type[%s] with keys%s", dType, cleanedKeys))
+		return nil, err
 	}
 
 	outgoingJSONData, err := json.Marshal(datum)

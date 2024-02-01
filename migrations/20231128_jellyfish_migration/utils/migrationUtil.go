@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -229,13 +230,14 @@ func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 		}
 		defer f.Close()
 
-		errBytes, err := bson.Marshal(reportErr)
+		errBytes, err := json.Marshal(reportErr)
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
 		}
 
-		f.WriteString(fmt.Sprintf(errFormat, id, msg, string(errBytes)))
+		f.WriteString(fmt.Sprintf("[_id=%s]\n", id))
+		f.WriteString(string(errBytes))
 		if m.config.stopOnErr {
 			log.Printf(errFormat, id, msg, reportErr.Error())
 			os.Exit(1)
