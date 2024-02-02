@@ -107,6 +107,15 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 		case "ReservoirChange":
 			ops, _ := buildReservoirChangeUpdateOneModel(sample, userId, ts, creationTimestamp)
 			operations = append(operations, ops...)
+		case "Wizard":
+			ops, _ := buildWizardUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "Food":
+			ops, _ := buildFoodUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
+		case "PhysicalActivity":
+			ops, _ := buildPhysicalActivitiesUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
 		}
 	}
 
@@ -115,7 +124,7 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	bulkOption.SetOrdered(false)
 
 	if dataType == "loopMode" {
-		// loop mode event is recorded with out hot/cold collection
+		// loop mode event is recorded without hot/cold collection
 		_, err := c.Collection("loopMode").BulkWrite(ctx, operations, &bulkOption)
 		if err != nil {
 			return err
@@ -574,6 +583,126 @@ func buildReservoirChangeUpdateOneModel(sample schema.ISample, userId *string, d
 	})
 	op.SetUpsert(true)
 	updates = append(updates, op)
+
+	return updates, nil
+}
+
+func buildWizardUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// one operation because normally the event is sent once,
+	// indeed the meal with bolus is sent at the "end" and not modifiable
+	// the tricky part is that the wizard object could be used for sending meal
+	// then in that case this section will have to be updated
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "samples", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
+}
+
+func buildFoodUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// one operation because normally the event is sent once
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "samples", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
+}
+
+func buildPhysicalActivitiesUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+	day, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, ErrUnableToParseBucketDayTime
+	}
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	// Insert the bucket if not exist and then insert the sample in it
+	firstOp := mongo.NewUpdateOneModel()
+	var array []schema.ISample
+	firstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	firstOp.SetUpdate(bson.D{ // update
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "creationTimestamp", Value: creationTimestamp},
+			{Key: "day", Value: day},
+			{Key: "userId", Value: strUserId},
+			{Key: "samples", Value: append(array, sample)},
+		},
+		},
+	})
+	firstOp.SetUpsert(true)
+	updates = append(updates, firstOp)
+
+	// Update
+	elemfilter := sample.(schema.PhysicalActivity)
+	if elemfilter.Guid != "" && elemfilter.DeviceId != "" {
+		secondOp := mongo.NewUpdateOneModel()
+		secondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "samples", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: elemfilter.Guid},
+					{Key: "deviceId", Value: elemfilter.DeviceId},
+				},
+				},
+			},
+			},
+		})
+		secondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "samples.$.duration", Value: elemfilter.Duration},
+				{Key: "samples.$.inputTimestamp", Value: elemfilter.InputTimestamp},
+			},
+			},
+		})
+		updates = append(updates, secondOp)
+	}
+	// Otherwise we know that we did not update, so we guarantee an insertion
+	// in the array
+	thirdOp := mongo.NewUpdateOneModel()
+	thirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	thirdOp.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "samples", Value: sample}}},
+	})
+	updates = append(updates, thirdOp)
 
 	return updates, nil
 }

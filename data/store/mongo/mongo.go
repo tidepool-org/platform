@@ -13,18 +13,21 @@ import (
 
 	goComMgo "github.com/mdblp/go-db/mongo"
 
+	"github.com/tidepool-org/platform/data/types/activity/physical"
 	"github.com/tidepool-org/platform/data/types/basal/automated"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
 	"github.com/tidepool-org/platform/data/types/basal/temporary"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/bolus/biphasic"
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/device/alarm"
 	"github.com/tidepool-org/platform/data/types/device/calibration"
 	"github.com/tidepool-org/platform/data/types/device/flush"
 	"github.com/tidepool-org/platform/data/types/device/mode"
 	"github.com/tidepool-org/platform/data/types/device/prime"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
+	"github.com/tidepool-org/platform/data/types/food"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/schema"
@@ -439,7 +442,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 		deviceId := datum.GetDeviceID()
 		/*If data type is in write to bucket ENV VAR, we write it to bucket*/
 		if writeToBucket {
-			// Prepare cbg to be pushed into data read db
+			// Prepare  to be pushed into data read db
 			loggerFields := log.Fields{"datum": datum}
 			switch event := datum.(type) {
 			case *continuous.Continuous:
@@ -518,6 +521,24 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 				s.MapForReservoirChange(event)
 				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add ReservoirChange in bucket")
 				allSamples["ReservoirChange"] = append(allSamples["ReservoirChange"], *s)
+			case *calculator.Calculator:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a wizard entry")
+				var s = &schema.Wizard{}
+				s.MapForWizard(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add wizard in bucket")
+				allSamples["Wizard"] = append(allSamples["Wizard"], *s)
+			case *food.Food:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a food entry")
+				var s = &schema.Food{}
+				s.MapForFood(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add food in bucket")
+				allSamples["Food"] = append(allSamples["Food"], *s)
+			case *physical.Physical:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a PhysicalActivity entry")
+				var s = &schema.PhysicalActivity{}
+				s.MapForPhysical(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add PhysicalActivity in bucket")
+				allSamples["PhysicalActivity"] = append(allSamples["PhysicalActivity"], *s)
 			default:
 				d.BucketStore.log.Infof("object ignored %+v", event)
 			}

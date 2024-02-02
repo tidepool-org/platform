@@ -6,12 +6,13 @@ ENV XDG_CACHE_HOME="/go/src/github.com/mdblp/.cache"
 WORKDIR /go/src/github.com/mdblp/
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
-    apk add --no-cache gcc musl-dev git rsync python3 python3-dev py3-pip make tzdata && \
-    pip3 install openapi-spec-validator prance click && \
+    apk add --no-cache gcc musl-dev git rsync python3 python3-dev pipx make tzdata && \
     adduser -D mdblp && \
     chown -R mdblp /go
 USER mdblp
+RUN  pipx install prance[cli,osv]
+ENV PATH="$PATH:/home/mdblp/.local/bin"
 RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
-COPY go.mod ./
-COPY go.sum ./
-RUN go mod download
+COPY --chown=mdblp  go.mod ./
+COPY --chown=mdblp go.sum ./
+RUN ls -al && go mod download
