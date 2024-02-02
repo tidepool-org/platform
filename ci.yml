@@ -9,7 +9,7 @@ publishOpenapiBucket: com.diabeloop.backloops.docs
 publishSoupBucket: com.diabeloop.backloops.docs
 securityScan: true
 dockerBuild: 
-  platform: 'linux/arm64,linux/amd64'
+  platform: 'linux/amd64'
   file: 'Dockerfile.data'
   buildArgs:
     - 'APP_VERSION=$version'
