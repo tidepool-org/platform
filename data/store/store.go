@@ -29,14 +29,14 @@ type DataSetRepository interface {
 	EnsureIndexes() error
 
 	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
-	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
+	GetDataSetByID(ctx context.Context, uploadID string) (*upload.Upload, error)
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
-	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
+	GetDataSet(ctx context.Context, uploadID string) (*data.DataSet, error)
 }
 
 // DatumRepository is the interface for interacting and modifying
@@ -59,7 +59,6 @@ type DatumRepository interface {
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
-	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
 	GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error)

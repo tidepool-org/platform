@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	stdErrs "errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -113,11 +114,11 @@ func (d *DataSetRepository) EnsureIndexes() error {
 	})
 }
 
-func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+func (d *DataSetRepository) GetDataSetByID(ctx context.Context, uploadID string) (*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if dataSetID == "" {
+	if uploadID == "" {
 		return nil, errors.New("data set id is missing")
 	}
 
@@ -125,14 +126,14 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string
 
 	var dataSet *upload.Upload
 	selector := bson.M{
-		"uploadId": dataSetID,
+		"uploadId": uploadID,
 	}
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 
-	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": uploadID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.GetDataSetByID")
 
-	if err == mongo.ErrNoDocuments {
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set by id")
@@ -231,25 +232,25 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSetRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+func (d *DataSetRepository) GetDataSet(ctx context.Context, uploadID string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
+	if uploadID == "" {
 		return nil, errors.New("id is missing")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
+	logger := log.LoggerFromContext(ctx).WithField("id", uploadID)
 
 	var dataSet *data.DataSet
 	selector := bson.M{
-		"uploadId": id,
+		"uploadId": uploadID,
 	}
 
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DataSet.GetDataSet")
-	if err == mongo.ErrNoDocuments {
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set")
