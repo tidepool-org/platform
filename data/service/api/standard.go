@@ -42,7 +42,7 @@ func NewStandard(svc service.Service, permissionClient permission.Client,
 	}, nil
 }
 
-func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error {
+func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route, isUploadIdUsed bool) error {
 	baseRoutes := []dataService.Route{
 		dataService.MakeRoute("GET", "/status", s.StatusGet),
 		dataService.MakeRoute("GET", "/version", s.VersionGet),
@@ -55,7 +55,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 		contextRoutes = append(contextRoutes, &rest.Route{
 			HttpMethod: route.Method,
 			PathExp:    route.Path,
-			Func:       s.withContext(route.Handler),
+			Func:       s.withContext(route.Handler, isUploadIdUsed),
 		})
 	}
 	metricRoute := rest.Get("/metrics", func(w rest.ResponseWriter, r *rest.Request) {
@@ -74,6 +74,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 	return nil
 }
 
-func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
-	return dataContext.WithContext(s.AuthClient(), s.permissionClient, s.dataStore, handler)
+func (s *Standard) withContext(handler dataService.HandlerFunc, isUploadIdUsed bool) rest.HandlerFunc {
+
+	return dataContext.WithContext(s.AuthClient(), s.permissionClient, s.dataStore, isUploadIdUsed, handler)
 }

@@ -14,6 +14,7 @@ type Context interface {
 	PermissionClient() permission.Client
 
 	DataRepository() dataStore.DataRepository
+	IsUploadIdUsed() bool
 }
 
 type HandlerFunc func(context Context)

@@ -43,7 +43,6 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
-
 	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
@@ -158,7 +157,8 @@ func (s *Standard) initializeAPI() error {
 
 	s.Logger().Debug("Initializing api router")
 
-	if err = s.api.DEPRECATEDInitializeRouter(dataServiceApiV1.Routes()); err != nil {
+	isUploadIdUsed := getUpLoadIdEnabledEnv()
+	if err = s.api.DEPRECATEDInitializeRouter(dataServiceApiV1.Routes(), isUploadIdUsed); err != nil {
 		return errors.Wrap(err, "unable to initialize api router")
 	}
 
@@ -250,4 +250,23 @@ func getKeptInLegacyDataTypesEnv() []string {
 	}
 
 	return []string{}
+}
+
+func getUpLoadIdEnabledEnv() bool {
+	s, err := getenvStr("UPLOADID_ENABLED")
+	if err != nil {
+		logrusLogger.Warn("environment variable UPLOADID_ENABLED not exported, set true by default")
+		return true
+	}
+	if s != "" {
+		boolValue, err := strconv.ParseBool(s)
+		if err != nil {
+			logrusLogger.Warn("environment variable UPLOADID_ENABLED conversion error, set true by default")
+			return true
+		}
+		logrusLogger.Warnf("environment variable UPLOADID_ENABLED set to [%t]", boolValue)
+		return boolValue
+
+	}
+	return true
 }

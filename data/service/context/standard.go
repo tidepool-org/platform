@@ -20,12 +20,13 @@ type Standard struct {
 	permissionClient permission.Client
 	dataStore        dataStore.Store
 	dataRepository   dataStore.DataRepository
+	isUploadIdUsed   bool
 }
 
 func WithContext(authClient auth.Client, permissionClient permission.Client,
-	store dataStore.Store, handler dataService.HandlerFunc) rest.HandlerFunc {
+	store dataStore.Store, isUploadIdUsed bool, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
-		standard, standardErr := NewStandard(response, request, authClient, permissionClient, store)
+		standard, standardErr := NewStandard(response, request, authClient, permissionClient, store, isUploadIdUsed)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -42,7 +43,7 @@ func WithContext(authClient auth.Client, permissionClient permission.Client,
 
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, permissionClient permission.Client,
-	store dataStore.Store) (*Standard, error) {
+	store dataStore.Store, isUploadIdUsed bool) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -63,6 +64,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		authClient:       authClient,
 		permissionClient: permissionClient,
 		dataStore:        store,
+		isUploadIdUsed:   isUploadIdUsed,
 	}, nil
 }
 
@@ -85,4 +87,8 @@ func (s *Standard) DataRepository() dataStore.DataRepository {
 		s.dataRepository = s.dataStore.NewDataRepository()
 	}
 	return s.dataRepository
+}
+
+func (s *Standard) IsUploadIdUsed() bool {
+	return s.isUploadIdUsed
 }

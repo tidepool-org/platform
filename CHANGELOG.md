@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.25.0 - 2024-01-31
+### Changed
+- YLP-2783 removes upload id references 
+
 ## 0.24.0 - 2024-01-29
 ### Changed
 - YLP-2833 push in buckets remaining datatypes (wizard, physical activities, food)
