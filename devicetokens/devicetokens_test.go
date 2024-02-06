@@ -62,7 +62,7 @@ var _ = Describe("DeviceToken", func() {
 		token := &DeviceToken{}
 		buf := buff(`{}`)
 		err := request.DecodeObject(nil, buf, token)
-		Expect(err).To(MatchError(ContainSubstring("no token found")))
+		Expect(err).To(MatchError(ContainSubstring("value does not exist")))
 	})
 
 	Describe("NewDocument", func() {

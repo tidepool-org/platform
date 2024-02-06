@@ -21,17 +21,17 @@ func (r *deviceTokenRepo) Upsert(ctx context.Context, doc *devicetokens.Document
 	// The presence of UserID and TokenID should be enforced with a mongodb
 	// index, but better safe than sorry.
 	if doc.UserID == "" {
-		return errors.New("UserID may not be empty")
+		return errors.New("UserID is empty")
 	}
 	if doc.TokenKey == "" {
-		return errors.New("TokenID may not be empty")
+		return errors.New("TokenID is empty")
 	}
 
 	opts := options.Update().SetUpsert(true)
 	f := bson.M{"tokenKey": doc.TokenKey, "userId": doc.UserID}
 	_, err := r.UpdateOne(ctx, f, bson.M{"$set": doc}, opts)
 	if err != nil {
-		return errors.Wrap(err, "upserting device token")
+		return errors.Wrap(err, "unable to upsert device token")
 	}
 	return nil
 }
@@ -47,7 +47,7 @@ func (r *deviceTokenRepo) EnsureIndexes() error {
 			},
 			Options: options.Index().
 				SetUnique(true).
-				SetName("UserIdTokenKeyTypeUnique"),
+				SetName("UserIdTokenKeyUnique"),
 		},
 	})
 }

@@ -128,12 +128,12 @@ var _ = Describe("Store", func() {
 
 						doc.UserID = ""
 						err := repository.Upsert(ctx, doc)
-						Expect(err).To(MatchError("UserID may not be empty"))
+						Expect(err).To(MatchError("UserID is empty"))
 
 						doc.UserID = "user-id"
 						doc.TokenKey = ""
 						err = repository.Upsert(ctx, doc)
-						Expect(err).To(MatchError("TokenID may not be empty"))
+						Expect(err).To(MatchError("TokenID is empty"))
 					})
 
 					It("updates the existing document, instead of creating a duplicate", func() {

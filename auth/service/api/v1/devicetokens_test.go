@@ -35,14 +35,14 @@ var _ = Describe("Device tokens endpoints", func() {
 			Expect(res.Code).To(Equal(http.StatusOK))
 		})
 
-		It("accepts authenticated service users", func() {
+		It("rejects service users", func() {
 			svcDetails := test.NewMockAuthDetails(request.MethodServiceSecret, "", test.TestToken2)
 			res := test.NewMockRestResponseWriter()
 			req := newDeviceTokensTestRequest(svcDetails, nil, "")
 
 			rtr.UpsertDeviceToken(res, req)
 
-			Expect(res.Code).To(Equal(http.StatusOK))
+			Expect(res.Code).To(Equal(http.StatusForbidden))
 		})
 
 		It("requires that the user's token matches the userId path param", func() {

@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -63,19 +63,20 @@ func (t DeviceToken) key() string {
 }
 
 func (t DeviceToken) Validate(validator structure.Validator) {
+	appleValidator := validator.WithReference("apple")
 	if t.Apple != nil {
-		t.Apple.Validate(validator)
+		t.Apple.Validate(appleValidator)
 	} else {
 		// There's no other kind of token, so if there's no Apple, this is invalid.
-		validator.ReportError(errors.New("no token found"))
+		appleValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
 type AppleDeviceToken struct {
 	// Token from Apple that identifies this specific device.
-	Token AppleBlob
+	Token AppleBlob `json:"token" bson:"token"`
 	// Environment is either sandbox or production.
-	Environment string
+	Environment string `json:"environment" bson:"environment"`
 }
 
 func (t AppleDeviceToken) key() string {
@@ -87,9 +88,9 @@ func (t AppleDeviceToken) key() string {
 }
 
 func (t AppleDeviceToken) Validate(validator structure.Validator) {
-	validator.Bytes("Token", t.Token).NotEmpty().
+	validator.Bytes("token", t.Token).NotEmpty().
 		LengthLessThanOrEqualTo(MaxTokenLen)
-	validator.String("Environment", &t.Environment).
+	validator.String("environment", &t.Environment).
 		NotEmpty().
 		OneOf(AppleEnvProduction, AppleEnvSandbox)
 }
