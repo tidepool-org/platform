@@ -1,3 +1,4 @@
+// Temp place to put the keycloak client
 package user
 
 import (
@@ -197,35 +198,13 @@ func (c *KeycloakClient) GetUserByEmail(ctx context.Context, email string) (*goc
 
 	return c.GetUserById(ctx, *users[0].ID)
 }
+
 func (c *KeycloakClient) UpdateUser(ctx context.Context, user *gocloak.User) error {
 	token, err := c.getAdminToken(ctx)
 	if err != nil {
 		return err
 	}
 
-	// gocloakUser := gocloak.User{
-	// 	ID:            &user.ID,
-	// 	Username:      &user.Username,
-	// 	Enabled:       &user.Enabled,
-	// 	EmailVerified: &user.EmailVerified,
-	// 	FirstName:     &user.FirstName,
-	// 	LastName:      &user.LastName,
-	// 	Email:         &user.Email,
-	// }
-
-	// attrs := map[string][]string{}
-	// if len(user.Attributes.TermsAcceptedDate) > 0 {
-	// 	attrs["terms_and_conditions"] = user.Attributes.TermsAcceptedDate
-	// }
-	// if user.Attributes.Profile != nil {
-	// 	maps.Copy(attrs, user.Attributes.Profile.ToAttributes())
-	// }
-
-	// if len(attrs) > 0 {
-	// 	gocloakUser.Attributes = &attrs
-	// }
-
-	// if err := c.keycloak.UpdateUser(ctx, token.AccessToken, c.cfg.Realm, gocloakUser); err != nil {
 	if err := c.keycloak.UpdateUser(ctx, token.AccessToken, c.cfg.Realm, *user); err != nil {
 		return err
 	}
@@ -234,43 +213,6 @@ func (c *KeycloakClient) UpdateUser(ctx context.Context, user *gocloak.User) err
 	}
 	return nil
 }
-
-// func (c *KeycloakClient) UpdateUser(ctx context.Context, user *KeycloakUser) error {
-// 	token, err := c.getAdminToken(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	gocloakUser := gocloak.User{
-// 		ID:            &user.ID,
-// 		Username:      &user.Username,
-// 		Enabled:       &user.Enabled,
-// 		EmailVerified: &user.EmailVerified,
-// 		FirstName:     &user.FirstName,
-// 		LastName:      &user.LastName,
-// 		Email:         &user.Email,
-// 	}
-
-// 	attrs := map[string][]string{}
-// 	if len(user.Attributes.TermsAcceptedDate) > 0 {
-// 		attrs["terms_and_conditions"] = user.Attributes.TermsAcceptedDate
-// 	}
-// 	if user.Attributes.Profile != nil {
-// 		maps.Copy(attrs, user.Attributes.Profile.ToAttributes())
-// 	}
-
-// 	if len(attrs) > 0 {
-// 		gocloakUser.Attributes = &attrs
-// 	}
-
-// 	if err := c.keycloak.UpdateUser(ctx, token.AccessToken, c.cfg.Realm, gocloakUser); err != nil {
-// 		return err
-// 	}
-// 	if err := c.updateRolesForUser(ctx, user); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 
 func (c *KeycloakClient) UpdateUserPassword(ctx context.Context, id, password string) error {
 	token, err := c.getAdminToken(ctx)
@@ -294,25 +236,6 @@ func (c *KeycloakClient) CreateUser(ctx context.Context, user *gocloak.User) (*g
 		return nil, err
 	}
 
-	// model := gocloak.User{
-	// 	Username:      &user.Username,
-	// 	Email:         &user.Email,
-	// 	EmailVerified: &user.EmailVerified,
-	// 	Enabled:       &user.Enabled,
-	// 	RealmRoles:    &user.Roles,
-	// }
-
-	// attrs := map[string][]string{}
-	// if len(user.Attributes.TermsAcceptedDate) > 0 {
-	// 	attrs["terms_and_conditions"] = user.Attributes.TermsAcceptedDate
-	// }
-	// if user.Attributes.Profile != nil {
-	// 	maps.Copy(attrs, user.Attributes.Profile.ToAttributes())
-	// }
-	// if len(attrs) > 0 {
-	// 	model.Attributes = &attrs
-	// }
-
 	userID, err := c.keycloak.CreateUser(ctx, token.AccessToken, c.cfg.Realm, *user)
 	if err != nil {
 		var gerr *gocloak.APIError
@@ -328,46 +251,6 @@ func (c *KeycloakClient) CreateUser(ctx context.Context, user *gocloak.User) (*g
 
 	return c.GetUserById(ctx, userID)
 }
-
-// func (c *KeycloakClient) CreateUser(ctx context.Context, user *KeycloakUser) (*KeycloakUser, error) {
-// 	token, err := c.getAdminToken(ctx)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	model := gocloak.User{
-// 		Username:      &user.Username,
-// 		Email:         &user.Email,
-// 		EmailVerified: &user.EmailVerified,
-// 		Enabled:       &user.Enabled,
-// 		RealmRoles:    &user.Roles,
-// 	}
-
-// 	attrs := map[string][]string{}
-// 	if len(user.Attributes.TermsAcceptedDate) > 0 {
-// 		attrs["terms_and_conditions"] = user.Attributes.TermsAcceptedDate
-// 	}
-// 	if user.Attributes.Profile != nil {
-// 		maps.Copy(attrs, user.Attributes.Profile.ToAttributes())
-// 	}
-// 	if len(attrs) > 0 {
-// 		model.Attributes = &attrs
-// 	}
-
-// 	user.ID, err = c.keycloak.CreateUser(ctx, token.AccessToken, c.cfg.Realm, model)
-// 	if err != nil {
-// 		if e, ok := err.(*gocloak.APIError); ok && e.Code == http.StatusConflict {
-// 			err = ErrUserConflict
-// 		}
-// 		return nil, err
-// 	}
-
-// 	if err := c.updateRolesForUser(ctx, user); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return c.GetUserById(ctx, user.ID)
-// }
 
 func (c *KeycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (users []*gocloak.User, err error) {
 	const errMessage = "could not retrieve users by ids"
