@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/normalizer"
@@ -16,6 +17,8 @@ import (
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+	"github.com/tidepool-org/platform/metadata"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -34,27 +37,19 @@ var _ = Describe("back-37", func() {
 				return bsonData
 			}
 
+			var pumpSettingsDatum *pump.Pump
+
+			BeforeEach(func() {
+				mmolL := pump.DisplayBloodGlucoseUnitsMmolPerL
+				pumpSettingsDatum = pumpTest.NewPump(&mmolL)
+				*pumpSettingsDatum.ID = expectedID
+				*pumpSettingsDatum.UserID = "some-user-id"
+				*pumpSettingsDatum.DeviceID = "some-device-id"
+				theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+				*pumpSettingsDatum.Time = theTime
+			})
+
 			Context("pumpSettings", func() {
-
-				var pumpSettingsDatum *pump.Pump
-				var settingsBolusDatum bson.M
-
-				BeforeEach(func() {
-					mmolL := pump.DisplayBloodGlucoseUnitsMmolPerL
-					pumpSettingsDatum = pumpTest.NewPump(&mmolL)
-					*pumpSettingsDatum.ID = expectedID
-					*pumpSettingsDatum.UserID = "some-user-id"
-					*pumpSettingsDatum.DeviceID = "some-device-id"
-					theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
-					*pumpSettingsDatum.Time = theTime
-					var bolusData = &pump.BolusMap{
-						"bolus-1": pumpTest.NewRandomBolus(),
-						"bolus-2": pumpTest.NewRandomBolus(),
-					}
-					settingsBolusDatum = getBSONData(pumpSettingsDatum)
-					settingsBolusDatum["bolus"] = bolusData
-					settingsBolusDatum["_id"] = expectedID
-				})
 
 				Context("with mis-named jellyfish bolus", func() {
 					var bolusData = &pump.BolusMap{
@@ -64,6 +59,7 @@ var _ = Describe("back-37", func() {
 					var settingsBolusDatum bson.M
 
 					BeforeEach(func() {
+
 						settingsBolusDatum = getBSONData(pumpSettingsDatum)
 						settingsBolusDatum["bolus"] = bolusData
 						settingsBolusDatum["_id"] = expectedID
@@ -123,6 +119,29 @@ var _ = Describe("back-37", func() {
 					Expect(err).To(BeNil())
 					Expect(cbgData["value"]).To(Equal(4.88466))
 				})
+			})
+			Context("datum with string payload", func() {
+				var datumWithPayload primitive.M
+				var payload *metadata.Metadata
+				BeforeEach(func() {
+					datumWithPayload = getBSONData(pumpSettingsDatum)
+					payload = metadataTest.RandomMetadata()
+					datumWithPayload["payload"] = payload
+				})
+
+				It("should do nothing when value is already correct", func() {
+					Expect(datumWithPayload["payload"]).To(Equal(payload))
+					err := utils.ApplyBaseChanges(datumWithPayload)
+					Expect(err).To(BeNil())
+					Expect(datumWithPayload["payload"]).To(Equal(payload))
+				})
+				// It("should update the payload when it is a string", func() {
+				// 	datumWithPayload["payload"] = fmt.Sprintf("%v", *payload)
+				// 	Expect(datumWithPayload["payload"]).To(Equal(fmt.Sprintf("%v", *payload)))
+				// 	err := utils.ApplyBaseChanges(datumWithPayload)
+				// 	Expect(err).To(BeNil())
+				// 	Expect(datumWithPayload["payload"]).To(Equal(payload))
+				// })
 			})
 		})
 
