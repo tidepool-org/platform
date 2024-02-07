@@ -14,6 +14,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
@@ -91,38 +92,49 @@ func logDiff(id string, updates interface{}) {
 	}
 }
 
-func ProcessDatum(bsonData bson.M) (data.Datum, error) {
-
+func ApplyBaseChanges(bsonData bson.M) error {
 	dType := fmt.Sprintf("%v", bsonData["type"])
-	dID := fmt.Sprintf("%v", bsonData["_id"])
-
 	switch dType {
 	case pump.Type:
 		if boluses := bsonData["bolus"]; boluses != nil {
 			bsonData["boluses"] = boluses
+			//TODO delete from mongo
 			delete(bsonData, "bolus")
 		}
-		// case selfmonitored.Type, ketone.Type, continuous.Type:
-		// 	units := fmt.Sprintf("%v", bsonData["units"])
-		// 	if units == glucose.MmolL || units == glucose.Mmoll {
-
-		// 		if val, ok := bsonData["value"].(float64); ok {
-
-		// 		}
-
-		// 	}
+	case selfmonitored.Type, ketone.Type, continuous.Type:
+		units := fmt.Sprintf("%v", bsonData["units"])
+		if units == glucose.MmolL || units == glucose.Mmoll {
+			floatStr := fmt.Sprintf("%v", bsonData["value"])
+			floatParts := strings.Split(floatStr, ".")
+			if len(floatParts) == 2 {
+				if len(floatParts[1]) > 5 {
+					//TODO update in mongo
+					if floatVal, ok := bsonData["value"].(float64); ok {
+						mgdlVal := floatVal * glucose.MmolLToMgdLConversionFactor
+						intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
+						floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
+						bsonData["value"] = floatValue
+					}
+				}
+			}
+		}
+	case basal.Type:
+		if percent := bsonData["percent"]; percent != nil {
+			//TODO delete from mongo
+			delete(bsonData, "percent")
+		}
 	}
 
 	if payload := bsonData["payload"]; payload != nil {
 		if _, ok := payload.(string); ok {
 			dataBytes, err := bson.Marshal(payload)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			var payloadMetadata metadata.Metadata
 			err = bson.Unmarshal(dataBytes, &payloadMetadata)
 			if err != nil {
-				return nil, errorsP.Newf("payload could not be set from %v ", string(dataBytes))
+				return errorsP.Newf("payload could not be set from %v ", string(dataBytes))
 			}
 			bsonData["payload"] = &payloadMetadata
 		}
@@ -131,15 +143,85 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		if _, ok := annotations.(string); ok {
 			dataBytes, err := bson.Marshal(annotations)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			var metadataArray metadata.MetadataArray
 			if err := bson.Unmarshal(dataBytes, &metadataArray); err != nil {
-				return nil, errorsP.Newf("annotations could not be set from %v ", string(dataBytes))
+				return errorsP.Newf("annotations could not be set from %v ", string(dataBytes))
 			}
 			bsonData["annotations"] = &metadataArray
 		}
 	}
+	return nil
+}
+
+func ProcessDatum(bsonData bson.M) (data.Datum, error) {
+
+	dID := fmt.Sprintf("%v", bsonData["_id"])
+
+	if err := ApplyBaseChanges(bsonData); err != nil {
+		return nil, err
+	}
+
+	// switch dType {
+	// case pump.Type:
+	// 	if boluses := bsonData["bolus"]; boluses != nil {
+	// 		bsonData["boluses"] = boluses
+	// 		//TODO delete from mongo
+	// 		delete(bsonData, "bolus")
+	// 	}
+	// 	//TODO Entry("returns converted value for mmol/L units with incorrect precision", pointer.FromFloat64(4.88465823212007), pointer.FromString("mmol/L"), pointer.FromFloat64(4.88466)),
+	// // case selfmonitored.Type, ketone.Type, continuous.Type:
+	// // 	units := fmt.Sprintf("%v", bsonData["units"])
+	// // 	if units == glucose.MmolL || units == glucose.Mmoll {
+	// // 		floatStr := fmt.Sprintf("%v", bsonData["value"])
+	// // 		floatParts := strings.Split(floatStr, ".")
+	// // 		if len(floatParts) == 2 {
+	// // 			if len(floatParts[1]) > 5 {
+	// // 				//TODO update in mongo
+	// // 				if floatVal, ok := bsonData["value"].(float64); ok {
+	// // 					mgdlVal := floatVal * glucose.MmolLToMgdLConversionFactor
+	// // 					intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
+	// // 					floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
+	// // 					bsonData["value"] = floatValue
+	// // 				}
+	// // 			}
+	// // 		}
+	// // 	}
+	// case basal.Type:
+	// 	if percent := bsonData["percent"]; percent != nil {
+	// 		//TODO delete from mongo
+	// 		delete(bsonData, "percent")
+	// 	}
+	// }
+
+	// if payload := bsonData["payload"]; payload != nil {
+	// 	if _, ok := payload.(string); ok {
+	// 		dataBytes, err := bson.Marshal(payload)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		var payloadMetadata metadata.Metadata
+	// 		err = bson.Unmarshal(dataBytes, &payloadMetadata)
+	// 		if err != nil {
+	// 			return nil, errorsP.Newf("payload could not be set from %v ", string(dataBytes))
+	// 		}
+	// 		bsonData["payload"] = &payloadMetadata
+	// 	}
+	// }
+	// if annotations := bsonData["annotations"]; annotations != nil {
+	// 	if _, ok := annotations.(string); ok {
+	// 		dataBytes, err := bson.Marshal(annotations)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 		var metadataArray metadata.MetadataArray
+	// 		if err := bson.Unmarshal(dataBytes, &metadataArray); err != nil {
+	// 			return nil, errorsP.Newf("annotations could not be set from %v ", string(dataBytes))
+	// 		}
+	// 		bsonData["annotations"] = &metadataArray
+	// 	}
+	// }
 
 	incomingJSONData, err := json.Marshal(bsonData)
 	if err != nil {
@@ -159,6 +241,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	if datum != nil && *datum != nil {
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
+
+		// if (*datum).GetType() == selfmonitored.Type {
+		// 	//TODO
+		// }
 	} else {
 		return nil, errorsP.Newf("no datum returned for id=[%s]", dID)
 	}

@@ -23,6 +23,109 @@ import (
 
 var _ = Describe("back-37", func() {
 	var _ = Describe("utils", func() {
+		var _ = Describe("ApplyBaseChanges", func() {
+
+			const expectedID = "some-id"
+
+			var getBSONData = func(datum interface{}) bson.M {
+				var bsonData bson.M
+				bsonAsByte, _ := bson.Marshal(&datum)
+				bson.Unmarshal(bsonAsByte, &bsonData)
+				return bsonData
+			}
+
+			Context("pumpSettings", func() {
+
+				var pumpSettingsDatum *pump.Pump
+				var settingsBolusDatum bson.M
+
+				BeforeEach(func() {
+					mmolL := pump.DisplayBloodGlucoseUnitsMmolPerL
+					pumpSettingsDatum = pumpTest.NewPump(&mmolL)
+					*pumpSettingsDatum.ID = expectedID
+					*pumpSettingsDatum.UserID = "some-user-id"
+					*pumpSettingsDatum.DeviceID = "some-device-id"
+					theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+					*pumpSettingsDatum.Time = theTime
+					var bolusData = &pump.BolusMap{
+						"bolus-1": pumpTest.NewRandomBolus(),
+						"bolus-2": pumpTest.NewRandomBolus(),
+					}
+					settingsBolusDatum = getBSONData(pumpSettingsDatum)
+					settingsBolusDatum["bolus"] = bolusData
+					settingsBolusDatum["_id"] = expectedID
+				})
+
+				Context("with mis-named jellyfish bolus", func() {
+					var bolusData = &pump.BolusMap{
+						"bolus-1": pumpTest.NewRandomBolus(),
+						"bolus-2": pumpTest.NewRandomBolus(),
+					}
+					var settingsBolusDatum bson.M
+
+					BeforeEach(func() {
+						settingsBolusDatum = getBSONData(pumpSettingsDatum)
+						settingsBolusDatum["bolus"] = bolusData
+						settingsBolusDatum["_id"] = expectedID
+					})
+
+					It("should do nothing when has no bolus", func() {
+						settingsBolusDatum["bolus"] = nil
+						Expect(settingsBolusDatum["bolus"]).To(BeNil())
+						err := utils.ApplyBaseChanges(settingsBolusDatum)
+						Expect(err).To(BeNil())
+						Expect(settingsBolusDatum["bolus"]).To(BeNil())
+					})
+
+					It("should rename as boluses when bolus found", func() {
+						settingsBolusDatum["bolus"] = nil
+						Expect(settingsBolusDatum["bolus"]).To(BeNil())
+						err := utils.ApplyBaseChanges(settingsBolusDatum)
+						Expect(err).To(BeNil())
+						Expect(settingsBolusDatum["bolus"]).To(BeNil())
+					})
+				})
+			})
+			Context("datum with glucose", func() {
+				var newContinuous = func(units *string) *continuous.Continuous {
+					datum := continuous.New()
+					datum.Glucose = *glucoseTest.NewGlucose(units)
+					datum.Type = "cbg"
+					*datum.ID = expectedID
+					*datum.UserID = "some-user-id"
+					*datum.DeviceID = "some-device-id"
+					theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
+					*datum.Time = theTime
+					return datum
+				}
+
+				It("should do nothing when value is already correct", func() {
+					mmoll := glucose.MmolL
+					cbg := newContinuous(&mmoll)
+					cbgData := getBSONData(cbg)
+					cbgData["_id"] = expectedID
+					cbgData["value"] = 4.88466
+
+					Expect(cbgData["value"]).To(Equal(4.88466))
+					err := utils.ApplyBaseChanges(cbgData)
+					Expect(err).To(BeNil())
+					Expect(cbgData["value"]).To(Equal(4.88466))
+				})
+				It("should update the value when the precesion is too accurate correct", func() {
+					mmoll := glucose.MmolL
+					cbg := newContinuous(&mmoll)
+					cbgData := getBSONData(cbg)
+					cbgData["_id"] = expectedID
+					cbgData["value"] = 4.88465823212007
+
+					Expect(cbgData["value"]).To(Equal(4.88465823212007))
+					err := utils.ApplyBaseChanges(cbgData)
+					Expect(err).To(BeNil())
+					Expect(cbgData["value"]).To(Equal(4.88466))
+				})
+			})
+		})
+
 		var _ = Describe("GetDatumUpdates", func() {
 			var existingBolusDatum bson.M
 			const expectedID = "some-id"
