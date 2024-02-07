@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
+	"github.com/tidepool-org/platform/data/types/calculator"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
@@ -122,6 +123,11 @@ func ApplyBaseChanges(bsonData bson.M) error {
 		if percent := bsonData["percent"]; percent != nil {
 			//TODO delete from mongo
 			delete(bsonData, "percent")
+		}
+	case calculator.Type:
+		if bolus := bsonData["bolus"]; bolus != nil {
+			//TODO ignore these ??
+			delete(bsonData, "bolus")
 		}
 	}
 

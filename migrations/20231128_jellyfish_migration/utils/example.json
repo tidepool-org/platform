@@ -1,0 +1,1032 @@
+[
+  {
+    "_id": "00000rnk44mf6pha8rmjb8mpiuipkdaa",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.88465823212007,
+        "to": 4.88466
+      }
+    ]
+  },
+  {
+    "_id": "00001jb82bd12eg0eca8k2c49ujfnk8l",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.104092066926478,
+        "to": 8.10409
+      }
+    ]
+  },
+  {
+    "_id": "00003sa2flpghjst5u4jnrt9kbt4dvlr",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      },
+      {
+        "type": "delete",
+        "path": ["payload", "algorithm_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "00009es5b8a4b4ee3v06f53df255hmpv",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.882062147284658,
+        "to": 7.88206
+      }
+    ]
+  },
+  {
+    "_id": "0000a6upv4rpd6n0am7t1uvlbe9snn4a",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 12.211645580300173,
+        "to": 12.21165
+      }
+    ]
+  },
+  {
+    "_id": "0000kr4f38gv49kep801vlj08cbmcfi1",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0000o3ocekq00achukuojpst03u3c9t4",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.270614506657845,
+        "to": 8.27061
+      }
+    ]
+  },
+  {
+    "_id": "0000orq7oc766e2i5tsps36ifpgq49vr",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.438867669612819,
+        "to": 6.43887
+      }
+    ]
+  },
+  {
+    "_id": "0000s092sqmi3uq1psma1s9tnojog436",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 9.87641966364939,
+        "to": 9.87642
+      }
+    ]
+  },
+  {
+    "_id": "0000ugjo3nbjdm43l67ckm1vksu7ha8i",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0000ushg75s767rrbuj34r9lgeppfm5m",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.382494828090559,
+        "to": 7.38249
+      }
+    ]
+  },
+  {
+    "_id": "0001394npef2cp1n2du0j0aon6m35va9",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.548151906210121,
+        "to": 8.54815
+      }
+    ]
+  },
+  {
+    "_id": "000141vp4hq535kmn55kj484chh1526f",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 11.157003462001523,
+        "to": 11.157
+      }
+    ]
+  },
+  {
+    "_id": "00018qlmsrs5vvs2ossvujrkgoq63ui6",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.050315310239632,
+        "to": 6.05032
+      }
+    ]
+  },
+  {
+    "_id": "0001gfdvg0sorbqcqmsvaeqatul4gr4r",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.659166866031033,
+        "to": 8.65917
+      }
+    ]
+  },
+  {
+    "_id": "0001k7kdh3quebrt74fht9q2estmq75i",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.992211745493764,
+        "to": 8.99221
+      }
+    ]
+  },
+  {
+    "_id": "0001nrq5d8r9thkk1badhc7sqv0b28dk",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.104092066926478,
+        "to": 8.10409
+      }
+    ]
+  },
+  {
+    "_id": "0001qgq51nngk6ubjel2c544frhch0eq",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 12.211645580300173,
+        "to": 12.21165
+      }
+    ]
+  },
+  {
+    "_id": "0001v81kcacfc9qhpvjmhr1ealooee2f",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 9.991346383881961,
+        "to": 9.99135
+      }
+    ]
+  },
+  {
+    "_id": "0001vqvo2jci3thogtb1ldbanc7t3euh",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.271479868269648,
+        "to": 7.27148
+      }
+    ]
+  },
+  {
+    "_id": "00020drvhoek75e31s2eb2ihr3hneab0",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 10.268883783434237,
+        "to": 10.26888
+      }
+    ]
+  },
+  {
+    "_id": "00021gjfc88sh2853sa9kvo8mibk3btb",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.1058227901500866,
+        "to": 6.10582
+      }
+    ]
+  },
+  {
+    "_id": "00022iu9mqq7vl22qg8cf27pl23mei6m",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.66089758925464,
+        "to": 6.6609
+      }
+    ]
+  },
+  {
+    "_id": "000272sak7skr78u235jvobkg2j2l7db",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.66089758925464,
+        "to": 6.6609
+      }
+    ]
+  },
+  {
+    "_id": "0002hhgscc8stmmgl56q2t5l4voag0k2",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.21510702674739,
+        "to": 8.21511
+      }
+    ]
+  },
+  {
+    "_id": "0002mvusipdajgceeghbmpcqo4ln3j2e",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 10.157868823613326,
+        "to": 10.15787
+      }
+    ]
+  },
+  {
+    "_id": "0002pqfv2solvi4lpuslibloq8n70egk",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.161330270060542,
+        "to": 6.16133
+      }
+    ]
+  },
+  {
+    "_id": "0002qi2gkb52qtljm471fqqfm360ir4k",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 11.601063301285166,
+        "to": 11.60106
+      }
+    ]
+  },
+  {
+    "_id": "0002sn9beaeh9j81v3djcbmapuftu23n",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0002tt08v467lkusp8dti02a1of7nq9f",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.549017267821926,
+        "to": 7.54902
+      }
+    ]
+  },
+  {
+    "_id": "0002umkmpa7atejb43k56ut0soqdq9jn",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.882927508896461,
+        "to": 6.88293
+      }
+    ]
+  },
+  {
+    "_id": "0002uu965smbnbp8uu95a21dmh270g67",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.938434988806917,
+        "to": 6.93843
+      }
+    ]
+  },
+  {
+    "_id": "0002vd9ik54eh1qrs4rinp3o6frt53pn",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 13.432810138330192,
+        "to": 13.43281
+      }
+    ]
+  },
+  {
+    "_id": "00030vvt9bf2fh3akggqko8e9hbk1gmp",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.548151906210121,
+        "to": 8.54815
+      }
+    ]
+  },
+  {
+    "_id": "00032090p27jjo7en5v81bc86sk500eg",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 5.7727779106873545,
+        "to": 5.77278
+      }
+    ]
+  },
+  {
+    "_id": "00032ph132hqdl11ljcosfs118opd6uj",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.16306099328415,
+        "to": 4.16306
+      }
+    ]
+  },
+  {
+    "_id": "000359urjliju7o3vhemciluk0b8go5h",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.272345229881453,
+        "to": 6.27235
+      }
+    ]
+  },
+  {
+    "_id": "00035k3g10h5s065fm7ujdkqsffdpefj",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "00035qapsmj0g0tj5911j88861e1ja85",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.826554667374202,
+        "to": 7.82655
+      }
+    ]
+  },
+  {
+    "_id": "0003c7lqj9o23tk7mrf3ous8bqit32qn",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.21510702674739,
+        "to": 8.21511
+      }
+    ]
+  },
+  {
+    "_id": "0003eh53gp42t49i3p50rtn5t8nhrce5",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.829150752209614,
+        "to": 4.82915
+      }
+    ]
+  },
+  {
+    "_id": "0003f9b07hcfpfvl7o9mn49kg4sp89jg",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0003hf5lemo91skk3s64nvjqiolci7ca",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.437136946389211,
+        "to": 8.43714
+      }
+    ]
+  },
+  {
+    "_id": "0003i37c2j7llmbtkkja8td6p3cl72fm",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 12.211645580300173,
+        "to": 12.21165
+      }
+    ]
+  },
+  {
+    "_id": "0003jngv0eod115brtuua83d2kpu336a",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 10.990481022270156,
+        "to": 10.99048
+      }
+    ]
+  },
+  {
+    "_id": "0003k66j2k63js2kcamv5flmcftjv0vi",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 5.162195631672346,
+        "to": 5.1622
+      }
+    ]
+  },
+  {
+    "_id": "0003q61k26agdd8pputarp9tngnnl4bm",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.88465823212007,
+        "to": 4.88466
+      }
+    ]
+  },
+  {
+    "_id": "0003r9mmr8nbtkqn53b3ssucj6dnon3s",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.440598392836427,
+        "to": 4.4406
+      }
+    ]
+  },
+  {
+    "_id": "0003rgeeqhrgaljcvr0vn978mhh0urcr",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 5.550747991045533,
+        "to": 5.55075
+      }
+    ]
+  },
+  {
+    "_id": "0003sc9q9d2cgjblnbjpor1n5be4gdgq",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.383360189702364,
+        "to": 6.38336
+      }
+    ]
+  },
+  {
+    "_id": "0004b6tsha75kvbltqn36eqknhgpokj7",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 2.2202991964182135,
+        "to": 2.2203
+      }
+    ]
+  },
+  {
+    "_id": "0004etdb73eniso7uesle4ebv3unbmhk",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "algorithm_rate"],
+        "from": null,
+        "to": null
+      },
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0004h0iv775p64gu5p9bsgupfeng7rft",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0004hlsdjp3sm3ri89qma8nv6qcp5q3f",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0004jt901qccjhlukths98e2g6e3kn28",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0004rreii78v6da848mniincnb55qjkv",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 14.26542233698702,
+        "to": 14.26542
+      }
+    ]
+  },
+  {
+    "_id": "000556rqprsdce1g00gf3248ibduqns6",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "00055b6nf17dpga93vi8d9npgja8oui2",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.049449948627828,
+        "to": 7.04945
+      }
+    ]
+  },
+  {
+    "_id": "000570t2klm76u0pge2fa1l6sb2vacou",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.829150752209614,
+        "to": 4.82915
+      }
+    ]
+  },
+  {
+    "_id": "0005jqjjc16r97d1j4kjsul8gv5s4m85",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 15.153542015554306,
+        "to": 15.15354
+      }
+    ]
+  },
+  {
+    "_id": "0005s07sgj51fi9tg30cdmbejdrtktva",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 10.82395858253879,
+        "to": 10.82396
+      }
+    ]
+  },
+  {
+    "_id": "0005uf2eav6074jqr9kfais0gdnufhv6",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 12.211645580300173,
+        "to": 12.21165
+      }
+    ]
+  },
+  {
+    "_id": "00065i6mgho4lk4ljel4iad1sh12ks6a",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.104092066926478,
+        "to": 8.10409
+      }
+    ]
+  },
+  {
+    "_id": "000662f21o6q6h563se5dh1bpuji1j8s",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 2.164791716507758,
+        "to": 2.16479
+      }
+    ]
+  },
+  {
+    "_id": "0006aji37fd7sn1abvdh14g5bu04cqa6",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 10.879466062449245,
+        "to": 10.87947
+      }
+    ]
+  },
+  {
+    "_id": "0006asj48h8inkrq03mudant3sqbm2j7",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.383360189702364,
+        "to": 6.38336
+      }
+    ]
+  },
+  {
+    "_id": "0006au8dsvu6590iv9oj828rd5p1u37e",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.104092066926478,
+        "to": 8.10409
+      }
+    ]
+  },
+  {
+    "_id": "0006iepb218jd1f51upa4o6fia8sklfp",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0006ighrh1qkbfmmqmg9s81vvvs9c8pd",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.382494828090559,
+        "to": 7.38249
+      }
+    ]
+  },
+  {
+    "_id": "0006j5vr2m5r55jcu5lt9looau2s71fm",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "00000rnk44mf6pha8rmjb8mpiuipkdaa",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 4.88465823212007,
+        "to": 4.88466
+      }
+    ]
+  },
+  {
+    "_id": "00001jb82bd12eg0eca8k2c49ujfnk8l",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.104092066926478,
+        "to": 8.10409
+      }
+    ]
+  },
+  {
+    "_id": "00003sa2flpghjst5u4jnrt9kbt4dvlr",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      },
+      {
+        "type": "delete",
+        "path": ["payload", "algorithm_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "00009es5b8a4b4ee3v06f53df255hmpv",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.882062147284658,
+        "to": 7.88206
+      }
+    ]
+  },
+  {
+    "_id": "0000a6upv4rpd6n0am7t1uvlbe9snn4a",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 12.211645580300173,
+        "to": 12.21165
+      }
+    ]
+  },
+  {
+    "_id": "0000kr4f38gv49kep801vlj08cbmcfi1",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0000o3ocekq00achukuojpst03u3c9t4",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.270614506657845,
+        "to": 8.27061
+      }
+    ]
+  },
+  {
+    "_id": "0000orq7oc766e2i5tsps36ifpgq49vr",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.438867669612819,
+        "to": 6.43887
+      }
+    ]
+  },
+  {
+    "_id": "0000s092sqmi3uq1psma1s9tnojog436",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 9.87641966364939,
+        "to": 9.87642
+      }
+    ]
+  },
+  {
+    "_id": "0000ugjo3nbjdm43l67ckm1vksu7ha8i",
+    "diff": [
+      {
+        "type": "delete",
+        "path": ["payload", "temp_rate"],
+        "from": null,
+        "to": null
+      }
+    ]
+  },
+  {
+    "_id": "0000ushg75s767rrbuj34r9lgeppfm5m",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.382494828090559,
+        "to": 7.38249
+      }
+    ]
+  },
+  {
+    "_id": "0001394npef2cp1n2du0j0aon6m35va9",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.548151906210121,
+        "to": 8.54815
+      }
+    ]
+  },
+  {
+    "_id": "000141vp4hq535kmn55kj484chh1526f",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 11.157003462001523,
+        "to": 11.157
+      }
+    ]
+  },
+  {
+    "_id": "00018qlmsrs5vvs2ossvujrkgoq63ui6",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.050315310239632,
+        "to": 6.05032
+      }
+    ]
+  },
+  {
+    "_id": "0001gfdvg0sorbqcqmsvaeqatul4gr4r",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.659166866031033,
+        "to": 8.65917
+      }
+    ]
+  },
+  {
+    "_id": "0001k7kdh3quebrt74fht9q2estmq75i",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.992211745493764,
+        "to": 8.99221
+      }
+    ]
+  },
+  {
+    "_id": "0001nrq5d8r9thkk1badhc7sqv0b28dk",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 8.104092066926478,
+        "to": 8.10409
+      }
+    ]
+  },
+  {
+    "_id": "0001qgq51nngk6ubjel2c544frhch0eq",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 12.211645580300173,
+        "to": 12.21165
+      }
+    ]
+  },
+  {
+    "_id": "0001v81kcacfc9qhpvjmhr1ealooee2f",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 9.991346383881961,
+        "to": 9.99135
+      }
+    ]
+  },
+  {
+    "_id": "0001vqvo2jci3thogtb1ldbanc7t3euh",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 7.271479868269648,
+        "to": 7.27148
+      }
+    ]
+  },
+  {
+    "_id": "00020drvhoek75e31s2eb2ihr3hneab0",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 10.268883783434237,
+        "to": 10.26888
+      }
+    ]
+  },
+  {
+    "_id": "00021gjfc88sh2853sa9kvo8mibk3btb",
+    "diff": [
+      {
+        "type": "update",
+        "path": ["value"],
+        "from": 6.1058227901500866,
+        "to": 6.10582
+      }
+    ]
+  }
+]
