@@ -11,10 +11,6 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-const (
-	RoleClinic = "clinic"
-)
-
 func Roles() []string {
 	return []string{
 		RoleClinic,
