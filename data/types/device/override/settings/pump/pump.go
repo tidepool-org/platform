@@ -132,9 +132,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 		unitsValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
 
-	if p.BloodGlucoseTarget == nil && p.BasalRateScaleFactor == nil && p.CarbohydrateRatioScaleFactor == nil && p.InsulinSensitivityScaleFactor == nil {
-		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("bgTarget", "basalRateScaleFactor", "carbRatioScaleFactor", "insulinSensitivityScaleFactor"))
-	}
+	// if p.BloodGlucoseTarget == nil && p.BasalRateScaleFactor == nil && p.CarbohydrateRatioScaleFactor == nil && p.InsulinSensitivityScaleFactor == nil {
+	// 	validator.ReportError(structureValidator.ErrorValuesNotExistForAny("bgTarget", "basalRateScaleFactor", "carbRatioScaleFactor", "insulinSensitivityScaleFactor"))
+	// }
 }
 
 func (p *Pump) Normalize(normalizer data.Normalizer) {

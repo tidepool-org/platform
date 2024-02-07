@@ -679,17 +679,17 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(unitsBloodGlucose)
 					},
 				),
-				Entry("one of required missing",
-					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
-						datum.BloodGlucoseTarget = nil
-						datum.BasalRateScaleFactor = nil
-						datum.CarbohydrateRatioScaleFactor = nil
-						datum.InsulinSensitivityScaleFactor = nil
-						datum.Units = nil
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("bgTarget", "basalRateScaleFactor", "carbRatioScaleFactor", "insulinSensitivityScaleFactor"), "", NewMeta()),
-				),
+				// Entry("one of required missing",
+				// 	pointer.FromString("mmol/L"),
+				// 	func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
+				// 		datum.BloodGlucoseTarget = nil
+				// 		datum.BasalRateScaleFactor = nil
+				// 		datum.CarbohydrateRatioScaleFactor = nil
+				// 		datum.InsulinSensitivityScaleFactor = nil
+				// 		datum.Units = nil
+				// 	},
+				// 	errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("bgTarget", "basalRateScaleFactor", "carbRatioScaleFactor", "insulinSensitivityScaleFactor"), "", NewMeta()),
+				// ),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesDeviceOverrideSettingsPump.Pump, unitsBloodGlucose *string) {
