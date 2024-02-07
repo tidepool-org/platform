@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -16,7 +17,9 @@ import (
 	bolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
@@ -126,22 +129,47 @@ var _ = Describe("back-37", func() {
 				BeforeEach(func() {
 					datumWithPayload = getBSONData(pumpSettingsDatum)
 					payload = metadataTest.RandomMetadata()
-					datumWithPayload["payload"] = payload
+					datumWithPayload["payload"] = *payload
 				})
 
 				It("should do nothing when value is already correct", func() {
-					Expect(datumWithPayload["payload"]).To(Equal(payload))
+					Expect(datumWithPayload["payload"]).To(Equal(*payload))
 					err := utils.ApplyBaseChanges(datumWithPayload)
 					Expect(err).To(BeNil())
-					Expect(datumWithPayload["payload"]).To(Equal(payload))
+					Expect(datumWithPayload["payload"]).To(Equal(*payload))
 				})
-				// It("should update the payload when it is a string", func() {
-				// 	datumWithPayload["payload"] = fmt.Sprintf("%v", *payload)
-				// 	Expect(datumWithPayload["payload"]).To(Equal(fmt.Sprintf("%v", *payload)))
-				// 	err := utils.ApplyBaseChanges(datumWithPayload)
-				// 	Expect(err).To(BeNil())
-				// 	Expect(datumWithPayload["payload"]).To(Equal(payload))
-				// })
+				It("should update the payload when it is a string", func() {
+					Skip("sort out setting as string")
+					datumWithPayload["payload"] = fmt.Sprintf("%v", getBSONData(*payload))
+					Expect(datumWithPayload["payload"]).To(Equal(fmt.Sprintf("%v", *payload)))
+					err := utils.ApplyBaseChanges(datumWithPayload)
+					Expect(err).To(BeNil())
+					Expect(datumWithPayload["payload"]).To(Equal(*payload))
+				})
+			})
+			Context("datum with string annotations", func() {
+				var datumWithAnnotation primitive.M
+				var annotations *metadata.MetadataArray
+				BeforeEach(func() {
+					datumWithAnnotation = getBSONData(pumpSettingsDatum)
+					annotations = metadataTest.RandomMetadataArray()
+					datumWithAnnotation["annotations"] = *annotations
+				})
+
+				It("should do nothing when value is already correct", func() {
+					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
+					err := utils.ApplyBaseChanges(datumWithAnnotation)
+					Expect(err).To(BeNil())
+					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
+				})
+				It("should update the annotations when it is a string", func() {
+					Skip("sort out setting as string")
+					datumWithAnnotation["annotations"] = fmt.Sprintf("%v", getBSONData(*annotations))
+					Expect(datumWithAnnotation["annotations"]).To(Equal(fmt.Sprintf("%v", *annotations)))
+					err := utils.ApplyBaseChanges(datumWithAnnotation)
+					Expect(err).To(BeNil())
+					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
+				})
 			})
 		})
 
