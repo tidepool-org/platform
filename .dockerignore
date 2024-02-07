@@ -1,5 +1,6 @@
 *.coverprofile
 _bin/
 _tmp/
+coverprofile.out
 debug
 deploy/
