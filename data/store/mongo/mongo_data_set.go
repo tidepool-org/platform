@@ -114,11 +114,11 @@ func (d *DataSetRepository) EnsureIndexes() error {
 	})
 }
 
-func (d *DataSetRepository) GetDataSetByID(ctx context.Context, uploadID string) (*upload.Upload, error) {
+func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if uploadID == "" {
+	if dataSetID == "" {
 		return nil, errors.New("data set id is missing")
 	}
 
@@ -126,11 +126,11 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, uploadID string)
 
 	var dataSet *upload.Upload
 	selector := bson.M{
-		"uploadId": uploadID,
+		"uploadId": dataSetID,
 	}
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 
-	loggerFields := log.Fields{"dataSetId": uploadID, "duration": time.Since(now) / time.Microsecond}
+	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.GetDataSetByID")
 
 	if stdErrs.Is(err, mongo.ErrNoDocuments) {
@@ -232,20 +232,20 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSetRepository) GetDataSet(ctx context.Context, uploadID string) (*data.DataSet, error) {
+func (d *DataSetRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if uploadID == "" {
+	if dataSetID == "" {
 		return nil, errors.New("id is missing")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", uploadID)
+	logger := log.LoggerFromContext(ctx).WithField("id", dataSetID)
 
 	var dataSet *data.DataSet
 	selector := bson.M{
-		"uploadId": uploadID,
+		"uploadId": dataSetID,
 	}
 
 	err := d.FindOne(ctx, selector).Decode(&dataSet)

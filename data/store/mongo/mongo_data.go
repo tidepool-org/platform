@@ -39,12 +39,12 @@ func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, fi
 	return d.DataSetRepository.ListUserDataSets(ctx, userID, filter, pagination)
 }
 
-func (d *DataRepository) GetDataSet(ctx context.Context, uploadID string) (*data.DataSet, error) {
-	return d.DataSetRepository.GetDataSet(ctx, uploadID)
+func (d *DataRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
+	return d.DataSetRepository.GetDataSet(ctx, dataSetID)
 }
 
-func (d *DataRepository) GetDataSetByID(ctx context.Context, uploadID string) (*upload.Upload, error) {
-	return d.DataSetRepository.GetDataSetByID(ctx, uploadID)
+func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+	return d.DataSetRepository.GetDataSetByID(ctx, dataSetID)
 }
 
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
