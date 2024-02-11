@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -29,16 +30,16 @@ import (
 
 var _ = Describe("back-37", func() {
 	var _ = Describe("utils", func() {
+		var getBSONData = func(datum interface{}) bson.M {
+			var bsonData bson.M
+			bsonAsByte, _ := bson.Marshal(&datum)
+			bson.Unmarshal(bsonAsByte, &bsonData)
+			return bsonData
+		}
+
 		var _ = Describe("ApplyBaseChanges", func() {
 
 			const expectedID = "some-id"
-
-			var getBSONData = func(datum interface{}) bson.M {
-				var bsonData bson.M
-				bsonAsByte, _ := bson.Marshal(&datum)
-				bson.Unmarshal(bsonAsByte, &bsonData)
-				return bsonData
-			}
 
 			var pumpSettingsDatum *pump.Pump
 
@@ -170,6 +171,47 @@ var _ = Describe("back-37", func() {
 					Expect(err).To(BeNil())
 					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
 				})
+			})
+		})
+
+		var _ = Describe("GetDifference", func() {
+
+			const expectedID = "difference-id"
+
+			var getRawData = func(datum interface{}) map[string]interface{} {
+				var rawObject map[string]interface{}
+				asByte, _ := json.Marshal(&datum)
+				json.Unmarshal(asByte, &rawObject)
+				return rawObject
+			}
+
+			//var pumpSettingsDatum *pump.Pump
+			var incomingObject map[string]interface{}
+			var datumObject bson.M
+
+			BeforeEach(func() {
+				datumObject = getBSONData(test.AutomatedBasalTandem)
+				incomingObject = getRawData(test.AutomatedBasalTandem)
+
+			})
+
+			It("has no difference", func() {
+				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject)
+				Expect(err).To(BeNil())
+				Expect(diff).ToNot(BeNil())
+				Expect(diff).To(Equal([]bson.M{}))
+			})
+			It("set for missing properties", func() {
+				delete(incomingObject, "deliveryType")
+				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject)
+				Expect(err).To(BeNil())
+				Expect(diff).To(Equal([]bson.M{{"$set": bson.M{"deliveryType": "automated"}}}))
+			})
+			It("unset for unwanted properties", func() {
+				incomingObject["random"] = map[string]interface{}{"extra": true}
+				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject)
+				Expect(err).To(BeNil())
+				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"random": ""}}}))
 			})
 		})
 

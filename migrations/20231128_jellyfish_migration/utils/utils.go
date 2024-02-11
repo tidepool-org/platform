@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/r3labs/diff/v3"
 	"github.com/tidepool-org/platform/data"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -161,25 +161,8 @@ func ApplyBaseChanges(bsonData bson.M) error {
 	return nil
 }
 
-func ProcessDatum(bsonData bson.M) (data.Datum, error) {
-
-	dID := fmt.Sprintf("%v", bsonData["_id"])
-
-	if err := ApplyBaseChanges(bsonData); err != nil {
-		return nil, err
-	}
-
-	incomingJSONData, err := json.Marshal(bsonData)
-	if err != nil {
-		return nil, err
-	}
-	ojbData := map[string]interface{}{}
-	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
-		return nil, err
-	}
-
-	//parsing
-	parser := structureParser.NewObject(&ojbData)
+func BuildDatum(id string, objectData map[string]interface{}) (*data.Datum, error) {
+	parser := structureParser.NewObject(&objectData)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
@@ -188,7 +171,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
 	} else {
-		return nil, errorsP.Newf("no datum returned for id=[%s]", dID)
+		return nil, errorsP.Newf("no datum returned for id=[%s]", id)
 	}
 
 	validator.Bool("_active", parser.Bool("_active")).Exists()
@@ -219,25 +202,98 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 	if err := normalizer.Error(); err != nil {
 		return nil, err
 	}
+	return datum, nil
+}
 
+func GetDifference(id string, datum interface{}, rawObject map[string]interface{}) ([]bson.M, error) {
+	difference := []bson.M{}
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
 		return nil, err
 	}
 
-	processedData := map[string]interface{}{}
-	if err := json.Unmarshal(outgoingJSONData, &processedData); err != nil {
+	processedObject := map[string]interface{}{}
+	if err := json.Unmarshal(outgoingJSONData, &processedObject); err != nil {
 		return nil, err
 	}
 
 	// these are extras that we want to leave on the original object
-	notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId", "createdTime", "guid", "modifiedTime", "_archivedTime"}
-	for _, key := range notRequired {
-		delete(ojbData, key)
+	// notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId", "createdTime", "guid", "modifiedTime", "_archivedTime"}
+	// for _, key := range notRequired {
+	// 	delete(rawObject, key)
+	// }
+
+	changelog, err := diff.Diff(rawObject, processedObject, diff.StructMapKeySupport())
+	if err != nil {
+		return nil, err
+	}
+	logDiff(id, changelog)
+
+	set := bson.M{}
+	unset := bson.M{}
+	rename := bson.M{}
+
+	// ["path","to","change"]
+	// {path: {to: {change: true}}}
+	var getValue = func(path []string, val interface{}) interface{} {
+		if len(path) == 1 {
+			return val
+		} else if len(path) == 2 {
+			return bson.M{path[1]: val}
+		}
+		return bson.M{path[1]: bson.M{path[2]: val}}
 	}
 
-	changelog, _ := diff.Diff(ojbData, processedData, diff.StructMapKeySupport())
-	logDiff(dID, changelog)
+	for _, change := range changelog {
+		switch change.Type {
+		case diff.CREATE:
+			set[change.Path[0]] = getValue(change.Path, change.To)
+		case diff.DELETE:
+			unset[change.Path[0]] = getValue(change.Path, "")
+		case diff.UPDATE:
+			rename[change.Path[0]] = getValue(change.Path, change.To)
+		}
+	}
+
+	if len(set) > 0 {
+		difference = append(difference, bson.M{"$set": set})
+	}
+	if len(rename) > 0 {
+		difference = append(difference, bson.M{"$rename": rename})
+	}
+	if len(unset) > 0 {
+		difference = append(difference, bson.M{"$unset": unset})
+	}
+	return difference, nil
+}
+
+func ProcessDatum(bsonData bson.M) (data.Datum, error) {
+
+	dID := fmt.Sprintf("%v", bsonData["_id"])
+
+	if err := ApplyBaseChanges(bsonData); err != nil {
+		return nil, err
+	}
+
+	incomingJSONData, err := json.Marshal(bsonData)
+	if err != nil {
+		return nil, err
+	}
+	ojbData := map[string]interface{}{}
+	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
+		return nil, err
+	}
+
+	datum, err := BuildDatum(dID, ojbData)
+	if err != nil {
+		return nil, err
+	}
+
+	difference, err := GetDifference(dID, datum, ojbData)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("diff: %v", difference)
 
 	return *datum, nil
 }
