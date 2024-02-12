@@ -168,6 +168,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		responder.InternalServerError(err)
 		return
 	}
+	log.LoggerFromContext(ctx).WithFields(logFields).Debug("successfully retrieved partner certificates")
 	responder.Data(http.StatusOK, appvalidate.AssertionResponse{
 		Data: secret,
 	})
