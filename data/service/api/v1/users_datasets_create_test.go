@@ -5,46 +5,73 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	deduplicatortest "github.com/tidepool-org/platform/data/deduplicator/test"
+	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	datatest "github.com/tidepool-org/platform/data/store/test"
+	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
-	uploadtest "github.com/tidepool-org/platform/data/types/upload/test"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
 	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metric"
-	metrictest "github.com/tidepool-org/platform/metric/test"
+	metricTest "github.com/tidepool-org/platform/metric/test"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	synctaskStore "github.com/tidepool-org/platform/synctask/store"
 )
 
 var _ = Describe("UsersDataSetsCreate", func() {
-	It("sets the CreatedUserID", func() {
-		dataServiceContext := newMockDataServiceContext(GinkgoT())
-		dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
-			exp := "testuser001"
-			if up.CreatedUserID == nil {
-				t.Fatalf("expected %q, got %v", exp, up.CreatedUserID)
+	Context("CreatedUserID", func() {
+		It("does set the CreatedUserID if the auth details are for a user", func() {
+			dataServiceContext := newMockDataServiceContext(GinkgoT())
+			dataServiceContext.AuthDetails = request.NewAuthDetails(request.MethodAccessToken, "test-auth-details-user-id", "token")
+			dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
+				Expect(up.CreatedUserID).ToNot(BeNil())
+				Expect(*up.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
 			}
-			if *up.CreatedUserID != exp {
-				t.Errorf("expected %q, got %q", exp, *up.CreatedUserID)
+
+			v1.UsersDataSetsCreate(dataServiceContext)
+
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs).To(HaveLen(1))
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0]).ToNot(BeNil())
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0].CreatedUserID).ToNot(BeNil())
+			Expect(*dataServiceContext.dataDeduplicatorFactory.NewInputs[0].CreatedUserID).To(Equal("test-auth-details-user-id"))
+
+			dataServiceContext.dataDeduplicator.AssertOutputsEmpty()
+			dataServiceContext.dataDeduplicatorFactory.AssertOutputsEmpty()
+		})
+
+		It("does not set the CreatedUserID if the auth details are not for a user", func() {
+			dataServiceContext := newMockDataServiceContext(GinkgoT())
+			dataServiceContext.AuthDetails = request.NewAuthDetails(request.MethodServiceSecret, "", "token")
+			dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
+				Expect(up.CreatedUserID).ToNot(BeNil())
+				Expect(*up.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
 			}
-		}
-		v1.UsersDataSetsCreate(dataServiceContext)
+
+			v1.UsersDataSetsCreate(dataServiceContext)
+
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs).To(HaveLen(1))
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0]).ToNot(BeNil())
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0].CreatedUserID).To(BeNil())
+
+			dataServiceContext.dataDeduplicator.AssertOutputsEmpty()
+			dataServiceContext.dataDeduplicatorFactory.AssertOutputsEmpty()
+		})
 	})
 })
 
@@ -55,13 +82,30 @@ type testingT interface {
 
 type mockDataServiceContext struct {
 	t testingT
+
+	dataDeduplicator        *dataDeduplicatorTest.Deduplicator
+	dataDeduplicatorFactory *dataDeduplicatorTest.Factory
+
+	AuthDetails request.AuthDetails
+
 	// UploadTester tests the resulting upload.
 	UploadTester func(testingT, *upload.Upload)
 }
 
 func newMockDataServiceContext(t testingT) *mockDataServiceContext {
+	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet.CreatedUserID = pointer.FromString("test-deduplicator-created-user-id")
+
+	dataDeduplicator := dataDeduplicatorTest.NewDeduplicator()
+	dataDeduplicator.OpenOutputs = []dataDeduplicatorTest.OpenOutput{{DataSet: dataSet, Error: nil}}
+
+	dataDeduplicatorFactory := dataDeduplicatorTest.NewFactory()
+	dataDeduplicatorFactory.NewOutput = &dataDeduplicatorTest.NewOutput{Deduplicator: dataDeduplicator, Error: nil}
+
 	return &mockDataServiceContext{
-		t: t,
+		t:                       t,
+		dataDeduplicator:        dataDeduplicator,
+		dataDeduplicatorFactory: dataDeduplicatorFactory,
 	}
 }
 
@@ -77,15 +121,14 @@ func (c *mockDataServiceContext) Request() *rest.Request {
 
 	testLogger := logtest.NewLogger()
 	r = r.WithContext(log.NewContextWithLogger(r.Context(), testLogger))
-	authDetails := request.NewAuthDetails("method", "test", "token")
-	r = r.WithContext(request.NewContextWithAuthDetails(r.Context(), authDetails))
+	r = r.WithContext(request.NewContextWithAuthDetails(r.Context(), c.AuthDetails))
 
 	r.Body = io.NopCloser(strings.NewReader(`{}`))
 
 	rr := &rest.Request{
 		Request: r,
 		PathParams: map[string]string{
-			"userId": "test",
+			"userId": "test-path-params-user-id",
 		},
 	}
 
@@ -120,7 +163,7 @@ func (c *mockDataServiceContext) AuthClient() auth.Client {
 }
 
 func (c *mockDataServiceContext) MetricClient() metric.Client {
-	mc := metrictest.NewClient()
+	mc := metricTest.NewClient()
 	mc.RecordMetricOutputs = []error{nil}
 	return mc
 }
@@ -137,27 +180,11 @@ func (c *mockDataServiceContext) PermissionClient() permission.Client {
 }
 
 func (c *mockDataServiceContext) DataDeduplicatorFactory() deduplicator.Factory {
-	d := deduplicatortest.NewDeduplicator()
-	up := uploadtest.RandomUpload()
-	up.CreatedUserID = pointer.FromString("testuser001")
-	d.OpenOutputs = []deduplicatortest.OpenOutput{
-		{
-			DataSet: up,
-			Error:   nil,
-		},
-	}
-	f := deduplicatortest.NewFactory()
-	f.NewOutputs = []deduplicatortest.NewOutput{
-		{
-			Deduplicator: d,
-			Error:        nil,
-		},
-	}
-	return f
+	return c.dataDeduplicatorFactory
 }
 
 func (c *mockDataServiceContext) DataRepository() dataStore.DataRepository {
-	r := datatest.NewDataRepository()
+	r := dataStoreTest.NewDataRepository()
 	r.CreateDataSetOutputs = []error{nil}
 	return r
 }
@@ -166,7 +193,7 @@ func (c *mockDataServiceContext) SummaryRepository() dataStore.SummaryRepository
 	panic("not implemented") // TODO: Implement
 }
 
-func (c *mockDataServiceContext) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
+func (c *mockDataServiceContext) SyncTaskRepository() synctaskStore.SyncTaskRepository {
 	panic("not implemented") // TODO: Implement
 }
 
