@@ -258,7 +258,8 @@ func (m *Migration) fetchAndUpdateBatch() bool {
 					updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
 				}
 				updateOp.SetUpdate(update)
-				m.migrationUtil.SetUpdates(datumID, updateOp)
+				m.migrationUtil.SetUpdates(updateOp)
+				m.migrationUtil.SetLastProcessed(datumID)
 			}
 		}
 		stats := m.migrationUtil.GetStats()
@@ -322,14 +323,15 @@ func (m *Migration) fetchAndProcess() bool {
 			updates, err := utils.ProcessDatum(itemID, item)
 			if err != nil {
 				m.migrationUtil.OnError(err, itemID, fmt.Sprintf("[type=%v]", item["type"]))
+			} else {
+				for _, update := range updates {
+					updateOp := mongo.NewUpdateOneModel()
+					updateOp.SetFilter(bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]})
+					updateOp.SetUpdate(update)
+					m.migrationUtil.SetUpdates(updateOp)
+				}
 			}
-			for _, update := range updates {
-				updateOp := mongo.NewUpdateOneModel()
-				updateOp.SetFilter(bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]})
-				updateOp.SetUpdate(update)
-				m.migrationUtil.SetUpdates(itemID, updateOp)
-			}
-
+			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)
 		}
 		m.migrationUtil.SetFetched(all)

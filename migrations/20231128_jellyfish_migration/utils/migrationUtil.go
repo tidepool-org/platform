@@ -60,7 +60,8 @@ type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(reportErr error, id string, msg string)
-	SetUpdates(lastID string, update ...*mongo.UpdateOneModel)
+	SetUpdates(update ...*mongo.UpdateOneModel)
+	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
 	GetLastID() string
 	GetStats() MigrationStats
@@ -131,11 +132,14 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	return nil
 }
 
-func (m *migrationUtil) SetUpdates(lastID string, update ...*mongo.UpdateOneModel) {
-	m.lastUpdatedId = lastID
+func (m *migrationUtil) SetUpdates(update ...*mongo.UpdateOneModel) {
 	for _, u := range update {
 		m.updates = append(m.updates, u)
 	}
+}
+
+func (m *migrationUtil) SetLastProcessed(lastID string) {
+	m.lastUpdatedId = lastID
 }
 
 func (m *migrationUtil) SetFetched(raw []bson.M) {
