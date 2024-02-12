@@ -317,10 +317,19 @@ func (m *Migration) fetchAndProcess() bool {
 				log.Printf("error decoding data: %s", err)
 				return false
 			}
-			_, err := utils.ProcessDatum(item)
+
+			itemID := fmt.Sprintf("%v", item["_id"])
+			updates, err := utils.ProcessDatum(itemID, item)
 			if err != nil {
-				m.migrationUtil.OnError(err, fmt.Sprintf("%v", item["_id"]), fmt.Sprintf("[type=%v]", item["type"]))
+				m.migrationUtil.OnError(err, itemID, fmt.Sprintf("[type=%v]", item["type"]))
 			}
+			for _, update := range updates {
+				updateOp := mongo.NewUpdateOneModel()
+				updateOp.SetFilter(bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]})
+				updateOp.SetUpdate(update)
+				m.migrationUtil.SetUpdates(itemID, updateOp)
+			}
+
 			all = append(all, item)
 		}
 		m.migrationUtil.SetFetched(all)

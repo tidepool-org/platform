@@ -172,13 +172,12 @@ func BuildDatum(id string, objectData map[string]interface{}) (*data.Datum, erro
 	}
 
 	validator.Bool("_active", parser.Bool("_active")).Exists()
+	validator.String("_archivedTime", parser.String("_archivedTime"))
 	validator.String("_groupId", parser.String("_groupId")).Exists()
 	validator.String("_id", parser.String("_id")).Exists()
 	validator.String("_userId", parser.String("_userId")).Exists()
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
-
-	validator.String("_archivedTime", parser.String("_archivedTime"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
 
 	validator.String("uploadId", parser.String("uploadId")).Exists()
@@ -203,7 +202,7 @@ func BuildDatum(id string, objectData map[string]interface{}) (*data.Datum, erro
 }
 
 func GetDifference(id string, datum interface{}, originalObject map[string]interface{}, log bool) ([]bson.M, error) {
-	difference := []bson.M{}
+
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
 		return nil, err
@@ -267,6 +266,7 @@ func GetDifference(id string, datum interface{}, originalObject map[string]inter
 		}
 	}
 
+	difference := []bson.M{}
 	if len(set) > 0 {
 		difference = append(difference, bson.M{"$set": set})
 	}
@@ -280,13 +280,10 @@ func GetDifference(id string, datum interface{}, originalObject map[string]inter
 	if log {
 		logDiff(id, difference)
 	}
-
 	return difference, nil
 }
 
-func ProcessDatum(bsonData bson.M) (data.Datum, error) {
-
-	dID := fmt.Sprintf("%v", bsonData["_id"])
+func ProcessDatum(dataID string, bsonData bson.M) ([]bson.M, error) {
 
 	if err := ApplyBaseChanges(bsonData); err != nil {
 		return nil, err
@@ -301,17 +298,16 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	datum, err := BuildDatum(dID, ojbData)
+	datum, err := BuildDatum(dataID, ojbData)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = GetDifference(dID, datum, ojbData, true)
+	updates, err := GetDifference(dataID, datum, ojbData, true)
 	if err != nil {
 		return nil, err
 	}
-
-	return *datum, nil
+	return updates, nil
 }
 
 func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
