@@ -5,14 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Nerzal/gocloak/v13"
 
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -40,7 +37,11 @@ var validRoles = map[string]struct{}{
 
 var custodialAccountRoles = []string{RoleCustodialAccount, RolePatient}
 
-type InternalUser struct {
+// FullUser is the rull representation of a user. It is a
+// temporary type until I can figure out how much the
+// existing user.User type can be extended to include these
+// fields
+type FullUser struct {
 	Id            string   `json:"userid,omitempty" bson:"userid,omitempty"` // map userid to id
 	Username      string   `json:"username,omitempty" bson:"username,omitempty"`
 	Emails        []string `json:"emails,omitempty" bson:"emails,omitempty"`
@@ -65,7 +66,7 @@ type InternalUser struct {
 	LastName             string              `json:"lastName,omitempty"`
 }
 
-// ExternalUser is the user returned to services.
+// ExternalUser is the user returned to public services.
 type ExternalUser struct {
 	// same attributes as original shoreline Api.asSerializableUser
 	ID            *string   `json:"userid,omitempty"`
@@ -339,14 +340,14 @@ func ParseNewUserDetails(reader io.Reader) (*NewUserDetails, error) {
 	}
 }
 
-func NewUser(details *NewUserDetails, salt string) (user *InternalUser, err error) {
+func NewUser(details *NewUserDetails, salt string) (user *FullUser, err error) {
 	if details == nil {
 		return nil, errors.New("New user details is nil")
 	} else if err := details.Validate(); err != nil {
 		return nil, err
 	}
 
-	user = &InternalUser{Username: *details.Username, Emails: details.Emails, Roles: details.Roles}
+	user = &FullUser{Username: *details.Username, Emails: details.Emails, Roles: details.Roles}
 
 	if user.Id, err = generateUniqueHash([]string{*details.Username, *details.Password}, 10); err != nil {
 		return nil, errors.New("User: error generating id")
@@ -417,7 +418,7 @@ func ParseNewCustodialUserDetails(reader io.Reader) (*NewCustodialUserDetails, e
 	}
 }
 
-func NewCustodialUser(details *NewCustodialUserDetails, salt string) (user *InternalUser, err error) {
+func NewCustodialUser(details *NewCustodialUserDetails, salt string) (user *FullUser, err error) {
 	if details == nil {
 		return nil, errors.New("New custodial user details is nil")
 	} else if err := details.Validate(); err != nil {
@@ -429,7 +430,7 @@ func NewCustodialUser(details *NewCustodialUserDetails, salt string) (user *Inte
 		username = *details.Username
 	}
 
-	user = &InternalUser{
+	user = &FullUser{
 		Username: username,
 		Emails:   details.Emails,
 	}
@@ -571,86 +572,11 @@ func ParseUpdateUserDetails(reader io.Reader) (*UpdateUserDetails, error) {
 	}
 }
 
-func NewUserFromKeycloakUser(keycloakUser *gocloak.User) *InternalUser {
-	attributes := map[string][]string{}
-	if keycloakUser.Attributes != nil {
-		attributes = *keycloakUser.Attributes
-	}
-	termsAcceptedDate := ""
-	if len(attributes[termsAcceptedAttribute]) > 0 {
-		if ts, err := UnixStringToTimestamp(attributes[termsAcceptedAttribute][0]); err == nil {
-			termsAcceptedDate = ts
-		}
-	}
-
-	user := &InternalUser{
-		Id:            pointer.ToString(keycloakUser.ID),
-		Username:      pointer.ToString(keycloakUser.Username),
-		Roles:         pointer.ToStringArray(keycloakUser.RealmRoles),
-		TermsAccepted: termsAcceptedDate,
-		EmailVerified: pointer.ToBool(keycloakUser.EmailVerified),
-		IsMigrated:    true,
-		Enabled:       pointer.ToBool(keycloakUser.Enabled),
-	}
-
-	if keycloakUser.Email != nil {
-		user.Emails = []string{*keycloakUser.Email}
-	}
-	// All non-custodial users have a password and it's important to set the hash to a non-empty value.
-	// When users are serialized by this service, the payload contains a flag `passwordExists` that
-	// is computed based on the presence of a password hash in the user struct. This flag is used by
-	// other services (e.g. hydrophone) to determine whether the user is custodial or not.
-	if !user.IsCustodialAccount() {
-		user.PwHash = "true"
-	}
-
-	return user
-}
-
-func NewKeycloakUser(gocloakUser *gocloak.User) *InternalUser {
-	if gocloakUser == nil {
-		return nil
-	}
-	var emails []string
-	if gocloakUser.Email != nil {
-		emails = append(emails, pointer.ToString(gocloakUser.Email))
-	}
-	user := &InternalUser{
-		Id:            pointer.ToString(gocloakUser.ID),
-		Username:      pointer.ToString(gocloakUser.Username),
-		FirstName:     pointer.ToString(gocloakUser.FirstName),
-		LastName:      pointer.ToString(gocloakUser.LastName),
-		Emails:        emails,
-		EmailVerified: pointer.ToBool(gocloakUser.EmailVerified),
-		Enabled:       pointer.ToBool(gocloakUser.Enabled),
-	}
-	if gocloakUser.Attributes != nil {
-		attrs := maps.Clone(*gocloakUser.Attributes)
-		if ts, ok := attrs[termsAcceptedAttribute]; ok && len(ts) > 0 {
-			user.TermsAccepted = ts[0]
-		}
-		if prof, ok := profileFromAttributes(attrs); ok {
-			user.Profile = prof
-		}
-	}
-
-	if gocloakUser.RealmRoles != nil {
-		user.Roles = *gocloakUser.RealmRoles
-	}
-
-	return user
-}
-
-func (u *InternalUser) Email() string {
+func (u *FullUser) Email() string {
 	return strings.ToLower(u.Username)
 }
 
-func (u *InternalUser) DeepClone() *InternalUser {
-	panic("todo - needed? only used in mongostore")
-	return nil
-}
-
-func (u *InternalUser) HasRole(role string) bool {
+func (u *FullUser) HasRole(role string) bool {
 	for _, userRole := range u.Roles {
 		if userRole == role {
 			return true
@@ -660,37 +586,37 @@ func (u *InternalUser) HasRole(role string) bool {
 }
 
 // IsClinic returns true if the user is legacy clinic Account
-func (u *InternalUser) IsClinic() bool {
+func (u *FullUser) IsClinic() bool {
 	return u.HasRole(RoleClinic)
 }
 
-func (u *InternalUser) IsCustodialAccount() bool {
+func (u *FullUser) IsCustodialAccount() bool {
 	return u.HasRole(RoleCustodialAccount)
 }
 
 // IsClinician returns true if the user is a clinician
-func (u *InternalUser) IsClinician() bool {
+func (u *FullUser) IsClinician() bool {
 	return u.HasRole(RoleClinician)
 }
 
-func (u *InternalUser) AreTermsAccepted() bool {
+func (u *FullUser) AreTermsAccepted() bool {
 	_, err := TimestampToUnixString(u.TermsAccepted)
 	return err == nil
 }
 
-func (u *InternalUser) IsEnabled() bool {
+func (u *FullUser) IsEnabled() bool {
 	if u.IsMigrated {
 		return u.Enabled
 	}
 	return u.PwHash != "" && !u.IsDeleted()
 }
 
-func (u *InternalUser) IsDeleted() bool {
+func (u *FullUser) IsDeleted() bool {
 	// mdb only?
 	return u.DeletedTime != ""
 }
 
-func (u *InternalUser) HashPassword(pw, salt string) error {
+func (u *FullUser) HashPassword(pw, salt string) error {
 	if passwordHash, err := GeneratePasswordHash(u.Id, pw, salt); err != nil {
 		return err
 	} else {
@@ -699,7 +625,7 @@ func (u *InternalUser) HashPassword(pw, salt string) error {
 	}
 }
 
-func (u *InternalUser) PasswordsMatch(pw, salt string) bool {
+func (u *FullUser) PasswordsMatch(pw, salt string) bool {
 	if u.PwHash == "" || pw == "" {
 		return false
 	} else if pwMatch, err := GeneratePasswordHash(u.Id, pw, salt); err != nil {
@@ -709,7 +635,7 @@ func (u *InternalUser) PasswordsMatch(pw, salt string) bool {
 	}
 }
 
-func (u *InternalUser) IsEmailVerified(secret string) bool {
+func (u *FullUser) IsEmailVerified(secret string) bool {
 	if secret != "" {
 		if strings.Contains(u.Username, secret) {
 			return true
@@ -723,7 +649,7 @@ func (u *InternalUser) IsEmailVerified(secret string) bool {
 	return u.EmailVerified
 }
 
-func ToMigrationUser(u *InternalUser) *MigrationUser {
+func ToMigrationUser(u *FullUser) *MigrationUser {
 	migratedUser := &MigrationUser{
 		ID:       u.Id,
 		Username: strings.ToLower(u.Username),
@@ -743,7 +669,7 @@ func ToMigrationUser(u *InternalUser) *MigrationUser {
 	return migratedUser
 }
 
-func ToExternalUser(user *InternalUser) *ExternalUser {
+func ToExternalUser(user *FullUser) *ExternalUser {
 	var id *string
 	if len(user.Id) > 0 {
 		id = &user.Id

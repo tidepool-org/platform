@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/user"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -56,6 +57,7 @@ type Service struct {
 	authClient         *Client
 	userEventsHandler  events.Runner
 	deviceCheck        apple.DeviceCheck
+	userAccessor       user.UserAccessor
 }
 
 func New() *Service {
@@ -108,6 +110,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDeviceCheck(); err != nil {
 		return err
 	}
+	if err := s.initializeUserAccessor(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -150,6 +155,10 @@ func (s *Service) ProviderFactory() provider.Factory {
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return s.deviceCheck
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -412,6 +421,18 @@ func (s *Service) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize events runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Service) initializeUserAccessor() error {
+	s.Logger().Debug("Initializing user accessor")
+
+	config := &user.KeycloakConfig{}
+	if err := config.FromEnv(); err != nil {
+		return err
+	}
+	s.userAccessor = user.NewKeycloakUserAccessor(config)
 
 	return nil
 }

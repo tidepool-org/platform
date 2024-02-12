@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/user"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -18,6 +19,7 @@ type Service interface {
 
 	Domain() string
 	AuthStore() store.Store
+	UserAccessor() user.UserAccessor
 
 	ProviderFactory() provider.Factory
 
