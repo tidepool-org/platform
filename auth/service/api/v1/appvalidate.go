@@ -2,6 +2,7 @@ package v1
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -127,6 +128,13 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		"userID": details.UserID(),
 		"keyId":  assertVerify.KeyID,
 	}
+
+	// log debug fields (only in qa environments)
+	debugFields := log.Fields{
+		"PartnerData": string(assertVerify.ClientData.PartnerData),
+	}
+	maps.Copy(debugFields, logFields)
+	log.LoggerFromContext(ctx).WithFields(debugFields).Debug("appvalidate input")
 
 	if err := r.AppValidator().VerifyAssertion(ctx, assertVerify); err != nil {
 		log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to verify assertion")
