@@ -438,7 +438,7 @@ func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakU
 		}
 	}
 
-	for targetRoleName, _ := range targetRoles {
+	for targetRoleName := range targetRoles {
 		realmRole := getRealmRoleByName(realmRoles, targetRoleName)
 		if realmRole != nil {
 			rolesToAdd = append(rolesToAdd, *realmRole)
