@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/user"
 
 	"github.com/onsi/gomega"
 
@@ -76,6 +77,10 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 }
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
+	return nil
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
 	return nil
 }
 
