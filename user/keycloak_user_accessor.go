@@ -17,10 +17,10 @@ type keycloakUserAccessor struct {
 }
 
 func NewKeycloakUserAccessor(config *KeycloakConfig) *keycloakUserAccessor {
-	newKCClient(config)
+	newKeycloakClient(config)
 	return &keycloakUserAccessor{
 		cfg:            config,
-		keycloakClient: newKCClient(config),
+		keycloakClient: newKeycloakClient(config),
 	}
 }
 
