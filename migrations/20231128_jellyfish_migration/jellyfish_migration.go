@@ -320,17 +320,19 @@ func (m *Migration) fetchAndProcess() bool {
 			}
 
 			itemID := fmt.Sprintf("%v", item["_id"])
-			updates, err := utils.ProcessDatum(itemID, item)
+			_, err := utils.ProcessDatum(itemID, item)
 			if err != nil {
 				m.migrationUtil.OnError(err, itemID, fmt.Sprintf("[type=%v]", item["type"]))
-			} else {
-				for _, update := range updates {
-					updateOp := mongo.NewUpdateOneModel()
-					updateOp.SetFilter(bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]})
-					updateOp.SetUpdate(update)
-					m.migrationUtil.SetUpdates(updateOp)
-				}
 			}
+			// TODO: process the updates
+			// } else {
+			// 	for _, update := range updates {
+			// 		updateOp := mongo.NewUpdateOneModel()
+			// 		updateOp.SetFilter(bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]})
+			// 		updateOp.SetUpdate(update)
+			// 		m.migrationUtil.SetUpdates(updateOp)
+			// 	}
+			// }
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)
 		}
