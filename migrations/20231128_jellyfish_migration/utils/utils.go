@@ -228,7 +228,6 @@ func GetDifference(id string, datum interface{}, originalObject map[string]inter
 		"createdTime",
 		"guid",
 		"modifiedTime",
-		"payload", //hmmm unless we have converted it?
 		"uploadId",
 	}
 
