@@ -14,17 +14,13 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
-	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
-	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
@@ -158,7 +154,7 @@ func ApplyBaseChanges(bsonData bson.M) error {
 	return nil
 }
 
-func BuildDatum(id string, objectData map[string]interface{}) (*data.Datum, error) {
+func BuildPlatformDatum(id string, objectData map[string]interface{}) (*data.Datum, error) {
 	parser := structureParser.NewObject(&objectData)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
@@ -198,10 +194,30 @@ func BuildDatum(id string, objectData map[string]interface{}) (*data.Datum, erro
 	if err := normalizer.Error(); err != nil {
 		return nil, err
 	}
+
+	// TODO set the hash
+	// fields, err := (*datum).IdentityFields()
+	// if err != nil {
+	// 	return nil, errorsP.Wrap(err, "unable to gather identity fields for datum")
+	// }
+
+	// hash, err := deduplicator.GenerateIdentityHash(fields)
+	// if err != nil {
+	// 	return nil, errorsP.Wrap(err, "unable to generate identity hash for datum")
+	// }
+
+	// deduplicator := (*datum).DeduplicatorDescriptor()
+	// if deduplicator == nil {
+	// 	deduplicator = data.NewDeduplicatorDescriptor()
+	// }
+	// deduplicator.Hash = pointer.FromString(hash)
+
+	// (*datum).SetDeduplicatorDescriptor(deduplicator)
+
 	return datum, nil
 }
 
-func GetDifference(id string, datum interface{}, originalObject map[string]interface{}, log bool) ([]bson.M, error) {
+func GetDatumChanges(id string, datum interface{}, original map[string]interface{}, log bool) ([]bson.M, error) {
 
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
@@ -231,18 +247,17 @@ func GetDifference(id string, datum interface{}, originalObject map[string]inter
 	}
 
 	for _, key := range notRequired {
-		delete(originalObject, key)
+		delete(original, key)
 		delete(processedObject, key)
 	}
 
-	changelog, err := diff.Diff(originalObject, processedObject, diff.StructMapKeySupport())
+	changelog, err := diff.Diff(original, processedObject, diff.StructMapKeySupport())
 	if err != nil {
 		return nil, err
 	}
 
 	set := bson.M{}
 	unset := bson.M{}
-	rename := bson.M{}
 
 	// ["path","to","change"]
 	// {path: {to: {change: true}}}
@@ -257,12 +272,10 @@ func GetDifference(id string, datum interface{}, originalObject map[string]inter
 
 	for _, change := range changelog {
 		switch change.Type {
-		case diff.CREATE:
+		case diff.CREATE, diff.UPDATE:
 			set[change.Path[0]] = getValue(change.Path, change.To)
 		case diff.DELETE:
 			unset[change.Path[0]] = getValue(change.Path, "")
-		case diff.UPDATE:
-			rename[change.Path[0]] = getValue(change.Path, change.To)
 		}
 	}
 
@@ -270,13 +283,9 @@ func GetDifference(id string, datum interface{}, originalObject map[string]inter
 	if len(set) > 0 {
 		difference = append(difference, bson.M{"$set": set})
 	}
-	if len(rename) > 0 {
-		difference = append(difference, bson.M{"$rename": rename})
-	}
 	if len(unset) > 0 {
 		difference = append(difference, bson.M{"$unset": unset})
 	}
-
 	if log {
 		logDiff(id, difference)
 	}
@@ -298,215 +307,215 @@ func ProcessDatum(dataID string, bsonData bson.M) ([]bson.M, error) {
 		return nil, err
 	}
 
-	datum, err := BuildDatum(dataID, ojbData)
+	datum, err := BuildPlatformDatum(dataID, ojbData)
 	if err != nil {
 		return nil, err
 	}
 
-	updates, err := GetDifference(dataID, datum, ojbData, true)
+	updates, err := GetDatumChanges(dataID, datum, ojbData, true)
 	if err != nil {
 		return nil, err
 	}
 	return updates, nil
 }
 
-func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
-	updates := []bson.M{}
-	set := bson.M{}
-	var rename bson.M
-	var identityFields []string
+// func GetDatumUpdates(bsonData bson.M) (string, []bson.M, error) {
+// 	updates := []bson.M{}
+// 	set := bson.M{}
+// 	var rename bson.M
+// 	var identityFields []string
 
-	datumID, ok := bsonData["_id"].(string)
-	if !ok {
-		return "", nil, errorsP.New("cannot get the datum id")
-	}
+// 	datumID, ok := bsonData["_id"].(string)
+// 	if !ok {
+// 		return "", nil, errorsP.New("cannot get the datum id")
+// 	}
 
-	datumType, ok := bsonData["type"].(string)
-	if !ok {
-		return datumID, nil, errorsP.New("cannot get the datum type")
-	}
+// 	datumType, ok := bsonData["type"].(string)
+// 	if !ok {
+// 		return datumID, nil, errorsP.New("cannot get the datum type")
+// 	}
 
-	// TODO: based on discussions we want to ensure that these are the correct type
-	// even though we are not using them for the hash generation
-	delete(bsonData, "payload")
-	delete(bsonData, "annotations")
+// 	// TODO: based on discussions we want to ensure that these are the correct type
+// 	// even though we are not using them for the hash generation
+// 	delete(bsonData, "payload")
+// 	delete(bsonData, "annotations")
 
-	switch datumType {
-	case basal.Type:
-		var datum *basal.Basal
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	case bolus.Type:
-		var datum *bolus.Bolus
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	case device.Type:
-		var datum bolus.Bolus
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	case pump.Type:
-		var datum types.Base
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
+// 	switch datumType {
+// 	case basal.Type:
+// 		var datum *basal.Basal
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	case bolus.Type:
+// 		var datum *bolus.Bolus
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	case device.Type:
+// 		var datum bolus.Bolus
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	case pump.Type:
+// 		var datum types.Base
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
 
-		if pumpSettingsHasBolus(bsonData) {
-			rename = bson.M{"bolus": "boluses"}
-		}
+// 		if pumpSettingsHasBolus(bsonData) {
+// 			rename = bson.M{"bolus": "boluses"}
+// 		}
 
-		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		} else if sleepSchedules != nil {
-			set["sleepSchedules"] = sleepSchedules
-		}
-	case selfmonitored.Type:
-		var datum selfmonitored.SelfMonitored
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		beforeVal := datum.Value
-		beforeUnits := datum.Units
-		datum.Normalize(dataNormalizer.New())
-		afterVal := datum.Value
-		afterUnits := datum.Units
-		if *beforeVal != *afterVal {
-			set["value"] = afterVal
-		}
-		if *beforeUnits != *afterUnits {
-			set["units"] = afterUnits
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	case ketone.Type:
-		var datum ketone.Ketone
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		beforeVal := datum.Value
-		beforeUnits := datum.Units
-		datum.Normalize(dataNormalizer.New())
-		afterVal := datum.Value
-		afterUnits := datum.Units
-		if *beforeVal != *afterVal {
-			set["value"] = afterVal
-		}
-		if *beforeUnits != *afterUnits {
-			set["units"] = afterUnits
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	case continuous.Type:
-		var datum continuous.Continuous
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		// NOTE: applies to any type that has a `Glucose` property
-		// we need to normalise so that we can get the correct `Units`` and `Value`` precsion that we would if ingested via the platform.
-		// as these are both being used in the hash calc via the IdentityFields we want to persist these changes if they are infact updated.
-		beforeVal := datum.Value
-		beforeUnits := datum.Units
-		datum.Normalize(dataNormalizer.New())
-		afterVal := datum.Value
-		afterUnits := datum.Units
-		if *beforeVal != *afterVal {
-			set["value"] = afterVal
-		}
-		if *beforeUnits != *afterUnits {
-			set["units"] = afterUnits
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	default:
-		var datum types.Base
-		dataBytes, err := bson.Marshal(bsonData)
-		if err != nil {
-			return datumID, nil, err
-		}
-		err = bson.Unmarshal(dataBytes, &datum)
-		if err != nil {
-			return datumID, nil, err
-		}
-		identityFields, err = datum.IdentityFields()
-		if err != nil {
-			return datumID, nil, err
-		}
-	}
+// 		sleepSchedules, err := updateIfExistsPumpSettingsSleepSchedules(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		} else if sleepSchedules != nil {
+// 			set["sleepSchedules"] = sleepSchedules
+// 		}
+// 	case selfmonitored.Type:
+// 		var datum selfmonitored.SelfMonitored
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		beforeVal := datum.Value
+// 		beforeUnits := datum.Units
+// 		datum.Normalize(dataNormalizer.New())
+// 		afterVal := datum.Value
+// 		afterUnits := datum.Units
+// 		if *beforeVal != *afterVal {
+// 			set["value"] = afterVal
+// 		}
+// 		if *beforeUnits != *afterUnits {
+// 			set["units"] = afterUnits
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	case ketone.Type:
+// 		var datum ketone.Ketone
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		beforeVal := datum.Value
+// 		beforeUnits := datum.Units
+// 		datum.Normalize(dataNormalizer.New())
+// 		afterVal := datum.Value
+// 		afterUnits := datum.Units
+// 		if *beforeVal != *afterVal {
+// 			set["value"] = afterVal
+// 		}
+// 		if *beforeUnits != *afterUnits {
+// 			set["units"] = afterUnits
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	case continuous.Type:
+// 		var datum continuous.Continuous
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		// NOTE: applies to any type that has a `Glucose` property
+// 		// we need to normalise so that we can get the correct `Units`` and `Value`` precsion that we would if ingested via the platform.
+// 		// as these are both being used in the hash calc via the IdentityFields we want to persist these changes if they are infact updated.
+// 		beforeVal := datum.Value
+// 		beforeUnits := datum.Units
+// 		datum.Normalize(dataNormalizer.New())
+// 		afterVal := datum.Value
+// 		afterUnits := datum.Units
+// 		if *beforeVal != *afterVal {
+// 			set["value"] = afterVal
+// 		}
+// 		if *beforeUnits != *afterUnits {
+// 			set["units"] = afterUnits
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	default:
+// 		var datum types.Base
+// 		dataBytes, err := bson.Marshal(bsonData)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		err = bson.Unmarshal(dataBytes, &datum)
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 		identityFields, err = datum.IdentityFields()
+// 		if err != nil {
+// 			return datumID, nil, err
+// 		}
+// 	}
 
-	hash, err := deduplicator.GenerateIdentityHash(identityFields)
-	if err != nil {
-		return datumID, nil, err
-	}
+// 	hash, err := deduplicator.GenerateIdentityHash(identityFields)
+// 	if err != nil {
+// 		return datumID, nil, err
+// 	}
 
-	set["_deduplicator"] = bson.M{"hash": hash}
+// 	set["_deduplicator"] = bson.M{"hash": hash}
 
-	updates = append(updates, bson.M{"$set": set})
-	if rename != nil {
-		log.Printf("rename %v", rename)
-		updates = append(updates, bson.M{"$rename": rename})
-	}
-	if len(updates) != 1 {
-		log.Printf("datum updates %d", len(updates))
-	}
-	return datumID, updates, nil
-}
+// 	updates = append(updates, bson.M{"$set": set})
+// 	if rename != nil {
+// 		log.Printf("rename %v", rename)
+// 		updates = append(updates, bson.M{"$rename": rename})
+// 	}
+// 	if len(updates) != 1 {
+// 		log.Printf("datum updates %d", len(updates))
+// 	}
+// 	return datumID, updates, nil
+// }
