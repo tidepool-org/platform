@@ -185,31 +185,29 @@ var _ = Describe("back-37", func() {
 				return rawObject
 			}
 
-			//var pumpSettingsDatum *pump.Pump
 			var incomingObject map[string]interface{}
 			var datumObject bson.M
 
 			BeforeEach(func() {
 				datumObject = getBSONData(test.AutomatedBasalTandem)
 				incomingObject = getRawData(test.AutomatedBasalTandem)
-
 			})
 
 			It("has no difference", func() {
-				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject)
+				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject, false)
 				Expect(err).To(BeNil())
 				Expect(diff).ToNot(BeNil())
 				Expect(diff).To(Equal([]bson.M{}))
 			})
 			It("set for missing properties", func() {
 				delete(incomingObject, "deliveryType")
-				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject)
+				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject, false)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{{"$set": bson.M{"deliveryType": "automated"}}}))
 			})
 			It("unset for unwanted properties", func() {
 				incomingObject["random"] = map[string]interface{}{"extra": true}
-				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject)
+				diff, err := utils.GetDifference(expectedID, datumObject, incomingObject, false)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"random": ""}}}))
 			})

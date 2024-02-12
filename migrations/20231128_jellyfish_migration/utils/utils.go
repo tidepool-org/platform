@@ -205,7 +205,7 @@ func BuildDatum(id string, objectData map[string]interface{}) (*data.Datum, erro
 	return datum, nil
 }
 
-func GetDifference(id string, datum interface{}, rawObject map[string]interface{}) ([]bson.M, error) {
+func GetDifference(id string, datum interface{}, originalObject map[string]interface{}, log bool) ([]bson.M, error) {
 	difference := []bson.M{}
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
@@ -217,17 +217,33 @@ func GetDifference(id string, datum interface{}, rawObject map[string]interface{
 		return nil, err
 	}
 
-	// these are extras that we want to leave on the original object
-	// notRequired := []string{"_active", "_groupId", "_id", "_userId", "_version", "_schemaVersion", "_deduplicator", "uploadId", "createdTime", "guid", "modifiedTime", "_archivedTime"}
-	// for _, key := range notRequired {
-	// 	delete(rawObject, key)
-	// }
+	// these are extras that we want to leave on the
+	// original object so don't compare
+	notRequired := []string{
+		"_active",
+		"_archivedTime",
+		"_deduplicator",
+		"_groupId",
+		"_id",
+		"_schemaVersion",
+		"_userId",
+		"_version",
+		"createdTime",
+		"guid",
+		"modifiedTime",
+		"payload", //hmmm unless we have converted it?
+		"uploadId",
+	}
 
-	changelog, err := diff.Diff(rawObject, processedObject, diff.StructMapKeySupport())
+	for _, key := range notRequired {
+		delete(originalObject, key)
+		delete(processedObject, key)
+	}
+
+	changelog, err := diff.Diff(originalObject, processedObject, diff.StructMapKeySupport())
 	if err != nil {
 		return nil, err
 	}
-	logDiff(id, changelog)
 
 	set := bson.M{}
 	unset := bson.M{}
@@ -264,6 +280,11 @@ func GetDifference(id string, datum interface{}, rawObject map[string]interface{
 	if len(unset) > 0 {
 		difference = append(difference, bson.M{"$unset": unset})
 	}
+
+	if log {
+		logDiff(id, difference)
+	}
+
 	return difference, nil
 }
 
@@ -289,7 +310,7 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	difference, err := GetDifference(dID, datum, ojbData)
+	difference, err := GetDifference(dID, datum, ojbData, true)
 	if err != nil {
 		return nil, err
 	}
