@@ -66,7 +66,7 @@ type keycloakClient struct {
 	keycloak                 *gocloak.GoCloak
 }
 
-func newKCClient(config *KeycloakConfig) *keycloakClient {
+func newKeycloakClient(config *KeycloakConfig) *keycloakClient {
 	return &keycloakClient{
 		cfg:      config,
 		keycloak: gocloak.NewClient(config.BaseUrl),
