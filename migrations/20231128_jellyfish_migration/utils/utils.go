@@ -9,29 +9,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
 
-	"github.com/r3labs/diff/v3"
 	"github.com/tidepool-org/platform/data"
-
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/types/calculator"
-
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
+	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
-
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -310,11 +307,10 @@ func ProcessDatum(bsonData bson.M) (data.Datum, error) {
 		return nil, err
 	}
 
-	difference, err := GetDifference(dID, datum, ojbData, true)
+	_, err = GetDifference(dID, datum, ojbData, true)
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("diff: %v", difference)
 
 	return *datum, nil
 }
