@@ -150,6 +150,10 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 
 	if payload := bsonData["payload"]; payload != nil {
 
+		if dataType == continuous.Type {
+			log.Printf("CBG payload %#v", payload)
+		}
+
 		if m, ok := payload.(*metadata.Metadata); ok {
 			if length := len(*m); length == 0 {
 				log.Printf("1 remove empty payload %s", dataType)
@@ -175,6 +179,7 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 			}
 			bsonData["payload"] = &payloadMetadata
 		}
+
 	}
 	if annotations := bsonData["annotations"]; annotations != nil {
 		if strAnnotations, ok := annotations.(string); ok {
