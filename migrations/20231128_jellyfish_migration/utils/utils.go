@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
+	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/calculator"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -152,7 +153,7 @@ func ApplyBaseChanges(bsonData bson.M) error {
 	return nil
 }
 
-func BuildPlatformDatum(id string, objectData map[string]interface{}) (*data.Datum, error) {
+func BuildPlatformDatum(objID string, objType string, objectData map[string]interface{}) (*data.Datum, error) {
 	parser := structureParser.NewObject(&objectData)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
@@ -162,7 +163,7 @@ func BuildPlatformDatum(id string, objectData map[string]interface{}) (*data.Dat
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
 	} else {
-		return nil, errorsP.Newf("no datum returned for id=[%s]", id)
+		return nil, errorsP.Newf("no datum returned for id=[%s]", objID)
 	}
 
 	validator.Bool("_active", parser.Bool("_active")).Exists()
@@ -179,8 +180,16 @@ func BuildPlatformDatum(id string, objectData map[string]interface{}) (*data.Dat
 	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
 	validator.Time("modifiedTime", parser.Time("modifiedTime", time.RFC3339Nano))
 
-	//bolus - not used in the platform
-	validator.String("deliveryContext", parser.String("deliveryContext"))
+	//parsed but not used in the platform
+	//deletes will be created from the diff
+
+	switch objType {
+	case continuous.Type:
+		validator.String("subType", parser.String("subType"))
+		validator.String("payload", parser.String("payload"))
+	case bolus.Type:
+		validator.String("deliveryContext", parser.String("deliveryContext"))
+	}
 
 	parser.NotParsed()
 
@@ -293,7 +302,7 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	return difference, nil
 }
 
-func ProcessDatum(dataID string, bsonData bson.M) ([]bson.M, error) {
+func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, error) {
 
 	if err := ApplyBaseChanges(bsonData); err != nil {
 		return nil, err
@@ -308,7 +317,7 @@ func ProcessDatum(dataID string, bsonData bson.M) ([]bson.M, error) {
 		return nil, err
 	}
 
-	datum, err := BuildPlatformDatum(dataID, ojbData)
+	datum, err := BuildPlatformDatum(dataID, dataType, ojbData)
 	if err != nil {
 		return nil, err
 	}

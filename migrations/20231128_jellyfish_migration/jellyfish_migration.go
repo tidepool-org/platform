@@ -321,9 +321,9 @@ func (m *Migration) fetchAndProcess() bool {
 				return false
 			}
 			itemID := fmt.Sprintf("%v", item["_id"])
-			updates, err := utils.ProcessDatum(itemID, item)
+			itemType := fmt.Sprintf("%v", item["type"])
+			updates, err := utils.ProcessDatum(itemID, itemType, item)
 			if err != nil {
-				itemType := fmt.Sprintf("%v", item["type"])
 				m.migrationUtil.OnError(err, itemID, itemType, fmt.Sprintf("[type=%s]", itemType))
 			}
 			if !m.config.audit {
