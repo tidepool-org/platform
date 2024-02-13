@@ -1,0 +1,1984 @@
+[
+  {
+    "_id": "003pv66tbv4ts0d7dtg87iqgfue2njko",
+    "diff": [
+      {
+        "$set": {
+          "bgTarget": { "0": { "low": 0.24649 } },
+          "insulinSensitivity": { "3": { "amount": 0.10784 } },
+          "units": { "bg": "mmol/L" }
+        }
+      }
+    ]
+  },
+  {
+    "_id": "003q3akh725mgom2o0veto788r3omfl1",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "004mpfpguo8imiijdd72i6ik7d375rq9",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00555ome25877chsjcpfecenmven56ir",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00668njtmootganjsu2ulhas9q76npr8",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "006nc3tg0affjbpp9epn2e7oujsl2eoq",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "006nc3tg0affjbpp9epn2e7oujsl2eoq_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "007eslnt672r7irnnp5ri517n64kb0o0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "007eslnt672r7irnnp5ri517n64kb0o0_0",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "008fps2ork9n3731otmh7m25rjb125ds",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "008fps2ork9n3731otmh7m25rjb125ds_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "008gh26sbih90urq5pgrv6qslhfssqeb",
+    "diff": [
+      { "$unset": { "suppressed": { "suppressed": { "timezoneOffset": "" } } } }
+    ]
+  },
+  {
+    "_id": "008gh26sbih90urq5pgrv6qslhfssqeb_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "008up7g8cfoid7seogp30dod11clotne",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "008up7g8cfoid7seogp30dod11clotne_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "0090h2apbmd9sc17i3ahl0tdtomadkf8",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "0090h2apbmd9sc17i3ahl0tdtomadkf8_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00941bse1rusk3oir9m2c3gg5i51m9eo",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00941bse1rusk3oir9m2c3gg5i51m9eo_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "009fbg2kclihtpfj08mhu9ubdro0fj9d",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "009fbg2kclihtpfj08mhu9ubdro0fj9d_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00a7rvhhn17u23hogcob4cu0bfr2mbnk",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00a7rvhhn17u23hogcob4cu0bfr2mbnk_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00a9egu2esitblp23n4alk92re21hqad",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00a9egu2esitblp23n4alk92re21hqad_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00ak731q2gbn6m436dmu6e78u80jm5v9",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00amphcpherhqco8erolvoj5uf07od4a",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00amphcpherhqco8erolvoj5uf07od4a_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00banp948lntevb74c9mnus6qoqutgsl",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00banp948lntevb74c9mnus6qoqutgsl_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00bhgfrumqssh38i8pia3ti30gfgctcs",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00bnlg7mbpfjvmg4orvdd3783g11s88a",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00bnlg7mbpfjvmg4orvdd3783g11s88a_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00bsjoiu7elkq7tahcspl1apl86f4tql",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00bsjoiu7elkq7tahcspl1apl86f4tql_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00c8hsa1d72ns99uv496bsr1lb337n83",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00c8hsa1d72ns99uv496bsr1lb337n83_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00c8jq6crun5762qsl0t5hfkau42utib",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00dcc5rrpur7ppahjrdpse04t66c6ou6",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00dcc5rrpur7ppahjrdpse04t66c6ou6_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00ddv5fr5q4hg33253rvd9ajoa4cmtqd",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00ddv5fr5q4hg33253rvd9ajoa4cmtqd_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00e2eeq17vn9bmsftk3ls7b3t6aibpch",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00e2eeq17vn9bmsftk3ls7b3t6aibpch_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00ef5rntkfhr4vql89cvbjkul7qeffv6",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ekb6v217ugr0ohcsi0qhfq3roq56p1",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00fcpm9tbv1lgmpo7sjehk55v222f1ln",
+    "diff": [
+      {
+        "$set": {
+          "rateOfChangeAlert": {
+            "fallRate": { "enabled": false, "rate": -0.16652243973136602 },
+            "riseRate": { "enabled": false, "rate": 0.16652243973136602 }
+          }
+        }
+      },
+      { "$unset": { "rateOfChangeAlerts": "" } }
+    ]
+  },
+  {
+    "_id": "00fdte897t1h2a8kehh54lh0kui1rsku",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00fopd2svgrq295hg8hjbc5g1640mr2e",
+    "diff": [
+      {
+        "$set": {
+          "rateOfChangeAlert": {
+            "fallRate": { "enabled": true, "rate": -0.16652243973136602 },
+            "riseRate": { "enabled": false, "rate": 0.16652243973136602 }
+          }
+        }
+      },
+      { "$unset": { "rateOfChangeAlerts": "" } }
+    ]
+  },
+  {
+    "_id": "00fshp28i8i1rsfmmvghtb3esoco1pov",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ftthnoc3m08bjd7f5nuthbktkg119d",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00gri8pvjp8a04erp9agtf9cisb632c2",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00gri8pvjp8a04erp9agtf9cisb632c2_0",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "00h97gipch5r5vek1pb40i9uljrb01ua",
+    "diff": [
+      {
+        "$set": {
+          "bgTargets": { "Test1": { "15": 0.36973 } },
+          "insulinSensitivities": { "Test1": { "15": 0.33892 } },
+          "units": { "bg": "mmol/L" }
+        }
+      }
+    ]
+  },
+  {
+    "_id": "00hl61lmuje16gko3rvdfdr0sp4qs6ol",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00hl61lmuje16gko3rvdfdr0sp4qs6ol_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00hqa1a9c3cpdcch5d6h7vcos6krh0ce",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ht555qvki7cbk674v6cm26h2312j61",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00ht555qvki7cbk674v6cm26h2312j61_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00i2mohjo2mo2s2kom6hnqrb4f64jshr",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00i2mohjo2mo2s2kom6hnqrb4f64jshr_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00iqofhuol103ba49jalb4h82djkk0o0",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00j6nvem3qr8b67olqv3ii9801t0astn",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00j6nvem3qr8b67olqv3ii9801t0astn_0",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00j9eo5f5nh3ien4h4u8ovlrdu46c95n",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00j9eo5f5nh3ien4h4u8ovlrdu46c95n_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00j9rqcumsqq2sg8832dveg3ido6k0cb",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00j9rqcumsqq2sg8832dveg3ido6k0cb_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00jtrn77rnvip9fk855pm8v793esshe8",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00k0vhhfv20b9id8iamhvhcldm7nmg5e",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00krmkvdi13ioii2s4j06jkjq3snos2i",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ld99qpavd0q36seo86s5clp11jeavd",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00ld99qpavd0q36seo86s5clp11jeavd_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00m3d1b7m7f72oj4e2p09qtverpui4be",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00mfmt0kohnisnb3giudr05uik0egqmm",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00mfmt0kohnisnb3giudr05uik0egqmm_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00ms1frj45tg7o61a3u84qcpr9nhtmvs",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00ms1frj45tg7o61a3u84qcpr9nhtmvs_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00mvdtkn892cqissvttno8k55t2d0sj5",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00n9aks33iug7ri7h2dimh495ub85e74",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "00n9aks33iug7ri7h2dimh495ub85e74_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00nqj9ckkvach91pj4e3krsc6ea2guk9",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00obfp50c3kog4kq28ln4ea9tc2pkf7t",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00obfp50c3kog4kq28ln4ea9tc2pkf7t_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00oufbhdambbqdlavk39maf4i227hbf8",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00oufbhdambbqdlavk39maf4i227hbf8_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00p3v8dr9qlscvopuhvgk96g7ab6nmd8",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00p3v8dr9qlscvopuhvgk96g7ab6nmd8_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "003pv66tbv4ts0d7dtg87iqgfue2njko",
+    "diff": [
+      {
+        "$set": {
+          "bgTarget": { "0": { "low": 0.24649 } },
+          "insulinSensitivity": { "3": { "amount": 0.10784 } },
+          "units": { "bg": "mmol/L" }
+        }
+      }
+    ]
+  },
+  {
+    "_id": "003q3akh725mgom2o0veto788r3omfl1",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "004mpfpguo8imiijdd72i6ik7d375rq9",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00555ome25877chsjcpfecenmven56ir",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00668njtmootganjsu2ulhas9q76npr8",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "006nc3tg0affjbpp9epn2e7oujsl2eoq",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "006nc3tg0affjbpp9epn2e7oujsl2eoq_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "007eslnt672r7irnnp5ri517n64kb0o0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "007eslnt672r7irnnp5ri517n64kb0o0_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "008fps2ork9n3731otmh7m25rjb125ds",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "008fps2ork9n3731otmh7m25rjb125ds_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "008gh26sbih90urq5pgrv6qslhfssqeb",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "008gh26sbih90urq5pgrv6qslhfssqeb_0",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "008up7g8cfoid7seogp30dod11clotne",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "008up7g8cfoid7seogp30dod11clotne_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "0090h2apbmd9sc17i3ahl0tdtomadkf8",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "0090h2apbmd9sc17i3ahl0tdtomadkf8_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00941bse1rusk3oir9m2c3gg5i51m9eo",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00941bse1rusk3oir9m2c3gg5i51m9eo_0",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "009fbg2kclihtpfj08mhu9ubdro0fj9d",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "009fbg2kclihtpfj08mhu9ubdro0fj9d_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00a7rvhhn17u23hogcob4cu0bfr2mbnk",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00a7rvhhn17u23hogcob4cu0bfr2mbnk_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00a9egu2esitblp23n4alk92re21hqad",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00a9egu2esitblp23n4alk92re21hqad_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00ak731q2gbn6m436dmu6e78u80jm5v9",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00amphcpherhqco8erolvoj5uf07od4a",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00amphcpherhqco8erolvoj5uf07od4a_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00banp948lntevb74c9mnus6qoqutgsl",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00banp948lntevb74c9mnus6qoqutgsl_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00bhgfrumqssh38i8pia3ti30gfgctcs",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00bnlg7mbpfjvmg4orvdd3783g11s88a",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00bnlg7mbpfjvmg4orvdd3783g11s88a_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00bsjoiu7elkq7tahcspl1apl86f4tql",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00bsjoiu7elkq7tahcspl1apl86f4tql_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00c8hsa1d72ns99uv496bsr1lb337n83",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00c8hsa1d72ns99uv496bsr1lb337n83_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00c8jq6crun5762qsl0t5hfkau42utib",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00dcc5rrpur7ppahjrdpse04t66c6ou6",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00dcc5rrpur7ppahjrdpse04t66c6ou6_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00ddv5fr5q4hg33253rvd9ajoa4cmtqd",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00ddv5fr5q4hg33253rvd9ajoa4cmtqd_0",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "00e2eeq17vn9bmsftk3ls7b3t6aibpch",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00e2eeq17vn9bmsftk3ls7b3t6aibpch_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00ef5rntkfhr4vql89cvbjkul7qeffv6",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ekb6v217ugr0ohcsi0qhfq3roq56p1",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00fcpm9tbv1lgmpo7sjehk55v222f1ln",
+    "diff": [
+      {
+        "$set": {
+          "rateOfChangeAlert": {
+            "fallRate": { "enabled": false, "rate": -0.16652243973136602 },
+            "riseRate": { "enabled": false, "rate": 0.16652243973136602 }
+          }
+        }
+      },
+      { "$unset": { "rateOfChangeAlerts": "" } }
+    ]
+  },
+  {
+    "_id": "00fdte897t1h2a8kehh54lh0kui1rsku",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00fopd2svgrq295hg8hjbc5g1640mr2e",
+    "diff": [
+      {
+        "$set": {
+          "rateOfChangeAlert": {
+            "fallRate": { "enabled": true, "rate": -0.16652243973136602 },
+            "riseRate": { "enabled": false, "rate": 0.16652243973136602 }
+          }
+        }
+      },
+      { "$unset": { "rateOfChangeAlerts": "" } }
+    ]
+  },
+  {
+    "_id": "00fshp28i8i1rsfmmvghtb3esoco1pov",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ftthnoc3m08bjd7f5nuthbktkg119d",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00gri8pvjp8a04erp9agtf9cisb632c2",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00gri8pvjp8a04erp9agtf9cisb632c2_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00h97gipch5r5vek1pb40i9uljrb01ua",
+    "diff": [
+      {
+        "$set": {
+          "bgTargets": { "Test": { "14": 0.2773 } },
+          "insulinSensitivities": { "Test1": { "15": 0.33892 } },
+          "units": { "bg": "mmol/L" }
+        }
+      }
+    ]
+  },
+  {
+    "_id": "00hl61lmuje16gko3rvdfdr0sp4qs6ol",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00hl61lmuje16gko3rvdfdr0sp4qs6ol_0",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00hqa1a9c3cpdcch5d6h7vcos6krh0ce",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ht555qvki7cbk674v6cm26h2312j61",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00ht555qvki7cbk674v6cm26h2312j61_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00i2mohjo2mo2s2kom6hnqrb4f64jshr",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00i2mohjo2mo2s2kom6hnqrb4f64jshr_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00iqofhuol103ba49jalb4h82djkk0o0",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00j6nvem3qr8b67olqv3ii9801t0astn",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00j6nvem3qr8b67olqv3ii9801t0astn_0",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00j9eo5f5nh3ien4h4u8ovlrdu46c95n",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00j9eo5f5nh3ien4h4u8ovlrdu46c95n_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00j9rqcumsqq2sg8832dveg3ido6k0cb",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00j9rqcumsqq2sg8832dveg3ido6k0cb_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00jtrn77rnvip9fk855pm8v793esshe8",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00k0vhhfv20b9id8iamhvhcldm7nmg5e",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00krmkvdi13ioii2s4j06jkjq3snos2i",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00ld99qpavd0q36seo86s5clp11jeavd",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00ld99qpavd0q36seo86s5clp11jeavd_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00m3d1b7m7f72oj4e2p09qtverpui4be",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00mfmt0kohnisnb3giudr05uik0egqmm",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00mfmt0kohnisnb3giudr05uik0egqmm_0",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00ms1frj45tg7o61a3u84qcpr9nhtmvs",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "00ms1frj45tg7o61a3u84qcpr9nhtmvs_0",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "00mvdtkn892cqissvttno8k55t2d0sj5",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00n9aks33iug7ri7h2dimh495ub85e74",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00n9aks33iug7ri7h2dimh495ub85e74_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00nqj9ckkvach91pj4e3krsc6ea2guk9",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00obfp50c3kog4kq28ln4ea9tc2pkf7t",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00obfp50c3kog4kq28ln4ea9tc2pkf7t_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00oufbhdambbqdlavk39maf4i227hbf8",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "00oufbhdambbqdlavk39maf4i227hbf8_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00p3v8dr9qlscvopuhvgk96g7ab6nmd8",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00p3v8dr9qlscvopuhvgk96g7ab6nmd8_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "003pv66tbv4ts0d7dtg87iqgfue2njko",
+    "diff": [
+      {
+        "$set": {
+          "bgTarget": { "0": { "low": 0.24649 } },
+          "insulinSensitivity": { "3": { "amount": 0.10784 } },
+          "units": { "bg": "mmol/L" }
+        }
+      }
+    ]
+  },
+  {
+    "_id": "003q3akh725mgom2o0veto788r3omfl1",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "003ra7lle4afbui5b8u3jidrs185toua",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "003tcon8tounj2qm8k1v9h5l6pbjqa3b",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "003tosu2cr1vktgaepkromj2i97ld4jk",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0040ubuoala10qr24oa9mvifpb4fl4hr",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0043bmh3l05iumq933vfc5593jg4cv9j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0043el25dr30hrh0jr5dscnntp20ls60",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0043ql9fkrvkkoipudv8ajforvta9cbn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00445uh1pj66f3leubc9r5sv09gdd49a",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00466bjjo66c5tkjj2h0q8qgqqosd1jh",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0048m6q2vli52njdm708mhtm775acbuq",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004anqm480clp5a9o3e1rf48jkuqlomn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004ci48809baufo99uljbdahjup558r4",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "004kh7k5t42k4ci06cmo9dkdnjfo6d9j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004mpfpguo8imiijdd72i6ik7d375rq9",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "004or2n1c0e7l2qip119t0h3gtt1gpt8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004pe2e6mjd0je3c6hulhbtm4ql1u0nu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004pt4qies4j1fn3vjei18p9pkauadlu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004qs07ruhovdab3af26eko42o4repp5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004t10h76l4m7f1sdc08i8grb2tl3rt1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004u2t4kvug6jm31h2pkauh5cg3ud1eb",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004u5jq5tvpd4doci5r5o14brel7u0h8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004vh9omub24akemqvl2qoiosohk02ig",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00555ome25877chsjcpfecenmven56ir",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "005ce26eb8enbqki8s26lfcrese0eji0",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005d7s5s4isuv35jkqibknsodes9ee0q",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005f1u9eq431t3pecccs8n5u99p37pln",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005fc44ql8u7a9ol6f8tdu3s080dqhtp",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ggbg3ov1odn9li2g58lkrbn3n4v5m",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "005hj9ua01t6gohbejpg5933j8f1k95t",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005iuclbuba3mtfablgbep4967eoous1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005jkgj5ckra1up98nolt2c5aaf84c89",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005l02s5mdlgrjegbpajcfqaps58kmqc",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ljq54s0dqggh2u34oc3dmgej6eqp9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ner9db6rau554pr5hkaf56vpphpc5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005pl16rcd4j8n67v2qg360289jtr0f9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ruorcd7r67ura02li9kub84gde52v",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005utsujnbab9ajinah7qp8m70gbondn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00604qao66ec2sh9p922ua0lv6mfihmp",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0060tke9cuqbcdr2iijsvf82hp9o9v4j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0062cmrelkeicsrl2lgifqsarqi6b7sb",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0062qd8meqaglivgc4eedpcr10momkdv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0064vp6s8non1lbkpin8k4kg58dohban",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00668njtmootganjsu2ulhas9q76npr8",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "0067bk24kethveo4jtoiihvdg29kcg90",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0068hksr5t845221jsnrbsm3b5m0qkgo",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0068j9nvdm9h17rb9vghca4j6ucto1ih",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0068mqnq491slqks11nr69sf4a56l9i8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006ddgmmnndmsi0itrmjr9q2kd5aad4e",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006dj5poqljkjqe70mbaua37hmt51uq1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006e4nullfmotjd1hh88hh5ji6pmcpru",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006efkgs0hd157dsgjsq9ogm4o6d4559",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006f1k73pnc936ljspcrap57v1v0lgf3",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006fi3c3r07ecqj1vd4gj5q9ohaus4qa",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006j49e1rt77r7j4v740tjhskqfvimkd",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006l3kga1ckaada9b5asekpkf6bi6nq9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006l3rotk6jmtm50ociedbbg9201n8os",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006l6ckiloj3c705krg64qu6fi9avdi2",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006nc3tg0affjbpp9epn2e7oujsl2eoq",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "006nc3tg0affjbpp9epn2e7oujsl2eoq_0",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "006o8hvfctons14ei4gkjrj4auth84hc",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006oio2dok49d6pg5q0c8tautr0c9fn7",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006oouq2bu3rugdq3laa5c89639u0io4",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006otlt26p25f9qp9ehogglcd0ed9l62",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006v149utv948n22ium7m5p1cr6hha73",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "006vihufp0tb10g9gla20qbrf2edku9l",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0073t0edlm57btvbujtgg41n5u1bjssl",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0074fglsh754iumf7gojg583h6ojmhk5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0075cs940t81r78prn37evn3ae0v3se5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0077ksousf8nfon712op5ep1gt27oka9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0078ggolc99q04nc6pu0ladf6s42bn0f",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0078qg3j9r3a4gci2352gtv343o4l6k2",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "0079f8qel1v4p25nmqa8d7plmjlck5cm",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007a2sr588memfodmj6vmo3s373ku6vl",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007btaong91i1aueuhqj3mkbdjfv6mot",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007d5mjbogp70vjnr8t82b72afqcrucr",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007eptebsgbdemqce1e7jl0fehc8vavj",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007eslnt672r7irnnp5ri517n64kb0o0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "007eslnt672r7irnnp5ri517n64kb0o0_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "007fbejiiuac7t48850qmahe9v7ic4cu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007hr6trebge4atgf8tatgu4mlk6ihng",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007j8br7jom1cqp4p28n7mj8qghop22i",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007kq781j1hi9t7varptnt9tj4s3c3be",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "007mogjej2nn77h8rbe3ik8qsdgo35s2",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007ns5rb6nh0to1mnsfdj95s9kpcn5nk",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007pjf5soi3q94o5ba896f7vp21pqlua",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007q94q0k1575bpgebuvr3j068fqrt86",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007r3is1ovpb213evesvnt7m3s00h2oc",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007tbfb52apnpp8gat4r6k98h3r6nv2q",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007up7upgtkmekcgqdad79gq7kqi3kd3",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "007ursvpkc13oqr2edq40o1gbv7rub83",
+    "diff": [{ "$unset": { "percent": "", "suppressed": "" } }]
+  },
+  {
+    "_id": "007vgno227aogieimi1pjjsp4p4occle",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0083mro6bi2nbq1jml2vv8df1mdcl9e0",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0084qsqgn50e8em83n995dkn3uh3ibiv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00878olaqq67h1ik6mkbnpda324ea1la",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0089oe6giuouoma7h3lvt1cglqgtk45t",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008aik63ll335f1qe1qe95mrl2g4e38n",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008b9msfnsj1rv0jof8stimtr5f9g3bi",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008bit1hos8a922i8g5iesag4kn2im8j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008fps2ork9n3731otmh7m25rjb125ds",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "008fps2ork9n3731otmh7m25rjb125ds_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "008gh26sbih90urq5pgrv6qslhfssqeb",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "008gh26sbih90urq5pgrv6qslhfssqeb_0",
+    "diff": [{ "$unset": { "suppressed": { "jsDate": "" } } }]
+  },
+  {
+    "_id": "008hsg72golrt9or7lipgro2cbf5hhqs",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008i9gvupisq21ahhpdmiui035guucft",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008je41fp50fesgcadbg1lbgs5gffjmj",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008kf497ovbne2tu6a3mqvdqo1nfk3ba",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008lbeiebmu2eg1hegjkat438hao3ecf",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008rjdiu7sfcr2sfeicfb85tk68bg8ru",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008ru0ul1l0f5kpr7h17dg45e6fcpl33",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008s9v9ff2g1kgj0q14suba8r8u78u3h",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008smm94h1i0kk4rrgv867t3qr5i9gg8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008u3jukn7s6qo69128ibgd7p5pt8k3c",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "008up7g8cfoid7seogp30dod11clotne",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "008up7g8cfoid7seogp30dod11clotne_0",
+    "diff": [{ "$unset": { "suppressed": { "source": "" } } }]
+  },
+  {
+    "_id": "0090h2apbmd9sc17i3ahl0tdtomadkf8",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "0090h2apbmd9sc17i3ahl0tdtomadkf8_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "0091i3hqi6jb45cvqme2li497bsu4gh4",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0091i8pmns2oh2appbtvdn8vk2godiv6",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0092gdmqqp4rpi4tgjobv230msb892tj",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00937vrp363lds5i4o93iti8p4ubca5p",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00941bse1rusk3oir9m2c3gg5i51m9eo",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00941bse1rusk3oir9m2c3gg5i51m9eo_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "0095ak9reeakg58a9sdo5u16aq2gqsf5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0099ahor7c9tcd8m56ojkje1upna41gh",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "0099b74qqipdrrqg1f93ph2akgultbbn",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "009anmftasc9kidp0d9ml10brci2c287",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009d8prcaur90hfhcvp87drc3i7n3mki",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "009ec8ldt8o1nv2kd6v33q0b0193vlb9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009esdmj0eccmkkju6k22j5pqc4gc0b5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009fbg2kclihtpfj08mhu9ubdro0fj9d",
+    "diff": [{ "$unset": { "suppressed": { "clockDriftOffset": "" } } }]
+  },
+  {
+    "_id": "009fbg2kclihtpfj08mhu9ubdro0fj9d_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "009fssgce80qm8k21987fha1v4p7eg90",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009gdl0l7u22o9qi82g7iusb4ccs7ib3",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009lltpsob1t75igi6d1iv52gqg79eb1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009ls6fhlknhno8dj6sjvp9u8b7kbvq0",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009o1tb4dneejn1v2kb4helr1qg4meuc",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "009qrv528ujo2agbtk5ljb2irucd1lsu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00a4umftr4kpc4bg8uidcjm7d8ugrrte",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00a6tc02ull7mniv8jevae0eru1dvure",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00a7rvhhn17u23hogcob4cu0bfr2mbnk",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00a7rvhhn17u23hogcob4cu0bfr2mbnk_0",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00a8196cn45kd29lk9rf1f4l92kg80mb",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00a9egu2esitblp23n4alk92re21hqad",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00a9egu2esitblp23n4alk92re21hqad_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00adlmer1m0d64htin9924b94soht9he",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00aj562fmn4u2kn5m6uk058gkbf1g79n",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00ak731q2gbn6m436dmu6e78u80jm5v9",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00amnuknhl68eueg1lftjdesm3np4k8q",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00amphcpherhqco8erolvoj5uf07od4a",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "00amphcpherhqco8erolvoj5uf07od4a_0",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "00ao0tb18adh4dnklqh1suluo616r5ok",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00apqsvgc7jm6ssklb5lgibon6m10es6",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00aqif8avfqsp2jusb36300g9vtg3fth",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00arkl43ougqpc1vt58frgdbbte4tkpg",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00as323dtasn45mptn7lul2sq01u30u0",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00avhj5oogglukh91fgt7bnmk7ea96ik",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00avjhsqnvnld64rcps7nbs1difvb4fn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00avl0g9bjvk9oh0plfdm9dliahe1bgm",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00b0f5l0rmi5vgjfqs0i6rat9ldfmks6",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00b2hji7pk7kfjvc8oa0o7na5nqfiajm",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00b3go5mujmq45ijrl5slc4hrrpn90rl",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00b4u66tpsebnptps8al42lddnc22r21",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00b53fusv777nrncnl7dmv5oc64auic1",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00b6l9pqvqs3fn1s55saj6plua0j6n43",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00b876cu0spuuoe7vs3kuvhodsmv8jbd",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00ba0s1tnf4bob1lmk2um8bdn430khr2",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00banp948lntevb74c9mnus6qoqutgsl",
+    "diff": [{ "$unset": { "suppressed": { "deviceId": "" } } }]
+  },
+  {
+    "_id": "00banp948lntevb74c9mnus6qoqutgsl_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00bbnhfdl3hl92f2ucutb1iv2ug3ldm1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00be4iinutpqbep1jr250krkheutbjlv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bgl9saknei3pqtdi9bt79e8cfarjnm",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bhgfrumqssh38i8pia3ti30gfgctcs",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00bmfif6ju4uc38l5jmqjm9umv6tfsvd",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bnlg7mbpfjvmg4orvdd3783g11s88a",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00bnlg7mbpfjvmg4orvdd3783g11s88a_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "00bno9dug4u4ncus8522ese4i5v1qkeo",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bnp0go651o085asv767ufijn6hu8ba",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bobb7l6m0cnaua9k606ngu1kj3m8p8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00brqbe948q5uomu382nk0ucgre6dij1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bsjoiu7elkq7tahcspl1apl86f4tql",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00bsjoiu7elkq7tahcspl1apl86f4tql_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00bsrlvtnr831lbsg9eui393iridhsh4",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bsvgdd3d3aha5aes1usac41fu64svu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00bu50k4pphqqqhcdgp3d8cvrjlsos2t",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00c26rb4pe8ttmccugpb476f7s1grsrc",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00c30aci3h3g0ue1st3p83ev7bo0f5c0",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00c6fie9s3pb6g84r9qnufv3aq067cso",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00c8864becupu8qi30s6l7bi6v0v9ja8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00c8hsa1d72ns99uv496bsr1lb337n83",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00c8hsa1d72ns99uv496bsr1lb337n83_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00c8jq6crun5762qsl0t5hfkau42utib",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "00cfm2h86002cr06klqni7ajg7peaoah",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00ch2aieeca34l32jsmgkn05o78h1a6m",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00cjjov0uivatlqu7k41e3tgipcgif10",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00cm9ciiffd3h08t9fatpcdes594tlm7",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00cmc50gm0l4l4cpq5eshvp2oh7fuj51",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00cocsqjg2g2ruqu636uj25jie110sb6",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00csndpk8s58fl53hct5kea6hfb80i5q",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00ct63h045l0n5sepj8aecoqh2icapin",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00ctd03k7t25016opvvq8v18ng9p8s0q",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00d08clqba62glnv7fj0a9skvfl72rjf",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00d1l3qamhggiig1rf3mn35sh0ocgvt8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00d2dq417dha4oin9j0mi0ge02nm8kq4",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00d3furp7tb1njokih8l0tt7qii0cvd3",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00d48k3nj3mrm2pe4e6pqitfp2smt4ec",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00d8ebcb4v3q2lfoj3o8qbh54shgchma",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00d9l7o7040ifu6bf3biu7ai5cfjcfqd",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dajc12l1l73nmblogeu157qtgvrmo2",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dbqbdpo7hkhv3ea22cldf2jdlv9as3",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dbu188uv4usi4jrjefucuj0qh8pjsv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dcc5rrpur7ppahjrdpse04t66c6ou6",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00dcc5rrpur7ppahjrdpse04t66c6ou6_0",
+    "diff": [{ "$unset": { "suppressed": { "payload": "" } } }]
+  },
+  {
+    "_id": "00ddv5fr5q4hg33253rvd9ajoa4cmtqd",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "00ddv5fr5q4hg33253rvd9ajoa4cmtqd_0",
+    "diff": [{ "$unset": { "suppressed": { "timezoneOffset": "" } } }]
+  },
+  {
+    "_id": "00dfl9nk8fa2d5foumflond3tk7hubkm",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00div16jgar0fh9miuka93roj0tdsv5l",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dla9ek59hqt5jt0hiot620m6ujie7e",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dldk1orv44qvmqd4nu7hsj45826soe",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dpoopkga7ei3rh78ob7sfns3vk9fnv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dropqr92dil3hhvvjft42qifal33mg",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00ds9u6nq3lbl3rufq3khtd5bt4qi65e",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dt4kud9rd0redke43lrgf9d2g548fm",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00dvb2j21n8fj00p7ndc48o585avt5mm",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00dvq539utrfpk82q2utfpqcchq0qtea",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00e0g189gc8rnif3sgi88ebr4p15a72e",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00e22qutjqlbojj7a2moa0pubr0ptbqv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00e2eeq17vn9bmsftk3ls7b3t6aibpch",
+    "diff": [{ "$unset": { "suppressed": { "index": "" } } }]
+  },
+  {
+    "_id": "00e2eeq17vn9bmsftk3ls7b3t6aibpch_0",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "003pv66tbv4ts0d7dtg87iqgfue2njko",
+    "diff": [
+      {
+        "$set": {
+          "bgTarget": { "0": { "low": 0.24649 } },
+          "insulinSensitivity": { "3": { "amount": 0.10784 } },
+          "units": { "bg": "mmol/L" }
+        }
+      }
+    ]
+  },
+  {
+    "_id": "003q3akh725mgom2o0veto788r3omfl1",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "003ra7lle4afbui5b8u3jidrs185toua",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "003tcon8tounj2qm8k1v9h5l6pbjqa3b",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "003tosu2cr1vktgaepkromj2i97ld4jk",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0040ubuoala10qr24oa9mvifpb4fl4hr",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0043bmh3l05iumq933vfc5593jg4cv9j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0043el25dr30hrh0jr5dscnntp20ls60",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0043ql9fkrvkkoipudv8ajforvta9cbn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00445uh1pj66f3leubc9r5sv09gdd49a",
+    "diff": [{ "$unset": { "subType": "" } }]
+  },
+  {
+    "_id": "00466bjjo66c5tkjj2h0q8qgqqosd1jh",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0048m6q2vli52njdm708mhtm775acbuq",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004anqm480clp5a9o3e1rf48jkuqlomn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004ci48809baufo99uljbdahjup558r4",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "004em6c9cjnblofd4mo2kcqg9tlsamec_0",
+    "diff": [{ "$unset": { "suppressed": { "deviceTime": "" } } }]
+  },
+  {
+    "_id": "004kh7k5t42k4ci06cmo9dkdnjfo6d9j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004mpfpguo8imiijdd72i6ik7d375rq9",
+    "diff": [{ "$unset": { "deliveryContext": "" } }]
+  },
+  {
+    "_id": "004or2n1c0e7l2qip119t0h3gtt1gpt8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004pe2e6mjd0je3c6hulhbtm4ql1u0nu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004pt4qies4j1fn3vjei18p9pkauadlu",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004qs07ruhovdab3af26eko42o4repp5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004t10h76l4m7f1sdc08i8grb2tl3rt1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004u2t4kvug6jm31h2pkauh5cg3ud1eb",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004u5jq5tvpd4doci5r5o14brel7u0h8",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "004vh9omub24akemqvl2qoiosohk02ig",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00555ome25877chsjcpfecenmven56ir",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm",
+    "diff": [{ "$unset": { "suppressed": { "duration": "" } } }]
+  },
+  {
+    "_id": "0056goqpstl5blnvu4j5ruthmh0ve8lm_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "005ce26eb8enbqki8s26lfcrese0eji0",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005d7s5s4isuv35jkqibknsodes9ee0q",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005f1u9eq431t3pecccs8n5u99p37pln",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005fc44ql8u7a9ol6f8tdu3s080dqhtp",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ggbg3ov1odn9li2g58lkrbn3n4v5m",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin",
+    "diff": [{ "$unset": { "suppressed": { "conversionOffset": "" } } }]
+  },
+  {
+    "_id": "005hc13gfoq5fv6daph9is1qi5p2qfin_0",
+    "diff": [{ "$unset": { "suppressed": { "time": "" } } }]
+  },
+  {
+    "_id": "005hj9ua01t6gohbejpg5933j8f1k95t",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005iuclbuba3mtfablgbep4967eoous1",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005jkgj5ckra1up98nolt2c5aaf84c89",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005l02s5mdlgrjegbpajcfqaps58kmqc",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ljq54s0dqggh2u34oc3dmgej6eqp9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ner9db6rau554pr5hkaf56vpphpc5",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005pl16rcd4j8n67v2qg360289jtr0f9",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005ruorcd7r67ura02li9kub84gde52v",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "005utsujnbab9ajinah7qp8m70gbondn",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "00604qao66ec2sh9p922ua0lv6mfihmp",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0060tke9cuqbcdr2iijsvf82hp9o9v4j",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0062cmrelkeicsrl2lgifqsarqi6b7sb",
+    "diff": [{ "$unset": { "percent": "" } }]
+  },
+  {
+    "_id": "0062qd8meqaglivgc4eedpcr10momkdv",
+    "diff": [{ "$unset": { "percent": "" } }]
+  }
+]

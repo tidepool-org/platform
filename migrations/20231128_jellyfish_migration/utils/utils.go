@@ -150,8 +150,14 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 
 	if payload := bsonData["payload"]; payload != nil {
 
-		if md, ok := payload.(*metadata.Metadata); ok {
-			if len(*md) == 0 {
+		if m, ok := payload.(*metadata.Metadata); ok {
+			if length := len(*m); length == 0 {
+				log.Printf("1 remove empty payload %s", dataType)
+				delete(bsonData, "payload")
+			}
+		} else if m, ok := payload.(metadata.Metadata); ok {
+			if length := len(m); length == 0 {
+				log.Printf("2 remove empty payload %s", dataType)
 				delete(bsonData, "payload")
 			}
 		}

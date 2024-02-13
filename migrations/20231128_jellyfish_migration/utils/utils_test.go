@@ -16,9 +16,7 @@ import (
 	glucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
-
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
-
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
