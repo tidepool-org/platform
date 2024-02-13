@@ -119,17 +119,21 @@ func ApplyBaseChanges(bsonData bson.M) error {
 	}
 
 	if payload := bsonData["payload"]; payload != nil {
-		if _, ok := payload.(string); ok {
-			dataBytes, err := bson.Marshal(payload)
-			if err != nil {
-				return err
+		if strPayload, ok := payload.(string); ok {
+			if strPayload == "" {
+				delete(bsonData, "payload")
+			} else {
+				dataBytes, err := bson.Marshal(payload)
+				if err != nil {
+					return err
+				}
+				var payloadMetadata metadata.Metadata
+				err = bson.Unmarshal(dataBytes, &payloadMetadata)
+				if err != nil {
+					return errorsP.Newf("payload could not be set from %v ", string(dataBytes))
+				}
+				bsonData["payload"] = &payloadMetadata
 			}
-			var payloadMetadata metadata.Metadata
-			err = bson.Unmarshal(dataBytes, &payloadMetadata)
-			if err != nil {
-				return errorsP.Newf("payload could not be set from %v ", string(dataBytes))
-			}
-			bsonData["payload"] = &payloadMetadata
 		}
 	}
 	if annotations := bsonData["annotations"]; annotations != nil {
