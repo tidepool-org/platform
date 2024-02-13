@@ -21,7 +21,7 @@ func base(deviceID string) map[string]interface{} {
 func dexG5MobDatum() map[string]interface{} {
 	datum := base("DexG5Mob_iPhone")
 	datum["annotations"] = `[{"code":"bg/out-of-range","threshold":40,"value":"low"}]`
-	datum["payload"] = `{\"systemTime\":\"2017-11-05T18:56:51Z\",\"transmitterId\":\"410X6M\",\"transmitterTicks\":5796922,\"trend\":\"flat\",\"trendRate\":0.6,\"trendRateUnits\":\"mg/dL/min\"}`
+	datum["payload"] = `{"systemTime":"2017-11-05T18:56:51Z","transmitterId":"410X6M","transmitterTicks":5796922,"trend":"flat","trendRate":0.6,"trendRateUnits":"mg/dL/min"}`
 	datum["type"] = "cbg"
 	datum["units"] = "mmol/L"
 	datum["value"] = 8.1596

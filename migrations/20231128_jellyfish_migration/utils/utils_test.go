@@ -3,6 +3,7 @@ package utils_test
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	glucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
+	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
@@ -47,42 +49,94 @@ var _ = Describe("back-37", func() {
 				theTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
 				*pumpSettingsDatum.Time = theTime
 			})
+			Context("pumpSettings datum with mis-named jellyfish bolus", func() {
+				var bolusData = &pump.BolusMap{
+					"bolus-1": pumpTest.NewRandomBolus(),
+					"bolus-2": pumpTest.NewRandomBolus(),
+				}
+				var settingsBolusDatum bson.M
+				var datumType string
 
-			Context("pumpSettings", func() {
+				BeforeEach(func() {
 
-				Context("with mis-named jellyfish bolus", func() {
-					var bolusData = &pump.BolusMap{
-						"bolus-1": pumpTest.NewRandomBolus(),
-						"bolus-2": pumpTest.NewRandomBolus(),
-					}
-					var settingsBolusDatum bson.M
-					var datumType string
+					settingsBolusDatum = getBSONData(pumpSettingsDatum)
+					settingsBolusDatum["bolus"] = bolusData
+					settingsBolusDatum["_id"] = expectedID
+					datumType = fmt.Sprintf("%v", settingsBolusDatum["type"])
+				})
 
-					BeforeEach(func() {
+				It("should do nothing when has no bolus", func() {
+					settingsBolusDatum["bolus"] = nil
+					Expect(settingsBolusDatum["bolus"]).To(BeNil())
+					err := utils.ApplyBaseChanges(settingsBolusDatum, datumType)
+					Expect(err).To(BeNil())
+					Expect(settingsBolusDatum["bolus"]).To(BeNil())
+					Expect(settingsBolusDatum["boluses"]).To(BeNil())
+				})
 
-						settingsBolusDatum = getBSONData(pumpSettingsDatum)
-						settingsBolusDatum["bolus"] = bolusData
-						settingsBolusDatum["_id"] = expectedID
-						datumType = fmt.Sprintf("%v", settingsBolusDatum["type"])
-					})
-
-					It("should do nothing when has no bolus", func() {
-						settingsBolusDatum["bolus"] = nil
-						Expect(settingsBolusDatum["bolus"]).To(BeNil())
-						err := utils.ApplyBaseChanges(settingsBolusDatum, datumType)
-						Expect(err).To(BeNil())
-						Expect(settingsBolusDatum["bolus"]).To(BeNil())
-					})
-
-					It("should rename as boluses when bolus found", func() {
-						settingsBolusDatum["bolus"] = nil
-						Expect(settingsBolusDatum["bolus"]).To(BeNil())
-						err := utils.ApplyBaseChanges(settingsBolusDatum, datumType)
-						Expect(err).To(BeNil())
-						Expect(settingsBolusDatum["bolus"]).To(BeNil())
-					})
+				It("should rename as boluses when bolus found", func() {
+					Expect(settingsBolusDatum["bolus"]).ToNot(BeNil())
+					err := utils.ApplyBaseChanges(settingsBolusDatum, datumType)
+					Expect(err).To(BeNil())
+					Expect(settingsBolusDatum["bolus"]).To(BeNil())
+					Expect(settingsBolusDatum["boluses"]).ToNot(BeNil())
+					Expect(settingsBolusDatum["boluses"]).To(Equal(bolusData))
 				})
 			})
+			Context("pumpSettings datum with unordered sleepSchedules", func() {
+				expectedSleepSchedulesMap := &pump.SleepScheduleMap{}
+				var invalidDays *pump.SleepSchedule
+				var s1Days *pump.SleepSchedule
+				var s2Days *pump.SleepSchedule
+				var sleepSchedulesDatum bson.M
+				var datumType string
+
+				BeforeEach(func() {
+					sleepSchedulesDatum = getBSONData(pumpSettingsDatum)
+					datumType = fmt.Sprintf("%v", sleepSchedulesDatum["type"])
+					s1 := pumpTest.RandomSleepSchedule()
+					s2 := pumpTest.RandomSleepSchedule()
+					(*expectedSleepSchedulesMap)["1"] = s1
+					(*expectedSleepSchedulesMap)["2"] = s2
+
+					s1Days = pumpTest.CloneSleepSchedule(s1)
+					for key, day := range *s1Days.Days {
+						(*s1Days.Days)[key] = strings.ToUpper(day)
+					}
+					s2Days = pumpTest.CloneSleepSchedule(s2)
+					for key, day := range *s2Days.Days {
+						(*s2Days.Days)[key] = strings.ToUpper(day)
+					}
+					invalidDays = pumpTest.CloneSleepSchedule(s2)
+					invalidDays.Days = &[]string{"not-a-day", common.DayFriday}
+					Expect(expectedSleepSchedulesMap).ToNot(BeNil())
+					pumpSettingsDatum.SleepSchedules = nil
+					sleepSchedulesDatum = getBSONData(pumpSettingsDatum)
+					sleepSchedulesDatum["_id"] = expectedID
+					sleepSchedulesDatum["bolus"] = nil //remove as not testing here
+				})
+
+				It("does nothing when no sleepSchedules", func() {
+					sleepSchedulesDatum["sleepSchedules"] = nil
+					err := utils.ApplyBaseChanges(sleepSchedulesDatum, datumType)
+					Expect(err).To(BeNil())
+					Expect(sleepSchedulesDatum["sleepSchedules"]).To(BeNil())
+				})
+				It("returns updated sleepSchedules when valid", func() {
+					sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{s1Days, s2Days}
+					err := utils.ApplyBaseChanges(sleepSchedulesDatum, datumType)
+					Expect(err).To(BeNil())
+					Expect(sleepSchedulesDatum["sleepSchedules"]).ToNot(BeNil())
+					Expect(sleepSchedulesDatum["sleepSchedules"]).To(Equal(expectedSleepSchedulesMap))
+				})
+				It("returns error when sleepSchedules have invalid days", func() {
+					sleepSchedulesDatum["sleepSchedules"] = []*pump.SleepSchedule{invalidDays}
+					err := utils.ApplyBaseChanges(sleepSchedulesDatum, datumType)
+					Expect(err).ToNot(BeNil())
+					Expect(err.Error()).To(Equal("pumpSettings.sleepSchedules has an invalid day of week not-a-day"))
+				})
+			})
+
 			Context("datum with glucose", func() {
 				var newContinuous = func(units *string) *continuous.Continuous {
 					datum := continuous.New()
@@ -96,7 +150,6 @@ var _ = Describe("back-37", func() {
 					return datum
 				}
 				datumType := "cbg"
-
 				It("should do nothing when value is already correct", func() {
 					mmoll := glucose.MmolL
 					cbg := newContinuous(&mmoll)
@@ -125,7 +178,6 @@ var _ = Describe("back-37", func() {
 			Context("datum with string payload", func() {
 				var datumWithPayload primitive.M
 				var datumType string
-
 				var payload *metadata.Metadata
 				BeforeEach(func() {
 					datumWithPayload = getBSONData(pumpSettingsDatum)
@@ -141,12 +193,20 @@ var _ = Describe("back-37", func() {
 					Expect(datumWithPayload["payload"]).To(Equal(*payload))
 				})
 				It("should update the payload when it is a string", func() {
-					Skip("sort out setting as string")
-					datumWithPayload["payload"] = fmt.Sprintf("%v", getBSONData(*payload))
-					Expect(datumWithPayload["payload"]).To(Equal(fmt.Sprintf("%v", *payload)))
+					datumWithPayload["payload"] = `{"transmitterId":"410X6M","transmitterTicks":5796922,"trend":"flat"}`
 					err := utils.ApplyBaseChanges(datumWithPayload, datumType)
 					Expect(err).To(BeNil())
-					Expect(datumWithPayload["payload"]).To(Equal(*payload))
+					Expect(datumWithPayload["payload"]).To(Equal(&metadata.Metadata{
+						"transmitterId":    "410X6M",
+						"transmitterTicks": float64(5796922),
+						"trend":            "flat",
+					}))
+				})
+				It("should remove the payload when it is empty", func() {
+					datumWithPayload["payload"] = &metadata.Metadata{}
+					err := utils.ApplyBaseChanges(datumWithPayload, datumType)
+					Expect(err).To(BeNil())
+					Expect(datumWithPayload["payload"]).To(BeNil())
 				})
 			})
 			Context("datum with string annotations", func() {
@@ -167,12 +227,46 @@ var _ = Describe("back-37", func() {
 					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
 				})
 				It("should update the annotations when it is a string", func() {
-					Skip("sort out setting as string")
-					datumWithAnnotation["annotations"] = fmt.Sprintf("%v", getBSONData(*annotations))
-					Expect(datumWithAnnotation["annotations"]).To(Equal(fmt.Sprintf("%v", *annotations)))
+					datumWithAnnotation["annotations"] = `[{"code":"bg/out-of-range","threshold":40,"value":"low"}]`
+					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
+					Expect(err).To(BeNil())
+					Expect(datumWithAnnotation["annotations"]).To(Equal(&metadata.MetadataArray{
+						&metadata.Metadata{
+							"code":      "bg/out-of-range",
+							"threshold": float64(40),
+							"value":     "low",
+						},
+					}))
+				})
+			})
+			Context("datum with string annotations", func() {
+				var datumWithAnnotation primitive.M
+				var annotations *metadata.MetadataArray
+				var datumType string
+				BeforeEach(func() {
+					datumWithAnnotation = getBSONData(pumpSettingsDatum)
+					annotations = metadataTest.RandomMetadataArray()
+					datumWithAnnotation["annotations"] = *annotations
+					datumType = fmt.Sprintf("%v", datumWithAnnotation["type"])
+				})
+
+				It("should do nothing when value is already correct", func() {
+					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
 					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
 					Expect(err).To(BeNil())
 					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
+				})
+				It("should update the annotations when it is a string", func() {
+					datumWithAnnotation["annotations"] = `[{"code":"bg/out-of-range","threshold":40,"value":"low"}]`
+					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
+					Expect(err).To(BeNil())
+					Expect(datumWithAnnotation["annotations"]).To(Equal(&metadata.MetadataArray{
+						&metadata.Metadata{
+							"code":      "bg/out-of-range",
+							"threshold": float64(40),
+							"value":     "low",
+						},
+					}))
 				})
 			})
 		})
@@ -527,7 +621,7 @@ var _ = Describe("back-37", func() {
 		// 			Expect(actualID).ToNot(BeEmpty())
 		// 		})
 
-		// 	})
-		// })
+		//		})
+		//	})
 	})
 })

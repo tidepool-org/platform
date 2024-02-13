@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/calculator"
+	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -90,11 +92,39 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 
 	switch dataType {
 	case pump.Type:
+		//mis-named boluses
 		if boluses := bsonData["bolus"]; boluses != nil {
 			bsonData["boluses"] = boluses
 			//TODO delete from mongo
 			delete(bsonData, "bolus")
 		}
+		if schedules := bsonData["sleepSchedules"]; schedules != nil {
+			scheduleNames := map[int]string{0: "1", 1: "2"}
+			sleepScheduleMap := pump.SleepScheduleMap{}
+			dataBytes, err := json.Marshal(schedules)
+			if err != nil {
+				return err
+			}
+			schedulesArray := []*pump.SleepSchedule{}
+			err = json.Unmarshal(dataBytes, &schedulesArray)
+			if err != nil {
+				return err
+			}
+			for i, schedule := range schedulesArray {
+				days := schedule.Days
+				updatedDays := []string{}
+				for _, day := range *days {
+					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
+						return errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+					}
+					updatedDays = append(updatedDays, strings.ToLower(day))
+				}
+				schedule.Days = &updatedDays
+				sleepScheduleMap[scheduleNames[i]] = schedule
+			}
+			bsonData["sleepSchedules"] = &sleepScheduleMap
+		}
+
 	case selfmonitored.Type, ketone.Type, continuous.Type:
 		units := fmt.Sprintf("%v", bsonData["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
@@ -111,15 +141,6 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 				}
 			}
 		}
-		if dataType == continuous.Type {
-			if payload := bsonData["payload"]; payload != nil {
-				if md, ok := payload.(metadata.Metadata); ok {
-					if len(md) == 0 {
-						delete(bsonData, "payload")
-					}
-				}
-			}
-		}
 	case calculator.Type:
 		if bolus := bsonData["bolus"]; bolus != nil {
 			//TODO ignore these, the property is just a pointer to the actual bolus
@@ -128,32 +149,27 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 	}
 
 	if payload := bsonData["payload"]; payload != nil {
-		if strPayload, ok := payload.(string); ok {
-			if strPayload == "" {
+
+		if md, ok := payload.(*metadata.Metadata); ok {
+			if len(*md) == 0 {
 				delete(bsonData, "payload")
-			} else {
-				dataBytes, err := bson.Marshal(payload)
-				if err != nil {
-					return err
-				}
-				var payloadMetadata metadata.Metadata
-				err = bson.Unmarshal(dataBytes, &payloadMetadata)
-				if err != nil {
-					return errorsP.Newf("payload could not be set from %v ", string(dataBytes))
-				}
-				bsonData["payload"] = &payloadMetadata
 			}
+		}
+
+		if strPayload, ok := payload.(string); ok {
+			var payloadMetadata metadata.Metadata
+			err := json.Unmarshal(json.RawMessage(strPayload), &payloadMetadata)
+			if err != nil {
+				return errorsP.Newf("payload could not be set from %s", strPayload)
+			}
+			bsonData["payload"] = &payloadMetadata
 		}
 	}
 	if annotations := bsonData["annotations"]; annotations != nil {
-		if _, ok := annotations.(string); ok {
-			dataBytes, err := bson.Marshal(annotations)
-			if err != nil {
-				return err
-			}
+		if strAnnotations, ok := annotations.(string); ok {
 			var metadataArray metadata.MetadataArray
-			if err := bson.Unmarshal(dataBytes, &metadataArray); err != nil {
-				return errorsP.Newf("annotations could not be set from %v ", string(dataBytes))
+			if err := json.Unmarshal(json.RawMessage(strAnnotations), &metadataArray); err != nil {
+				return errorsP.Newf("annotations could not be set from %s", strAnnotations)
 			}
 			bsonData["annotations"] = &metadataArray
 		}
