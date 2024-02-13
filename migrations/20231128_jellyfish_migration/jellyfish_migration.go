@@ -84,13 +84,13 @@ func (m *Migration) RunAndExit() {
 			return err
 		}
 
-		if m.config.audit {
-			log.Println("auditing")
-			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
-				log.Printf("audit failed: %s", err)
-				return err
-			}
+		//if m.config.audit {
+		//	log.Println("auditing")
+		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
+			log.Printf("audit failed: %s", err)
+			return err
 		}
+		//}
 		// TODO: switch to audit + update
 		// } else {
 		// 	if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
