@@ -110,8 +110,8 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 func (m *migrationUtil) capReached() bool {
 	if m.config.cap != nil {
 		stats := m.GetStats()
-		log.Printf("cap [%d] updated [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
 		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
+			log.Printf("cap [%d] updated [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
 			return true
 		}
 	}
@@ -144,7 +144,6 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 
 func (m *migrationUtil) SetFetched(raw []bson.M) {
 	m.rawData = append(m.rawData, raw...)
-	log.Printf("fetched [%d]", len(m.rawData))
 }
 
 func (m *migrationUtil) GetStats() MigrationStats {
@@ -425,7 +424,6 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		return errors.New("missing required collection to write updates to")
 	}
 	if len(m.updates) == 0 {
-		log.Println("no updates to apply")
 		return nil
 	}
 
