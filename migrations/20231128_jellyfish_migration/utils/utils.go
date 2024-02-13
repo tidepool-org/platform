@@ -135,6 +135,13 @@ func ApplyBaseChanges(bsonData bson.M) error {
 				bsonData["payload"] = &payloadMetadata
 			}
 		}
+		if dType == continuous.Type {
+			if metaPayload, ok := payload.(metadata.Metadata); ok {
+				if len(metaPayload) == 0 {
+					delete(bsonData, "payload")
+				}
+			}
+		}
 	}
 	if annotations := bsonData["annotations"]; annotations != nil {
 		if _, ok := annotations.(string); ok {
