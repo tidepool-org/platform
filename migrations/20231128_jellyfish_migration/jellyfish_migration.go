@@ -83,21 +83,10 @@ func (m *Migration) RunAndExit() {
 			log.Printf("prepare failed: %s", err)
 			return err
 		}
-
-		//if m.config.audit {
-		//	log.Println("auditing")
 		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
 			log.Printf("audit failed: %s", err)
 			return err
 		}
-		//}
-		// TODO: switch to audit + update
-		// } else {
-		// 	if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndUpdateBatch); err != nil {
-		// 		log.Printf("execute failed: %s", err)
-		// 		return err
-		// 	}
-		// }
 		return nil
 	}
 
@@ -322,7 +311,7 @@ func (m *Migration) fetchAndProcess() bool {
 			}
 			itemID := fmt.Sprintf("%v", item["_id"])
 			itemType := fmt.Sprintf("%v", item["type"])
-			updates, err := utils.ProcessDatum(itemID, itemType, item)
+			updates, err := utils.ProcessDatum(itemID, itemType, item, m.config.audit)
 			if err != nil {
 				m.migrationUtil.OnError(err, itemID, itemType, fmt.Sprintf("[type=%s]", itemType))
 			}

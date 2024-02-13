@@ -315,7 +315,7 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	return difference, nil
 }
 
-func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, error) {
+func ProcessDatum(dataID string, dataType string, bsonData bson.M, logChanges bool) ([]bson.M, error) {
 
 	if err := ApplyBaseChanges(bsonData, dataType); err != nil {
 		return nil, err
@@ -335,7 +335,7 @@ func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, er
 		return nil, err
 	}
 
-	updates, err := GetDatumChanges(dataID, datum, ojbData, true)
+	updates, err := GetDatumChanges(dataID, datum, ojbData, logChanges)
 	if err != nil {
 		return nil, err
 	}
