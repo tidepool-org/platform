@@ -23,6 +23,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
@@ -145,6 +146,12 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 		if bolus := bsonData["bolus"]; bolus != nil {
 			//TODO ignore these, the property is just a pointer to the actual bolus
 			delete(bsonData, "bolus")
+		}
+	case device.Type:
+		subType := fmt.Sprintf("%v", bsonData["subType"])
+		if subType == reservoirchange.SubType {
+			bsonData["statusId"] = bsonData["status"]
+			delete(bsonData, "status")
 		}
 	}
 

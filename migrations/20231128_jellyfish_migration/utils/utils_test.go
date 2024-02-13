@@ -15,6 +15,8 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	glucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/types/common"
+	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
+	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	"github.com/tidepool-org/platform/metadata"
@@ -171,6 +173,23 @@ var _ = Describe("back-37", func() {
 					err := utils.ApplyBaseChanges(cbgData, datumType)
 					Expect(err).To(BeNil())
 					Expect(cbgData["value"]).To(Equal(4.88466))
+				})
+			})
+			Context("reservoirChange deviceEvent datum status string", func() {
+				var newReservoirChange = func() *reservoirchange.ReservoirChange {
+					datum := reservoirchange.New()
+					datum.Device = *dataTypesDeviceTest.RandomDevice()
+					datum.SubType = "reservoirChange"
+					return datum
+				}
+				It("should convert to statusId", func() {
+					deviceEvent := newReservoirChange()
+					deviceEventData := getBSONData(deviceEvent)
+					deviceEventData["status"] = "some-status-id"
+					err := utils.ApplyBaseChanges(deviceEventData, deviceEvent.Type)
+					Expect(err).To(BeNil())
+					Expect(deviceEventData["status"]).To(BeNil())
+					Expect(deviceEventData["statusId"]).To(Equal("some-status-id"))
 				})
 			})
 			Context("datum with string payload", func() {
