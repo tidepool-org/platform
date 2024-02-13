@@ -201,7 +201,7 @@ var _ = Describe("back-37", func() {
 					}))
 				})
 				It("should remove the payload when it is empty", func() {
-					datumWithPayload["payload"] = &metadata.Metadata{}
+					datumWithPayload["payload"] = bson.M{}
 					err := utils.ApplyBaseChanges(datumWithPayload, datumType)
 					Expect(err).To(BeNil())
 					Expect(datumWithPayload["payload"]).To(BeNil())
