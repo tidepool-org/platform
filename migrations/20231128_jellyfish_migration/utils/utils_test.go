@@ -56,18 +56,20 @@ var _ = Describe("back-37", func() {
 						"bolus-2": pumpTest.NewRandomBolus(),
 					}
 					var settingsBolusDatum bson.M
+					var datumType string
 
 					BeforeEach(func() {
 
 						settingsBolusDatum = getBSONData(pumpSettingsDatum)
 						settingsBolusDatum["bolus"] = bolusData
 						settingsBolusDatum["_id"] = expectedID
+						datumType = fmt.Sprintf("%v", settingsBolusDatum["type"])
 					})
 
 					It("should do nothing when has no bolus", func() {
 						settingsBolusDatum["bolus"] = nil
 						Expect(settingsBolusDatum["bolus"]).To(BeNil())
-						err := utils.ApplyBaseChanges(settingsBolusDatum)
+						err := utils.ApplyBaseChanges(settingsBolusDatum, datumType)
 						Expect(err).To(BeNil())
 						Expect(settingsBolusDatum["bolus"]).To(BeNil())
 					})
@@ -75,7 +77,7 @@ var _ = Describe("back-37", func() {
 					It("should rename as boluses when bolus found", func() {
 						settingsBolusDatum["bolus"] = nil
 						Expect(settingsBolusDatum["bolus"]).To(BeNil())
-						err := utils.ApplyBaseChanges(settingsBolusDatum)
+						err := utils.ApplyBaseChanges(settingsBolusDatum, datumType)
 						Expect(err).To(BeNil())
 						Expect(settingsBolusDatum["bolus"]).To(BeNil())
 					})
@@ -93,6 +95,7 @@ var _ = Describe("back-37", func() {
 					*datum.Time = theTime
 					return datum
 				}
+				datumType := "cbg"
 
 				It("should do nothing when value is already correct", func() {
 					mmoll := glucose.MmolL
@@ -102,7 +105,7 @@ var _ = Describe("back-37", func() {
 					cbgData["value"] = 4.88466
 
 					Expect(cbgData["value"]).To(Equal(4.88466))
-					err := utils.ApplyBaseChanges(cbgData)
+					err := utils.ApplyBaseChanges(cbgData, datumType)
 					Expect(err).To(BeNil())
 					Expect(cbgData["value"]).To(Equal(4.88466))
 				})
@@ -114,23 +117,26 @@ var _ = Describe("back-37", func() {
 					cbgData["value"] = 4.88465823212007
 
 					Expect(cbgData["value"]).To(Equal(4.88465823212007))
-					err := utils.ApplyBaseChanges(cbgData)
+					err := utils.ApplyBaseChanges(cbgData, datumType)
 					Expect(err).To(BeNil())
 					Expect(cbgData["value"]).To(Equal(4.88466))
 				})
 			})
 			Context("datum with string payload", func() {
 				var datumWithPayload primitive.M
+				var datumType string
+
 				var payload *metadata.Metadata
 				BeforeEach(func() {
 					datumWithPayload = getBSONData(pumpSettingsDatum)
 					payload = metadataTest.RandomMetadata()
 					datumWithPayload["payload"] = *payload
+					datumType = fmt.Sprintf("%v", datumWithPayload["type"])
 				})
 
 				It("should do nothing when value is already correct", func() {
 					Expect(datumWithPayload["payload"]).To(Equal(*payload))
-					err := utils.ApplyBaseChanges(datumWithPayload)
+					err := utils.ApplyBaseChanges(datumWithPayload, datumType)
 					Expect(err).To(BeNil())
 					Expect(datumWithPayload["payload"]).To(Equal(*payload))
 				})
@@ -138,7 +144,7 @@ var _ = Describe("back-37", func() {
 					Skip("sort out setting as string")
 					datumWithPayload["payload"] = fmt.Sprintf("%v", getBSONData(*payload))
 					Expect(datumWithPayload["payload"]).To(Equal(fmt.Sprintf("%v", *payload)))
-					err := utils.ApplyBaseChanges(datumWithPayload)
+					err := utils.ApplyBaseChanges(datumWithPayload, datumType)
 					Expect(err).To(BeNil())
 					Expect(datumWithPayload["payload"]).To(Equal(*payload))
 				})
@@ -146,15 +152,17 @@ var _ = Describe("back-37", func() {
 			Context("datum with string annotations", func() {
 				var datumWithAnnotation primitive.M
 				var annotations *metadata.MetadataArray
+				var datumType string
 				BeforeEach(func() {
 					datumWithAnnotation = getBSONData(pumpSettingsDatum)
 					annotations = metadataTest.RandomMetadataArray()
 					datumWithAnnotation["annotations"] = *annotations
+					datumType = fmt.Sprintf("%v", datumWithAnnotation["type"])
 				})
 
 				It("should do nothing when value is already correct", func() {
 					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
-					err := utils.ApplyBaseChanges(datumWithAnnotation)
+					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
 					Expect(err).To(BeNil())
 					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
 				})
@@ -162,7 +170,7 @@ var _ = Describe("back-37", func() {
 					Skip("sort out setting as string")
 					datumWithAnnotation["annotations"] = fmt.Sprintf("%v", getBSONData(*annotations))
 					Expect(datumWithAnnotation["annotations"]).To(Equal(fmt.Sprintf("%v", *annotations)))
-					err := utils.ApplyBaseChanges(datumWithAnnotation)
+					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
 					Expect(err).To(BeNil())
 					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
 				})

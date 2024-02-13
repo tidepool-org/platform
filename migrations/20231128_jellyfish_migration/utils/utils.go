@@ -86,9 +86,9 @@ func logDiff(id string, updates interface{}) {
 	}
 }
 
-func ApplyBaseChanges(bsonData bson.M) error {
-	dType := fmt.Sprintf("%v", bsonData["type"])
-	switch dType {
+func ApplyBaseChanges(bsonData bson.M, dataType string) error {
+
+	switch dataType {
 	case pump.Type:
 		if boluses := bsonData["bolus"]; boluses != nil {
 			bsonData["boluses"] = boluses
@@ -107,6 +107,15 @@ func ApplyBaseChanges(bsonData bson.M) error {
 						intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
 						floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
 						bsonData["value"] = floatValue
+					}
+				}
+			}
+		}
+		if dataType == continuous.Type {
+			if payload := bsonData["payload"]; payload != nil {
+				if md, ok := payload.(metadata.Metadata); ok {
+					if len(md) == 0 {
+						delete(bsonData, "payload")
 					}
 				}
 			}
@@ -133,13 +142,6 @@ func ApplyBaseChanges(bsonData bson.M) error {
 					return errorsP.Newf("payload could not be set from %v ", string(dataBytes))
 				}
 				bsonData["payload"] = &payloadMetadata
-			}
-		}
-		if dType == continuous.Type {
-			if metaPayload, ok := payload.(metadata.Metadata); ok {
-				if len(metaPayload) == 0 {
-					delete(bsonData, "payload")
-				}
 			}
 		}
 	}
@@ -315,7 +317,7 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 
 func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, error) {
 
-	if err := ApplyBaseChanges(bsonData); err != nil {
+	if err := ApplyBaseChanges(bsonData, dataType); err != nil {
 		return nil, err
 	}
 
