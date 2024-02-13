@@ -102,7 +102,6 @@ func ApplyBaseChanges(bsonData bson.M) error {
 			floatParts := strings.Split(floatStr, ".")
 			if len(floatParts) == 2 {
 				if len(floatParts[1]) > 5 {
-					//TODO update in mongo
 					if floatVal, ok := bsonData["value"].(float64); ok {
 						mgdlVal := floatVal * glucose.MmolLToMgdLConversionFactor
 						intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
@@ -111,11 +110,6 @@ func ApplyBaseChanges(bsonData bson.M) error {
 					}
 				}
 			}
-		}
-	case basal.Type:
-		if percent := bsonData["percent"]; percent != nil {
-			//TODO delete from mongo
-			delete(bsonData, "percent")
 		}
 	case calculator.Type:
 		if bolus := bsonData["bolus"]; bolus != nil {
@@ -191,6 +185,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 		validator.String("deliveryContext", parser.String("deliveryContext"))
 	case basal.Type:
 		validator.Object("suppressed", parser.Object("suppressed"))
+		validator.Float64("percent", parser.Float64("percent"))
 	case device.Type:
 		validator.Object("previous", parser.Object("previous"))
 		validator.Int("index", parser.Int("index"))
