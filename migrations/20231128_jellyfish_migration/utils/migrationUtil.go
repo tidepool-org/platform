@@ -59,7 +59,7 @@ type MigrationStats struct {
 type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
-	OnError(reportErr error, id string, msg string)
+	OnError(reportErr error, datumID string, datumType string, msg string)
 	SetUpdates(update ...*mongo.UpdateOneModel)
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
@@ -224,11 +224,17 @@ func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig 
 // OnError
 // - write error to file `error.log` in directory cli is running in
 // - optionally stop the operation if stopOnErr is true in the config
-func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
+func (m *migrationUtil) OnError(reportErr error, datumID string, datumType string, msg string) {
 	var errFormat = "[_id=%s] %s %s\n"
 	if reportErr != nil {
 		m.errorsCount++
-		f, err := os.OpenFile("error.log",
+
+		logName := "error.log"
+		if datumType != "" {
+			logName = fmt.Sprintf("error_%s.log", datumType)
+		}
+
+		f, err := os.OpenFile(logName,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			log.Println(err)
@@ -241,9 +247,9 @@ func (m *migrationUtil) OnError(reportErr error, id string, msg string) {
 			log.Println(err)
 			os.Exit(1)
 		}
-		f.WriteString(fmt.Sprintf("[_id=%s] %s %s\n", id, msg, string(errBytes)))
+		f.WriteString(fmt.Sprintf("[_id=%s] %s %s\n", datumID, msg, string(errBytes)))
 		if m.config.stopOnErr {
-			log.Printf(errFormat, id, msg, reportErr.Error())
+			log.Printf(errFormat, datumID, msg, reportErr.Error())
 			os.Exit(1)
 		}
 	}

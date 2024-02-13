@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"slices"
 	"strings"
 	"time"
 
@@ -20,7 +19,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/calculator"
-	"github.com/tidepool-org/platform/data/types/common"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
@@ -29,48 +27,48 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
-	//TODO: currently an array but should be a map for consistency. On pump is "Sleep Schedule 1", "Sleep Schedule 2"
-	scheduleNames := map[int]string{0: "1", 1: "2"}
+// func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
+// 	//TODO: currently an array but should be a map for consistency. On pump is "Sleep Schedule 1", "Sleep Schedule 2"
+// 	scheduleNames := map[int]string{0: "1", 1: "2"}
 
-	if schedules := bsonData["sleepSchedules"]; schedules != nil {
-		sleepScheduleMap := pump.SleepScheduleMap{}
-		dataBytes, err := json.Marshal(schedules)
-		if err != nil {
-			return nil, err
-		}
-		schedulesArray := []*pump.SleepSchedule{}
-		err = json.Unmarshal(dataBytes, &schedulesArray)
-		if err != nil {
-			return nil, err
-		}
-		for i, schedule := range schedulesArray {
-			days := schedule.Days
-			updatedDays := []string{}
-			for _, day := range *days {
-				if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
-					return nil, errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
-				}
-				updatedDays = append(updatedDays, strings.ToLower(day))
-			}
-			schedule.Days = &updatedDays
-			sleepScheduleMap[scheduleNames[i]] = schedule
-		}
-		//sorts schedules based on day
-		sleepScheduleMap.Normalize(dataNormalizer.New())
-		return &sleepScheduleMap, nil
-	}
-	return nil, nil
-}
+// 	if schedules := bsonData["sleepSchedules"]; schedules != nil {
+// 		sleepScheduleMap := pump.SleepScheduleMap{}
+// 		dataBytes, err := json.Marshal(schedules)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		schedulesArray := []*pump.SleepSchedule{}
+// 		err = json.Unmarshal(dataBytes, &schedulesArray)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		for i, schedule := range schedulesArray {
+// 			days := schedule.Days
+// 			updatedDays := []string{}
+// 			for _, day := range *days {
+// 				if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
+// 					return nil, errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+// 				}
+// 				updatedDays = append(updatedDays, strings.ToLower(day))
+// 			}
+// 			schedule.Days = &updatedDays
+// 			sleepScheduleMap[scheduleNames[i]] = schedule
+// 		}
+// 		//sorts schedules based on day
+// 		sleepScheduleMap.Normalize(dataNormalizer.New())
+// 		return &sleepScheduleMap, nil
+// 	}
+// 	return nil, nil
+// }
 
-func pumpSettingsHasBolus(bsonData bson.M) bool {
-	if bolus := bsonData["bolus"]; bolus != nil {
-		if _, ok := bolus.(*pump.BolusMap); ok {
-			return true
-		}
-	}
-	return false
-}
+// func pumpSettingsHasBolus(bsonData bson.M) bool {
+// 	if bolus := bsonData["bolus"]; bolus != nil {
+// 		if _, ok := bolus.(*pump.BolusMap); ok {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func logDiff(id string, updates interface{}) {
 	updatesJSON, _ := json.Marshal(updates)
@@ -119,7 +117,7 @@ func ApplyBaseChanges(bsonData bson.M) error {
 		}
 	case calculator.Type:
 		if bolus := bsonData["bolus"]; bolus != nil {
-			//TODO ignore these ??
+			//TODO ignore these, the property is just a pointer to the actual bolus
 			delete(bsonData, "bolus")
 		}
 	}
