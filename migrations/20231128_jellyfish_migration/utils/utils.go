@@ -181,6 +181,9 @@ func BuildPlatformDatum(id string, objectData map[string]interface{}) (*data.Dat
 	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
 	validator.Time("modifiedTime", parser.Time("modifiedTime", time.RFC3339Nano))
 
+	//bolus - not used in the platform
+	validator.String("deliveryContext", parser.String("deliveryContext"))
+
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
@@ -217,7 +220,7 @@ func BuildPlatformDatum(id string, objectData map[string]interface{}) (*data.Dat
 	return datum, nil
 }
 
-func GetDatumChanges(id string, datum interface{}, original map[string]interface{}, log bool) ([]bson.M, error) {
+func GetDatumChanges(id string, datum interface{}, original map[string]interface{}, logging bool) ([]bson.M, error) {
 
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
@@ -270,7 +273,7 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 		return bson.M{path[1]: bson.M{path[2]: val}}
 	}
 
-	for _, change := range changelog {
+	for _, change := range changelog.FilterOut([]string{"payload"}) {
 		switch change.Type {
 		case diff.CREATE, diff.UPDATE:
 			set[change.Path[0]] = getValue(change.Path, change.To)
@@ -286,7 +289,7 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	if len(unset) > 0 {
 		difference = append(difference, bson.M{"$unset": unset})
 	}
-	if log {
+	if logging {
 		logDiff(id, difference)
 	}
 	return difference, nil

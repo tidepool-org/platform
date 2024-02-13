@@ -206,6 +206,13 @@ var _ = Describe("back-37", func() {
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"random": ""}}}))
 			})
+
+			It("no difference when inner payload changes", func() {
+				datumObject["payload"] = map[string]interface{}{"stuff": true}
+				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject, false)
+				Expect(err).To(BeNil())
+				Expect(diff).To(Equal([]bson.M{}))
+			})
 		})
 
 		// TODO: switch to audit + update
