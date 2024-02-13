@@ -160,6 +160,11 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 				log.Printf("2 remove empty payload %s", dataType)
 				delete(bsonData, "payload")
 			}
+		} else if m, ok := payload.(map[string]interface{}); ok {
+			if length := len(m); length == 0 {
+				log.Printf("3 remove empty payload %s", dataType)
+				delete(bsonData, "payload")
+			}
 		}
 
 		if strPayload, ok := payload.(string); ok {
