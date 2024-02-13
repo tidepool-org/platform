@@ -20,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/ketone"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/data/types/calculator"
+	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
@@ -186,9 +187,13 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	switch objType {
 	case continuous.Type:
 		validator.String("subType", parser.String("subType"))
-		validator.Object("payload", parser.Object("payload"))
 	case bolus.Type:
 		validator.String("deliveryContext", parser.String("deliveryContext"))
+	case basal.Type:
+		validator.Object("suppressed", parser.Object("suppressed"))
+	case device.Type:
+		validator.Object("previous", parser.Object("previous"))
+		validator.Int("index", parser.Int("index"))
 	}
 
 	parser.NotParsed()
