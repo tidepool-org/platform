@@ -186,7 +186,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	switch objType {
 	case continuous.Type:
 		validator.String("subType", parser.String("subType"))
-		validator.String("payload", parser.String("payload"))
+		validator.Object("payload", parser.Object("payload"))
 	case bolus.Type:
 		validator.String("deliveryContext", parser.String("deliveryContext"))
 	}
