@@ -9,6 +9,7 @@ import (
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/auth/store"
+	permission "github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
@@ -20,6 +21,7 @@ type Service interface {
 	Domain() string
 	AuthStore() store.Store
 	UserAccessor() user.UserAccessor
+	PermissionsClient() permission.Client
 
 	ProviderFactory() provider.Factory
 

@@ -46,3 +46,29 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 
 	return permission.FixOwnerPermissions(result), nil
 }
+
+func (c *Client) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
+	fromTo, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	if len(fromTo) > 0 {
+		return true, nil
+	}
+	toFrom, err := c.GetUserPermissions(ctx, grantorUserID, granteeUserID)
+	if err != nil {
+		return false, err
+	}
+	if len(toFrom) > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (c *Client) HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
+	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	return len(perms[permission.Custodian]) > 0, nil
+}
