@@ -41,7 +41,7 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
-	groupedErrors  map[string][]ErrorData
+	groupedErrors  groupedErrors
 	rawData        []bson.M
 	errorsCount    int
 	updatedCount   int
@@ -54,6 +54,19 @@ type ErrorData struct {
 	ItemID   string `json:"_id"`
 	ItemType string `json:"-"`
 	Msg      string `json:"message,omitempty"`
+}
+
+type groupedErrors map[string][]ErrorData
+
+func (g groupedErrors) count() int {
+	max := 0
+	for _, errs := range g {
+		gCount := len(errs)
+		if gCount > max {
+			max = gCount
+		}
+	}
+	return max
 }
 
 type MigrationStats struct {
@@ -95,7 +108,7 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		config:        config,
 		updates:       []mongo.WriteModel{},
 		rawData:       []bson.M{},
-		groupedErrors: map[string][]ErrorData{},
+		groupedErrors: groupedErrors{},
 		errorsCount:   0,
 		updatedCount:  0,
 		startedAt:     time.Now(),
@@ -132,16 +145,15 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		if err := m.writeUpdates(ctx, dataC); err != nil {
 			log.Printf("failed writing batch: %s", err)
 			// dump errors first
-			m.writeErrors(m.GetStats())
+			m.writeErrors()
 			return err
 		}
 		if m.capReached() {
 			break
 		}
 	}
-	stats := m.GetStats()
-	m.writeErrors(stats)
-	stats.report()
+	m.GetStats().report()
+	m.writeErrors()
 	return nil
 }
 
@@ -155,11 +167,12 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
 }
 
-func (m *migrationUtil) writeErrors(stats MigrationStats) {
+func (m *migrationUtil) writeErrors() {
+	timestamp := strings.Replace(time.Now().Format(time.Stamp), " ", "-", -1)
 	logName := "logs/error.log"
 	for group, errors := range m.groupedErrors {
 		if group != "" {
-			logName = fmt.Sprintf("logs/error_%s_%s.log", group, stats.Elapsed.String())
+			logName = fmt.Sprintf("logs/error_%s_%s.log", group, timestamp)
 		}
 		errorsJSON, err := json.Marshal(errors)
 		if err != nil {
@@ -483,9 +496,10 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		log.Println("dry-run so no changes applied")
 	} else {
 		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
-		stats := m.GetStats()
-		stats.report()
-		m.writeErrors(stats)
+		m.GetStats().report()
+		if m.groupedErrors.count() > 500 {
+			m.writeErrors()
+		}
 	}
 	return nil
 }
