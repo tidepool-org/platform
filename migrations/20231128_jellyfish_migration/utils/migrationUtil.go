@@ -132,15 +132,16 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		if err := m.writeUpdates(ctx, dataC); err != nil {
 			log.Printf("failed writing batch: %s", err)
 			// dump errors first
-			m.writeErrors()
+			m.writeErrors(m.GetStats())
 			return err
 		}
 		if m.capReached() {
 			break
 		}
 	}
-	m.writeErrors()
-	m.GetStats().report()
+	stats := m.GetStats()
+	m.writeErrors(stats)
+	stats.report()
 	return nil
 }
 
@@ -154,11 +155,11 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
 }
 
-func (m *migrationUtil) writeErrors() {
-	logName := "error.log"
+func (m *migrationUtil) writeErrors(stats MigrationStats) {
+	logName := "logs/error.log"
 	for group, errors := range m.groupedErrors {
 		if group != "" {
-			logName = fmt.Sprintf("error_%s.log", group)
+			logName = fmt.Sprintf("logs/error_%s_%s.log", group, stats.Elapsed.String())
 		}
 		errorsJSON, err := json.Marshal(errors)
 		if err != nil {
@@ -320,7 +321,6 @@ func (m *migrationUtil) getOplogDuration(ctx context.Context) (time.Duration, er
 	log.Println("Not clustered, not retrieving oplog duration.")
 	oplogDuration := time.Duration(m.config.minOplogWindow+1) * time.Second
 	return oplogDuration, nil
-
 }
 
 func (m *migrationUtil) setWriteBatchSize(ctx context.Context) error {
@@ -483,7 +483,9 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		log.Println("dry-run so no changes applied")
 	} else {
 		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
-		m.GetStats().report()
+		stats := m.GetStats()
+		stats.report()
+		m.writeErrors(stats)
 	}
 	return nil
 }
