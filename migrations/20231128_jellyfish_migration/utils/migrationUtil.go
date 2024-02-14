@@ -50,10 +50,10 @@ type migrationUtil struct {
 }
 
 type ErrorData struct {
-	Error    error
-	ItemID   string
-	ItemType string
-	Msg      string
+	Error    error  `json:"error"`
+	ItemID   string `json:"_id"`
+	ItemType string `json:"-"`
+	Msg      string `json:"message,omitempty"`
 }
 
 type MigrationStats struct {
@@ -155,21 +155,15 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 }
 
 func (m *migrationUtil) writeErrors() {
-	var errFormat = "[_id=%s] %s %s\n"
 	logName := "error.log"
 	for group, errors := range m.groupedErrors {
 		if group != "" {
 			logName = fmt.Sprintf("error_%s.log", group)
 		}
-		formatedErrors := []string{}
-
-		for _, errData := range errors {
-			errJSON, err := json.Marshal(errData.Error)
-			if err != nil {
-				log.Println(err)
-				os.Exit(1)
-			}
-			formatedErrors = append(formatedErrors, fmt.Sprintf(errFormat, errData.ItemID, errData.Msg, string(errJSON)))
+		errorsJSON, err := json.Marshal(errors)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
 		}
 
 		f, err := os.OpenFile(logName,
@@ -179,7 +173,7 @@ func (m *migrationUtil) writeErrors() {
 			os.Exit(1)
 		}
 		defer f.Close()
-		f.WriteString(strings.Join(formatedErrors, "\n"))
+		f.WriteString(string(errorsJSON))
 		m.groupedErrors[group] = []ErrorData{}
 	}
 }

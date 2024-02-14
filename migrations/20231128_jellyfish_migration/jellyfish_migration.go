@@ -234,7 +234,7 @@ func (m *Migration) fetchAndProcess() bool {
 			itemType := fmt.Sprintf("%v", item["type"])
 			updates, err := utils.ProcessDatum(itemID, itemType, item, m.config.audit)
 			if err != nil {
-				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType, Msg: fmt.Sprintf("[type=%s]", itemType)})
+				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
 			}
 			if !m.config.audit {
 				for _, update := range updates {
