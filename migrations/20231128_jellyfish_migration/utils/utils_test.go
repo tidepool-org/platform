@@ -20,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
+	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	"github.com/tidepool-org/platform/metadata"
@@ -113,6 +114,15 @@ var _ = Describe("back-37", func() {
 				Expect(err).To(BeNil())
 				Expect(datum).ToNot(BeNil())
 				Expect((*datum).GetType()).To(Equal(device.Type))
+			})
+
+			It("should successfully build cgm settings", func() {
+				deviceEventData, err := setup(test.CGMSetting)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", deviceEventData["_id"]), cgm.Type, deviceEventData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(cgm.Type))
 			})
 
 		})

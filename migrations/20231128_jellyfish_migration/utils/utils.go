@@ -25,6 +25,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
+	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
@@ -44,6 +45,22 @@ func logDiff(id string, updates interface{}) {
 		defer f.Close()
 		f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
 	}
+}
+
+func getBGValuePrecision(val interface{}) *float64 {
+	floatStr := fmt.Sprintf("%v", val)
+	floatParts := strings.Split(floatStr, ".")
+	if len(floatParts) == 2 {
+		if len(floatParts[1]) > 5 {
+			if floatVal, ok := val.(float64); ok {
+				mgdlVal := floatVal * glucose.MmolLToMgdLConversionFactor
+				intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
+				floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
+				return &floatValue
+			}
+		}
+	}
+	return nil
 }
 
 func ApplyBaseChanges(bsonData bson.M, dataType string) error {
@@ -86,16 +103,24 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 	case selfmonitored.Type, ketone.Type, continuous.Type:
 		units := fmt.Sprintf("%v", bsonData["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
-			floatStr := fmt.Sprintf("%v", bsonData["value"])
-			floatParts := strings.Split(floatStr, ".")
-			if len(floatParts) == 2 {
-				if len(floatParts[1]) > 5 {
-					if floatVal, ok := bsonData["value"].(float64); ok {
-						mgdlVal := floatVal * glucose.MmolLToMgdLConversionFactor
-						intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
-						floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
-						bsonData["value"] = floatValue
-					}
+			if val := getBGValuePrecision(bsonData["value"]); val != nil {
+				bsonData["value"] = *val
+			}
+		}
+	case cgm.Type:
+		units := fmt.Sprintf("%v", bsonData["units"])
+		if units == glucose.MmolL || units == glucose.Mmoll {
+
+			if lowAlerts, ok := bsonData["lowAlerts"].(bson.M); ok {
+				if val := getBGValuePrecision(lowAlerts["level"]); val != nil {
+					lowAlerts["level"] = *val
+					bsonData["lowAlerts"] = lowAlerts
+				}
+			}
+			if highAlerts, ok := bsonData["highAlerts"].(bson.M); ok {
+				if val := getBGValuePrecision(highAlerts["level"]); val != nil {
+					highAlerts["level"] = *val
+					bsonData["highAlerts"] = highAlerts
 				}
 			}
 		}
@@ -181,6 +206,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	case basal.Type:
 		validator.Object("suppressed", parser.Object("suppressed"))
 		validator.Float64("percent", parser.Float64("percent"))
+		validator.Float64("rate", parser.Float64("rate"))
 	case device.Type:
 		validator.Object("previous", parser.Object("previous"))
 		validator.Int("index", parser.Int("index"))

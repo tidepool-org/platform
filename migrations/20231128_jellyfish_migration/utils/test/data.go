@@ -201,6 +201,41 @@ func reservoirChangeDeviceEventDatum() map[string]interface{} {
 	return datum
 }
 
+func cgmSettingsDatum() map[string]interface{} {
+	datum := base("DexG5MobRec-1111111111111")
+	datum["type"] = "cgmSettings"
+	datum["units"] = "mmol/L"
+
+	datum["lowAlerts"] = map[string]interface{}{
+		"enabled": true,
+		"level":   3.8855235937318735,
+		"snooze":  900000,
+	}
+
+	datum["highAlerts"] = map[string]interface{}{
+		"enabled": true,
+		"level":   22.202991964182132,
+		"snooze":  0,
+	}
+
+	datum["rateOfChangeAlerts"] = map[string]interface{}{
+		"fallRate": map[string]interface{}{
+			"enabled": false,
+			"rate":    -0.16652243973136602,
+		},
+		"riseRate": map[string]interface{}{
+			"enabled": false,
+			"rate":    0.16652243973136602,
+		},
+	}
+
+	datum["outOfRangeAlerts"] = map[string]interface{}{
+		"enabled": true,
+		"snooze":  1200000,
+	}
+	return datum
+}
+
 var CBGDexcomG5MobDatum = dexG5MobDatum()
 var PumpSettingsTandem = tandemPumpSettingsDatum()
 var PumpSettingsCarelink = carelinkPumpSettings()
@@ -208,3 +243,4 @@ var PumpSettingsOmnipod = omnipodPumpSettingsDatum()
 var AutomatedBasalTandem = tandemAutomatedBasalDatum()
 var WizardTandem = tandemWizardDatum()
 var ReservoirChange = reservoirChangeDeviceEventDatum()
+var CGMSetting = cgmSettingsDatum()
