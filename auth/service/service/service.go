@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/user"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -28,6 +29,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -56,6 +59,8 @@ type Service struct {
 	authClient         *Client
 	userEventsHandler  events.Runner
 	deviceCheck        apple.DeviceCheck
+	userAccessor       user.UserAccessor
+	permsClient        *permissionClient.Client
 }
 
 func New() *Service {
@@ -108,6 +113,12 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDeviceCheck(); err != nil {
 		return err
 	}
+	if err := s.initializeUserAccessor(); err != nil {
+		return err
+	}
+	if err := s.initializePermissionsClient(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -152,6 +163,13 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return s.deviceCheck
 }
 
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
+}
+
+func (s *Service) PermissionsClient() permission.Client {
+	return s.permsClient
+}
 func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
 		Version: s.VersionReporter().Long(),
@@ -325,6 +343,25 @@ func (s *Service) initializeTaskClient() error {
 	return nil
 }
 
+func (s *Service) initializePermissionsClient() error {
+	s.Logger().Debug("Loading permission client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
+	}
+
+	permsClient, err := permissionClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create permission client")
+	}
+	s.permsClient = permsClient
+	return nil
+}
+
 func (s *Service) terminateTaskClient() {
 	if s.taskClient != nil {
 		s.Logger().Debug("Destroying task client")
@@ -412,6 +449,18 @@ func (s *Service) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize events runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Service) initializeUserAccessor() error {
+	s.Logger().Debug("Initializing user accessor")
+
+	config := &user.KeycloakConfig{}
+	if err := config.FromEnv(); err != nil {
+		return err
+	}
+	s.userAccessor = user.NewKeycloakUserAccessor(config)
 
 	return nil
 }

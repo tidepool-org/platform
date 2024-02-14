@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/user"
 
 	"github.com/onsi/gomega"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
@@ -76,6 +78,14 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 }
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
+	return nil
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return nil
+}
+
+func (s *Service) PermissionsClient() permission.Client {
 	return nil
 }
 
