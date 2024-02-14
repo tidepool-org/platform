@@ -23,6 +23,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/data/types/device"
+	"github.com/tidepool-org/platform/data/types/device/alarm"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/data/types/settings/cgm"
@@ -110,7 +111,6 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 	case cgm.Type:
 		units := fmt.Sprintf("%v", bsonData["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
-
 			if lowAlerts, ok := bsonData["lowAlerts"].(bson.M); ok {
 				if val := getBGValuePrecision(lowAlerts["level"]); val != nil {
 					lowAlerts["level"] = *val
@@ -131,7 +131,8 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 		}
 	case device.Type:
 		subType := fmt.Sprintf("%v", bsonData["subType"])
-		if subType == reservoirchange.SubType {
+		switch subType {
+		case reservoirchange.SubType, alarm.SubType:
 			bsonData["statusId"] = bsonData["status"]
 			delete(bsonData, "status")
 		}
@@ -209,6 +210,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 		validator.Float64("rate", parser.Float64("rate"))
 	case device.Type:
 		validator.Object("previous", parser.Object("previous"))
+		validator.String("previousOverride", parser.String("previousOverride"))
 		validator.Int("index", parser.Int("index"))
 		validator.String("statusId", parser.String("statusId"))
 	}
