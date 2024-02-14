@@ -41,11 +41,19 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
+	groupedErrors  map[string][]ErrorData
 	rawData        []bson.M
 	errorsCount    int
 	updatedCount   int
 	lastUpdatedId  string
 	startedAt      time.Time
+}
+
+type ErrorData struct {
+	Error    error
+	ItemID   string
+	ItemType string
+	Msg      string
 }
 
 type MigrationStats struct {
@@ -59,7 +67,7 @@ type MigrationStats struct {
 type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
-	OnError(reportErr error, datumID string, datumType string, msg string)
+	OnError(data ErrorData)
 	SetUpdates(update ...*mongo.UpdateOneModel)
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
@@ -83,13 +91,14 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 	}
 
 	m := &migrationUtil{
-		client:       client,
-		config:       config,
-		updates:      []mongo.WriteModel{},
-		rawData:      []bson.M{},
-		errorsCount:  0,
-		updatedCount: 0,
-		startedAt:    time.Now(),
+		client:        client,
+		config:        config,
+		updates:       []mongo.WriteModel{},
+		rawData:       []bson.M{},
+		groupedErrors: map[string][]ErrorData{},
+		errorsCount:   0,
+		updatedCount:  0,
+		startedAt:     time.Now(),
 	}
 	if lastID != nil {
 		m.lastUpdatedId = *lastID
@@ -122,12 +131,15 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	for fetchAndUpdateFn() {
 		if err := m.writeUpdates(ctx, dataC); err != nil {
 			log.Printf("failed writing batch: %s", err)
+			// dump errors first
+			m.writeErrors()
 			return err
 		}
 		if m.capReached() {
 			break
 		}
 	}
+	m.writeErrors()
 	m.GetStats().report()
 	return nil
 }
@@ -140,6 +152,36 @@ func (m *migrationUtil) SetUpdates(update ...*mongo.UpdateOneModel) {
 
 func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
+}
+
+func (m *migrationUtil) writeErrors() {
+	var errFormat = "[_id=%s] %s %s\n"
+	logName := "error.log"
+	for group, errors := range m.groupedErrors {
+		if group != "" {
+			logName = fmt.Sprintf("error_%s.log", group)
+		}
+		formatedErrors := []string{}
+
+		for _, errData := range errors {
+			errJSON, err := json.Marshal(errData.Error)
+			if err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+			formatedErrors = append(formatedErrors, fmt.Sprintf(errFormat, errData.ItemID, errData.Msg, string(errJSON)))
+		}
+
+		f, err := os.OpenFile(logName,
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		f.WriteString(strings.Join(formatedErrors, "\n"))
+		m.groupedErrors[group] = []ErrorData{}
+	}
 }
 
 func (m *migrationUtil) SetFetched(raw []bson.M) {
@@ -223,34 +265,14 @@ func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig 
 // OnError
 // - write error to file `error.log` in directory cli is running in
 // - optionally stop the operation if stopOnErr is true in the config
-func (m *migrationUtil) OnError(reportErr error, datumID string, datumType string, msg string) {
+func (m *migrationUtil) OnError(data ErrorData) {
+	m.errorsCount++
+	m.groupedErrors[data.ItemType] = append(m.groupedErrors[data.ItemType], data)
 	var errFormat = "[_id=%s] %s %s\n"
-	if reportErr != nil {
-		m.errorsCount++
 
-		logName := "error.log"
-		if datumType != "" {
-			logName = fmt.Sprintf("error_%s.log", datumType)
-		}
-
-		f, err := os.OpenFile(logName,
-			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		defer f.Close()
-
-		errBytes, err := json.Marshal(reportErr)
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		f.WriteString(fmt.Sprintf("[_id=%s] %s %s\n", datumID, msg, string(errBytes)))
-		if m.config.stopOnErr {
-			log.Printf(errFormat, datumID, msg, reportErr.Error())
-			os.Exit(1)
-		}
+	if m.config.stopOnErr {
+		log.Printf(errFormat, data.ItemID, data.Msg, data.Error.Error())
+		os.Exit(1)
 	}
 }
 

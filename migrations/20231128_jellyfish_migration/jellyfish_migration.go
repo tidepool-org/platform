@@ -184,85 +184,6 @@ func (m *Migration) getDataCollection() *mongo.Collection {
 	return m.client.Database("data").Collection("deviceData")
 }
 
-// TODO: switch to audit + update
-// func (m *Migration) fetchAndUpdateBatch() bool {
-
-// 	selector := bson.M{
-// 		"_deduplicator": bson.M{"$exists": false},
-// 	}
-
-// 	if strings.TrimSpace(m.config.userID) != "" {
-// 		log.Printf("fetching for user %s", m.config.userID)
-// 		selector["_userId"] = m.config.userID
-// 	}
-
-// 	// jellyfish uses a generated _id that is not an mongo objectId
-// 	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
-
-// 	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
-// 		selector["$and"] = []interface{}{
-// 			bson.M{"_id": bson.M{"$gt": lastID}},
-// 			bson.M{"_id": idNotObjectID},
-// 		}
-// 	} else {
-// 		selector["_id"] = idNotObjectID
-// 	}
-
-// 	batchSize := int32(m.config.queryBatchSize)
-
-// 	if dataC := m.getDataCollection(); dataC != nil {
-
-// 		dDataCursor, err := dataC.Find(m.ctx, selector,
-// 			&options.FindOptions{
-// 				Sort:      bson.M{"_id": 1},
-// 				BatchSize: &batchSize,
-// 				Limit:     &m.config.queryLimit,
-// 			},
-// 		)
-// 		if err != nil {
-// 			log.Printf("failed to select data: %s", err)
-// 			return false
-// 		}
-// 		defer dDataCursor.Close(m.ctx)
-
-// 		updateStart := time.Now()
-
-// 		for dDataCursor.Next(m.ctx) {
-
-// 			item := bson.M{}
-// 			if err := dDataCursor.Decode(&item); err != nil {
-// 				log.Printf("error decoding data: %s", err)
-// 				return false
-// 			}
-
-// 			datumID, datumUpdates, err := utils.GetDatumUpdates(item)
-// 			if err != nil {
-// 				m.migrationUtil.OnError(err, datumID, "failed applying updates")
-// 				continue
-// 			}
-// 			for _, update := range datumUpdates {
-// 				updateOp := mongo.NewUpdateOneModel()
-// 				if update["$rename"] != nil {
-// 					log.Printf("rename op, 2 ops for same datum")
-// 					updateOp.SetFilter(bson.M{"_id": datumID})
-// 				} else {
-// 					updateOp.SetFilter(bson.M{"_id": datumID, "modifiedTime": item["modifiedTime"]})
-// 				}
-// 				updateOp.SetUpdate(update)
-// 				m.migrationUtil.SetUpdates(updateOp)
-// 				m.migrationUtil.SetLastProcessed(datumID)
-// 			}
-// 		}
-// 		stats := m.migrationUtil.GetStats()
-// 		if stats.Errored > 0 {
-// 			log.Printf("update took [%s] for [%d] items with [%d] errors", time.Since(updateStart), stats.ToApply, stats.Errored)
-// 		}
-// 		return stats.ToApply > 0
-// 	}
-// 	return false
-// }
-
-// TODO: switch to audit + update
 func (m *Migration) fetchAndProcess() bool {
 
 	selector := bson.M{}
@@ -313,7 +234,7 @@ func (m *Migration) fetchAndProcess() bool {
 			itemType := fmt.Sprintf("%v", item["type"])
 			updates, err := utils.ProcessDatum(itemID, itemType, item, m.config.audit)
 			if err != nil {
-				m.migrationUtil.OnError(err, itemID, itemType, fmt.Sprintf("[type=%s]", itemType))
+				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType, Msg: fmt.Sprintf("[type=%s]", itemType)})
 			}
 			if !m.config.audit {
 				for _, update := range updates {
@@ -327,6 +248,7 @@ func (m *Migration) fetchAndProcess() bool {
 			all = append(all, item)
 		}
 		m.migrationUtil.SetFetched(all)
+		//should we write errors here as intermediate step?
 		return len(all) > 0
 	}
 	return false
