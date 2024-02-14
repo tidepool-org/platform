@@ -145,7 +145,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		if err := m.writeUpdates(ctx, dataC); err != nil {
 			log.Printf("failed writing batch: %s", err)
 			// dump errors first
-			m.writeErrors()
+			m.writeErrors(nil)
 			return err
 		}
 		if m.capReached() {
@@ -153,7 +153,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		}
 	}
 	m.GetStats().report()
-	m.writeErrors()
+	m.writeErrors(nil)
 	return nil
 }
 
@@ -167,10 +167,18 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
 }
 
-func (m *migrationUtil) writeErrors() {
+func (m *migrationUtil) writeErrors(groupLimit *int) {
+
 	timestamp := strings.Replace(time.Now().Format(time.Stamp), " ", "-", -1)
 	logName := "logs/error.log"
 	for group, errors := range m.groupedErrors {
+
+		if groupLimit != nil {
+			if len(errors) < *groupLimit {
+				continue
+			}
+		}
+
 		if group != "" {
 			logName = fmt.Sprintf("logs/error_%s_%s.log", group, timestamp)
 		}
@@ -496,10 +504,9 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		log.Println("dry-run so no changes applied")
 	} else {
 		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
+		errorWriteLimit := 500
 		m.GetStats().report()
-		if m.groupedErrors.count() > 500 {
-			m.writeErrors()
-		}
+		m.writeErrors(&errorWriteLimit)
 	}
 	return nil
 }
