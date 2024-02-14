@@ -12,9 +12,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	glucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
+	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/common"
+	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
@@ -33,6 +36,86 @@ var _ = Describe("back-37", func() {
 			bson.Unmarshal(bsonAsByte, &bsonData)
 			return bsonData
 		}
+
+		var _ = Describe("BuildPlatformDatum", func() {
+
+			var setup = func(testObj map[string]interface{}) (map[string]interface{}, error) {
+				bsonData := getBSONData(testObj)
+				objType := fmt.Sprintf("%v", bsonData["type"])
+				utils.ApplyBaseChanges(bsonData, objType)
+				incomingJSONData, err := json.Marshal(bsonData)
+				if err != nil {
+					return nil, err
+				}
+				cleanedObject := map[string]interface{}{}
+				if err := json.Unmarshal(incomingJSONData, &cleanedObject); err != nil {
+					return nil, err
+				}
+				return cleanedObject, nil
+			}
+
+			It("should successfully build basal datum", func() {
+				basalData, err := setup(test.AutomatedBasalTandem)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", basalData["_id"]), basal.Type, basalData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(basal.Type))
+			})
+
+			It("should successfully build dexcom g5 datum", func() {
+				cbgData, err := setup(test.CBGDexcomG5MobDatum)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", cbgData["_id"]), continuous.Type, cbgData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(continuous.Type))
+			})
+
+			It("should successfully build carelink pump settings", func() {
+				pSettingsData, err := setup(test.PumpSettingsCarelink)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", pSettingsData["_id"]), pump.Type, pSettingsData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(pump.Type))
+			})
+			It("should successfully build omnipod pump settings", func() {
+				pSettingsData, err := setup(test.PumpSettingsOmnipod)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", pSettingsData["_id"]), pump.Type, pSettingsData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(pump.Type))
+			})
+			It("should successfully build tandem pump settings", func() {
+				pSettingsData, err := setup(test.PumpSettingsTandem)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", pSettingsData["_id"]), pump.Type, pSettingsData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(pump.Type))
+			})
+			It("should successfully build tandem wizard", func() {
+				Skip("todo sort out /duration, /percent and /rate")
+				calcData, err := setup(test.WizardTandem)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", calcData["_id"]), calculator.Type, calcData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(calculator.Type))
+			})
+
+			It("should successfully build device event", func() {
+				deviceEventData, err := setup(test.ReservoirChange)
+				Expect(err).To(BeNil())
+				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", deviceEventData["_id"]), device.Type, deviceEventData)
+				Expect(err).To(BeNil())
+				Expect(datum).ToNot(BeNil())
+				Expect((*datum).GetType()).To(Equal(device.Type))
+			})
+
+		})
 
 		var _ = Describe("ApplyBaseChanges", func() {
 

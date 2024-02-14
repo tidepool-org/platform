@@ -32,49 +32,6 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-// func updateIfExistsPumpSettingsSleepSchedules(bsonData bson.M) (*pump.SleepScheduleMap, error) {
-// 	//TODO: currently an array but should be a map for consistency. On pump is "Sleep Schedule 1", "Sleep Schedule 2"
-// 	scheduleNames := map[int]string{0: "1", 1: "2"}
-
-// 	if schedules := bsonData["sleepSchedules"]; schedules != nil {
-// 		sleepScheduleMap := pump.SleepScheduleMap{}
-// 		dataBytes, err := json.Marshal(schedules)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		schedulesArray := []*pump.SleepSchedule{}
-// 		err = json.Unmarshal(dataBytes, &schedulesArray)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		for i, schedule := range schedulesArray {
-// 			days := schedule.Days
-// 			updatedDays := []string{}
-// 			for _, day := range *days {
-// 				if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
-// 					return nil, errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
-// 				}
-// 				updatedDays = append(updatedDays, strings.ToLower(day))
-// 			}
-// 			schedule.Days = &updatedDays
-// 			sleepScheduleMap[scheduleNames[i]] = schedule
-// 		}
-// 		//sorts schedules based on day
-// 		sleepScheduleMap.Normalize(dataNormalizer.New())
-// 		return &sleepScheduleMap, nil
-// 	}
-// 	return nil, nil
-// }
-
-// func pumpSettingsHasBolus(bsonData bson.M) bool {
-// 	if bolus := bsonData["bolus"]; bolus != nil {
-// 		if _, ok := bolus.(*pump.BolusMap); ok {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
-
 func logDiff(id string, updates interface{}) {
 	updatesJSON, _ := json.Marshal(updates)
 	if string(updatesJSON) != "[]" {
@@ -205,12 +162,13 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	validator.String("_userId", parser.String("_userId")).Exists()
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
-	validator.Object("_deduplicator", parser.Object("_deduplicator")).Exists()
+	validator.Object("_deduplicator", parser.Object("_deduplicator"))
 
 	validator.String("uploadId", parser.String("uploadId")).Exists()
 	validator.String("guid", parser.String("guid"))
 	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
 	validator.Time("modifiedTime", parser.Time("modifiedTime", time.RFC3339Nano))
+	validator.Time("localTime", parser.Time("localTime", time.RFC3339Nano))
 
 	//parsed but not used in the platform
 	//deletes will be created from the diff
@@ -226,6 +184,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	case device.Type:
 		validator.Object("previous", parser.Object("previous"))
 		validator.Int("index", parser.Int("index"))
+		validator.String("statusId", parser.String("statusId"))
 	}
 
 	parser.NotParsed()

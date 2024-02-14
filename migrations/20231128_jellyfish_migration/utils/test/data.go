@@ -191,36 +191,14 @@ func tandemWizardDatum() map[string]interface{} {
 	datum["conversionOffset"] = 0
 
 	return datum
+}
 
-	/*
-		{"_id":"00006uv9j2d38nnf90p3945uaur4p14v",
-		"time":{"$date":{"$numberLong":"1682144172000"}},
-		"timezoneOffset":{"$numberInt":"-300"},
-		"clockDriftOffset":{"$numberInt":"-221000"},
-		"conversionOffset":{"$numberInt":"0"},
-		"deviceTime":"2023-04-22T01:16:12",
-		"deviceId":"tandemCIQ1000096506889","type":"wizard",
-		"recommended":{"carb":{"$numberInt":"2"},"correction":{"$numberDouble":"0.35"},"net":{"$numberDouble":"2.35"}},
-		"bgInput":{"$numberDouble":"8.603659386120578"},
-		"carbInput":{"$numberInt":"20"},
-		"insulinOnBoard":{"$numberInt":"0"},
-		"insulinCarbRatio":{"$numberInt":"0"},
-		"insulinSensitivity":{"$numberInt":"0"},
-		"bgTarget":{"target":{"$numberInt":"0"}},
-		"bolus":"sh3j1i31f7jsvjfomuaen7s18a7f7s46",
-		"units":"mmol/L",
-		"payload":{"logIndices":[{"$numberInt":"66177"}]},
-		"uploadId":"upid_7af862c1228c",
-		"guid":"0662f529-989a-471f-8fe3-06d601ac6a0c",
-		"_userId":"23ea008b-4d69-4a10-9dd5-9505b0ec1f24",
-		"_groupId":"7c23d7dc18",
-		"id":"dfgjgrs9j9av9sfd6huvilqcejr6f2uv",
-		"modifiedTime":{"$date":{"$numberLong":"1691609596487"}},
-		"createdTime":{"$date":{"$numberLong":"1691609596487"}},
-		"_version":{"$numberInt":"0"},
-		"_active":true,
-		"_deduplicator":{"hash":"xIVlJ3lN3+f1qzYDm/2+4eHWD9MODiN0JbmanvN1wO4="}}
-	*/
+func reservoirChangeDeviceEventDatum() map[string]interface{} {
+	datum := base("InsOmn-1111111111111")
+	datum["type"] = "deviceEvent"
+	datum["subType"] = "reservoirChange"
+	datum["status"] = "cvv61jde62b6i28bgot57f18bor5au1n"
+	return datum
 }
 
 var CBGDexcomG5MobDatum = dexG5MobDatum()
@@ -229,3 +207,4 @@ var PumpSettingsCarelink = carelinkPumpSettings()
 var PumpSettingsOmnipod = omnipodPumpSettingsDatum()
 var AutomatedBasalTandem = tandemAutomatedBasalDatum()
 var WizardTandem = tandemWizardDatum()
+var ReservoirChange = reservoirChangeDeviceEventDatum()
