@@ -195,7 +195,7 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 				log.Println(err)
 				os.Exit(1)
 			}
-			f.WriteString(string(errorJSON))
+			f.WriteString(string(errorJSON) + "\n")
 		}
 		m.groupedErrors[group] = []ErrorData{}
 	}
