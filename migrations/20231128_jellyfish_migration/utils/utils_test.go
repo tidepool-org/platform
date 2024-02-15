@@ -72,7 +72,6 @@ var _ = Describe("back-37", func() {
 				Expect(datum).ToNot(BeNil())
 				Expect((*datum).GetType()).To(Equal(continuous.Type))
 			})
-
 			It("should successfully build carelink pump settings", func() {
 				pSettingsData, err := setup(test.PumpSettingsCarelink)
 				Expect(err).To(BeNil())
@@ -106,7 +105,6 @@ var _ = Describe("back-37", func() {
 				Expect(datum).ToNot(BeNil())
 				Expect((*datum).GetType()).To(Equal(calculator.Type))
 			})
-
 			It("should successfully build device event", func() {
 				deviceEventData, err := setup(test.ReservoirChange)
 				Expect(err).To(BeNil())

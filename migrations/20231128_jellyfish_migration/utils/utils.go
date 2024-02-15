@@ -14,6 +14,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -30,6 +31,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -175,6 +177,8 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 
 	datum := dataTypesFactory.ParseDatum(parser)
 	if datum != nil && *datum != nil {
+		(*datum).SetUserID(parser.String("_userId"))
+		(*datum).SetCreatedTime(parser.Time("createdTime", time.RFC3339Nano))
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
 	} else {
@@ -185,14 +189,12 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	validator.String("_archivedTime", parser.String("_archivedTime"))
 	validator.String("_groupId", parser.String("_groupId")).Exists()
 	validator.String("_id", parser.String("_id")).Exists()
-	validator.String("_userId", parser.String("_userId")).Exists()
 	validator.Int("_version", parser.Int("_version")).Exists()
 	validator.Int("_schemaVersion", parser.Int("_schemaVersion"))
 	validator.Object("_deduplicator", parser.Object("_deduplicator"))
 
 	validator.String("uploadId", parser.String("uploadId")).Exists()
 	validator.String("guid", parser.String("guid"))
-	validator.Time("createdTime", parser.Time("createdTime", time.RFC3339Nano)).Exists()
 	validator.Time("modifiedTime", parser.Time("modifiedTime", time.RFC3339Nano))
 	validator.Time("localTime", parser.Time("localTime", time.RFC3339Nano))
 
@@ -229,24 +231,23 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 		return nil, err
 	}
 
-	// TODO set the hash
-	// fields, err := (*datum).IdentityFields()
-	// if err != nil {
-	// 	return nil, errorsP.Wrap(err, "unable to gather identity fields for datum")
-	// }
+	fields, err := (*datum).IdentityFields()
+	if err != nil {
+		return nil, errorsP.Wrap(err, "unable to gather identity fields for datum")
+	}
 
-	// hash, err := deduplicator.GenerateIdentityHash(fields)
-	// if err != nil {
-	// 	return nil, errorsP.Wrap(err, "unable to generate identity hash for datum")
-	// }
+	hash, err := deduplicator.GenerateIdentityHash(fields)
+	if err != nil {
+		return nil, errorsP.Wrap(err, "unable to generate identity hash for datum")
+	}
 
-	// deduplicator := (*datum).DeduplicatorDescriptor()
-	// if deduplicator == nil {
-	// 	deduplicator = data.NewDeduplicatorDescriptor()
-	// }
-	// deduplicator.Hash = pointer.FromString(hash)
+	deduplicator := (*datum).DeduplicatorDescriptor()
+	if deduplicator == nil {
+		deduplicator = data.NewDeduplicatorDescriptor()
+	}
+	deduplicator.Hash = pointer.FromString(hash)
 
-	// (*datum).SetDeduplicatorDescriptor(deduplicator)
+	(*datum).SetDeduplicatorDescriptor(deduplicator)
 
 	return datum, nil
 }
