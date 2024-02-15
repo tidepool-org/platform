@@ -76,6 +76,7 @@ type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(data ErrorData)
+	SetUpdate(update Update)
 	SetUpdates(update ...*mongo.UpdateOneModel)
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
@@ -159,6 +160,10 @@ func (m *migrationUtil) SetUpdates(update ...*mongo.UpdateOneModel) {
 	}
 }
 
+func (m *migrationUtil) SetUpdate(update Update) {
+	m.dataUpdates = append(m.dataUpdates, update)
+}
+
 func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
 }
@@ -176,12 +181,6 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 		if group != "" {
 			logName = fmt.Sprintf("logs/error_%s_%s.log", group, timestamp)
 		}
-		errorsJSON, err := json.MarshalIndent(errors, "", "  ")
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-
 		f, err := os.OpenFile(logName,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -189,7 +188,15 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 			os.Exit(1)
 		}
 		defer f.Close()
-		f.WriteString(string(errorsJSON))
+
+		for _, data := range errors {
+			errorJSON, err := json.Marshal(data)
+			if err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+			f.WriteString(string(errorJSON))
+		}
 		m.groupedErrors[group] = []ErrorData{}
 	}
 }
