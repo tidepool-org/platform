@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
+	structValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -50,6 +51,10 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 
 	profile := &user.UserProfile{}
 	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	if err := structValidator.New().Validate(profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
