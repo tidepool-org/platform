@@ -41,12 +41,18 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
+	dataUpdates    []Update
 	groupedErrors  groupedErrors
 	rawData        []bson.M
 	errorsCount    int
 	updatedCount   int
 	lastUpdatedId  string
 	startedAt      time.Time
+}
+
+type Update struct {
+	ItemID      string             `json:"_id"`
+	MongoWrites []mongo.WriteModel `json:"diff"`
 }
 
 type ErrorData struct {
@@ -57,17 +63,6 @@ type ErrorData struct {
 }
 
 type groupedErrors map[string][]ErrorData
-
-func (g groupedErrors) count() int {
-	max := 0
-	for _, errs := range g {
-		gCount := len(errs)
-		if gCount > max {
-			max = gCount
-		}
-	}
-	return max
-}
 
 type MigrationStats struct {
 	Errored int
@@ -109,6 +104,7 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		updates:       []mongo.WriteModel{},
 		rawData:       []bson.M{},
 		groupedErrors: groupedErrors{},
+		dataUpdates:   []Update{},
 		errorsCount:   0,
 		updatedCount:  0,
 		startedAt:     time.Now(),
@@ -168,7 +164,6 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 }
 
 func (m *migrationUtil) writeErrors(groupLimit *int) {
-
 	timestamp := strings.Replace(time.Now().Format(time.Stamp), " ", "-", -1)
 	logName := "logs/error.log"
 	for group, errors := range m.groupedErrors {
@@ -178,11 +173,10 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 				continue
 			}
 		}
-
 		if group != "" {
 			logName = fmt.Sprintf("logs/error_%s_%s.log", group, timestamp)
 		}
-		errorsJSON, err := json.Marshal(errors)
+		errorsJSON, err := json.MarshalIndent(errors, "", "  ")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
