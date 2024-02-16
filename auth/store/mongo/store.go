@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"github.com/tidepool-org/platform/auth/store"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -27,6 +28,11 @@ func (s *Store) EnsureIndexes() error {
 		return err
 	}
 
+	deviceTokensRepository := s.deviceTokenRepository()
+	if err := deviceTokensRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
 	restrictedTokenRepository := s.restrictedTokenRepository()
 	return restrictedTokenRepository.EnsureIndexes()
 }
@@ -39,6 +45,10 @@ func (s *Store) NewRestrictedTokenRepository() store.RestrictedTokenRepository {
 	return s.restrictedTokenRepository()
 }
 
+func (s *Store) NewDeviceTokenRepository() store.DeviceTokenRepository {
+	return s.deviceTokenRepository()
+}
+
 func (s *Store) providerSessionRepository() *ProviderSessionRepository {
 	return &ProviderSessionRepository{
 		s.Store.GetRepository("provider_sessions"),
@@ -49,4 +59,9 @@ func (s *Store) restrictedTokenRepository() *RestrictedTokenRepository {
 	return &RestrictedTokenRepository{
 		s.Store.GetRepository("restricted_tokens"),
 	}
+}
+
+func (s *Store) deviceTokenRepository() devicetokens.Repository {
+	r := deviceTokenRepo(*s.Store.GetRepository("deviceTokens"))
+	return &r
 }

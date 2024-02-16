@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = 75 * time.Minute
-	AvailableAfterDurationMinimum = 45 * time.Minute
+	AvailableAfterDurationMaximum = 135 * time.Minute
+	AvailableAfterDurationMinimum = 105 * time.Minute
 	DataSetSize                   = 2000
-	TaskDurationMaximum           = 5 * time.Minute
+	TaskDurationMaximum           = 10 * time.Minute
 )
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)

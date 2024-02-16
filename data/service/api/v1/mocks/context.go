@@ -10,9 +10,11 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service/context"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	servicecontext "github.com/tidepool-org/platform/service/context"
+	"github.com/tidepool-org/platform/service/test"
 )
 
 // Context is a mock of context.Standard.
@@ -21,12 +23,13 @@ type Context struct {
 
 	T likeT
 	// authDetails should be updated via the WithAuthDetails method.
-	authDetails          *AuthDetails
-	RESTRequest          *rest.Request
-	ResponseWriter       rest.ResponseWriter
-	recorder             *httptest.ResponseRecorder
-	MockAlertsRepository alerts.Repository
-	MockPermissionClient permission.Client
+	authDetails                *test.MockAuthDetails
+	RESTRequest                *rest.Request
+	ResponseWriter             rest.ResponseWriter
+	recorder                   *httptest.ResponseRecorder
+	MockAlertsRepository       alerts.Repository
+	MockDeviceTokensRepository devicetokens.Repository
+	MockPermissionClient       permission.Client
 }
 
 func NewContext(t likeT, method, url string, body io.Reader) *Context {
@@ -37,8 +40,7 @@ func NewContext(t likeT, method, url string, body io.Reader) *Context {
 		t.Fatalf("error creating request: %s", err)
 	}
 
-	recorder := httptest.NewRecorder()
-	w := NewResponseWriter(recorder)
+	w := test.NewMockRestResponseWriter()
 
 	rr := &rest.Request{
 		Request:    r,
@@ -58,12 +60,12 @@ func NewContext(t likeT, method, url string, body io.Reader) *Context {
 		RESTRequest:          rr,
 		ResponseWriter:       w,
 		MockPermissionClient: NewPermission(TestPerms(), nil, nil),
-		recorder:             recorder,
+		recorder:             w.ResponseRecorder,
 		T:                    t,
 	}
 }
 
-func (c *Context) WithAuthDetails(authDetails *AuthDetails) {
+func (c *Context) WithAuthDetails(authDetails *test.MockAuthDetails) {
 	c.authDetails = authDetails
 	r := c.RESTRequest.Request
 	ctx := request.NewContextWithAuthDetails(r.Context(), authDetails)
@@ -71,13 +73,13 @@ func (c *Context) WithAuthDetails(authDetails *AuthDetails) {
 }
 
 // DefaultAuthDetails provides details for TestUser #1.
-func DefaultAuthDetails() *AuthDetails {
-	return NewAuthDetails(request.MethodSessionToken, TestUserID1, TestToken1)
+func DefaultAuthDetails() *test.MockAuthDetails {
+	return test.NewMockAuthDetails(request.MethodSessionToken, test.TestUserID1, test.TestToken1)
 }
 
 // ServiceAuthDetails provides details for a service call.
-func ServiceAuthDetails() *AuthDetails {
-	return NewAuthDetails(request.MethodServiceSecret, "", TestToken2)
+func ServiceAuthDetails() *test.MockAuthDetails {
+	return test.NewMockAuthDetails(request.MethodServiceSecret, "", test.TestToken2)
 }
 
 func (c *Context) Response() rest.ResponseWriter {
@@ -94,6 +96,10 @@ func (c *Context) Recorder() *httptest.ResponseRecorder {
 
 func (c *Context) AlertsRepository() alerts.Repository {
 	return c.MockAlertsRepository
+}
+
+func (c *Context) DeviceTokensRepository() devicetokens.Repository {
+	return c.MockDeviceTokensRepository
 }
 
 func (c *Context) PermissionClient() permission.Client {
