@@ -97,7 +97,6 @@ var _ = Describe("back-37", func() {
 				Expect((*datum).GetType()).To(Equal(pump.Type))
 			})
 			It("should successfully build tandem wizard", func() {
-				Skip("todo sort out /duration, /percent and /rate")
 				calcData, err := setup(test.WizardTandem)
 				Expect(err).To(BeNil())
 				datum, err := utils.BuildPlatformDatum(fmt.Sprintf("%v", calcData["_id"]), calculator.Type, calcData)
@@ -113,7 +112,6 @@ var _ = Describe("back-37", func() {
 				Expect(datum).ToNot(BeNil())
 				Expect((*datum).GetType()).To(Equal(device.Type))
 			})
-
 			It("should successfully build cgm settings", func() {
 				deviceEventData, err := setup(test.CGMSetting)
 				Expect(err).To(BeNil())
@@ -122,7 +120,6 @@ var _ = Describe("back-37", func() {
 				Expect(datum).ToNot(BeNil())
 				Expect((*datum).GetType()).To(Equal(cgm.Type))
 			})
-
 		})
 
 		var _ = Describe("ApplyBaseChanges", func() {

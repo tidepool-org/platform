@@ -185,6 +185,7 @@ func tandemWizardDatum() map[string]interface{} {
 		"rate":         0.7,
 	}
 
+	datum["units"] = "mmol/L"
 	datum["duration"] = 300000
 	datum["rate"] = 0.335
 	datum["percent"] = 0.47857142857142865

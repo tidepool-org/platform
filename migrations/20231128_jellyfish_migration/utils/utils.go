@@ -215,6 +215,10 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 		validator.String("previousOverride", parser.String("previousOverride"))
 		validator.Int("index", parser.Int("index"))
 		validator.String("statusId", parser.String("statusId"))
+	case calculator.Type:
+		validator.Float64("percent", parser.Float64("percent"))
+		validator.Float64("rate", parser.Float64("rate"))
+		validator.Int("duration", parser.Int("duration"))
 	}
 
 	parser.NotParsed()
@@ -269,7 +273,6 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	notRequired := []string{
 		"_active",
 		"_archivedTime",
-		"_deduplicator",
 		"_groupId",
 		"_id",
 		"_schemaVersion",
