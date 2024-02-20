@@ -396,27 +396,27 @@ var _ = Describe("back-37", func() {
 			})
 
 			It("has no difference", func() {
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject, false)
+				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).ToNot(BeNil())
 				Expect(diff).To(Equal([]bson.M{}))
 			})
 			It("set for missing properties", func() {
 				delete(incomingObject, "deliveryType")
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject, false)
+				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{{"$set": bson.M{"deliveryType": "automated"}}}))
 			})
 			It("unset for unwanted properties", func() {
 				incomingObject["random"] = map[string]interface{}{"extra": true}
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject, false)
+				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"random": ""}}}))
 			})
 
 			It("no difference when inner payload changes", func() {
 				datumObject["payload"] = map[string]interface{}{"stuff": true}
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject, false)
+				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{}))
 			})

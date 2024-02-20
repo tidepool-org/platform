@@ -232,7 +232,7 @@ func (m *Migration) fetchAndProcess() bool {
 			}
 			itemID := fmt.Sprintf("%v", item["_id"])
 			itemType := fmt.Sprintf("%v", item["type"])
-			updates, err := utils.ProcessDatum(itemID, itemType, item, m.config.audit)
+			updates, err := utils.ProcessDatum(itemID, itemType, item)
 			if err != nil {
 				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
 			}
@@ -248,7 +248,6 @@ func (m *Migration) fetchAndProcess() bool {
 			all = append(all, item)
 		}
 		m.migrationUtil.SetFetched(all)
-		//should we write errors here as intermediate step?
 		return len(all) > 0
 	}
 	return false

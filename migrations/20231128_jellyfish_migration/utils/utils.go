@@ -3,8 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -35,20 +33,6 @@ import (
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
-
-func logDiff(id string, updates interface{}) {
-	updatesJSON, _ := json.Marshal(updates)
-	if string(updatesJSON) != "[]" {
-		f, err := os.OpenFile("diff.log",
-			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		defer f.Close()
-		f.WriteString(fmt.Sprintf(`{"_id":"%s","diff":%s},`, id, string(updatesJSON)))
-	}
-}
 
 func getBGValuePrecision(val interface{}) *float64 {
 	floatStr := fmt.Sprintf("%v", val)
@@ -256,7 +240,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	return datum, nil
 }
 
-func GetDatumChanges(id string, datum interface{}, original map[string]interface{}, logging bool) ([]bson.M, error) {
+func GetDatumChanges(id string, datum interface{}, original map[string]interface{}) ([]bson.M, error) {
 
 	outgoingJSONData, err := json.Marshal(datum)
 	if err != nil {
@@ -324,13 +308,10 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	if len(unset) > 0 {
 		difference = append(difference, bson.M{"$unset": unset})
 	}
-	if logging {
-		logDiff(id, difference)
-	}
 	return difference, nil
 }
 
-func ProcessDatum(dataID string, dataType string, bsonData bson.M, logChanges bool) ([]bson.M, error) {
+func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, error) {
 
 	if err := ApplyBaseChanges(bsonData, dataType); err != nil {
 		return nil, err
@@ -350,7 +331,7 @@ func ProcessDatum(dataID string, dataType string, bsonData bson.M, logChanges bo
 		return nil, err
 	}
 
-	updates, err := GetDatumChanges(dataID, datum, ojbData, logChanges)
+	updates, err := GetDatumChanges(dataID, datum, ojbData)
 	if err != nil {
 		return nil, err
 	}
