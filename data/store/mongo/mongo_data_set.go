@@ -132,7 +132,7 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string
 	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.GetDataSetByID")
 
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set by id")
@@ -249,7 +249,7 @@ func (d *DataSetRepository) GetDataSet(ctx context.Context, id string) (*data.Da
 
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DataSet.GetDataSet")
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set")

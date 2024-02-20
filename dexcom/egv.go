@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"fmt"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -218,4 +219,9 @@ func (e *EGV) Validate(validator structure.Validator) {
 	validator.String("transmitterId", e.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("status", e.Status).OneOf(EGVStatuses()...)
 	validator.String("trend", e.Trend).OneOf(EGVTrends()...)
+
+	// TODO: DO NOT COMMIT!!!
+	if e.DisplayDevice != nil && *e.DisplayDevice == DeviceDisplayDeviceUnknown {
+		fmt.Println("DARIN: COUNT[DeviceDisplayDeviceUnknown] EGV")
+	}
 }

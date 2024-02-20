@@ -1077,7 +1077,7 @@ var _ = Describe("Mongo", func() {
 								Expect(dataSet.DeletedTime).ToNot(BeNil())
 								Expect(dataSet.ModifiedTime).ToNot(BeNil())
 								Expect(dataSet.DeletedUserID).To(BeNil())
-								Expect(*dataSet.ModifiedTime).Should(BeTemporally("~", time.Now(), time.Second))
+								Expect(*dataSet.ModifiedTime).Should(BeTemporally("~", time.Now().UTC(), time.Second))
 							})
 
 							It("has the correct stored data sets", func() {
@@ -1404,7 +1404,7 @@ var _ = Describe("Mongo", func() {
 							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, upload.Type)
 							Expect(userLastUpdated).To(BeNil())
 							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
+							Expect(err).To(MatchError(HavePrefix(fmt.Sprintf("unexpected type: %v", upload.Type))))
 						})
 
 						Context("with database access", func() {
@@ -1471,7 +1471,7 @@ var _ = Describe("Mongo", func() {
 							userIds, err := repository.DistinctUserIDs(ctx, upload.Type)
 							Expect(userIds).To(BeNil())
 							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
+							Expect(err).To(MatchError(HavePrefix(fmt.Sprintf("unexpected type: %v", upload.Type))))
 						})
 
 						Context("with database access", func() {
@@ -1630,7 +1630,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -1668,7 +1668,7 @@ var _ = Describe("Mongo", func() {
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
 
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -1683,7 +1683,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 						})
@@ -1780,7 +1780,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -1817,7 +1817,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -1832,7 +1832,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 						})
@@ -1918,7 +1918,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -1955,7 +1955,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -1970,7 +1970,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 						})
@@ -2056,7 +2056,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -2093,7 +2093,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -2108,7 +2108,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 						})
@@ -2194,7 +2194,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -2231,7 +2231,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 
@@ -2246,7 +2246,7 @@ var _ = Describe("Mongo", func() {
 
 								It("returns an error", func() {
 									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
+									Expect(err).To(MatchError(HavePrefix("selectors is invalid")))
 								})
 							})
 						})
@@ -2637,11 +2637,12 @@ var _ = Describe("Mongo", func() {
 
 			Describe("Get", func() {
 				Context("when no document exists", func() {
-					It("returns an error", func() {
+					It("returns nil", func() {
 						ctx, cfg, _ := prep(false)
 
-						_, err := alertsRepository.Get(ctx, cfg)
-						Expect(err).To(MatchError(mongo.ErrNoDocuments))
+						got, err := alertsRepository.Get(ctx, cfg)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(got).To(BeNil())
 					})
 				})
 

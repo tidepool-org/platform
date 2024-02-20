@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/tidepool-org/platform/structure"
@@ -161,4 +162,9 @@ func (a *Alert) Validate(validator structure.Validator) {
 	validator.String("transmitterGeneration", a.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
 	validator.String("displayDevice", a.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
 	validator.String("transmitterId", a.TransmitterID).Using(TransmitterIDValidator)
+
+	// TODO: DO NOT COMMIT!!!
+	if a.DisplayDevice != nil && *a.DisplayDevice == DeviceDisplayDeviceUnknown {
+		fmt.Println("DARIN: COUNT[DeviceDisplayDeviceUnknown] Alert")
+	}
 }

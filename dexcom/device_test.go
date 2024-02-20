@@ -12,8 +12,9 @@ import (
 var _ = Describe("Device", func() {
 
 	It("DeviceDisplayDevices returns expected", func() {
-		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
+		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"unknown", "android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
 		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{
+			dexcom.DeviceDisplayDeviceUnknown,
 			dexcom.DeviceDisplayDeviceAndroid,
 			dexcom.DeviceDisplayDeviceIOS,
 			dexcom.DeviceDisplayDeviceReceiver,

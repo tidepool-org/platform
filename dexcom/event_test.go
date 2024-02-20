@@ -15,10 +15,6 @@ import (
 
 var _ = Describe("Event", func() {
 
-	It("EventUnitUnknown is expected", func() {
-		Expect(dexcom.EventUnitUnknown).To(Equal("unknown"))
-	})
-
 	It("EventUnitMgdL is expected", func() {
 		Expect(dexcom.EventUnitMgdL).To(Equal("mg/dL"))
 	})

@@ -1,8 +1,6 @@
 package api
 
 import (
-	"errors"
-
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
 	awsSdkGoServiceS3S3iface "github.com/aws/aws-sdk-go/service/s3/s3iface"
@@ -10,6 +8,7 @@ import (
 	awsSdkGoServiceS3S3managerS3manageriface "github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
 
 	"github.com/tidepool-org/platform/aws"
+	"github.com/tidepool-org/platform/errors"
 )
 
 type API struct {

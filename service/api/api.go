@@ -55,7 +55,7 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	accessLogMiddleware, err := middleware.NewAccessLog(middleware.AccessLogConfig{LogOnlyErrors: true})
+	accessLogMiddleware, err := middleware.NewAccessLog(middleware.AccessLogConfig{LogOnlyErrors: false}) // TODO: DO NOT COMMIT!!!
 	if err != nil {
 		return err
 	}

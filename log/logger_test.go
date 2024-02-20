@@ -1,7 +1,6 @@
 package log_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -116,7 +115,7 @@ var _ = Describe("Logger", func() {
 				})
 
 				It("fails silently if the serializer returns an error", func() {
-					serializer.SerializeOutputs = []error{fmt.Errorf("test error")}
+					serializer.SerializeOutputs = []error{errors.New("test error")}
 					logger.Log(log.WarnLevel, "Serializer Error Message")
 					Expect(serializer.SerializeInputs).ToNot(BeEmpty())
 				})
@@ -237,13 +236,13 @@ var _ = Describe("Logger", func() {
 				})
 
 				It("deletes the error field if the error is missing", func() {
-					logger.WithError(fmt.Errorf("euro error")).WithError(nil).Warn("European")
+					logger.WithError(errors.New("euro error")).WithError(nil).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
 				})
 
 				It("does include the error field if the error is not missing", func() {
-					logger.WithError(fmt.Errorf("euro error")).Warn("European")
+					logger.WithError(errors.New("euro error")).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKey("error"))
 				})

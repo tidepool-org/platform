@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/gowebpki/jcs"
+	"github.com/tidepool-org/platform/errors"
 )
 
 const (
@@ -74,10 +75,10 @@ func VerifyRevisionIntegrityHash(revision Revision) error {
 	attrs := NewIntegrityAttributesFromRevision(revision)
 	hash := MustGenerateIntegrityHash(attrs)
 	if revision.IntegrityHash == nil {
-		return fmt.Errorf("revision integrity hash missing")
+		return errors.New("revision integrity hash missing")
 	}
 	if !hashesMatch(*revision.IntegrityHash, hash) {
-		return fmt.Errorf("revision attributes do not match integrity hash")
+		return errors.New("revision attributes do not match integrity hash")
 	}
 	return nil
 }

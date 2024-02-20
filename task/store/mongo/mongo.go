@@ -2,10 +2,7 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"errors"
 
 	"github.com/tidepool-org/platform/ehr/reconcile"
 
@@ -16,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
@@ -120,7 +118,7 @@ type TaskRepository struct {
 func (t *TaskRepository) EnsureIndexes() error {
 	// Repositories operation only a subset of the tasks shouldn't invoke this method
 	if t.typeFilter != nil {
-		return fmt.Errorf("calling EnsureIndexes() on a partitioned repository is not allowed")
+		return errors.New("calling EnsureIndexes() on a partitioned repository is not allowed")
 	}
 
 	return t.CreateAllIndexes(context.Background(), []mongo.IndexModel{
@@ -185,7 +183,7 @@ func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate
 	if err != nil {
 		return err
 	} else if err = structureValidator.New().Validate(tsk); err != nil {
-		return fmt.Errorf("task is invalid: %w", err)
+		return errors.Wrap(err, "task is invalid")
 	}
 	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
 		return err
@@ -204,8 +202,9 @@ func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate
 		&opts,
 	)
 
-	if res.Err() != nil && !errors.Is(res.Err(), mongo.ErrNoDocuments) {
-		return fmt.Errorf("unable to create task: %w", res.Err())
+	// TODO: DARIN - What happens if mongo.ErrNoDocuments???? It gets returned
+	if err := res.Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return errors.Wrap(err, "unable to create task")
 	}
 
 	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
@@ -220,12 +219,12 @@ func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter,
 	if filter == nil {
 		filter = task.NewTaskFilter()
 	} else if err := structureValidator.New().Validate(filter); err != nil {
-		return nil, fmt.Errorf("filter is invalid: %w", err)
+		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New().Validate(pagination); err != nil {
-		return nil, fmt.Errorf("pagination is invalid: %w", err)
+		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 	if err := t.assertType(t.typeFilter, filter.Type); err != nil {
 		return nil, err
@@ -251,11 +250,11 @@ func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter,
 	cursor, err := t.Find(ctx, selector, opts)
 	logger.WithFields(log.Fields{"count": len(tasks), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListTasks")
 	if err != nil {
-		return nil, fmt.Errorf("unable to list tasks: %w", err)
+		return nil, errors.Wrap(err, "unable to list tasks")
 	}
 
 	if err = cursor.All(ctx, &tasks); err != nil {
-		return nil, fmt.Errorf("unable to decode tasks: %w", err)
+		return nil, errors.Wrap(err, "unable to decode tasks")
 	}
 
 	if tasks == nil {
@@ -274,7 +273,7 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 	if err != nil {
 		return nil, err
 	} else if err = structureValidator.New().Validate(tsk); err != nil {
-		return nil, fmt.Errorf("task is invalid: %w", err)
+		return nil, errors.Wrap(err, "task is invalid")
 	}
 	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
 		return nil, err
@@ -286,7 +285,7 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 	_, err = t.InsertOne(ctx, tsk)
 	logger.WithFields(log.Fields{"id": tsk.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateTask")
 	if err != nil {
-		return nil, fmt.Errorf("unable to create task: %w", err)
+		return nil, errors.Wrap(err, "unable to create task")
 	}
 
 	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
@@ -317,7 +316,7 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
-		return nil, fmt.Errorf("unable to get task: %w", err)
+		return nil, errors.Wrap(err, "unable to get task")
 	}
 
 	return task, nil
@@ -333,7 +332,7 @@ func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task
 	if update == nil {
 		return nil, errors.New("update is missing")
 	} else if err := structureValidator.New().Validate(update); err != nil {
-		return nil, fmt.Errorf("update is invalid: %w", err)
+		return nil, errors.Wrap(err, "update is invalid")
 	}
 
 	now := time.Now()
@@ -363,7 +362,7 @@ func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task
 	changeInfo, err := t.UpdateMany(ctx, selector, t.ConstructUpdate(set, bson.M{}))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
 	if err != nil {
-		return nil, fmt.Errorf("unable to update task: %w", err)
+		return nil, errors.Wrap(err, "unable to update task")
 	}
 
 	return t.GetTask(ctx, id)
@@ -388,7 +387,7 @@ func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 	changeInfo, err := t.DeleteOne(ctx, selector)
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteTask")
 	if err != nil {
-		return fmt.Errorf("unable to delete task: %w", err)
+		return errors.Wrap(err, "unable to delete task")
 	}
 
 	return nil
@@ -419,7 +418,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 	result, err := t.ReplaceOne(ctx, selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
 	if err != nil {
-		return nil, fmt.Errorf("unable to update from state: %w", err)
+		return nil, errors.Wrap(err, "unable to update from state")
 	}
 	if result.ModifiedCount != 1 {
 		return nil, task.AlreadyClaimedTask
@@ -497,7 +496,7 @@ func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, err
 // assertType return an error if the expected type doesn't match the actual type
 func (t *TaskRepository) assertType(expected *string, actual *string) error {
 	if expected != nil && actual != nil && *expected != *actual {
-		return fmt.Errorf("expected task type %v but got %v", *expected, *actual)
+		return errors.Newf("expected task type %s but got %s", *expected, *actual)
 	}
 	return nil
 }

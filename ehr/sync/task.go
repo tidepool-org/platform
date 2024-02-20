@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 )
@@ -30,7 +31,7 @@ func NewTaskCreate(clinicId string) *task.TaskCreate {
 func GetClinicId(data map[string]interface{}) (string, error) {
 	clinicId, ok := data["clinicId"].(string)
 	if !ok {
-		return "", fmt.Errorf("unable to get clinicId from task data")
+		return "", errors.New("unable to get clinicId from task data")
 	}
 	return clinicId, nil
 }

@@ -4,11 +4,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"errors"
-
 	"github.com/tidepool-org/platform/dexcom/fetch"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/task"
 )

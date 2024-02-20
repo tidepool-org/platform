@@ -2,14 +2,11 @@ package v1
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
-
-	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
@@ -83,12 +80,10 @@ func GetAlert(dCtx service.Context) {
 	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
 	alert, err := repo.Get(ctx, cfg)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			dCtx.RespondWithStatusAndErrors(http.StatusNotFound,
-				[]*platform.Error{platform.ErrorValueNotExists()})
-			return
-		}
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		return
+	} else if alert == nil {
+		dCtx.RespondWithStatusAndErrors(http.StatusNotFound, []*platform.Error{platform.ErrorValueNotExists()})
 		return
 	}
 
@@ -135,8 +130,6 @@ func UpsertAlert(dCtx service.Context) {
 	}
 }
 
-var ErrUnauthorized = fmt.Errorf("unauthorized")
-
 // checkUserIDConsistency verifies the userIDs in a request.
 //
 // For safety reasons, if these values don't agree, return an error.
@@ -148,13 +141,13 @@ func checkUserIDConsistency(details request.AuthDetails, userIDFromPath string) 
 		return nil
 	}
 
-	return ErrUnauthorized
+	return errors.New("unauthorized")
 }
 
 // checkAuthentication ensures that the request has an authentication token.
 func checkAuthentication(details request.AuthDetails) error {
 	if details.Token() == "" {
-		return ErrUnauthorized
+		return errors.New("unauthorized")
 	}
 	if details.IsUser() {
 		return nil
@@ -162,7 +155,7 @@ func checkAuthentication(details request.AuthDetails) error {
 	if details.IsService() {
 		return nil
 	}
-	return ErrUnauthorized
+	return errors.New("unauthorized")
 }
 
 // checkUserAuthorization returns nil if userID is permitted to have alerts
@@ -177,7 +170,7 @@ func checkUserAuthorization(ctx context.Context, pc permission.Client, userID, f
 			return nil
 		}
 	}
-	return fmt.Errorf("user isn't authorized for alerting: %q", userID)
+	return errors.Newf("user isn't authorized for alerting: %q", userID)
 }
 
 // userIDWithServiceFallback returns the user's ID.

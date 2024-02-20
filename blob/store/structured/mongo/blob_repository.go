@@ -59,9 +59,9 @@ func (b *BlobRepository) List(ctx context.Context, userID string, filter *blob.F
 	}
 	if !user.IsValidID(userID) {
 		if userID == "" {
-			return nil, errorUserIDMissing
+			return nil, errors.New("user id is missing")
 		}
-		return nil, errorUserIDNotValid
+		return nil, errors.New("user id is invalid")
 	}
 	if filter == nil {
 		filter = blob.NewFilter()
@@ -122,9 +122,9 @@ func (b *BlobRepository) Create(ctx context.Context, userID string, create *blob
 	}
 	if !user.IsValidID(userID) {
 		if userID == "" {
-			return nil, errorUserIDMissing
+			return nil, errors.New("user id is missing")
 		}
-		return nil, errorUserIDNotValid
+		return nil, errors.New("user id is invalid")
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
@@ -177,9 +177,9 @@ func (b *BlobRepository) DeleteAll(ctx context.Context, userID string) (bool, er
 	}
 	if !user.IsValidID(userID) {
 		if userID == "" {
-			return false, errorUserIDMissing
+			return false, errors.New("user id is missing")
 		}
-		return false, errorUserIDNotValid
+		return false, errors.New("user id is invalid")
 	}
 
 	now := time.Now()
@@ -210,9 +210,9 @@ func (b *BlobRepository) DestroyAll(ctx context.Context, userID string) (bool, e
 	}
 	if !user.IsValidID(userID) {
 		if userID == "" {
-			return false, errorUserIDMissing
+			return false, errors.New("user id is missing")
 		}
-		return false, errorUserIDNotValid
+		return false, errors.New("user id is invalid")
 	}
 
 	now := time.Now()
@@ -238,9 +238,9 @@ func (b *BlobRepository) Get(ctx context.Context, id string, condition *request.
 	}
 	if !blob.IsValidID(id) {
 		if id == "" {
-			return nil, errorBlobIDMissing
+			return nil, errors.New("id is missing")
 		}
-		return nil, errorBlobIDNotValid
+		return nil, errors.New("id is invalid")
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -267,9 +267,9 @@ func (b *BlobRepository) Update(ctx context.Context, id string, condition *reque
 	}
 	if !blob.IsValidID(id) {
 		if id == "" {
-			return nil, errorBlobIDMissing
+			return nil, errors.New("id is missing")
 		}
-		return nil, errorBlobIDNotValid
+		return nil, errors.New("id is invalid")
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -343,9 +343,9 @@ func (b *BlobRepository) Delete(ctx context.Context, id string, condition *reque
 	}
 	if !blob.IsValidID(id) {
 		if id == "" {
-			return false, errorBlobIDMissing
+			return false, errors.New("id is missing")
 		}
-		return false, errorBlobIDNotValid
+		return false, errors.New("id is invalid")
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -384,9 +384,9 @@ func (b *BlobRepository) Destroy(ctx context.Context, id string, condition *requ
 	}
 	if !blob.IsValidID(id) {
 		if id == "" {
-			return false, errorBlobIDMissing
+			return false, errors.New("id is missing")
 		}
-		return false, errorBlobIDNotValid
+		return false, errors.New("id is invalid")
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -424,7 +424,7 @@ func (c *BlobRepository) get(ctx context.Context, logger log.Logger, id string, 
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
 	err := c.FindOne(ctx, query).Decode(&result)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		logger.WithError(err).Error("Unable to get blob")

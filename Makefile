@@ -201,16 +201,16 @@ test-watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -p -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -p -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
 
 ci-test-until-failure: ginkgo
-	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -p -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -p -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)
 
 ci-test-watch: ginkgo
-	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)
+	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -p -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -p -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)
 
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
@@ -308,20 +308,23 @@ endif
 
 ci-docker: docker
 
-clean: clean-bin clean-cover clean-debug clean-deploy
+clean: clean-bin clean-cover clean-debug clean-deploy clean-test
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
 
 clean-bin:
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log
 
 clean-cover:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -o -name "coverprofile.out" -delete
 
 clean-debug:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -o -name "__debug_bin*" -delete
 
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy
+
+clean-test:
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.test" -o -name "*.report" -delete
 
 clean-all: clean
 

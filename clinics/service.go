@@ -2,9 +2,9 @@ package clinics
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/kelseyhightower/envconfig"
@@ -75,7 +75,7 @@ func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID 
 		return nil, nil
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		return nil, errors.Newf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return response.JSON200, nil
 }
@@ -95,7 +95,7 @@ func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Cli
 			return nil, err
 		}
 		if response.StatusCode() != http.StatusOK {
-			return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+			return nil, errors.Newf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 		}
 		if response.JSON200 == nil {
 			break
@@ -129,7 +129,7 @@ func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patie
 		return d.getPatient(ctx, clinicID, patientID)
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		return nil, errors.Newf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return response.JSON200, nil
 }
@@ -140,7 +140,7 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 		return err
 	}
 	if response.StatusCode() != http.StatusAccepted {
-		return fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		return errors.Newf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return nil
 }
@@ -151,7 +151,7 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 		return nil, err
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		return nil, errors.Newf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return response.JSON200, nil
 }

@@ -11,10 +11,13 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -249,6 +252,29 @@ var _ = Describe("Client", func() {
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							reader, err := clnt.RequestStream(ctx, method, url, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
+							Expect(reader).To(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
 				})
 
 				Context("RequestData", func() {
@@ -307,6 +333,28 @@ var _ = Describe("Client", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
 							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							err := clnt.RequestData(ctx, method, url, nil, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -464,6 +512,29 @@ var _ = Describe("Client", func() {
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							reader, err := clnt.RequestStream(ctx, method, url, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
+							Expect(reader).To(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
 				})
 
 				Context("RequestData", func() {
@@ -522,6 +593,28 @@ var _ = Describe("Client", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
 							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							err := clnt.RequestData(ctx, method, url, nil, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})

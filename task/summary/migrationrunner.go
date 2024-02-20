@@ -2,11 +2,8 @@ package summary
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
-
-	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/sync/errgroup"
@@ -14,6 +11,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/structure"
@@ -121,14 +119,14 @@ func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	config := r.GetConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
+		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
 	} else {
 		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 
 		if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
 		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
+			tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
 		}
 	}
 
@@ -169,35 +167,39 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 		return errors.New("context is missing")
 	}
 
+	t.logger.Info("Migrating user CGM and BGM summaries")
+
 	t.context = ctx
 	t.validator = structureValidator.New()
 
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
-	t.logger.Info("Searching for User CGM Summaries requiring Migration")
+	t.logger.Debug("Searching for user CGM summaries requiring migration")
 	outdatedCGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Info("Searching for User BGM Summaries requiring Migration")
+	t.logger.Debug("Searching for user BGM summaries requiring migration")
 	outdatedBGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
 	if err != nil {
 		return err
 	}
 
-	t.logger.Debug("Starting User CGM Summary Migration")
+	t.logger.Debug("Starting user CGM summary migration")
 	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
 		return err
 	}
-	t.logger.Debug("Finished User CGM Summary Migration")
+	t.logger.Debug("Finished user CGM summary migration")
 
-	t.logger.Debug("Starting User BGM Summary Migration")
+	t.logger.Debug("Starting user BGM summary migration")
 	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
 		return err
 	}
-	t.logger.Debug("Finished User BGM Summary Migration")
+	t.logger.Debug("Finished user BGM summary migration")
+
+	t.logger.Info("Migrated user CGM and BGM summaries")
 
 	return nil
 }
@@ -253,29 +255,25 @@ func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 }
 
 func (t *MigrationTaskRunner) UpdateCGMUserSummary(userID string) error {
-	t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
+	logger := t.logger.WithField("userId", userID)
+	logger.Debug("Updating user CGM summary")
 
-	// update summary
-	_, err := t.dataClient.UpdateCGMSummary(t.context, userID)
-	if err != nil {
+	if _, err := t.dataClient.UpdateCGMSummary(t.context, userID); err != nil {
 		return err
 	}
 
-	t.logger.WithField("UserID", userID).Debug("Finished Updating User CGM Summary")
-
+	logger.Info("Updated user CGM summary")
 	return nil
 }
 
 func (t *MigrationTaskRunner) UpdateBGMUserSummary(userID string) error {
-	t.logger.WithField("UserID", userID).Debug("Updating User BGM Summary")
+	logger := t.logger.WithField("userId", userID)
+	logger.Debug("Updating user BGM summary")
 
-	// update summary
-	_, err := t.dataClient.UpdateBGMSummary(t.context, userID)
-	if err != nil {
+	if _, err := t.dataClient.UpdateBGMSummary(t.context, userID); err != nil {
 		return err
 	}
 
-	t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
-
+	logger.Info("Updated user BGM summary")
 	return nil
 }

@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomClient "github.com/tidepool-org/platform/dexcom/client"
 	dexcomTest "github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"

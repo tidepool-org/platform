@@ -13,13 +13,11 @@ import (
 	. "github.com/onsi/gomega/ghttp"
 
 	"github.com/tidepool-org/platform/client"
-	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -337,7 +335,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an bad request 400 without deserializable error body", func() {
+			Context("with an bad request 400", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -345,7 +343,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusBadRequest, "NOT JSON"),
+							RespondWith(http.StatusBadRequest, `{"error": "not-parsed"}`),
 						),
 					)
 				})
@@ -353,30 +351,6 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 					errorsTest.ExpectEqual(err, request.ErrorBadRequest())
-					Expect(reader).To(BeNil())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
-			Context("with an bad request 400 with deserializable error body", func() {
-				var responseErr error
-
-				BeforeEach(func() {
-					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
-					errorsTest.ExpectEqual(err, responseErr)
 					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
@@ -390,7 +364,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusUnauthorized, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -411,7 +385,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusForbidden, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -424,7 +398,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an resource not found 404 without deserializable error body", func() {
+			Context("with an resource not found 404", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -432,7 +406,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusNotFound, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -445,31 +419,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an resource not found 404 with deserializable error body", func() {
-				var responseErr error
-
-				BeforeEach(func() {
-					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
-					errorsTest.ExpectEqual(err, responseErr)
-					Expect(reader).To(BeNil())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
-			Context("with a too many requests response 413", func() {
+			Context("with a request entity too large response 413", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -477,7 +427,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusRequestEntityTooLarge, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusRequestEntityTooLarge, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -498,7 +448,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusTooManyRequests, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusTooManyRequests, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -511,7 +461,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an unexpected response 500 without deserializable error body", func() {
+			Context("with an unexpected response 500", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -527,30 +477,6 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
-					Expect(reader).To(BeNil())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
-			Context("with an unexpected response 500 with deserializable error body", func() {
-				var responseErr error
-
-				BeforeEach(func() {
-					responseErr = errorsTest.RandomError()
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
-					errorsTest.ExpectEqual(err, responseErr)
 					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
@@ -752,7 +678,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an bad request 400 without deserializable error body", func() {
+			Context("with an bad request 400", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -772,29 +698,6 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an bad request 400 with deserializable error body", func() {
-				var responseErr error
-
-				BeforeEach(func() {
-					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					errorsTest.ExpectEqual(err, responseErr)
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
 			Context("with an unauthorized response 401", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -803,7 +706,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusUnauthorized, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -823,7 +726,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusForbidden, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusForbidden, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -835,7 +738,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an resource not found 404 without deserializable error body", func() {
+			Context("with an resource not found 404", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -843,7 +746,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusNotFound, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusNotFound, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -851,29 +754,6 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 					errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
-			Context("with an resource not found 404 with deserializable error body", func() {
-				var responseErr error
-
-				BeforeEach(func() {
-					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					errorsTest.ExpectEqual(err, responseErr)
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -886,7 +766,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusRequestEntityTooLarge, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusRequestEntityTooLarge, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -906,7 +786,7 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
 							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
 							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWith(http.StatusTooManyRequests, "NOT JSON", responseHeaders),
+							RespondWith(http.StatusTooManyRequests, `{"error": "not-parsed"}`, responseHeaders),
 						),
 					)
 				})
@@ -918,7 +798,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an unexpected response 500 without deserializable error body", func() {
+			Context("with an unexpected response 500", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -934,28 +814,6 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
-					Expect(server.ReceivedRequests()).To(HaveLen(1))
-				})
-			})
-
-			Context("with an unexpected response 500 with deserializable error body", func() {
-				var responseErr error
-				BeforeEach(func() {
-					responseErr = errorsTest.RandomError()
-					server.AppendHandlers(
-						CombineHandlers(
-							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
-							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
-							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
-							VerifyBody(test.MarshalRequestBody(requestBody)),
-							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
-					errorsTest.ExpectEqual(err, responseErr)
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})

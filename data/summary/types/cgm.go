@@ -1,15 +1,13 @@
 package types
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -190,7 +188,7 @@ func (s *CGMStats) Update(userData any) error {
 
 	for i, v := range userDataTyped {
 		if v.Type != continuous.Type {
-			return fmt.Errorf("Non-CGM data provided for CGM summary update at position %d", i)
+			return errors.Newf("Non-CGM data provided for CGM summary update at position %d", i)
 		}
 	}
 

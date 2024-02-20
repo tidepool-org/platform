@@ -149,7 +149,7 @@ func (p *ProviderSessionRepository) GetProviderSession(ctx context.Context, id s
 	var providerSession *auth.ProviderSession
 	err := p.FindOne(ctx, bson.M{"id": id}).Decode(&providerSession)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetProviderSession")
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
 

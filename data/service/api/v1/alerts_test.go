@@ -7,7 +7,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	dataservice "github.com/tidepool-org/platform/data/service"
@@ -139,7 +138,7 @@ var _ = Describe("Alerts endpoints", func() {
 			}))
 			dCtx := mocks.NewContext(t, "", "", body)
 			repo := newMockRepo()
-			repo.ReturnsError(mongo.ErrNoDocuments)
+			repo.ReturnsConfig(nil)
 			dCtx.MockAlertsRepository = repo
 
 			GetAlert(dCtx)
@@ -160,6 +159,7 @@ var _ = Describe("Alerts endpoints", func() {
 
 type mockRepo struct {
 	UserID string
+	Config *alerts.Config
 	Error  error
 }
 
@@ -167,7 +167,13 @@ func newMockRepo() *mockRepo {
 	return &mockRepo{}
 }
 
+func (r *mockRepo) ReturnsConfig(config *alerts.Config) {
+	r.Config = config
+	r.Error = nil
+}
+
 func (r *mockRepo) ReturnsError(err error) {
+	r.Config = nil
 	r.Error = err
 }
 
@@ -188,7 +194,7 @@ func (r *mockRepo) Get(ctx context.Context, conf *alerts.Config) (*alerts.Config
 	if conf != nil {
 		r.UserID = conf.UserID
 	}
-	return &alerts.Config{}, nil
+	return r.Config, nil
 }
 
 func (r *mockRepo) Delete(ctx context.Context, conf *alerts.Config) error {

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/ehr/reconcile"
@@ -104,14 +103,14 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 }
 
 func (s *Service) initializeTaskStore() error {
-	s.Logger().Debug("Loading task store config")
+	s.Logger().Info("Loading task store config")
 
 	cfg := storeStructuredMongo.NewConfig()
 	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load task store config")
 	}
 
-	s.Logger().Debug("Creating task store")
+	s.Logger().Info("Creating task store")
 
 	taskStore, err := taskMongo.NewStore(cfg)
 	if err != nil {
@@ -119,7 +118,7 @@ func (s *Service) initializeTaskStore() error {
 	}
 	s.taskStore = taskStore
 
-	s.Logger().Debug("Ensuring task store indexes")
+	s.Logger().Info("Ensuring task store indexes")
 
 	err = taskStore.EnsureIndexes()
 	if err != nil {
@@ -136,16 +135,16 @@ func (s *Service) initializeTaskStore() error {
 
 func (s *Service) terminateTaskStore() {
 	if s.taskStore != nil {
-		s.Logger().Debug("Closing task store")
+		s.Logger().Info("Closing task store")
 		s.taskStore.Terminate(context.Background())
 
-		s.Logger().Debug("Destroying task store")
+		s.Logger().Info("Destroying task store")
 		s.taskStore = nil
 	}
 }
 
 func (s *Service) initializeTaskClient() error {
-	s.Logger().Debug("Creating task client")
+	s.Logger().Info("Creating task client")
 
 	clnt, err := NewClient(s.TaskStore())
 	if err != nil {
@@ -158,13 +157,13 @@ func (s *Service) initializeTaskClient() error {
 
 func (s *Service) terminateTaskClient() {
 	if s.taskClient != nil {
-		s.Logger().Debug("Destroying task client")
+		s.Logger().Info("Destroying task client")
 		s.taskClient = nil
 	}
 }
 
 func (s *Service) initializeDataClient() error {
-	s.Logger().Debug("Loading data client config")
+	s.Logger().Info("Loading data client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
@@ -174,7 +173,7 @@ func (s *Service) initializeDataClient() error {
 		return errors.Wrap(err, "unable to load data client config")
 	}
 
-	s.Logger().Debug("Creating data client")
+	s.Logger().Info("Creating data client")
 
 	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
@@ -187,13 +186,13 @@ func (s *Service) initializeDataClient() error {
 
 func (s *Service) terminateDataClient() {
 	if s.dataClient != nil {
-		s.Logger().Debug("Destroying data client")
+		s.Logger().Info("Destroying data client")
 		s.dataClient = nil
 	}
 }
 
 func (s *Service) initializeDataSourceClient() error {
-	s.Logger().Debug("Loading data source client config")
+	s.Logger().Info("Loading data source client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
@@ -203,7 +202,7 @@ func (s *Service) initializeDataSourceClient() error {
 		return errors.Wrap(err, "unable to load data source client config")
 	}
 
-	s.Logger().Debug("Creating data source client")
+	s.Logger().Info("Creating data source client")
 
 	clnt, err := dataSourceClient.New(cfg, platform.AuthorizeAsService)
 	if err != nil {
@@ -216,19 +215,19 @@ func (s *Service) initializeDataSourceClient() error {
 
 func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
-		s.Logger().Debug("Destroying data source client")
+		s.Logger().Info("Destroying data source client")
 		s.dataSourceClient = nil
 	}
 }
 
 func (s *Service) initializeDexcomClient() error {
-	s.Logger().Debug("Loading dexcom provider")
+	s.Logger().Info("Loading dexcom provider")
 
 	dxcmPrvdr, err := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataSourceClient, s.TaskClient())
 	if err != nil {
 		s.Logger().Warn("Unable to create dexcom provider")
 	} else {
-		s.Logger().Debug("Loading dexcom client config")
+		s.Logger().Info("Loading dexcom client config")
 
 		cfg := client.NewConfig()
 		cfg.UserAgent = s.UserAgent()
@@ -238,7 +237,7 @@ func (s *Service) initializeDexcomClient() error {
 			return errors.Wrap(err, "unable to load dexcom client config")
 		}
 
-		s.Logger().Debug("Creating dexcom client")
+		s.Logger().Info("Creating dexcom client")
 
 		clnt, clntErr := dexcomClient.New(cfg, dxcmPrvdr)
 		if clntErr != nil {
@@ -252,13 +251,13 @@ func (s *Service) initializeDexcomClient() error {
 
 func (s *Service) terminateDexcomClient() {
 	if s.dexcomClient != nil {
-		s.Logger().Debug("Destroying dexcom client")
+		s.Logger().Info("Destroying dexcom client")
 		s.dexcomClient = nil
 	}
 }
 
 func (s *Service) initializeClinicsClient() error {
-	s.Logger().Debug("Creating clinics client")
+	s.Logger().Info("Creating clinics client")
 
 	clnt, err := clinics.NewClient(s.AuthClient())
 	if err != nil {
@@ -270,14 +269,14 @@ func (s *Service) initializeClinicsClient() error {
 }
 
 func (s *Service) initializeTaskQueue() error {
-	s.Logger().Debug("Loading task queue config")
+	s.Logger().Info("Loading task queue config")
 
 	cfg := queue.NewConfig()
 	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "queue")); err != nil {
 		return errors.Wrap(err, "unable to load task queue config")
 	}
 
-	s.Logger().Debug("Creating task queue")
+	s.Logger().Info("Creating task queue")
 
 	taskQueue, err := queue.NewMultiQueue(cfg, s.Logger(), s.TaskStore())
 	if err != nil {
@@ -287,8 +286,9 @@ func (s *Service) initializeTaskQueue() error {
 	s.taskQueue = taskQueue
 
 	var runners []queue.Runner
+
 	if s.dexcomClient != nil {
-		s.Logger().Debug("Creating dexcom fetch runner")
+		s.Logger().Info("Creating dexcom fetch runner")
 
 		rnnr, rnnrErr := dexcomFetch.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
 		if rnnrErr != nil {
@@ -298,7 +298,7 @@ func (s *Service) initializeTaskQueue() error {
 		runners = append(runners, rnnr)
 	}
 
-	s.Logger().Debug("Creating summary update runner")
+	s.Logger().Info("Creating summary update runner")
 
 	summaryUpdateRnnr, summaryUpdateRnnrErr := summaryUpdate.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryUpdateRnnrErr != nil {
@@ -306,17 +306,23 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, summaryUpdateRnnr)
 
+	s.Logger().Info("Creating summary backfill runner")
+
 	summaryBackfillRnnr, summaryBackfillRnnrErr := summaryUpdate.NewBackfillRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryBackfillRnnrErr != nil {
 		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
 	}
 	runners = append(runners, summaryBackfillRnnr)
 
+	s.Logger().Info("Creating summary migration runner")
+
 	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryMigrationRnnrErr != nil {
 		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
 	}
-	taskQueue.RegisterRunner(summaryMigrationRnnr)
+	runners = append(runners, summaryMigrationRnnr)
+
+	s.Logger().Info("Creating ehr reconcile runner")
 
 	ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
 	if err != nil {
@@ -324,20 +330,29 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, ehrReconcileRnnr)
 
+	s.Logger().Info("Creating ehr sync runner")
+
 	ehrSyncRnnr, err := sync.NewRunner(s.clinicsClient, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create ehr sync runner")
 	}
 	runners = append(runners, ehrSyncRnnr)
 
+	// // TODO: DO NOT COMMIT!!!
+	// exampleRunner, err := taskExample.NewRunner(s.taskClient, s.Logger())
+	// if err != nil {
+	// 	return errors.Wrap(err, "unable to create example runner")
+	// }
+	// runners = append(runners, exampleRunner)
+
 	for _, r := range runners {
 		r := r
 		if err := taskQueue.RegisterRunner(r); err != nil {
-			return fmt.Errorf("unable to register runner %s: %w", r.GetRunnerType(), err)
+			return errors.Wrapf(err, "unable to register runner %s", r.GetRunnerType())
 		}
 	}
 
-	s.Logger().Debug("Starting task queue")
+	s.Logger().Info("Starting task queue")
 	s.taskQueue.Start()
 
 	return nil
@@ -345,30 +360,30 @@ func (s *Service) initializeTaskQueue() error {
 
 func (s *Service) terminateTaskQueue() {
 	if s.taskQueue != nil {
-		s.Logger().Debug("Stopping task queue")
+		s.Logger().Info("Stopping task queue")
 		s.taskQueue.Stop()
 
-		s.Logger().Debug("Destroying task queue")
+		s.Logger().Info("Destroying task queue")
 		s.taskQueue = nil
 	}
 }
 
 func (s *Service) initializeRouter() error {
-	s.Logger().Debug("Creating api router")
+	s.Logger().Info("Creating api router")
 
 	apiRouter, err := api.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api router")
 	}
 
-	s.Logger().Debug("Creating v1 router")
+	s.Logger().Info("Creating v1 router")
 
 	v1Router, err := taskServiceApiV1.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create v1 router")
 	}
 
-	s.Logger().Debug("Initializing routers")
+	s.Logger().Info("Initializing routers")
 
 	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")

@@ -3,6 +3,7 @@ package dexcom
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 
 	yaml "gopkg.in/yaml.v2"
@@ -13,6 +14,7 @@ import (
 )
 
 const (
+	DeviceDisplayDeviceUnknown             = "unknown"
 	DeviceDisplayDeviceAndroid             = "android"
 	DeviceDisplayDeviceIOS                 = "iOS"
 	DeviceDisplayDeviceReceiver            = "receiver"
@@ -23,15 +25,15 @@ const (
 	DeviceTransmitterGenerationG4      = "g4"
 	DeviceTransmitterGenerationG5      = "g5"
 	DeviceTransmitterGenerationG6      = "g6"
-	//note: 'g6 pro' not specfied in API specs but found during actual usage
-	DeviceTransmitterGenerationG6Pro  = "g6 pro"
-	DeviceTransmitterGenerationG6Plus = "g6+"
-	DeviceTransmitterGenerationPro    = "dexcomPro"
-	DeviceTransmitterGenerationG7     = "g7"
+	DeviceTransmitterGenerationG6Pro   = "g6 pro" // NOTE: Not specfied in API specs but found during actual usage
+	DeviceTransmitterGenerationG6Plus  = "g6+"
+	DeviceTransmitterGenerationPro     = "dexcomPro"
+	DeviceTransmitterGenerationG7      = "g7"
 )
 
 func DeviceDisplayDevices() []string {
 	return []string{
+		DeviceDisplayDeviceUnknown,
 		DeviceDisplayDeviceAndroid,
 		DeviceDisplayDeviceIOS,
 		DeviceDisplayDeviceReceiver,
@@ -85,6 +87,8 @@ func (d *DevicesResponse) Validate(validator structure.Validator) {
 	if devicesValidator := validator.WithReference("records"); d.Devices != nil {
 		if !d.IsSandboxData {
 			d.Devices.Validate(devicesValidator)
+		} else {
+			fmt.Println("DARIN: Did not validate sandbox devices")
 		}
 	} else {
 		devicesValidator.ReportError(structureValidator.ErrorValueNotExists())
@@ -176,6 +180,11 @@ func (d *Device) Validate(validator structure.Validator) {
 	validator.String("transmitterId", d.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("transmitterGeneration", d.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
 	validator.String("displayDevice", d.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
+
+	// TODO: DO NOT COMMIT!!!
+	if d.DisplayDevice != nil && *d.DisplayDevice == DeviceDisplayDeviceUnknown {
+		fmt.Println("DARIN: COUNT[DeviceDisplayDeviceUnknown] Device")
+	}
 }
 
 func (d *Device) Normalize(normalizer structure.Normalizer) {

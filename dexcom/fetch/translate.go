@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -44,6 +45,17 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 	var clockDriftOffsetDuration time.Duration
 	var conversionOffsetDuration time.Duration
 	var timeZoneOffsetDuration time.Duration
+
+	// TODO: DO NOT COMMIT!!!
+	if systemTime == nil {
+		fmt.Println("DARIN: COUNT[translateTime:systemTime]")
+	}
+
+	// TODO: DO NOT COMMIT!!!
+	if displayTime == nil {
+		displayTime = systemTime
+		fmt.Println("DARIN: COUNT[translateTime:displayTime]")
+	}
 
 	delta := displayTime.Sub(*systemTime.Raw())
 	if delta > 0 {

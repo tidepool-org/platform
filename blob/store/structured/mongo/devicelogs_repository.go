@@ -51,9 +51,9 @@ func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create
 	}
 	if !user.IsValidID(userID) {
 		if userID == "" {
-			return nil, errorUserIDMissing
+			return nil, errors.New("user id is missing")
 		}
-		return nil, errorUserIDNotValid
+		return nil, errors.New("user id is invalid")
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
@@ -105,9 +105,9 @@ func (d *DeviceLogsRepository) Update(ctx context.Context, id string, condition 
 	}
 	if !blob.IsValidID(id) {
 		if id == "" {
-			return nil, errorBlobIDMissing
+			return nil, errors.New("id is missing")
 		}
-		return nil, errorBlobIDNotValid
+		return nil, errors.New("id is invalid")
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -184,9 +184,9 @@ func (d *DeviceLogsRepository) Destroy(ctx context.Context, id string, condition
 	}
 	if !blob.IsValidID(id) {
 		if id == "" {
-			return false, errorBlobIDMissing
+			return false, errors.New("id is missing")
 		}
-		return false, errorBlobIDNotValid
+		return false, errors.New("id is invalid")
 	}
 	if condition == nil {
 		condition = request.NewCondition()
@@ -221,7 +221,7 @@ func (d *DeviceLogsRepository) get(ctx context.Context, logger log.Logger, id st
 	}
 	query = storeStructuredMongo.ModifyQuery(query, queryModifiers...)
 	err := d.FindOne(ctx, query).Decode(&result)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		logger.WithError(err).Error("Unable to get device logs blob")

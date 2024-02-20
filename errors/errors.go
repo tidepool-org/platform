@@ -15,6 +15,11 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+// NOTE: Should only be used with standard library or third-party library errors
+func Is(err error, target error) bool {
+	return errors.Is(err, target)
+}
+
 type Source interface {
 	Parameter() string
 	Pointer() string

@@ -2,13 +2,13 @@ package context_test
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/context"
 	testRest "github.com/tidepool-org/platform/test/rest"

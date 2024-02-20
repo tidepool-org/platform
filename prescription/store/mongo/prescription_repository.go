@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -145,7 +144,7 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicI
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicId": clinicID, "id": prescriptionID})
 
 	id, err := primitive.ObjectIDFromHex(prescriptionID)
-	if err == primitive.ErrInvalidHex {
+	if errors.Is(err, primitive.ErrInvalidHex) {
 		return false, nil
 	} else if err != nil {
 		return false, err
@@ -184,7 +183,7 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionID
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianID, "prescriptionId": prescriptionID, "create": create})
 
 	id, err := primitive.ObjectIDFromHex(prescriptionID)
-	if err == primitive.ErrInvalidHex {
+	if errors.Is(err, primitive.ErrInvalidHex) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -197,7 +196,7 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionID
 
 	prescr := &prescription.Prescription{}
 	err = p.FindOne(ctx, selector).Decode(prescr)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "could not get prescription to add revision to")
@@ -242,7 +241,7 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": claim.PatientID, "claim": claim})
 
 	if claim.RevisionHash == "" {
-		return nil, fmt.Errorf("cannot claim prescription without integrity hash")
+		return nil, errors.New("cannot claim prescription without integrity hash")
 	}
 	prescr, err := p.GetClaimablePrescription(ctx, claim)
 	if err != nil || prescr == nil {
@@ -284,7 +283,7 @@ func (p *PrescriptionRepository) GetClaimablePrescription(ctx context.Context, c
 	selector := newClaimSelector(claim)
 	prescr := &prescription.Prescription{}
 	err := p.FindOne(ctx, selector).Decode(prescr)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "could not get claimable prescription")
@@ -300,7 +299,7 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, pr
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": update.PatientID, "id": prescriptionID, "update": update})
 
 	id, err := primitive.ObjectIDFromHex(prescriptionID)
-	if err == primitive.ErrInvalidHex {
+	if errors.Is(err, primitive.ErrInvalidHex) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -313,7 +312,7 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, pr
 
 	prescr := &prescription.Prescription{}
 	err = p.FindOne(ctx, selector).Decode(prescr)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
 

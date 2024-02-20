@@ -30,6 +30,7 @@ const (
 	AvailableAfterDurationMinimum = 105 * time.Minute
 	DataSetSize                   = 2000
 	TaskDurationMaximum           = 10 * time.Minute
+	DataRangeDaysMaximum          = 30 // Per Dexcom documentation
 )
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -112,31 +113,25 @@ func (r *Runner) GetRunnerMaximumDuration() time.Duration {
 func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
-	ctx = log.NewContextWithLogger(ctx, r.Logger())
+	logger := r.Logger().WithField("task", tsk)
+	ctx = log.NewContextWithLogger(ctx, logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
-	// HACK: Dexcom - skip 2:45am - 3:45am PST to avoid intermittent refresh token failure due to Dexcom backups (per Dexcom)
-	var skipToAvoidDexcomBackup bool
-	if location, err := time.LoadLocation("America/Los_Angeles"); err != nil {
-		r.Logger().WithError(err).Warn("Unable to load location to detect Dexcom backup")
+	tsk.ClearError()
+
+	if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
+		r.retryTaskWithResourceError(ctx, tsk, errors.Wrap(sErr, "unable to get server session token"))
 	} else {
-		tm := now.In(location).Format("15:04:05")
-		skipToAvoidDexcomBackup = (tm >= "02:45:00") && (tm < "03:45:00")
-	}
-
-	if !skipToAvoidDexcomBackup {
-		tsk.ClearError()
-
-		if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
-			r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to get server session token"))
+		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+		if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
+			r.retryTaskWithInternalError(ctx, tsk, errors.Wrap(sErr, "unable to create task runner"))
+		} else if tErr = taskRunner.Run(ctx); tErr != nil {
+			r.ignoreAndLogTaskError(tsk, errors.Wrap(tErr, "unable to run task runner")) // TODO: DARIN - added temporary so it logs something
+			ErrorOrRetryTask(tsk, errors.Wrap(tErr, "unable to run task runner"))
 		} else {
-			ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
-				r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to create task runner"))
-			} else if tErr = taskRunner.Run(ctx); tErr != nil {
-				ErrorOrRetryTask(tsk, errors.Wrap(tErr, "unable to run task runner"))
-			}
+			// TODO: reset retry count
 		}
-	}
+	} // }
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
@@ -145,11 +140,24 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
 		r.Logger().WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
+
 	return true
 }
 
+func (r *Runner) retryTaskWithResourceError(ctx context.Context, tsk *task.Task, err error) error {
+	// DARIN: ERROR_RESOURCE - attach error, retry += 0, state PENDING, available after standard
+	return err
+}
+
+func (r *Runner) retryTaskWithInternalError(ctx context.Context, tsk *task.Task, err error) error {
+	// DARIN: ERROR_CODE - attach error, retry += 0, state PENDING, available after standard
+	// TODO: Fail in a recognizable manner, so we can restart
+	// New task state?
+	return err
+}
+
 func (r *Runner) ignoreAndLogTaskError(tsk *task.Task, err error) {
-	r.logger.Warnf("dexcom task %s error, task will be retried: %s", tsk.ID, err)
+	r.logger.WithError(err).Warnf("dexcom task %s error, task will be retried", tsk.ID)
 }
 
 type TaskRunner struct {
@@ -181,10 +189,12 @@ func NewTaskRunner(rnnr *Runner, tsk *task.Task) (*TaskRunner, error) {
 
 func (t *TaskRunner) Run(ctx context.Context) error {
 	if ctx == nil {
+		// DARIN: ERROR_CODE - attach error, retry += 0, state PENDING, available after standard
 		return errors.New("context is missing")
 	}
 
 	if len(t.task.Data) == 0 {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.New("data is missing"))
 	}
 
@@ -204,6 +214,8 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 		return err
 	}
 	if err := t.fetchSinceLatestDataTime(); err != nil {
+
+		// TODO: DARIN What about this???
 		if request.IsErrorUnauthenticated(errors.Cause(err)) {
 			FailTask(t.logger, t.task, err)
 			if updateErr := t.updateDataSourceWithError(err); updateErr != nil {
@@ -218,13 +230,16 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 func (t *TaskRunner) getProviderSession() error {
 	providerSessionID, ok := t.task.Data["providerSessionId"].(string)
 	if !ok || providerSessionID == "" {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.New("provider session id is missing"))
 	}
 
 	providerSession, err := t.AuthClient().GetProviderSession(t.context, providerSessionID)
 	if err != nil {
+		// DARIN: ERROR_RESOURCE - attach error, retry += 0, state PENDING, available after standard
 		return errors.Wrap(err, "unable to get provider session")
 	} else if providerSession == nil {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.Wrap(err, "provider session is missing"))
 	}
 	t.providerSession = providerSession
@@ -235,17 +250,20 @@ func (t *TaskRunner) getProviderSession() error {
 func (t *TaskRunner) updateProviderSession() error {
 	refreshedToken, err := t.tokenSource.RefreshedToken()
 	if err != nil {
+		// DARIN: ERROR_AUTH - attach error, retry += 1 to max, state PENDING, available after standard
 		return errors.Wrap(err, "unable to get refreshed token")
 	} else if refreshedToken == nil {
-		return nil
+		return nil // Token still valid, but has not changed, so no need to update
 	}
 
 	updateProviderSession := auth.NewProviderSessionUpdate()
 	updateProviderSession.OAuthToken = refreshedToken
 	providerSession, err := t.AuthClient().UpdateProviderSession(t.context, t.providerSession.ID, updateProviderSession)
 	if err != nil {
+		// DARIN: ERROR_RESOURCE - attach error, retry += 0, state PENDING, available after standard
 		return errors.Wrap(err, "unable to update provider session")
 	} else if providerSession == nil {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.Wrap(err, "provider session is missing"))
 	}
 	t.providerSession = providerSession
@@ -256,13 +274,16 @@ func (t *TaskRunner) updateProviderSession() error {
 func (t *TaskRunner) getDataSource() error {
 	dataSourceID, ok := t.task.Data["dataSourceId"].(string)
 	if !ok || dataSourceID == "" {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.New("data source id is missing"))
 	}
 
 	source, err := t.DataSourceClient().Get(t.context, dataSourceID)
 	if err != nil {
+		// DARIN: ERROR_RESOURCE - attach error, retry += 0, state PENDING, available after standard
 		return errors.Wrap(err, "unable to get data source")
 	} else if source == nil {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.Wrap(err, "data source is missing"))
 	}
 	t.dataSource = source
@@ -314,8 +335,10 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 
 	source, err := t.DataSourceClient().Update(t.context, *t.dataSource.ID, nil, update)
 	if err != nil {
+		// DARIN: ERROR_RESOURCE - attach error, retry += 0, state PENDING, available after standard
 		return errors.Wrap(err, "unable to update data source")
 	} else if source == nil {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.Wrap(err, "data source is missing"))
 	}
 
@@ -326,6 +349,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 func (t *TaskRunner) createTokenSource() error {
 	tokenSource, err := oauthToken.NewSourceWithToken(t.providerSession.OAuthToken)
 	if err != nil {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.Wrap(err, "unable to create token source"))
 	}
 
@@ -340,6 +364,7 @@ func (t *TaskRunner) getDeviceHashes() error {
 	}
 	rawMap, rawMapOK := raw.(map[string]interface{})
 	if !rawMapOK || rawMap == nil {
+		// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 		return FailTask(t.logger, t.task, errors.New("device hashes is invalid"))
 	}
 	deviceHashes := map[string]string{}
@@ -347,6 +372,7 @@ func (t *TaskRunner) getDeviceHashes() error {
 		if valueString, valueStringOK := value.(string); valueStringOK {
 			deviceHashes[key] = valueString
 		} else {
+			// DARIN: ERROR_DATA - attach error, retry = MAX, state FAILED
 			return FailTask(t.logger, t.task, errors.New("device hash is invalid"))
 		}
 	}
@@ -373,43 +399,84 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 	return false
 }
 
-func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
-	if dataSetUpdate.IsEmpty() {
-		return nil
-	}
-
-	dataSet, err := t.DataClient().UpdateDataSet(t.context, *t.dataSet.UploadID, dataSetUpdate)
-	if err != nil {
-		return errors.Wrap(err, "unable to update data set")
-	} else if dataSet == nil {
-		return FailTask(t.logger, t.task, errors.Wrap(err, "data set is missing"))
-	}
-
-	t.dataSet = dataSet
-	return nil
-}
-
 func (t *TaskRunner) fetchSinceLatestDataTime() error {
-	startTime := initialDataTime
-	if t.dataSource.LatestDataTime != nil && startTime.Before(*t.dataSource.LatestDataTime) {
-		startTime = *t.dataSource.LatestDataTime
+	dataRange, err := t.fetchDataRange()
+	if err != nil || dataRange == nil {
+		return err
 	}
 
-	almostNow := time.Now().Add(-time.Minute)
-	for startTime.Before(almostNow) {
-		endTime := startTime.AddDate(0, 0, 30)
-		if endTime.After(almostNow) {
-			endTime = almostNow
+	startTime := dataRange.StartTime
+	for startTime.Before(dataRange.EndTime) {
+		endTime := startTime.AddDate(0, 0, DataRangeDaysMaximum)
+		if endTime.After(dataRange.EndTime) {
+			endTime = dataRange.EndTime
 		}
 
 		if err := t.fetch(startTime, endTime); err != nil {
 			return err
 		}
 
-		startTime = startTime.AddDate(0, 0, 30)
-		almostNow = time.Now().Add(-time.Minute)
+		startTime = startTime.AddDate(0, 0, DataRangeDaysMaximum)
 	}
-	return nil
+
+	return t.updateDataSourceWithDataTime(nil, &dataRange.EndTime)
+}
+
+func (t *TaskRunner) fetchDataRange() (*dataRange, error) {
+	var latestDataTime time.Time
+
+	if t.dataSource.LatestDataTime != nil {
+		latestDataTime = *t.dataSource.LatestDataTime
+	} else {
+		latestDataTime = initialDataTime
+	}
+
+	response, err := t.DexcomClient().GetDataRange(t.context, &latestDataTime, t.tokenSource)
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
+	}
+	if err != nil {
+		if request.IsErrorUnauthenticated(errors.Cause(err)) {
+			// DARIN: ERROR_AUTH - attach error, retry += 1 to max, state PENDING, available after standard
+		} else {
+			// DARIN: ERROR_RESOURCE/ERROR_CODE - attach error, retry += 0, state PENDING, available after standard
+		}
+		return nil, err
+	}
+
+	now := time.Now()
+
+	// Initialize at minimum impossible window
+	startTime := now
+	endTime := latestDataTime
+
+	// Determine actual minimum start time and maximum end time
+	if response.Calibrations != nil {
+		startTime = minTime(startTime, response.Calibrations.Start.SystemTime.Time)
+		endTime = maxTime(endTime, response.Calibrations.End.SystemTime.Time)
+	}
+	if response.EGVs != nil {
+		startTime = minTime(startTime, response.EGVs.Start.SystemTime.Time)
+		endTime = maxTime(endTime, response.EGVs.End.SystemTime.Time)
+	}
+	if response.Events != nil {
+		startTime = minTime(startTime, response.Events.Start.SystemTime.Time)
+		endTime = maxTime(endTime, response.Events.End.SystemTime.Time)
+	}
+
+	// Constrain to maximum possible window
+	startTime = maxTime(startTime, latestDataTime)
+	endTime = minTime(endTime, now)
+
+	// If there is no valid time range, then indicate nothing to process
+	if !startTime.Before(endTime) {
+		return nil, nil
+	}
+
+	return &dataRange{
+		StartTime: startTime,
+		EndTime:   endTime,
+	}, nil
 }
 
 func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
@@ -461,11 +528,11 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexc
 		return nil, nil, updateErr
 	}
 	if err != nil {
-		return nil, nil, err
-	}
-
-	t.validator.Validate(response)
-	if err = t.validator.Error(); err != nil {
+		if request.IsErrorUnauthenticated(errors.Cause(err)) {
+			// DARIN: ERROR_AUTH - attach error, retry += 1 to max, state PENDING, available after standard
+		} else {
+			// DARIN: ERROR_RESOURCE/ERROR_CODE - attach error, retry += 0, state PENDING, available after standard
+		}
 		return nil, nil, err
 	}
 
@@ -538,11 +605,6 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 		return nil, err
 	}
 
-	t.validator.Validate(response)
-	if err = t.validator.Error(); err != nil {
-		return nil, err
-	}
-
 	datumArray := data.Data{}
 	for _, c := range *response.Calibrations {
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
@@ -559,11 +621,6 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 		return nil, updateErr
 	}
 	if err != nil {
-		return nil, err
-	}
-
-	t.validator.Validate(response)
-	if err = t.validator.Error(); err != nil {
 		return nil, err
 	}
 	datumArray := data.Data{}
@@ -586,11 +643,6 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 		return nil, err
 	}
 
-	t.validator.Validate(response)
-	if err = t.validator.Error(); err != nil {
-		return nil, err
-	}
-
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
@@ -607,11 +659,6 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 		return nil, updateErr
 	}
 	if err != nil {
-		return nil, err
-	}
-
-	t.validator.Validate(response)
-	if err = t.validator.Error(); err != nil {
 		return nil, err
 	}
 
@@ -768,4 +815,29 @@ func (b BySystemTime) Less(left int, right int) bool {
 
 func (b BySystemTime) Swap(left int, right int) {
 	b[left], b[right] = b[right], b[left]
+}
+
+func minTime(first time.Time, others ...time.Time) time.Time {
+	min := first
+	for _, other := range others {
+		if other.Before(min) {
+			min = other
+		}
+	}
+	return min
+}
+
+func maxTime(first time.Time, others ...time.Time) time.Time {
+	max := first
+	for _, other := range others {
+		if other.After(max) {
+			max = other
+		}
+	}
+	return max
+}
+
+type dataRange struct {
+	StartTime time.Time
+	EndTime   time.Time
 }

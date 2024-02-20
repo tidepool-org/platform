@@ -1,12 +1,27 @@
-*.coverprofile
-*.env
-*.test
-/_bin
-/_data
-/_log
-/_tmp
-/deploy
-/.idea
+# OS
 .DS_Store
+
+# Environment
+*.env
 .envrc
+
+# Debug binaries
+debug
+__debug_bin*
+
+# Test output
+*.test
+
+# Test coverage output
+*.coverprofile
 coverprofile.out
+
+# Project directories
+/_bin/
+/_data/
+/_log/
+/_tmp/
+/deploy/
+
+# Development environments
+/.idea

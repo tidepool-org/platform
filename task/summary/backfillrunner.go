@@ -8,10 +8,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 
-	"errors"
-
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -116,12 +115,12 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	config := r.GetConfig(tsk)
 
 	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
+		tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
 	} else {
 		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
 
 		if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+			tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
 		} else if tErr = taskRunner.Run(ctx); tErr != nil {
 			tsk.AppendError(tErr)
 		}

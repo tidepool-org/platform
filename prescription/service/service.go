@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/tidepool-org/go-common/clients"
 	"github.com/tidepool-org/go-common/events"
@@ -88,7 +87,7 @@ func (p *PrescriptionService) ClaimPrescription(ctx context.Context, claim *pres
 
 	// Verify the prescription integrity
 	if err = prescription.VerifyRevisionIntegrityHash(*prescr.LatestRevision); err != nil {
-		return nil, fmt.Errorf("integrity check for prescription %v failed: %w", prescr.ID, err)
+		return nil, errors.Wrapf(err, "integrity check for prescription %v failed", prescr.ID)
 	}
 
 	// Claim the prescription atomically

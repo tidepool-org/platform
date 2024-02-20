@@ -2,13 +2,13 @@ package alerts
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/errors"
 	platformlog "github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/platform"
@@ -89,7 +89,7 @@ func (c *Client) Delete(ctx context.Context, cfg *Config) error {
 func (c *Client) ctxWithAuth(ctx context.Context) (context.Context, error) {
 	token, err := c.token.ServerSessionToken()
 	if err != nil {
-		return nil, fmt.Errorf("retrieving token: %w", err)
+		return nil, errors.Wrap(err, "failure retrieving server session token")
 	}
 	return auth.NewContextWithServerSessionToken(ctx, token), nil
 }

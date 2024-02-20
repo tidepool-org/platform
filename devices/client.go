@@ -2,7 +2,6 @@ package devices
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/tidepool-org/devices/api"
@@ -45,7 +44,7 @@ func (c *Client) Initialize(ctx context.Context) error {
 
 	conn, err := grpc.DialContext(ctx, cfg.DevicesClientAddress, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		return errors.New(fmt.Sprintf("could not connect to devices service: %v", err))
+		return errors.Wrap(err, "could not connect to devices service")
 	}
 
 	c.DevicesClient = api.NewDevicesClient(conn)

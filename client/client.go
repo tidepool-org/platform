@@ -18,9 +18,14 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	ResponseBodyLimit = 1 << 20
+)
+
 type Client struct {
-	address   string
-	userAgent string
+	address             string
+	userAgent           string
+	responseErrorParser ResponseErrorParser
 }
 
 func New(cfg *Config) (*Client, error) {
@@ -31,8 +36,9 @@ func New(cfg *Config) (*Client, error) {
 	}
 
 	return &Client{
-		address:   cfg.Address,
-		userAgent: cfg.UserAgent,
+		address:             cfg.Address,
+		userAgent:           cfg.UserAgent,
+		responseErrorParser: cfg.ResponseErrorParser,
 	}, nil
 }
 
@@ -169,25 +175,28 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 
 	defer drainAndClose(res.Body)
 
-	serializable := &errors.Serializable{}
-
-	if bites, err := io.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+	bites, err := io.ReadAll(io.LimitReader(res.Body, ResponseBodyLimit))
+	if err != nil {
 		return nil, errors.Wrap(err, "unable to read response body")
-	} else if len(bites) == 0 {
-		logger.Error("Response body is empty, using defacto error for status code")
-	} else if unmarshalErr := json.Unmarshal(bites, serializable); unmarshalErr != nil {
-		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bites)).Error("Unable to deserialize response body, using defacto error for status code")
-	} else if serializable.Error == nil {
-		logger.WithField("responseBody", responseBodyFromBytes(bites)).Error("Response body does not contain an error, using defacto error for status code")
+	}
+	res.Body = io.NopCloser(bytes.NewBuffer(bites))
+
+	var responseErr error
+
+	if len(bites) < ResponseBodyLimit {
+		if c.responseErrorParser != nil {
+			responseErr = c.responseErrorParser(ctx, res, req)
+		}
 	}
 
-	if serializable.Error == nil {
-		serializable.Error = errorFromStatusCode(res, req)
+	if responseErr == nil {
+		responseErr = errorFromStatusCode(res, req)
+		logger = logger.WithField("responseBody", responseBodyFromBytes(bites))
 	}
 
-	logger = logger.WithError(serializable.Error)
+	logger = logger.WithError(responseErr)
 
-	switch errors.Code(serializable.Error) {
+	switch errors.Code(responseErr) {
 	case request.ErrorCodeBadRequest:
 		logger.Error("Bad request")
 	case request.ErrorCodeTooManyRequests:
@@ -196,7 +205,7 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 		logger.Error("Unexpected response")
 	}
 
-	return nil, serializable.Error
+	return nil, responseErr
 }
 
 func errorFromStatusCode(res *http.Response, req *http.Request) error {

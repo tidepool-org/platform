@@ -95,8 +95,6 @@ type queue struct {
 	iterator          *mongo.Cursor
 }
 
-var _ Queue = &queue{}
-
 func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
@@ -193,11 +191,16 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 			status <- runner.Run(ctx, tsk)
 		}()
 		select {
-		case <-time.After(2 * runner.GetRunnerMaximumDuration()):
+		case <-time.After(2 * runner.GetRunnerMaximumDuration()): // TODO: DARIN - Alex: Why 2*? Propose just use maximum duration
+
+			// TODO: DARIN - Issue here with allowing above to continue to run, consider new context and cancel it if expired?
+			// Will also have to relay cancels from incoming context
+
 			tsk.AppendError(errors.New("Task timed out"))
-			tsk.RepeatAvailableAfter(2 * runner.GetRunnerMaximumDuration())
+			tsk.RepeatAvailableAfter(2 * runner.GetRunnerMaximumDuration()) // TODO: DARIN - Alex: Why 2*? Propose something else, what?
 			return
 		case <-status:
+			q.logger.Infof("Task '%s' finished", *tsk.Name)
 			return
 		}
 	}
@@ -251,14 +254,17 @@ func (q *queue) unstickTasks(ctx context.Context) {
 }
 
 func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
-	defer q.stopPendingIterator()
+	defer q.stopPendingIterator(ctx)
 	for q.workersAvailable > 0 {
-		iter := q.startPendingIterator(ctx)
+		iter, err := q.startPendingIterator(ctx)
+		if err != nil {
+			q.logger.WithError(err).Error("Failure starting pending iterator")
+			return q.delay
+		}
 
 		tsk := &task.Task{}
 		if iter.Next(ctx) {
-			err := iter.Decode(tsk)
-			if err != nil {
+			if err := iter.Decode(tsk); err != nil {
 				q.logger.WithError(err).Error("Failure iterating tasks")
 				return q.delay
 			}
@@ -287,8 +293,8 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	var err error
 	tsk, err = repository.UpdateFromState(ctx, tsk, task.TaskStatePending)
 	if err != nil {
-		if err == task.AlreadyClaimedTask {
-			logger.Infof("Failure to claim task %s (%s) as it is already in progress or is no longer available.", tsk.Name, tsk.ID)
+		if errors.Is(err, task.AlreadyClaimedTask) {
+			logger.Warnf("Failure to claim task %s (%s) as it is already in progress or is no longer available.", tsk.Name, tsk.ID)
 			return
 		}
 
@@ -360,19 +366,25 @@ func (q *queue) stopTimer() {
 	}
 }
 
-func (q *queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
+func (q *queue) startPendingIterator(ctx context.Context) (*mongo.Cursor, error) {
 	if q.taskRepository == nil {
 		q.taskRepository = q.store.NewTaskRepository()
 	}
 	if q.iterator == nil {
-		// TODO: What happens when an error is returned?
-		q.iterator, _ = q.taskRepository.IteratePending(ctx)
+		if iterator, err := q.taskRepository.IteratePending(ctx); err != nil {
+			return nil, err
+		} else {
+			q.iterator = iterator
+		}
 	}
-	return q.iterator
+	return q.iterator, nil
 }
 
-func (q *queue) stopPendingIterator() {
+func (q *queue) stopPendingIterator(ctx context.Context) {
 	if q.iterator != nil {
+		if err := q.iterator.Close(ctx); err != nil {
+			q.logger.WithError(err).Warn("failure closing pending iterator")
+		}
 		q.iterator = nil
 	}
 	if q.taskRepository != nil {

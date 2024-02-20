@@ -97,7 +97,7 @@ func ParseSimpleStreamObject(reader io.Reader, object interface{}) error {
 	}
 
 	if err := json.NewDecoder(reader).Decode(object); err != nil {
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return ErrorJSONNotFound()
 		}
 		return ErrorJSONMalformed()

@@ -44,3 +44,22 @@ func ServerSessionTokenFromContext(ctx context.Context) string {
 	}
 	return ""
 }
+
+type ServerSessionTokenProvider interface {
+	ServerSessionToken() (string, error)
+}
+
+const serverSessionTokenProviderContextKey contextKey = "serverSessionTokenProvider"
+
+func NewContextWithServerSessionTokenProvider(ctx context.Context, serverSessionTokenProvider ServerSessionTokenProvider) context.Context {
+	return context.WithValue(ctx, serverSessionTokenProviderContextKey, serverSessionTokenProvider)
+}
+
+func ServerSessionTokenProviderFromContext(ctx context.Context) ServerSessionTokenProvider {
+	if ctx != nil {
+		if serverSessionTokenProvider, ok := ctx.Value(serverSessionTokenProviderContextKey).(ServerSessionTokenProvider); ok {
+			return serverSessionTokenProvider
+		}
+	}
+	return nil
+}

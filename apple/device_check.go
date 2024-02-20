@@ -1,11 +1,12 @@
 package apple
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/kelseyhightower/envconfig"
 	devicecheck "github.com/rinchsan/device-check-go"
+
+	"github.com/tidepool-org/platform/errors"
 )
 
 type DeviceCheck interface {

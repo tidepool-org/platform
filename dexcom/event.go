@@ -7,7 +7,9 @@ import (
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -21,22 +23,25 @@ const (
 	EventTypeNote     = "note"
 	EventTypeNotes    = "notes"
 
-	EventUnitUnknown = "unknown"
-
 	EventUnitMgdL         = dataBloodGlucose.MgdL
+	EventUnitDefault      = EventUnitMgdL
 	EventValueMgdLMaximum = dataBloodGlucose.MgdLMaximum
 	EventValueMgdLMinimum = dataBloodGlucose.MgdLMinimum
 
 	EventUnitCarbsGrams         = "grams"
+	EventUnitCarbsDefault       = EventUnitCarbsGrams
 	EventValueCarbsGramsMaximum = dataTypesFood.CarbohydrateNetGramsMaximum
 	EventValueCarbsGramsMinimum = dataTypesFood.CarbohydrateNetGramsMinimum
+	EventValueCarbsGramsDefault = "0"
 
 	EventSubTypeExerciseLight        = "light"
 	EventSubTypeExerciseMedium       = "medium"
 	EventSubTypeExerciseHeavy        = "heavy"
 	EventUnitExerciseMinutes         = "minutes"
+	EventUnitExerciseDefault         = EventUnitExerciseMinutes
 	EventValueExerciseMinutesMaximum = dataTypesActivityPhysical.DurationValueMinutesMaximum
 	EventValueExerciseMinutesMinimum = dataTypesActivityPhysical.DurationValueMinutesMinimum
+	EventValueExerciseMinutesDefault = "0"
 
 	EventSubTypeHealthAlcohol      = "alcohol"
 	EventSubTypeHealthCycle        = "cycle"
@@ -48,14 +53,14 @@ const (
 	EventSubTypeInsulinFastActing = "fastActing"
 	EventSubTypeInsulinLongActing = "longActing"
 	EventUnitInsulinUnits         = "units"
+	EventUnitInsulinDefault       = EventUnitInsulinUnits
 	EventValueInsulinUnitsMaximum = dataTypesInsulin.DoseTotalUnitsMaximum
 	EventValueInsulinUnitsMinimum = dataTypesInsulin.DoseTotalUnitsMinimum
+	EventValueInsulinUnitsDefault = "0"
 
 	EventStatusCreated = "created"
 	EventStatusUpdated = "updated"
 	EventStatusDeleted = "deleted"
-
-	eventErrorValue = -100
 )
 
 func EventTypes() []string {
@@ -207,17 +212,17 @@ func (e *Event) Parse(parser structure.ObjectParser) {
 	if e.Type != nil {
 		switch *e.Type {
 		case EventTypeCarbs:
-			e.Unit = StringOrDefault(parser, "unit", EventUnitCarbsGrams)
-			e.Value = StringOrDefault(parser, "value", EventValueCarbsGramsMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitCarbsDefault)
+			e.Value = StringOrDefault(parser, "value", EventValueCarbsGramsDefault)
 		case EventTypeExercise:
-			e.Unit = StringOrDefault(parser, "unit", EventUnitExerciseMinutes)
-			e.Value = StringOrDefault(parser, "value", EventValueExerciseMinutesMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitExerciseDefault)
+			e.Value = StringOrDefault(parser, "value", EventValueExerciseMinutesDefault)
 		case EventTypeInsulin:
-			e.Unit = StringOrDefault(parser, "unit", EventUnitInsulinUnits)
-			e.Value = StringOrDefault(parser, "value", EventValueInsulinUnitsMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitInsulinDefault)
+			e.Value = StringOrDefault(parser, "value", EventValueInsulinUnitsDefault)
 		case EventTypeBG:
-			e.Unit = StringOrDefault(parser, "unit", EventUnitMgdL)
-			e.Value = StringOrDefault(parser, "value", EventValueMgdLMinimum)
+			e.Unit = StringOrDefault(parser, "unit", EventUnitDefault)
+			e.Value = parser.String("value") // No default value makes sense and could lead to incorrect data, error instead
 		default:
 			e.Unit = parser.String("unit")
 			e.Value = parser.String("value")
@@ -266,26 +271,14 @@ func (e *Event) validateCarbs(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).NotExists()
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitCarbsGrams)
 	validator.String("value", e.Value).Exists().NotEmpty()
-	if e.Value != nil {
-		floatVal, err := strconv.ParseFloat(*e.Value, 64)
-		if err != nil {
-			floatVal = eventErrorValue
-		}
-		validator.Float64("value", &floatVal).Exists().InRange(EventValueCarbsGramsMinimum, EventValueCarbsGramsMaximum)
-	}
+	validateValueAsFloat64AndInRange(validator, e.Value, EventValueCarbsGramsMinimum, EventValueCarbsGramsMaximum)
 }
 
 func (e *Event) validateExercise(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesExercise()...)
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitExerciseMinutes)
 	validator.String("value", e.Value).Exists().NotEmpty()
-	if e.Value != nil {
-		floatVal, err := strconv.ParseFloat(*e.Value, 64)
-		if err != nil {
-			floatVal = eventErrorValue
-		}
-		validator.Float64("value", &floatVal).Exists().InRange(EventValueExerciseMinutesMinimum, EventValueExerciseMinutesMaximum)
-	}
+	validateValueAsFloat64AndInRange(validator, e.Value, EventValueExerciseMinutesMinimum, EventValueExerciseMinutesMaximum)
 }
 
 func (e *Event) validateHealth(validator structure.Validator) {
@@ -305,23 +298,25 @@ func (e *Event) validateInsulin(validator structure.Validator) {
 	validator.String("eventSubType", e.SubType).OneOf(EventSubTypesInsulin()...)
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitInsulinUnits)
 	validator.String("value", e.Value).Exists().NotEmpty()
-	if e.Value != nil {
-		floatVal, err := strconv.ParseFloat(*e.Value, 64)
-		if err != nil {
-			floatVal = eventErrorValue
-		}
-		validator.Float64("value", &floatVal).Exists().InRange(EventValueInsulinUnitsMinimum, EventValueInsulinUnitsMaximum)
-	}
+	validateValueAsFloat64AndInRange(validator, e.Value, EventValueInsulinUnitsMinimum, EventValueInsulinUnitsMaximum)
 }
 
 func (e *Event) validateBG(validator structure.Validator) {
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitMgdL)
 	validator.String("value", e.Value).Exists().NotEmpty()
-	if e.Value != nil {
-		floatVal, err := strconv.ParseFloat(*e.Value, 64)
-		if err != nil {
-			floatVal = eventErrorValue
+	validateValueAsFloat64AndInRange(validator, e.Value, EGVValueMgdLMinimum, EGVValueMgdLMaximum)
+}
+
+func validateValueAsFloat64AndInRange(validator structure.Validator, value *string, lowerLimit float64, upperLimit float64) {
+	if value != nil {
+		if floatVal, err := strconv.ParseFloat(*value, 64); err != nil {
+			validator.ReportError(errorValueFloat64NotParsable(*value))
+		} else {
+			validator.Float64("value", &floatVal).Exists().InRange(lowerLimit, upperLimit)
 		}
-		validator.Float64("value", &floatVal).Exists().InRange(EGVValueMgdLMinimum, EGVValueMgdLMaximum)
 	}
+}
+
+func errorValueFloat64NotParsable(value string) error {
+	return errors.Preparedf(structureParser.ErrorCodeValueNotParsable, "value is not a parsable float64", "value %q is not a parsable float64", value)
 }

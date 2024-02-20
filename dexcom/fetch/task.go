@@ -34,6 +34,7 @@ func NewTaskCreate(providerSessionID string, dataSourceID string) (*task.TaskCre
 	}, nil
 }
 
+// TODO: DARIN - Not sure about this logic
 func ErrorOrRetryTask(t *task.Task, err error) {
 	t.AppendError(err)
 	if t.IsFailed() {
@@ -41,12 +42,12 @@ func ErrorOrRetryTask(t *task.Task, err error) {
 			return
 		}
 		incrementTaskRetryCount(t)
-		t.State = task.TaskStateCompleted
+		t.State = task.TaskStateRunning // TODO: DARIN - calls RepeatAvailableAfter later which sets Pending
 	}
 }
 
 func FailTask(l log.Logger, t *task.Task, err error) error {
-	l.Warnf("dexcom task %s failed: %s", t.ID, err)
+	l.WithError(err).Warnf("dexcom task %s failed", t.ID)
 	t.SetFailed()
 	return err
 }
@@ -68,6 +69,7 @@ func incrementTaskRetryCount(t *task.Task) {
 			count++
 			t.Data[dexcomTaskRetryField] = count
 		}
+		// TODO: What if wrong? Should reset?
 	} else {
 		t.Data[dexcomTaskRetryField] = 1
 	}
