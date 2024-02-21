@@ -27,7 +27,6 @@ type config struct {
 	cap            int
 	uri            string
 	dryRun         bool
-	audit          bool
 	stopOnErr      bool
 	userID         string
 	lastUpdatedId  string
@@ -84,7 +83,7 @@ func (m *Migration) RunAndExit() {
 			return err
 		}
 		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
-			log.Printf("audit failed: %s", err)
+			log.Printf("processing failed: %s", err)
 			return err
 		}
 		return nil
@@ -118,11 +117,11 @@ func (m *Migration) Initialize() error {
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
 		},
-		cli.BoolFlag{
-			Name:        "audit",
-			Usage:       "audit data",
-			Destination: &m.config.audit,
-		},
+		// cli.BoolFlag{
+		// 	Name:        "audit",
+		// 	Usage:       "audit data",
+		// 	Destination: &m.config.audit,
+		// },
 		cli.IntFlag{
 			Name:        "cap",
 			Usage:       "max number of records migrate",
@@ -235,14 +234,15 @@ func (m *Migration) fetchAndProcess() bool {
 			updates, err := utils.ProcessDatum(itemID, itemType, item)
 			if err != nil {
 				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
-			}
-			if !m.config.audit {
+			} else {
+				//if !m.config.audit { //TODO dry run should be audit
 				m.migrationUtil.SetUpdates(utils.UpdateData{
 					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
 					ItemID:   itemID,
 					ItemType: itemType,
 					Updates:  updates,
 				})
+				//}
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)

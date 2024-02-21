@@ -252,6 +252,10 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 		return nil, err
 	}
 
+	if deduplicator := processedObject["deduplicator"]; deduplicator != nil {
+		processedObject["_deduplicator"] = deduplicator
+	}
+
 	// these are extras that we want to leave on the
 	// original object so don't compare
 	notRequired := []string{
@@ -266,6 +270,7 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 		"guid",
 		"modifiedTime",
 		"uploadId",
+		"deduplicator",
 	}
 
 	for _, key := range notRequired {

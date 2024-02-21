@@ -332,6 +332,7 @@ func (m *migrationUtil) getAdminDB() *mongo.Database {
 
 func writeLastItemUpdate(itemID string, dryRun bool) {
 	if strings.TrimSpace(itemID) != "" {
+		//TODO - i think we still want this so we can keep processing in order
 		if dryRun {
 			log.Printf("dry run so not setting lastUpdatedId %s", itemID)
 			return
@@ -516,6 +517,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		}
 
 		if m.config.dryRun {
+			//TODO clean this up a bit
 			writtenCount += len(batch)
 			continue
 		}
