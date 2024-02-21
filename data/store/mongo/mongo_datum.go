@@ -701,8 +701,8 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	// get latest modified record
 	selector := bson.M{
-		"_active": bson.M{"$ne": -1111},
 		"_userId": userId,
+		"_active": bson.M{"$ne": -1111},
 		"type":    typ,
 		"time": bson.M{
 			"$gte": status.FirstData,
@@ -710,6 +710,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 		},
 	}
 	findOptions := options.Find()
+	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
 	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
 
@@ -750,6 +751,10 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		},
 	}
 
+	findOptions := options.Find()
+	findOptions.SetLimit(1)
+	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+
 	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
 	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
 	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
@@ -757,11 +762,8 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		selector["modifiedTime"] = bson.M{
 			"$gt": status.LastUpdated,
 		}
+		findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
 	}
-
-	findOptions := options.Find()
-	findOptions.SetLimit(1)
-	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
 
 	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
