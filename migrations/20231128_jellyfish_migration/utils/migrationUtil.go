@@ -152,6 +152,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	}
 	m.GetStats().report()
 	m.writeErrors(nil)
+	m.writeDiff(nil)
 	return nil
 }
 
