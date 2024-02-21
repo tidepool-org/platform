@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"slices"
 	"strings"
 	"time"
@@ -120,9 +119,12 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 		subType := fmt.Sprintf("%v", bsonData["subType"])
 		switch subType {
 		case reservoirchange.SubType, alarm.SubType:
-			log.Printf("status  _id=%s statusId=%v status=%v", bsonData["_id"], bsonData["statusId"], bsonData["status"])
-			//bsonData["statusId"] = bsonData["status"]
-			//delete(bsonData, "status")
+			if status := bsonData["status"]; status != nil {
+				if statusID, ok := status.(string); ok {
+					bsonData["statusId"] = statusID
+					delete(bsonData, "status")
+				}
+			}
 		}
 	}
 
