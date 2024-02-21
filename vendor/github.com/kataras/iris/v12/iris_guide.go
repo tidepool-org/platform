@@ -270,10 +270,15 @@ type (
 	ServiceGuide interface {
 		// Deferrables registers one or more functions to be ran when the server is terminated.
 		Deferrables(closers ...func()) ServiceGuide
+		// Prefix sets the API Party prefix path.
+		// Usage: WithPrefix("/api").
+		WithPrefix(prefixPath string) ServiceGuide
+		// WithoutPrefix disables the API Party prefix path.
+		// Usage: WithoutPrefix(), same as WithPrefix("").
+		WithoutPrefix() ServiceGuide
 		// Services registers one or more dependencies that APIs can use.
 		Services(deps ...interface{}) ApplicationBuilder
 	}
-
 	// ApplicationBuilder is the final step of the Guide.
 	// It is used to register APIs controllers (PartyConfigurators) and
 	// its Build, Listen and Run methods configure and build the actual Iris application
@@ -375,7 +380,8 @@ func (s *step5) Middlewares(handlers ...Handler) ServiceGuide {
 	s.middlewares = handlers
 
 	return &step6{
-		step5: s,
+		step5:  s,
+		prefix: getDefaultAPIPrefix(),
 	}
 }
 
@@ -387,11 +393,53 @@ type step6 struct {
 	closers []func()
 	// derives from "deps".
 	configuratorsAsDeps []Configurator
+
+	// API Party optional prefix path.
+	// If this is nil then it defaults to "/api" in order to keep backwards compatibility,
+	// otherwise can be set to empty or a custom one.
+	prefix *string
 }
 
 func (s *step6) Deferrables(closers ...func()) ServiceGuide {
 	s.closers = append(s.closers, closers...)
 	return s
+}
+
+var defaultAPIPrefix = "/api"
+
+func getDefaultAPIPrefix() *string {
+	return &defaultAPIPrefix
+}
+
+// WithPrefix sets the API Party prefix path.
+// Usage: WithPrefix("/api").
+func (s *step6) WithPrefix(prefixPath string) ServiceGuide {
+	if prefixPath == "" {
+		return s.WithoutPrefix()
+	}
+
+	*s.prefix = prefixPath
+	return s
+}
+
+// WithoutPrefix disables the API Party prefix path, same as WithPrefix("").
+// Usage: WithoutPrefix()
+func (s *step6) WithoutPrefix() ServiceGuide {
+	s.prefix = nil
+	return s
+}
+
+func (s *step6) getPrefix() string {
+	if s.prefix == nil { // if WithoutPrefix called then API has no prefix.
+		return ""
+	}
+
+	apiPrefix := *s.prefix
+	if apiPrefix == "" { // if not nil but empty (this shouldn't happen) then it defaults to "/api".
+		apiPrefix = defaultAPIPrefix
+	}
+
+	return apiPrefix
 }
 
 func (s *step6) Services(deps ...interface{}) ApplicationBuilder {
@@ -502,8 +550,9 @@ func (s *step7) Build() *Application {
 		app.EnsureStaticBindings().RegisterDependency(deps...)
 	}
 
+	apiPrefix := s.step6.getPrefix()
 	for prefix, c := range s.m {
-		app.PartyConfigure("/api"+prefix, c...)
+		app.PartyConfigure(apiPrefix+prefix, c...)
 	}
 
 	for _, route := range s.handlers {
@@ -557,6 +606,9 @@ func (s *step7) Run(runner Runner, configurators ...Configurator) error {
 		// they will be called on interrupt signals too,
 		// because Iris has a builtin mechanism to call server's shutdown on interrupt.
 		for _, cb := range s.step6.closers {
+			if cb == nil {
+				continue
+			}
 			cb()
 		}
 	}()

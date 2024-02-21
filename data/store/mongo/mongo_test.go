@@ -6,12 +6,12 @@ import (
 	"math/rand"
 	"time"
 
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+
 	"github.com/tidepool-org/platform/data/types/bolus"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,6 +26,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	summaryTypes "github.com/tidepool-org/platform/data/summary/types"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -538,7 +539,7 @@ var _ = Describe("Mongo", func() {
 				err = cursor.All(context.Background(), &indexes)
 				Expect(err).ToNot(HaveOccurred())
 
-				modifiedTime, err := time.Parse(time.RFC3339, dataStoreMongo.ModifiedTimeIndexRaw)
+				lowerTimeIndex, err := time.Parse(time.RFC3339, dataStoreMongo.LowerTimeIndexRaw)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(indexes).To(ConsistOf(
 					MatchFields(IgnoreExtras, Fields{
@@ -550,10 +551,11 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "modifiedTime")),
-						"Background":              Equal(true),
-						"Name":                    Equal("UserIdTypeModifiedTime"),
-						"PartialFilterExpression": Equal(bson.D{{Key: "modifiedTime", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(modifiedTime)}}}}),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
+						"Name": Equal("UserIdActiveTypeTimeModifiedTime"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
+						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
@@ -597,14 +599,9 @@ var _ = Describe("Mongo", func() {
 						"Name":       Equal("UserIDTypeUnique"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("dates.outdatedSince", "type")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "config.schemaVersion", "dates.lastUpdatedDate")),
 						"Background": Equal(false),
-						"Name":       Equal("OutdatedSince"),
-					}),
-					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("config.schemaVersion", "type", "dates.lastUpdatedDate")),
-						"Background": Equal(false),
-						"Name":       Equal("SchemaVersion"),
+						"Name":       Equal("OutdatedSinceSchemaLastUpdated"),
 					}),
 				))
 			})
@@ -1187,74 +1184,78 @@ var _ = Describe("Mongo", func() {
 
 					Context("GetDataRange", func() {
 						It("returns an error if context is missing", func() {
-							var userData []*glucoseDatum.Glucose
-							err := repository.GetDataRange(nil,
-								&userData,
+							status := &summaryTypes.UserLastUpdated{
+								FirstData:       *dataSetData[0].GetTime(),
+								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
+								LastUpdated:     time.Time{},
+								NextLastUpdated: time.Now(),
+							}
+							_, err := repository.GetDataRange(nil,
 								*dataSet.UserID,
 								dataSetData[0].GetType(),
-								*dataSetData[0].GetTime(),
-								*dataSetData[len(dataSetData)-1].GetTime())
+								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if the userId is empty", func() {
-							var userData []*glucoseDatum.Glucose
-							err := repository.GetDataRange(ctx,
-								&userData,
+							status := &summaryTypes.UserLastUpdated{
+								FirstData:       *dataSetData[0].GetTime(),
+								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
+								LastUpdated:     time.Time{},
+								NextLastUpdated: time.Now(),
+							}
+							_, err := repository.GetDataRange(ctx,
 								"",
 								dataSetData[0].GetType(),
-								*dataSetData[0].GetTime(),
-								*dataSetData[len(dataSetData)-1].GetTime())
+								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("userId is empty"))
 						})
 
-						It("returns an error if dataRecords is missing", func() {
-							err := repository.GetDataRange(ctx,
-								nil,
-								*dataSet.UserID,
-								dataSetData[0].GetType(),
-								*dataSetData[0].GetTime(),
-								*dataSetData[len(dataSetData)-1].GetTime())
-							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError("provided dataRecords type <nil> cannot be decoded into"))
-						})
-
-						It("returns an error if dataRecords is the wrong type", func() {
-							var userData string
-							err := repository.GetDataRange(ctx,
-								&userData,
-								*dataSet.UserID,
-								dataSetData[0].GetType(),
-								*dataSetData[0].GetTime(),
-								*dataSetData[len(dataSetData)-1].GetTime())
-							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError("provided dataRecords type *string cannot be decoded into"))
-						})
-
 						It("returns an error if the typ is empty", func() {
-							var userData []*glucoseDatum.Glucose
-							err := repository.GetDataRange(ctx,
-								&userData,
+							status := &summaryTypes.UserLastUpdated{
+								FirstData:       *dataSetData[0].GetTime(),
+								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
+								LastUpdated:     time.Time{},
+								NextLastUpdated: time.Now(),
+							}
+							_, err := repository.GetDataRange(ctx,
 								*dataSet.UserID,
 								"",
-								*dataSetData[0].GetTime(),
-								*dataSetData[len(dataSetData)-1].GetTime())
+								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
 						})
 
-						It("returns error if the times are inverted", func() {
-							var userData []*glucoseDatum.Glucose
-							err := repository.GetDataRange(ctx,
-								&userData,
+						It("returns error if the data times are inverted", func() {
+							status := &summaryTypes.UserLastUpdated{
+								FirstData:       *dataSetData[len(dataSetData)-1].GetTime(),
+								LastData:        *dataSetData[0].GetTime(),
+								LastUpdated:     time.Time{},
+								NextLastUpdated: time.Now(),
+							}
+							_, err := repository.GetDataRange(ctx,
 								*dataSet.UserID,
 								continuous.Type,
-								*dataSetData[len(dataSetData)-1].GetTime(),
-								*dataSetData[0].GetTime())
+								status)
 							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError(MatchRegexp("^startTime.*after endTime")))
+							Expect(err).To(MatchError(MatchRegexp("^FirstData.*after LastData")))
+						})
+
+						It("returns error if the LastUpdated times are inverted", func() {
+							status := &summaryTypes.UserLastUpdated{
+								FirstData:       *dataSetData[0].GetTime(),
+								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
+								LastUpdated:     time.Now(),
+								NextLastUpdated: time.Now().Add(-time.Hour),
+							}
+							_, err := repository.GetDataRange(ctx,
+								*dataSet.UserID,
+								continuous.Type,
+								status)
+							Expect(err).To(HaveOccurred())
+							Expect(err).To(MatchError(MatchRegexp("^LastUpdated.*after NextLastUpdated")))
 						})
 
 						Context("with database access", func() {
@@ -1268,46 +1269,73 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly returns data within range", func() {
 								var userData []*glucoseDatum.Glucose
-								err := repository.GetDataRange(ctx,
-									&userData,
+								status := &summaryTypes.UserLastUpdated{
+									FirstData:       *dataSetData[0].GetTime(),
+									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
+									LastUpdated:     time.Time{},
+									NextLastUpdated: time.Now(),
+								}
+								cursor, err := repository.GetDataRange(ctx,
 									*dataSet.UserID,
 									dataSetData[0].GetType(),
-									*dataSetData[0].GetTime(),
-									*dataSetData[len(dataSetData)-2].GetTime(),
+									status,
 								)
 								Expect(err).ToNot(HaveOccurred())
-								Expect(userData).To(HaveLen(len(dataSetData) - 2))
+
+								err = cursor.All(ctx, &userData)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+
+								Expect(userData).To(HaveLen(len(dataSetData) - 1))
 
 								// query is $gt, we expect to miss the first record
 								Expect(*userData[0].GetTime()).To(Equal(dataSetData[1].GetTime().Truncate(time.Millisecond)))
 
 								// query is $lte, we expect to get the last record requested
-								Expect(*userData[len(userData)-1].GetTime()).To(Equal(dataSetData[len(dataSetData)-2].GetTime().Truncate(time.Millisecond)))
+								Expect(*userData[len(userData)-1].GetTime()).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
 							})
 
 							It("correctly misses data outside range", func() {
 								var userData []*glucoseDatum.Glucose
-								err := repository.GetDataRange(ctx,
-									&userData,
+								status := &summaryTypes.UserLastUpdated{
+									FirstData:       dataSetData[0].GetTime().AddDate(-1, 0, 0),
+									LastData:        dataSetData[len(dataSetData)-1].GetTime().AddDate(-1, 0, 0),
+									LastUpdated:     time.Time{},
+									NextLastUpdated: time.Now(),
+								}
+								cursor, err := repository.GetDataRange(ctx,
 									*dataSet.UserID,
 									dataSetData[0].GetType(),
-									dataSetData[0].GetTime().AddDate(-1, 0, 0),
-									dataSetData[len(dataSetData)-2].GetTime().AddDate(-1, 0, 0),
+									status,
 								)
 								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+
+								err = cursor.All(ctx, &userData)
+								Expect(err).ToNot(HaveOccurred())
+
 								Expect(userData).To(HaveLen(0))
 							})
 
 							It("correctly misses data of wrong type", func() {
 								var userData []*glucoseDatum.Glucose
-								err := repository.GetDataRange(ctx,
-									&userData,
+								status := &summaryTypes.UserLastUpdated{
+									FirstData:       *dataSetData[0].GetTime(),
+									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
+									LastUpdated:     time.Time{},
+									NextLastUpdated: time.Now(),
+								}
+								cursor, err := repository.GetDataRange(ctx,
 									*dataSet.UserID,
 									selfmonitored.Type,
-									*dataSetData[0].GetTime(),
-									*dataSetData[len(dataSetData)-2].GetTime(),
+									status,
 								)
 								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+
+								err = cursor.All(ctx, &userData)
+								Expect(err).ToNot(HaveOccurred())
+
 								Expect(userData).To(HaveLen(0))
 							})
 						})
@@ -1380,29 +1408,25 @@ var _ = Describe("Mongo", func() {
 
 					Context("GetLastUpdatedForUser", func() {
 						It("returns an error if context is missing", func() {
-							userLastUpdated, err := repository.GetLastUpdatedForUser(nil, *dataSet.UserID, dataSetData[2].GetType())
-							Expect(userLastUpdated).To(BeNil())
+							_, err := repository.GetLastUpdatedForUser(nil, *dataSet.UserID, dataSetData[2].GetType(), time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if userId is empty", func() {
-							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, "", dataSetData[2].GetType())
-							Expect(userLastUpdated).To(BeNil())
+							_, err := repository.GetLastUpdatedForUser(ctx, "", dataSetData[2].GetType(), time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("userId is empty"))
 						})
 
 						It("returns an error if typ is empty", func() {
-							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, "")
-							Expect(userLastUpdated).To(BeNil())
+							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, "", time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
 						})
 
 						It("returns an error if typ is upload", func() {
-							userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, upload.Type)
-							Expect(userLastUpdated).To(BeNil())
+							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, upload.Type, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
 						})
@@ -1426,27 +1450,24 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("correctly finds the LastUpload and LastData for a matching set", func() {
-								userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, continuous.Type)
-								Expect(userLastUpdated).ToNot(BeNil())
+								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, continuous.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(userLastUpdated.LastData).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
-								Expect(userLastUpdated.LastUpload).To(BeTemporally("~", createdTime, time.Second))
+								Expect(status.LastData).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
+								Expect(status.LastUpload).To(BeTemporally("~", createdTime, time.Second))
 							})
 
 							It("correctly does not find the LastUpload and LastData for an inactive type", func() {
-								userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, selfmonitored.Type)
-								Expect(userLastUpdated).ToNot(BeNil())
+								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, selfmonitored.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(userLastUpdated.LastData.IsZero()).To(BeTrue())
-								Expect(userLastUpdated.LastUpload.IsZero()).To(BeTrue())
+								Expect(status.LastData.IsZero()).To(BeTrue())
+								Expect(status.LastUpload.IsZero()).To(BeTrue())
 							})
 
 							It("correctly does not find the LastUpload and LastData for an unused type", func() {
-								userLastUpdated, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, bolus.Type)
-								Expect(userLastUpdated).ToNot(BeNil())
+								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, bolus.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(userLastUpdated.LastData.IsZero()).To(BeTrue())
-								Expect(userLastUpdated.LastUpload.IsZero()).To(BeTrue())
+								Expect(status.LastData.IsZero()).To(BeTrue())
+								Expect(status.LastUpload.IsZero()).To(BeTrue())
 							})
 
 						})

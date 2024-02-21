@@ -34,12 +34,12 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 			OffsetPeriods: make(map[string]*types.CGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-			Buckets: make(types.Buckets[types.CGMBucketData, *types.CGMBucketData], 2),
+			Buckets: make([]*types.Bucket[*types.CGMBucketData, types.CGMBucketData], 2),
 		},
 	}
 
 	for i := 0; i < len(datum.Stats.Buckets); i++ {
-		datum.Stats.Buckets[i] = &types.Bucket[types.CGMBucketData, *types.CGMBucketData]{
+		datum.Stats.Buckets[i] = &types.Bucket[*types.CGMBucketData, types.CGMBucketData]{
 			Date:           test.RandomTime(),
 			LastRecordTime: test.RandomTime(),
 			Data: &types.CGMBucketData{
@@ -274,12 +274,12 @@ func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMSt
 			OffsetPeriods: make(map[string]*types.BGMPeriod),
 
 			// we only make 2, as its lighter and 2 vs 14 vs 90 isn't very different here.
-			Buckets: make(types.Buckets[types.BGMBucketData, *types.BGMBucketData], 2),
+			Buckets: make([]*types.Bucket[*types.BGMBucketData, types.BGMBucketData], 2),
 		},
 	}
 
 	for i := 0; i < len(datum.Stats.Buckets); i++ {
-		datum.Stats.Buckets[i] = &types.Bucket[types.BGMBucketData, *types.BGMBucketData]{
+		datum.Stats.Buckets[i] = &types.Bucket[*types.BGMBucketData, types.BGMBucketData]{
 			Date:           test.RandomTime(),
 			LastRecordTime: test.RandomTime(),
 			Data: &types.BGMBucketData{

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -98,10 +99,10 @@ type BGMPeriod struct {
 type BGMPeriods map[string]*BGMPeriod
 
 type BGMStats struct {
-	Periods       BGMPeriods                             `json:"periods" bson:"periods"`
-	OffsetPeriods BGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
-	Buckets       Buckets[BGMBucketData, *BGMBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
+	Periods       BGMPeriods                               `json:"periods" bson:"periods"`
+	OffsetPeriods BGMPeriods                               `json:"offsetPeriods" bson:"offsetPeriods"`
+	Buckets       []*Bucket[*BGMBucketData, BGMBucketData] `json:"buckets" bson:"buckets"`
+	TotalHours    int                                      `json:"totalHours" bson:"totalHours"`
 }
 
 func (*BGMStats) GetType() string {
@@ -113,7 +114,7 @@ func (*BGMStats) GetDeviceDataType() string {
 }
 
 func (s *BGMStats) Init() {
-	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
+	s.Buckets = make([]*Bucket[*BGMBucketData, BGMBucketData], 0)
 	s.Periods = make(map[string]*BGMPeriod)
 	s.OffsetPeriods = make(map[string]*BGMPeriod)
 	s.TotalHours = 0
@@ -127,22 +128,62 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *BGMStats) Update(userData any) error {
-	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	if !ok {
-		return errors.New("BGM records for calculation is not compatible with Glucose type")
+func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstData time.Time) {
+	if len(s.Buckets) == 0 {
+		return
+	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	} else if earliestModified.Before(s.Buckets[0].Date) || earliestModified.Equal(s.Buckets[0].Date) {
+		// we are before all existing buckets, remake for GC
+		s.Buckets = make([]*Bucket[*BGMBucketData, BGMBucketData], 0)
+		return
 	}
 
-	for i, v := range userDataTyped {
-		if v.Type != selfmonitored.Type {
-			return fmt.Errorf("Non-BGM data provided for BGM summary update at position %d", i)
+	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(earliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
+
+	for i := offset; i < len(s.Buckets); i++ {
+		s.Buckets[i] = nil
+	}
+	s.Buckets = s.Buckets[:offset]
+
+	if len(s.Buckets) > 0 {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	}
+	return
+}
+
+func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
+	var userData []*glucoseDatum.Glucose = nil
+	var err error
+
+	for cursor.Next(ctx) {
+		if userData == nil {
+			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+		}
+
+		r := &glucoseDatum.Glucose{}
+		if err = cursor.Decode(r); err != nil {
+			return fmt.Errorf("unable to decode userData: %w", err)
+		}
+		userData = append(userData, r)
+
+		// we call AddData before each network call to the db to reduce thrashing
+		if cursor.RemainingBatchLength() != 0 {
+			err = AddData(&s.Buckets, userData)
+			if err != nil {
+				return err
+			}
+			userData = nil
 		}
 	}
 
-	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[BGMBucketData, *BGMBucketData](&s.Buckets, userDataTyped)
-	if err != nil {
-		return err
+	// add the final partial batch
+	if userData != nil {
+		err = AddData(&s.Buckets, userData)
+		if err != nil {
+			return err
+		}
+		userData = nil
 	}
 
 	s.CalculateSummary()

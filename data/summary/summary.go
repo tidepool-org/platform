@@ -9,7 +9,6 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -46,7 +45,7 @@ type Summarizer[T types.Stats, A types.StatsPt[T]] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
 	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[T, A], error)
-	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
 	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 	BackfillSummaries(ctx context.Context) (int, error)
 }
@@ -82,7 +81,7 @@ func (c *GlucoseSummarizer[T, A]) SetOutdated(ctx context.Context, userId, reaso
 	return c.summaries.SetOutdated(ctx, userId, reason)
 }
 
-func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	return c.summaries.GetOutdatedUserIDs(ctx, pagination)
 }
 
@@ -121,7 +120,7 @@ func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, e
 
 	summaries := make([]*types.Summary[T, A], 0, len(userIDsReqBackfill))
 	for _, userID := range userIDsReqBackfill {
-		s := types.Create[T, A](userID)
+		s := types.Create[A](userID)
 		s.SetOutdated(types.OutdatedReasonBackfill)
 		summaries = append(summaries, s)
 
@@ -145,60 +144,60 @@ func (c *GlucoseSummarizer[T, A]) UpdateSummary(ctx context.Context, userId stri
 	logger := log.LoggerFromContext(ctx)
 	userSummary, err := c.GetSummary(ctx, userId)
 	if err != nil {
-		return userSummary, err
+		return nil, err
 	}
 
-	logger.Debugf("Starting summary calculation for %s", userId)
+	logger.Debugf("Starting %s summary calculation for %s", types.GetTypeString[T, A](), userId)
 
-	status, err := c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A]())
+	// user has no usable summary for incremental update
+	if userSummary == nil {
+		userSummary = types.Create[A](userId)
+	}
+
+	if userSummary.Config.SchemaVersion != types.SchemaVersion {
+		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
+		userSummary.Dates.Reset()
+	}
+
+	var status *types.UserLastUpdated
+	status, err = c.deviceData.GetLastUpdatedForUser(ctx, userId, types.GetDeviceDataTypeString[T, A](), userSummary.Dates.LastUpdatedDate)
 	if err != nil {
 		return nil, err
 	}
 
 	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
-	if userSummary != nil && status.LastData.IsZero() {
-		// user's data is inactive/deleted, or this summary shouldn't have been created
-		logger.Warnf("User %s has a summary, but no data, deleting summary", userId)
+	if status.LastData.IsZero() {
+		// user's data is inactive/ancient/deleted, or this summary shouldn't have been created
+		logger.Warnf("User %s has a summary, but no data within range, deleting summary", userId)
 		return nil, c.summaries.DeleteSummary(ctx, userId)
 	}
 
-	// user has no usable summary for incremental update
-	if userSummary == nil {
-		userSummary = types.Create[T, A](userId)
+	// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
+	if status.EarliestModified.IsZero() {
+		logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userId, types.GetTypeString[T, A]())
+		userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
+		return userSummary, c.summaries.ReplaceSummary(ctx, userSummary)
 	}
 
-	if userSummary.Config.SchemaVersion != types.SchemaVersion {
-		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
+	if first := userSummary.Stats.ClearInvalidatedBuckets(status.EarliestModified); !first.IsZero() {
+		status.FirstData = first
 	}
 
-	startTime := types.GetStartTime(userSummary, status)
-
-	var userData []*glucoseDatum.Glucose
-	err = c.deviceData.GetDataRange(ctx, &userData, userId, types.GetDeviceDataTypeString[T, A](), startTime, status.LastData)
+	var cursor types.DeviceDataCursor
+	cursor, err = c.deviceData.GetDataRange(ctx, userId, types.GetDeviceDataTypeString[T, A](), status)
 	if err != nil {
 		return nil, err
 	}
+	defer cursor.Close(ctx)
 
-	// skip past data
-	bucketsLen := userSummary.Stats.GetBucketsLen()
-	if bucketsLen > 0 {
-		userData, err = types.SkipUntil(userSummary.Stats.GetBucketDate(bucketsLen-1), userData)
-	}
-
-	// if there is no new data
-	if len(userData) < 0 {
-		userSummary.UpdateWithoutChangeCount++
-		logger.Infof("User %s has an outdated summary with no forward data, summary will not be calculated.", userId)
-	}
-
-	err = userSummary.Stats.Update(userData)
+	err = userSummary.Stats.Update(ctx, cursor)
 	if err != nil {
 		return nil, err
 	}
 
 	userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
 
-	err = c.summaries.UpsertSummary(ctx, userSummary)
+	err = c.summaries.ReplaceSummary(ctx, userSummary)
 
 	return userSummary, err
 }

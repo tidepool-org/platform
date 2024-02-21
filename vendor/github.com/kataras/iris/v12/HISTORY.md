@@ -19,9 +19,52 @@ Developers are not forced to upgrade if they don't really need it. Upgrade whene
 
 **How to upgrade**: Open your command-line and execute this command: `go get github.com/kataras/iris/v12@latest` and `go mod tidy -compat=1.21`.
 
+
 # Next
 
 Changes apply to `main` branch.
+
+# Thu, 18 Jan 2024 | v12.2.10
+
+- Simplify the `/core/host` subpackage and remove its `DeferFlow` and `RestoreFlow` methods.
+- Fix internal `trimHandlerName` and other minor stuff.
+- New `iris.NonBlocking()` configuration option to run the server without blocking the main routine, `Application.Wait(context.Context) error` method can be used to block and wait for the server to be up and running. Example:
+
+```go
+func main() {
+    app := iris.New()
+    app.Get("/", func(ctx iris.Context) {
+        ctx.Writef("Hello, %s!", "World")
+    })
+
+    app.Listen(":8080", iris.NonBlocking(), iris.WithoutServerError(iris.ErrServerClosed))
+
+    ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+    defer cancel()
+
+    if err := app.Wait(ctx); err != nil {
+        log.Fatal(err)
+    }
+
+    // [Server is up and running now, you may continue with other functions below].
+}
+```
+
+- Add `x/mathx.RoundToInteger` math helper function.
+
+# Wed, 10 Jan 2024 | v12.2.9
+
+- Add `x/errors.RecoveryHandler` package-level function.
+- Add `x/errors.Validation` package-level function to add one or more validations for the request payload before a service call of the below methods.
+- Add `x/errors.Handler`, `CreateHandler`, `NoContentHandler`, `NoContentOrNotModifiedHandler` and `ListHandler` ready-to-use handlers for service method calls to Iris Handler.
+- Add `x/errors.List` package-level function to support `ListObjects(ctx context.Context, opts pagination.ListOptions, f Filter) ([]Object, int64, error)` type of service calls.
+- Simplify how validation errors on `/x/errors` package works. A new `x/errors/validation` sub-package added to make your life easier (using the powerful Generics feature).
+- Add `x/errors.OK`, `Create`, `NoContent` and `NoContentOrNotModified` package-level generic functions as custom service method caller helpers. Example can be found [here](_examples/routing/http-wire-errors/service/main.go).
+- Add `x/errors.ReadPayload`, `ReadQuery`, `ReadPaginationOptions`, `Handle`, `HandleCreate`, `HandleCreateResponse`, `HandleUpdate` and `HandleDelete` package-level functions as helpers for common actions.
+- Add `x/jsonx.GetSimpleDateRange(date, jsonx.WeekRange, time.Monday, time.Sunday)` which returns all dates between the given range and start/end weekday values for WeekRange.
+- Add `x/timex.GetMonthDays` and `x/timex.GetMonthEnd` functions.
+- Add `iris.CookieDomain` and `iris.CookieOverride` cookie options to handle [#2309](https://github.com/kataras/iris/issues/2309).
+- New `x/errors.ErrorCodeName.MapErrorFunc`, `MapErrors`, `Wrap` methods and `x/errors.HandleError` package-level function.
 
 # Sun, 05 Nov 2023 | v12.2.8
 
