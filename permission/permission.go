@@ -20,6 +20,7 @@ type Client interface {
 	// Not sure whether to put these methods in platform/permission or go-common/clients
 	HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
+	HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 }
 
 func FixOwnerPermissions(permissions Permissions) Permissions {

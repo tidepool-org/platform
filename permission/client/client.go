@@ -72,3 +72,15 @@ func (c *Client) HasCustodianPermissions(ctx context.Context, granteeUserID, gra
 	}
 	return len(perms[permission.Custodian]) > 0, nil
 }
+
+func (c *Client) HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
+	if granteeUserID != "" && granteeUserID == grantorUserID {
+		return true, nil
+	}
+	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	return len(perms[permission.Custodian]) > 0 || len(perms[permission.Write]) > 0 || len(perms[permission.Owner]) > 0, nil
+
+}
