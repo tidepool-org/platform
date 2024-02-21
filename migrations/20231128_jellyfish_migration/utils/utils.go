@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"strings"
 	"time"
@@ -112,8 +113,11 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 		}
 	case calculator.Type:
 		if bolus := bsonData["bolus"]; bolus != nil {
-			//TODO ignore these, the property is just a pointer to the actual bolus
-			delete(bsonData, "bolus")
+			if bolusID, ok := bolus.(string); ok {
+				log.Printf("## setting the %v bolus reference %v", calculator.Type, bolusID)
+				bsonData["bolusId"] = bolusID
+				delete(bsonData, "bolus")
+			}
 		}
 	case device.Type:
 		subType := fmt.Sprintf("%v", bsonData["subType"])
@@ -207,6 +211,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 		validator.Float64("percent", parser.Float64("percent"))
 		validator.Float64("rate", parser.Float64("rate"))
 		validator.Int("duration", parser.Int("duration"))
+		validator.String("bolusId", parser.String("bolusId"))
 	}
 
 	parser.NotParsed()
