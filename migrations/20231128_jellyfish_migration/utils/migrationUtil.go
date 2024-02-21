@@ -227,6 +227,7 @@ func (m *migrationUtil) writeDiff(groupLimit *int) {
 			}
 			f.WriteString(string(diffJSON) + "\n")
 		}
+		m.groupedDiffs[group] = []UpdateData{}
 	}
 }
 
