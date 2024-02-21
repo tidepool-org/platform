@@ -115,6 +115,7 @@ var _ = Describe("Summary", func() {
 
 			store, err = dataStoreMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(store.EnsureIndexes()).To(Succeed())
 
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			dataStore = store.NewDataRepository()
@@ -283,6 +284,7 @@ var _ = Describe("Summary", func() {
 
 			store, err = dataStoreMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(store.EnsureIndexes()).To(Succeed())
 
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			dataCollection = store.GetCollection("deviceData")
