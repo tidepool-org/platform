@@ -15,8 +15,9 @@ import (
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/profiles/:userId", api.RequireUser(r.GetProfile)),
-		rest.Put("/v1/profiles/:userId", r.requireUserHasCustodian("userId", r.UpdateProfile)),
-		rest.Delete("/v1/profiles/:userId", r.requireUserHasCustodian("userId", r.DeleteProfile)),
+		// The following modification routes required custodian access in seagull, but I'm not sure that's quite right - it seems it should be if the user can modify the userId.
+		rest.Put("/v1/profiles/:userId", r.requireWriteAccess("userId", r.UpdateProfile)),
+		rest.Delete("/v1/profiles/:userId", r.requireWriteAccess("userId", r.DeleteProfile)),
 	}
 }
 
