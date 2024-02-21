@@ -751,6 +751,10 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		},
 	}
 
+	findOptions := options.Find()
+	findOptions.SetLimit(1)
+	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+
 	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
 	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
 	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
@@ -758,12 +762,8 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		selector["modifiedTime"] = bson.M{
 			"$gt": status.LastUpdated,
 		}
+		findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
 	}
-
-	findOptions := options.Find()
-	findOptions.SetLimit(1)
-	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
-	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
 
 	var cursor *mongo.Cursor
 	cursor, err = d.Find(ctx, selector, findOptions)
