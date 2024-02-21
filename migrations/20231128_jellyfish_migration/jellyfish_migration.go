@@ -237,12 +237,12 @@ func (m *Migration) fetchAndProcess() bool {
 				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
 			}
 			if !m.config.audit {
-				for _, update := range updates {
-					updateOp := mongo.NewUpdateOneModel()
-					updateOp.SetFilter(bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]})
-					updateOp.SetUpdate(update)
-					m.migrationUtil.SetUpdates(updateOp)
-				}
+				m.migrationUtil.SetUpdates(utils.UpdateData{
+					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
+					ItemID:   itemID,
+					ItemType: itemType,
+					Updates:  updates,
+				})
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)

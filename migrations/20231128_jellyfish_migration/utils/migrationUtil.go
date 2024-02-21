@@ -41,19 +41,21 @@ type migrationUtil struct {
 	client         *mongo.Client
 	config         *MigrationUtilConfig
 	updates        []mongo.WriteModel
-	//dataUpdates    []Update
-	groupedErrors groupedErrors
-	rawData       []bson.M
-	errorsCount   int
-	updatedCount  int
-	lastUpdatedId string
-	startedAt     time.Time
+	groupedDiffs   map[string][]UpdateData
+	groupedErrors  groupedErrors
+	rawData        []bson.M
+	errorsCount    int
+	updatedCount   int
+	lastUpdatedId  string
+	startedAt      time.Time
 }
 
-// type Update struct {
-// 	ItemID      string             `json:"_id"`
-// 	MongoWrites []mongo.WriteModel `json:"diff"`
-// }
+type UpdateData struct {
+	Filter   interface{} `json:"-"`
+	ItemID   string      `json:"_id"`
+	ItemType string      `json:"-"`
+	Updates  []bson.M    `json:"diff"`
+}
 
 type ErrorData struct {
 	Error    error  `json:"error"`
@@ -76,8 +78,7 @@ type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(data ErrorData)
-	//SetUpdate(update Update)
-	SetUpdates(update ...*mongo.UpdateOneModel)
+	SetUpdates(data UpdateData)
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
 	GetLastID() string
@@ -105,10 +106,10 @@ func NewMigrationUtil(config *MigrationUtilConfig, client *mongo.Client, lastID 
 		updates:       []mongo.WriteModel{},
 		rawData:       []bson.M{},
 		groupedErrors: groupedErrors{},
-		//dataUpdates:   []Update{},
-		errorsCount:  0,
-		updatedCount: 0,
-		startedAt:    time.Now(),
+		groupedDiffs:  map[string][]UpdateData{},
+		errorsCount:   0,
+		updatedCount:  0,
+		startedAt:     time.Now(),
 	}
 	if lastID != nil {
 		m.lastUpdatedId = *lastID
@@ -154,15 +155,15 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	return nil
 }
 
-func (m *migrationUtil) SetUpdates(update ...*mongo.UpdateOneModel) {
-	for _, u := range update {
-		m.updates = append(m.updates, u)
+func (m *migrationUtil) SetUpdates(data UpdateData) {
+	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
+	for _, u := range data.Updates {
+		updateOp := mongo.NewUpdateOneModel()
+		updateOp.Filter = data.Filter
+		updateOp.SetUpdate(u)
+		m.updates = append(m.updates, updateOp)
 	}
 }
-
-// func (m *migrationUtil) SetUpdate(update Update) {
-// 	m.dataUpdates = append(m.dataUpdates, update)
-// }
 
 func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
@@ -201,22 +202,31 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 	}
 }
 
-func (m *migrationUtil) writeDiff(updates []mongo.WriteModel, from int, to int) {
-	now := time.Now()
-	logName := fmt.Sprintf("updates/diff%s_%d-%d.log", now.Format(time.TimeOnly), from, to)
-	f, err := os.OpenFile(logName,
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
+func (m *migrationUtil) writeDiff(groupLimit *int) {
+	timestamp := strings.Replace(time.Now().Format(time.Stamp), " ", "-", -1)
+	for group, diffs := range m.groupedDiffs {
+		if groupLimit != nil {
+			if len(diffs) < *groupLimit {
+				continue
+			}
+		}
+		logName := fmt.Sprintf("updates/diff_%s_%s.log", group, timestamp)
+		f, err := os.OpenFile(logName,
+			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		for _, data := range diffs {
+			diffJSON, err := json.Marshal(data)
+			if err != nil {
+				log.Println(err)
+				os.Exit(1)
+			}
+			f.WriteString(string(diffJSON) + "\n")
+		}
 	}
-	defer f.Close()
-	diffJSON, err := json.Marshal(updates)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
-	f.WriteString(string(diffJSON) + "\n")
 }
 
 func (m *migrationUtil) SetFetched(raw []bson.M) {
@@ -516,17 +526,18 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 
 		writtenCount += int(results.ModifiedCount)
 		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
-		m.writeDiff(batch, m.updatedCount, m.updatedCount+writtenCount)
 	}
 	m.updates = []mongo.WriteModel{}
 	m.updatedCount = m.updatedCount + writtenCount
+	writeLimit := 500
 	if m.config.dryRun {
 		log.Println("dry-run so no changes applied")
+		m.writeDiff(&writeLimit)
 	} else {
 		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
-		errorWriteLimit := 500
 		m.GetStats().report()
-		m.writeErrors(&errorWriteLimit)
+		m.writeErrors(&writeLimit)
+		m.writeDiff(&writeLimit)
 	}
 	return nil
 }
