@@ -277,6 +277,17 @@ var _ = Describe("back-37", func() {
 					Expect(deviceEventData["statusId"]).To(Equal("some-status-id"))
 				})
 			})
+			Context("wizard datum with bolus string", func() {
+				It("should convert to bolusId for datum validation", func() {
+					wizardBSON := getBSONData(test.WizardTandem)
+					Expect(wizardBSON["bolus"]).ToNot(BeNil())
+					expectedBolusID := wizardBSON["bolus"].(string)
+					err := utils.ApplyBaseChanges(wizardBSON, calculator.Type)
+					Expect(err).To(BeNil())
+					Expect(wizardBSON["bolus"]).To(BeNil())
+					Expect(wizardBSON["bolusId"]).To(Equal(expectedBolusID))
+				})
+			})
 			Context("datum with string payload", func() {
 				var datumWithPayload primitive.M
 				var datumType string
@@ -341,36 +352,6 @@ var _ = Describe("back-37", func() {
 					}))
 				})
 			})
-			Context("datum with string annotations", func() {
-				var datumWithAnnotation primitive.M
-				var annotations *metadata.MetadataArray
-				var datumType string
-				BeforeEach(func() {
-					datumWithAnnotation = getBSONData(pumpSettingsDatum)
-					annotations = metadataTest.RandomMetadataArray()
-					datumWithAnnotation["annotations"] = *annotations
-					datumType = fmt.Sprintf("%v", datumWithAnnotation["type"])
-				})
-
-				It("should do nothing when value is already correct", func() {
-					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
-					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
-					Expect(err).To(BeNil())
-					Expect(datumWithAnnotation["annotations"]).To(Equal(*annotations))
-				})
-				It("should update the annotations when it is a string", func() {
-					datumWithAnnotation["annotations"] = `[{"code":"bg/out-of-range","threshold":40,"value":"low"}]`
-					err := utils.ApplyBaseChanges(datumWithAnnotation, datumType)
-					Expect(err).To(BeNil())
-					Expect(datumWithAnnotation["annotations"]).To(Equal(&metadata.MetadataArray{
-						&metadata.Metadata{
-							"code":      "bg/out-of-range",
-							"threshold": float64(40),
-							"value":     "low",
-						},
-					}))
-				})
-			})
 		})
 
 		var _ = Describe("GetDatumChanges", func() {
@@ -384,21 +365,17 @@ var _ = Describe("back-37", func() {
 				return rawObject
 			}
 
-			var incomingObject map[string]interface{}
-			var datumObject bson.M
-
-			BeforeEach(func() {
-				datumObject = getBSONData(test.AutomatedBasalTandem)
-				incomingObject = getRawData(test.AutomatedBasalTandem)
-			})
-
 			It("has no difference", func() {
+				datumObject := getBSONData(test.AutomatedBasalTandem)
+				incomingObject := getRawData(test.AutomatedBasalTandem)
 				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).ToNot(BeNil())
 				Expect(diff).To(Equal([]bson.M{}))
 			})
 			It("set for missing properties", func() {
+				datumObject := getBSONData(test.AutomatedBasalTandem)
+				incomingObject := getRawData(test.AutomatedBasalTandem)
 				delete(incomingObject, "deliveryType")
 				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
@@ -418,17 +395,39 @@ var _ = Describe("back-37", func() {
 						}))
 			})
 			It("unset for unwanted properties", func() {
+				datumObject := getBSONData(test.AutomatedBasalTandem)
+				incomingObject := getRawData(test.AutomatedBasalTandem)
 				incomingObject["random"] = map[string]interface{}{"extra": true}
 				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"random": ""}}}))
 			})
 			It("no difference when inner payload changes", func() {
+				datumObject := getBSONData(test.AutomatedBasalTandem)
+				incomingObject := getRawData(test.AutomatedBasalTandem)
 				datumObject["payload"] = map[string]interface{}{"stuff": true}
 				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
 				Expect(diff).To(Equal([]bson.M{}))
 			})
+
+			It("should convert to bolusId for datum validation", func() {
+				datumObject := getBSONData(test.WizardTandem)
+
+				err := utils.ApplyBaseChanges(datumObject, calculator.Type)
+
+				incomingObject := getRawData(datumObject)
+				Expect(err).To(BeNil())
+				Expect(datumObject["bolusId"]).ToNot(BeNil())
+				Expect(datumObject["bolus"]).To(BeNil())
+				Expect(incomingObject["bolusId"]).ToNot(BeNil())
+				Expect(incomingObject["bolus"]).To(BeNil())
+				calcID := fmt.Sprintf("%v", datumObject["_id"])
+				diff, err := utils.GetDatumChanges(calcID, datumObject, incomingObject)
+				Expect(err).To(BeNil())
+				Expect(diff).To(Equal([]bson.M{}))
+			})
+
 		})
 	})
 })

@@ -190,6 +190,7 @@ func tandemWizardDatum() map[string]interface{} {
 	datum["rate"] = 0.335
 	datum["percent"] = 0.47857142857142865
 	datum["conversionOffset"] = 0
+	datum["bolus"] = "g2h6nohp5sdndpvl2l8kdete00lle4gt"
 
 	return datum
 }

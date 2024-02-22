@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"slices"
 	"strings"
 	"time"
@@ -114,7 +113,7 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 	case calculator.Type:
 		if bolus := bsonData["bolus"]; bolus != nil {
 			if bolusID, ok := bolus.(string); ok {
-				log.Printf("## setting the %v bolus reference %v", calculator.Type, bolusID)
+				// Set so we can validate the reference is valid
 				bsonData["bolusId"] = bolusID
 				delete(bsonData, "bolus")
 			}
