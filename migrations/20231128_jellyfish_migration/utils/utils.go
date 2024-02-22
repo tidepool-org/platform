@@ -54,13 +54,14 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 
 	switch dataType {
 	case pump.Type:
-		//mis-named boluses
+
 		if boluses := bsonData["bolus"]; boluses != nil {
+			//fix mis-named boluses
 			bsonData["boluses"] = boluses
-			//TODO delete from mongo
 			delete(bsonData, "bolus")
 		}
 		if schedules := bsonData["sleepSchedules"]; schedules != nil {
+			//fix sleepSchedules to be a map
 			scheduleNames := map[int]string{0: "1", 1: "2"}
 			sleepScheduleMap := pump.SleepScheduleMap{}
 			dataBytes, err := json.Marshal(schedules)
@@ -88,6 +89,7 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 		}
 
 	case selfmonitored.Type, ketone.Type, continuous.Type:
+		// fix BG Precision
 		units := fmt.Sprintf("%v", bsonData["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
 			if val := getBGValuePrecision(bsonData["value"]); val != nil {
@@ -112,9 +114,8 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 		}
 	case calculator.Type:
 		if bolus := bsonData["bolus"]; bolus != nil {
-			if bolusID, ok := bolus.(string); ok {
-				// Set so we can validate the reference is valid
-				bsonData["bolusId"] = bolusID
+			if _, ok := bolus.(string); ok {
+				//if the bolus is a string reference then its ok so leave as is
 				delete(bsonData, "bolus")
 			}
 		}
@@ -294,23 +295,12 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	set := bson.M{}
 	unset := bson.M{}
 
-	// ["path","to","change"]
-	// {path: {to: {change: true}}}
-	var getValue = func(path []string, val interface{}) interface{} {
-		if len(path) == 1 {
-			return val
-		} else if len(path) == 2 {
-			return bson.M{path[1]: val}
-		}
-		return bson.M{path[1]: bson.M{path[2]: val}}
-	}
-
 	for _, change := range changelog.FilterOut([]string{"payload"}) {
 		switch change.Type {
 		case diff.CREATE, diff.UPDATE:
-			set[change.Path[0]] = getValue(change.Path, change.To)
+			set[strings.Join(change.Path, ".")] = change.To
 		case diff.DELETE:
-			unset[change.Path[0]] = getValue(change.Path, "")
+			unset[strings.Join(change.Path, ".")] = ""
 		}
 	}
 
