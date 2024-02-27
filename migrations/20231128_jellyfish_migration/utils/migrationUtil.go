@@ -172,7 +172,9 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 }
 
 func createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
-	timestamp := strings.Replace(time.Now().Truncate(time.Microsecond*15).Format(time.Stamp), " ", "-", -1)
+	datetime := time.Now().Round(15 * time.Minute)
+	timestamp := strings.Replace(datetime.Format(time.Stamp), " ", "-", -1)
+	datestamp := strings.Replace(datetime.Format(time.DateOnly), " ", "-", -1)
 	var err error
 	if fileType == "" {
 		errors.Join(err, errors.New("missing file type"))
@@ -187,41 +189,34 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 		return nil, err
 	}
 	logName = fmt.Sprintf(logName, dataGroup)
-	logPath := filepath.Join(".", fileType, timestamp)
+	logPath := filepath.Join(".", fileType, datestamp, timestamp)
 
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
-	return os.OpenFile(logPath+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	return os.OpenFile(logPath+"/"+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 }
 
 func (m *migrationUtil) writeErrors(groupLimit *int) {
-
 	for group, errors := range m.groupedErrors {
-
 		if groupLimit != nil {
 			if len(errors) < *groupLimit {
 				continue
 			}
 		}
-
 		f, err := createFile("logs", group, "error_%s.log")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
 		}
-
 		defer f.Close()
-
-		for _, data := range errors {
-			errorJSON, err := json.Marshal(data)
-			if err != nil {
-				log.Println(err)
-				os.Exit(1)
-			}
-			f.WriteString(string(errorJSON) + "\n")
+		errorsJSON, err := json.Marshal(errors)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
 		}
+		f.WriteString(string(errorsJSON) + "\n")
 		m.groupedErrors[group] = []ErrorData{}
 	}
 }
@@ -239,14 +234,12 @@ func (m *migrationUtil) writeDiff(groupLimit *int) {
 			os.Exit(1)
 		}
 		defer f.Close()
-		for _, data := range diffs {
-			diffJSON, err := json.Marshal(data)
-			if err != nil {
-				log.Println(err)
-				os.Exit(1)
-			}
-			f.WriteString(string(diffJSON) + "\n")
+		diffsJSON, err := json.Marshal(diffs)
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
 		}
+		f.WriteString(string(diffsJSON) + "\n")
 		m.groupedDiffs[group] = []UpdateData{}
 	}
 }
