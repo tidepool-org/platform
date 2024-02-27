@@ -225,6 +225,7 @@ func (m *Migration) fetchAndProcess() bool {
 				return false
 			}
 			itemID := fmt.Sprintf("%v", item["_id"])
+			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
 			updates, err := utils.ProcessDatum(itemID, itemType, item)
 			if err != nil {
@@ -233,8 +234,10 @@ func (m *Migration) fetchAndProcess() bool {
 				m.migrationUtil.SetUpdates(utils.UpdateData{
 					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
 					ItemID:   itemID,
+					UserID:   userID,
 					ItemType: itemType,
-					Updates:  updates,
+					Apply:    updates,
+					Revert:   updates,
 				})
 			}
 			m.migrationUtil.SetLastProcessed(itemID)

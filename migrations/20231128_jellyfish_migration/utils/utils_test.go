@@ -124,7 +124,6 @@ var _ = Describe("back-37", func() {
 		var _ = Describe("ApplyBaseChanges", func() {
 
 			const expectedID = "some-id"
-
 			var pumpSettingsDatum *pump.Pump
 
 			BeforeEach(func() {
@@ -261,7 +260,7 @@ var _ = Describe("back-37", func() {
 					Expect(cbgData["value"]).To(Equal(4.88466))
 				})
 			})
-			Context("reservoirChange deviceEvent datum status string", func() {
+			Context("reservoirChange deviceEvent datum with status string", func() {
 				var newReservoirChange = func() *reservoirchange.ReservoirChange {
 					datum := reservoirchange.New()
 					datum.Device = *dataTypesDeviceTest.RandomDevice()
@@ -367,51 +366,60 @@ var _ = Describe("back-37", func() {
 			It("has no difference", func() {
 				datumObject := getBSONData(test.AutomatedBasalTandem)
 				incomingObject := getRawData(test.AutomatedBasalTandem)
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
+				apply, revert, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
-				Expect(diff).ToNot(BeNil())
-				Expect(diff).To(Equal([]bson.M{}))
+				Expect(apply).ToNot(BeNil())
+				Expect(apply).To(Equal([]bson.M{}))
+				Expect(revert).ToNot(BeNil())
+				Expect(revert).To(Equal([]bson.M{}))
 			})
 			It("set for missing properties", func() {
 				datumObject := getBSONData(test.AutomatedBasalTandem)
 				incomingObject := getRawData(test.AutomatedBasalTandem)
 				delete(incomingObject, "deliveryType")
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
+				apply, revert, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
-				Expect(diff).To(Equal([]bson.M{{"$set": bson.M{"deliveryType": "automated"}}}))
+				Expect(apply).To(Equal([]bson.M{{"$set": bson.M{"deliveryType": "automated"}}}))
+				Expect(revert).To(Equal([]bson.M{{"$unset": bson.M{"deliveryType": ""}}}))
 			})
 			It("set _deduplicator correctly", func() {
 				calcData, _ := datumSetup(test.WizardTandem)
 				id := fmt.Sprintf("%v", calcData["_id"])
 				datum, _ := utils.BuildPlatformDatum(id, calculator.Type, calcData)
-				diff, err := utils.GetDatumChanges(id, datum, calcData)
+				apply, revert, err := utils.GetDatumChanges(id, datum, calcData)
 				Expect(err).To(BeNil())
-				Expect(diff[0]["$set"]).To(
-					Equal(
-						bson.M{
-							"time":          "2022-06-21T22:40:07.732Z",
-							"_deduplicator": map[string]interface{}{"hash": "o6ybZQtDZ95FvuV0zYGphri2SIGesbLCbkHxc1wbbEE="},
-						}))
+				Expect(len(apply)).To(Equal(2))
+				Expect(apply[0]["$set"]).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "o6ybZQtDZ95FvuV0zYGphri2SIGesbLCbkHxc1wbbEE="}))
+				Expect(len(revert)).To(Equal(2))
+				Expect(revert[0]).Should(HaveKeyWithValue("$unset", bson.M{"_deduplicator": ""}))
 			})
 			It("unset for unwanted properties", func() {
 				datumObject := getBSONData(test.AutomatedBasalTandem)
 				incomingObject := getRawData(test.AutomatedBasalTandem)
 				incomingObject["random"] = map[string]interface{}{"extra": true}
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
+				apply, revert, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
-				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"random": ""}}}))
+				Expect(len(apply)).To(Equal(1))
+				Expect(apply[0]).Should(HaveKeyWithValue("$unset", bson.M{"random": ""}))
+				Expect(len(revert)).To(Equal(1))
+				Expect(revert[0]).Should(HaveKeyWithValue("$set", bson.M{"random": map[string]interface{}{"extra": true}}))
 			})
 			It("allow for removing deeply nested properties", func() {
 				datumObject := getBSONData(test.AutomatedBasalTandem)
 				incomingObject := getRawData(test.AutomatedBasalTandem)
-				incomingObject["lots"] = map[string]interface{}{
+
+				ofThings := map[string]interface{}{
 					"of": map[string]interface{}{
 						"things": map[string]interface{}{
 							"go": map[string]interface{}{
 								"here": true}}}}
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
+				incomingObject["lots"] = ofThings
+				apply, revert, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
-				Expect(diff).To(Equal([]bson.M{{"$unset": bson.M{"lots": ""}}}))
+				Expect(len(apply)).To(Equal(1))
+				Expect(apply[0]).Should(HaveKeyWithValue("$unset", bson.M{"lots": ""}))
+				Expect(len(revert)).To(Equal(1))
+				Expect(revert[0]).Should(HaveKeyWithValue("$set", bson.M{"lots": ofThings}))
 			})
 			It("allow for updating nested array properties", func() {
 				datumObject := getBSONData(test.PumpSettingsTandem)
@@ -428,33 +436,52 @@ var _ = Describe("back-37", func() {
 					},
 				}
 
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
+				apply, revert, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				log.Printf("err %v", err)
 				Expect(err).To(BeNil())
-				Expect(diff).To(Equal([]bson.M{
-					{"$set": bson.M{
-						"insulinSensitivities.Simple.0.amount":  1.2,
-						"insulinSensitivities.Simple.1.amount":  2.6,
-						"insulinSensitivities.Standard.0.start": float64(1000),
-					}},
+				Expect(len(apply)).To(Equal(1))
+				Expect(apply[0]).Should(HaveKeyWithValue("$set", bson.M{
+					"insulinSensitivities.Simple.0.amount":  1.2,
+					"insulinSensitivities.Simple.1.amount":  2.6,
+					"insulinSensitivities.Standard.0.start": float64(1000),
+				}))
+				Expect(len(revert)).To(Equal(1))
+				Expect(revert[0]).Should(HaveKeyWithValue("$set", bson.M{
+					"insulinSensitivities.Simple.0.amount":  2.7753739955227665,
+					"insulinSensitivities.Simple.1.amount":  2.7753739955227665,
+					"insulinSensitivities.Standard.0.start": float64(0),
 				}))
 			})
 			It("no difference when inner payload changes", func() {
 				datumObject := getBSONData(test.AutomatedBasalTandem)
 				incomingObject := getRawData(test.AutomatedBasalTandem)
 				datumObject["payload"] = map[string]interface{}{"stuff": true}
-				diff, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
+				apply, revert, err := utils.GetDatumChanges(expectedID, datumObject, incomingObject)
 				Expect(err).To(BeNil())
-				Expect(diff).To(Equal([]bson.M{}))
+				Expect(apply).To(Equal([]bson.M{}))
+				Expect(revert).To(Equal([]bson.M{}))
 			})
 
 			It("should convert to bolusId for datum validation", func() {
 				bsonData := getBSONData(test.WizardTandem)
 				datumID := fmt.Sprintf("%v", bsonData["_id"])
 				datumType := fmt.Sprintf("%v", bsonData["type"])
+				apply, err := utils.ProcessDatum(datumID, datumType, bsonData)
+				Expect(err).To(BeNil())
+				Expect(apply[1]["$unset"]).ShouldNot(HaveKey("bolusId"))
+			})
+
+			It("should update all bgTraget values", func() {
+				bsonData := getBSONData(test.PumpSettingsCarelink)
+				datumID := fmt.Sprintf("%v", bsonData["_id"])
+				datumType := fmt.Sprintf("%v", bsonData["type"])
 				diff, err := utils.ProcessDatum(datumID, datumType, bsonData)
 				Expect(err).To(BeNil())
-				Expect(diff[1]["$unset"]).ShouldNot(HaveKey("bolusId"))
+				Expect(diff[0]["$set"]).ToNot(BeNil())
+				Expect(len(diff)).To(Equal(2))
+				Expect(diff[0]["$set"]).Should(HaveKeyWithValue("units.bg", "mmol/L"))
+				Expect(diff[0]["$set"]).Should(HaveKeyWithValue("bgTarget.0.target", float64(0.30811)))
+				Expect(diff[0]["$set"]).Should(HaveKeyWithValue("bgTarget.1.target", float64(0.30811)))
 			})
 
 		})

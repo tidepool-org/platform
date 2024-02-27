@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -53,8 +54,10 @@ type migrationUtil struct {
 type UpdateData struct {
 	Filter   interface{} `json:"-"`
 	ItemID   string      `json:"_id"`
+	UserID   string      `json:"_userId"`
 	ItemType string      `json:"-"`
-	Updates  []bson.M    `json:"diff"`
+	Apply    []bson.M    `json:"apply"`
+	Revert   []bson.M    `json:"revert"`
 }
 
 type ErrorData struct {
@@ -141,8 +144,6 @@ func (m *migrationUtil) capReached() bool {
 func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error {
 	for fetchAndUpdateFn() {
 		if err := m.writeUpdates(ctx, dataC); err != nil {
-			log.Printf("failed writing batch: %s", err)
-			// dump errors first
 			m.writeErrors(nil)
 			return err
 		}
@@ -158,7 +159,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 
 func (m *migrationUtil) SetUpdates(data UpdateData) {
 	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	for _, u := range data.Updates {
+	for _, u := range data.Apply {
 		updateOp := mongo.NewUpdateOneModel()
 		updateOp.Filter = data.Filter
 		updateOp.SetUpdate(u)
@@ -170,9 +171,33 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
 }
 
+func createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
+	timestamp := strings.Replace(time.Now().Truncate(time.Microsecond*15).Format(time.Stamp), " ", "-", -1)
+	var err error
+	if fileType == "" {
+		errors.Join(err, errors.New("missing file type"))
+	}
+	if dataGroup == "" {
+		errors.Join(err, errors.New("missing data group"))
+	}
+	if logName == "" {
+		errors.Join(err, errors.New("missing log group"))
+	}
+	if err != nil {
+		return nil, err
+	}
+	logName = fmt.Sprintf(logName, dataGroup)
+	logPath := filepath.Join(".", fileType, timestamp)
+
+	err = os.MkdirAll(logPath, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+	return os.OpenFile(logPath+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+}
+
 func (m *migrationUtil) writeErrors(groupLimit *int) {
-	timestamp := strings.Replace(time.Now().Format(time.Stamp), " ", "-", -1)
-	logName := "logs/error.log"
+
 	for group, errors := range m.groupedErrors {
 
 		if groupLimit != nil {
@@ -180,15 +205,13 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 				continue
 			}
 		}
-		if group != "" {
-			logName = fmt.Sprintf("logs/error_%s_%s.log", group, timestamp)
-		}
-		f, err := os.OpenFile(logName,
-			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+		f, err := createFile("logs", group, "error_%s.log")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
 		}
+
 		defer f.Close()
 
 		for _, data := range errors {
@@ -204,16 +227,13 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 }
 
 func (m *migrationUtil) writeDiff(groupLimit *int) {
-	timestamp := strings.Replace(time.Now().Format(time.Stamp), " ", "-", -1)
 	for group, diffs := range m.groupedDiffs {
 		if groupLimit != nil {
 			if len(diffs) < *groupLimit {
 				continue
 			}
 		}
-		logName := fmt.Sprintf("updates/diff_%s_%s.log", group, timestamp)
-		f, err := os.OpenFile(logName,
-			os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		f, err := createFile("updates", group, "diff_%s.json")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
