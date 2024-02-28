@@ -702,7 +702,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	// get latest modified record
 	selector := bson.M{
 		"_userId": userId,
-		"_active": bson.M{"$ne": -1111},
+		"_active": bson.M{"$in": bson.A{true, false}},
 		"type":    typ,
 		"time": bson.M{
 			"$gte": status.FirstData,
@@ -742,8 +742,8 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
-		"_active": bson.M{"$ne": -1111},
 		"_userId": userId,
+		"_active": bson.M{"$in": bson.A{true, false}},
 		"type":    typ,
 		"time": bson.M{
 			"$gte": status.FirstData,

@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"net/http"
+	"time"
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
@@ -31,6 +32,8 @@ func SummaryRoutes() []dataService.Route {
 
 		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
+
+		dataService.Get("/v1/summaries/realtime/:clinicId", GetRealtimePatients, api.RequireAuth),
 	}
 }
 
@@ -76,6 +79,31 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 		responder.Empty(http.StatusNotFound)
 	} else {
 		responder.Data(http.StatusOK, userSummary)
+	}
+}
+
+func GetRealtimePatients(dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	responder := request.MustNewResponder(res, req)
+
+	id := req.PathParam("clinicId")
+
+	startTime := time.Now().UTC().AddDate(0, 0, -60)
+	endTime := time.Now().UTC()
+
+	if !CheckPermissions(ctx, dataServiceContext, id) {
+		return
+	}
+
+	summaryManager := dataServiceContext.SummarizerRegistry().Manager
+	err := summaryManager.GetRealtimePatients(ctx, id, startTime, endTime)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+	} else {
+		responder.Data(http.StatusOK, nil)
 	}
 }
 

@@ -21,12 +21,15 @@ const (
 
 type SummarizerRegistry struct {
 	summarizers map[string]any
+	Manager     *Manager
 }
 
 func New(summaryRepository *storeStructuredMongo.Repository, dataRepository dataStore.DataRepository) *SummarizerRegistry {
 	registry := &SummarizerRegistry{summarizers: make(map[string]any)}
 	addSummarizer(registry, NewBGMSummarizer(summaryRepository, dataRepository))
 	addSummarizer(registry, NewCGMSummarizer(summaryRepository, dataRepository))
+
+	registry.Manager = NewManager(summaryRepository)
 	return registry
 }
 
@@ -59,9 +62,13 @@ type GlucoseSummarizer[T types.Stats, A types.StatsPt[T]] struct {
 	summaries  *store.Repo[T, A]
 }
 
-func NewBGMSummarizer(collection *storeStructuredMongo.Repository, deviceData dataStore.DataRepository) Summarizer[types.BGMStats, *types.BGMStats] {
+type Manager struct {
+	summaries *store.TypelessRepo
+}
+
+func NewBGMSummarizer(collection *storeStructuredMongo.Repository, dataRepo dataStore.DataRepository) Summarizer[types.BGMStats, *types.BGMStats] {
 	return &GlucoseSummarizer[types.BGMStats, *types.BGMStats]{
-		deviceData: deviceData,
+		deviceData: dataRepo,
 		summaries:  store.New[types.BGMStats, *types.BGMStats](collection),
 	}
 }
@@ -70,6 +77,12 @@ func NewCGMSummarizer(collection *storeStructuredMongo.Repository, deviceData da
 	return &GlucoseSummarizer[types.CGMStats, *types.CGMStats]{
 		deviceData: deviceData,
 		summaries:  store.New[types.CGMStats, *types.CGMStats](collection),
+	}
+}
+
+func NewManager(collection *storeStructuredMongo.Repository) *Manager {
+	return &Manager{
+		summaries: store.NewTypeless(collection),
 	}
 }
 
@@ -87,6 +100,16 @@ func (c *GlucoseSummarizer[T, A]) GetOutdatedUserIDs(ctx context.Context, pagina
 
 func (c *GlucoseSummarizer[T, A]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	return c.summaries.GetMigratableUserIDs(ctx, pagination)
+}
+
+func (c *Manager) GetRealtimePatients(ctx context.Context, clinicId string, startTime time.Time, endTime time.Time) error {
+	var patientIds []string
+	// TODO get patient ids of clinicId
+	return c.summaries.GetRealtimePatients(ctx, patientIds, startTime, endTime)
+}
+
+func (c *Manager) DeleteSummaries(ctx context.Context, userId string) error {
+	return c.summaries.DeleteSummary(ctx, userId)
 }
 
 func (c *GlucoseSummarizer[T, A]) BackfillSummaries(ctx context.Context) (int, error) {

@@ -80,6 +80,53 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
+func (r *TypelessRepo) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userIds == nil {
+		return errors.New("userIds is missing")
+	}
+	if len(userIds) == 0 {
+		return errors.New("no userIds provided")
+	}
+	if startTime.IsZero() {
+		return errors.New("startTime is missing")
+	}
+	if endTime.IsZero() {
+		return errors.New("startTime is missing")
+	}
+
+	if startTime.After(endTime) {
+		return errors.New("startTime is after endTime")
+	}
+
+	if startTime.Before(time.Now().AddDate(0, 0, -60)) {
+		return errors.New("startTime is too old ( >60d ago ) ")
+	}
+
+	// todo const?
+	threshold := 16
+
+	if int(endTime.Sub(startTime).Hours()/24) < threshold {
+		return errors.New("time range smaller than threshold, impossible")
+	}
+
+	typs := []string{types.SummaryTypeBGM, types.SummaryTypeCGM}
+	oldestPossibleLastData := startTime.AddDate(0, 0, threshold)
+
+	for _, userId := range userIds {
+		selector := bson.M{
+			"userId":         userId,
+			"type":           bson.M{"$in": typs},
+			"dates.lastData": bson.M{"$gt": oldestPossibleLastData},
+		}
+		r.Find(ctx, selector)
+	}
+
+	return nil
+}
+
 func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
