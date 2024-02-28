@@ -36,7 +36,7 @@ import (
 )
 
 // NOTE: required to ensure consitent precision of bg values in the platform
-func getBGValuePrecision(val float64) *float64 {
+func getBGValuePrecision(val float64) float64 {
 	//log.Printf("In VAL %v", val)
 	floatStr := fmt.Sprintf("%v", val)
 	if _, floatParts, found := strings.Cut(floatStr, "."); found {
@@ -45,47 +45,71 @@ func getBGValuePrecision(val float64) *float64 {
 			intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
 			floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
 			//log.Printf("Out VAL %v", floatValue)
-			return &floatValue
+			return floatValue
 		}
 	}
-	return nil
+	return val
 }
 
-func getTarget(bgTarget interface{}) (*glucose.Target, error) {
-	dataBytes, err := json.Marshal(bgTarget)
-	if err != nil {
-		return nil, err
-	}
-	var target glucose.Target
-	err = json.Unmarshal(dataBytes, &target)
-	if err != nil {
-		return nil, errorsP.Newf("bgTarget %s", string(dataBytes))
-	}
-	return &target, nil
-}
+// func getTarget(bgTarget interface{}) (*glucose.Target, error) {
+// 	dataBytes, err := json.Marshal(bgTarget)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	var target glucose.Target
+// 	err = json.Unmarshal(dataBytes, &target)
+// 	if err != nil {
+// 		return nil, errorsP.Newf("bgTarget %s", string(dataBytes))
+// 	}
+// 	return &target, nil
+// }
 
-func setGlucoseTargetPrecision(target *glucose.Target) *glucose.Target {
-	if bg := target.High; bg != nil {
-		if val := getBGValuePrecision(*bg); val != nil {
-			target.High = val
+// func setGlucoseTargetPrecision(target *glucose.Target) *glucose.Target {
+// 	if bg := target.High; bg != nil {
+// 		if val := getBGValuePrecision(*bg); val != nil {
+// 			target.High = val
+// 		}
+// 	}
+// 	if bg := target.Low; bg != nil {
+// 		if val := getBGValuePrecision(*bg); val != nil {
+// 			target.Low = val
+// 		}
+// 	}
+// 	if bg := target.Range; bg != nil {
+// 		if val := getBGValuePrecision(*bg); val != nil {
+// 			target.Range = val
+// 		}
+// 	}
+// 	if low := target.Target; low != nil {
+// 		if val := getBGValuePrecision(*low); val != nil {
+// 			target.Target = val
+// 		}
+// 	}
+// 	return target
+// }
+
+func updateTragetPrecision(targetObj map[string]interface{}) map[string]interface{} {
+	if targetObj["high"] != nil {
+		if highVal, ok := targetObj["high"].(float64); ok {
+			targetObj["high"] = getBGValuePrecision(highVal)
 		}
 	}
-	if bg := target.Low; bg != nil {
-		if val := getBGValuePrecision(*bg); val != nil {
-			target.Low = val
+	if targetObj["low"] != nil {
+		if lowVal, ok := targetObj["low"].(float64); ok {
+			targetObj["low"] = getBGValuePrecision(lowVal)
 		}
 	}
-	if bg := target.Range; bg != nil {
-		if val := getBGValuePrecision(*bg); val != nil {
-			target.Range = val
+	if targetObj["range"] != nil {
+		if rangeVal, ok := targetObj["range"].(float64); ok {
+			targetObj["range"] = getBGValuePrecision(rangeVal)
 		}
 	}
-	if low := target.Target; low != nil {
-		if val := getBGValuePrecision(*low); val != nil {
-			target.Target = val
+	if targetObj["low"] != nil {
+		if targetVal, ok := targetObj["target"].(float64); ok {
+			targetObj["low"] = getBGValuePrecision(targetVal)
 		}
 	}
-	return target
+	return targetObj
 }
 
 func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[string]interface{}, error) {
@@ -128,18 +152,14 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			updatedObject["sleepSchedules"] = &sleepScheduleMap
 		}
 		if bgTargetPhysicalActivity := updatedObject["bgTargetPhysicalActivity"]; bgTargetPhysicalActivity != nil {
-			// target, err := getTarget(bgTargetPhysicalActivity)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// updatedObject["bgTargetPhysicalActivity"] = *setGlucoseTargetPrecision(target)
+			if targetObj, ok := bgTargetPhysicalActivity.(map[string]interface{}); ok {
+				updatedObject["bgTargetPhysicalActivity"] = updateTragetPrecision(targetObj)
+			}
 		}
 		if bgTargetPreprandial := updatedObject["bgTargetPreprandial"]; bgTargetPreprandial != nil {
-			target, err := getTarget(bgTargetPreprandial)
-			if err != nil {
-				return nil, err
+			if targetObj, ok := bgTargetPreprandial.(map[string]interface{}); ok {
+				updatedObject["bgTargetPreprandial"] = updateTragetPrecision(targetObj)
 			}
-			updatedObject["bgTargetPreprandial"] = *setGlucoseTargetPrecision(target)
 		}
 		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
 			//var bgTargetStartArry pump.BloodGlucoseTargetStartArray
@@ -209,9 +229,7 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 		units := fmt.Sprintf("%v", updatedObject["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
 			if bgVal, ok := updatedObject["value"].(float64); ok {
-				if val := getBGValuePrecision(bgVal); val != nil {
-					updatedObject["value"] = *val
-				}
+				updatedObject["value"] = getBGValuePrecision(bgVal)
 			}
 		}
 	case cgm.Type:
@@ -219,18 +237,14 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 		if units == glucose.MmolL || units == glucose.Mmoll {
 			if lowAlerts, ok := updatedObject["lowAlerts"].(bson.M); ok {
 				if bgVal, ok := lowAlerts["level"].(float64); ok {
-					if val := getBGValuePrecision(bgVal); val != nil {
-						lowAlerts["level"] = *val
-						updatedObject["lowAlerts"] = lowAlerts
-					}
+					lowAlerts["level"] = getBGValuePrecision(bgVal)
+					updatedObject["lowAlerts"] = lowAlerts
 				}
 			}
 			if highAlerts, ok := updatedObject["highAlerts"].(bson.M); ok {
 				if bgVal, ok := highAlerts["level"].(float64); ok {
-					if val := getBGValuePrecision(bgVal); val != nil {
-						highAlerts["level"] = *val
-						updatedObject["highAlerts"] = highAlerts
-					}
+					highAlerts["level"] = getBGValuePrecision(bgVal)
+					updatedObject["highAlerts"] = highAlerts
 				}
 			}
 		}
@@ -242,16 +256,12 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
-			target, err := getTarget(bgTarget)
-			if err != nil {
-				return nil, err
+			if targetObj, ok := bgTarget.(map[string]interface{}); ok {
+				updatedObject["bgTarget"] = updateTragetPrecision(targetObj)
 			}
-			updatedObject["bgTarget"] = setGlucoseTargetPrecision(target)
 		}
 		if bgInput, ok := updatedObject["bgInput"].(float64); ok {
-			if val := getBGValuePrecision(bgInput); val != nil {
-				updatedObject["bgInput"] = *val
-			}
+			updatedObject["bgInput"] = getBGValuePrecision(bgInput)
 		}
 	case device.Type:
 		subType := fmt.Sprintf("%v", updatedObject["subType"])
