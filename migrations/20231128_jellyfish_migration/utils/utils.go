@@ -63,9 +63,6 @@ func copyMap(m map[string]interface{}) map[string]interface{} {
 }
 
 func updateTragetPrecision(targetObj map[string]interface{}) map[string]interface{} {
-
-	log.Printf("traget obj %v", targetObj)
-
 	if targetObj["high"] != nil {
 		if highVal, ok := targetObj["high"].(float64); ok {
 			targetObj["high"] = getBGValuePrecision(highVal)
@@ -86,8 +83,6 @@ func updateTragetPrecision(targetObj map[string]interface{}) map[string]interfac
 			targetObj["target"] = getBGValuePrecision(targetVal)
 		}
 	}
-
-	log.Printf("updated traget obj %v", targetObj)
 	return targetObj
 }
 
@@ -141,13 +136,21 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
-			log.Printf("## TODO [%s] bgTarget %v", b.datumType, bgTarget)
+			log.Printf("## TODO [%s] bgTarget %#v", b.datumType, bgTarget)
+			// if targetObjs, ok := bgTarget.([]interface{}); ok {
+			// 	for i, target := range targetObjs {
+			// 		if targetObj, ok := target.(map[string]interface{}); ok {
+			// 			targetObjs[i] = updateTragetPrecision(targetObj)
+			// 		}
+			// 	}
+			// 	updatedObject["bgTarget"] = targetObjs
+			// }
 		}
 		if bgTargets := updatedObject["bgTargets"]; bgTargets != nil {
-			log.Printf("## TODO [%s] bgTargets %v", b.datumType, bgTargets)
+			log.Printf("## TODO [%s] bgTargets %#v", b.datumType, bgTargets)
 		}
 		if overridePresets := updatedObject["overridePresets"]; overridePresets != nil {
-			log.Printf("## TODO [%s] overridePresets %v", b.datumType, overridePresets)
+			log.Printf("## TODO [%s] overridePresets %#v", b.datumType, overridePresets)
 		}
 
 	case selfmonitored.Type, ketone.Type, continuous.Type:

@@ -589,6 +589,27 @@ var _ = Describe("back-37", func() {
 				Expect(revertSet).Should(HaveKeyWithValue("bgTarget.target", 4.440598392836427))
 			})
 
+			It("pump settings with bgTraget glucose updates", func() {
+
+				bsonObject := getBSONData(test.PumpSettingsCarelink)
+				datumID := fmt.Sprintf("%v", bsonObject["_id"])
+				datumType := fmt.Sprintf("%v", bsonObject["type"])
+
+				apply, revert, err := utils.ProcessDatum(datumID, datumType, bsonObject)
+				Expect(err).To(BeNil())
+				Expect(apply).ToNot(BeNil())
+				Expect(revert).ToNot(BeNil())
+
+				applySet := apply[0]["$set"]
+				revertUnset := revert[0]["$unset"]
+
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "NC17pw1UAaab50iChhQXJ+N9dTi6GduTy9UjsMHolow="}))
+				//TODO sort nested bgTarget
+				//Expect(applySet).Should(HaveKeyWithValue("bgTarget.0.target", 4.4406))
+				//Expect(applySet).Should(HaveKeyWithValue("bgTarget.1.target", 4.4406))
+				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
+			})
+
 		})
 	})
 })
