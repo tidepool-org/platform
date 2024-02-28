@@ -227,7 +227,7 @@ func (m *Migration) fetchAndProcess() bool {
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
-			updates, err := utils.ProcessDatum(itemID, itemType, item)
+			updates, revert, err := utils.ProcessDatum(itemID, itemType, item)
 			if err != nil {
 				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
 			} else if len(updates) > 0 {
@@ -237,7 +237,7 @@ func (m *Migration) fetchAndProcess() bool {
 					UserID:   userID,
 					ItemType: itemType,
 					Apply:    updates,
-					Revert:   updates,
+					Revert:   revert,
 				})
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
