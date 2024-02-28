@@ -153,18 +153,28 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	}
 	m.GetStats().report()
 	m.writeErrors(nil)
-	m.writeDiff(nil)
+	m.writeAudit(nil)
 	return nil
+}
+
+func (d UpdateData) getMongoUpdates() []mongo.WriteModel {
+	updates := []mongo.WriteModel{}
+	for _, u := range d.Apply {
+		updateOp := mongo.NewUpdateOneModel()
+		updateOp.Filter = d.Filter
+		updateOp.SetUpdate(u)
+		updates = append(updates, updateOp)
+	}
+	updateOp := mongo.NewUpdateOneModel()
+	updateOp.Filter = d.Filter
+	updateOp.SetUpdate(bson.M{"$set": bson.M{"_jellyfishValues": d.Revert}})
+	updates = append(updates, updateOp)
+	return updates
 }
 
 func (m *migrationUtil) SetUpdates(data UpdateData) {
 	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	for _, u := range data.Apply {
-		updateOp := mongo.NewUpdateOneModel()
-		updateOp.Filter = data.Filter
-		updateOp.SetUpdate(u)
-		m.updates = append(m.updates, updateOp)
-	}
+	m.updates = append(m.updates, data.getMongoUpdates()...)
 }
 
 func (m *migrationUtil) SetLastProcessed(lastID string) {
@@ -205,7 +215,7 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 				continue
 			}
 		}
-		f, err := createFile("logs", group, "error_%s.log")
+		f, err := createFile("error", group, "%s.log")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -223,14 +233,14 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 	}
 }
 
-func (m *migrationUtil) writeDiff(groupLimit *int) {
+func (m *migrationUtil) writeAudit(groupLimit *int) {
 	for group, diffs := range m.groupedDiffs {
 		if groupLimit != nil {
 			if len(diffs) < *groupLimit {
 				continue
 			}
 		}
-		f, err := createFile("updates", group, "diff_%s.json")
+		f, err := createFile("audit", group, "%s.json")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -553,12 +563,12 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	writeLimit := 500
 	if m.config.dryRun {
 		log.Println("dry-run so no changes applied")
-		m.writeDiff(&writeLimit)
+		m.writeAudit(&writeLimit)
 	} else {
 		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
 		m.GetStats().report()
 		m.writeErrors(&writeLimit)
-		m.writeDiff(&writeLimit)
+		m.writeAudit(&writeLimit)
 	}
 	return nil
 }

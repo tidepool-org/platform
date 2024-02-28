@@ -61,6 +61,16 @@ func deepCopy(src map[string]interface{}, dest map[string]interface{}) error {
 	return nil
 }
 
+func updateTargets(targets interface{}) {
+	if targetObjs, ok := targets.([]interface{}); ok {
+		for i, target := range targetObjs {
+			if targetObj, ok := target.(map[string]interface{}); ok {
+				targetObjs[i] = updateTragetPrecision(targetObj)
+			}
+		}
+	}
+}
+
 func updateTragetPrecision(targetObj map[string]interface{}) map[string]interface{} {
 	if targetObj["high"] != nil {
 		if highVal, ok := targetObj["high"].(float64); ok {
@@ -142,16 +152,14 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
-			if targetObjs, ok := bgTarget.([]interface{}); ok {
-				for i, target := range targetObjs {
-					if targetObj, ok := target.(map[string]interface{}); ok {
-						targetObjs[i] = updateTragetPrecision(targetObj)
-					}
-				}
-			}
+			updateTargets(bgTarget)
 		}
 		if bgTargets := updatedObject["bgTargets"]; bgTargets != nil {
-			log.Printf("## TODO [%s] bgTargets %#v", b.datumType, bgTargets)
+			if targetMaps, ok := bgTargets.(map[string]interface{}); ok {
+				for _, targets := range targetMaps {
+					updateTargets(targets)
+				}
+			}
 		}
 		if overridePresets := updatedObject["overridePresets"]; overridePresets != nil {
 			log.Printf("## TODO [%s] overridePresets %#v", b.datumType, overridePresets)
@@ -292,11 +300,6 @@ func (b *builder) buildDatum(obj map[string]interface{}) error {
 		validator.Float64("rate", parser.Float64("rate"))
 		validator.Int("duration", parser.Int("duration"))
 		validator.String("bolusId", parser.String("bolusId"))
-		// case pump.Type:
-		// 	pumpObj := (*datum).(*pump.Pump)
-		// 	for i, v := range *pumpObj.BloodGlucoseTargetSchedule {
-		// 		log.Printf("BloodGlucoseTargetSchedule %d %#v", i, *v.Target.Target)
-		// 	}
 	}
 
 	parser.NotParsed()
@@ -374,18 +377,6 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 		delete(datumObject, key)
 	}
 
-	// debug
-	// if b.datumType == pump.Type {
-	// 	if datumObject["bgTarget"] != nil {
-	// 		log.Printf("pump datum: %v", datumObject["bgTarget"])
-	// 		log.Print(string(datumJSON))
-	// 	}
-
-	// 	if storedObj["bgTarget"] != nil {
-	// 		log.Printf("store datum: %v", storedObj["bgTarget"])
-	// 	}
-	// }
-
 	changelog, err := diff.Diff(storedObj, datumObject, diff.StructMapKeySupport())
 	if err != nil {
 		return nil, nil, err
@@ -444,8 +435,6 @@ func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, []
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// log.Printf("# FROM BSON %s", string(storedJSON))
 
 	storedData := map[string]interface{}{}
 	if err := json.Unmarshal(storedJSON, &storedData); err != nil {
