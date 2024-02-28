@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"slices"
 	"strings"
 	"time"
@@ -35,17 +36,16 @@ import (
 )
 
 // NOTE: required to ensure consitent precision of bg values in the platform
-func getBGValuePrecision(val interface{}) *float64 {
+func getBGValuePrecision(val float64) *float64 {
+	//log.Printf("In VAL %v", val)
 	floatStr := fmt.Sprintf("%v", val)
-	floatParts := strings.Split(floatStr, ".")
-	if len(floatParts) == 2 {
-		if len(floatParts[1]) > 5 {
-			if floatVal, ok := val.(float64); ok {
-				mgdlVal := floatVal * glucose.MmolLToMgdLConversionFactor
-				intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
-				floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
-				return &floatValue
-			}
+	if _, floatParts, found := strings.Cut(floatStr, "."); found {
+		if len(floatParts) > 5 {
+			mgdlVal := val * glucose.MmolLToMgdLConversionFactor
+			intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
+			floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
+			//log.Printf("Out VAL %v", floatValue)
+			return &floatValue
 		}
 	}
 	return nil
@@ -66,194 +66,212 @@ func getTarget(bgTarget interface{}) (*glucose.Target, error) {
 
 func setGlucoseTargetPrecision(target *glucose.Target) *glucose.Target {
 	if bg := target.High; bg != nil {
-		if val := getBGValuePrecision(bg); val != nil {
+		if val := getBGValuePrecision(*bg); val != nil {
 			target.High = val
 		}
 	}
 	if bg := target.Low; bg != nil {
-		if val := getBGValuePrecision(bg); val != nil {
+		if val := getBGValuePrecision(*bg); val != nil {
 			target.Low = val
 		}
 	}
 	if bg := target.Range; bg != nil {
-		if val := getBGValuePrecision(bg); val != nil {
+		if val := getBGValuePrecision(*bg); val != nil {
 			target.Range = val
 		}
 	}
 	if low := target.Target; low != nil {
-		if val := getBGValuePrecision(low); val != nil {
+		if val := getBGValuePrecision(*low); val != nil {
 			target.Target = val
 		}
 	}
 	return target
 }
 
-func ApplyBaseChanges(bsonData bson.M, dataType string) error {
+func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[string]interface{}, error) {
 
-	switch dataType {
+	updatedObject := incomingObject
+
+	switch b.datumType {
 	case pump.Type:
 
-		if boluses := bsonData["bolus"]; boluses != nil {
+		if boluses := updatedObject["bolus"]; boluses != nil {
 			// NOTE: fix mis-named boluses which were saved in jellyfish as a `bolus`
-			bsonData["boluses"] = boluses
-			delete(bsonData, "bolus")
+			updatedObject["boluses"] = boluses
+			delete(updatedObject, "bolus")
 		}
-		if schedules := bsonData["sleepSchedules"]; schedules != nil {
+		if schedules := updatedObject["sleepSchedules"]; schedules != nil {
 			// NOTE: this is to fix sleepSchedules so they are in the required map format
 			scheduleNames := map[int]string{0: "1", 1: "2"}
 			sleepScheduleMap := pump.SleepScheduleMap{}
 			dataBytes, err := json.Marshal(schedules)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			schedulesArray := []*pump.SleepSchedule{}
 			err = json.Unmarshal(dataBytes, &schedulesArray)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			for i, schedule := range schedulesArray {
 				days := schedule.Days
 				updatedDays := []string{}
 				for _, day := range *days {
 					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
-						return errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
+						return nil, errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
 					}
 					updatedDays = append(updatedDays, strings.ToLower(day))
 				}
 				schedule.Days = &updatedDays
 				sleepScheduleMap[scheduleNames[i]] = schedule
 			}
-			bsonData["sleepSchedules"] = &sleepScheduleMap
+			updatedObject["sleepSchedules"] = &sleepScheduleMap
 		}
-		if bgTargetPhysicalActivity := bsonData["bgTargetPhysicalActivity"]; bgTargetPhysicalActivity != nil {
-			target, err := getTarget(bgTargetPhysicalActivity)
-			if err != nil {
-				return err
-			}
-			bsonData["bgTargetPhysicalActivity"] = setGlucoseTargetPrecision(target)
+		if bgTargetPhysicalActivity := updatedObject["bgTargetPhysicalActivity"]; bgTargetPhysicalActivity != nil {
+			// target, err := getTarget(bgTargetPhysicalActivity)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// updatedObject["bgTargetPhysicalActivity"] = *setGlucoseTargetPrecision(target)
 		}
-		if bgTargetPreprandial := bsonData["bgTargetPreprandial"]; bgTargetPreprandial != nil {
+		if bgTargetPreprandial := updatedObject["bgTargetPreprandial"]; bgTargetPreprandial != nil {
 			target, err := getTarget(bgTargetPreprandial)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			bsonData["bgTargetPreprandial"] = setGlucoseTargetPrecision(target)
+			updatedObject["bgTargetPreprandial"] = *setGlucoseTargetPrecision(target)
 		}
-		if bgTarget := bsonData["bgTarget"]; bgTarget != nil {
-
-			var bgTargetStartArry pump.BloodGlucoseTargetStartArray
-
+		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
+			//var bgTargetStartArry pump.BloodGlucoseTargetStartArray
 			dataBytes, err := json.Marshal(bgTarget)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			err = json.Unmarshal(dataBytes, &bgTargetStartArry)
-			if err != nil {
-				return errorsP.Newf("bgTarget %s", string(dataBytes))
-			}
+			log.Printf("## bgTarget %s", string(dataBytes))
+			// err = json.Unmarshal(dataBytes, &bgTargetStartArry)
+			// if err != nil {
+			// 	return nil, errorsP.Newf("bgTarget %s", string(dataBytes))
+			// }
 
-			for _, item := range bgTargetStartArry {
-				item.Target = *setGlucoseTargetPrecision(&item.Target)
-			}
+			// for i, item := range bgTargetStartArry {
+			// 	log.Printf("## bgTargetStartArray %d %v", i, item.Target)
 
-			bsonData["bgTarget"] = &bgTargetStartArry
+			// 	target := setGlucoseTargetPrecision(&item.Target)
+
+			// 	log.Printf("## updated target %v", *target.Target)
+
+			// 	bgTargetStartArry[i].Target = *target
+
+			// 	log.Printf("## updated target %v", *bgTargetStartArry[i].Target.Target)
+			// }
+
+			// updatedObject["bgTarget"] = bgTargetStartArry
 		}
-		if bgTargets := bsonData["bgTargets"]; bgTargets != nil {
-			var data pump.BloodGlucoseTargetStartArrayMap
+		if bgTargets := updatedObject["bgTargets"]; bgTargets != nil {
+			//var data pump.BloodGlucoseTargetStartArrayMap
 			dataBytes, err := json.Marshal(bgTargets)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			err = json.Unmarshal(dataBytes, &data)
-			if err != nil {
-				return err
-			}
-			for i, d := range data {
-				for x, t := range *d {
-					t.Target = *setGlucoseTargetPrecision(&t.Target)
-					(*d)[x] = t
-				}
-				data[i] = d
-			}
-			bsonData["bgTargets"] = data
+			log.Printf("## bgTargets %s", string(dataBytes))
+			// err = json.Unmarshal(dataBytes, &data)
+			// if err != nil {
+			// 	return nil, err
+			// }
+
+			// for i, d := range data {
+			// 	for x, t := range *d {
+			// 		t.Target = *setGlucoseTargetPrecision(&t.Target)
+			// 		(*d)[x] = t
+			// 	}
+			// 	data[i] = d
+			// }
+			// log.Print("## setting updated targets")
+			// updatedObject["bgTargets"] = data
 		}
-		if overridePresets := bsonData["overridePresets"]; overridePresets != nil {
-			var overridePresetMap pump.OverridePresetMap
-			dataBytes, err := json.Marshal(overridePresets)
-			if err != nil {
-				return err
-			}
-			err = json.Unmarshal(dataBytes, &overridePresetMap)
-			if err != nil {
-				return err
-			}
-			for i, p := range overridePresetMap {
-				overridePresetMap[i].BloodGlucoseTarget = setGlucoseTargetPrecision(p.BloodGlucoseTarget)
-			}
-			bsonData["overridePresets"] = &overridePresetMap
+		if overridePresets := updatedObject["overridePresets"]; overridePresets != nil {
+			// var overridePresetMap pump.OverridePresetMap
+			// dataBytes, err := json.Marshal(overridePresets)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// err = json.Unmarshal(dataBytes, &overridePresetMap)
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// for i, p := range overridePresetMap {
+			// 	overridePresetMap[i].BloodGlucoseTarget = setGlucoseTargetPrecision(p.BloodGlucoseTarget)
+			// }
+			// updatedObject["overridePresets"] = &overridePresetMap
 		}
 
 	case selfmonitored.Type, ketone.Type, continuous.Type:
-		units := fmt.Sprintf("%v", bsonData["units"])
+		units := fmt.Sprintf("%v", updatedObject["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
-			if val := getBGValuePrecision(bsonData["value"]); val != nil {
-				bsonData["value"] = *val
+			if bgVal, ok := updatedObject["value"].(float64); ok {
+				if val := getBGValuePrecision(bgVal); val != nil {
+					updatedObject["value"] = *val
+				}
 			}
 		}
 	case cgm.Type:
-		units := fmt.Sprintf("%v", bsonData["units"])
+		units := fmt.Sprintf("%v", updatedObject["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
-			if lowAlerts, ok := bsonData["lowAlerts"].(bson.M); ok {
-				if val := getBGValuePrecision(lowAlerts["level"]); val != nil {
-					lowAlerts["level"] = *val
-					bsonData["lowAlerts"] = lowAlerts
+			if lowAlerts, ok := updatedObject["lowAlerts"].(bson.M); ok {
+				if bgVal, ok := lowAlerts["level"].(float64); ok {
+					if val := getBGValuePrecision(bgVal); val != nil {
+						lowAlerts["level"] = *val
+						updatedObject["lowAlerts"] = lowAlerts
+					}
 				}
 			}
-			if highAlerts, ok := bsonData["highAlerts"].(bson.M); ok {
-				if val := getBGValuePrecision(highAlerts["level"]); val != nil {
-					highAlerts["level"] = *val
-					bsonData["highAlerts"] = highAlerts
+			if highAlerts, ok := updatedObject["highAlerts"].(bson.M); ok {
+				if bgVal, ok := highAlerts["level"].(float64); ok {
+					if val := getBGValuePrecision(bgVal); val != nil {
+						highAlerts["level"] = *val
+						updatedObject["highAlerts"] = highAlerts
+					}
 				}
 			}
 		}
 	case calculator.Type:
-		if bolus := bsonData["bolus"]; bolus != nil {
+		if bolus := updatedObject["bolus"]; bolus != nil {
 			// NOTE: we are doing this to ensure that the `bolus` is just a string reference
 			if _, ok := bolus.(string); ok {
-				delete(bsonData, "bolus")
+				delete(updatedObject, "bolus")
 			}
 		}
-		if bgTarget := bsonData["bgTarget"]; bgTarget != nil {
+		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
 			target, err := getTarget(bgTarget)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			bsonData["bgTarget"] = setGlucoseTargetPrecision(target)
+			updatedObject["bgTarget"] = setGlucoseTargetPrecision(target)
 		}
-		if bgInput := bsonData["bgInput"]; bgInput != nil {
+		if bgInput, ok := updatedObject["bgInput"].(float64); ok {
 			if val := getBGValuePrecision(bgInput); val != nil {
-				bsonData["bgInput"] = val
+				updatedObject["bgInput"] = *val
 			}
 		}
 	case device.Type:
-		subType := fmt.Sprintf("%v", bsonData["subType"])
+		subType := fmt.Sprintf("%v", updatedObject["subType"])
 		switch subType {
 		case reservoirchange.SubType, alarm.SubType:
 			// NOTE: we are doing this to ensure that the `status` is just a string reference and then setting the `statusId` with it
-			if status := bsonData["status"]; status != nil {
+			if status := updatedObject["status"]; status != nil {
 				if statusID, ok := status.(string); ok {
-					bsonData["statusId"] = statusID
-					delete(bsonData, "status")
+					updatedObject["statusId"] = statusID
+					delete(updatedObject, "status")
 				}
 			}
 		}
 	}
 
-	if payload := bsonData["payload"]; payload != nil {
+	if payload := updatedObject["payload"]; payload != nil {
 
 		if m, ok := payload.(bson.M); ok {
 			if length := len(m); length == 0 {
-				delete(bsonData, "payload")
+				delete(updatedObject, "payload")
 			}
 		}
 
@@ -261,26 +279,26 @@ func ApplyBaseChanges(bsonData bson.M, dataType string) error {
 			var payloadMetadata metadata.Metadata
 			err := json.Unmarshal(json.RawMessage(strPayload), &payloadMetadata)
 			if err != nil {
-				return errorsP.Newf("payload could not be set from %s", strPayload)
+				return nil, errorsP.Newf("payload could not be set from %s", strPayload)
 			}
-			bsonData["payload"] = &payloadMetadata
+			updatedObject["payload"] = &payloadMetadata
 		}
 
 	}
-	if annotations := bsonData["annotations"]; annotations != nil {
+	if annotations := updatedObject["annotations"]; annotations != nil {
 		if strAnnotations, ok := annotations.(string); ok {
 			var metadataArray metadata.MetadataArray
 			if err := json.Unmarshal(json.RawMessage(strAnnotations), &metadataArray); err != nil {
-				return errorsP.Newf("annotations could not be set from %s", strAnnotations)
+				return nil, errorsP.Newf("annotations could not be set from %s", strAnnotations)
 			}
-			bsonData["annotations"] = &metadataArray
+			updatedObject["annotations"] = &metadataArray
 		}
 	}
-	return nil
+	return updatedObject, nil
 }
 
-func BuildPlatformDatum(objID string, objType string, objectData map[string]interface{}) (*data.Datum, error) {
-	parser := structureParser.NewObject(&objectData)
+func (b *builder) buildDatum(obj map[string]interface{}) error {
+	parser := structureParser.NewObject(&obj)
 	validator := structureValidator.New()
 	normalizer := dataNormalizer.New()
 
@@ -291,7 +309,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 		(*datum).Validate(validator)
 		(*datum).Normalize(normalizer)
 	} else {
-		return nil, errorsP.Newf("no datum returned for id=[%s]", objID)
+		return errorsP.Newf("no datum returned for id=[%s]", b.datumID)
 	}
 
 	validator.Bool("_active", parser.Bool("_active")).Exists()
@@ -310,7 +328,7 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	//parsed but not used in the platform
 	//deletes will be created from the diff
 
-	switch objType {
+	switch b.datumType {
 	case continuous.Type:
 		validator.String("subType", parser.String("subType"))
 	case bolus.Type:
@@ -334,25 +352,25 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 	parser.NotParsed()
 
 	if err := parser.Error(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := validator.Error(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := normalizer.Error(); err != nil {
-		return nil, err
+		return err
 	}
 
 	fields, err := (*datum).IdentityFields()
 	if err != nil {
-		return nil, errorsP.Wrap(err, "unable to gather identity fields for datum")
+		return errorsP.Wrap(err, "unable to gather identity fields for datum")
 	}
 
 	hash, err := deduplicator.GenerateIdentityHash(fields)
 	if err != nil {
-		return nil, errorsP.Wrap(err, "unable to generate identity hash for datum")
+		return errorsP.Wrap(err, "unable to generate identity hash for datum")
 	}
 
 	deduplicator := (*datum).DeduplicatorDescriptor()
@@ -363,23 +381,26 @@ func BuildPlatformDatum(objID string, objType string, objectData map[string]inte
 
 	(*datum).SetDeduplicatorDescriptor(deduplicator)
 
-	return datum, nil
+	b.datum = *datum
+	return nil
 }
 
-func GetDatumChanges(id string, datum interface{}, original map[string]interface{}) ([]bson.M, []bson.M, error) {
+func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bson.M, error) {
 
-	outgoingJSONData, err := json.Marshal(datum)
+	datumJSON, err := json.Marshal(b.datum)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	processedObject := map[string]interface{}{}
-	if err := json.Unmarshal(outgoingJSONData, &processedObject); err != nil {
+	// log.Printf("datum: %s", string(datumJSON))
+
+	datumObject := map[string]interface{}{}
+	if err := json.Unmarshal(datumJSON, &datumObject); err != nil {
 		return nil, nil, err
 	}
 
-	if deduplicator := processedObject["deduplicator"]; deduplicator != nil {
-		processedObject["_deduplicator"] = deduplicator
+	if deduplicator := datumObject["deduplicator"]; deduplicator != nil {
+		datumObject["_deduplicator"] = deduplicator
 	}
 
 	// these are extras that we want to leave on the
@@ -397,14 +418,15 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 		"modifiedTime",
 		"uploadId",
 		"deduplicator",
+		"time",
 	}
 
 	for _, key := range notRequired {
-		delete(original, key)
-		delete(processedObject, key)
+		delete(storedObj, key)
+		delete(datumObject, key)
 	}
 
-	changelog, err := diff.Diff(original, processedObject, diff.StructMapKeySupport())
+	changelog, err := diff.Diff(storedObj, datumObject, diff.StructMapKeySupport())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -445,29 +467,43 @@ func GetDatumChanges(id string, datum interface{}, original map[string]interface
 	return apply, revert, nil
 }
 
-func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, error) {
+type builder struct {
+	datumType string
+	datumID   string
+	datum     data.Datum
+}
 
-	if err := ApplyBaseChanges(bsonData, dataType); err != nil {
-		return nil, err
+func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, []bson.M, error) {
+
+	b := &builder{
+		datumType: dataType,
+		datumID:   dataID,
 	}
 
-	incomingJSONData, err := json.Marshal(bsonData)
+	storedJSON, err := json.Marshal(bsonData)
 	if err != nil {
-		return nil, err
-	}
-	ojbData := map[string]interface{}{}
-	if err := json.Unmarshal(incomingJSONData, &ojbData); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	datum, err := BuildPlatformDatum(dataID, dataType, ojbData)
-	if err != nil {
-		return nil, err
+	// log.Printf("# FROM BSON %s", string(storedJSON))
+
+	storedData := map[string]interface{}{}
+	if err := json.Unmarshal(storedJSON, &storedData); err != nil {
+		return nil, nil, err
 	}
 
-	apply, _, err := GetDatumChanges(dataID, datum, ojbData)
+	updatedData, err := b.applyBaseUpdates(storedData)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return apply, nil
+
+	if err := b.buildDatum(updatedData); err != nil {
+		return nil, nil, err
+	}
+
+	apply, revert, err := b.datumChanges(storedData)
+	if err != nil {
+		return nil, nil, err
+	}
+	return apply, revert, nil
 }

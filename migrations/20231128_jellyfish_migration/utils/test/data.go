@@ -153,6 +153,39 @@ func omnipodPumpSettingsDatum() map[string]interface{} {
 	return datum
 }
 
+func omnipodPumpSettingsDatumTargetSet() map[string]interface{} {
+
+	datum := base("InsOmn-837268")
+	datum["type"] = "pumpSettings"
+	datum["activeSchedule"] = "Mine-2016"
+	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
+	datum["basalSchedules"] = map[string]interface{}{
+		"Mine-2016": []map[string]interface{}{
+			{"rate": 0.5, "start": 0},
+			{"rate": 1.35, "start": 55800000},
+		},
+		"camp 2015": []map[string]interface{}{
+			{"rate": 0.5, "start": 0},
+			{"rate": 1.35, "start": 55800000},
+		},
+		"weekend b": []map[string]interface{}{},
+	}
+	datum["carbRatio"] = []map[string]interface{}{
+		{"amount": 10, "start": 0},
+		{"amount": 10, "start": 32400000},
+	}
+	datum["insulinSensitivity"] = []map[string]interface{}{
+		{"amount": 2.7753739955227665, "start": 0},
+		{"amount": 2.7753739955227665, "start": 46800000},
+	}
+
+	datum["bgTarget"] = []map[string]interface{}{
+		{"target": 5.550747991045533, "start": 0, "high": 7.2159723883591935},
+		{"target": 5.550747991045533, "start": 46800000, "high": 7.2159723883591935},
+	}
+	return datum
+}
+
 func tandemAutomatedBasalDatum() map[string]interface{} {
 	datum := base("tandemCIQ1111111111111")
 	datum["type"] = "basal"
@@ -242,6 +275,7 @@ var CBGDexcomG5MobDatum = dexG5MobDatum()
 var PumpSettingsTandem = tandemPumpSettingsDatum()
 var PumpSettingsCarelink = carelinkPumpSettings()
 var PumpSettingsOmnipod = omnipodPumpSettingsDatum()
+var PumpSettingsOmnipodBGTargetCorrect = omnipodPumpSettingsDatumTargetSet()
 var AutomatedBasalTandem = tandemAutomatedBasalDatum()
 var WizardTandem = tandemWizardDatum()
 var ReservoirChange = reservoirChangeDeviceEventDatum()
