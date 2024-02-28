@@ -556,9 +556,37 @@ var _ = Describe("back-37", func() {
 				Expect(revert).ToNot(BeNil())
 
 				Expect(apply[0]["$set"]).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "bpKLJbi5JfqD7N0WJ1vj0ck03c9EZ3U0H09TCLhdd3k="}))
+				//Expect(apply[0]["$set"]).Should(HaveKeyWithValue("bgTargets.Simple.1.target", 0))
 				Expect(apply[1]["$unset"]).Should(HaveKeyWithValue("localTime", ""))
 				Expect(revert[0]["$unset"]).Should(HaveKeyWithValue("_deduplicator", ""))
 				Expect(revert[1]["$set"]).Should(HaveKeyWithValue("localTime", "2017-11-05T12:56:51.000Z"))
+			})
+
+			It("wizard with bgInput and bgTarget glucose updates", func() {
+
+				bsonObject := getBSONData(test.WizardTandem)
+				datumID := fmt.Sprintf("%v", bsonObject["_id"])
+				datumType := fmt.Sprintf("%v", bsonObject["type"])
+
+				apply, revert, err := utils.ProcessDatum(datumID, datumType, bsonObject)
+				Expect(err).To(BeNil())
+				Expect(apply).ToNot(BeNil())
+				Expect(revert).ToNot(BeNil())
+
+				applySet := apply[0]["$set"]
+				applyUnset := apply[1]["$unset"]
+
+				revertSet := revert[1]["$set"]
+				revertUnset := revert[0]["$unset"]
+
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "o6ybZQtDZ95FvuV0zYGphri2SIGesbLCbkHxc1wbbEE="}))
+				Expect(applySet).Should(HaveKeyWithValue("bgInput", 4.4406))
+				Expect(applySet).Should(HaveKeyWithValue("bgTarget.target", 4.4406))
+				Expect(applyUnset).Should(HaveKeyWithValue("localTime", ""))
+				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
+				Expect(revertSet).Should(HaveKeyWithValue("localTime", "2017-11-05T12:56:51.000Z"))
+				Expect(revertSet).Should(HaveKeyWithValue("bgInput", 4.440598392836427))
+				Expect(revertSet).Should(HaveKeyWithValue("bgTarget.target", 4.440598392836427))
 			})
 
 		})

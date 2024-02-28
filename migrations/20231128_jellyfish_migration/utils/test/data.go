@@ -218,6 +218,12 @@ func tandemWizardDatum() map[string]interface{} {
 		"rate":         0.7,
 	}
 
+	datum["bgInput"] = 4.440598392836427
+
+	datum["bgTarget"] = map[string]interface{}{
+		"target": 4.440598392836427,
+	}
+
 	datum["units"] = "mmol/L"
 	datum["duration"] = 300000
 	datum["rate"] = 0.335

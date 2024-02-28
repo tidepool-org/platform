@@ -37,58 +37,35 @@ import (
 
 // NOTE: required to ensure consitent precision of bg values in the platform
 func getBGValuePrecision(val float64) float64 {
-	//log.Printf("In VAL %v", val)
 	floatStr := fmt.Sprintf("%v", val)
 	if _, floatParts, found := strings.Cut(floatStr, "."); found {
 		if len(floatParts) > 5 {
 			mgdlVal := val * glucose.MmolLToMgdLConversionFactor
 			intValue := int(mgdlVal/glucose.MmolLToMgdLConversionFactor*glucose.MmolLToMgdLPrecisionFactor + 0.5)
 			floatValue := float64(intValue) / glucose.MmolLToMgdLPrecisionFactor
-			//log.Printf("Out VAL %v", floatValue)
 			return floatValue
 		}
 	}
 	return val
 }
 
-// func getTarget(bgTarget interface{}) (*glucose.Target, error) {
-// 	dataBytes, err := json.Marshal(bgTarget)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	var target glucose.Target
-// 	err = json.Unmarshal(dataBytes, &target)
-// 	if err != nil {
-// 		return nil, errorsP.Newf("bgTarget %s", string(dataBytes))
-// 	}
-// 	return &target, nil
-// }
-
-// func setGlucoseTargetPrecision(target *glucose.Target) *glucose.Target {
-// 	if bg := target.High; bg != nil {
-// 		if val := getBGValuePrecision(*bg); val != nil {
-// 			target.High = val
-// 		}
-// 	}
-// 	if bg := target.Low; bg != nil {
-// 		if val := getBGValuePrecision(*bg); val != nil {
-// 			target.Low = val
-// 		}
-// 	}
-// 	if bg := target.Range; bg != nil {
-// 		if val := getBGValuePrecision(*bg); val != nil {
-// 			target.Range = val
-// 		}
-// 	}
-// 	if low := target.Target; low != nil {
-// 		if val := getBGValuePrecision(*low); val != nil {
-// 			target.Target = val
-// 		}
-// 	}
-// 	return target
-// }
+func copyMap(m map[string]interface{}) map[string]interface{} {
+	cp := make(map[string]interface{})
+	for k, v := range m {
+		vm, ok := v.(map[string]interface{})
+		if ok {
+			cp[k] = copyMap(vm)
+		} else {
+			cp[k] = v
+		}
+	}
+	return cp
+}
 
 func updateTragetPrecision(targetObj map[string]interface{}) map[string]interface{} {
+
+	log.Printf("traget obj %v", targetObj)
+
 	if targetObj["high"] != nil {
 		if highVal, ok := targetObj["high"].(float64); ok {
 			targetObj["high"] = getBGValuePrecision(highVal)
@@ -104,17 +81,19 @@ func updateTragetPrecision(targetObj map[string]interface{}) map[string]interfac
 			targetObj["range"] = getBGValuePrecision(rangeVal)
 		}
 	}
-	if targetObj["low"] != nil {
+	if targetObj["target"] != nil {
 		if targetVal, ok := targetObj["target"].(float64); ok {
-			targetObj["low"] = getBGValuePrecision(targetVal)
+			targetObj["target"] = getBGValuePrecision(targetVal)
 		}
 	}
+
+	log.Printf("updated traget obj %v", targetObj)
 	return targetObj
 }
 
 func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[string]interface{}, error) {
 
-	updatedObject := incomingObject
+	updatedObject := copyMap(incomingObject)
 
 	switch b.datumType {
 	case pump.Type:
@@ -149,7 +128,7 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 				schedule.Days = &updatedDays
 				sleepScheduleMap[scheduleNames[i]] = schedule
 			}
-			updatedObject["sleepSchedules"] = &sleepScheduleMap
+			updatedObject["sleepSchedules"] = sleepScheduleMap
 		}
 		if bgTargetPhysicalActivity := updatedObject["bgTargetPhysicalActivity"]; bgTargetPhysicalActivity != nil {
 			if targetObj, ok := bgTargetPhysicalActivity.(map[string]interface{}); ok {
@@ -162,67 +141,13 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
-			//var bgTargetStartArry pump.BloodGlucoseTargetStartArray
-			dataBytes, err := json.Marshal(bgTarget)
-			if err != nil {
-				return nil, err
-			}
-			log.Printf("## bgTarget %s", string(dataBytes))
-			// err = json.Unmarshal(dataBytes, &bgTargetStartArry)
-			// if err != nil {
-			// 	return nil, errorsP.Newf("bgTarget %s", string(dataBytes))
-			// }
-
-			// for i, item := range bgTargetStartArry {
-			// 	log.Printf("## bgTargetStartArray %d %v", i, item.Target)
-
-			// 	target := setGlucoseTargetPrecision(&item.Target)
-
-			// 	log.Printf("## updated target %v", *target.Target)
-
-			// 	bgTargetStartArry[i].Target = *target
-
-			// 	log.Printf("## updated target %v", *bgTargetStartArry[i].Target.Target)
-			// }
-
-			// updatedObject["bgTarget"] = bgTargetStartArry
+			log.Printf("## TODO [%s] bgTarget %v", b.datumType, bgTarget)
 		}
 		if bgTargets := updatedObject["bgTargets"]; bgTargets != nil {
-			//var data pump.BloodGlucoseTargetStartArrayMap
-			dataBytes, err := json.Marshal(bgTargets)
-			if err != nil {
-				return nil, err
-			}
-			log.Printf("## bgTargets %s", string(dataBytes))
-			// err = json.Unmarshal(dataBytes, &data)
-			// if err != nil {
-			// 	return nil, err
-			// }
-
-			// for i, d := range data {
-			// 	for x, t := range *d {
-			// 		t.Target = *setGlucoseTargetPrecision(&t.Target)
-			// 		(*d)[x] = t
-			// 	}
-			// 	data[i] = d
-			// }
-			// log.Print("## setting updated targets")
-			// updatedObject["bgTargets"] = data
+			log.Printf("## TODO [%s] bgTargets %v", b.datumType, bgTargets)
 		}
 		if overridePresets := updatedObject["overridePresets"]; overridePresets != nil {
-			// var overridePresetMap pump.OverridePresetMap
-			// dataBytes, err := json.Marshal(overridePresets)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// err = json.Unmarshal(dataBytes, &overridePresetMap)
-			// if err != nil {
-			// 	return nil, err
-			// }
-			// for i, p := range overridePresetMap {
-			// 	overridePresetMap[i].BloodGlucoseTarget = setGlucoseTargetPrecision(p.BloodGlucoseTarget)
-			// }
-			// updatedObject["overridePresets"] = &overridePresetMap
+			log.Printf("## TODO [%s] overridePresets %v", b.datumType, overridePresets)
 		}
 
 	case selfmonitored.Type, ketone.Type, continuous.Type:
@@ -255,10 +180,8 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 				delete(updatedObject, "bolus")
 			}
 		}
-		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
-			if targetObj, ok := bgTarget.(map[string]interface{}); ok {
-				updatedObject["bgTarget"] = updateTragetPrecision(targetObj)
-			}
+		if bgTargetObj, ok := updatedObject["bgTarget"].(map[string]interface{}); ok {
+			updatedObject["bgTarget"] = updateTragetPrecision(bgTargetObj)
 		}
 		if bgInput, ok := updatedObject["bgInput"].(float64); ok {
 			updatedObject["bgInput"] = getBGValuePrecision(bgInput)
@@ -402,8 +325,6 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 		return nil, nil, err
 	}
 
-	// log.Printf("datum: %s", string(datumJSON))
-
 	datumObject := map[string]interface{}{}
 	if err := json.Unmarshal(datumJSON, &datumObject); err != nil {
 		return nil, nil, err
@@ -435,6 +356,17 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 		delete(storedObj, key)
 		delete(datumObject, key)
 	}
+
+	// debug
+	// if b.datumType == pump.Type {
+	// 	log.Printf("pump datum: %s", string(datumJSON))
+
+	// 	storedJSON, err := json.Marshal(storedObj)
+	// 	if err != nil {
+	// 		return nil, nil, err
+	// 	}
+	// 	log.Printf("pump stored: %s", string(storedJSON))
+	// }
 
 	changelog, err := diff.Diff(storedObj, datumObject, diff.StructMapKeySupport())
 	if err != nil {
