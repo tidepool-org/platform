@@ -102,10 +102,8 @@ func (c *GlucoseSummarizer[T, A]) GetMigratableUserIDs(ctx context.Context, pagi
 	return c.summaries.GetMigratableUserIDs(ctx, pagination)
 }
 
-func (c *Manager) GetRealtimePatients(ctx context.Context, clinicId string, startTime time.Time, endTime time.Time) error {
-	var patientIds []string
-	// TODO get patient ids of clinicId
-	return c.summaries.GetRealtimePatients(ctx, patientIds, startTime, endTime)
+func (c *Manager) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) error {
+	return c.summaries.GetRealtimePatients(ctx, userIds, startTime, endTime)
 }
 
 func (c *Manager) DeleteSummaries(ctx context.Context, userId string) error {

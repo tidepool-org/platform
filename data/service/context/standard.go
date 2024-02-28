@@ -1,6 +1,7 @@
 package context
 
 import (
+	"github.com/tidepool-org/platform/clinics"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -33,6 +34,7 @@ type Standard struct {
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
+	clinicsClient           clinics.Client
 	dataSourceClient        dataSource.Client
 	alertsRepository        alerts.Repository
 }
@@ -171,6 +173,10 @@ func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
 
 func (s *Standard) DataClient() dataClient.Client {
 	return s.dataClient
+}
+
+func (s *Standard) ClinicsClient() clinics.Client {
+	return s.clinicsClient
 }
 
 func (s *Standard) DataSourceClient() dataSource.Client {

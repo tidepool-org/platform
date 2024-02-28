@@ -1,6 +1,7 @@
 package v1_test
 
 import (
+	"github.com/tidepool-org/platform/clinics"
 	"io"
 	"net/http"
 	"strings"
@@ -206,6 +207,10 @@ func (c *mockDataServiceContext) SummarizerRegistry() *summary.SummarizerRegistr
 }
 
 func (c *mockDataServiceContext) DataClient() dataClient.Client {
+	panic("not implemented") // TODO: Implement
+}
+
+func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
 	panic("not implemented") // TODO: Implement
 }
 

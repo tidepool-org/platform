@@ -89,17 +89,20 @@ func GetRealtimePatients(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	id := req.PathParam("clinicId")
+	clinicId := req.PathParam("clinicId")
 
 	startTime := time.Now().UTC().AddDate(0, 0, -60)
 	endTime := time.Now().UTC()
 
-	if !CheckPermissions(ctx, dataServiceContext, id) {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
 
+	userIds, err := dataServiceContext.ClinicsClient().GetPatientUserIds(ctx, clinicId)
+
 	summaryManager := dataServiceContext.SummarizerRegistry().Manager
-	err := summaryManager.GetRealtimePatients(ctx, id, startTime, endTime)
+	err = summaryManager.GetRealtimePatients(ctx, userIds, startTime, endTime)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else {
