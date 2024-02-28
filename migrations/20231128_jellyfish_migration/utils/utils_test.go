@@ -602,12 +602,16 @@ var _ = Describe("back-37", func() {
 
 				applySet := apply[0]["$set"]
 				revertUnset := revert[0]["$unset"]
+				revertSet := revert[1]["$set"]
 
 				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "NC17pw1UAaab50iChhQXJ+N9dTi6GduTy9UjsMHolow="}))
-				//TODO sort nested bgTarget
-				//Expect(applySet).Should(HaveKeyWithValue("bgTarget.0.target", 4.4406))
-				//Expect(applySet).Should(HaveKeyWithValue("bgTarget.1.target", 4.4406))
+				Expect(applySet).Should(HaveKeyWithValue("bgTarget.0.target", 5.55075))
+				Expect(applySet).Should(HaveKeyWithValue("bgTarget.1.target", 5.55075))
+				Expect(applySet).Should(HaveKeyWithValue("units.bg", "mmol/L"))
 				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
+				Expect(revertSet).Should(HaveKeyWithValue("bgTarget.0.target", 5.550747991045533))
+				Expect(revertSet).Should(HaveKeyWithValue("bgTarget.1.target", 5.550747991045533))
+				Expect(revertSet).Should(HaveKeyWithValue("units.bg", "mg/dL"))
 			})
 
 		})

@@ -49,17 +49,16 @@ func getBGValuePrecision(val float64) float64 {
 	return val
 }
 
-func copyMap(m map[string]interface{}) map[string]interface{} {
-	cp := make(map[string]interface{})
-	for k, v := range m {
-		vm, ok := v.(map[string]interface{})
-		if ok {
-			cp[k] = copyMap(vm)
-		} else {
-			cp[k] = v
-		}
+func deepCopy(src map[string]interface{}, dest map[string]interface{}) error {
+	jsonStr, err := json.Marshal(src)
+	if err != nil {
+		return err
 	}
-	return cp
+	err = json.Unmarshal(jsonStr, &dest)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func updateTragetPrecision(targetObj map[string]interface{}) map[string]interface{} {
@@ -88,10 +87,17 @@ func updateTragetPrecision(targetObj map[string]interface{}) map[string]interfac
 
 func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[string]interface{}, error) {
 
-	updatedObject := copyMap(incomingObject)
-
+	updatedObject := map[string]interface{}{}
+	err := deepCopy(incomingObject, updatedObject)
+	if err != nil {
+		return nil, err
+	}
 	switch b.datumType {
 	case pump.Type:
+
+		if units, ok := updatedObject["units"].(map[string]interface{}); ok {
+			units["bg"] = glucose.MmolL
+		}
 
 		if boluses := updatedObject["bolus"]; boluses != nil {
 			// NOTE: fix mis-named boluses which were saved in jellyfish as a `bolus`
@@ -136,15 +142,13 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if bgTarget := updatedObject["bgTarget"]; bgTarget != nil {
-			log.Printf("## TODO [%s] bgTarget %#v", b.datumType, bgTarget)
-			// if targetObjs, ok := bgTarget.([]interface{}); ok {
-			// 	for i, target := range targetObjs {
-			// 		if targetObj, ok := target.(map[string]interface{}); ok {
-			// 			targetObjs[i] = updateTragetPrecision(targetObj)
-			// 		}
-			// 	}
-			// 	updatedObject["bgTarget"] = targetObjs
-			// }
+			if targetObjs, ok := bgTarget.([]interface{}); ok {
+				for i, target := range targetObjs {
+					if targetObj, ok := target.(map[string]interface{}); ok {
+						targetObjs[i] = updateTragetPrecision(targetObj)
+					}
+				}
+			}
 		}
 		if bgTargets := updatedObject["bgTargets"]; bgTargets != nil {
 			log.Printf("## TODO [%s] bgTargets %#v", b.datumType, bgTargets)
@@ -177,6 +181,11 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 	case calculator.Type:
+
+		if units := fmt.Sprintf("%v", updatedObject["units"]); units != glucose.MmolL {
+			updatedObject["units"] = glucose.MmolL
+		}
+
 		if bolus := updatedObject["bolus"]; bolus != nil {
 			// NOTE: we are doing this to ensure that the `bolus` is just a string reference
 			if _, ok := bolus.(string); ok {
@@ -283,6 +292,11 @@ func (b *builder) buildDatum(obj map[string]interface{}) error {
 		validator.Float64("rate", parser.Float64("rate"))
 		validator.Int("duration", parser.Int("duration"))
 		validator.String("bolusId", parser.String("bolusId"))
+		// case pump.Type:
+		// 	pumpObj := (*datum).(*pump.Pump)
+		// 	for i, v := range *pumpObj.BloodGlucoseTargetSchedule {
+		// 		log.Printf("BloodGlucoseTargetSchedule %d %#v", i, *v.Target.Target)
+		// 	}
 	}
 
 	parser.NotParsed()
@@ -362,13 +376,14 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 
 	// debug
 	// if b.datumType == pump.Type {
-	// 	log.Printf("pump datum: %s", string(datumJSON))
-
-	// 	storedJSON, err := json.Marshal(storedObj)
-	// 	if err != nil {
-	// 		return nil, nil, err
+	// 	if datumObject["bgTarget"] != nil {
+	// 		log.Printf("pump datum: %v", datumObject["bgTarget"])
+	// 		log.Print(string(datumJSON))
 	// 	}
-	// 	log.Printf("pump stored: %s", string(storedJSON))
+
+	// 	if storedObj["bgTarget"] != nil {
+	// 		log.Printf("store datum: %v", storedObj["bgTarget"])
+	// 	}
 	// }
 
 	changelog, err := diff.Diff(storedObj, datumObject, diff.StructMapKeySupport())
