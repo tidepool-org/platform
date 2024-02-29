@@ -195,9 +195,10 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 		}
 
 		if bolus := updatedObject["bolus"]; bolus != nil {
-			// NOTE: we are doing this to ensure that the `bolus` is just a string reference
-			if _, ok := bolus.(string); ok {
+			// NOTE: we are doing this to ensure that the `bolus` is a  valid id reference
+			if bolusID, ok := bolus.(string); ok {
 				delete(updatedObject, "bolus")
+				updatedObject["bolusId"] = bolusID
 			}
 		}
 		if bgTargetObj, ok := updatedObject["bgTarget"].(map[string]interface{}); ok {
@@ -346,6 +347,11 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 	datumObject := map[string]interface{}{}
 	if err := json.Unmarshal(datumJSON, &datumObject); err != nil {
 		return nil, nil, err
+	}
+
+	if b.datumType == calculator.Type {
+		//we have validated the id but don't want to trigger an update
+		delete(storedObj, "bolus")
 	}
 
 	if deduplicator := datumObject["deduplicator"]; deduplicator != nil {

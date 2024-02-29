@@ -111,6 +111,16 @@ var _ = Describe("back-37", func() {
 				Expect(revertUnset).Should(HaveKeyWithValue("boluses", ""))
 			})
 
+			It("wizard datum will not have bolus link removed", func() {
+				bsonObj := getBSONData(test.WizardTandem)
+				Expect(bsonObj).Should(HaveKeyWithValue("bolus", "g2h6nohp5sdndpvl2l8kdete00lle4gt"))
+				applySet, applyUnset, revertUnset, revertSet := setup(bsonObj)
+				Expect(applyUnset).ShouldNot(HaveKeyWithValue("bolus", ""))
+				Expect(applySet).ShouldNot(HaveKey("bolusId"))
+				Expect(revertSet).ShouldNot(HaveKey("bolus"))
+				Expect(revertUnset).ShouldNot(HaveKey("bolusId"))
+			})
+
 		})
 	})
 })
