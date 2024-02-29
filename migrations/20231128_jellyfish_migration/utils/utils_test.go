@@ -102,6 +102,15 @@ var _ = Describe("back-37", func() {
 				Expect(revertSet).Should(HaveKeyWithValue("payload", map[string]interface{}{}))
 			})
 
+			It("will move misnamed bolus to boluses for pump setting", func() {
+				bsonObj := getBSONData(test.PumpSettingsWithBolusDatum)
+				applySet, applyUnset, revertUnset, revertSet := setup(bsonObj)
+				Expect(applyUnset).Should(HaveKeyWithValue("bolus", ""))
+				Expect(applySet).Should(HaveKey("boluses"))
+				Expect(revertSet).Should(HaveKey("bolus"))
+				Expect(revertUnset).Should(HaveKeyWithValue("boluses", ""))
+			})
+
 		})
 	})
 })

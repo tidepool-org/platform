@@ -1,5 +1,10 @@
 package test
 
+import (
+	"github.com/tidepool-org/platform/data/types/settings/pump"
+	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+)
+
 func base(deviceID string) map[string]interface{} {
 	return map[string]interface{}{
 		"_id":         "17dbokav5t6pssjv72gm0nie3u25b54m",
@@ -286,6 +291,17 @@ func emptyPayload() map[string]interface{} {
 	return datum
 }
 
+func pumpSettingsWithBolus() map[string]interface{} {
+	datum := tandemPumpSettingsDatum()
+
+	datum["bolus"] = &pump.BolusMap{
+		"bolus-1": pumpTest.NewRandomBolus(),
+		"bolus-2": pumpTest.NewRandomBolus(),
+	}
+
+	return datum
+}
+
 var CBGDexcomG5MobDatum = dexG5MobDatum()
 var PumpSettingsTandem = tandemPumpSettingsDatum()
 var PumpSettingsCarelink = carelinkPumpSettings()
@@ -296,3 +312,4 @@ var WizardTandem = tandemWizardDatum()
 var ReservoirChange = reservoirChangeDeviceEventDatum()
 var CGMSetting = cgmSettingsDatum()
 var EmptyPayloadDatum = emptyPayload()
+var PumpSettingsWithBolusDatum = pumpSettingsWithBolus()
