@@ -96,6 +96,12 @@ var _ = Describe("back-37", func() {
 				Expect(revertSet).Should(HaveKeyWithValue("units.bg", "mg/dL"))
 			})
 
+			It("will remove empty payload", func() {
+				_, applyUnset, _, revertSet := setup(getBSONData(test.EmptyPayloadDatum))
+				Expect(applyUnset).Should(HaveKeyWithValue("payload", ""))
+				Expect(revertSet).Should(HaveKeyWithValue("payload", map[string]interface{}{}))
+			})
+
 		})
 	})
 })

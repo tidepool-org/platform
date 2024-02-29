@@ -167,7 +167,7 @@ func (d UpdateData) getMongoUpdates() []mongo.WriteModel {
 	}
 	updateOp := mongo.NewUpdateOneModel()
 	updateOp.Filter = d.Filter
-	updateOp.SetUpdate(bson.M{"$set": bson.M{"_jellyfishValues": d.Revert}})
+	updateOp.SetUpdate(bson.M{"$set": bson.M{"_revertUpdates": d.Revert}})
 	updates = append(updates, updateOp)
 	return updates
 }

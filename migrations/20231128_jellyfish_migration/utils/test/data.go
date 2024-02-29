@@ -277,6 +277,15 @@ func cgmSettingsDatum() map[string]interface{} {
 	return datum
 }
 
+func emptyPayload() map[string]interface{} {
+	datum := base("Dex-device")
+	datum["payload"] = map[string]interface{}{}
+	datum["type"] = "cbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 8.1596
+	return datum
+}
+
 var CBGDexcomG5MobDatum = dexG5MobDatum()
 var PumpSettingsTandem = tandemPumpSettingsDatum()
 var PumpSettingsCarelink = carelinkPumpSettings()
@@ -286,3 +295,4 @@ var AutomatedBasalTandem = tandemAutomatedBasalDatum()
 var WizardTandem = tandemWizardDatum()
 var ReservoirChange = reservoirChangeDeviceEventDatum()
 var CGMSetting = cgmSettingsDatum()
+var EmptyPayloadDatum = emptyPayload()

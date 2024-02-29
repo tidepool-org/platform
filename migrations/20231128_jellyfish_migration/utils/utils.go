@@ -221,13 +221,11 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 	}
 
 	if payload := updatedObject["payload"]; payload != nil {
-
-		if m, ok := payload.(bson.M); ok {
+		if m, ok := payload.(map[string]interface{}); ok {
 			if length := len(m); length == 0 {
 				delete(updatedObject, "payload")
 			}
 		}
-
 		if strPayload, ok := payload.(string); ok {
 			var payloadMetadata metadata.Metadata
 			err := json.Unmarshal(json.RawMessage(strPayload), &payloadMetadata)
@@ -387,7 +385,7 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 	applyUnset := bson.M{}
 	revertUnset := bson.M{}
 
-	for _, change := range changelog.FilterOut([]string{"payload"}) {
+	for _, change := range changelog {
 		switch change.Type {
 		case diff.CREATE:
 			applySet[strings.Join(change.Path, ".")] = change.To
