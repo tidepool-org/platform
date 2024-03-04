@@ -114,6 +114,9 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			delete(updatedObject, "bolus")
 		}
 		if schedules := updatedObject["sleepSchedules"]; schedules != nil {
+
+			log.Printf("## TODO test for [%s] sleepSchedules %#v", b.datumType, schedules)
+
 			// NOTE: this is to fix sleepSchedules so they are in the required map format
 			scheduleNames := map[int]string{0: "1", 1: "2"}
 			sleepScheduleMap := pump.SleepScheduleMap{}
