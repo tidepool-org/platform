@@ -22,11 +22,19 @@ func base(deviceID string) map[string]interface{} {
 	}
 }
 
-// annotations and payload as a string rather than object or array
-func dexG5MobDatum() map[string]interface{} {
+// payload as a string rather than object or array
+func dexG5MobDatumStringPayload() map[string]interface{} {
+	datum := base("DexG5Mob_iPhone")
+	datum["payload"] = `{"systemTime":"2017-11-05T18:56:51Z","transmitterId":"410X6M","transmitterTicks":5796922,"trend":"flat","trendRate":0.6,"trendRateUnits":"mg/dL/min"}`
+	datum["type"] = "cbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 8.1596
+	return datum
+}
+
+func dexG5MobDatumStringAnnotations() map[string]interface{} {
 	datum := base("DexG5Mob_iPhone")
 	datum["annotations"] = `[{"code":"bg/out-of-range","threshold":40,"value":"low"}]`
-	datum["payload"] = `{"systemTime":"2017-11-05T18:56:51Z","transmitterId":"410X6M","transmitterTicks":5796922,"trend":"flat","trendRate":0.6,"trendRateUnits":"mg/dL/min"}`
 	datum["type"] = "cbg"
 	datum["units"] = "mmol/L"
 	datum["value"] = 8.1596
@@ -302,7 +310,8 @@ func pumpSettingsWithBolus() map[string]interface{} {
 	return datum
 }
 
-var CBGDexcomG5MobDatum = dexG5MobDatum()
+var CBGDexcomG5StringPayloadDatum = dexG5MobDatumStringPayload()
+var CBGDexcomG5StringAnnotationsDatum = dexG5MobDatumStringAnnotations()
 var PumpSettingsTandem = tandemPumpSettingsDatum()
 var PumpSettingsCarelink = carelinkPumpSettings()
 var PumpSettingsOmnipod = omnipodPumpSettingsDatum()

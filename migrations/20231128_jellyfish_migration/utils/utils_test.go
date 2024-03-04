@@ -121,6 +121,24 @@ var _ = Describe("back-37", func() {
 				Expect(revertUnset).ShouldNot(HaveKey("bolusId"))
 			})
 
+			It("will convert payload that is stored as a string", func() {
+				bsonObj := getBSONData(test.CBGDexcomG5StringPayloadDatum)
+				applySet, _, _, revertSet := setup(bsonObj)
+				Expect(applySet).Should(HaveKeyWithValue("payload", map[string]interface{}{"systemTime": "2017-11-05T18:56:51Z", "transmitterId": "410X6M", "transmitterTicks": 5.796922e+06, "trend": "flat", "trendRate": 0.6, "trendRateUnits": "mg/dL/min"}))
+				Expect(revertSet).Should(HaveKeyWithValue("payload", "{\"systemTime\":\"2017-11-05T18:56:51Z\",\"transmitterId\":\"410X6M\",\"transmitterTicks\":5796922,\"trend\":\"flat\",\"trendRate\":0.6,\"trendRateUnits\":\"mg/dL/min\"}"))
+			})
+
+			It("will convert annotations that are stored as a string", func() {
+				bsonObj := getBSONData(test.CBGDexcomG5StringAnnotationsDatum)
+				applySet, _, _, revertSet := setup(bsonObj)
+				// annotationsVal := []map[string]interface{}{
+				// 	{"code": "bg/out-of-range", "threshold": 40, "value": "low"},
+				// }
+				// TODO test the actual value
+				Expect(applySet).Should(HaveKey("annotations"))
+				Expect(revertSet).Should(HaveKeyWithValue("annotations", "[{\"code\":\"bg/out-of-range\",\"threshold\":40,\"value\":\"low\"}]"))
+			})
+
 		})
 	})
 })

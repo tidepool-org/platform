@@ -29,7 +29,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsP "github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -222,28 +221,29 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 	}
 
 	if payload := updatedObject["payload"]; payload != nil {
+
 		if m, ok := payload.(map[string]interface{}); ok {
 			if length := len(m); length == 0 {
 				delete(updatedObject, "payload")
 			}
 		}
 		if strPayload, ok := payload.(string); ok {
-			var payloadMetadata metadata.Metadata
+			var payloadMetadata map[string]interface{}
 			err := json.Unmarshal(json.RawMessage(strPayload), &payloadMetadata)
 			if err != nil {
 				return nil, errorsP.Newf("payload could not be set from %s", strPayload)
 			}
-			updatedObject["payload"] = &payloadMetadata
+			updatedObject["payload"] = payloadMetadata
 		}
 
 	}
 	if annotations := updatedObject["annotations"]; annotations != nil {
 		if strAnnotations, ok := annotations.(string); ok {
-			var metadataArray metadata.MetadataArray
+			var metadataArray []interface{}
 			if err := json.Unmarshal(json.RawMessage(strAnnotations), &metadataArray); err != nil {
 				return nil, errorsP.Newf("annotations could not be set from %s", strAnnotations)
 			}
-			updatedObject["annotations"] = &metadataArray
+			updatedObject["annotations"] = metadataArray
 		}
 	}
 	return updatedObject, nil
@@ -381,7 +381,7 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 		delete(datumObject, key)
 	}
 
-	changelog, err := diff.Diff(storedObj, datumObject, diff.StructMapKeySupport())
+	changelog, err := diff.Diff(storedObj, datumObject, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true))
 	if err != nil {
 		return nil, nil, err
 	}
