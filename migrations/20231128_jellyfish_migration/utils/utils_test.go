@@ -121,6 +121,16 @@ var _ = Describe("back-37", func() {
 				Expect(revertUnset).ShouldNot(HaveKey("bolusId"))
 			})
 
+			It("device event datum will not have status link removed", func() {
+				bsonObj := getBSONData(test.ReservoirChangeWithStatus)
+				Expect(bsonObj).Should(HaveKeyWithValue("status", "cvv61jde62b6i28bgot57f18bor5au1n"))
+				applySet, applyUnset, revertUnset, revertSet := setup(bsonObj)
+				Expect(applyUnset).ShouldNot(HaveKeyWithValue("status", ""))
+				Expect(applySet).ShouldNot(HaveKey("statusId"))
+				Expect(revertSet).ShouldNot(HaveKey("status"))
+				Expect(revertUnset).ShouldNot(HaveKey("statusId"))
+			})
+
 			It("will convert payload that is stored as a string", func() {
 				bsonObj := getBSONData(test.CBGDexcomG5StringPayloadDatum)
 				applySet, _, _, revertSet := setup(bsonObj)

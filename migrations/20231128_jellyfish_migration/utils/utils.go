@@ -353,6 +353,10 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 		//we have validated the id but don't want to trigger an update
 		delete(storedObj, "bolus")
 	}
+	if b.datumType == device.Type {
+		//we have validated the id but don't want to trigger an update
+		delete(storedObj, "status")
+	}
 
 	if deduplicator := datumObject["deduplicator"]; deduplicator != nil {
 		datumObject["_deduplicator"] = deduplicator
