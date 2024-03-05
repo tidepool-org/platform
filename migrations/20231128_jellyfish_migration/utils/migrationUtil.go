@@ -234,6 +234,12 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 }
 
 func (m *migrationUtil) writeAudit(groupLimit *int) {
+
+	if !m.config.dryRun {
+		m.groupedDiffs = map[string][]UpdateData{}
+		return
+	}
+
 	for group, diffs := range m.groupedDiffs {
 		if groupLimit != nil {
 			if len(diffs) < *groupLimit {
