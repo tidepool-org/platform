@@ -115,8 +115,6 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 		}
 		if schedules := updatedObject["sleepSchedules"]; schedules != nil {
 
-			log.Printf("## TODO test for [%s] sleepSchedules %#v", b.datumType, schedules)
-
 			// NOTE: this is to fix sleepSchedules so they are in the required map format
 			scheduleNames := map[int]string{0: "1", 1: "2"}
 			sleepScheduleMap := map[string]interface{}{}
@@ -164,7 +162,7 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if overridePresets := updatedObject["overridePresets"]; overridePresets != nil {
-			log.Printf("## TODO [%s] overridePresets %#v", b.datumType, overridePresets)
+			log.Printf("## TODO [%s] [%s] overridePresets %#v", b.datumType, b.datumID, overridePresets)
 		}
 
 	case selfmonitored.Type, ketone.Type, continuous.Type:
