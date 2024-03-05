@@ -119,26 +119,26 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 
 			// NOTE: this is to fix sleepSchedules so they are in the required map format
 			scheduleNames := map[int]string{0: "1", 1: "2"}
-			sleepScheduleMap := pump.SleepScheduleMap{}
+			sleepScheduleMap := map[string]interface{}{}
 			dataBytes, err := json.Marshal(schedules)
 			if err != nil {
 				return nil, err
 			}
-			schedulesArray := []*pump.SleepSchedule{}
+			schedulesArray := []map[string]interface{}{}
 			err = json.Unmarshal(dataBytes, &schedulesArray)
 			if err != nil {
 				return nil, err
 			}
 			for i, schedule := range schedulesArray {
-				days := schedule.Days
+				days := schedule["days"].([]interface{})
 				updatedDays := []string{}
-				for _, day := range *days {
-					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(day)) {
+				for _, day := range days {
+					if !slices.Contains(common.DaysOfWeek(), strings.ToLower(fmt.Sprintf("%v", day))) {
 						return nil, errorsP.Newf("pumpSettings.sleepSchedules has an invalid day of week %s", day)
 					}
-					updatedDays = append(updatedDays, strings.ToLower(day))
+					updatedDays = append(updatedDays, strings.ToLower(fmt.Sprintf("%v", day)))
 				}
-				schedule.Days = &updatedDays
+				schedule["days"] = updatedDays
 				sleepScheduleMap[scheduleNames[i]] = schedule
 			}
 			updatedObject["sleepSchedules"] = sleepScheduleMap

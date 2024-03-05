@@ -96,6 +96,68 @@ func tandemPumpSettingsDatum() map[string]interface{} {
 	return datum
 }
 
+func tandemPumpSettingsWithSleepScheduleDatum() map[string]interface{} {
+	datum := base("tandem99999999")
+
+	datum["type"] = "pumpSettings"
+	datum["activeSchedule"] = "Simple"
+	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
+	datum["basalSchedules"] = map[string]interface{}{
+		"Simple": []map[string]interface{}{
+			{"rate": 0.5, "start": 0},
+			{"rate": 1.35, "start": 55800000},
+		},
+		"Standard": []map[string]interface{}{
+			{"rate": 0.5, "start": 0},
+			{"rate": 1.35, "start": 55800000},
+		},
+	}
+	datum["carbRatios"] = map[string]interface{}{
+		"Simple": []map[string]interface{}{
+			{"amount": 10, "start": 0},
+			{"amount": 10, "start": 46800000},
+		},
+		"Standard": []map[string]interface{}{
+			{"amount": 10, "start": 0},
+			{"amount": 10, "start": 46800000},
+		},
+	}
+	datum["insulinSensitivities"] = map[string]interface{}{
+		"Simple": []map[string]interface{}{
+			{"amount": 2.7753739955227665, "start": 0},
+			{"amount": 2.7753739955227665, "start": 46800000},
+		},
+		"Standard": []map[string]interface{}{
+			{"amount": 2.7753739955227665, "start": 0},
+			{"amount": 2.7753739955227665, "start": 46800000},
+		},
+	}
+
+	datum["bgTargets"] = map[string]interface{}{
+		"Simple": []map[string]interface{}{
+			{"target": 5.550747991045533, "start": 0},
+			{"target": 5.550747991045533, "start": 46800000},
+		},
+		"Standard": []map[string]interface{}{
+			{"target": 5.550747991045533, "start": 0},
+			{"target": 5.550747991045533, "start": 46800000},
+		},
+	}
+
+	datum["payload"] = map[string]interface{}{
+		"logIndices": []interface{}{0},
+	}
+
+	//## TODO test for [pumpSettings] sleepSchedules []interface {}{map[string]interface {}{"days":[]interface {}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, "enabled":true, "end":25200, "start":82800}, map[string]interface {}{"days":[]interface {}{"Sunday"}, "enabled":false, "end":32400, "start":3600}}
+
+	datum["sleepSchedules"] = []interface{}{
+		map[string]interface{}{"days": []interface{}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, "enabled": true, "end": 25200, "start": 82800},
+		map[string]interface{}{"days": []interface{}{"Sunday"}, "enabled": false, "end": 32400, "start": 3600},
+	}
+
+	return datum
+}
+
 func carelinkPumpSettings() map[string]interface{} {
 	datum := base("MiniMed 530G - 751-=-11111111")
 
@@ -325,6 +387,7 @@ func pumpSettingsWithBolus() map[string]interface{} {
 var CBGDexcomG5StringPayloadDatum = dexG5MobDatumStringPayload()
 var CBGDexcomG5StringAnnotationsDatum = dexG5MobDatumStringAnnotations()
 var PumpSettingsTandem = tandemPumpSettingsDatum()
+var PumpSettingsWithSleepScheduleTandem = tandemPumpSettingsWithSleepScheduleDatum()
 var PumpSettingsCarelink = carelinkPumpSettings()
 var PumpSettingsOmnipod = omnipodPumpSettingsDatum()
 var PumpSettingsOmnipodBGTargetCorrect = omnipodPumpSettingsDatumTargetSet()

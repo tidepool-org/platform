@@ -68,6 +68,49 @@ var _ = Describe("back-37", func() {
 				Expect(revertSet).Should(HaveKeyWithValue("units.bg", "mg/dL"))
 			})
 
+			It("pump settings with sleep schedule updates", func() {
+
+				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.PumpSettingsWithSleepScheduleTandem))
+
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "bpKLJbi5JfqD7N0WJ1vj0ck03c9EZ3U0H09TCLhdd3k="}))
+				Expect(applySet).Should(HaveKey("sleepSchedules"))
+
+				// expectedSchedules := map[string]interface{}{
+				// 	"1": map[string]interface{}{
+				// 		"enabled": true,
+				// 		"days":    []interface{}{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"},
+				// 		"start":   82800,
+				// 		"end":     25200,
+				// 	},
+				// 	"2": map[string]interface{}{
+				// 		"enabled": false,
+				// 		"days":    []interface{}{"sunday"},
+				// 		"start":   3600,
+				// 		"end":     32400,
+				// 	},
+				// }
+
+				// originalSchedules := []map[string]interface{}{
+				// 	map[string]interface{}{
+				// 		"enabled": true,
+				// 		"days":    []interface{}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
+				// 		"start":   82800,
+				// 		"end":     25200,
+				// 	},
+				// 	map[string]interface{}{
+				// 		"enabled": false,
+				// 		"days":    []interface{}{"Sunday"},
+				// 		"start":   3600,
+				// 		"end":     32400,
+				// 	},
+				// }
+
+				Expect(applyUnset).Should(HaveKeyWithValue("localTime", ""))
+				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
+				Expect(revertSet).Should(HaveKey("sleepSchedules"))
+
+			})
+
 			It("wizard with bgInput and bgTarget glucose updates", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.WizardTandem))
@@ -156,7 +199,6 @@ var _ = Describe("back-37", func() {
 				Expect(applySet).Should(HaveKey("annotations"))
 				Expect(revertSet).Should(HaveKeyWithValue("annotations", "[{\"code\":\"bg/out-of-range\",\"threshold\":40,\"value\":\"low\"}]"))
 			})
-
 		})
 	})
 })
