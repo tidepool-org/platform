@@ -131,6 +131,14 @@ var _ = Describe("back-37", func() {
 				Expect(revertUnset).ShouldNot(HaveKey("statusId"))
 			})
 
+			It("status device event datum with suspended status as suspended will not update it", func() {
+				bsonObj := getBSONData(test.AlarmDeviceEventDatum)
+				Expect(bsonObj).Should(HaveKeyWithValue("status", "suspended"))
+				applySet, _, _, revertSet := setup(bsonObj)
+				Expect(applySet).ShouldNot(HaveKey("status"))
+				Expect(revertSet).ShouldNot(HaveKey("status"))
+			})
+
 			It("will convert payload that is stored as a string", func() {
 				bsonObj := getBSONData(test.CBGDexcomG5StringPayloadDatum)
 				applySet, _, _, revertSet := setup(bsonObj)

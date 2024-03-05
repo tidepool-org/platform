@@ -255,6 +255,18 @@ func reservoirChangeDeviceEventDatum() map[string]interface{} {
 	return datum
 }
 
+func alarmDeviceEventDatum() map[string]interface{} {
+	datum := base("tandemCIQ100000000000")
+	datum["type"] = "deviceEvent"
+	datum["subType"] = "status"
+	datum["status"] = "suspended"
+	datum["reason"] = map[string]interface{}{
+		"suspended": "automatic",
+		"resumed":   "automatic",
+	}
+	return datum
+}
+
 func cgmSettingsDatum() map[string]interface{} {
 	datum := base("DexG5MobRec-1111111111111")
 	datum["type"] = "cgmSettings"
@@ -319,6 +331,7 @@ var PumpSettingsOmnipodBGTargetCorrect = omnipodPumpSettingsDatumTargetSet()
 var AutomatedBasalTandem = tandemAutomatedBasalDatum()
 var WizardTandem = tandemWizardDatum()
 var ReservoirChangeWithStatus = reservoirChangeDeviceEventDatum()
+var AlarmDeviceEventDatum = alarmDeviceEventDatum()
 var CGMSetting = cgmSettingsDatum()
 var EmptyPayloadDatum = emptyPayload()
 var PumpSettingsWithBolusDatum = pumpSettingsWithBolus()

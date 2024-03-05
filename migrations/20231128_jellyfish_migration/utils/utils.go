@@ -358,7 +358,11 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 	}
 	if b.datumType == device.Type {
 		//we have validated the id but don't want to trigger an update
-		delete(storedObj, "status")
+		subType := fmt.Sprintf("%v", storedObj["subType"])
+		switch subType {
+		case reservoirchange.SubType, alarm.SubType:
+			delete(storedObj, "status")
+		}
 	}
 
 	if deduplicator := datumObject["deduplicator"]; deduplicator != nil {
