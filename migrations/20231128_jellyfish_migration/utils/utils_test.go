@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils/test"
@@ -75,39 +76,49 @@ var _ = Describe("back-37", func() {
 				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "bpKLJbi5JfqD7N0WJ1vj0ck03c9EZ3U0H09TCLhdd3k="}))
 				Expect(applySet).Should(HaveKey("sleepSchedules"))
 
-				// expectedSchedules := map[string]interface{}{
-				// 	"1": map[string]interface{}{
-				// 		"enabled": true,
-				// 		"days":    []interface{}{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"},
-				// 		"start":   82800,
-				// 		"end":     25200,
-				// 	},
-				// 	"2": map[string]interface{}{
-				// 		"enabled": false,
-				// 		"days":    []interface{}{"sunday"},
-				// 		"start":   3600,
-				// 		"end":     32400,
-				// 	},
-				// }
+				applyObj := applySet.(primitive.M)
 
-				// originalSchedules := []map[string]interface{}{
-				// 	map[string]interface{}{
-				// 		"enabled": true,
-				// 		"days":    []interface{}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
-				// 		"start":   82800,
-				// 		"end":     25200,
-				// 	},
-				// 	map[string]interface{}{
-				// 		"enabled": false,
-				// 		"days":    []interface{}{"Sunday"},
-				// 		"start":   3600,
-				// 		"end":     32400,
-				// 	},
-				// }
+				actualSchedules := applyObj["sleepSchedules"]
+
+				expectedSchedules := map[string]interface{}{
+					"1": map[string]interface{}{
+						"enabled": true,
+						"days":    []interface{}{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"},
+						"start":   82800,
+						"end":     25200,
+					},
+					"2": map[string]interface{}{
+						"enabled": false,
+						"days":    []interface{}{"sunday"},
+						"start":   3600,
+						"end":     32400,
+					},
+				}
+
+				Expect(fmt.Sprintf("%v", actualSchedules)).To(Equal(fmt.Sprintf("%v", expectedSchedules)))
 
 				Expect(applyUnset).Should(HaveKeyWithValue("localTime", ""))
 				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
 				Expect(revertSet).Should(HaveKey("sleepSchedules"))
+				revertSetObj := revertSet.(primitive.M)
+				actualRevrtSchedules := revertSetObj["sleepSchedules"]
+
+				originalSchedules := []map[string]interface{}{
+					{
+						"enabled": true,
+						"days":    []interface{}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"},
+						"start":   82800,
+						"end":     25200,
+					},
+					{
+						"enabled": false,
+						"days":    []interface{}{"Sunday"},
+						"start":   3600,
+						"end":     32400,
+					},
+				}
+
+				Expect(fmt.Sprintf("%v", actualRevrtSchedules)).To(Equal(fmt.Sprintf("%v", originalSchedules)))
 
 			})
 
@@ -192,11 +203,17 @@ var _ = Describe("back-37", func() {
 			It("will convert annotations that are stored as a string", func() {
 				bsonObj := getBSONData(test.CBGDexcomG5StringAnnotationsDatum)
 				applySet, _, _, revertSet := setup(bsonObj)
-				// annotationsVal := []map[string]interface{}{
-				// 	{"code": "bg/out-of-range", "threshold": 40, "value": "low"},
-				// }
-				// TODO test the actual value
+
 				Expect(applySet).Should(HaveKey("annotations"))
+
+				expectedAnnotations := []interface{}{
+					map[string]interface{}{"code": "bg/out-of-range", "threshold": 40, "value": "low"},
+				}
+				applyObj := applySet.(primitive.M)
+				actualAnnotations := applyObj["annotations"]
+
+				Expect(fmt.Sprintf("%v", actualAnnotations)).To(Equal(fmt.Sprintf("%v", expectedAnnotations)))
+
 				Expect(revertSet).Should(HaveKeyWithValue("annotations", "[{\"code\":\"bg/out-of-range\",\"threshold\":40,\"value\":\"low\"}]"))
 			})
 		})
