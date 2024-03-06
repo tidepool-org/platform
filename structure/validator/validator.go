@@ -94,6 +94,10 @@ func (v *Validator) Array(reference string, value *[]interface{}) structure.Arra
 	return NewArray(v.base.WithReference(reference), value)
 }
 
+func (v *Validator) Bytes(reference string, value []byte) structure.Bytes {
+	return NewBytes(v.base.WithReference(reference), value)
+}
+
 func (v *Validator) WithOrigin(origin structure.Origin) structure.Validator {
 	return &Validator{
 		base: v.base.WithOrigin(origin),

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -153,10 +154,10 @@ type CGMPeriod struct {
 type CGMPeriods map[string]*CGMPeriod
 
 type CGMStats struct {
-	Periods       CGMPeriods                             `json:"periods" bson:"periods"`
-	OffsetPeriods CGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
-	Buckets       Buckets[CGMBucketData, *CGMBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
+	Periods       CGMPeriods                               `json:"periods" bson:"periods"`
+	OffsetPeriods CGMPeriods                               `json:"offsetPeriods" bson:"offsetPeriods"`
+	Buckets       []*Bucket[*CGMBucketData, CGMBucketData] `json:"buckets" bson:"buckets"`
+	TotalHours    int                                      `json:"totalHours" bson:"totalHours"`
 }
 
 func (*CGMStats) GetType() string {
@@ -168,7 +169,7 @@ func (*CGMStats) GetDeviceDataType() string {
 }
 
 func (s *CGMStats) Init() {
-	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
+	s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
 	s.Periods = make(map[string]*CGMPeriod)
 	s.OffsetPeriods = make(map[string]*CGMPeriod)
 	s.TotalHours = 0
@@ -182,22 +183,62 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *CGMStats) Update(userData any) error {
-	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	if !ok {
-		return errors.New("CGM records for calculation is not compatible with Glucose type")
+func (s *CGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstData time.Time) {
+	if len(s.Buckets) == 0 {
+		return
+	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	} else if earliestModified.Before(s.Buckets[0].Date) || earliestModified.Equal(s.Buckets[0].Date) {
+		// we are before all existing buckets, remake for GC
+		s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
+		return
 	}
 
-	for i, v := range userDataTyped {
-		if v.Type != continuous.Type {
-			return fmt.Errorf("Non-CGM data provided for CGM summary update at position %d", i)
+	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(earliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
+
+	for i := offset; i < len(s.Buckets); i++ {
+		s.Buckets[i] = nil
+	}
+	s.Buckets = s.Buckets[:offset]
+
+	if len(s.Buckets) > 0 {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	}
+	return
+}
+
+func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
+	var userData []*glucoseDatum.Glucose = nil
+	var err error
+
+	for cursor.Next(ctx) {
+		if userData == nil {
+			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+		}
+
+		r := &glucoseDatum.Glucose{}
+		if err = cursor.Decode(r); err != nil {
+			return fmt.Errorf("unable to decode userData: %w", err)
+		}
+		userData = append(userData, r)
+
+		// we call AddData before each network call to the db to reduce thrashing
+		if cursor.RemainingBatchLength() != 0 {
+			err = AddData(&s.Buckets, userData)
+			if err != nil {
+				return err
+			}
+			userData = nil
 		}
 	}
 
-	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[CGMBucketData, *CGMBucketData](&s.Buckets, userDataTyped)
-	if err != nil {
-		return err
+	// add the final partial batch
+	if userData != nil {
+		err = AddData(&s.Buckets, userData)
+		if err != nil {
+			return err
+		}
+		userData = nil
 	}
 
 	s.CalculateSummary()

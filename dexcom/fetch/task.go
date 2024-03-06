@@ -35,9 +35,9 @@ func NewTaskCreate(providerSessionID string, dataSourceID string) (*task.TaskCre
 }
 
 func ErrorOrRetryTask(t *task.Task, err error) {
+	t.AppendError(err)
 	if t.IsFailed() {
-		if shouldTaskError(t) {
-			t.AppendError(err)
+		if shouldTaskFail(t) {
 			return
 		}
 		incrementTaskRetryCount(t)
@@ -51,7 +51,7 @@ func FailTask(l log.Logger, t *task.Task, err error) error {
 	return err
 }
 
-func shouldTaskError(t *task.Task) bool {
+func shouldTaskFail(t *task.Task) bool {
 	if t.Data[dexcomTaskRetryField] != nil {
 		count, ok := t.Data[dexcomTaskRetryField].(int)
 		if ok {

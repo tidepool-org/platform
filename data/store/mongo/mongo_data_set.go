@@ -24,10 +24,6 @@ type DataSetRepository struct {
 }
 
 func (d *DataSetRepository) EnsureIndexes() error {
-	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
-	if err != nil {
-		return err
-	}
 	// Note "type" field isn't really needed because datasets/uploads are
 	// always type == "upload" but this is just to keep the original queries
 	// untouched.
@@ -43,25 +39,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
-		},
-		{
-			Keys: bson.D{
-				{Key: "_userId", Value: 1},
-				{Key: "_active", Value: 1},
-				{Key: "type", Value: 1},
-				{Key: "modifiedTime", Value: 1},
-			},
-			Options: options.Index().
-				SetBackground(true).
-				SetPartialFilterExpression(bson.D{
-					{
-						Key: "modifiedTime",
-						Value: bson.D{
-							{Key: "$gt", Value: modifiedTime},
-						},
-					},
-				}).
-				SetName("UserIdTypeModifiedTime"),
 		},
 		{
 			Keys: bson.D{

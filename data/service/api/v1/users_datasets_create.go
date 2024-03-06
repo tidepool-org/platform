@@ -69,7 +69,9 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	}
 
 	dataSet.SetUserID(&targetUserID)
-	dataSet.SetCreatedUserID(pointer.FromString(details.UserID()))
+	if details.IsUser() {
+		dataSet.SetCreatedUserID(pointer.FromString(details.UserID()))
+	}
 
 	dataSet.Normalize(normalizer)
 

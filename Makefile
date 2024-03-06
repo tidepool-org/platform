@@ -202,7 +202,7 @@ test-watch: ginkgo
 
 ci-test: ginkgo
 	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s --compilers=2 -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
 
 ci-test-until-failure: ginkgo
 	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)"

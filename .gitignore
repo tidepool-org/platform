@@ -1,4 +1,5 @@
 *.coverprofile
+*.env
 *.test
 coverprofile.out
 /_bin
@@ -7,4 +8,7 @@ coverprofile.out
 /_tmp
 /deploy
 /.idea
+/coverprofile.out
 .DS_Store
+.envrc
+coverprofile.out
