@@ -183,7 +183,6 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 
 func createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
 	datetime := time.Now().Round(15 * time.Minute)
-	timestamp := strings.Replace(datetime.Format(time.TimeOnly), ":", "_", -1)
 	datestamp := datetime.Format(time.DateOnly)
 	var err error
 	if fileType == "" {
@@ -199,7 +198,7 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 		return nil, err
 	}
 	logName = fmt.Sprintf(logName, dataGroup)
-	logPath := filepath.Join(".", fileType, datestamp, timestamp)
+	logPath := filepath.Join(".", fileType, datestamp)
 
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
@@ -551,7 +550,6 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		}
 
 		if m.config.dryRun {
-			//TODO clean this up a bit
 			writtenCount += len(batch)
 			continue
 		}
@@ -566,7 +564,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 	}
 	m.updates = []mongo.WriteModel{}
 	m.updatedCount = m.updatedCount + writtenCount
-	writeLimit := 500
+	writeLimit := 5000
 	if m.config.dryRun {
 		log.Println("dry-run so no changes applied")
 		m.writeAudit(&writeLimit)
