@@ -35,6 +35,9 @@ type CGMBucketData struct {
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalMinutes int     `json:"totalMinutes" bson:"totalMinutes"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
+
+	RealtimeRecords int `json:"realtimeRecords" bson:"realtimeRecords"`
+	DeferredRecords int `json:"deferredRecords" bson:"deferredRecords"`
 }
 
 type CGMPeriod struct {
@@ -246,7 +249,7 @@ func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
 	return nil
 }
 
-func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, error) {
+func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time, continuous bool) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("CGM record for calculation is not compatible with Glucose type")
@@ -286,6 +289,13 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, 
 		B.TotalRecords++
 		B.TotalGlucose += normalizedValue * float64(duration)
 		B.LastRecordDuration = duration
+
+		if continuous {
+			B.DeferredRecords++
+			if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
+				B.RealtimeRecords++
+			}
+		}
 
 		return false, nil
 	}

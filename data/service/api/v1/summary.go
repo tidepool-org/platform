@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/data/summary/store"
+	"github.com/tidepool-org/platform/structure"
+
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -82,6 +85,47 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 	}
 }
 
+type RealtimePatientsResponse struct {
+	Config  RealtimePatientConfigResponse `json:"config"`
+	Results []RealtimePatientResponse     `json:"results"`
+}
+
+type RealtimePatientConfigResponse struct {
+	SchemaVersion int       `json:"schemaVersion"`
+	Code          string    `json:"code"`
+	ClinicId      string    `json:"clinicId"`
+	StartDate     time.Time `json:"startDate"`
+	EndDate       time.Time `json:"endDate"`
+}
+
+type RealtimePatientResponse struct {
+	Id               string    `json:"id"`
+	FullName         string    `json:"fullName"`
+	BirthDate        time.Time `json:"birthDate"`
+	MRN              *string   `json:"mrn"`
+	RealtimeDays     int       `json:"realtimeDays"`
+	IsSufficientData bool      `json:"isSufficientData"`
+}
+
+type RealtimePatientsFilter struct {
+	StartTime *time.Time
+	EndTime   *time.Time
+}
+
+func NewRealtimePatientsFilter() *RealtimePatientsFilter {
+	return &RealtimePatientsFilter{}
+}
+
+func (d *RealtimePatientsFilter) Parse(parser structure.ObjectParser) {
+	d.StartTime = parser.Time("startDate", time.RFC3339)
+	d.EndTime = parser.Time("endDate", time.RFC3339)
+}
+
+func (d *RealtimePatientsFilter) Validate(validator structure.Validator) {
+	validator.Time("startDate", d.StartTime).NotZero()
+	validator.Time("endDate", d.EndTime).NotZero()
+}
+
 func GetRealtimePatients(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
@@ -91,6 +135,12 @@ func GetRealtimePatients(dataServiceContext dataService.Context) {
 
 	clinicId := req.PathParam("clinicId")
 
+	filter := NewRealtimePatientsFilter()
+	if err := request.DecodeRequestQuery(req.Request, filter); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
 	startTime := time.Now().UTC().AddDate(0, 0, -60)
 	endTime := time.Now().UTC()
 
@@ -99,15 +149,43 @@ func GetRealtimePatients(dataServiceContext dataService.Context) {
 		return
 	}
 
-	userIds, err := dataServiceContext.ClinicsClient().GetPatientUserIds(ctx, clinicId)
+	patients, err := dataServiceContext.ClinicsClient().GetPatients(ctx, clinicId)
+	userIds := make([]string, len(patients))
+	for i := 0; i < len(patients); i++ {
+		userIds[i] = *patients[0].Id
+	}
 
 	summaryManager := dataServiceContext.SummarizerRegistry().Manager
-	err = summaryManager.GetRealtimePatients(ctx, userIds, startTime, endTime)
+	userIdsRealtimeDays, err := summaryManager.GetRealtimePatients(ctx, userIds, startTime, endTime)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else {
-		responder.Data(http.StatusOK, nil)
+		return
 	}
+
+	patientsResponse := make([]RealtimePatientResponse, len(patients))
+	for i := 0; i < len(patients); i++ {
+		patientsResponse[i] = RealtimePatientResponse{
+			Id:               *patients[i].Id,
+			FullName:         patients[i].FullName,
+			BirthDate:        patients[i].BirthDate.Time,
+			MRN:              patients[i].Mrn,
+			RealtimeDays:     userIdsRealtimeDays[*patients[i].Id],
+			IsSufficientData: userIdsRealtimeDays[*patients[i].Id] >= store.RealtimeUserThreshold,
+		}
+	}
+
+	response := RealtimePatientsResponse{
+		Config: RealtimePatientConfigResponse{
+			SchemaVersion: 1,
+			Code:          "CPT-99454",
+			ClinicId:      clinicId,
+			StartDate:     startTime,
+			EndDate:       endTime,
+		},
+		Results: patientsResponse,
+	}
+
+	responder.Data(http.StatusOK, response)
 }
 
 func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {

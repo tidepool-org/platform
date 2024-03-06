@@ -1,10 +1,11 @@
 package v1_test
 
 import (
-	"github.com/tidepool-org/platform/clinics"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/tidepool-org/platform/clinics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

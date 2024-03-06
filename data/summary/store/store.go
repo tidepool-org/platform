@@ -16,6 +16,8 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
+const RealtimeUserThreshold = 16
+
 type Repo[T types.Stats, A types.StatsPt[T]] struct {
 	*storeStructuredMongo.Repository
 }
@@ -80,51 +82,142 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *TypelessRepo) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) error {
+// isRealtimeUser processes two slices of Item and returns an int count of days with realtime records.
+// this currently doesn't handle N slices, only 1-2, might need adjustment for more types.
+func isRealtimeUser(a, b []*types.Bucket[*types.CGMBucketData, types.CGMBucketData]) int {
+	var count int
+
+	// Calculate the offset in hours between the first items of each list
+	offset := 0
+	startA, startB := 0, 0
+	combinedLength := len(a) + startA
+
+	if b != nil {
+		offset = int(b[0].Date.Sub(a[0].Date).Hours())
+
+		if offset >= 0 {
+			startB = offset
+		} else {
+			startA = -offset
+		}
+
+		if temp := len(b) + startB; temp > combinedLength {
+			combinedLength = temp
+		}
+	}
+
+	for i := 0; i < combinedLength; i++ {
+		indexA := i - startA
+		indexB := i - startB
+
+		// If the A list has a flagged item at this time, count it and advance to the next day.
+		if indexA >= 0 && indexA < len(a) && a[indexA].Data.RealtimeRecords > 0 {
+			count += 1
+			i += 23 - a[indexA].Date.Hour()
+			continue
+		}
+
+		if b != nil {
+			// Likewise with the B list
+			if indexB >= 0 && indexB < len(b) && b[indexB].Data.RealtimeRecords > 0 {
+				count += 1
+				i += 23 - b[indexB].Date.Hour()
+				continue
+			}
+		}
+
+		if b != nil {
+			// If neither list has an item at this index, we've exhausted one list, and they don't overlap.
+			// We need to jump to the start of the later list.
+			if (indexA < 0 || indexA >= len(a)) && (indexB < 0 || indexB >= len(b)) {
+				if indexA > 0 {
+					i -= indexB + 1
+				} else {
+					i -= indexA + 1
+				}
+			}
+		}
+	}
+
+	return count
+}
+
+func (r *TypelessRepo) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
 	if ctx == nil {
-		return errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 	if userIds == nil {
-		return errors.New("userIds is missing")
+		return nil, errors.New("userIds is missing")
 	}
 	if len(userIds) == 0 {
-		return errors.New("no userIds provided")
+		return nil, errors.New("no userIds provided")
 	}
 	if startTime.IsZero() {
-		return errors.New("startTime is missing")
+		return nil, errors.New("startTime is missing")
 	}
 	if endTime.IsZero() {
-		return errors.New("startTime is missing")
+		return nil, errors.New("startTime is missing")
 	}
 
 	if startTime.After(endTime) {
-		return errors.New("startTime is after endTime")
+		return nil, errors.New("startTime is after endTime")
 	}
 
 	if startTime.Before(time.Now().AddDate(0, 0, -60)) {
-		return errors.New("startTime is too old ( >60d ago ) ")
+		return nil, errors.New("startTime is too old ( >60d ago ) ")
 	}
 
-	// todo const?
-	threshold := 16
-
-	if int(endTime.Sub(startTime).Hours()/24) < threshold {
-		return errors.New("time range smaller than threshold, impossible")
+	if int(endTime.Sub(startTime).Hours()/24) < RealtimeUserThreshold {
+		return nil, errors.New("time range smaller than threshold, impossible")
 	}
 
 	typs := []string{types.SummaryTypeBGM, types.SummaryTypeCGM}
-	oldestPossibleLastData := startTime.AddDate(0, 0, threshold)
+	oldestPossibleLastData := startTime.AddDate(0, 0, RealtimeUserThreshold/len(typs))
+	newestPossibleFirstData := endTime.AddDate(0, 0, RealtimeUserThreshold/len(typs))
+	opts := options.Find()
+	opts.SetProjection(bson.M{"stats.buckets": 1})
+
+	var realtimeUsers map[string]int
 
 	for _, userId := range userIds {
 		selector := bson.M{
-			"userId":         userId,
-			"type":           bson.M{"$in": typs},
-			"dates.lastData": bson.M{"$gt": oldestPossibleLastData},
+			"userId":          userId,
+			"type":            bson.M{"$in": typs},
+			"dates.lastData":  bson.M{"$gte": oldestPossibleLastData},
+			"dates.firstData": bson.M{"$lte": newestPossibleFirstData},
+			// maybe filter period too? we don't care if offset and regular 30d aren't over 16d of realtime records
 		}
-		r.Find(ctx, selector)
+		cursor, err := r.Find(ctx, selector)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get realtime summaries for %s:  %w", userId, err)
+		}
+
+		var userSummaries []types.Summary[types.CGMStats, *types.CGMStats]
+		if err = cursor.All(ctx, &userSummaries); err != nil {
+			return nil, fmt.Errorf("unable to decode summaries for user %s: %w", userId, err)
+		}
+
+		var buckets [][]*types.Bucket[*types.CGMBucketData, types.CGMBucketData]
+		for i := 0; i < len(userSummaries); i++ {
+			if len(userSummaries[i].Stats.Buckets) > 0 {
+				startOffset := int(startTime.Sub(userSummaries[i].Stats.Buckets[0].Date).Hours())
+				endOffset := int(endTime.Sub(userSummaries[i].Stats.Buckets[0].Date).Hours())
+				buckets = append(buckets, userSummaries[i].Stats.Buckets[startOffset:endOffset])
+			}
+		}
+
+		realtimeDays := 0
+		if len(buckets) > 1 {
+			realtimeDays = isRealtimeUser(buckets[0], buckets[1])
+		} else if len(buckets) > 0 {
+			realtimeDays = isRealtimeUser(buckets[0], nil)
+		}
+
+		realtimeUsers[userId] = realtimeDays
+
 	}
 
-	return nil
+	return realtimeUsers, nil
 }
 
 func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {

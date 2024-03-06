@@ -22,6 +22,9 @@ type BGMBucketData struct {
 	HighRecords     int `json:"highRecords" bson:"highRecords"`
 	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
 
+	RealtimeRecords int `json:"realtimeRecords" bson:"realtimeRecords"`
+	DeferredRecords int `json:"deferredRecords" bson:"deferredRecords"`
+
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
 }
@@ -191,7 +194,7 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
 	return nil
 }
 
-func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
+func (B *BGMBucketData) CalculateStats(r any, _ *time.Time, continuous bool) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("BGM record for calculation is not compatible with Glucose type")
@@ -213,6 +216,13 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 
 	B.TotalRecords++
 	B.TotalGlucose += normalizedValue
+
+	if continuous {
+		B.DeferredRecords++
+		if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
+			B.RealtimeRecords++
+		}
+	}
 
 	return false, nil
 }

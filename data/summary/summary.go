@@ -102,7 +102,7 @@ func (c *GlucoseSummarizer[T, A]) GetMigratableUserIDs(ctx context.Context, pagi
 	return c.summaries.GetMigratableUserIDs(ctx, pagination)
 }
 
-func (c *Manager) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) error {
+func (c *Manager) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
 	return c.summaries.GetRealtimePatients(ctx, userIds, startTime, endTime)
 }
 

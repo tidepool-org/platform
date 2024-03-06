@@ -32,6 +32,7 @@ type DataSetRepository interface {
 
 	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
 	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
+	IsDataSetAutomated(ctx context.Context, dataSetID string) (bool, error)
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error

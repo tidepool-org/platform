@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/clinics"
 	"log"
 	"os"
+
+	"github.com/tidepool-org/platform/clinics"
 
 	"github.com/Shopify/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"

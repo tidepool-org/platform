@@ -114,6 +114,7 @@ var _ = Describe("CGM Summary", func() {
 		var userCGMSummary *types.Summary[types.CGMStats, *types.CGMStats]
 		var periodKeys = []string{"1d", "7d", "14d", "30d"}
 		var periodInts = []int{1, 7, 14, 30}
+		var realtimeUploads = map[string]bool{}
 
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {

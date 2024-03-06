@@ -85,6 +85,13 @@ type UserLastUpdated struct {
 	NextLastUpdated time.Time
 }
 
+type DeviceDataManager interface {
+	IsDataSetAutomated(ctx context.Context, dataSetID string) (bool, error)
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error)
+	GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error)
+	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
+}
+
 type Config struct {
 	SchemaVersion int `json:"schemaVersion" bson:"schemaVersion"`
 
@@ -140,7 +147,7 @@ type Bucket[S BucketDataPt[T], T BucketData] struct {
 
 type BucketDataPt[T BucketData] interface {
 	*T
-	CalculateStats(interface{}, *time.Time) (bool, error)
+	CalculateStats(interface{}, *time.Time, bool) (bool, error)
 }
 
 func CreateBucket[A BucketDataPt[T], T BucketData](t time.Time) *Bucket[A, T] {
@@ -346,7 +353,7 @@ func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, 
 	*buckets = (*buckets)[excess:]
 }
 
-func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D) error {
+func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D, realtimeUpload map[string]bool) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 

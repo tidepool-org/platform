@@ -1,8 +1,9 @@
 package context
 
 import (
-	"github.com/tidepool-org/platform/clinics"
 	"net/http"
+
+	"github.com/tidepool-org/platform/clinics"
 
 	"github.com/ant0ine/go-json-rest/rest"
 

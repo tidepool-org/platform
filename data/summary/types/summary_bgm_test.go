@@ -110,6 +110,7 @@ var _ = Describe("BGM Summary", func() {
 		var userBGMSummary *types.Summary[types.BGMStats, *types.BGMStats]
 		var periodKeys = []string{"1d", "7d", "14d", "30d"}
 		var periodInts = []int{1, 7, 14, 30}
+		var realtimeUploads = map[string]bool{}
 
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
