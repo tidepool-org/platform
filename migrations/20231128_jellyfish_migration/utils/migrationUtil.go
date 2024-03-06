@@ -20,6 +20,8 @@ import (
 type MigrationUtilConfig struct {
 	//apply no changes
 	dryRun bool
+	//revert the changes that have been applied
+	revertChanges bool
 	//halt on error
 	stopOnErr      bool
 	minOplogWindow int
@@ -226,7 +228,7 @@ func (m *migrationUtil) writeErrors(groupLimit *int) {
 				log.Println(err)
 				os.Exit(1)
 			}
-			f.WriteString(string(errJSON) + ",\n")
+			f.WriteString(string(errJSON) + "\n")
 		}
 		m.groupedErrors[group] = []ErrorData{}
 	}
@@ -257,7 +259,7 @@ func (m *migrationUtil) writeAudit(groupLimit *int) {
 				log.Println(err)
 				os.Exit(1)
 			}
-			f.WriteString(string(diffJSON) + ",\n")
+			f.WriteString(string(diffJSON) + "\n")
 		}
 		m.groupedDiffs[group] = []UpdateData{}
 	}
@@ -289,7 +291,7 @@ func (m *migrationUtil) GetLastID() string {
 	return m.lastUpdatedId
 }
 
-func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int, cap *int) *MigrationUtilConfig {
+func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, revertChanges *bool, nopPercent *int, cap *int) *MigrationUtilConfig {
 	cfg := &MigrationUtilConfig{
 		minOplogWindow:         28800, // 8hrs
 		minFreePercent:         10,
@@ -304,6 +306,9 @@ func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, nopPercent *int, cap 
 	}
 	if stopOnErr != nil {
 		cfg.SetStopOnErr(*stopOnErr)
+	}
+	if revertChanges != nil {
+		cfg.SetRevertChanges(*revertChanges)
 	}
 	if nopPercent != nil {
 		cfg.SetNopPercent(*nopPercent)
@@ -338,6 +343,11 @@ func (c *MigrationUtilConfig) SetDryRun(dryRun bool) *MigrationUtilConfig {
 }
 func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig {
 	c.stopOnErr = stopOnErr
+	return c
+}
+
+func (c *MigrationUtilConfig) SetRevertChanges(revertChanges bool) *MigrationUtilConfig {
+	c.revertChanges = revertChanges
 	return c
 }
 

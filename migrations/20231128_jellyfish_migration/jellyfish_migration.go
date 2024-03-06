@@ -9,6 +9,7 @@ import (
 
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -28,6 +29,7 @@ type config struct {
 	uri            string
 	dryRun         bool
 	stopOnErr      bool
+	revertChanges  bool
 	userID         string
 	lastUpdatedId  string
 	nopPercent     int
@@ -70,7 +72,7 @@ func (m *Migration) RunAndExit() {
 		//TODO: just capping while doing test runs, but probably good to have as a general ability
 		cap := m.config.cap // while testing
 		m.migrationUtil, err = utils.NewMigrationUtil(
-			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.nopPercent, &cap),
+			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.revertChanges, &m.config.nopPercent, &cap),
 			m.client,
 			&m.config.lastUpdatedId,
 		)
@@ -81,6 +83,13 @@ func (m *Migration) RunAndExit() {
 		if err := m.migrationUtil.Initialize(m.ctx, m.getDataCollection()); err != nil {
 			log.Printf("prepare failed: %s", err)
 			return err
+		}
+		if m.config.revertChanges {
+			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndRevert); err != nil {
+				log.Printf("revert failed: %s", err)
+				return err
+			}
+			return nil
 		}
 		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
 			log.Printf("processing failed: %s", err)
@@ -116,6 +125,11 @@ func (m *Migration) Initialize() error {
 			Name:        "stop-error",
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
+		},
+		cli.BoolFlag{
+			Name:        "revert-changes",
+			Usage:       "revert migration changes that have been applied",
+			Destination: &m.config.revertChanges,
 		},
 		cli.IntFlag{
 			Name:        "cap",
@@ -180,7 +194,9 @@ func (m *Migration) getDataCollection() *mongo.Collection {
 
 func (m *Migration) fetchAndProcess() bool {
 
-	selector := bson.M{}
+	selector := bson.M{
+		"_deduplicator": bson.M{"$exists": false},
+	}
 
 	if strings.TrimSpace(m.config.userID) != "" {
 		log.Printf("fetching for user %s", m.config.userID)
@@ -242,6 +258,74 @@ func (m *Migration) fetchAndProcess() bool {
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)
+		}
+		m.migrationUtil.SetFetched(all)
+		return len(all) > 0
+	}
+	return false
+}
+
+func (m *Migration) fetchAndRevert() bool {
+
+	selector := bson.M{
+		"_rollbackJellyfishMigration": bson.M{"$exists": true},
+	}
+
+	if strings.TrimSpace(m.config.userID) != "" {
+		log.Printf("fetching for user %s", m.config.userID)
+		selector["_userId"] = m.config.userID
+	}
+
+	// jellyfish uses a generated _id that is not an mongo objectId
+	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
+
+	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
+		selector["$and"] = []interface{}{
+			bson.M{"_id": bson.M{"$gt": lastID}},
+			bson.M{"_id": idNotObjectID},
+		}
+	} else {
+		selector["_id"] = idNotObjectID
+	}
+
+	batchSize := int32(m.config.queryBatchSize)
+
+	if dataC := m.getDataCollection(); dataC != nil {
+
+		dDataCursor, err := dataC.Find(m.ctx, selector,
+			&options.FindOptions{
+				Sort:      bson.M{"_id": 1},
+				BatchSize: &batchSize,
+				Limit:     &m.config.queryLimit,
+			},
+		)
+		if err != nil {
+			log.Printf("failed to select data: %s", err)
+			return false
+		}
+		defer dDataCursor.Close(m.ctx)
+
+		all := []bson.M{}
+
+		for dDataCursor.Next(m.ctx) {
+			item := bson.M{}
+			if err := dDataCursor.Decode(&item); err != nil {
+				log.Printf("error decoding data: %s", err)
+				return false
+			}
+
+			revertCommands := item["_rollbackJellyfishMigration"].(primitive.M)
+			itemID := fmt.Sprintf("%v", item["_id"])
+			userID := fmt.Sprintf("%v", item["_userId"])
+
+			if setCmd := revertCommands["$set"]; setCmd != nil {
+				log.Printf("# TODO %s %s $set  %v", itemID, userID, setCmd)
+			}
+
+			if unsetCmd := revertCommands["$unset"]; unsetCmd != nil {
+				log.Printf("# TODO %s %s $unset  %v", itemID, userID, unsetCmd)
+			}
+
 		}
 		m.migrationUtil.SetFetched(all)
 		return len(all) > 0
