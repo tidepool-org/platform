@@ -136,9 +136,8 @@ func (m *migrationUtil) capReached() bool {
 	if m.config.cap != nil {
 		stats := m.GetStats()
 
-		percent := stats.Applied / *m.config.cap
-
-		log.Printf("percent %v processed of %d records", percent, *m.config.cap) // start
+		percent := (float64(stats.Applied) * float64(100)) / float64(*m.config.cap)
+		log.Printf("processed %.1f %% of %d records", percent, *m.config.cap)
 
 		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
 			log.Printf("cap [%d] updated [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
