@@ -1,6 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.21
+go 1.22
 
 require (
 	github.com/Shopify/sarama v1.38.1
@@ -20,10 +20,10 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240125151732-338a1e40e083
-	github.com/tidepool-org/devices/api v0.0.0-20240119154427-ec679a38cf98
-	github.com/tidepool-org/go-common v0.11.0
-	github.com/tidepool-org/hydrophone/client v0.0.0-20240125152812-cb08e6b3fbc7
+	github.com/tidepool-org/clinic/client v0.0.0-20240306220554-4e22e08f6bba
+	github.com/tidepool-org/devices/api v0.0.0-20240306231908-f4276c62bd18
+	github.com/tidepool-org/go-common v0.11.1-0.20240306185825-1ddb2b762e00
+	github.com/tidepool-org/hydrophone/client v0.0.0-20240307000130-371717e2c64c
 	github.com/urfave/cli v1.22.14
 	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/fx v1.20.1
@@ -162,3 +162,6 @@ require (
 
 // Resolve GO-2023-2116, GO-2023-2115, GO-2023-2052
 replace github.com/gofiber/fiber/v2 v2.49.1 => github.com/gofiber/fiber/v2 v2.52.0
+
+// Resolve GO-2024-2611
+replace google.golang.org/protobuf v1.32.0 => google.golang.org/protobuf v1.33.0
