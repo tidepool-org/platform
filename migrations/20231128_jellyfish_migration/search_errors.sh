@@ -7,12 +7,12 @@ TMP_FILE=tmp.json
 
 echo "input_file: $INPUT_FILE"
 echo "output_file: $OUTPUT_FILE"
-echo "exclusion: $EXCLUDE_TXT"
+echo "exclude error code: $EXCLUDE_TXT"
 
-# move to json array
-jq -cnr '(reduce inputs as $line ([]; . + [$line]))' $INPUT_FILE >$TMP_FILE
-
-# iterate json and filter out known error
-jq -c ".[] | select(.error, ._id | .detail | contains($EXCLUDE_TXT) | not ) | {detail: .error.detail, id: ._id}" $TMP_FILE >$OUTPUT_FILE
+if [[ -z "$EXCLUDE_TXT" ]]; then  
+    jq -c "map(.error)|unique_by(.code)|.[]" $TMP_FILE >$OUTPUT_FILE
+else
+    jq -c "map(.error)|unique_by(.code)|.[]|select(.code!=null)|select(.code|contains(\"$EXCLUDE_TXT\")|not)" $TMP_FILE >$OUTPUT_FILE
+fi
 
 rm $TMP_FILE

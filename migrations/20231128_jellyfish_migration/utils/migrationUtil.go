@@ -135,6 +135,11 @@ func (m *migrationUtil) Initialize(ctx context.Context, dataC *mongo.Collection)
 func (m *migrationUtil) capReached() bool {
 	if m.config.cap != nil {
 		stats := m.GetStats()
+
+		percent := stats.Applied / *m.config.cap
+
+		log.Printf("percent %v processed of %d records", percent, *m.config.cap) // start
+
 		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
 			log.Printf("cap [%d] updated [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
 			return true
@@ -152,6 +157,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		if m.capReached() {
 			break
 		}
+
 	}
 	m.GetStats().report()
 	m.writeErrors(nil)
@@ -550,7 +556,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		return batches
 	}
 	writtenCount := 0
-	writeStart := time.Now()
+	//writeStart := time.Now()
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(ctx); err != nil {
 			return err
@@ -579,8 +585,9 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		log.Println("dry-run so no changes applied")
 		m.writeAudit(&writeLimit)
 	} else {
-		log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
-		m.GetStats().report()
+
+		//log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
+		//m.GetStats().report()
 		m.writeErrors(&writeLimit)
 		m.writeAudit(&writeLimit)
 	}
