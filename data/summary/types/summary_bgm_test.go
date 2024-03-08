@@ -3,6 +3,8 @@ package types_test
 import (
 	"context"
 	"fmt"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"math/rand"
 	"strconv"
 	"time"
@@ -116,7 +118,7 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 336, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(336))
@@ -125,7 +127,7 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correct hour count when given 1 week", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(168))
@@ -134,7 +136,7 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correct hour count when given 3 weeks", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 504, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(504))
@@ -153,7 +155,7 @@ var _ = Describe("BGM Summary", func() {
 					doubledBGMData[i*2] = dataSetBGMData[i]
 					doubledBGMData[i*2+1] = dataSetBGMDataTwo[i]
 				}
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
@@ -165,11 +167,11 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
@@ -185,7 +187,7 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(168))
@@ -200,7 +202,7 @@ var _ = Describe("BGM Summary", func() {
 				}
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, secondDatumTime, 168, secondRequestedAvgGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(528)) // 22 days
@@ -228,7 +230,7 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 144, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144))
@@ -237,7 +239,7 @@ var _ = Describe("BGM Summary", func() {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetBGMData = NewDataSetBGMDataAvg(deviceId, incrementalDatumTime, 1, float64(i))
 
-					err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+					err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144 + i))
@@ -270,7 +272,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = append(dataSetBGMDataOne, dataSetBGMDataTwo...)
 				dataSetBGMData = append(dataSetBGMData, dataSetBGMDataThree...)
 
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, realtimeUploads)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(72))
@@ -304,15 +306,15 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMDataFive := NewDataSetBGMDataRanges(deviceId, datumTime, 1, veryHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataOne)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataOne, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataTwo)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataTwo, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataThree)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataThree, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFour)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFour, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFive)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFive, realtimeUploads)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(5))
@@ -605,6 +607,14 @@ var _ = Describe("BGM Summary", func() {
 		Context("CalculateSummary/Update", func() {
 			var newDatumTime time.Time
 			var dataSetBGMDataCursor types.DeviceDataCursor
+			var dataStore types.DeviceDataFetcher
+
+			BeforeEach(func() {
+				config := storeStructuredMongoTest.NewConfig()
+				store, err := dataStoreMongo.NewStore(config)
+				Expect(err).ToNot(HaveOccurred())
+				dataStore = store.NewDataRepository()
+			})
 
 			It("Returns correct time in range for stats", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
@@ -612,7 +622,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataRanges(deviceId, datumTime, 720, ranges)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
@@ -680,7 +690,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
@@ -697,7 +707,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, inTargetBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
@@ -715,7 +725,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 1, lowBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1))
@@ -729,7 +739,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 720, highBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(721))
 
@@ -749,7 +759,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 720, lowBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(720))
@@ -763,7 +773,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 23, highBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(743))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(743))
@@ -782,7 +792,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, lowBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(24))
@@ -796,7 +806,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, newDatumTime, 168, highBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(1440))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(1440)) // 60 days
@@ -846,7 +856,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMDataFive := NewDataSetBGMDataAvg(deviceId, newDatumTimeFive, 24, lowBloodGlucose)
 				dataSetBGMDataFiveCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMDataFive), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataOneCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataOneCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 
 				// first day, should have 24 buckets
@@ -857,7 +867,7 @@ var _ = Describe("BGM Summary", func() {
 				Expect(*userBGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(24 * 6))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(0))
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataTwoCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataTwoCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 33 days elapsed, should have 33*24 (792) buckets
@@ -868,7 +878,7 @@ var _ = Describe("BGM Summary", func() {
 				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 6))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 6))
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataThreeCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataThreeCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 47 days elapsed, should have 47*24 (1128) buckets
@@ -877,7 +887,7 @@ var _ = Describe("BGM Summary", func() {
 				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 2 * 6))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 6))
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataFourCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataFourCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 59 days elapsed, should have 59*24 (1416) buckets
@@ -886,7 +896,7 @@ var _ = Describe("BGM Summary", func() {
 				Expect(*userBGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 3 * 6))
 				Expect(*userBGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 1 * 6))
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataFiveCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataFiveCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 
 				// 60 days elapsed, should have 60*24 (1440) buckets
@@ -923,13 +933,22 @@ var _ = Describe("BGM Summary", func() {
 		})
 
 		Context("ClearInvalidatedBuckets", func() {
+			var dataStore types.DeviceDataFetcher
+
+			BeforeEach(func() {
+				config := storeStructuredMongoTest.NewConfig()
+				store, err := dataStoreMongo.NewStore(config)
+				Expect(err).ToNot(HaveOccurred())
+				dataStore = store.NewDataRepository()
+			})
+
 			It("trims the correct buckets", func() {
 				var dataSetBGMDataCursor types.DeviceDataCursor
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(10))
@@ -951,7 +970,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetCGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetCGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(10))
@@ -970,7 +989,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 10, inTargetBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(10))
@@ -993,7 +1012,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, midDatumTime, 9, inTargetBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(10))
@@ -1016,7 +1035,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, midDatumTime, 9, inTargetBloodGlucose)
 				dataSetBGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetBGMData), nil, nil)
 
-				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor)
+				err = userBGMSummary.Stats.Update(ctx, dataSetBGMDataCursor, dataStore)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userBGMSummary.Stats.TotalHours).To(Equal(10))

@@ -47,19 +47,6 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 	return d.DataSetRepository.GetDataSetByID(ctx, dataSetID)
 }
 
-func (d *DataRepository) IsDataSetAutomated(ctx context.Context, dataSetID string) (bool, error) {
-	dataSet, err := d.DataSetRepository.GetDataSetByID(ctx, dataSetID)
-	if err != nil {
-		return false, err
-	}
-
-	if dataSet != nil {
-		return dataSet.Type == data.DataSetTypeContinuous, nil
-	}
-
-	return false, nil
-}
-
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
 	return d.DataSetRepository.createDataSet(ctx, dataSet, time.Now().UTC())
 }

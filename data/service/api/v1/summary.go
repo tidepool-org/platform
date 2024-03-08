@@ -19,6 +19,8 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
+const realtimePatientsInsuranceCode = "CPT-99454"
+
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
@@ -36,7 +38,7 @@ func SummaryRoutes() []dataService.Route {
 		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
 
-		dataService.Get("/v1/summaries/realtime/:clinicId", GetRealtimePatients, api.RequireAuth),
+		dataService.Get("/v1/summaries/realtime/:clinicId", GetPatientsWithRealtimeData, api.RequireAuth),
 	}
 }
 
@@ -91,20 +93,19 @@ type RealtimePatientsResponse struct {
 }
 
 type RealtimePatientConfigResponse struct {
-	SchemaVersion int       `json:"schemaVersion"`
-	Code          string    `json:"code"`
-	ClinicId      string    `json:"clinicId"`
-	StartDate     time.Time `json:"startDate"`
-	EndDate       time.Time `json:"endDate"`
+	Code      string    `json:"code"`
+	ClinicId  string    `json:"clinicId"`
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
 }
 
 type RealtimePatientResponse struct {
-	Id               string    `json:"id"`
-	FullName         string    `json:"fullName"`
-	BirthDate        time.Time `json:"birthDate"`
-	MRN              *string   `json:"mrn"`
-	RealtimeDays     int       `json:"realtimeDays"`
-	IsSufficientData bool      `json:"isSufficientData"`
+	Id                string    `json:"id"`
+	FullName          string    `json:"fullName"`
+	BirthDate         time.Time `json:"birthDate"`
+	MRN               *string   `json:"mrn"`
+	RealtimeDays      int       `json:"realtimeDays"`
+	HasSufficientData bool      `json:"hasSufficientData"`
 }
 
 type RealtimePatientsFilter struct {
@@ -126,7 +127,7 @@ func (d *RealtimePatientsFilter) Validate(validator structure.Validator) {
 	validator.Time("endDate", d.EndTime).NotZero()
 }
 
-func GetRealtimePatients(dataServiceContext dataService.Context) {
+func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -144,19 +145,20 @@ func GetRealtimePatients(dataServiceContext dataService.Context) {
 	startTime := time.Now().UTC().AddDate(0, 0, -60)
 	endTime := time.Now().UTC()
 
-	if details := request.GetAuthDetails(ctx); !details.IsService() {
+	details := request.GetAuthDetails(ctx)
+	if !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
 
-	patients, err := dataServiceContext.ClinicsClient().GetPatients(ctx, clinicId)
+	patients, err := dataServiceContext.ClinicsClient().GetPatients(ctx, clinicId, details.Token())
 	userIds := make([]string, len(patients))
 	for i := 0; i < len(patients); i++ {
 		userIds[i] = *patients[0].Id
 	}
 
-	summaryManager := dataServiceContext.SummarizerRegistry().Manager
-	userIdsRealtimeDays, err := summaryManager.GetRealtimePatients(ctx, userIds, startTime, endTime)
+	summaryManager := dataServiceContext.SummarizerRegistry().TypelessSummarizer
+	userIdsRealtimeDays, err := summaryManager.GetPatientsWithRealtimeData(ctx, userIds, startTime, endTime)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -165,22 +167,21 @@ func GetRealtimePatients(dataServiceContext dataService.Context) {
 	patientsResponse := make([]RealtimePatientResponse, len(patients))
 	for i := 0; i < len(patients); i++ {
 		patientsResponse[i] = RealtimePatientResponse{
-			Id:               *patients[i].Id,
-			FullName:         patients[i].FullName,
-			BirthDate:        patients[i].BirthDate.Time,
-			MRN:              patients[i].Mrn,
-			RealtimeDays:     userIdsRealtimeDays[*patients[i].Id],
-			IsSufficientData: userIdsRealtimeDays[*patients[i].Id] >= store.RealtimeUserThreshold,
+			Id:                *patients[i].Id,
+			FullName:          patients[i].FullName,
+			BirthDate:         patients[i].BirthDate.Time,
+			MRN:               patients[i].Mrn,
+			RealtimeDays:      userIdsRealtimeDays[*patients[i].Id],
+			HasSufficientData: userIdsRealtimeDays[*patients[i].Id] >= store.RealtimeUserThreshold,
 		}
 	}
 
 	response := RealtimePatientsResponse{
 		Config: RealtimePatientConfigResponse{
-			SchemaVersion: 1,
-			Code:          "CPT-99454",
-			ClinicId:      clinicId,
-			StartDate:     startTime,
-			EndDate:       endTime,
+			Code:      realtimePatientsInsuranceCode,
+			ClinicId:  clinicId,
+			StartDate: startTime,
+			EndDate:   endTime,
 		},
 		Results: patientsResponse,
 	}

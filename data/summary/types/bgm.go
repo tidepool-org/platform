@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/upload"
+
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -22,11 +24,15 @@ type BGMBucketData struct {
 	HighRecords     int `json:"highRecords" bson:"highRecords"`
 	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
 
-	RealtimeRecords int `json:"realtimeRecords" bson:"realtimeRecords"`
-	DeferredRecords int `json:"deferredRecords" bson:"deferredRecords"`
-
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
+
+	// RealtimeRecords is the total count of records which were both uploaded within 24h of the record creation
+	// and from a continuous dataset
+	RealtimeRecords int `json:"realtimeRecords" bson:"realtimeRecords"`
+
+	// DeferredRecords is the total count of records which are in continuous datasets, but not uploaded within 24h
+	DeferredRecords int `json:"deferredRecords" bson:"deferredRecords"`
 }
 
 type BGMPeriod struct {
@@ -155,9 +161,11 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	return
 }
 
-func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
-	var userData []*glucoseDatum.Glucose = nil
+func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
 	var err error
+	var userData []*glucoseDatum.Glucose = nil
+	var uploadRecord *upload.Upload
+	uploadIds := map[string]bool{}
 
 	for cursor.Next(ctx) {
 		if userData == nil {
@@ -170,9 +178,20 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
 		}
 		userData = append(userData, r)
 
+		if _, ok := uploadIds[*r.UploadID]; !ok {
+			uploadRecord, err = dataRepo.GetDataSetByID(ctx, *r.UploadID)
+			if err != nil {
+				return err
+			}
+			uploadIds[*r.UploadID] = uploadRecord.IsContinuous()
+			if err != nil {
+				return err
+			}
+		}
+
 		// we call AddData before each network call to the db to reduce thrashing
 		if cursor.RemainingBatchLength() != 0 {
-			err = AddData(&s.Buckets, userData)
+			err = AddData(&s.Buckets, userData, uploadIds)
 			if err != nil {
 				return err
 			}
@@ -182,7 +201,7 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
 
 	// add the final partial batch
 	if userData != nil {
-		err = AddData(&s.Buckets, userData)
+		err = AddData(&s.Buckets, userData, uploadIds)
 		if err != nil {
 			return err
 		}

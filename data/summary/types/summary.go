@@ -3,6 +3,14 @@ package types
 import (
 	"context"
 	"fmt"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+
+	"github.com/tidepool-org/platform/data/types/upload"
+
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/data"
+
 	"time"
 
 	"github.com/tidepool-org/platform/pointer"
@@ -10,7 +18,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -64,6 +71,8 @@ type RecordTypes interface {
 type RecordTypesPt[T RecordTypes] interface {
 	*T
 	GetTime() *time.Time
+	GetCreatedTime() *time.Time
+	GetUploadID() *string
 }
 
 type DeviceDataCursor interface {
@@ -85,8 +94,8 @@ type UserLastUpdated struct {
 	NextLastUpdated time.Time
 }
 
-type DeviceDataManager interface {
-	IsDataSetAutomated(ctx context.Context, dataSetID string) (bool, error)
+type DeviceDataFetcher interface {
+	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error)
 	GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
@@ -120,7 +129,7 @@ type Dates struct {
 	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
-func (d *Dates) Update(status *UserLastUpdated, firstBucketDate time.Time) {
+func (d *Dates) Update(status *data.UserLastUpdated, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
 	d.LastUpdatedReason = d.OutdatedReason
 
@@ -168,7 +177,7 @@ type StatsPt[T Stats] interface {
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
-	Update(context.Context, DeviceDataCursor) error
+	Update(context.Context, DeviceDataCursor, DeviceDataFetcher) error
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
 }
 
@@ -353,7 +362,14 @@ func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, 
 	*buckets = (*buckets)[excess:]
 }
 
-func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D, realtimeUpload map[string]bool) error {
+type RealtimeUploads map[string]bool
+
+func (r *RealtimeUploads) IsRealtime(uploadId string) bool {
+	val, _ := (*r)[uploadId]
+	return val
+}
+
+func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D, uploads RealtimeUploads) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 
@@ -414,7 +430,8 @@ func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]]
 
 		previousPeriod = currentPeriod
 
-		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
+		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime, uploads.IsRealtime(*r.GetUploadID()))
+
 		if err != nil {
 			return err
 		}

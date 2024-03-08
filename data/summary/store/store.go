@@ -82,9 +82,9 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-// isRealtimeUser processes two slices of Item and returns an int count of days with realtime records.
+// GetNumberOfDaysWithRealtimeData processes two slices of Item and returns an int count of days with realtime records.
 // this currently doesn't handle N slices, only 1-2, might need adjustment for more types.
-func isRealtimeUser(a, b []*types.Bucket[*types.CGMBucketData, types.CGMBucketData]) int {
+func GetNumberOfDaysWithRealtimeData(a, b []*types.Bucket[*types.CGMBucketData, types.CGMBucketData]) int {
 	var count int
 
 	// Calculate the offset in hours between the first items of each list
@@ -142,7 +142,7 @@ func isRealtimeUser(a, b []*types.Bucket[*types.CGMBucketData, types.CGMBucketDa
 	return count
 }
 
-func (r *TypelessRepo) GetRealtimePatients(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
+func (r *TypelessRepo) GetPatientsWithRealtimeData(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -208,9 +208,9 @@ func (r *TypelessRepo) GetRealtimePatients(ctx context.Context, userIds []string
 
 		realtimeDays := 0
 		if len(buckets) > 1 {
-			realtimeDays = isRealtimeUser(buckets[0], buckets[1])
+			realtimeDays = GetNumberOfDaysWithRealtimeData(buckets[0], buckets[1])
 		} else if len(buckets) > 0 {
-			realtimeDays = isRealtimeUser(buckets[0], nil)
+			realtimeDays = GetNumberOfDaysWithRealtimeData(buckets[0], nil)
 		}
 
 		realtimeUsers[userId] = realtimeDays

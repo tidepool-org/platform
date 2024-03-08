@@ -274,6 +274,10 @@ func (b *Base) GetTime() *time.Time {
 	return b.Time
 }
 
+func (b *Base) GetUploadID() *string {
+	return b.UploadID
+}
+
 func (b *Base) GetType() string {
 	return b.Type
 }
@@ -300,6 +304,10 @@ func (b *Base) SetActive(active bool) {
 
 func (b *Base) SetDeviceID(deviceID *string) {
 	b.DeviceID = deviceID
+}
+
+func (b *Base) GetCreatedTime() *time.Time {
+	return b.CreatedTime
 }
 
 func (b *Base) SetCreatedTime(createdTime *time.Time) {
