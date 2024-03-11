@@ -301,10 +301,10 @@ func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, revertChanges *bool, 
 		minOplogWindow:         28800, // 8hrs
 		minFreePercent:         10,
 		expectedOplogEntrySize: 420,
-
-		dryRun:     true,
-		stopOnErr:  true,
-		nopPercent: 25,
+		revertChanges:          true,
+		dryRun:                 true,
+		stopOnErr:              true,
+		nopPercent:             25,
 	}
 	if dryRun != nil {
 		cfg.SetDryRun(*dryRun)

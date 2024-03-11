@@ -84,6 +84,9 @@ func (m *Migration) RunAndExit() {
 			log.Printf("prepare failed: %s", err)
 			return err
 		}
+
+		log.Printf("migration config: %#v", m.config)
+
 		if m.config.revertChanges {
 			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndRevert); err != nil {
 				log.Printf("revert failed: %s", err)
