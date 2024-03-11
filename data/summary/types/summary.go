@@ -362,14 +362,14 @@ func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, 
 	*buckets = (*buckets)[excess:]
 }
 
-type RealtimeUploads map[string]bool
+type ContinuousUploads map[string]bool
 
-func (r *RealtimeUploads) IsRealtime(uploadId string) bool {
+func (r *ContinuousUploads) IsContinuous(uploadId string) bool {
 	val, _ := (*r)[uploadId]
 	return val
 }
 
-func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D, uploads RealtimeUploads) error {
+func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D, uploads ContinuousUploads) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 
@@ -430,7 +430,7 @@ func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]]
 
 		previousPeriod = currentPeriod
 
-		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime, uploads.IsRealtime(*r.GetUploadID()))
+		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime, uploads.IsContinuous(*r.GetUploadID()))
 
 		if err != nil {
 			return err

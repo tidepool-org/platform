@@ -2,6 +2,8 @@ package summary_test
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,6 +37,24 @@ import (
 )
 
 const units = "mmol/L"
+
+func NewDataSet(userID string, deviceID string) *upload.Upload {
+	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet.Active = true
+	dataSet.ArchivedDataSetID = nil
+	dataSet.ArchivedTime = nil
+	dataSet.CreatedTime = nil
+	dataSet.CreatedUserID = nil
+	dataSet.DeletedTime = nil
+	dataSet.DeletedUserID = nil
+	dataSet.DeviceID = pointer.FromAny(deviceID)
+	dataSet.Location.GPS.Origin.Time = nil
+	dataSet.ModifiedTime = nil
+	dataSet.ModifiedUserID = nil
+	dataSet.Origin.Time = nil
+	dataSet.UserID = pointer.FromAny(userID)
+	return dataSet
+}
 
 func NewDataSetData(typ string, deviceId string, userId string, startTime time.Time, hours float64, glucoseValue float64) []mongo.WriteModel {
 	requiredRecords := int(hours * 1)
