@@ -84,8 +84,6 @@ func (m *Migration) RunAndExit() {
 			return err
 		}
 
-		log.Printf("migration config: %#v", m.config)
-
 		if m.config.revertChanges {
 			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndRevert); err != nil {
 				log.Printf("revert failed: %s", err)
@@ -256,7 +254,7 @@ func (m *Migration) fetchAndProcess() bool {
 					ItemType: itemType,
 					Apply:    updates,
 					Revert:   revert,
-				})
+				}, false)
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)
@@ -315,14 +313,18 @@ func (m *Migration) fetchAndRevert() bool {
 				log.Printf("error decoding data: %s", err)
 				return false
 			}
-
-			rollbackCmds := item["_rollbackJellyfishMigration"].(primitive.A)
+			rollbackCmds := item["_rollbackJellyfishMigration"].([]primitive.M)
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
-			for _, cmd := range rollbackCmds {
-				log.Printf("# TODO %s %s apply command  %v", itemID, userID, cmd)
-			}
-			log.Printf("# TODO delete %s _rollbackJellyfishMigration now reverts applied", itemID)
+			itemType := fmt.Sprintf("%v", item["type"])
+
+			m.migrationUtil.SetUpdates(utils.UpdateData{
+				Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
+				ItemID:   itemID,
+				UserID:   userID,
+				ItemType: itemType,
+				Apply:    rollbackCmds,
+			}, true)
 			m.migrationUtil.SetLastProcessed(itemID)
 		}
 		m.migrationUtil.SetFetched(all)

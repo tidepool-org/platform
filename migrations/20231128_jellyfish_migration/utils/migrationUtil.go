@@ -54,12 +54,13 @@ type migrationUtil struct {
 }
 
 type UpdateData struct {
-	Filter   interface{} `json:"-"`
-	ItemID   string      `json:"_id"`
-	UserID   string      `json:"_userId"`
-	ItemType string      `json:"-"`
-	Apply    []bson.M    `json:"apply"`
-	Revert   []bson.M    `json:"revert"`
+	Filter    interface{} `json:"-"`
+	ItemID    string      `json:"_id"`
+	UserID    string      `json:"_userId"`
+	ItemType  string      `json:"-"`
+	Apply     []bson.M    `json:"apply"`
+	ApplyLast bson.M      `json:"applyLast"`
+	Revert    []bson.M    `json:"revert"`
 }
 
 type ErrorData struct {
@@ -83,7 +84,7 @@ type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(data ErrorData)
-	SetUpdates(data UpdateData)
+	SetUpdates(data UpdateData, asRollback bool)
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
 	GetLastID() string
@@ -164,7 +165,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	return nil
 }
 
-func (d UpdateData) getMongoUpdates() []mongo.WriteModel {
+func (d UpdateData) getDatumUpdates(asRollback bool) []mongo.WriteModel {
 	updates := []mongo.WriteModel{}
 	for _, u := range d.Apply {
 		updateOp := mongo.NewUpdateOneModel()
@@ -174,14 +175,18 @@ func (d UpdateData) getMongoUpdates() []mongo.WriteModel {
 	}
 	updateOp := mongo.NewUpdateOneModel()
 	updateOp.Filter = d.Filter
-	updateOp.SetUpdate(bson.M{"$set": bson.M{"_rollbackJellyfishMigration": d.Revert}})
+	if !asRollback && len(d.Revert) > 0 {
+		updateOp.SetUpdate(bson.M{"$set": bson.M{"_rollbackJellyfishMigration": d.Revert}})
+	} else if asRollback {
+		updateOp.SetUpdate(bson.M{"$unset": bson.M{"_rollbackJellyfishMigration": ""}})
+	}
 	updates = append(updates, updateOp)
 	return updates
 }
 
-func (m *migrationUtil) SetUpdates(data UpdateData) {
+func (m *migrationUtil) SetUpdates(data UpdateData, asRollback bool) {
 	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	m.updates = append(m.updates, data.getMongoUpdates()...)
+	m.updates = append(m.updates, data.getDatumUpdates(asRollback)...)
 }
 
 func (m *migrationUtil) SetLastProcessed(lastID string) {
