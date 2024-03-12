@@ -28,6 +28,8 @@ type Service interface {
 	Status(context.Context) *Status
 
 	AppValidator() *appvalidate.Validator
+
+	PartnerSecrets() *appvalidate.PartnerSecrets
 }
 
 type Status struct {

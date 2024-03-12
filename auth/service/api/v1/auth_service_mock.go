@@ -157,6 +157,20 @@ func (mr *MockAuthServiceMockRecorder) Logger() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logger", reflect.TypeOf((*MockAuthService)(nil).Logger))
 }
 
+// PartnerSecrets mocks base method.
+func (m *MockAuthService) PartnerSecrets() *appvalidate.PartnerSecrets {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartnerSecrets")
+	ret0, _ := ret[0].(*appvalidate.PartnerSecrets)
+	return ret0
+}
+
+// PartnerSecrets indicates an expected call of PartnerSecrets.
+func (mr *MockAuthServiceMockRecorder) PartnerSecrets() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartnerSecrets", reflect.TypeOf((*MockAuthService)(nil).PartnerSecrets))
+}
+
 // ProviderFactory mocks base method.
 func (m *MockAuthService) ProviderFactory() provider.Factory {
 	m.ctrl.T.Helper()
