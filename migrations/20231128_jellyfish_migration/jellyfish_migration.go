@@ -90,12 +90,13 @@ func (m *Migration) RunAndExit() {
 				return err
 			}
 			return nil
+		} else {
+			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
+				log.Printf("processing failed: %s", err)
+				return err
+			}
+			return nil
 		}
-		if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
-			log.Printf("processing failed: %s", err)
-			return err
-		}
-		return nil
 	}
 
 	if err := m.CLI().Run(os.Args); err != nil {
@@ -278,7 +279,6 @@ func (m *Migration) fetchAndRevert() bool {
 
 	// jellyfish uses a generated _id that is not an mongo objectId
 	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
-
 	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
 		selector["$and"] = []interface{}{
 			bson.M{"_id": bson.M{"$gt": lastID}},
@@ -318,14 +318,14 @@ func (m *Migration) fetchAndRevert() bool {
 			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
 			if rollback, ok := item["_rollbackJellyfishMigration"].(primitive.A); ok {
-				log.Printf("_rollbackJellyfishMigration [%s] %#v", itemID, rollback)
 				for _, cmd := range rollback {
-					if cmd, ok := cmd.(bson.M); ok {
+					if cmd, ok := cmd.(primitive.M); ok {
 						cmds = append(cmds, cmd)
 					}
 				}
 			}
 			if len(cmds) > 0 {
+				log.Printf("_rollbackJellyfishMigration [%s] %#v", itemID, cmds)
 				m.migrationUtil.SetUpdates(utils.UpdateData{
 					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
 					ItemID:   itemID,
@@ -334,8 +334,8 @@ func (m *Migration) fetchAndRevert() bool {
 					Apply:    cmds,
 				}, true)
 			}
-
 			m.migrationUtil.SetLastProcessed(itemID)
+			all = append(all, item)
 		}
 		m.migrationUtil.SetFetched(all)
 		return len(all) > 0
