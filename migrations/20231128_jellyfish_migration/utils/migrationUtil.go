@@ -20,8 +20,10 @@ import (
 type MigrationUtilConfig struct {
 	//apply no changes
 	dryRun bool
-	//revert the changes that have been applied
-	revertChanges bool
+	//rollback the changes that have been applied
+	rollback bool
+	//name of section with mongo document that stores the original values
+	rollbackSectionName string
 	//halt on error
 	stopOnErr      bool
 	minOplogWindow int
@@ -84,7 +86,7 @@ type MigrationUtil interface {
 	Initialize(ctx context.Context, dataC *mongo.Collection) error
 	Execute(ctx context.Context, dataC *mongo.Collection, fetchAndUpdateFn func() bool) error
 	OnError(data ErrorData)
-	SetUpdates(data UpdateData, asRollback bool)
+	SetUpdates(data UpdateData)
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
 	GetLastID() string
@@ -157,7 +159,6 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 		if m.capReached() {
 			break
 		}
-
 	}
 	m.GetStats().report()
 	m.writeErrors(nil)
@@ -165,7 +166,7 @@ func (m *migrationUtil) Execute(ctx context.Context, dataC *mongo.Collection, fe
 	return nil
 }
 
-func (d UpdateData) getDatumUpdates(asRollback bool) []mongo.WriteModel {
+func (d UpdateData) getDatumUpdates(rollback bool, rollbackSectionName string) []mongo.WriteModel {
 	updates := []mongo.WriteModel{}
 	for _, u := range d.Apply {
 		updateOp := mongo.NewUpdateOneModel()
@@ -175,18 +176,18 @@ func (d UpdateData) getDatumUpdates(asRollback bool) []mongo.WriteModel {
 	}
 	updateOp := mongo.NewUpdateOneModel()
 	updateOp.Filter = d.Filter
-	if !asRollback && len(d.Revert) > 0 {
-		updateOp.SetUpdate(bson.M{"$set": bson.M{"_rollbackJellyfishMigration": d.Revert}})
-	} else if asRollback {
-		updateOp.SetUpdate(bson.M{"$unset": bson.M{"_rollbackJellyfishMigration": ""}})
+	if !rollback && len(d.Revert) > 0 {
+		updateOp.SetUpdate(bson.M{"$set": bson.M{rollbackSectionName: d.Revert}})
+	} else if rollback {
+		updateOp.SetUpdate(bson.M{"$unset": bson.M{rollbackSectionName: ""}})
 	}
 	updates = append(updates, updateOp)
 	return updates
 }
 
-func (m *migrationUtil) SetUpdates(data UpdateData, asRollback bool) {
+func (m *migrationUtil) SetUpdates(data UpdateData) {
 	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	m.updates = append(m.updates, data.getDatumUpdates(asRollback)...)
+	m.updates = append(m.updates, data.getDatumUpdates(m.config.rollback, m.config.rollbackSectionName)...)
 }
 
 func (m *migrationUtil) SetLastProcessed(lastID string) {
@@ -194,8 +195,6 @@ func (m *migrationUtil) SetLastProcessed(lastID string) {
 }
 
 func createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
-	datetime := time.Now().Round(15 * time.Minute)
-	datestamp := datetime.Format(time.DateOnly)
 	var err error
 	if fileType == "" {
 		errors.Join(err, errors.New("missing file type"))
@@ -210,7 +209,7 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 		return nil, err
 	}
 	logName = fmt.Sprintf(logName, dataGroup)
-	logPath := filepath.Join(".", fileType, datestamp)
+	logPath := filepath.Join(".", fileType)
 
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
@@ -301,12 +300,13 @@ func (m *migrationUtil) GetLastID() string {
 	return m.lastUpdatedId
 }
 
-func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, revertChanges *bool, nopPercent *int, cap *int) *MigrationUtilConfig {
+func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionName *string, nopPercent *int, cap *int) *MigrationUtilConfig {
 	cfg := &MigrationUtilConfig{
 		minOplogWindow:         28800, // 8hrs
 		minFreePercent:         10,
 		expectedOplogEntrySize: 420,
-		revertChanges:          true,
+		rollback:               true,
+		rollbackSectionName:    "_rollbackMigration",
 		dryRun:                 true,
 		stopOnErr:              true,
 		nopPercent:             25,
@@ -317,8 +317,11 @@ func NewMigrationUtilConfig(dryRun *bool, stopOnErr *bool, revertChanges *bool, 
 	if stopOnErr != nil {
 		cfg.SetStopOnErr(*stopOnErr)
 	}
-	if revertChanges != nil {
-		cfg.SetRevertChanges(*revertChanges)
+	if rollback != nil {
+		cfg.SetRollback(*rollback)
+	}
+	if rollbackSectionName != nil {
+		cfg.SetRollbackSectionName(*rollbackSectionName)
 	}
 	if nopPercent != nil {
 		cfg.SetNopPercent(*nopPercent)
@@ -356,8 +359,13 @@ func (c *MigrationUtilConfig) SetStopOnErr(stopOnErr bool) *MigrationUtilConfig 
 	return c
 }
 
-func (c *MigrationUtilConfig) SetRevertChanges(revertChanges bool) *MigrationUtilConfig {
-	c.revertChanges = revertChanges
+func (c *MigrationUtilConfig) SetRollback(rollback bool) *MigrationUtilConfig {
+	c.rollback = rollback
+	return c
+}
+
+func (c *MigrationUtilConfig) SetRollbackSectionName(rollbackSectionName string) *MigrationUtilConfig {
+	c.rollbackSectionName = rollbackSectionName
 	return c
 }
 

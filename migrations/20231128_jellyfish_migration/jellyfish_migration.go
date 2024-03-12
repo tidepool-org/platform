@@ -25,16 +25,17 @@ type Migration struct {
 }
 
 type config struct {
-	cap            int
-	uri            string
-	dryRun         bool
-	stopOnErr      bool
-	revertChanges  bool
-	userID         string
-	lastUpdatedId  string
-	nopPercent     int
-	queryBatchSize int64
-	queryLimit     int64
+	cap                 int
+	uri                 string
+	dryRun              bool
+	stopOnErr           bool
+	rollback            bool
+	rollbackSectionName string
+	userID              string
+	lastUpdatedId       string
+	nopPercent          int
+	queryBatchSize      int64
+	queryLimit          int64
 }
 
 const DryRunFlag = "dry-run"
@@ -50,9 +51,11 @@ func main() {
 
 func NewMigration(ctx context.Context) *Migration {
 	return &Migration{
-		config: &config{},
-		ctx:    ctx,
-		cli:    cli.NewApp(),
+		config: &config{
+			rollbackSectionName: "_rollbackJellyfishMigration",
+		},
+		ctx: ctx,
+		cli: cli.NewApp(),
 	}
 }
 
@@ -69,9 +72,14 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
-		cap := m.config.cap
 		m.migrationUtil, err = utils.NewMigrationUtil(
-			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.revertChanges, &m.config.nopPercent, &cap),
+			utils.NewMigrationUtilConfig(
+				&m.config.dryRun,
+				&m.config.stopOnErr,
+				&m.config.rollback,
+				&m.config.rollbackSectionName,
+				&m.config.nopPercent,
+				&m.config.cap),
 			m.client,
 			&m.config.lastUpdatedId,
 		)
@@ -84,7 +92,7 @@ func (m *Migration) RunAndExit() {
 			return err
 		}
 
-		if m.config.revertChanges {
+		if m.config.rollback {
 			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndRevert); err != nil {
 				log.Printf("revert failed: %s", err)
 				return err
@@ -128,9 +136,9 @@ func (m *Migration) Initialize() error {
 			Destination: &m.config.stopOnErr,
 		},
 		cli.BoolFlag{
-			Name:        "revert-changes",
-			Usage:       "revert migration changes that have been applied",
-			Destination: &m.config.revertChanges,
+			Name:        "rollback",
+			Usage:       "rollback migration changes that have been applied",
+			Destination: &m.config.rollback,
 		},
 		cli.IntFlag{
 			Name:        "cap",
@@ -255,7 +263,7 @@ func (m *Migration) fetchAndProcess() bool {
 					ItemType: itemType,
 					Apply:    updates,
 					Revert:   revert,
-				}, false)
+				})
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)
@@ -268,8 +276,10 @@ func (m *Migration) fetchAndProcess() bool {
 
 func (m *Migration) fetchAndRevert() bool {
 
+	rollbackValues := m.config.rollbackSectionName
+
 	selector := bson.M{
-		"_rollbackJellyfishMigration": bson.M{"$exists": true},
+		rollbackValues: bson.M{"$exists": true},
 	}
 
 	if strings.TrimSpace(m.config.userID) != "" {
@@ -317,7 +327,7 @@ func (m *Migration) fetchAndRevert() bool {
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
-			if rollback, ok := item["_rollbackJellyfishMigration"].(primitive.A); ok {
+			if rollback, ok := item[rollbackValues].(primitive.A); ok {
 				for _, cmd := range rollback {
 					if cmd, ok := cmd.(primitive.M); ok {
 						cmds = append(cmds, cmd)
@@ -325,14 +335,14 @@ func (m *Migration) fetchAndRevert() bool {
 				}
 			}
 			if len(cmds) > 0 {
-				log.Printf("_rollbackJellyfishMigration [%s] %#v", itemID, cmds)
+				log.Printf("%s [%s] %#v", rollbackValues, itemID, cmds)
 				m.migrationUtil.SetUpdates(utils.UpdateData{
 					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
 					ItemID:   itemID,
 					UserID:   userID,
 					ItemType: itemType,
 					Apply:    cmds,
-				}, true)
+				})
 			}
 			m.migrationUtil.SetLastProcessed(itemID)
 			all = append(all, item)
