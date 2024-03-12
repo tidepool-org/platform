@@ -28,15 +28,15 @@ var _ = Describe("Task", func() {
 	}
 
 	Context("ErrorOrRetryTask", func() {
-		DescribeTable("will not append error",
+		DescribeTable("will append error, but not fail",
 			func(setupFunc func() (*task.Task, int)) {
 				tsk, startCount := setupFunc()
-				Expect(tsk.IsFailed()).To(Equal(true))
+				Expect(tsk.IsFailed()).To(BeTrue())
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
 				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
-				Expect(tsk.HasError()).To(Equal(false))
+				Expect(tsk.HasError()).To(BeTrue())
+				Expect(tsk.IsFailed()).To(BeFalse())
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount + 1))
-				Expect(tsk.IsFailed()).To(Equal(false))
 			},
 			Entry("if zero retries", func() (*task.Task, int) {
 				retryCount := 0
@@ -51,13 +51,15 @@ var _ = Describe("Task", func() {
 				return getTask(retryCount, true), retryCount
 			}),
 		)
-		DescribeTable("will append error",
+		DescribeTable("will append error and fail",
 			func(setupFunc func() (*task.Task, int)) {
 				tsk, startCount := setupFunc()
+				Expect(tsk.IsFailed()).To(BeTrue())
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
 				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
-				Expect(tsk.HasError()).To(Equal(true))
-				Expect(tsk.IsFailed()).To(Equal(true))
+				Expect(tsk.HasError()).To(BeTrue())
+				Expect(tsk.IsFailed()).To(BeTrue())
+				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
 			},
 			Entry("when 3rd retry", func() (*task.Task, int) {
 				retryCount := 3
@@ -68,12 +70,14 @@ var _ = Describe("Task", func() {
 				return getTask(retryCount, true), retryCount
 			}),
 		)
-		DescribeTable("will ignore if the task is not been failed",
+		DescribeTable("will set the error even if the task is not failed",
 			func(setupFunc func() (*task.Task, int)) {
 				tsk, startCount := setupFunc()
+				Expect(tsk.IsFailed()).To(BeFalse())
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
 				fetch.ErrorOrRetryTask(tsk, errors.New("some error"))
-				Expect(tsk.HasError()).To(Equal(false))
+				Expect(tsk.HasError()).To(BeTrue())
+				Expect(tsk.IsFailed()).To(BeFalse())
 				Expect(tsk.Data["retryCount"]).To(Equal(startCount))
 			},
 			Entry("when 3rd retry", func() (*task.Task, int) {
@@ -94,16 +98,16 @@ var _ = Describe("Task", func() {
 		})
 		It("will set the task to have failed", func() {
 			tsk := getTask(0, false)
-			Expect(tsk.IsFailed()).To(Equal(false))
+			Expect(tsk.IsFailed()).To(BeFalse())
 			fetch.FailTask(logger, tsk, errors.New("some error"))
-			Expect(tsk.IsFailed()).To(Equal(true))
+			Expect(tsk.IsFailed()).To(BeTrue())
 		})
 		It("will not change the failure status if already set", func() {
 			tsk := getTask(0, false)
 			tsk.SetFailed()
-			Expect(tsk.IsFailed()).To(Equal(true))
+			Expect(tsk.IsFailed()).To(BeTrue())
 			fetch.FailTask(logger, tsk, errors.New("some error"))
-			Expect(tsk.IsFailed()).To(Equal(true))
+			Expect(tsk.IsFailed()).To(BeTrue())
 		})
 	})
 

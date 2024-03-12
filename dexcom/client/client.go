@@ -2,9 +2,12 @@ package client
 
 import (
 	"context"
+	"net/http"
+	"strconv"
 	"time"
 
-	"golang.org/x/oauth2"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -25,9 +28,6 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	if err != nil {
 		return nil, err
 	}
-
-	// NOTE: Dexcom authorization server does not support HTTP Basic authentication
-	oauth2.RegisterBrokenAuthHeaderProvider(cfg.Address)
 
 	isSandboxData := false
 	if cfg != nil && cfg.Address == "https://sandbox-api.dexcom.com" {
@@ -101,10 +101,10 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 		"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
 	})
 
-	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+	err := c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	if oauth.IsAccessTokenError(err) {
 		tokenSource.ExpireToken()
-		err = c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+		err = c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	}
 	if oauth.IsRefreshTokenError(err) {
 		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
@@ -118,3 +118,30 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 }
 
 const requestDurationMaximum = 15 * time.Second
+
+// sendRequest adds instrumentation before calling oauth.Client.SendOAuthRequest.
+func (c *Client) sendRequest(ctx context.Context, method, url string, mutators []request.RequestMutator,
+	requestBody any, responseBody any, httpClientSource oauth.HTTPClientSource) error {
+
+	var inspectors = []request.ResponseInspector{
+		&promDexcomInstrumentor{},
+	}
+	return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClientSource)
+}
+
+type promDexcomInstrumentor struct{}
+
+// InspectResponse implements request.ResponseInspector.
+func (i *promDexcomInstrumentor) InspectResponse(r *http.Response) {
+	labels := prometheus.Labels{
+		"code": strconv.Itoa(r.StatusCode),
+		"path": r.Request.URL.Path,
+	}
+	promDexcomCounter.With(labels).Inc()
+}
+
+// promDexcomCounter instruments the Dexcom API paths and status codes called.
+var promDexcomCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_dexcom_api_client_requests",
+	Help: "Dexcom API client requests",
+}, []string{"code", "path"})

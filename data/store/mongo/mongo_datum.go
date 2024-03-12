@@ -5,13 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/basal"
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/insulin"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -32,16 +25,17 @@ type DatumRepository struct {
 }
 
 const (
-	ModifiedTimeIndexRaw = "2023-04-01T00:00:00Z"
+	LowerTimeIndexRaw = "2022-01-01T00:00:00Z"
 )
 
 var ErrSelectorsInvalid = errors.New("selectors is invalid")
 
 func (d *DatumRepository) EnsureIndexes() error {
-	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
+	lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw)
 	if err != nil {
 		return err
 	}
+
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -60,19 +54,19 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
 				{Key: "type", Value: 1},
+				{Key: "time", Value: 1},
 				{Key: "modifiedTime", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
+				SetName("UserIdActiveTypeTimeModifiedTime").
 				SetPartialFilterExpression(bson.D{
 					{
-						Key: "modifiedTime",
+						Key: "time",
 						Value: bson.D{
-							{Key: "$gt", Value: modifiedTime},
+							{Key: "$gt", Value: lowerTimeBound},
 						},
 					},
-				}).
-				SetName("UserIdTypeModifiedTime"),
+				}),
 		},
 		{
 			Keys: bson.D{
@@ -134,7 +128,7 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 	now := time.Now().UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
-	var insertData []mongo.WriteModel
+	insertData := make([]mongo.WriteModel, 0, len(dataSetData))
 
 	for _, datum := range dataSetData {
 		datum.SetUserID(dataSet.UserID)
@@ -598,47 +592,42 @@ func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, d
 	return true, nil
 }
 
-func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interface{}, userId string, typ string, startTime time.Time, endTime time.Time) error {
+func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
 	if ctx == nil {
-		return errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
 
 	if userId == "" {
-		return errors.New("userId is empty")
+		return nil, errors.New("userId is empty")
 	}
 
 	if typ == "" {
-		return errors.New("typ is empty")
+		return nil, errors.New("typ is empty")
 	}
 
 	// This is never expected to be an upload.
 	if isTypeUpload(typ) {
-		return fmt.Errorf("unexpected type: %v", upload.Type)
-	}
-
-	switch v := dataRecords.(type) {
-	case *[]*glucose.Glucose:
-		if typ != continuous.Type && typ != selfmonitored.Type {
-			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into glucose slice", typ)
-		}
-	case *[]*insulin.Insulin:
-		if typ != bolus.Type && typ != basal.Type {
-			return fmt.Errorf("invalid type and destination pointer pair, %s cannot be decoded into insulin slice", typ)
-		}
-	case *[]interface{}:
-		// we cant check the type match, but at least the structure should work
-	default:
-		return fmt.Errorf("provided dataRecords type %T cannot be decoded into", v)
+		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
 	// quit early if range is 0
-	if startTime.Equal(endTime) {
-		return nil
+	if status.FirstData.Equal(status.LastData) {
+		return nil, fmt.Errorf("FirstData (%s) equals LastData (%s) for user %s", status.FirstData, status.LastData, userId)
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
-	if startTime.After(endTime) {
-		return fmt.Errorf("startTime (%s) after endTime (%s) for user %s", startTime, endTime, userId)
+	if status.FirstData.After(status.LastData) {
+		return nil, fmt.Errorf("FirstData (%s) after LastData (%s) for user %s", status.FirstData, status.LastData, userId)
+	}
+
+	// quit early if range is 0
+	if status.LastUpdated.Equal(status.NextLastUpdated) {
+		return nil, fmt.Errorf("LastUpdated (%s) equals NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userId)
+	}
+
+	// return error if ranges are inverted, as this can produce unexpected results
+	if status.LastUpdated.After(status.NextLastUpdated) {
+		return nil, fmt.Errorf("LastUpdated (%s) after NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userId)
 	}
 
 	selector := bson.M{
@@ -646,31 +635,157 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, dataRecords interfac
 		"_userId": userId,
 		"type":    typ,
 		"time": bson.M{
-			"$gt":  startTime,
-			"$lte": endTime,
+			"$gt":  status.FirstData,
+			"$lte": status.LastData,
 		},
 	}
 
+	// we have everything we need to pull only modified records, but other areas are not ready for this yet
+	//selector["modifiedTime"]= bson.M{
+	//	"$gt":  status.LastUpdated,
+	//	"$lte": status.NextLastUpdated,
+	//}
+
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
+	opts.SetBatchSize(300)
 
 	cursor, err := d.Find(ctx, selector, opts)
 	if err != nil {
-		return fmt.Errorf("unable to get cgm data in date range for user: %w", err)
+		return nil, fmt.Errorf("unable to get %s data in date range for user: %w", typ, err)
 	}
 
-	if err = cursor.All(ctx, dataRecords); err != nil {
-		return fmt.Errorf("unable to decode data sets, %w", err)
+	return cursor, nil
+}
+
+func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+	timestamp := time.Now().UTC()
+	futureCutoff := timestamp.AddDate(0, 0, 1)
+	pastCutoff := timestamp.AddDate(-2, 0, 0)
+
+	// get latest active record
+	selector := bson.M{
+		"_active": true,
+		"_userId": userId,
+		"type":    typ,
+		"time": bson.M{
+			"$gte": pastCutoff,
+			"$lte": futureCutoff,
+		},
+	}
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
+	findOptions.SetLimit(1)
+
+	var cursor *mongo.Cursor
+	cursor, err = d.Find(ctx, selector, findOptions)
+	if err != nil {
+		return fmt.Errorf("unable to get last %s time: %w", typ, err)
+	}
+
+	var dataSet []*baseDatum.Base
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return fmt.Errorf("unable to decode last %s time: %w", typ, err)
+	}
+
+	// if we have a record
+	if len(dataSet) > 0 {
+		status.LastData = dataSet[0].Time.UTC()
+		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
 	}
 
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string) (*types.UserLastUpdated, error) {
-	var err error
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+	// get latest modified record
+	selector := bson.M{
+		"_userId": userId,
+		"_active": bson.M{"$ne": -1111},
+		"type":    typ,
+		"time": bson.M{
+			"$gte": status.FirstData,
+			"$lte": status.LastData,
+		},
+	}
+	findOptions := options.Find()
+	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+	findOptions.SetLimit(1)
+	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
+
 	var cursor *mongo.Cursor
-	var status = &types.UserLastUpdated{}
+	cursor, err = d.Find(ctx, selector, findOptions)
+	if err != nil {
+		return fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
+	}
+
 	var dataSet []*baseDatum.Base
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
+	}
+
+	// if we have a record
+	if len(dataSet) > 0 {
+		// handle data without modifiedTime, as older data may not have it
+		// this will only be triggered on fresh summaries of old data
+		if dataSet[0].ModifiedTime != nil {
+			status.LastUpload = dataSet[0].ModifiedTime.UTC()
+		} else {
+			status.LastUpload = dataSet[0].CreatedTime.UTC()
+		}
+	}
+
+	return nil
+}
+
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+	// get earliest modified record which is newer than LastUpdated
+	selector := bson.M{
+		"_active": bson.M{"$ne": -1111},
+		"_userId": userId,
+		"type":    typ,
+		"time": bson.M{
+			"$gte": status.FirstData,
+			"$lte": status.LastData,
+		},
+	}
+
+	findOptions := options.Find()
+	findOptions.SetLimit(1)
+	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+
+	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
+	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
+	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
+	if !status.LastUpdated.IsZero() {
+		selector["modifiedTime"] = bson.M{
+			"$gt": status.LastUpdated,
+		}
+		findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+	}
+
+	var cursor *mongo.Cursor
+	cursor, err = d.Find(ctx, selector, findOptions)
+	if err != nil {
+		return fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
+	}
+
+	var dataSet []*baseDatum.Base
+	if err = cursor.All(ctx, &dataSet); err != nil {
+		return fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
+	}
+
+	// if we have a record
+	if len(dataSet) > 0 {
+		status.EarliestModified = dataSet[0].Time.UTC()
+	}
+
+	return nil
+}
+
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+	var err error
 
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -689,42 +804,25 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
-	pastCutoff := time.Now().AddDate(-2, 0, 0).UTC()
-
-	selector := bson.M{
-		"_active": true,
-		"_userId": userId,
-		"type":    typ,
-		"time": bson.M{
-			"$lte": futureCutoff,
-			"$gte": pastCutoff,
-		},
+	status := &types.UserLastUpdated{
+		LastUpdated:     lastUpdated,
+		NextLastUpdated: time.Now().UTC(),
 	}
 
-	findOptions := options.Find()
-	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
-	findOptions.SetLimit(1)
-
-	cursor, err = d.Find(ctx, selector, findOptions)
+	err = d.getTimeRange(ctx, userId, typ, status)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get last %s date: %w", typ, err)
+		return nil, err
 	}
 
-	if err = cursor.All(ctx, &dataSet); err != nil {
-		return nil, fmt.Errorf("unable to decode last %s date: %w", typ, err)
+	err = d.populateLastUpload(ctx, userId, typ, status)
+	if err != nil {
+		return nil, err
 	}
 
-	// if we have no record
-	if len(dataSet) < 1 {
-		return status, nil
+	err = d.populateEarliestModified(ctx, userId, typ, status)
+	if err != nil {
+		return nil, err
 	}
-
-	status.LastUpload = *dataSet[0].CreatedTime
-	status.LastUpload = status.LastUpload.UTC()
-
-	status.LastData = *dataSet[0].Time
-	status.LastData = status.LastData.UTC()
 
 	return status, nil
 }

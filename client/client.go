@@ -79,17 +79,14 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 	}
 
 	for _, inspector := range inspectors {
-		if err = inspector.InspectResponse(res); err != nil {
-			drainAndClose(res.Body)
-			return nil, err
-		}
+		inspector.InspectResponse(res)
 	}
 
 	return c.handleResponse(ctx, res, req)
 }
 
 func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
-	headerInspector := request.NewHeadersInspector()
+	headerInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, append(inspectors, headerInspector), httpClient)
 	if err != nil {
 		return err

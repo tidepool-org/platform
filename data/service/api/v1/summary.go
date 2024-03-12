@@ -144,13 +144,13 @@ func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext da
 	}
 
 	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
-	userIDs, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
+	response, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
-	responder.Data(http.StatusOK, userIDs)
+	responder.Data(http.StatusOK, response)
 }
 
 func GetMigratableUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {

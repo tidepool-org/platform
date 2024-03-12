@@ -234,7 +234,7 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns error when http client source is missing", func() {
-				Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil)).To(MatchError("http client source is missing"))
+				Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, nil)).To(MatchError("http client source is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
@@ -246,7 +246,7 @@ var _ = Describe("Client", func() {
 				It("returns error when http client source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					httpClientSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)).To(Equal(responseErr))
+					Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)).To(Equal(responseErr))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
@@ -260,37 +260,37 @@ var _ = Describe("Client", func() {
 
 					It("returns error when context is missing", func() {
 						ctx = nil
-						Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)).To(MatchError("context is missing"))
+						Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)).To(MatchError("context is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error when method is missing", func() {
-						Expect(clnt.SendOAuthRequest(ctx, "", url, mutators, requestBody, responseBody, httpClientSource)).To(MatchError("method is missing"))
+						Expect(clnt.SendOAuthRequest(ctx, "", url, mutators, requestBody, responseBody, nil, httpClientSource)).To(MatchError("method is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error when url is missing", func() {
-						Expect(clnt.SendOAuthRequest(ctx, method, "", mutators, requestBody, responseBody, httpClientSource)).To(MatchError("url is missing"))
+						Expect(clnt.SendOAuthRequest(ctx, method, "", mutators, requestBody, responseBody, nil, httpClientSource)).To(MatchError("url is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error when the request object cannot be encoded", func() {
 						invalidRequestBody := struct{ Func interface{} }{func() {}}
-						Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, invalidRequestBody, responseBody, httpClientSource).Error()).To(MatchRegexp("unable to serialize request to .*; json: unsupported type: func()"))
+						Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, invalidRequestBody, responseBody, nil, httpClientSource).Error()).To(MatchRegexp("unable to serialize request to .*; json: unsupported type: func()"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error when mutator returns an error", func() {
 						errorMutator := request.NewHeaderMutator("", "")
 						invalidMutators := []request.RequestMutator{headerMutator, errorMutator, parameterMutator}
-						Expect(clnt.SendOAuthRequest(ctx, method, url, invalidMutators, requestBody, responseBody, httpClientSource).Error()).To(MatchRegexp("unable to mutate request to .*; key is missing"))
+						Expect(clnt.SendOAuthRequest(ctx, method, url, invalidMutators, requestBody, responseBody, nil, httpClientSource).Error()).To(MatchRegexp("unable to mutate request to .*; key is missing"))
 						Expect(server.ReceivedRequests()).To(BeEmpty())
 					})
 
 					It("returns error when the server is not reachable", func() {
 						server.Close()
 						server = nil
-						Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource).Error()).To(MatchRegexp("unable to perform request to .*: connect: connection refused"))
+						Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource).Error()).To(MatchRegexp("unable to perform request to .*: connect: connection refused"))
 					})
 
 					Context("with a successful response and no request body", func() {
@@ -307,7 +307,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, nil, responseBody, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, nil, responseBody, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 							Expect(responseBody).ToNot(BeNil())
 							Expect(responseBody.Response).To(Equal(responseString))
@@ -329,7 +329,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, request.ErrorBadRequest())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -353,7 +353,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -374,7 +374,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -395,7 +395,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -416,7 +416,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -440,7 +440,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -461,7 +461,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, request.ErrorTooManyRequests())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -482,7 +482,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -506,7 +506,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -527,7 +527,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)
+							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
 							errorsTest.ExpectEqual(err, request.ErrorJSONMalformed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
@@ -548,7 +548,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 							Expect(responseBody).ToNot(BeNil())
 							Expect(responseBody.Response).To(BeEmpty())
@@ -570,7 +570,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 							Expect(responseBody).ToNot(BeNil())
 							Expect(responseBody.Response).To(BeEmpty())
@@ -591,7 +591,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, nil, responseBody, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, nil, responseBody, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 							Expect(responseBody).ToNot(BeNil())
 							Expect(responseBody.Response).To(Equal(responseString))
@@ -612,7 +612,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, strings.NewReader(requestString), responseBody, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, strings.NewReader(requestString), responseBody, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 							Expect(responseBody).ToNot(BeNil())
 							Expect(responseBody.Response).To(Equal(responseString))
@@ -634,7 +634,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 							Expect(responseBody).ToNot(BeNil())
 							Expect(responseBody.Response).To(Equal(responseString))
@@ -656,7 +656,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success without parsing response body", func() {
-							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, nil, httpClientSource)).To(Succeed())
+							Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, nil, nil, httpClientSource)).To(Succeed())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})

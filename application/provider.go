@@ -88,8 +88,8 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 	}
 
 	name := filepath.Base(os.Args[0])
-	if strings.EqualFold(name, "debug") {
-		name = configReporter.WithScopes(name).GetWithDefault("name", name)
+	if strings.EqualFold(name, "debug") || strings.HasPrefix(name, "__debug_bin") {
+		name = configReporter.WithScopes("debug").GetWithDefault("name", name)
 	}
 
 	configReporter = configReporter.WithScopes(name).WithScopes(scopes...)

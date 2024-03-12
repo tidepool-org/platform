@@ -2,6 +2,7 @@ package errors
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -47,9 +48,12 @@ type (
 // A read-only map of valid http error codes.
 var errorCodeMap = make(map[ErrorCodeName]ErrorCode)
 
-// E registers a custom HTTP Error and returns its canonical name for future use.
+// Deprecated: Use Register instead.
+var E = Register
+
+// Register registers a custom HTTP Error and returns its canonical name for future use.
 // The method "New" is reserved and was kept as it is for compatibility
-// with the standard errors package, therefore the "E" name was chosen instead.
+// with the standard errors package, therefore the "Register" name was chosen instead.
 // The key stroke "e" is near and accessible while typing the "errors" word
 // so developers may find it easy to use.
 //
@@ -58,14 +62,14 @@ var errorCodeMap = make(map[ErrorCodeName]ErrorCode)
 // Example:
 //
 //		var (
-//	   NotFound = errors.E("NOT_FOUND", http.StatusNotFound)
+//	   		NotFound = errors.Register("NOT_FOUND", http.StatusNotFound)
 //		)
 //		...
 //		NotFound.Details(ctx, "resource not found", "user with id: %q was not found", userID)
 //
 // This method MUST be called on initialization, before HTTP server starts as
 // the internal map is not protected by mutex.
-func E(httpErrorCanonicalName string, httpStatusCode int) ErrorCodeName {
+func Register(httpErrorCanonicalName string, httpStatusCode int) ErrorCodeName {
 	canonicalName := ErrorCodeName(httpErrorCanonicalName)
 	RegisterErrorCode(canonicalName, httpStatusCode)
 	return canonicalName
@@ -98,23 +102,166 @@ func RegisterErrorCodeMap(errorMap map[ErrorCodeName]int) {
 
 // List of default error codes a server should follow and send back to the client.
 var (
-	Cancelled          ErrorCodeName = E("CANCELLED", context.StatusTokenRequired)
-	Unknown            ErrorCodeName = E("UNKNOWN", http.StatusInternalServerError)
-	InvalidArgument    ErrorCodeName = E("INVALID_ARGUMENT", http.StatusBadRequest)
-	DeadlineExceeded   ErrorCodeName = E("DEADLINE_EXCEEDED", http.StatusGatewayTimeout)
-	NotFound           ErrorCodeName = E("NOT_FOUND", http.StatusNotFound)
-	AlreadyExists      ErrorCodeName = E("ALREADY_EXISTS", http.StatusConflict)
-	PermissionDenied   ErrorCodeName = E("PERMISSION_DENIED", http.StatusForbidden)
-	Unauthenticated    ErrorCodeName = E("UNAUTHENTICATED", http.StatusUnauthorized)
-	ResourceExhausted  ErrorCodeName = E("RESOURCE_EXHAUSTED", http.StatusTooManyRequests)
-	FailedPrecondition ErrorCodeName = E("FAILED_PRECONDITION", http.StatusBadRequest)
-	Aborted            ErrorCodeName = E("ABORTED", http.StatusConflict)
-	OutOfRange         ErrorCodeName = E("OUT_OF_RANGE", http.StatusBadRequest)
-	Unimplemented      ErrorCodeName = E("UNIMPLEMENTED", http.StatusNotImplemented)
-	Internal           ErrorCodeName = E("INTERNAL", http.StatusInternalServerError)
-	Unavailable        ErrorCodeName = E("UNAVAILABLE", http.StatusServiceUnavailable)
-	DataLoss           ErrorCodeName = E("DATA_LOSS", http.StatusInternalServerError)
+	Cancelled          ErrorCodeName = Register("CANCELLED", context.StatusTokenRequired)
+	Unknown            ErrorCodeName = Register("UNKNOWN", http.StatusInternalServerError)
+	InvalidArgument    ErrorCodeName = Register("INVALID_ARGUMENT", http.StatusBadRequest)
+	DeadlineExceeded   ErrorCodeName = Register("DEADLINE_EXCEEDED", http.StatusGatewayTimeout)
+	NotFound           ErrorCodeName = Register("NOT_FOUND", http.StatusNotFound)
+	AlreadyExists      ErrorCodeName = Register("ALREADY_EXISTS", http.StatusConflict)
+	PermissionDenied   ErrorCodeName = Register("PERMISSION_DENIED", http.StatusForbidden)
+	Unauthenticated    ErrorCodeName = Register("UNAUTHENTICATED", http.StatusUnauthorized)
+	ResourceExhausted  ErrorCodeName = Register("RESOURCE_EXHAUSTED", http.StatusTooManyRequests)
+	FailedPrecondition ErrorCodeName = Register("FAILED_PRECONDITION", http.StatusBadRequest)
+	Aborted            ErrorCodeName = Register("ABORTED", http.StatusConflict)
+	OutOfRange         ErrorCodeName = Register("OUT_OF_RANGE", http.StatusBadRequest)
+	Unimplemented      ErrorCodeName = Register("UNIMPLEMENTED", http.StatusNotImplemented)
+	Internal           ErrorCodeName = Register("INTERNAL", http.StatusInternalServerError)
+	Unavailable        ErrorCodeName = Register("UNAVAILABLE", http.StatusServiceUnavailable)
+	DataLoss           ErrorCodeName = Register("DATA_LOSS", http.StatusInternalServerError)
 )
+
+// errorFuncCodeMap is a read-only map of error code names and their error functions.
+// See HandleError package-level function.
+var errorFuncCodeMap = make(map[ErrorCodeName][]func(error) error)
+
+// HandleError handles an error by sending it to the client
+// based on the registered error code names and their error functions.
+// Returns true if the error was handled, otherwise false.
+// If the given "err" is nil then it returns false.
+// If the given "err" is a type of validation error then it sends it to the client
+// using the "Validation" method.
+// If the given "err" is a type of client.APIError then it sends it to the client
+// using the "HandleAPIError" function.
+//
+// See ErrorCodeName.MapErrorFunc and MapErrors methods too.
+func HandleError(ctx *context.Context, err error) bool {
+	if err == nil {
+		return false
+	}
+
+	if ctx.IsStopped() {
+		return false
+	}
+
+	for errorCodeName, errorFuncs := range errorFuncCodeMap {
+		for _, errorFunc := range errorFuncs {
+			if errToSend := errorFunc(err); errToSend != nil {
+				errorCodeName.Err(ctx, errToSend)
+				return true
+			}
+		}
+	}
+
+	// Unwrap and collect the errors slice so the error result doesn't contain the ErrorCodeName type
+	// and fire the error status code and title based on this error code name itself.
+	var asErrCode ErrorCodeName
+	if As(err, &asErrCode) {
+		if unwrapJoined, ok := err.(joinedErrors); ok {
+			errs := unwrapJoined.Unwrap()
+			errsToKeep := make([]error, 0, len(errs)-1)
+			for _, src := range errs {
+				if _, isErrorCodeName := src.(ErrorCodeName); !isErrorCodeName {
+					errsToKeep = append(errsToKeep, src)
+				}
+			}
+
+			if len(errsToKeep) > 0 {
+				err = errors.Join(errsToKeep...)
+			}
+		}
+
+		asErrCode.Err(ctx, err)
+		return true
+	}
+
+	if handleJSONError(ctx, err) {
+		return true
+	}
+
+	if vErr, ok := err.(ValidationError); ok {
+		if vErr == nil {
+			return false // consider as not error for any case, this should never happen.
+		}
+
+		InvalidArgument.Validation(ctx, vErr)
+		return true
+	}
+
+	if vErrs, ok := err.(ValidationErrors); ok {
+		if len(vErrs) == 0 {
+			return false // consider as not error for any case, this should never happen.
+		}
+
+		InvalidArgument.Validation(ctx, vErrs...)
+		return true
+	}
+
+	if apiErr, ok := client.GetError(err); ok {
+		handleAPIError(ctx, apiErr)
+		return true
+	}
+
+	Internal.LogErr(ctx, err)
+	return true
+}
+
+// Error returns an empty string, it is only declared as a method of ErrorCodeName type in order
+// to be a compatible error to be joined within other errors:
+//
+//	err = fmt.Errorf("%w%w", errors.InvalidArgument, err) OR
+//	err = errors.InvalidArgument.Wrap(err)
+func (e ErrorCodeName) Error() string {
+	return ""
+}
+
+type joinedErrors interface{ Unwrap() []error }
+
+// Wrap wraps the given error with this ErrorCodeName.
+// It calls the standard errors.Join package-level function.
+// See HandleError function for more.
+func (e ErrorCodeName) Wrap(err error) error {
+	return errors.Join(e, err)
+}
+
+// MapErrorFunc registers a function which will validate the incoming error and
+// return the same error or overriden in order to be sent to the client, wrapped by this ErrorCodeName "e".
+//
+// This method MUST be called on initialization, before HTTP server starts as
+// the internal map is not protected by mutex.
+//
+// Example Code:
+//
+//	errors.InvalidArgument.MapErrorFunc(func(err error) error {
+//		stripeErr, ok := err.(*stripe.Error)
+//		if !ok {
+//			return nil
+//		}
+//
+//		return &errors.Error{
+//			Message: stripeErr.Msg,
+//			Details: stripeErr.DocURL,
+//		}
+//	})
+func (e ErrorCodeName) MapErrorFunc(fn func(error) error) {
+	errorFuncCodeMap[e] = append(errorFuncCodeMap[e], fn)
+}
+
+// MapError registers one or more errors which will be sent to the client wrapped by this "e" ErrorCodeName
+// when the incoming error matches to at least one of the given "targets" one.
+//
+// This method MUST be called on initialization, before HTTP server starts as
+// the internal map is not protected by mutex.
+func (e ErrorCodeName) MapErrors(targets ...error) {
+	e.MapErrorFunc(func(err error) error {
+		for _, target := range targets {
+			if Is(err, target) {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
 
 // Message sends an error with a simple message to the client.
 func (e ErrorCodeName) Message(ctx *context.Context, format string, args ...interface{}) {
@@ -153,9 +300,29 @@ func (e ErrorCodeName) Err(ctx *context.Context, err error) {
 		return
 	}
 
-	if validationErrors, ok := AsValidationErrors(err); ok {
-		e.validation(ctx, validationErrors)
-		return
+	if vErr, ok := err.(ValidationError); ok {
+		if vErr == nil {
+			return // consider as not error for any case, this should never happen.
+		}
+
+		e.Validation(ctx, vErr)
+	}
+
+	if vErrs, ok := err.(ValidationErrors); ok {
+		if len(vErrs) == 0 {
+			return // consider as not error for any case, this should never happen.
+		}
+
+		e.Validation(ctx, vErrs...)
+	}
+
+	// If it's already an Error type then send it directly.
+	if httpErr, ok := err.(*Error); ok {
+		if errorCode, ok := errorCodeMap[e]; ok {
+			httpErr.ErrorCode = errorCode
+			ctx.StopWithJSON(errorCode.Status, httpErr) // here we override the fail function and send the error as it is.
+			return
+		}
 	}
 
 	e.Message(ctx, err.Error())
@@ -210,18 +377,43 @@ func HandleAPIError(ctx *context.Context, err error) {
 	// Error expected and came from the external server,
 	// save its body so we can forward it to the end-client.
 	if apiErr, ok := client.GetError(err); ok {
-		statusCode := apiErr.Response.StatusCode
-		if statusCode >= 400 && statusCode < 500 {
-			InvalidArgument.DataWithDetails(ctx, "remote server error", "invalid client request", apiErr.Body)
-		} else {
-			Internal.Data(ctx, "remote server error", apiErr.Body)
-		}
-
-		// Unavailable.DataWithDetails(ctx, "remote server error", "unavailable", apiErr.Body)
+		handleAPIError(ctx, apiErr)
 		return
 	}
 
 	Internal.LogErr(ctx, err)
+}
+
+func handleAPIError(ctx *context.Context, apiErr client.APIError) {
+	// Error expected and came from the external server,
+	// save its body so we can forward it to the end-client.
+	statusCode := apiErr.Response.StatusCode
+	if statusCode >= 400 && statusCode < 500 {
+		InvalidArgument.DataWithDetails(ctx, "remote server error", "invalid client request", apiErr.Body)
+	} else {
+		Internal.Data(ctx, "remote server error", apiErr.Body)
+	}
+
+	// Unavailable.DataWithDetails(ctx, "remote server error", "unavailable", apiErr.Body)
+}
+
+func handleJSONError(ctx *context.Context, err error) bool {
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		InvalidArgument.Details(ctx, "unable to parse body", "syntax error at byte offset %d", syntaxErr.Offset)
+		return true
+	}
+
+	var unmarshalErr *json.UnmarshalTypeError
+	if errors.As(err, &unmarshalErr) {
+		InvalidArgument.Details(ctx, "unable to parse body", "unmarshal error for field %q", unmarshalErr.Field)
+		return true
+	}
+
+	return false
+	// else {
+	// 	InvalidArgument.Details(ctx, "unable to parse body", err.Error())
+	// }
 }
 
 var (
@@ -230,7 +422,7 @@ var (
 	// The server fails to send an error on two cases:
 	// 1. when the provided error code name is not registered (the error value is the ErrUnexpectedErrorCode)
 	// 2. when the error contains data but cannot be encoded to json (the value of the error is the result error of json.Marshal).
-	ErrUnexpected = E("UNEXPECTED_ERROR", http.StatusInternalServerError)
+	ErrUnexpected = Register("UNEXPECTED_ERROR", http.StatusInternalServerError)
 	// ErrUnexpectedErrorCode is the error which logged
 	// when the given error code name is not registered.
 	ErrUnexpectedErrorCode = New("unexpected error code name")

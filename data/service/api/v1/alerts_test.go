@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/service/test"
 )
 
 func permsNoFollow() map[string]map[string]permission.Permissions {
@@ -36,7 +37,7 @@ var _ = Describe("Alerts endpoints", func() {
 		}))
 		dCtx := mocks.NewContext(t, "", "", body)
 		dCtx.MockAlertsRepository = newMockRepo()
-		badDetails := mocks.NewAuthDetails(request.MethodSessionToken, "", "")
+		badDetails := test.NewMockAuthDetails(request.MethodSessionToken, "", "")
 		dCtx.WithAuthDetails(badDetails)
 
 		f(dCtx)
@@ -61,7 +62,7 @@ var _ = Describe("Alerts endpoints", func() {
 		Expect(rec.Code).To(Equal(http.StatusForbidden))
 	}
 
-	testTokenUserIDMustMatchPathParam := func(f func(dataservice.Context), details *mocks.AuthDetails) {
+	testTokenUserIDMustMatchPathParam := func(f func(dataservice.Context), details *test.MockAuthDetails) {
 		t := GinkgoT()
 		dCtx := mocks.NewContext(t, "", "", nil)
 		if details != nil {

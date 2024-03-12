@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/exp/constraints"
+
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 )
 
@@ -58,4 +60,15 @@ func CalculateRealMinutes(i int, lastRecordTime time.Time, lastRecordDuration in
 		return realMinutes
 	}
 	return potentialRealMinutes
+}
+
+type Number interface {
+	constraints.Float | constraints.Integer
+}
+
+func Abs[T Number](x T) T {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
