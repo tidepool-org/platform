@@ -313,18 +313,28 @@ func (m *Migration) fetchAndRevert() bool {
 				log.Printf("error decoding data: %s", err)
 				return false
 			}
-			rollbackCmds := item["_rollbackJellyfishMigration"].([]primitive.M)
+			cmds := []bson.M{}
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
+			if rollback, ok := item["_rollbackJellyfishMigration"].(primitive.A); ok {
+				log.Printf("_rollbackJellyfishMigration [%s] %#v", itemID, rollback)
+				for _, cmd := range rollback {
+					if cmd, ok := cmd.(bson.M); ok {
+						cmds = append(cmds, cmd)
+					}
+				}
+			}
+			if len(cmds) > 0 {
+				m.migrationUtil.SetUpdates(utils.UpdateData{
+					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
+					ItemID:   itemID,
+					UserID:   userID,
+					ItemType: itemType,
+					Apply:    cmds,
+				}, true)
+			}
 
-			m.migrationUtil.SetUpdates(utils.UpdateData{
-				Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
-				ItemID:   itemID,
-				UserID:   userID,
-				ItemType: itemType,
-				Apply:    rollbackCmds,
-			}, true)
 			m.migrationUtil.SetLastProcessed(itemID)
 		}
 		m.migrationUtil.SetFetched(all)
