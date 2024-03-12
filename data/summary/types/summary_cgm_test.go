@@ -140,7 +140,7 @@ var _ = Describe("CGM Summary", func() {
 	})
 
 	Context("Summary calculations requiring datasets", func() {
-		var userCGMSummary *types.Summary[types.CGMStats, *types.CGMStats]
+		var userCGMSummary *types.Summary[*types.CGMStats, types.CGMStats]
 		var periodKeys = []string{"1d", "7d", "14d", "30d"}
 		var periodInts = []int{1, 7, 14, 30}
 		var continuousUploads = map[string]bool{}
@@ -512,7 +512,7 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Returns correct Realtime and Deferred record stats with realtime data", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
-				realtimeDatumTime := time.Now().UTC()
+				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
 				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, realtimeDatumTime, 10, true)
 
 				// flag upload as continuous
@@ -533,7 +533,7 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				// by default non-realtime datums will be made with time.now createdTime, so we generate 2 day old data
-				deferredDatumTime := time.Now().UTC().AddDate(0, 0, -2)
+				deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
 				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, deferredDatumTime, 10, false)
 
 				// flag upload as continuous
@@ -550,9 +550,40 @@ var _ = Describe("CGM Summary", func() {
 				}
 			})
 
-			// todo test false continuousUploads
-			// todo missing continuousUploads
+			It("Returns correct Realtime and Deferred record stats with false continuous flagged data", func() {
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, realtimeDatumTime, 10, true)
 
+				// flag upload as not continuous
+				continuousUploads[*dataSetCGMData[0].UploadID] = false
+
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+
+				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
+					Expect(userCGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
+				}
+			})
+
+			It("Returns correct Realtime and Deferred record stats with non flagged data", func() {
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, realtimeDatumTime, 10, true)
+
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
+
+				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
+					Expect(userCGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
+				}
+			})
 		})
 
 		Context("CalculateDelta", func() {

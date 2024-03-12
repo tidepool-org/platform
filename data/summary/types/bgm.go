@@ -237,9 +237,10 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time, continuous bool) (bo
 	B.TotalGlucose += normalizedValue
 
 	if continuous {
-		B.DeferredRecords++
 		if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
 			B.RealtimeRecords++
+		} else {
+			B.DeferredRecords++
 		}
 	}
 

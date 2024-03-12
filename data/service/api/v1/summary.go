@@ -76,7 +76,7 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 		return
 	}
 
-	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -202,7 +202,7 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 		return
 	}
 
-	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -225,7 +225,7 @@ func BackfillSummaries[T types.Stats, A types.StatsPt[T]](dataServiceContext dat
 		return
 	}
 
-	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
 	status, err := summarizer.BackfillSummaries(ctx)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -253,7 +253,7 @@ func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext da
 		return
 	}
 
-	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
 	response, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -281,7 +281,7 @@ func GetMigratableUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext 
 		return
 	}
 
-	summarizer := summary.GetSummarizer[T, A](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
 	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)

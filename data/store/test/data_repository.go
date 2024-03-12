@@ -192,19 +192,6 @@ type DistinctUserIDsOutput struct {
 	Error   error
 }
 
-type CheckDataSetContainsTypeInRangeInput struct {
-	Context   context.Context
-	DataSetID string
-	Typ       string
-	StartTime time.Time
-	EndTime   time.Time
-}
-
-type CheckDataSetContainsTypeInRangeOutput struct {
-	Status bool
-	Error  error
-}
-
 type DataRepository struct {
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
@@ -277,10 +264,6 @@ type DataRepository struct {
 	DistinctUserIDsInvocations int
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
-
-	CheckDataSetContainsTypeInRangeInvocations int
-	CheckDataSetContainsTypeInRangeInputs      []CheckDataSetContainsTypeInRangeInput
-	CheckDataSetContainsTypeInRangeOutputs     []CheckDataSetContainsTypeInRangeOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -556,18 +539,6 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	output := d.DistinctUserIDsOutputs[0]
 	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
-}
-
-func (d *DataRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
-	d.CheckDataSetContainsTypeInRangeInvocations++
-
-	d.CheckDataSetContainsTypeInRangeInputs = append(d.CheckDataSetContainsTypeInRangeInputs, CheckDataSetContainsTypeInRangeInput{Context: ctx, Typ: typ, DataSetID: dataSetId, StartTime: startTime, EndTime: endTime})
-
-	gomega.Expect(d.CheckDataSetContainsTypeInRangeOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.CheckDataSetContainsTypeInRangeOutputs[0]
-	d.CheckDataSetContainsTypeInRangeOutputs = d.CheckDataSetContainsTypeInRangeOutputs[1:]
-	return output.Status, output.Error
 }
 
 func (d *DataRepository) Expectations() {

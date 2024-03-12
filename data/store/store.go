@@ -65,8 +65,6 @@ type DatumRepository interface {
 	GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
-
-	CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error)
 }
 
 // DataRepository is the combined interface of DataSetRepository and

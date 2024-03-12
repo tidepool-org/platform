@@ -181,7 +181,7 @@ type StatsPt[T Stats] interface {
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
 }
 
-type Summary[T Stats, A StatsPt[T]] struct {
+type Summary[A StatsPt[T], T Stats] struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	Type   string             `json:"type" bson:"type"`
 	UserID string             `json:"userId" bson:"userId"`
@@ -202,7 +202,7 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[T, A]) SetOutdated(reason string) {
+func (s *Summary[A, T]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
 		set.Append(s.Dates.OutdatedReason...)
@@ -218,6 +218,12 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Truncate(time.Millisecond).UTC())
 		s.Dates.HasOutdatedSince = true
 	}
+}
+
+func (s *Summary[A, T]) SetNotOutdated() {
+	s.Dates.OutdatedReason = nil
+	s.Dates.OutdatedSince = nil
+	s.Dates.HasOutdatedSince = false
 }
 
 func NewDates() Dates {
@@ -240,8 +246,8 @@ func NewDates() Dates {
 	}
 }
 
-func Create[A StatsPt[T], T Stats](userId string) *Summary[T, A] {
-	s := new(Summary[T, A])
+func Create[A StatsPt[T], T Stats](userId string) *Summary[A, T] {
+	s := new(Summary[A, T])
 	s.UserID = userId
 	s.Stats = new(T)
 	s.Stats.Init()
@@ -252,13 +258,13 @@ func Create[A StatsPt[T], T Stats](userId string) *Summary[T, A] {
 	return s
 }
 
-func GetTypeString[T Stats, A StatsPt[T]]() string {
-	s := new(Summary[T, A])
+func GetTypeString[A StatsPt[T], T Stats]() string {
+	s := new(Summary[A, T])
 	return s.Stats.GetType()
 }
 
-func GetDeviceDataTypeString[T Stats, A StatsPt[T]]() string {
-	s := new(Summary[T, A])
+func GetDeviceDataTypeString[A StatsPt[T], T Stats]() string {
+	s := new(Summary[A, T])
 	return s.Stats.GetDeviceDataType()
 }
 
@@ -266,7 +272,7 @@ type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T BucketData, A BucketDataPt[T]](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
+func AddBin[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
 	if len(*buckets) == 0 {
 		*buckets = append(*buckets, newBucket)
 		return nil

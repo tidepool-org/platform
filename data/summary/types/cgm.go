@@ -307,9 +307,10 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time, continu
 		B.LastRecordDuration = duration
 
 		if continuous {
-			B.DeferredRecords++
 			if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
 				B.RealtimeRecords++
+			} else {
+				B.DeferredRecords++
 			}
 		}
 

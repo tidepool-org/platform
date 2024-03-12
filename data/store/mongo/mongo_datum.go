@@ -548,6 +548,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
+<<<<<<< HEAD
 func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
@@ -593,6 +594,9 @@ func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, d
 }
 
 func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
+=======
+func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
+>>>>>>> 7f6039c3 (add realtime and deferred record unit tests, fix related bugs, more generics arg consistency, remove conditional summary create during dataset close)
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -806,7 +810,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 
 	status := &types.UserLastUpdated{
 		LastUpdated:     lastUpdated,
-		NextLastUpdated: time.Now().UTC(),
+		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}
 
 	err = d.getTimeRange(ctx, userId, typ, status)

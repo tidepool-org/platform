@@ -54,19 +54,19 @@ func (c *Client) DestroyDataForUserByID(ctx context.Context, userID string) erro
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
+func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
+func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[types.CGMStats, *types.CGMStats], error) {
+func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[types.BGMStats, *types.BGMStats], error) {
+func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
 	panic("Not Implemented!")
 }
 

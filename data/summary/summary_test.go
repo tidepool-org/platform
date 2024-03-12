@@ -2,9 +2,11 @@ package summary_test
 
 import (
 	"context"
+	"time"
+
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
-	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -38,33 +40,63 @@ import (
 
 const units = "mmol/L"
 
-func NewDataSet(userID string, deviceID string) *upload.Upload {
+func NewDataSet(userID string, typ string) *upload.Upload {
+	var deviceId = "SummaryTestDevice"
+	var timestamp = time.Now().UTC().Truncate(time.Millisecond)
+
 	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet.DataSetType = &typ
 	dataSet.Active = true
 	dataSet.ArchivedDataSetID = nil
 	dataSet.ArchivedTime = nil
-	dataSet.CreatedTime = nil
+	dataSet.CreatedTime = &timestamp
 	dataSet.CreatedUserID = nil
 	dataSet.DeletedTime = nil
 	dataSet.DeletedUserID = nil
-	dataSet.DeviceID = pointer.FromAny(deviceID)
+	dataSet.DeviceID = &deviceId
 	dataSet.Location.GPS.Origin.Time = nil
-	dataSet.ModifiedTime = nil
+	dataSet.ModifiedTime = &timestamp
 	dataSet.ModifiedUserID = nil
 	dataSet.Origin.Time = nil
-	dataSet.UserID = pointer.FromAny(userID)
+	dataSet.UserID = &userID
 	return dataSet
 }
 
-func NewDataSetData(typ string, deviceId string, userId string, startTime time.Time, hours float64, glucoseValue float64) []mongo.WriteModel {
+func NewDataSetData(typ string, userId string, startTime time.Time, hours float64, glucoseValue float64) []mongo.WriteModel {
 	requiredRecords := int(hours * 1)
 	var dataSetData = make([]mongo.WriteModel, requiredRecords)
+	var deviceId = "SummaryTestDevice"
 
 	for count := 0; count < requiredRecords; count++ {
 		datumTime := startTime.Add(time.Duration(-(count + 1)) * time.Minute * 60)
 		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, glucoseValue)
 		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
 	}
+	return dataSetData
+}
+
+func NewDataSetDataRealtime(typ string, userId string, uploadId string, startTime time.Time, hours float64, realtime bool) []mongo.WriteModel {
+	requiredRecords := int(hours * 2)
+
+	var dataSetData = make([]mongo.WriteModel, requiredRecords)
+	var glucoseValue = 5.0
+	var deviceId = "SummaryTestDevice"
+
+	// generate X hours of data
+	for count := 0; count < requiredRecords; count += 1 {
+		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
+
+		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, glucoseValue)
+		datum.Value = pointer.FromFloat64(glucoseValue)
+
+		if realtime {
+			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+			datum.ModifiedTime = pointer.FromAny(datumTime.Add(10 * time.Minute))
+		}
+
+		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
+	}
+
 	return dataSetData
 }
 
@@ -125,8 +157,8 @@ var _ = Describe("Summary", func() {
 		var summaryRepository *storeStructuredMongo.Repository
 		var dataStore dataStore.DataRepository
 		var userId string
-		var cgmStore *dataStoreSummary.Repo[types.CGMStats, *types.CGMStats]
-		var bgmStore *dataStoreSummary.Repo[types.BGMStats, *types.BGMStats]
+		var cgmStore *dataStoreSummary.Repo[*types.CGMStats, types.CGMStats]
+		var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
 
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
@@ -142,8 +174,8 @@ var _ = Describe("Summary", func() {
 			registry = summary.New(summaryRepository, dataStore)
 			userId = userTest.RandomID()
 
-			cgmStore = dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
-			bgmStore = dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
+			cgmStore = dataStoreSummary.New[*types.CGMStats](summaryRepository)
+			bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
 		})
 
 		AfterEach(func() {
@@ -290,11 +322,10 @@ var _ = Describe("Summary", func() {
 		var dataStore dataStore.DataRepository
 		var userId string
 		//var cgmStore *dataStoreSummary.Repo[types.CGMStats, *types.CGMStats]
-		var bgmStore *dataStoreSummary.Repo[types.BGMStats, *types.BGMStats]
-		var cgmSummarizer summary.Summarizer[types.CGMStats, *types.CGMStats]
-		var bgmSummarizer summary.Summarizer[types.BGMStats, *types.BGMStats]
+		var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
+		var cgmSummarizer summary.Summarizer[*types.CGMStats, types.CGMStats]
+		var bgmSummarizer summary.Summarizer[*types.BGMStats, types.BGMStats]
 		var dataCollection *mongo.Collection
-		var deviceId string
 		var datumTime time.Time
 
 		BeforeEach(func() {
@@ -311,23 +342,22 @@ var _ = Describe("Summary", func() {
 			dataStore = store.NewDataRepository()
 			registry = summary.New(summaryRepository, dataStore)
 			userId = userTest.RandomID()
-			deviceId = "SummaryTestDevice"
 
 			//cgmStore = dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
-			bgmStore = dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
+			bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
 
-			cgmSummarizer = summary.GetSummarizer[types.CGMStats, *types.CGMStats](registry)
-			bgmSummarizer = summary.GetSummarizer[types.BGMStats, *types.BGMStats](registry)
+			cgmSummarizer = summary.GetSummarizer[*types.CGMStats](registry)
+			bgmSummarizer = summary.GetSummarizer[*types.BGMStats](registry)
 
 			datumTime = time.Now().UTC().Truncate(time.Hour)
 		})
 
 		It("repeat out of order cgm summary calc", func() {
-			var userSummary *types.Summary[types.CGMStats, *types.CGMStats]
+			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
 			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
-			deviceData = NewDataSetData("cbg", deviceId, userId, datumTime, 5, 5)
+			deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -337,7 +367,7 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 
-			deviceData = NewDataSetData("cbg", deviceId, userId, datumTime.Add(5*time.Hour), 5, 10)
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(5*time.Hour), 5, 10)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -347,7 +377,7 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(10))
 
-			deviceData = NewDataSetData("cbg", deviceId, userId, datumTime.Add(15*time.Hour), 5, 2)
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(15*time.Hour), 5, 2)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -357,11 +387,11 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(20))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(15))
 
-			deviceData = NewDataSetData("cbg", deviceId, userId, datumTime.Add(20*time.Hour), 5, 7)
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(20*time.Hour), 5, 7)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
-			deviceData = NewDataSetData("cbg", deviceId, userId, datumTime.Add(23*time.Hour), 2, 7)
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(23*time.Hour), 2, 7)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -373,11 +403,11 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("repeat out of order bgm summary calc", func() {
-			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
 			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime, 5, 5)
+			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -387,7 +417,7 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime.Add(5*time.Hour), 5, 10)
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(5*time.Hour), 5, 10)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -397,7 +427,7 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(10))
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime.Add(15*time.Hour), 5, 2)
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(15*time.Hour), 5, 2)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -407,11 +437,11 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(20))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(15))
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime.Add(20*time.Hour), 5, 7)
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(20*time.Hour), 5, 7)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime.Add(23*time.Hour), 2, 7)
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(23*time.Hour), 2, 7)
 			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -422,37 +452,12 @@ var _ = Describe("Summary", func() {
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(22))
 		})
 
-		It("repeat summary calc without new data", func() {
-			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
-			var deviceData []mongo.WriteModel
-			opts := options.BulkWrite().SetOrdered(false)
-
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime, 5, 5)
-			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
-			Expect(err).ToNot(HaveOccurred())
-
-			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userSummary).ToNot(BeNil())
-			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
-			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
-
-			_, err = bgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonDataAdded)
-			Expect(err).ToNot(HaveOccurred())
-
-			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userSummary).ToNot(BeNil())
-			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
-			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
-		})
-
 		It("summary calc with very old data", func() {
-			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
 			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime.AddDate(-3, 0, 0), 5, 5)
+			deviceData = NewDataSetData("smbg", userId, datumTime.AddDate(-3, 0, 0), 5, 5)
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -462,18 +467,18 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("summary calc with jellyfish created summary", func() {
-			var userSummary *types.Summary[types.BGMStats, *types.BGMStats]
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
 			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
-			deviceData = NewDataSetData("smbg", deviceId, userId, datumTime, 5, 5)
+			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
-			summaries := make([]*types.Summary[types.BGMStats, *types.BGMStats], 1)
+			summaries := make([]*types.Summary[*types.BGMStats, types.BGMStats], 1)
 
 			// we don't use types.Create as we want to create a sparse jellyfish style upsert
-			summaries[0] = &types.Summary[types.BGMStats, *types.BGMStats]{
+			summaries[0] = &types.Summary[*types.BGMStats, types.BGMStats]{
 				Type:   types.SummaryTypeBGM,
 				UserID: userId,
 				Dates: types.Dates{
@@ -493,6 +498,154 @@ var _ = Describe("Summary", func() {
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
 			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 			Expect(userSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", types.OutdatedReasonSchemaMigration))
+		})
+
+		It("summary calc with no data correctly deletes summaries", func() {
+			var cgmSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			var bgmSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var t *time.Time
+
+			// create bgm summary
+			t, err = bgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+			Expect(err).ToNot(HaveOccurred())
+
+			// check that it exists in the db
+			bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+			Expect(bgmSummary.Dates.OutdatedSince).To(Equal(t))
+
+			// create cgm summary
+			t, err = cgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+			Expect(err).ToNot(HaveOccurred())
+			// check that it exists in the db
+			cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cgmSummary).ToNot(BeNil())
+			Expect(cgmSummary.Dates.OutdatedSince).To(Equal(t))
+
+			// update bgm summary, which should delete it
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).To(BeNil())
+
+			// confirm its truly gone
+			bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).To(BeNil())
+
+			// update cgm summary, which should delete it
+			cgmSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cgmSummary).To(BeNil())
+
+			// confirm its truly gone
+			cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cgmSummary).To(BeNil())
+		})
+
+		It("summary calc with no new data correctly leaves summary unchanged", func() {
+			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			var userSummaryNew *types.Summary[*types.CGMStats, types.CGMStats]
+			var deviceData []mongo.WriteModel
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			// update once for real
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Stats.TotalHours).To(Equal(5))
+
+			_, err = cgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummaryNew, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummaryNew).ToNot(BeNil())
+
+			// ensure unchanged
+			userSummaryNew.ID = userSummary.ID
+			Expect(userSummaryNew).To(BeComparableTo(userSummary))
+		})
+
+		It("summary calc with realtime data", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var deviceData []mongo.WriteModel
+			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+
+			for i := 0; i < len(userSummary.Stats.Buckets); i++ {
+				Expect(userSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(2))
+				Expect(userSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
+			}
+		})
+
+		It("summary calc with deferred data", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var deviceData []mongo.WriteModel
+			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, deferredDatumTime, 10, false)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+
+			for i := 0; i < len(userSummary.Stats.Buckets); i++ {
+				Expect(userSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
+				Expect(userSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(2))
+			}
+		})
+
+		It("summary calc with non-continuous data", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var deviceData []mongo.WriteModel
+			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeNormal)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, deferredDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+
+			for i := 0; i < len(userSummary.Stats.Buckets); i++ {
+				Expect(userSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
+				Expect(userSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
+			}
 		})
 	})
 })

@@ -51,7 +51,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			cgmStore := dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
+			cgmStore := dataStoreSummary.New[*types.CGMStats](summaryRepository)
 			Expect(cgmStore).ToNot(BeNil())
 		})
 
@@ -63,7 +63,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			bgmStore := dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
+			bgmStore := dataStoreSummary.New[*types.BGMStats](summaryRepository)
 			Expect(bgmStore).ToNot(BeNil())
 		})
 
@@ -112,20 +112,20 @@ var _ = Describe("Summary Stats Mongo", func() {
 			Context("With typed Stores", func() {
 				var userId string
 				var userIdOther string
-				var cgmStore *dataStoreSummary.Repo[types.CGMStats, *types.CGMStats]
-				var bgmStore *dataStoreSummary.Repo[types.BGMStats, *types.BGMStats]
+				var cgmStore *dataStoreSummary.Repo[*types.CGMStats, types.CGMStats]
+				var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
 				var typelessStore *dataStoreSummary.TypelessRepo
 
-				var userCGMSummary *types.Summary[types.CGMStats, *types.CGMStats]
-				var userBGMSummary *types.Summary[types.BGMStats, *types.BGMStats]
+				var userCGMSummary *types.Summary[*types.CGMStats, types.CGMStats]
+				var userBGMSummary *types.Summary[*types.BGMStats, types.BGMStats]
 
 				BeforeEach(func() {
 					ctx = log.NewContextWithLogger(context.Background(), logger)
 					userId = userTest.RandomID()
 					userIdOther = userTest.RandomID()
 
-					cgmStore = dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
-					bgmStore = dataStoreSummary.New[types.BGMStats, *types.BGMStats](summaryRepository)
+					cgmStore = dataStoreSummary.New[*types.CGMStats](summaryRepository)
+					bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
 					typelessStore = dataStoreSummary.NewTypeless(summaryRepository)
 				})
 
@@ -222,9 +222,9 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Update CGM Summary", func() {
-						var userCGMSummaryTwo *types.Summary[types.CGMStats, *types.CGMStats]
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
-						var userCGMSummaryWrittenTwo *types.Summary[types.CGMStats, *types.CGMStats]
+						var userCGMSummaryTwo *types.Summary[*types.CGMStats, types.CGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
+						var userCGMSummaryWrittenTwo *types.Summary[*types.CGMStats, types.CGMStats]
 
 						// generate and insert first summary
 						userCGMSummary = test.RandomCGMSummary(userId)
@@ -258,9 +258,9 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Update BGM Summary", func() {
-						var userBGMSummaryTwo *types.Summary[types.BGMStats, *types.BGMStats]
-						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
-						var userBGMSummaryWrittenTwo *types.Summary[types.BGMStats, *types.BGMStats]
+						var userBGMSummaryTwo *types.Summary[*types.BGMStats, types.BGMStats]
+						var userBGMSummaryWritten *types.Summary[*types.BGMStats, types.BGMStats]
+						var userBGMSummaryWrittenTwo *types.Summary[*types.BGMStats, types.BGMStats]
 
 						// generate and insert first summary
 						userBGMSummary = test.RandomBGMSummary(userId)
@@ -309,7 +309,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Delete CGM Summary", func() {
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
 
 						userCGMSummary = test.RandomCGMSummary(userId)
 						Expect(userCGMSummary.Type).To(Equal("cgm"))
@@ -333,7 +333,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Delete BGM Summary", func() {
-						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						var userBGMSummaryWritten *types.Summary[*types.BGMStats, types.BGMStats]
 
 						userBGMSummary = test.RandomBGMSummary(userId)
 						Expect(userBGMSummary.Type).To(Equal("bgm"))
@@ -357,8 +357,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Delete All Summaries for User", func() {
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
-						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
+						var userBGMSummaryWritten *types.Summary[*types.BGMStats, types.BGMStats]
 
 						userCGMSummary = test.RandomCGMSummary(userId)
 						Expect(userCGMSummary.Type).To(Equal("cgm"))
@@ -400,7 +400,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 				Context("CreateSummaries", func() {
 
 					It("Create summaries with missing context", func() {
-						var summaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var summaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
@@ -417,7 +417,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Create CGM summaries with an invalid type", func() {
-						var summaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var summaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
@@ -430,7 +430,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Create BGM summaries with an invalid type", func() {
-						var summaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var summaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 						}
@@ -443,7 +443,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Create summaries with an empty userId", func() {
-						var summaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var summaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
@@ -457,7 +457,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("Create CGM summaries", func() {
 						var count int
-						var summaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var summaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
@@ -477,7 +477,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("Create BGM summaries", func() {
 						var count int
-						var summaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var summaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 						}
@@ -558,7 +558,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing non-outdated CGM summary", func() {
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
 
 						userCGMSummary = test.RandomCGMSummary(userId)
 						userCGMSummary.Dates.OutdatedSince = nil
@@ -577,7 +577,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing outdated CGM summary", func() {
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
 						var fiveMinutesAgo = time.Now().Add(time.Duration(-5) * time.Minute).UTC().Truncate(time.Millisecond)
 
 						userCGMSummary = test.RandomCGMSummary(userId)
@@ -596,7 +596,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing outdated CGM summary beyond the outdatedSinceLimit", func() {
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
 						now := time.Now().UTC().Truncate(time.Millisecond)
 
 						userCGMSummary = test.RandomCGMSummary(userId)
@@ -614,7 +614,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing outdated CGM summary with schema migration reason", func() {
-						var userCGMSummaryWritten *types.Summary[types.CGMStats, *types.CGMStats]
+						var userCGMSummaryWritten *types.Summary[*types.CGMStats, types.CGMStats]
 						now := time.Now().UTC().Truncate(time.Millisecond)
 						fiveMinutesAgo := now.Add(time.Duration(-5) * time.Minute)
 
@@ -656,7 +656,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing non-outdated BGM summary", func() {
-						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						var userBGMSummaryWritten *types.Summary[*types.BGMStats, types.BGMStats]
 
 						userBGMSummary = test.RandomBGMSummary(userId)
 						userBGMSummary.Dates.OutdatedSince = nil
@@ -675,7 +675,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing outdated BGM summary", func() {
-						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						var userBGMSummaryWritten *types.Summary[*types.BGMStats, types.BGMStats]
 						var fiveMinutesAgo = time.Now().Add(time.Duration(-5) * time.Minute).UTC().Truncate(time.Millisecond)
 
 						userBGMSummary = test.RandomBGMSummary(userId)
@@ -695,7 +695,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With an existing outdated BGM summary with schema migration reason", func() {
-						var userBGMSummaryWritten *types.Summary[types.BGMStats, *types.BGMStats]
+						var userBGMSummaryWritten *types.Summary[*types.BGMStats, types.BGMStats]
 						now := time.Now().UTC().Truncate(time.Millisecond)
 						fiveMinutesAgo := now.Add(time.Duration(-5) * time.Minute)
 
@@ -750,7 +750,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With multiple CGM summaries", func() {
-						var summaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var summaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
@@ -767,7 +767,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With multiple BGM summaries", func() {
-						var summaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var summaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 						}
@@ -784,12 +784,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Get CGM with multiple summaries of different type", func() {
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
 
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 						}
@@ -809,12 +809,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("Get BGM with multiple summaries of different type", func() {
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
 
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 						}
@@ -852,7 +852,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With CGM summaries", func() {
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
@@ -867,7 +867,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					})
 
 					It("With BGM summaries", func() {
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 						}
@@ -884,12 +884,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 					It("Get CGM with summaries of both types", func() {
 						userIdTwo := userTest.RandomID()
 						userIdThree := userTest.RandomID()
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
 
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userIdTwo),
 							test.RandomBGMSummary(userIdThree),
 						}
@@ -908,12 +908,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 					It("Get BGM with summaries of both types", func() {
 						userIdTwo := userTest.RandomID()
 						userIdThree := userTest.RandomID()
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
 
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userIdTwo),
 							test.RandomBGMSummary(userIdThree),
 						}
@@ -957,7 +957,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("With outdated CGM summaries", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 							test.RandomCGMSummary(userIdTwo),
@@ -977,7 +977,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("With outdated BGM summaries", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userId),
 							test.RandomBGMSummary(userIdOther),
 							test.RandomBGMSummary(userIdTwo),
@@ -997,12 +997,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("Get outdated CGM summaries with both types present", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
 
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userIdTwo),
 							test.RandomBGMSummary(userIdThree),
 						}
@@ -1025,12 +1025,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("Get outdated BGM summaries with both types present", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 						}
 
-						var bgmSummaries = []*types.Summary[types.BGMStats, *types.BGMStats]{
+						var bgmSummaries = []*types.Summary[*types.BGMStats, types.BGMStats]{
 							test.RandomBGMSummary(userIdTwo),
 							test.RandomBGMSummary(userIdThree),
 						}
@@ -1054,7 +1054,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 					It("With a specific pagination size", func() {
 						var pagination = page.NewPagination()
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 							test.RandomCGMSummary(userIdTwo),
@@ -1077,7 +1077,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 					It("Check sort order", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[types.CGMStats, *types.CGMStats]{
+						var cgmSummaries = []*types.Summary[*types.CGMStats, types.CGMStats]{
 							test.RandomCGMSummary(userId),
 							test.RandomCGMSummary(userIdOther),
 							test.RandomCGMSummary(userIdTwo),

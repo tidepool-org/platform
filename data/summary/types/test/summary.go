@@ -6,8 +6,8 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMStats] {
-	datum := types.Summary[types.CGMStats, *types.CGMStats]{
+func RandomCGMSummary(userId string) *types.Summary[*types.CGMStats, types.CGMStats] {
+	datum := types.Summary[*types.CGMStats, types.CGMStats]{
 		UserID: userId,
 		Type:   "cgm",
 		Config: types.Config{
@@ -246,8 +246,8 @@ func RandomCGMSummary(userId string) *types.Summary[types.CGMStats, *types.CGMSt
 	return &datum
 }
 
-func RandomBGMSummary(userId string) *types.Summary[types.BGMStats, *types.BGMStats] {
-	datum := types.Summary[types.BGMStats, *types.BGMStats]{
+func RandomBGMSummary(userId string) *types.Summary[*types.BGMStats, types.BGMStats] {
+	datum := types.Summary[*types.BGMStats, types.BGMStats]{
 		UserID: userId,
 		Type:   "bgm",
 		Config: types.Config{
