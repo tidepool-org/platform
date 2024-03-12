@@ -69,8 +69,7 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
-		//TODO: just capping while doing test runs, but probably good to have as a general ability
-		cap := m.config.cap // while testing
+		cap := m.config.cap
 		m.migrationUtil, err = utils.NewMigrationUtil(
 			utils.NewMigrationUtilConfig(&m.config.dryRun, &m.config.stopOnErr, &m.config.revertChanges, &m.config.nopPercent, &cap),
 			m.client,
@@ -160,8 +159,8 @@ func (m *Migration) Initialize() error {
 			Usage:       "id of last datum updated",
 			Destination: &m.config.lastUpdatedId,
 			Required:    false,
-			//id of last datum updated read and written to file `lastUpdatedId`
-			FilePath: "./lastUpdatedId",
+			//id of last datum updated read and written to file `lastProcessedId`
+			FilePath: "./lastProcessedId",
 		},
 		cli.StringFlag{
 			Name:        "user-id",
@@ -317,18 +316,14 @@ func (m *Migration) fetchAndRevert() bool {
 				return false
 			}
 
-			revertCommands := item["_rollbackJellyfishMigration"].(primitive.M)
+			rollbackCmds := item["_rollbackJellyfishMigration"].(primitive.A)
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
-
-			if setCmd := revertCommands["$set"]; setCmd != nil {
-				log.Printf("# TODO %s %s $set  %v", itemID, userID, setCmd)
+			for _, cmd := range rollbackCmds {
+				log.Printf("# TODO %s %s apply command  %v", itemID, userID, cmd)
 			}
-
-			if unsetCmd := revertCommands["$unset"]; unsetCmd != nil {
-				log.Printf("# TODO %s %s $unset  %v", itemID, userID, unsetCmd)
-			}
-
+			log.Printf("# TODO delete %s _rollbackJellyfishMigration now reverts applied", itemID)
+			m.migrationUtil.SetLastProcessed(itemID)
 		}
 		m.migrationUtil.SetFetched(all)
 		return len(all) > 0

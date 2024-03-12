@@ -378,14 +378,9 @@ func (m *migrationUtil) getAdminDB() *mongo.Database {
 	return m.client.Database("admin")
 }
 
-func writeLastItemUpdate(itemID string, dryRun bool) {
+func writeLastProcessed(itemID string) {
 	if strings.TrimSpace(itemID) != "" {
-		//TODO - i think we still want this so we can keep processing in order
-		if dryRun {
-			log.Printf("dry run so not setting lastUpdatedId %s", itemID)
-			return
-		}
-		f, err := os.Create("./lastUpdatedId")
+		f, err := os.Create("./lastProcessedId")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -555,7 +550,6 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		return batches
 	}
 	writtenCount := 0
-	//writeStart := time.Now()
 	for _, batch := range getBatches(int(*m.writeBatchSize)) {
 		if err := m.blockUntilDBReady(ctx); err != nil {
 			return err
@@ -575,7 +569,7 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		}
 
 		writtenCount += int(results.ModifiedCount)
-		writeLastItemUpdate(m.lastUpdatedId, m.config.dryRun)
+		writeLastProcessed(m.lastUpdatedId)
 	}
 	m.updates = []mongo.WriteModel{}
 	m.updatedCount = m.updatedCount + writtenCount
@@ -584,9 +578,6 @@ func (m *migrationUtil) writeUpdates(ctx context.Context, dataC *mongo.Collectio
 		log.Println("dry-run so no changes applied")
 		m.writeAudit(&writeLimit)
 	} else {
-
-		//log.Printf("write took [%s] for [%d] items\n", time.Since(writeStart), writtenCount)
-		//m.GetStats().report()
 		m.writeErrors(&writeLimit)
 		m.writeAudit(&writeLimit)
 	}
