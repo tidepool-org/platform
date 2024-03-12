@@ -158,7 +158,9 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 	defer res.Body.Close()
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return nil, fmt.Errorf("unsuccessful PalmTree API response: %v: %v", res.StatusCode, res.Status)
+		var body map[string]any
+		_ = json.NewDecoder(res.Body).Decode(&body)
+		return nil, fmt.Errorf("unsuccessful PalmTree API response: %v: %v, body: %v", res.StatusCode, res.Status, body)
 	}
 
 	var response PalmTreeResponse
