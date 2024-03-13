@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service"
+	platformerrors "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
@@ -19,9 +21,9 @@ import (
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
-		service.Get("/v1/users/:followedUserID/followers/:userID/alerts", GetAlert, api.RequireAuth),
-		service.Post("/v1/users/:followedUserID/followers/:userID/alerts", UpsertAlert, api.RequireAuth),
-		service.Delete("/v1/users/:followedUserID/followers/:userID/alerts", DeleteAlert, api.RequireAuth),
+		service.Get("/v1/users/:userId/followers/:followerUserId/alerts", GetAlert, api.RequireAuth),
+		service.Post("/v1/users/:userId/followers/:followerUserId/alerts", UpsertAlert, api.RequireAuth),
+		service.Delete("/v1/users/:userId/followers/:followerUserId/alerts", DeleteAlert, api.RequireAuth),
 	}
 }
 
@@ -36,20 +38,19 @@ func DeleteAlert(dCtx service.Context) {
 		return
 	}
 
-	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
+	path := getUserIDsFromPath(r)
+	if err := checkUserIDConsistency(authDetails, path.UserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	followedUserID := r.PathParam("followedUserID")
-	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userIDWithServiceFallback(authDetails, path.UserID), path.FollowedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
+	cfg := &alerts.Config{UserID: path.UserID, FollowedUserID: path.FollowedUserID}
 	if err := repo.Delete(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
@@ -67,20 +68,19 @@ func GetAlert(dCtx service.Context) {
 		return
 	}
 
-	followedUserID := r.PathParam("followedUserID")
-	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
+	path := getUserIDsFromPath(r)
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userIDWithServiceFallback(authDetails, path.UserID), path.FollowedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
+	if err := checkUserIDConsistency(authDetails, path.UserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID}
+	cfg := &alerts.Config{UserID: path.UserID, FollowedUserID: path.FollowedUserID}
 	alert, err := repo.Get(ctx, cfg)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -108,7 +108,8 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	if err := checkUserIDConsistency(authDetails, r.PathParam("userID")); err != nil {
+	path := getUserIDsFromPath(r)
+	if err := checkUserIDConsistency(authDetails, path.UserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
@@ -119,23 +120,19 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	followedUserID := r.PathParam("followedUserID")
-	userID := userIDWithServiceFallback(authDetails, r.PathParam("userID"))
 	pc := dCtx.PermissionClient()
-	if err := checkUserAuthorization(ctx, pc, userID, followedUserID); err != nil {
+	if err := checkUserAuthorization(ctx, pc, userIDWithServiceFallback(authDetails, path.UserID), path.FollowedUserID); err != nil {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
 
-	cfg := &alerts.Config{UserID: userID, FollowedUserID: followedUserID, Alerts: *a}
+	cfg := &alerts.Config{UserID: path.UserID, FollowedUserID: path.FollowedUserID, Alerts: *a}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		lgr.WithError(err).Error("upserting alerts config")
 		return
 	}
 }
-
-var ErrUnauthorized = fmt.Errorf("unauthorized")
 
 // checkUserIDConsistency verifies the userIDs in a request.
 //
@@ -148,13 +145,13 @@ func checkUserIDConsistency(details request.AuthDetails, userIDFromPath string) 
 		return nil
 	}
 
-	return ErrUnauthorized
+	return platformerrors.New("unauthorized")
 }
 
 // checkAuthentication ensures that the request has an authentication token.
 func checkAuthentication(details request.AuthDetails) error {
 	if details.Token() == "" {
-		return ErrUnauthorized
+		return platformerrors.New("unauthorized")
 	}
 	if details.IsUser() {
 		return nil
@@ -162,7 +159,7 @@ func checkAuthentication(details request.AuthDetails) error {
 	if details.IsService() {
 		return nil
 	}
-	return ErrUnauthorized
+	return platformerrors.New("unauthorized")
 }
 
 // checkUserAuthorization returns nil if userID is permitted to have alerts
@@ -193,4 +190,21 @@ func userIDWithServiceFallback(details request.AuthDetails, serviceFallback stri
 		return details.UserID()
 	}
 	return serviceFallback
+}
+
+// alertsUserIDs prevents confusion about the roles of the user ids found in alerts endpoint
+// paths.
+type alertsUserIDs struct {
+	FollowedUserID string
+	UserID         string
+}
+
+func getUserIDsFromPath(r *rest.Request) alertsUserIDs {
+	// Within alerts endpoints handlers, the following user owns the alerts config, so are
+	// called "userID". Due to restrictions in the github.com/ant0ine/go-json-rest library, the
+	// path parameters can't be renamed to better reflect this situation.
+	return alertsUserIDs{
+		FollowedUserID: r.PathParam("userId"),
+		UserID:         r.PathParam("followerUserId"),
+	}
 }
