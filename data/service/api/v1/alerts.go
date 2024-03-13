@@ -19,9 +19,9 @@ import (
 
 func AlertsRoutes() []service.Route {
 	return []service.Route{
-		service.Get("/v1/alerts/:userID/:followedUserID", GetAlert, api.RequireAuth),
-		service.Post("/v1/alerts/:userID/:followedUserID", UpsertAlert, api.RequireAuth),
-		service.Delete("/v1/alerts/:userID/:followedUserID", DeleteAlert, api.RequireAuth),
+		service.Get("/v1/users/:followedUserID/followers/:userID/alerts", GetAlert, api.RequireAuth),
+		service.Post("/v1/users/:followedUserID/followers/:userID/alerts", UpsertAlert, api.RequireAuth),
+		service.Delete("/v1/users/:followedUserID/followers/:userID/alerts", DeleteAlert, api.RequireAuth),
 	}
 }
 
