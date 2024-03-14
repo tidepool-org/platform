@@ -168,8 +168,8 @@ type CGMPeriod struct {
 	DeferredRecords      *int `json:"deferredRecords" bson:"deferredRecords"`
 	DeferredRecordsDelta *int `json:"deferredRecordsDelta" bson:"deferredRecordsDelta"`
 
-	DeferredPercent      *int `json:"deferredPercent" bson:"deferredPercent"`
-	DeferredPercentDelta *int `json:"deferredPercentDelta" bson:"deferredPercentDelta"`
+	DeferredPercent      *float64 `json:"deferredPercent" bson:"deferredPercent"`
+	DeferredPercentDelta *float64 `json:"deferredPercentDelta" bson:"deferredPercentDelta"`
 }
 
 type CGMPeriods map[string]*CGMPeriod
@@ -368,6 +368,9 @@ func (s *CGMStats) CalculateSummary() {
 			totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
 			totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+
+			totalStats.DeferredRecords += s.Buckets[currentIndex].Data.DeferredRecords
+			totalStats.RealtimeRecords += s.Buckets[currentIndex].Data.RealtimeRecords
 		}
 
 		// only add to offset stats when primary stop point is ahead of offset
@@ -395,6 +398,9 @@ func (s *CGMStats) CalculateSummary() {
 			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalOffsetStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
 			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+
+			totalOffsetStats.DeferredRecords += s.Buckets[currentIndex].Data.DeferredRecords
+			totalOffsetStats.RealtimeRecords += s.Buckets[currentIndex].Data.RealtimeRecords
 		}
 	}
 
@@ -613,6 +619,34 @@ func (s *CGMStats) CalculateDelta() {
 			s.Periods[k].TimeInAnyHighMinutesDelta = pointer.FromAny(delta)
 			s.OffsetPeriods[k].TimeInAnyHighMinutesDelta = pointer.FromAny(-delta)
 		}
+
+		if s.Periods[k].RealtimePercent != nil && s.OffsetPeriods[k].RealtimePercent != nil {
+			delta := *s.Periods[k].RealtimePercent - *s.OffsetPeriods[k].RealtimePercent
+
+			s.Periods[k].RealtimePercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].RealtimePercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].RealtimeRecords != nil && s.OffsetPeriods[k].RealtimeRecords != nil {
+			delta := *s.Periods[k].RealtimeRecords - *s.OffsetPeriods[k].RealtimeRecords
+
+			s.Periods[k].RealtimeRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].RealtimeRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].DeferredPercent != nil && s.OffsetPeriods[k].DeferredPercent != nil {
+			delta := *s.Periods[k].DeferredPercent - *s.OffsetPeriods[k].DeferredPercent
+
+			s.Periods[k].DeferredPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].DeferredPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].DeferredRecords != nil && s.OffsetPeriods[k].DeferredRecords != nil {
+			delta := *s.Periods[k].DeferredRecords - *s.OffsetPeriods[k].DeferredRecords
+
+			s.Periods[k].DeferredRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].DeferredRecordsDelta = pointer.FromAny(-delta)
+		}
 	}
 }
 
@@ -671,6 +705,10 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 
 		HasTimeInAnyHighRecords: true,
 		TimeInAnyHighRecords:    pointer.FromAny(totalStats.HighRecords + totalStats.VeryHighRecords),
+
+		RealtimeRecords: pointer.FromAny(totalStats.RealtimeRecords + totalStats.RealtimeRecords),
+
+		DeferredRecords: pointer.FromAny(totalStats.DeferredRecords + totalStats.DeferredRecords),
 	}
 
 	if totalStats.TotalRecords != 0 {
@@ -702,6 +740,9 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 			newPeriod.HasTimeInAnyHighPercent = true
 			newPeriod.TimeInAnyHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords+totalStats.HighRecords) / float64(totalStats.TotalRecords))
 
+			newPeriod.RealtimePercent = pointer.FromAny(float64(totalStats.RealtimeRecords) / float64(totalStats.TotalRecords))
+
+			newPeriod.DeferredPercent = pointer.FromAny(float64(totalStats.DeferredRecords) / float64(totalStats.TotalRecords))
 		}
 
 		newPeriod.HasAverageGlucoseMmol = true

@@ -1,10 +1,11 @@
 package test
 
 import (
+	"time"
+
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
-	"time"
 )
 
 func RandomCGMSummary(userId string) *types.Summary[*types.CGMStats, types.CGMStats] {
