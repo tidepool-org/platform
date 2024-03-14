@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/urfave/cli"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -21,7 +19,7 @@ type Migration struct {
 	cli           *cli.App
 	config        *config
 	client        *mongo.Client
-	migrationUtil utils.MigrationUtil
+	migrationUtil utils.Migration
 }
 
 type config struct {
@@ -44,12 +42,12 @@ func main() {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	migration := NewMigration(ctx)
+	migration := NewJellyfishMigration(ctx)
 	migration.RunAndExit()
 	log.Println("finished migration")
 }
 
-func NewMigration(ctx context.Context) *Migration {
+func NewJellyfishMigration(ctx context.Context) *Migration {
 	return &Migration{
 		config: &config{
 			rollbackSectionName: "_rollbackJellyfishMigration",
@@ -72,8 +70,9 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
-		m.migrationUtil, err = utils.NewMigrationUtil(
-			utils.NewMigrationUtilConfig(
+		m.migrationUtil, err = utils.NewMigration(
+			m.ctx,
+			utils.NewMigrationConfig(
 				&m.config.dryRun,
 				&m.config.stopOnErr,
 				&m.config.rollback,
@@ -81,30 +80,40 @@ func (m *Migration) RunAndExit() {
 				&m.config.nopPercent,
 				&m.config.cap),
 			m.client,
+			m.client.Database("data").Collection("deviceData"),
 			&m.config.lastUpdatedId,
 		)
 		if err != nil {
-			return fmt.Errorf("unable init migration utils : %w", err)
+			return fmt.Errorf("unable to create migration utils : %w", err)
 		}
 
-		if err := m.migrationUtil.Initialize(m.ctx, m.getDataCollection()); err != nil {
+		if err := m.migrationUtil.Initialize(); err != nil {
 			log.Printf("prepare failed: %s", err)
 			return err
 		}
+		lastFetchedID := m.migrationUtil.GetLastID()
+
+		selector, opt := utils.JellyfishUpdatesQuery(
+			&m.config.userID,
+			&lastFetchedID,
+			m.config.queryBatchSize,
+			m.config.queryLimit,
+		)
 
 		if m.config.rollback {
-			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndRevert); err != nil {
-				log.Printf("revert failed: %s", err)
-				return err
-			}
-			return nil
-		} else {
-			if err := m.migrationUtil.Execute(m.ctx, m.getDataCollection(), m.fetchAndProcess); err != nil {
-				log.Printf("processing failed: %s", err)
-				return err
-			}
-			return nil
+			selector, opt = utils.JellyfishRollbackQuery(
+				m.config.rollbackSectionName,
+				&m.config.userID,
+				&lastFetchedID,
+				m.config.queryBatchSize,
+				m.config.queryLimit,
+			)
 		}
+		if err := m.migrationUtil.Execute(selector, opt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn); err != nil {
+			log.Printf("execute failed: %s", err)
+			return err
+		}
+		return nil
 	}
 
 	if err := m.CLI().Run(os.Args); err != nil {
@@ -195,160 +204,4 @@ func (m *Migration) Initialize() error {
 
 func (m *Migration) CLI() *cli.App {
 	return m.cli
-}
-
-func (m *Migration) getDataCollection() *mongo.Collection {
-	return m.client.Database("data").Collection("deviceData")
-}
-
-func (m *Migration) fetchAndProcess() bool {
-
-	selector := bson.M{
-		"_deduplicator": bson.M{"$exists": false},
-	}
-
-	if strings.TrimSpace(m.config.userID) != "" {
-		log.Printf("fetching for user %s", m.config.userID)
-		selector["_userId"] = m.config.userID
-	}
-
-	// jellyfish uses a generated _id that is not an mongo objectId
-	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
-
-	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
-		selector["$and"] = []interface{}{
-			bson.M{"_id": bson.M{"$gt": lastID}},
-			bson.M{"_id": idNotObjectID},
-		}
-	} else {
-		selector["_id"] = idNotObjectID
-	}
-
-	batchSize := int32(m.config.queryBatchSize)
-
-	if dataC := m.getDataCollection(); dataC != nil {
-
-		dDataCursor, err := dataC.Find(m.ctx, selector,
-			&options.FindOptions{
-				Sort:      bson.M{"_id": 1},
-				BatchSize: &batchSize,
-				Limit:     &m.config.queryLimit,
-			},
-		)
-		if err != nil {
-			log.Printf("failed to select data: %s", err)
-			return false
-		}
-		defer dDataCursor.Close(m.ctx)
-
-		all := []bson.M{}
-
-		for dDataCursor.Next(m.ctx) {
-			item := bson.M{}
-			if err := dDataCursor.Decode(&item); err != nil {
-				log.Printf("error decoding data: %s", err)
-				return false
-			}
-			itemID := fmt.Sprintf("%v", item["_id"])
-			userID := fmt.Sprintf("%v", item["_userId"])
-			itemType := fmt.Sprintf("%v", item["type"])
-			updates, revert, err := utils.ProcessDatum(itemID, itemType, item)
-			if err != nil {
-				m.migrationUtil.OnError(utils.ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
-			} else if len(updates) > 0 {
-				m.migrationUtil.SetUpdates(utils.UpdateData{
-					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
-					ItemID:   itemID,
-					UserID:   userID,
-					ItemType: itemType,
-					Apply:    updates,
-					Revert:   revert,
-				})
-			}
-			m.migrationUtil.SetLastProcessed(itemID)
-			all = append(all, item)
-		}
-		m.migrationUtil.SetFetched(all)
-		return len(all) > 0
-	}
-	return false
-}
-
-func (m *Migration) fetchAndRevert() bool {
-
-	rollbackValues := m.config.rollbackSectionName
-
-	selector := bson.M{
-		rollbackValues: bson.M{"$exists": true},
-	}
-
-	if strings.TrimSpace(m.config.userID) != "" {
-		log.Printf("fetching for user %s", m.config.userID)
-		selector["_userId"] = m.config.userID
-	}
-
-	// jellyfish uses a generated _id that is not an mongo objectId
-	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
-	if lastID := m.migrationUtil.GetLastID(); lastID != "" {
-		selector["$and"] = []interface{}{
-			bson.M{"_id": bson.M{"$gt": lastID}},
-			bson.M{"_id": idNotObjectID},
-		}
-	} else {
-		selector["_id"] = idNotObjectID
-	}
-
-	batchSize := int32(m.config.queryBatchSize)
-
-	if dataC := m.getDataCollection(); dataC != nil {
-
-		dDataCursor, err := dataC.Find(m.ctx, selector,
-			&options.FindOptions{
-				Sort:      bson.M{"_id": 1},
-				BatchSize: &batchSize,
-				Limit:     &m.config.queryLimit,
-			},
-		)
-		if err != nil {
-			log.Printf("failed to select data: %s", err)
-			return false
-		}
-		defer dDataCursor.Close(m.ctx)
-
-		all := []bson.M{}
-
-		for dDataCursor.Next(m.ctx) {
-			item := bson.M{}
-			if err := dDataCursor.Decode(&item); err != nil {
-				log.Printf("error decoding data: %s", err)
-				return false
-			}
-			cmds := []bson.M{}
-			itemID := fmt.Sprintf("%v", item["_id"])
-			userID := fmt.Sprintf("%v", item["_userId"])
-			itemType := fmt.Sprintf("%v", item["type"])
-			if rollback, ok := item[rollbackValues].(primitive.A); ok {
-				for _, cmd := range rollback {
-					if cmd, ok := cmd.(primitive.M); ok {
-						cmds = append(cmds, cmd)
-					}
-				}
-			}
-			if len(cmds) > 0 {
-				log.Printf("%s [%s] %#v", rollbackValues, itemID, cmds)
-				m.migrationUtil.SetUpdates(utils.UpdateData{
-					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
-					ItemID:   itemID,
-					UserID:   userID,
-					ItemType: itemType,
-					Apply:    cmds,
-				})
-			}
-			m.migrationUtil.SetLastProcessed(itemID)
-			all = append(all, item)
-		}
-		m.migrationUtil.SetFetched(all)
-		return len(all) > 0
-	}
-	return false
 }
