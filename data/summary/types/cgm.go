@@ -251,7 +251,7 @@ func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo
 				return err
 			}
 
-			if uploadRecord.IsContinuous() {
+			if uploadRecord != nil && uploadRecord.HasDataSetTypeNormal() {
 				uploadIds[*r.UploadID] = true
 			}
 		}

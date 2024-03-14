@@ -215,7 +215,3 @@ func (u *Upload) HasDeduplicatorName() bool {
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
 }
-
-func (u *Upload) IsContinuous() bool {
-	return u != nil && u.DataSetType != nil && *u.DataSetType == data.DataSetTypeContinuous
-}

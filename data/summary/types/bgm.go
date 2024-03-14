@@ -196,7 +196,7 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo
 				return err
 			}
 
-			if uploadRecord.IsContinuous() {
+			if uploadRecord != nil && uploadRecord.HasDataSetTypeContinuous() {
 				uploadIds[*r.UploadID] = true
 			}
 		}
