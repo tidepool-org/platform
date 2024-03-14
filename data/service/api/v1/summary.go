@@ -158,7 +158,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	}
 
 	summaryManager := dataServiceContext.SummarizerRegistry().TypelessSummarizer
-	userIdsRealtimeDays, err := summaryManager.GetPatientsWithRealtimeData(ctx, userIds, startTime, endTime)
+	userIdsRealtimeDays, err := summaryManager.GetRealtimeDaysForUsers(ctx, userIds, startTime, endTime)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

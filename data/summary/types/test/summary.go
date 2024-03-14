@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
+	"time"
 )
 
 func RandomCGMSummary(userId string) *types.Summary[*types.CGMStats, types.CGMStats] {
@@ -401,6 +402,106 @@ func RandomBGMSummary(userId string) *types.Summary[*types.BGMStats, types.BGMSt
 			HasTimeInVeryHighRecords:   test.RandomBool(),
 			TimeInVeryHighRecords:      pointer.FromAny(test.RandomIntFromRange(0, 25920)),
 			TimeInVeryHighRecordsDelta: pointer.FromAny(test.RandomIntFromRange(0, 25920)),
+		}
+	}
+
+	return &datum
+}
+
+func NewRealtimeCGMSummary(userId string, startTime time.Time, endTime time.Time, realtimeDays int) *types.Summary[*types.CGMStats, types.CGMStats] {
+	totalHours := int(endTime.Sub(startTime).Hours())
+	lastData := endTime.Add(59 * time.Minute)
+
+	datum := types.Summary[*types.CGMStats, types.CGMStats]{
+		UserID: userId,
+		Type:   types.SummaryTypeCGM,
+		Dates: types.Dates{
+			FirstData: &startTime,
+			LastData:  &lastData,
+		},
+		Stats: &types.CGMStats{
+			Buckets: make([]*types.Bucket[*types.CGMBucketData, types.CGMBucketData], totalHours),
+		},
+	}
+
+	var yesterday time.Time
+	var today time.Time
+	var bucketDate time.Time
+	var flaggedDays int
+	var recordCount int
+
+	for i := 0; i < len(datum.Stats.Buckets); i++ {
+		bucketDate = startTime.Add(time.Duration(i) * time.Hour)
+		today = bucketDate.Truncate(time.Hour * 24)
+
+		if flaggedDays < realtimeDays {
+			recordCount = test.RandomIntFromRange(1, 12)
+
+			if today.After(yesterday) {
+				flaggedDays++
+				yesterday = today
+			}
+
+		} else {
+			recordCount = 0
+		}
+
+		datum.Stats.Buckets[i] = &types.Bucket[*types.CGMBucketData, types.CGMBucketData]{
+			Date: bucketDate,
+			Data: &types.CGMBucketData{
+				RealtimeRecords: recordCount,
+				DeferredRecords: recordCount,
+			},
+		}
+	}
+
+	return &datum
+}
+
+func NewRealtimeBGMSummary(userId string, startTime time.Time, endTime time.Time, realtimeDays int) *types.Summary[*types.BGMStats, types.BGMStats] {
+	totalHours := int(endTime.Sub(startTime).Hours())
+	lastData := endTime.Add(59 * time.Minute)
+
+	datum := types.Summary[*types.BGMStats, types.BGMStats]{
+		UserID: userId,
+		Type:   types.SummaryTypeBGM,
+		Dates: types.Dates{
+			FirstData: &startTime,
+			LastData:  &lastData,
+		},
+		Stats: &types.BGMStats{
+			Buckets: make([]*types.Bucket[*types.BGMBucketData, types.BGMBucketData], totalHours),
+		},
+	}
+
+	var yesterday time.Time
+	var today time.Time
+	var bucketDate time.Time
+	var flaggedDays int
+	var recordCount int
+
+	for i := 0; i < len(datum.Stats.Buckets); i++ {
+		bucketDate = startTime.Add(time.Duration(i) * time.Hour)
+		today = bucketDate.Truncate(time.Hour * 24)
+
+		if flaggedDays < realtimeDays {
+			recordCount = test.RandomIntFromRange(1, 12)
+
+			if today.After(yesterday) {
+				flaggedDays++
+				yesterday = today
+			}
+
+		} else {
+			recordCount = 0
+		}
+
+		datum.Stats.Buckets[i] = &types.Bucket[*types.BGMBucketData, types.BGMBucketData]{
+			Date: bucketDate,
+			Data: &types.BGMBucketData{
+				RealtimeRecords: recordCount,
+				DeferredRecords: recordCount,
+			},
 		}
 	}
 

@@ -85,8 +85,8 @@ func NewTypelessSummarizer(collection *storeStructuredMongo.Repository) *Typeles
 	}
 }
 
-func (ts *TypelessSummarizer) GetPatientsWithRealtimeData(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
-	return ts.summaries.GetPatientsWithRealtimeData(ctx, userIds, startTime, endTime)
+func (ts *TypelessSummarizer) GetRealtimeDaysForUsers(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
+	return ts.summaries.GetRealtimeDaysForUsers(ctx, userIds, startTime, endTime)
 }
 
 func (ts *TypelessSummarizer) DeleteSummaries(ctx context.Context, userId string) error {

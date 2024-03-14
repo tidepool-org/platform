@@ -103,6 +103,18 @@ type BGMPeriod struct {
 	HasTimeInAnyHighRecords   bool `json:"hasTimeInAnyHighRecords" bson:"hasTimeInAnyHighRecords"`
 	TimeInAnyHighRecords      *int `json:"timeInAnyHighRecords" bson:"timeInAnyHighRecords"`
 	TimeInAnyHighRecordsDelta *int `json:"timeInAnyHighRecordsDelta" bson:"timeInAnyHighRecordsDelta"`
+
+	RealtimeRecords      *int `json:"realtimeRecords" bson:"realtimeRecords"`
+	RealtimeRecordsDelta *int `json:"realtimeRecordsDelta" bson:"realtimeRecordsDelta"`
+
+	RealtimePercent      *float64 `json:"realtimeRecordsPercent" bson:"realtimeRecordsPercent"`
+	RealtimePercentDelta *float64 `json:"realtimeRecordsPercentDelta" bson:"realtimeRecordsPercentDelta"`
+
+	DeferredRecords      *int `json:"deferredRecords" bson:"deferredRecords"`
+	DeferredRecordsDelta *int `json:"deferredRecordsDelta" bson:"deferredRecordsDelta"`
+
+	DeferredPercent      *int `json:"deferredPercent" bson:"deferredPercent"`
+	DeferredPercentDelta *int `json:"deferredPercentDelta" bson:"deferredPercentDelta"`
 }
 
 type BGMPeriods map[string]*BGMPeriod
@@ -264,6 +276,8 @@ func (s *BGMStats) CalculateSummary() {
 				s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
 				nextStopPoint++
 			}
+
+			// TODO add realtime/deferred
 
 			totalStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 			totalStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords

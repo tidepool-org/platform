@@ -217,5 +217,5 @@ func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 }
 
 func (u *Upload) IsContinuous() bool {
-	return u != nil && *u.DataSetType == data.DataSetTypeContinuous
+	return u != nil && u.DataSetType != nil && *u.DataSetType == data.DataSetTypeContinuous
 }

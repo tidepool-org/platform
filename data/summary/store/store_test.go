@@ -1110,6 +1110,202 @@ var _ = Describe("Summary Stats Mongo", func() {
 				})
 
 			})
+
+			Context("With untyped store", func() {
+				var typelessStore *dataStoreSummary.TypelessRepo
+
+				var cgmStore *dataStoreSummary.Repo[*types.CGMStats, types.CGMStats]
+				var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
+
+				BeforeEach(func() {
+					ctx = log.NewContextWithLogger(context.Background(), logger)
+					typelessStore = dataStoreSummary.NewTypeless(summaryRepository)
+
+					// we aren't testing these, but we need them for easy setup
+					cgmStore = dataStoreSummary.New[*types.CGMStats](summaryRepository)
+					bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
+				})
+
+				Context("GetPatientsWithRealtimeData", func() {
+
+					It("with some realtime users", func() {
+						endTime := time.Now().UTC().Truncate(time.Hour * 24)
+						startTime := endTime.AddDate(0, 0, -30)
+						userIds := make([]string, 5)
+						userSummaries := make([]*types.Summary[*types.CGMStats, types.CGMStats], 5)
+
+						startingDays := 14
+
+						for i := 0; i < 5; i++ {
+							userIds[i] = userTest.RandomID()
+							userSummaries[i] = test.NewRealtimeCGMSummary(userIds[i], startTime, endTime, startingDays+i)
+						}
+
+						var count int
+						count, err = cgmStore.CreateSummaries(ctx, userSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						// remove one userId to ensure we aren't accidentally grabbing everyone
+						trimmedUserIds := userIds[:len(userIds)-1]
+
+						var list map[string]int
+						list, err = typelessStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime, endTime)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(list).To(HaveLen(len(trimmedUserIds)))
+
+						// make sure days match input
+						for i := 0; i < 4; i++ {
+							Expect(list[userIds[i]]).To(Equal(startingDays + i))
+						}
+					})
+
+					It("with realtime user with both bgm and cgm", func() {
+						endTime := time.Now().UTC().Truncate(time.Hour * 24)
+						startTime := endTime.AddDate(0, 0, -30)
+						userIds := make([]string, 5)
+						userCgmSummaries := make([]*types.Summary[*types.CGMStats, types.CGMStats], 5)
+						userBgmSummaries := make([]*types.Summary[*types.BGMStats, types.BGMStats], 5)
+
+						startingDays := 14
+
+						for i := 0; i < 5; i++ {
+							userIds[i] = userTest.RandomID()
+							userCgmSummaries[i] = test.NewRealtimeCGMSummary(userIds[i], startTime, endTime, startingDays+i)
+							userBgmSummaries[i] = test.NewRealtimeBGMSummary(userIds[i], startTime, endTime, startingDays+i)
+						}
+
+						var count int
+						count, err = cgmStore.CreateSummaries(ctx, userCgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						count, err = bgmStore.CreateSummaries(ctx, userBgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						// remove one userId to ensure we aren't accidentally grabbing everyone
+						trimmedUserIds := userIds[:len(userIds)-1]
+
+						var list map[string]int
+						list, err = typelessStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime, endTime)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(list).To(HaveLen(len(trimmedUserIds)))
+
+						// make sure days match input
+						for i := 0; i < 4; i++ {
+							Expect(list[userIds[i]]).To(Equal(startingDays + i))
+						}
+					})
+
+					It("with realtime user combined from bgm and cgm", func() {
+						endTime := time.Now().UTC().Truncate(time.Hour * 24)
+						startTime := endTime.AddDate(0, 0, -30)
+						userIds := make([]string, 5)
+						userCgmSummaries := make([]*types.Summary[*types.CGMStats, types.CGMStats], 5)
+						userBgmSummaries := make([]*types.Summary[*types.BGMStats, types.BGMStats], 5)
+
+						startingDays := 7
+
+						for i := 0; i < 5; i++ {
+							userIds[i] = userTest.RandomID()
+							userCgmSummaries[i] = test.NewRealtimeCGMSummary(userIds[i], startTime, endTime, startingDays+i)
+							userBgmSummaries[i] = test.NewRealtimeBGMSummary(userIds[i], startTime.AddDate(0, 0, 10), endTime.AddDate(0, 0, 10), startingDays+i)
+						}
+
+						var count int
+						count, err = cgmStore.CreateSummaries(ctx, userCgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						count, err = bgmStore.CreateSummaries(ctx, userBgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						// remove one userId to ensure we aren't accidentally grabbing everyone
+						trimmedUserIds := userIds[:len(userIds)-1]
+
+						var list map[string]int
+						list, err = typelessStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime, endTime)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(list).To(HaveLen(len(trimmedUserIds)))
+
+						// make sure days match input
+						for i := 0; i < 4; i++ {
+							Expect(list[userIds[i]]).To(Equal((startingDays + i) * 2))
+						}
+					})
+
+					It("with no realtime user", func() {
+						endTime := time.Now().UTC().Truncate(time.Hour * 24)
+						startTime := endTime.AddDate(0, 0, -30)
+						userIds := make([]string, 5)
+						userCgmSummaries := make([]*types.Summary[*types.CGMStats, types.CGMStats], 5)
+						userBgmSummaries := make([]*types.Summary[*types.BGMStats, types.BGMStats], 5)
+
+						for i := 0; i < 5; i++ {
+							userIds[i] = userTest.RandomID()
+							userCgmSummaries[i] = test.NewRealtimeCGMSummary(userIds[i], startTime, endTime, 0)
+							userBgmSummaries[i] = test.NewRealtimeBGMSummary(userIds[i], startTime.AddDate(0, 0, 10), endTime.AddDate(0, 0, 10), 0)
+						}
+
+						var count int
+						count, err = cgmStore.CreateSummaries(ctx, userCgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						count, err = bgmStore.CreateSummaries(ctx, userBgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						// remove one userId to ensure we aren't accidentally grabbing everyone
+						trimmedUserIds := userIds[:len(userIds)-1]
+
+						var list map[string]int
+						list, err = typelessStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime, endTime)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(list).To(HaveLen(len(trimmedUserIds)))
+
+						// make sure days match input
+						for i := 0; i < 4; i++ {
+							Expect(list[userIds[i]]).To(Equal(0))
+						}
+					})
+
+					It("with 60 days of buckets", func() {
+						endTime := time.Now().UTC().Truncate(time.Hour * 24)
+						startTime := endTime.AddDate(0, 0, -60)
+						userIds := make([]string, 5)
+						userCgmSummaries := make([]*types.Summary[*types.CGMStats, types.CGMStats], 5)
+
+						startingDays := 30 + 14
+
+						for i := 0; i < 5; i++ {
+							userIds[i] = userTest.RandomID()
+							userCgmSummaries[i] = test.NewRealtimeCGMSummary(userIds[i], startTime, endTime, startingDays+i)
+						}
+
+						var count int
+						count, err = cgmStore.CreateSummaries(ctx, userCgmSummaries)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(count).To(Equal(len(userIds)))
+
+						// remove one userId to ensure we aren't accidentally grabbing everyone
+						trimmedUserIds := userIds[:len(userIds)-1]
+
+						var list map[string]int
+						list, err = typelessStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime.AddDate(0, 0, 30), endTime)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(list).To(HaveLen(len(trimmedUserIds)))
+
+						// make sure days match input
+						for i := 0; i < 4; i++ {
+							Expect(list[userIds[i]]).To(Equal(startingDays + i - 30))
+						}
+					})
+
+				})
+			})
 		})
 	})
 })

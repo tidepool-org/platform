@@ -109,6 +109,7 @@ func GetNumberOfDaysWithRealtimeData(a, b []*types.Bucket[*types.CGMBucketData, 
 	for i := 0; i < combinedLength; i++ {
 		indexA := i - startA
 		indexB := i - startB
+		//fmt.Println("index A", indexA, "realtime records", a[indexA].Data.RealtimeRecords)
 
 		// If the A list has a flagged item at this time, count it and advance to the next day.
 		if indexA >= 0 && indexA < len(a) && a[indexA].Data.RealtimeRecords > 0 {
@@ -142,7 +143,7 @@ func GetNumberOfDaysWithRealtimeData(a, b []*types.Bucket[*types.CGMBucketData, 
 	return count
 }
 
-func (r *TypelessRepo) GetPatientsWithRealtimeData(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
+func (r *TypelessRepo) GetRealtimeDaysForUsers(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -177,7 +178,7 @@ func (r *TypelessRepo) GetPatientsWithRealtimeData(ctx context.Context, userIds 
 	opts := options.Find()
 	opts.SetProjection(bson.M{"stats.buckets": 1})
 
-	var realtimeUsers map[string]int
+	realtimeUsers := make(map[string]int)
 
 	for _, userId := range userIds {
 		selector := bson.M{
@@ -200,8 +201,19 @@ func (r *TypelessRepo) GetPatientsWithRealtimeData(ctx context.Context, userIds 
 		var buckets [][]*types.Bucket[*types.CGMBucketData, types.CGMBucketData]
 		for i := 0; i < len(userSummaries); i++ {
 			if len(userSummaries[i].Stats.Buckets) > 0 {
+
 				startOffset := int(startTime.Sub(userSummaries[i].Stats.Buckets[0].Date).Hours())
+				// cap to start of list
+				if startOffset < 0 {
+					startOffset = 0
+				}
+
 				endOffset := int(endTime.Sub(userSummaries[i].Stats.Buckets[0].Date).Hours())
+				// cap to end of list
+				if endOffset > len(userSummaries[i].Stats.Buckets) {
+					endOffset = len(userSummaries[i].Stats.Buckets)
+				}
+
 				buckets = append(buckets, userSummaries[i].Stats.Buckets[startOffset:endOffset])
 			}
 		}
