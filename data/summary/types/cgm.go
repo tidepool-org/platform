@@ -250,7 +250,10 @@ func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo
 			if err != nil {
 				return err
 			}
-			uploadIds[*r.UploadID] = uploadRecord.IsContinuous()
+
+			if uploadRecord.IsContinuous() {
+				uploadIds[*r.UploadID] = true
+			}
 		}
 
 		// we call AddData before each network call to the db to reduce thrashing
