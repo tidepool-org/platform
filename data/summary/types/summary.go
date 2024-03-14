@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -80,18 +81,6 @@ type DeviceDataCursor interface {
 	RemainingBatchLength() int
 	Next(ctx context.Context) bool
 	Close(ctx context.Context) error
-}
-
-type UserLastUpdated struct {
-	FirstData time.Time
-	LastData  time.Time
-
-	EarliestModified time.Time
-
-	LastUpload time.Time
-
-	LastUpdated     time.Time
-	NextLastUpdated time.Time
 }
 
 type DeviceDataFetcher interface {

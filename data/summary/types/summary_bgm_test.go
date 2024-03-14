@@ -3,12 +3,15 @@ package types_test
 import (
 	"context"
 	"fmt"
-	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	"github.com/tidepool-org/platform/data/test"
+
 	"math/rand"
 	"strconv"
 	"time"
+
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 
@@ -34,6 +37,7 @@ func NewDataSetBGMDataAvg(deviceId string, startTime time.Time, hours float64, r
 	typ := pointer.FromString("smbg")
 
 	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+	var uploadId = test.RandomSetID()
 
 	// generate X hours of data
 	for count := 0; count < requiredRecords; count += 2 {
@@ -44,7 +48,7 @@ func NewDataSetBGMDataAvg(deviceId string, startTime time.Time, hours float64, r
 		for i, glucoseValue := range glucoseValues {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 10)
 
-			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId)
+			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
 			datum.Value = pointer.FromFloat64(glucoseValue)
 
 			dataSetData[requiredRecords-count-i-1] = datum
@@ -59,6 +63,7 @@ func NewDataSetBGMDataRanges(deviceId string, startTime time.Time, hours float64
 	typ := pointer.FromString("smbg")
 
 	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+	var uploadId = test.RandomSetID()
 
 	glucoseBrackets := [5][2]float64{
 		{ranges.Min, ranges.VeryLow - ranges.Padding},
@@ -73,7 +78,7 @@ func NewDataSetBGMDataRanges(deviceId string, startTime time.Time, hours float64
 		for i, bracket := range glucoseBrackets {
 			datumTime := startTime.Add(-time.Duration(count+i+1) * time.Minute * 12)
 
-			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId)
+			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
 			datum.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
 
 			dataSetData[requiredRecords-count-i-1] = datum

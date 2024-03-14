@@ -548,55 +548,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-<<<<<<< HEAD
-func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
-	if ctx == nil {
-		return false, errors.New("context is missing")
-	}
-
-	if dataSetId == "" {
-		return false, errors.New("dataSetId is empty")
-	}
-
-	if typ == "" {
-		return false, errors.New("typ is empty")
-	}
-
-	// quit early if range is 0
-	if startTime.Equal(endTime) {
-		return false, nil
-	}
-
-	// return error if ranges are inverted, as this can produce unexpected results
-	if startTime.After(endTime) {
-		return false, fmt.Errorf("startTime (%s) after endTime (%s)", startTime, endTime)
-	}
-
-	selector := bson.M{
-		"_active":  true,
-		"uploadId": dataSetId,
-		"type":     typ,
-		"time": bson.M{
-			"$gt":  startTime,
-			"$lte": endTime,
-		},
-	}
-
-	result := bson.M{}
-	if err := d.FindOne(ctx, selector).Decode(result); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, nil
-		}
-		return false, fmt.Errorf("unable to check for type %s in dataset %s: %w", typ, dataSetId, err)
-	}
-
-	return true, nil
-}
-
-func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
-=======
 func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
->>>>>>> 7f6039c3 (add realtime and deferred record unit tests, fix related bugs, more generics arg consistency, remove conditional summary create during dataset close)
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -662,7 +614,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	return cursor, nil
 }
 
-func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (err error) {
 	timestamp := time.Now().UTC()
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
@@ -702,7 +654,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 	return nil
 }
 
-func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (err error) {
 	// get latest modified record
 	selector := bson.M{
 		"_userId": userId,
@@ -743,7 +695,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	return nil
 }
 
-func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (err error) {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
 		"_userId": userId,
@@ -788,7 +740,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
 	var err error
 
 	if ctx == nil {
@@ -808,7 +760,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	status := &types.UserLastUpdated{
+	status := &data.UserLastUpdated{
 		LastUpdated:     lastUpdated,
 		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}

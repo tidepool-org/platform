@@ -6,8 +6,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/tidepool-org/platform/data/summary/types"
-
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -156,7 +154,7 @@ type GetLastUpdatedForUserInput struct {
 }
 
 type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated *types.UserLastUpdated
+	UserLastUpdated *data.UserLastUpdated
 	Error           error
 }
 
@@ -164,7 +162,7 @@ type GetDataRangeInput struct {
 	Context context.Context
 	UserId  string
 	Typ     string
-	Status  *types.UserLastUpdated
+	Status  *data.UserLastUpdated
 }
 
 type GetDataRangeOutput struct {
@@ -493,7 +491,7 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
 	d.GetLastUpdatedForUserInvocations++
 
 	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ, LastUpdated: lastUpdated})
@@ -505,7 +503,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId strin
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
 	d.GetDataRangeInvocations++
 
 	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})

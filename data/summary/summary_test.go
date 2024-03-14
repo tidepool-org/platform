@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data/test"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
@@ -65,11 +67,12 @@ func NewDataSet(userID string, typ string) *upload.Upload {
 func NewDataSetData(typ string, userId string, startTime time.Time, hours float64, glucoseValue float64) []mongo.WriteModel {
 	requiredRecords := int(hours * 1)
 	var dataSetData = make([]mongo.WriteModel, requiredRecords)
+	var uploadId = test.RandomSetID()
 	var deviceId = "SummaryTestDevice"
 
 	for count := 0; count < requiredRecords; count++ {
 		datumTime := startTime.Add(time.Duration(-(count + 1)) * time.Minute * 60)
-		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, glucoseValue)
+		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, uploadId, glucoseValue)
 		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
 	}
 	return dataSetData
@@ -86,7 +89,7 @@ func NewDataSetDataRealtime(typ string, userId string, uploadId string, startTim
 	for count := 0; count < requiredRecords; count += 1 {
 		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
 
-		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, glucoseValue)
+		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, uploadId, glucoseValue)
 		datum.Value = pointer.FromFloat64(glucoseValue)
 
 		if realtime {
@@ -122,8 +125,8 @@ func NewNewDatum(typ string) *baseDatum.Base {
 	return datum
 }
 
-func NewGlucose(typ string, units string, datumTime *time.Time, deviceID string, userID string, value float64) *glucose.Glucose {
-	timestamp := time.Now()
+func NewGlucose(typ string, units string, datumTime *time.Time, deviceID string, userID string, uploadId string, value float64) *glucose.Glucose {
+	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 
 	datum := glucose.New(typ)
 	datum.Units = &units
@@ -141,6 +144,7 @@ func NewGlucose(typ string, units string, datumTime *time.Time, deviceID string,
 	datum.Time = datumTime
 	datum.UserID = &userID
 	datum.Value = &value
+	datum.UploadID = &uploadId
 
 	return &datum
 }

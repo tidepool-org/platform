@@ -26,7 +26,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	summaryTypes "github.com/tidepool-org/platform/data/summary/types"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -1184,7 +1183,7 @@ var _ = Describe("Mongo", func() {
 
 					Context("GetDataRange", func() {
 						It("returns an error if context is missing", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1199,7 +1198,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the userId is empty", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1214,7 +1213,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the typ is empty", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1229,7 +1228,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns error if the data times are inverted", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[len(dataSetData)-1].GetTime(),
 								LastData:        *dataSetData[0].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1244,7 +1243,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns error if the LastUpdated times are inverted", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Now(),
@@ -1269,7 +1268,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly returns data within range", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserLastUpdated{
 									FirstData:       *dataSetData[0].GetTime(),
 									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 									LastUpdated:     time.Time{},
@@ -1297,7 +1296,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly misses data outside range", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserLastUpdated{
 									FirstData:       dataSetData[0].GetTime().AddDate(-1, 0, 0),
 									LastData:        dataSetData[len(dataSetData)-1].GetTime().AddDate(-1, 0, 0),
 									LastUpdated:     time.Time{},
@@ -1319,7 +1318,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly misses data of wrong type", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserLastUpdated{
 									FirstData:       *dataSetData[0].GetTime(),
 									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 									LastUpdated:     time.Time{},

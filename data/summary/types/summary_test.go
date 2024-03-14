@@ -4,6 +4,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/tidepool-org/platform/data/test"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -55,21 +57,23 @@ func NewDataRangesSingle(value float64) DataRanges {
 	}
 }
 
-func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string) *glucose.Glucose {
+func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
+	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	datum := glucose.New(*typ)
 	datum.Units = units
 
 	datum.Active = true
 	datum.ArchivedDataSetID = nil
 	datum.ArchivedTime = nil
-	datum.CreatedTime = nil
+	datum.CreatedTime = &timestamp
 	datum.CreatedUserID = nil
 	datum.DeletedTime = nil
 	datum.DeletedUserID = nil
 	datum.DeviceID = deviceID
-	datum.ModifiedTime = nil
+	datum.ModifiedTime = &timestamp
 	datum.ModifiedUserID = nil
 	datum.Time = datumTime
+	datum.UploadID = uploadId
 
 	return &datum
 }
@@ -94,9 +98,11 @@ func ConvertToIntArray[T types.RecordTypes](arr []*T) []interface{} {
 var _ = Describe("Summary", func() {
 	var datumTime time.Time
 	var deviceID string
+	var uploadId string
 
 	BeforeEach(func() {
 		deviceID = "SummaryTestDevice"
+		uploadId = test.RandomSetID()
 		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	})
 
@@ -106,7 +112,7 @@ var _ = Describe("Summary", func() {
 		typ := pointer.FromString("cbg")
 
 		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
+			libreDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID, &uploadId)
 			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
 
 			duration := types.GetDuration(libreDatum)
@@ -114,7 +120,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("Returns correct duration for other devices", func() {
-			otherDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
+			otherDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID, &uploadId)
 
 			duration := types.GetDuration(otherDatum)
 			Expect(duration).To(Equal(5))
