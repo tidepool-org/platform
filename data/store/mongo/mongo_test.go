@@ -531,7 +531,7 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
+			It("deviceData indexes return successfully", func() {
 				cursor, err := collection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cursor).ToNot(BeNil())
@@ -546,9 +546,8 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
-						"Background": Equal(true),
-						"Name":       Equal("UserIdTypeWeighted_v2"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
@@ -558,19 +557,16 @@ var _ = Describe("Mongo", func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("OriginId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+						"Name": Equal("OriginId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("UploadId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
-						"Background": Equal(true),
-						"Name":       Equal("DeduplicatorHash"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
+						"Name": Equal("DeduplicatorHash"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -580,7 +576,54 @@ var _ = Describe("Mongo", func() {
 				))
 			})
 
-			It("returns successfully", func() {
+			It("deviceDataSets indexes return successfully", func() {
+				cursor, err := dataSetCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+						"Name": Equal("OriginId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
+						"Unique": Equal(true),
+						"Name":   Equal("UniqueUploadId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "client.name", "type", "-createdTime")),
+						"Name": Equal("ListUserDataSets"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "-createdTime")),
+						"Name": Equal("ListUserDataSetsAlso"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+						}),
+					}),
+				))
+			})
+
+			It("summary indexes return successfully", func() {
 				cursor, err := summaryCollection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cursor).ToNot(BeNil())
