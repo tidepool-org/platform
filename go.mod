@@ -22,6 +22,7 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rinchsan/device-check-go v1.3.0
+	github.com/sideshow/apns2 v0.23.0
 	github.com/tidepool-org/clinic/client v0.0.0-20240125151732-338a1e40e083
 	github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
 	github.com/tidepool-org/go-common v0.11.0
