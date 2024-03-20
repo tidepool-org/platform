@@ -1,8 +1,15 @@
 package test
 
 import (
+	"crypto/sha1"
+	"encoding/base32"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
+	"github.com/tidepool-org/platform/test"
 )
 
 func base(deviceID string) map[string]interface{} {
@@ -12,8 +19,8 @@ func base(deviceID string) map[string]interface{} {
 		"deviceTime":  "2017-11-05T12:56:51",
 		"id":          "3f0075ad57ad603c83dc1e1a76aefcaf",
 		"localTime":   "2017-11-05T12:56:51.000Z",
-		"_userId":     "87df73fd41",
-		"_groupId":    "8da6e693b8",
+		"_userId":     "8da6e693b8",
+		"_groupId":    "87df73fd41",
 		"createdTime": "2022-06-21T22:40:07.732+00:00",
 		"_version":    0,
 		"_active":     true,
@@ -22,9 +29,26 @@ func base(deviceID string) map[string]interface{} {
 	}
 }
 
+func baseWithTime(deviceID string, groupID string, userID string, t time.Time) map[string]interface{} {
+	now := time.Now()
+	return map[string]interface{}{
+		"_id":         "17dbokav5t6pssjv72gm0nie3u25b54m",
+		"deviceId":    deviceID,
+		"deviceTime":  t.Format("2006-01-02T15:04:05"),
+		"id":          "3f0075ad57ad603c83dc1e1a76aefcaf",
+		"localTime":   t.Format("2006-01-02T15:04:05.999Z"),
+		"_userId":     userID,
+		"_groupId":    groupID,
+		"createdTime": now.Format("2006-01-02T15:04:05.999+07:00"),
+		"_version":    0,
+		"_active":     true,
+		"uploadId":    "a21c82a5f5d2860add2539acded6b614",
+		"time":        t.Format("2006-01-02T15:04:05.999+07:00"),
+	}
+}
+
 // payload as a string rather than object or array
-func dexG5MobDatumStringPayload() map[string]interface{} {
-	datum := base("DexG5Mob_iPhone")
+func dexG5MobDatumStringPayload(datum map[string]interface{}) map[string]interface{} {
 	datum["payload"] = `{"systemTime":"2017-11-05T18:56:51Z","transmitterId":"410X6M","transmitterTicks":5796922,"trend":"flat","trendRate":0.6,"trendRateUnits":"mg/dL/min"}`
 	datum["type"] = "cbg"
 	datum["units"] = "mmol/L"
@@ -32,8 +56,7 @@ func dexG5MobDatumStringPayload() map[string]interface{} {
 	return datum
 }
 
-func dexG5MobDatumStringAnnotations() map[string]interface{} {
-	datum := base("DexG5Mob_iPhone")
+func dexG5MobDatumStringAnnotations(datum map[string]interface{}) map[string]interface{} {
 	datum["annotations"] = `[{"code":"bg/out-of-range","threshold":40,"value":"low"}]`
 	datum["type"] = "cbg"
 	datum["units"] = "mmol/L"
@@ -41,9 +64,7 @@ func dexG5MobDatumStringAnnotations() map[string]interface{} {
 	return datum
 }
 
-func tandemPumpSettingsDatum() map[string]interface{} {
-	datum := base("tandem99999999")
-
+func tandemPumpSettingsDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "Simple"
 	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
@@ -96,9 +117,7 @@ func tandemPumpSettingsDatum() map[string]interface{} {
 	return datum
 }
 
-func tandemPumpSettingsWithSleepScheduleDatum() map[string]interface{} {
-	datum := base("tandem99999999")
-
+func tandemPumpSettingsWithSleepScheduleDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "Simple"
 	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
@@ -158,9 +177,7 @@ func tandemPumpSettingsWithSleepScheduleDatum() map[string]interface{} {
 	return datum
 }
 
-func carelinkPumpSettings() map[string]interface{} {
-	datum := base("MiniMed 530G - 751-=-11111111")
-
+func carelinkPumpSettings(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "standard"
 	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
@@ -195,9 +212,7 @@ func carelinkPumpSettings() map[string]interface{} {
 	return datum
 }
 
-func omnipodPumpSettingsDatum() map[string]interface{} {
-
-	datum := base("InsOmn-837268")
+func omnipodPumpSettingsDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "Mine-2016"
 	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
@@ -228,9 +243,7 @@ func omnipodPumpSettingsDatum() map[string]interface{} {
 	return datum
 }
 
-func omnipodPumpSettingsDatumTargetSet() map[string]interface{} {
-
-	datum := base("InsOmn-837268")
+func omnipodPumpSettingsDatumTargetSet(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "Mine-2016"
 	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
@@ -261,8 +274,7 @@ func omnipodPumpSettingsDatumTargetSet() map[string]interface{} {
 	return datum
 }
 
-func tandemAutomatedBasalDatum() map[string]interface{} {
-	datum := base("tandemCIQ1111111111111")
+func tandemAutomatedBasalDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "basal"
 	datum["deliveryType"] = "automated"
 	datum["timezoneOffset"] = -300
@@ -280,8 +292,7 @@ func tandemAutomatedBasalDatum() map[string]interface{} {
 	return datum
 }
 
-func tandemWizardDatum() map[string]interface{} {
-	datum := base("tandemCIQ1111111111111")
+func tandemWizardDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "wizard"
 
 	datum["timezoneOffset"] = -300
@@ -309,16 +320,14 @@ func tandemWizardDatum() map[string]interface{} {
 	return datum
 }
 
-func reservoirChangeDeviceEventDatum() map[string]interface{} {
-	datum := base("InsOmn-1111111111111")
+func reservoirChangeDeviceEventDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "deviceEvent"
 	datum["subType"] = "reservoirChange"
 	datum["status"] = "cvv61jde62b6i28bgot57f18bor5au1n"
 	return datum
 }
 
-func alarmDeviceEventDatum() map[string]interface{} {
-	datum := base("tandemCIQ100000000000")
+func alarmDeviceEventDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "deviceEvent"
 	datum["subType"] = "status"
 	datum["status"] = "suspended"
@@ -329,8 +338,7 @@ func alarmDeviceEventDatum() map[string]interface{} {
 	return datum
 }
 
-func cgmSettingsDatum() map[string]interface{} {
-	datum := base("DexG5MobRec-1111111111111")
+func cgmSettingsDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "cgmSettings"
 	datum["units"] = "mmol/L"
 
@@ -364,8 +372,7 @@ func cgmSettingsDatum() map[string]interface{} {
 	return datum
 }
 
-func emptyPayload() map[string]interface{} {
-	datum := base("Dex-device")
+func emptyPayload(datum map[string]interface{}) map[string]interface{} {
 	datum["payload"] = map[string]interface{}{}
 	datum["type"] = "cbg"
 	datum["units"] = "mmol/L"
@@ -373,28 +380,68 @@ func emptyPayload() map[string]interface{} {
 	return datum
 }
 
-func pumpSettingsWithBolus() map[string]interface{} {
-	datum := tandemPumpSettingsDatum()
-
+func pumpSettingsWithBolus(datum map[string]interface{}) map[string]interface{} {
+	datum = tandemPumpSettingsDatum(datum)
 	datum["bolus"] = &pump.BolusMap{
 		"bolus-1": pumpTest.NewRandomBolus(),
 		"bolus-2": pumpTest.NewRandomBolus(),
 	}
-
 	return datum
 }
 
-var CBGDexcomG5StringPayloadDatum = dexG5MobDatumStringPayload()
-var CBGDexcomG5StringAnnotationsDatum = dexG5MobDatumStringAnnotations()
-var PumpSettingsTandem = tandemPumpSettingsDatum()
-var PumpSettingsWithSleepScheduleTandem = tandemPumpSettingsWithSleepScheduleDatum()
-var PumpSettingsCarelink = carelinkPumpSettings()
-var PumpSettingsOmnipod = omnipodPumpSettingsDatum()
-var PumpSettingsOmnipodBGTargetCorrect = omnipodPumpSettingsDatumTargetSet()
-var AutomatedBasalTandem = tandemAutomatedBasalDatum()
-var WizardTandem = tandemWizardDatum()
-var ReservoirChangeWithStatus = reservoirChangeDeviceEventDatum()
-var AlarmDeviceEventDatum = alarmDeviceEventDatum()
-var CGMSetting = cgmSettingsDatum()
-var EmptyPayloadDatum = emptyPayload()
-var PumpSettingsWithBolusDatum = pumpSettingsWithBolus()
+var CBGDexcomG5StringPayloadDatum = dexG5MobDatumStringPayload(base("DexG5Mob_iPhone"))
+var CBGDexcomG5StringAnnotationsDatum = dexG5MobDatumStringAnnotations(base("DexG5Mob_iPhone"))
+var PumpSettingsTandem = tandemPumpSettingsDatum(base("tandem99999999"))
+var PumpSettingsWithSleepScheduleTandem = tandemPumpSettingsWithSleepScheduleDatum(base("tandem99999999"))
+var PumpSettingsCarelink = carelinkPumpSettings(base("MiniMed 530G - 751-=-11111111"))
+var PumpSettingsOmnipod = omnipodPumpSettingsDatum(base("InsOmn-837268"))
+var PumpSettingsOmnipodBGTargetCorrect = omnipodPumpSettingsDatumTargetSet(base("InsOmn-837268"))
+var AutomatedBasalTandem = tandemAutomatedBasalDatum(base("tandemCIQ1111111111111"))
+var WizardTandem = tandemWizardDatum(base("tandemCIQ1111111111111"))
+var ReservoirChangeWithStatus = reservoirChangeDeviceEventDatum(base("InsOmn-1111111111111"))
+var AlarmDeviceEventDatum = alarmDeviceEventDatum(base("tandemCIQ100000000000"))
+var CGMSetting = cgmSettingsDatum(base("DexG5MobRec-1111111111111"))
+var EmptyPayloadDatum = emptyPayload(base("Dex-device"))
+var PumpSettingsWithBolusDatum = pumpSettingsWithBolus(base("tandem99999999"))
+
+func BulkJellyfishData(deviceID string, groupID string, userID string, requiredRecords int) []map[string]interface{} {
+	data := []map[string]interface{}{}
+	twoWeeksAgo := time.Now().AddDate(0, 0, 14)
+
+	var makeJellyfishID = func(fields []string) string {
+		h := sha1.New()
+		hashFields := append(fields, "bootstrap")
+		for _, field := range hashFields {
+			io.WriteString(h, field)
+			io.WriteString(h, "_")
+		}
+		sha1 := h.Sum(nil)
+		id := strings.ToLower(base32.HexEncoding.WithPadding('-').EncodeToString(sha1))
+		return id
+	}
+
+	for count := 0; count < requiredRecords; count++ {
+		typ := test.RandomChoice([]string{"cbg", "wizard", "deviceEvent"})
+		dTime := twoWeeksAgo.Add(time.Duration(count) * time.Minute)
+		base := baseWithTime(deviceID, groupID, userID, dTime)
+		var datum map[string]interface{}
+
+		switch typ {
+		case "cbg":
+			datum = dexG5MobDatumStringPayload(base)
+		case "cgmSettings":
+			datum = cgmSettingsDatum(base)
+		case "pumpSettings":
+			datum = omnipodPumpSettingsDatumTargetSet(base)
+		case "wizard":
+			datum = tandemWizardDatum(base)
+		case "deviceEvent":
+			datum = alarmDeviceEventDatum(base)
+		}
+		datum["_id"] = makeJellyfishID([]string{userID, deviceID, dTime.Format(time.RFC3339), typ})
+		datum["id"] = datum["_id"]
+		data = append(data, datum)
+	}
+
+	return data
+}

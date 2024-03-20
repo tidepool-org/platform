@@ -53,6 +53,7 @@ type Migration interface {
 	ResetUpdates()
 	SetLastProcessed(lastID string)
 	SetFetched(raw []bson.M)
+	GetStats() MigrationStats
 }
 
 type Settings struct {

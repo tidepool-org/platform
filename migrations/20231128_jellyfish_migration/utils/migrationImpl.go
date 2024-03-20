@@ -112,7 +112,7 @@ func (m *migrationImpl) Execute(
 			break
 		}
 	}
-	m.getStats().report()
+	m.GetStats().report()
 	m.writeErrors(nil)
 	m.writeAudit(nil)
 	return nil
@@ -159,7 +159,7 @@ func (m *migrationImpl) SetFetched(raw []bson.M) {
 	m.rawData = append(m.rawData, raw...)
 }
 
-func (m *migrationImpl) getStats() MigrationStats {
+func (m *migrationImpl) GetStats() MigrationStats {
 	return MigrationStats{
 		Errored: m.errorsCount,
 		Fetched: len(m.rawData),
@@ -196,7 +196,7 @@ func (m *migrationImpl) UpdateChecks() error {
 
 func (m *migrationImpl) capReached() bool {
 	if m.config.cap != nil {
-		stats := m.getStats()
+		stats := m.GetStats()
 
 		percent := (float64(stats.Fetched) * float64(100)) / float64(*m.config.cap)
 		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *m.config.cap, stats.Applied)

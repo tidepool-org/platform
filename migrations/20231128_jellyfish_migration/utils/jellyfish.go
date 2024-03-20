@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -71,18 +72,39 @@ var ProcessJellyfishQueryFn = func(m Migration, selector bson.M, opts ...*option
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
-			updates, revert, err := ProcessDatum(itemID, itemType, item)
-			if err != nil {
-				m.OnError(ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
-			} else if len(updates) > 0 {
-				m.SetUpdates(UpdateData{
-					Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
-					ItemID:   itemID,
-					UserID:   userID,
-					ItemType: itemType,
-					Apply:    updates,
-					Revert:   revert,
-				})
+			if m.GetSettings().Rollback {
+				if rollback, ok := item[m.GetSettings().RollbackSectionName].(primitive.A); ok {
+					cmds := []bson.M{}
+					for _, cmd := range rollback {
+						if cmd, ok := cmd.(bson.M); ok {
+							cmds = append(cmds, cmd)
+						}
+					}
+					if len(cmds) > 0 {
+						m.SetUpdates(UpdateData{
+							Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
+							ItemID:   itemID,
+							UserID:   userID,
+							ItemType: itemType,
+							Apply:    cmds,
+						})
+					}
+				}
+
+			} else {
+				updates, revert, err := ProcessDatum(itemID, itemType, item)
+				if err != nil {
+					m.OnError(ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
+				} else if len(updates) > 0 {
+					m.SetUpdates(UpdateData{
+						Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
+						ItemID:   itemID,
+						UserID:   userID,
+						ItemType: itemType,
+						Apply:    updates,
+						Revert:   revert,
+					})
+				}
 			}
 			m.SetLastProcessed(itemID)
 			all = append(all, item)

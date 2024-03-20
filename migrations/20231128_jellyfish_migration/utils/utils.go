@@ -95,7 +95,6 @@ func updateTragetPrecision(targetObj map[string]interface{}) map[string]interfac
 }
 
 func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[string]interface{}, error) {
-
 	updatedObject := map[string]interface{}{}
 	err := deepCopy(incomingObject, updatedObject)
 	if err != nil {
@@ -162,7 +161,7 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			}
 		}
 		if overridePresets := updatedObject["overridePresets"]; overridePresets != nil {
-			log.Printf("## TODO [%s] [%s] overridePresets %#v", b.datumType, b.datumID, overridePresets)
+			log.Printf("## TODO [%s] [%s] overridePresets", b.datumType, b.datumID)
 		}
 
 	case selfmonitored.Type, ketone.Type, continuous.Type:
@@ -464,6 +463,7 @@ func ProcessDatum(dataID string, dataType string, bsonData bson.M) ([]bson.M, []
 	}
 
 	apply, revert, err := b.datumChanges(storedData)
+
 	if err != nil {
 		return nil, nil, err
 	}

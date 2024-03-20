@@ -43,7 +43,7 @@ var _ = Describe("back-37", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.AutomatedBasalTandem))
 
-				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "CFDp66+LJvYW7rxf+4ndFd8hoTMq+ymzwLnuEUEqhVs="}))
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "YOItOWBgIIoEkqVsBq9yrOZ5utmsKTIezszpGBj5Vpc="}))
 				Expect(applyUnset).Should(HaveKeyWithValue("percent", ""))
 				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
 				Expect(revertSet).Should(HaveKeyWithValue("percent", float64(0.47857142857142865)))
@@ -53,7 +53,7 @@ var _ = Describe("back-37", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.PumpSettingsTandem))
 
-				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "bpKLJbi5JfqD7N0WJ1vj0ck03c9EZ3U0H09TCLhdd3k="}))
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "l5e6HoVqMu3ZOUjqaky/m6ZNw+D0UFxbYw/fM9P4PXc="}))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Simple.0.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Simple.1.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Standard.0.target", 5.55075))
@@ -73,7 +73,7 @@ var _ = Describe("back-37", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.PumpSettingsWithSleepScheduleTandem))
 
-				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "bpKLJbi5JfqD7N0WJ1vj0ck03c9EZ3U0H09TCLhdd3k="}))
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "l5e6HoVqMu3ZOUjqaky/m6ZNw+D0UFxbYw/fM9P4PXc="}))
 				Expect(applySet).Should(HaveKey("sleepSchedules"))
 
 				applyObj := applySet.(primitive.M)
@@ -126,7 +126,7 @@ var _ = Describe("back-37", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.WizardTandem))
 
-				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "o6ybZQtDZ95FvuV0zYGphri2SIGesbLCbkHxc1wbbEE="}))
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "orP5cbifS8h0f3HWZcTOIf4B431HO1OReg9o1nmFnU4="}))
 				Expect(applySet).Should(HaveKeyWithValue("bgInput", 4.4406))
 				Expect(applySet).Should(HaveKeyWithValue("bgTarget.target", 4.4406))
 				Expect(applyUnset).Should(HaveKeyWithValue("localTime", ""))
@@ -140,7 +140,7 @@ var _ = Describe("back-37", func() {
 
 				applySet, _, revertUnset, revertSet := setup(getBSONData(test.PumpSettingsCarelink))
 
-				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "NC17pw1UAaab50iChhQXJ+N9dTi6GduTy9UjsMHolow="}))
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "LgRaGs4QkIBV9sHUjurpMt/ALU+7F7ZlU8xNxhkTQwQ="}))
 				Expect(applySet).Should(HaveKeyWithValue("bgTarget.0.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("bgTarget.1.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("units.bg", "mmol/L"))

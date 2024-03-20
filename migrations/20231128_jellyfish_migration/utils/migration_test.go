@@ -2,11 +2,6 @@ package utils_test
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/base32"
-	"io"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,26 +9,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
-	dataTypesPumpSettingsTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
-	"github.com/tidepool-org/platform/log"
+	platformLog "github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/pointer"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-	"github.com/tidepool-org/platform/test"
-
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
+	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils/test"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
-type fakeMigrationImpl struct {
+type fakeMigrator struct {
 	rollback            bool
 	rollbackSectionName string
 	ctx                 context.Context
@@ -46,7 +30,7 @@ type fakeMigrationImpl struct {
 }
 
 func newMigrationUtil(dataC *mongo.Collection, rollback bool) utils.Migration {
-	return &fakeMigrationImpl{
+	return &fakeMigrator{
 		ctx:                 context.Background(),
 		dataC:               dataC,
 		rollback:            rollback,
@@ -58,179 +42,200 @@ func newMigrationUtil(dataC *mongo.Collection, rollback bool) utils.Migration {
 	}
 }
 
-func (m *fakeMigrationImpl) Initialize() error {
+func (m *fakeMigrator) Initialize() error {
 	return nil
 }
-func (m *fakeMigrationImpl) Execute(selector bson.M, opt *options.FindOptions, queryFn utils.MigrationQueryFn, updateFn utils.MigrationUpdateFn) error {
+func (m *fakeMigrator) Execute(selector bson.M, selectorOpt *options.FindOptions, queryFn utils.MigrationQueryFn, updateFn utils.MigrationUpdateFn) error {
+	settings := m.GetSettings()
+	for queryFn(m, selector, selectorOpt) {
+		updated, err := updateFn(m)
+		if err != nil {
+			return err
+		}
+		m.updatedCount += updated
+		if settings.Cap != nil {
+			if m.GetStats().Fetched >= *settings.Cap {
+				break
+			}
+		}
+	}
 	return nil
 }
-func (m *fakeMigrationImpl) OnError(data utils.ErrorData) {
+func (m *fakeMigrator) OnError(data utils.ErrorData) {
 	m.errorsCount++
 }
-func (m *fakeMigrationImpl) SetUpdates(data utils.UpdateData) {
+func (m *fakeMigrator) SetUpdates(data utils.UpdateData) {
 	m.updates = append(m.updates, data.GetMongoUpdates(m.rollback, m.rollbackSectionName)...)
 }
-
-func (m *fakeMigrationImpl) GetUpdates() []mongo.WriteModel {
+func (m *fakeMigrator) GetUpdates() []mongo.WriteModel {
 	return m.updates
 }
 
-func (m *fakeMigrationImpl) GetSettings() utils.Settings {
-	cap := 10000
-	writeBatchSize := int64(1000)
+func (m *fakeMigrator) GetSettings() utils.Settings {
+	writeBatchSize := int64(20)
 	return utils.Settings{
 		DryRun:              false,
 		Rollback:            m.rollback,
 		RollbackSectionName: m.rollbackSectionName,
 		StopOnErr:           false,
-		Cap:                 &cap,
+		Cap:                 nil,
 		WriteBatchSize:      &writeBatchSize,
 	}
 }
 
-func (m *fakeMigrationImpl) ResetUpdates() {
+func (m *fakeMigrator) ResetUpdates() {
 	m.updates = []mongo.WriteModel{}
 }
 
-func (m *fakeMigrationImpl) GetCtx() context.Context {
+func (m *fakeMigrator) GetCtx() context.Context {
 	return context.Background()
 }
 
-func (m *fakeMigrationImpl) GetLastID() string {
+func (m *fakeMigrator) GetLastID() string {
 	return m.lastUpdatedId
 }
 
-func (m *fakeMigrationImpl) SetLastProcessed(lastID string) {
+func (m *fakeMigrator) SetLastProcessed(lastID string) {
 	m.lastUpdatedId = lastID
 }
 
-func (m *fakeMigrationImpl) GetDataCollection() *mongo.Collection {
+func (m *fakeMigrator) GetDataCollection() *mongo.Collection {
 	return m.dataC
 }
 
-func (m *fakeMigrationImpl) UpdateChecks() error {
+func (m *fakeMigrator) UpdateChecks() error {
 	return nil
 }
 
-func (m *fakeMigrationImpl) SetFetched(raw []bson.M) {
+func (m *fakeMigrator) SetFetched(raw []bson.M) {
 	m.rawData = append(m.rawData, raw...)
+}
+
+func (m *fakeMigrator) GetStats() utils.MigrationStats {
+	return utils.MigrationStats{
+		Errored: m.errorsCount,
+		Fetched: len(m.rawData),
+		Applied: m.updatedCount,
+	}
+}
+
+func setCollectionData(ctx context.Context, dataC *mongo.Collection, dataSetData []map[string]interface{}) error {
+	insertData := make([]mongo.WriteModel, 0, len(dataSetData))
+	for _, datum := range dataSetData {
+		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
+	}
+	opts := options.BulkWrite().SetOrdered(false)
+	_, err := dataC.BulkWrite(ctx, insertData, opts)
+	return err
 }
 
 var _ = Describe("back-37", func() {
 	var _ = Describe("migrationUtil", func() {
 
-		var testData data.Data
+		var testData []map[string]interface{}
 		var migration utils.Migration
-
-		var makeJellyfishID = func(fields ...string) *string {
-			h := sha1.New()
-			hashFields := append(fields, "bootstrap")
-			for _, field := range hashFields {
-				io.WriteString(h, field)
-				io.WriteString(h, "_")
-			}
-			sha1 := h.Sum(nil)
-			id := strings.ToLower(base32.HexEncoding.WithPadding('-').EncodeToString(sha1))
-			return &id
-		}
-
-		var newData = func(deviceID string, requiredRecords int) data.Data {
-			units := pointer.FromString("mg/dL")
-			testData := data.Data{}
-
-			for count := 0; count < requiredRecords; count++ {
-				typ := test.RandomChoice([]string{"cbg", "smbg", "basal", "pumpSettings"})
-
-				switch typ {
-				case "cbg":
-					datum := continuous.New()
-					datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
-					datum.Type = "cbg"
-					datum.Deduplicator = nil
-					datum.DeviceID = pointer.FromAny(deviceID)
-					datum.ID = makeJellyfishID(datum.Type, *datum.DeviceID, datum.Time.Format(time.RFC3339))
-					testData = append(testData, datum)
-				case "smbg":
-					datum := selfmonitored.New()
-					datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
-					datum.Type = "smbg"
-					datum.SubType = pointer.FromString(test.RandomStringFromArray(selfmonitored.SubTypes()))
-					datum.Deduplicator = nil
-					datum.DeviceID = pointer.FromAny(deviceID)
-					datum.ID = makeJellyfishID(datum.Type, *datum.DeviceID, datum.Time.Format(time.RFC3339))
-					testData = append(testData, datum)
-				case "basal":
-					datum := dataTypesBasalTest.RandomBasal()
-					datum.Deduplicator = nil
-					datum.DeviceID = pointer.FromAny(deviceID)
-					datum.ID = makeJellyfishID(datum.Type, *datum.DeviceID, datum.Time.Format(time.RFC3339))
-					testData = append(testData, datum)
-				case "pumpSettings":
-					datum := dataTypesPumpSettingsTest.NewPump(units)
-					datum.Deduplicator = nil
-					datum.DeviceID = pointer.FromAny(deviceID)
-					datum.ID = makeJellyfishID(datum.Type, *datum.DeviceID, datum.Time.Format(time.RFC3339))
-					testData = append(testData, datum)
-				}
-
-			}
-			return testData
-		}
-
-		var newDataSet = func(userID string, deviceID string) *upload.Upload {
-			dataSet := dataTypesUploadTest.RandomUpload()
-			dataSet.Active = true
-			dataSet.ArchivedDataSetID = nil
-			dataSet.ArchivedTime = nil
-			dataSet.CreatedTime = nil
-			dataSet.CreatedUserID = nil
-			dataSet.DeletedTime = nil
-			dataSet.DeletedUserID = nil
-			dataSet.DeviceID = pointer.FromAny(deviceID)
-			dataSet.Location.GPS.Origin.Time = nil
-			dataSet.ModifiedTime = nil
-			dataSet.ModifiedUserID = nil
-			dataSet.Origin.Time = nil
-			dataSet.UserID = pointer.FromAny(userID)
-			return dataSet
-		}
-
+		const datumCount = 50
 		var store *dataStoreMongo.Store
-		var repository dataStore.DataRepository
 		var ctx context.Context
-
-		var collection *mongo.Collection
 
 		BeforeEach(func() {
 			logger := logTest.NewLogger()
-			ctx = log.NewContextWithLogger(context.Background(), logger)
-			deviceID := "test-device-88x89"
-			testData = newData("test-device-88x89", 2000)
-			uploadDataSet := newDataSet("test-user-id", deviceID)
+			ctx = platformLog.NewContextWithLogger(context.Background(), logger)
+			testData = test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", datumCount)
 			var err error
 			store, err = dataStoreMongo.NewStore(storeStructuredMongoTest.NewConfig())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
-			collection = store.GetCollection("deviceData")
-			repository = store.NewDataRepository()
-			Expect(repository.CreateDataSetData(ctx, uploadDataSet, testData)).To(Succeed())
 		})
 		AfterEach(func() {
-			if collection != nil {
-				collection.Database().Drop(ctx)
-			}
 			if store != nil {
 				_ = store.Terminate(ctx)
 			}
 		})
 		It("apply migration", func() {
+			collection := store.GetCollection("testMigration")
+			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
+
 			migration = newMigrationUtil(collection, false)
 			Expect(testData).ToNot(BeNil())
-			Expect(len(testData)).To(Equal(2000))
+			Expect(len(testData)).To(Equal(datumCount))
+			allDocs, err := collection.CountDocuments(ctx, bson.D{})
+			Expect(err).To(BeNil())
+			Expect(allDocs).To(Equal(int64(datumCount)))
+			selector, opt := utils.JellyfishUpdatesQuery(nil, nil, 50, 100)
+			Expect(migration.Execute(selector, opt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn)).To(Succeed())
+			stats := migration.GetStats()
+			Expect(stats.Errored).To(Equal(0))
+			Expect(stats.Fetched).To(Equal(datumCount))
+			Expect(stats.Applied).To(Equal(datumCount * 3))
+
+			cur, err := collection.Find(ctx, bson.D{})
+			Expect(err).To(BeNil())
+			migrated := []map[string]interface{}{}
+			cur.All(ctx, &migrated)
+
+			Expect(len(migrated)).To(Equal(datumCount))
+
+			for _, item := range migrated {
+				Expect(item).Should(HaveKey("_deduplicator"))
+				Expect(item).Should(HaveKey(migration.GetSettings().RollbackSectionName))
+				Expect(item).ShouldNot(HaveKey("localTime"))
+			}
+
+		})
+
+		It("apply then rollback migration will return the data to its orginal state", func() {
+
+			collection := store.GetCollection("testRollback")
+			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
+
+			findOptions := options.Find()
+			findOptions.SetSort(bson.D{{Key: "_id", Value: -1}})
+
+			migration = newMigrationUtil(collection, false)
+			Expect(testData).ToNot(BeNil())
+			Expect(len(testData)).To(Equal(datumCount))
+
+			cur, err := collection.Find(ctx, bson.D{}, findOptions)
+			Expect(err).To(BeNil())
+
+			original := []map[string]interface{}{}
+			cur.All(ctx, &original)
+			Expect(len(original)).To(Equal(datumCount))
+
 			selector, opt := utils.JellyfishUpdatesQuery(nil, nil, 50, 100)
 			Expect(migration.Execute(selector, opt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn)).To(Succeed())
 
-			Expect(true).To(Equal(false))
+			cur, err = collection.Find(ctx, bson.D{}, findOptions)
+			Expect(err).To(BeNil())
+			migrated := []map[string]interface{}{}
+			cur.All(ctx, &migrated)
+			Expect(len(migrated)).To(Equal(datumCount))
+
+			rollback := newMigrationUtil(collection, true)
+
+			rollbackSelector, rollbackOpt := utils.JellyfishRollbackQuery(rollback.GetSettings().RollbackSectionName, nil, nil, 50, 100)
+			Expect(rollback.Execute(rollbackSelector, rollbackOpt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn)).To(Succeed())
+
+			cur, err = collection.Find(ctx, bson.D{}, findOptions)
+			Expect(err).To(BeNil())
+			rolledback := []map[string]interface{}{}
+			cur.All(ctx, &rolledback)
+			Expect(len(rolledback)).To(Equal(datumCount))
+
+			for i, item := range rolledback {
+				Expect(original[i]["_id"]).To(Equal(item["_id"]))
+				Expect(migrated[i]["_id"]).To(Equal(item["_id"]))
+
+				Expect(migrated[i]).Should(HaveKey("_deduplicator"))
+				Expect(original[i]).ShouldNot(HaveKey("_deduplicator"))
+				Expect(item).ShouldNot(HaveKey("_deduplicator"))
+
+				Expect(migrated[i]).Should(HaveKey((migration.GetSettings().RollbackSectionName)))
+				Expect(original[i]).ShouldNot(HaveKey((migration.GetSettings().RollbackSectionName)))
+				Expect(item).ShouldNot(HaveKey((migration.GetSettings().RollbackSectionName)))
+			}
+
 		})
 	})
 })
