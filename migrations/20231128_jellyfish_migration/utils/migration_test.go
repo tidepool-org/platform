@@ -134,7 +134,7 @@ var _ = Describe("back-37", func() {
 
 		var testData []map[string]interface{}
 		var migration utils.Migration
-		const datumCount = 50
+		const datumCount = 1000
 		var store *dataStoreMongo.Store
 		var ctx context.Context
 
@@ -152,7 +152,7 @@ var _ = Describe("back-37", func() {
 				_ = store.Terminate(ctx)
 			}
 		})
-		It("apply migration", func() {
+		It("apply migration will set _deduplicator and also rollback data", func() {
 			collection := store.GetCollection("testMigration")
 			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
 
@@ -223,17 +223,9 @@ var _ = Describe("back-37", func() {
 			cur.All(ctx, &rolledback)
 			Expect(len(rolledback)).To(Equal(datumCount))
 
-			for i, item := range rolledback {
-				Expect(original[i]["_id"]).To(Equal(item["_id"]))
-				Expect(migrated[i]["_id"]).To(Equal(item["_id"]))
-
-				Expect(migrated[i]).Should(HaveKey("_deduplicator"))
-				Expect(original[i]).ShouldNot(HaveKey("_deduplicator"))
-				Expect(item).ShouldNot(HaveKey("_deduplicator"))
-
-				Expect(migrated[i]).Should(HaveKey((migration.GetSettings().RollbackSectionName)))
-				Expect(original[i]).ShouldNot(HaveKey((migration.GetSettings().RollbackSectionName)))
-				Expect(item).ShouldNot(HaveKey((migration.GetSettings().RollbackSectionName)))
+			for i, rollbackItem := range rolledback {
+				Expect(migrated[i]["_id"]).To(Equal(rollbackItem["_id"]))
+				Expect(original[i]).To(Equal(rollbackItem))
 			}
 
 		})

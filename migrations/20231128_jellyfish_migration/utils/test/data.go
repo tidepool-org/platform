@@ -311,7 +311,7 @@ func tandemWizardDatum(datum map[string]interface{}) map[string]interface{} {
 	}
 
 	datum["units"] = "mmol/L"
-	datum["duration"] = 300000
+	datum["duration"] = float64(300000)
 	datum["rate"] = 0.335
 	datum["percent"] = 0.47857142857142865
 	datum["conversionOffset"] = 0
@@ -442,6 +442,5 @@ func BulkJellyfishData(deviceID string, groupID string, userID string, requiredR
 		datum["id"] = datum["_id"]
 		data = append(data, datum)
 	}
-
 	return data
 }
