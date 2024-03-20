@@ -68,7 +68,7 @@ var _ = Describe("Alerts endpoints", func() {
 		if details != nil {
 			dCtx.WithAuthDetails(details)
 		}
-		dCtx.RESTRequest.PathParams["userID"] = "bad"
+		dCtx.RESTRequest.PathParams["followerUserId"] = "bad"
 		repo := newMockRepo()
 		dCtx.MockAlertsRepository = repo
 
@@ -151,7 +151,7 @@ var _ = Describe("Alerts endpoints", func() {
 
 		It("rejects users without alerting permissions", func() {
 			testUserHasFollowPermission(func(dCtx dataservice.Context) {
-				dCtx.Request().PathParams["followedUserID"] = mocks.TestUserID2
+				dCtx.Request().PathParams["userId"] = mocks.TestUserID2
 
 				GetAlert(dCtx)
 			})
