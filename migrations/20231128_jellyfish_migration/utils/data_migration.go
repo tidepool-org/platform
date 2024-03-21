@@ -215,7 +215,7 @@ func (m *DataMigration) Execute(
 	return nil
 }
 
-func (d UpdateData) GetMongoUpdates(rollback bool, rollbackSectionName string) []mongo.WriteModel {
+func (d UpdateData) getMongoUpdates(rollback bool, rollbackSectionName string) []mongo.WriteModel {
 	updates := []mongo.WriteModel{}
 	for _, u := range d.Apply {
 		updateOp := mongo.NewUpdateOneModel()
@@ -236,7 +236,7 @@ func (d UpdateData) GetMongoUpdates(rollback bool, rollbackSectionName string) [
 
 func (m *DataMigration) SetUpdates(data UpdateData) {
 	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	m.updates = append(m.updates, data.GetMongoUpdates(m.config.rollback, m.config.rollbackSectionName)...)
+	m.updates = append(m.updates, data.getMongoUpdates(m.config.rollback, m.config.rollbackSectionName)...)
 }
 
 func (m *DataMigration) ResetUpdates() {
