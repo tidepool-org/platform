@@ -14,109 +14,31 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils/test"
+	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
-type fakeMigrator struct {
-	rollback            bool
-	rollbackSectionName string
-	ctx                 context.Context
-	dataC               *mongo.Collection
-	updates             []mongo.WriteModel
-	rawData             []bson.M
-	errorsCount         int
-	updatedCount        int
-	lastUpdatedId       string
+type mongoInstance struct {
+	writeBatchSize *int64
 }
 
-func newMigrationUtil(dataC *mongo.Collection, rollback bool) utils.Migration {
-	return &fakeMigrator{
-		ctx:                 context.Background(),
-		dataC:               dataC,
-		rollback:            rollback,
-		rollbackSectionName: "_testRollback",
-		updates:             []mongo.WriteModel{},
-		rawData:             []bson.M{},
-		errorsCount:         0,
-		updatedCount:        0,
+func newMongoInstanceChecker() utils.MongoInstanceCheck {
+	return &mongoInstance{
+		writeBatchSize: pointer.FromInt64(100),
 	}
 }
 
-func (m *fakeMigrator) Initialize() error {
+func (m *mongoInstance) SetWriteBatchSize(ctx context.Context) error {
 	return nil
 }
-func (m *fakeMigrator) Execute(selector bson.M, selectorOpt *options.FindOptions, queryFn utils.MigrationQueryFn, updateFn utils.MigrationUpdateFn) error {
-	settings := m.GetSettings()
-	for queryFn(m, selector, selectorOpt) {
-		updated, err := updateFn(m)
-		if err != nil {
-			return err
-		}
-		m.updatedCount += updated
-		if settings.Cap != nil {
-			if m.GetStats().Fetched >= *settings.Cap {
-				break
-			}
-		}
-	}
+func (m *mongoInstance) CheckFreeSpace(ctx context.Context, dataC *mongo.Collection) error {
 	return nil
 }
-func (m *fakeMigrator) OnError(data utils.ErrorData) {
-	m.errorsCount++
-}
-func (m *fakeMigrator) SetUpdates(data utils.UpdateData) {
-	m.updates = append(m.updates, data.GetMongoUpdates(m.rollback, m.rollbackSectionName)...)
-}
-func (m *fakeMigrator) GetUpdates() []mongo.WriteModel {
-	return m.updates
-}
-
-func (m *fakeMigrator) GetSettings() utils.Settings {
-	writeBatchSize := int64(20)
-	return utils.Settings{
-		DryRun:              false,
-		Rollback:            m.rollback,
-		RollbackSectionName: m.rollbackSectionName,
-		StopOnErr:           false,
-		Cap:                 nil,
-		WriteBatchSize:      &writeBatchSize,
-	}
-}
-
-func (m *fakeMigrator) ResetUpdates() {
-	m.updates = []mongo.WriteModel{}
-}
-
-func (m *fakeMigrator) GetCtx() context.Context {
-	return context.Background()
-}
-
-func (m *fakeMigrator) GetLastID() string {
-	return m.lastUpdatedId
-}
-
-func (m *fakeMigrator) SetLastProcessed(lastID string) {
-	m.lastUpdatedId = lastID
-}
-
-func (m *fakeMigrator) GetDataCollection() *mongo.Collection {
-	return m.dataC
-}
-
-func (m *fakeMigrator) UpdateChecks() error {
+func (m *mongoInstance) BlockUntilDBReady(ctx context.Context) error {
 	return nil
 }
-
-func (m *fakeMigrator) SetFetched(raw []bson.M) {
-	m.rawData = append(m.rawData, raw...)
-}
-
-func (m *fakeMigrator) GetStats() utils.MigrationStats {
-	return utils.MigrationStats{
-		Errored: m.errorsCount,
-		Fetched: len(m.rawData),
-		Applied: m.updatedCount,
-	}
+func (m *mongoInstance) GetWriteBatchSize() *int64 {
+	return m.writeBatchSize
 }
 
 func setCollectionData(ctx context.Context, dataC *mongo.Collection, dataSetData []map[string]interface{}) error {
@@ -133,15 +55,32 @@ var _ = Describe("back-37", func() {
 	var _ = Describe("migrationUtil", func() {
 
 		var testData []map[string]interface{}
-		var migration utils.Migration
 		const datumCount = 1000
 		var store *dataStoreMongo.Store
 		var ctx context.Context
+		var rollbackConfig *utils.DataMigrationConfig
+		var migtaionConfig *utils.DataMigrationConfig
 
 		BeforeEach(func() {
 			logger := logTest.NewLogger()
 			ctx = platformLog.NewContextWithLogger(context.Background(), logger)
 			testData = test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", datumCount)
+			rollbackConfig = utils.NewDataMigrationConfig(
+				pointer.FromBool(false),
+				pointer.FromBool(false),
+				pointer.FromBool(true),
+				pointer.FromString("_testRollback"),
+				nil,
+				pointer.FromBool(false),
+			)
+			migtaionConfig = utils.NewDataMigrationConfig(
+				pointer.FromBool(false),
+				pointer.FromBool(false),
+				pointer.FromBool(false),
+				pointer.FromString("_testRollback"),
+				nil,
+				pointer.FromBool(false),
+			)
 			var err error
 			store, err = dataStoreMongo.NewStore(storeStructuredMongoTest.NewConfig())
 			Expect(err).ToNot(HaveOccurred())
@@ -156,14 +95,16 @@ var _ = Describe("back-37", func() {
 			collection := store.GetCollection("testMigration")
 			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
 
-			migration = newMigrationUtil(collection, false)
+			migration, err := utils.NewMigration(ctx, migtaionConfig, newMongoInstanceChecker(), collection, nil)
+			Expect(err).To(BeNil())
+
 			Expect(testData).ToNot(BeNil())
 			Expect(len(testData)).To(Equal(datumCount))
 			allDocs, err := collection.CountDocuments(ctx, bson.D{})
 			Expect(err).To(BeNil())
 			Expect(allDocs).To(Equal(int64(datumCount)))
-			selector, opt := utils.JellyfishUpdatesQuery(nil, nil, 50, 100)
-			Expect(migration.Execute(selector, opt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn)).To(Succeed())
+			selector, opt := utils.JellyfishDataQuery(nil, nil, 50, 100)
+			Expect(migration.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
 			stats := migration.GetStats()
 			Expect(stats.Errored).To(Equal(0))
 			Expect(stats.Fetched).To(Equal(datumCount))
@@ -192,7 +133,9 @@ var _ = Describe("back-37", func() {
 			findOptions := options.Find()
 			findOptions.SetSort(bson.D{{Key: "_id", Value: -1}})
 
-			migration = newMigrationUtil(collection, false)
+			migration, err := utils.NewMigration(ctx, migtaionConfig, newMongoInstanceChecker(), collection, nil)
+			Expect(err).To(BeNil())
+
 			Expect(testData).ToNot(BeNil())
 			Expect(len(testData)).To(Equal(datumCount))
 
@@ -203,8 +146,8 @@ var _ = Describe("back-37", func() {
 			cur.All(ctx, &original)
 			Expect(len(original)).To(Equal(datumCount))
 
-			selector, opt := utils.JellyfishUpdatesQuery(nil, nil, 50, 100)
-			Expect(migration.Execute(selector, opt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn)).To(Succeed())
+			selector, opt := utils.JellyfishDataQuery(nil, nil, 50, 100)
+			Expect(migration.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
 
 			cur, err = collection.Find(ctx, bson.D{}, findOptions)
 			Expect(err).To(BeNil())
@@ -212,10 +155,11 @@ var _ = Describe("back-37", func() {
 			cur.All(ctx, &migrated)
 			Expect(len(migrated)).To(Equal(datumCount))
 
-			rollback := newMigrationUtil(collection, true)
+			rollback, err := utils.NewMigration(ctx, rollbackConfig, newMongoInstanceChecker(), collection, nil)
+			Expect(err).To(BeNil())
 
-			rollbackSelector, rollbackOpt := utils.JellyfishRollbackQuery(rollback.GetSettings().RollbackSectionName, nil, nil, 50, 100)
-			Expect(rollback.Execute(rollbackSelector, rollbackOpt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn)).To(Succeed())
+			rollbackSelector, rollbackOpt := utils.JellyfishDataRollbackQuery(rollback.GetSettings().RollbackSectionName, nil, nil, 50, 100)
+			Expect(rollback.Execute(rollbackSelector, rollbackOpt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
 
 			cur, err = collection.Find(ctx, bson.D{}, findOptions)
 			Expect(err).To(BeNil())

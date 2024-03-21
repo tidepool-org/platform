@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type Migration struct {
@@ -19,7 +20,7 @@ type Migration struct {
 	cli           *cli.App
 	config        *config
 	client        *mongo.Client
-	migrationUtil utils.Migration
+	migrationUtil *utils.DataMigration
 }
 
 type config struct {
@@ -70,16 +71,23 @@ func (m *Migration) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
+
+		dbChecker := utils.NewMongoInstanceCheck(
+			m.client,
+			utils.NewMongoInstanceCheckConfig(&m.config.nopPercent),
+		)
+
 		m.migrationUtil, err = utils.NewMigration(
 			m.ctx,
-			utils.NewMigrationConfig(
+			utils.NewDataMigrationConfig(
 				&m.config.dryRun,
 				&m.config.stopOnErr,
 				&m.config.rollback,
 				&m.config.rollbackSectionName,
-				&m.config.nopPercent,
-				&m.config.cap),
-			m.client,
+				&m.config.cap,
+				pointer.FromBool(true),
+			),
+			dbChecker,
 			m.client.Database("data").Collection("deviceData"),
 			&m.config.lastUpdatedId,
 		)
@@ -93,7 +101,7 @@ func (m *Migration) RunAndExit() {
 		}
 		lastFetchedID := m.migrationUtil.GetLastID()
 
-		selector, opt := utils.JellyfishUpdatesQuery(
+		selector, opt := utils.JellyfishDataQuery(
 			&m.config.userID,
 			&lastFetchedID,
 			m.config.queryBatchSize,
@@ -101,7 +109,7 @@ func (m *Migration) RunAndExit() {
 		)
 
 		if m.config.rollback {
-			selector, opt = utils.JellyfishRollbackQuery(
+			selector, opt = utils.JellyfishDataRollbackQuery(
 				m.config.rollbackSectionName,
 				&m.config.userID,
 				&lastFetchedID,
@@ -109,7 +117,7 @@ func (m *Migration) RunAndExit() {
 				m.config.queryLimit,
 			)
 		}
-		if err := m.migrationUtil.Execute(selector, opt, utils.ProcessJellyfishQueryFn, utils.WriteJellyfishUpdatesFn); err != nil {
+		if err := m.migrationUtil.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn); err != nil {
 			log.Printf("execute failed: %s", err)
 			return err
 		}

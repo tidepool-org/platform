@@ -113,7 +113,6 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 			delete(updatedObject, "bolus")
 		}
 		if schedules := updatedObject["sleepSchedules"]; schedules != nil {
-
 			// NOTE: this is to fix sleepSchedules so they are in the required map format
 			scheduleNames := map[int]string{0: "1", 1: "2"}
 			sleepScheduleMap := map[string]interface{}{}

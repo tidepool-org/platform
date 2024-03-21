@@ -36,7 +36,7 @@ func opt(batchSize int32, queryLimit int64) *options.FindOptions {
 	}
 }
 
-func JellyfishUpdatesQuery(userID *string, lastFetchedID *string, batchSize int64, queryLimit int64) (bson.M, *options.FindOptions) {
+func JellyfishDataQuery(userID *string, lastFetchedID *string, batchSize int64, queryLimit int64) (bson.M, *options.FindOptions) {
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
 	}
@@ -44,7 +44,7 @@ func JellyfishUpdatesQuery(userID *string, lastFetchedID *string, batchSize int6
 	return selector, opt(int32(batchSize), queryLimit)
 }
 
-func JellyfishRollbackQuery(rollbackSectionName string, userID *string, lastFetchedID *string, batchSize int64, queryLimit int64) (bson.M, *options.FindOptions) {
+func JellyfishDataRollbackQuery(rollbackSectionName string, userID *string, lastFetchedID *string, batchSize int64, queryLimit int64) (bson.M, *options.FindOptions) {
 	selector := bson.M{
 		rollbackSectionName: bson.M{"$exists": true},
 	}
@@ -52,7 +52,7 @@ func JellyfishRollbackQuery(rollbackSectionName string, userID *string, lastFetc
 	return selector, opt(int32(batchSize), queryLimit)
 }
 
-var ProcessJellyfishQueryFn = func(m Migration, selector bson.M, opts ...*options.FindOptions) bool {
+var JellyfishDataQueryFn = func(m *DataMigration, selector bson.M, opts ...*options.FindOptions) bool {
 	if dataC := m.GetDataCollection(); dataC != nil {
 		dDataCursor, err := dataC.Find(m.GetCtx(), selector, opts...)
 		if err != nil {
@@ -115,7 +115,7 @@ var ProcessJellyfishQueryFn = func(m Migration, selector bson.M, opts ...*option
 	return false
 }
 
-var WriteJellyfishUpdatesFn = func(m Migration) (int, error) {
+var JellyfishDataUpdatesFn = func(m *DataMigration) (int, error) {
 	settings := m.GetSettings()
 	updates := m.GetUpdates()
 	dataC := m.GetDataCollection()
