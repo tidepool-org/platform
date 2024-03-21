@@ -80,18 +80,16 @@ func (d *DatumRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetName("UploadId"),
+				SetName("UploadIdTypeless"),
 		},
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "_active", Value: 1},
 				{Key: "_deduplicator.hash", Value: 1},
 			},
@@ -101,7 +99,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
 					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
 				}).
-				SetName("DeduplicatorHash"),
+				SetName("DeduplicatorHashTypeless"),
 		},
 	})
 }
@@ -166,7 +164,6 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["_active"] = false
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -206,7 +203,6 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["_active"] = true
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -246,7 +242,6 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
@@ -286,7 +281,6 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
@@ -315,7 +309,6 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
@@ -345,7 +338,6 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 	selector := bson.M{
 		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
 	}
 
 	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
@@ -353,7 +345,6 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 		selector = bson.M{
 			"_userId":            dataSet.UserID,
 			"deviceId":           *dataSet.DeviceID,
-			"type":               bson.M{"$ne": "upload"},
 			"_active":            true,
 			"_deduplicator.hash": bson.M{"$in": hashes},
 		}
@@ -394,7 +385,6 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 		{
 			"$match": bson.M{
 				"uploadId": dataSet.UploadID,
-				"type":     bson.M{"$ne": "upload"},
 			},
 		},
 		{
@@ -476,34 +466,6 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(overallErr).Debug("UnarchiveDeviceDataUsingHashesFromDataSet")
 
 	return overallErr
-}
-
-func (d *DatumRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
-
-	var dataSet *data.DataSet
-	selector := bson.M{
-		"uploadId": id,
-		"type":     "upload",
-	}
-
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
-	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DatumRepository.GetDataSet")
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
-		return nil, fmt.Errorf("unable to get data set: %w", err)
-	}
-
-	return dataSet, nil
 }
 
 func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {

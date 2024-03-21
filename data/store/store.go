@@ -60,9 +60,6 @@ type DatumRepository interface {
 	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
-	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
-	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
-
 	GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error)
 	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
