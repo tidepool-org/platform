@@ -46,7 +46,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
@@ -76,7 +75,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
 		},
 		{
@@ -87,7 +85,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
 		},
 		{
@@ -99,7 +96,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -480,34 +476,6 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(overallErr).Debug("UnarchiveDeviceDataUsingHashesFromDataSet")
 
 	return overallErr
-}
-
-func (d *DatumRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
-
-	var dataSet *data.DataSet
-	selector := bson.M{
-		"uploadId": id,
-		"type":     "upload",
-	}
-
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
-	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DatumRepository.GetDataSet")
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
-		return nil, fmt.Errorf("unable to get data set: %w", err)
-	}
-
-	return dataSet, nil
 }
 
 func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
