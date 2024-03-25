@@ -187,7 +187,7 @@ func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId str
 	}
 
 	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
-	if status.LastData.IsZero() {
+	if status == nil {
 		// user's data is inactive/ancient/deleted, or this summary shouldn't have been created
 		logger.Warnf("User %s has a summary, but no data within range, deleting summary", userId)
 		return nil, gs.summaries.DeleteSummary(ctx, userId)

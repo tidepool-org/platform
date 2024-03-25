@@ -770,6 +770,11 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, err
 	}
 
+	// the user has no eligible data, quit out early
+	if status.LastData.IsZero() {
+		return nil, nil
+	}
+
 	err = d.populateLastUpload(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err

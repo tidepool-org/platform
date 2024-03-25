@@ -1393,15 +1393,13 @@ var _ = Describe("Mongo", func() {
 							It("correctly does not find the LastUpload and LastData for an inactive type", func() {
 								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, selfmonitored.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(status.LastData.IsZero()).To(BeTrue())
-								Expect(status.LastUpload.IsZero()).To(BeTrue())
+								Expect(status).To(BeNil())
 							})
 
 							It("correctly does not find the LastUpload and LastData for an unused type", func() {
 								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, bolus.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(status.LastData.IsZero()).To(BeTrue())
-								Expect(status.LastUpload.IsZero()).To(BeTrue())
+								Expect(status).To(BeNil())
 							})
 
 						})
