@@ -12,13 +12,13 @@ import (
 )
 
 func commonQuery(selector bson.M, userID *string, lastFetchedID *string) {
-	if userID != nil {
+	if userID != nil && *userID != "" {
 		log.Printf("fetching for user %s", *userID)
 		selector["_userId"] = *userID
 	}
 	idNotObjectID := bson.M{"$not": bson.M{"$type": "objectId"}}
 
-	if lastFetchedID != nil {
+	if lastFetchedID != nil && *lastFetchedID != "" {
 		selector["$and"] = []interface{}{
 			bson.M{"_id": bson.M{"$gt": *lastFetchedID}},
 			bson.M{"_id": idNotObjectID},
