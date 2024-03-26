@@ -148,8 +148,6 @@ func NewMigration(ctx context.Context, config *DataMigrationConfig, checker Mong
 		return nil, err
 	}
 
-	log.Printf("running with config %#v", *config)
-
 	m := &DataMigration{
 		ctx:                  ctx,
 		dataC:                dataC,
@@ -301,6 +299,7 @@ func (m *DataMigration) capReached() bool {
 		stats := m.GetStats()
 
 		percent := (float64(stats.Fetched) * float64(100)) / float64(*m.config.cap)
+
 		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *m.config.cap, stats.Applied)
 
 		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
@@ -320,62 +319,59 @@ func (c MigrationStats) report() {
 }
 
 func (m *DataMigration) writeErrors(groupLimit *int) {
-	if m.config.writeToDisk {
-		for group, errors := range m.groupedErrors {
-			if groupLimit != nil {
-				if len(errors) < *groupLimit {
-					continue
-				}
+	if !m.config.writeToDisk {
+		m.groupedErrors = map[string][]ErrorData{}
+	}
+	for group, errors := range m.groupedErrors {
+		if groupLimit != nil {
+			if len(errors) < *groupLimit {
+				continue
 			}
-			f, err := createFile("error", group, "%s.log")
+		}
+		f, err := createFile("error", group, "%s.log")
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		for _, data := range errors {
+			errJSON, err := json.Marshal(data)
 			if err != nil {
 				log.Println(err)
 				os.Exit(1)
 			}
-			defer f.Close()
-			for _, data := range errors {
-				errJSON, err := json.Marshal(data)
-				if err != nil {
-					log.Println(err)
-					os.Exit(1)
-				}
-				f.WriteString(string(errJSON) + "\n")
-			}
-			m.groupedErrors[group] = []ErrorData{}
+			f.WriteString(string(errJSON) + "\n")
 		}
+		m.groupedErrors[group] = []ErrorData{}
 	}
 }
 
 func (m *DataMigration) writeAudit(groupLimit *int) {
-
-	if !m.config.dryRun {
+	if !m.config.writeToDisk || !m.config.dryRun {
 		m.groupedDiffs = map[string][]UpdateData{}
 		return
 	}
-	if m.config.writeToDisk {
-
-		for group, diffs := range m.groupedDiffs {
-			if groupLimit != nil {
-				if len(diffs) < *groupLimit {
-					continue
-				}
+	for group, diffs := range m.groupedDiffs {
+		if groupLimit != nil {
+			if len(diffs) < *groupLimit {
+				continue
 			}
-			f, err := createFile("audit", group, "%s.json")
+		}
+		f, err := createFile("audit", group, "%s.json")
+		if err != nil {
+			log.Println(err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		for _, data := range diffs {
+			diffJSON, err := json.Marshal(data)
 			if err != nil {
 				log.Println(err)
 				os.Exit(1)
 			}
-			defer f.Close()
-			for _, data := range diffs {
-				diffJSON, err := json.Marshal(data)
-				if err != nil {
-					log.Println(err)
-					os.Exit(1)
-				}
-				f.WriteString(string(diffJSON) + "\n")
-			}
-			m.groupedDiffs[group] = []UpdateData{}
+			f.WriteString(string(diffJSON) + "\n")
 		}
+		m.groupedDiffs[group] = []UpdateData{}
 	}
 }
 
