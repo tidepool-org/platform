@@ -84,6 +84,9 @@ func NewDataMigrationConfig(dryRun *bool, stopOnErr *bool, rollback *bool, rollb
 	if rollbackSectionName != nil {
 		cfg.SetRollbackSectionName(*rollbackSectionName)
 	}
+	if writeToDisk != nil {
+		cfg.SetWriteToDisk(*writeToDisk)
+	}
 	if cap != nil && *cap > 0 {
 		cfg.cap = cap
 		log.Printf("capped at %d items", *cfg.cap)
@@ -144,6 +147,8 @@ func NewMigration(ctx context.Context, config *DataMigrationConfig, checker Mong
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("running with config %#v", *config)
 
 	m := &DataMigration{
 		ctx:                  ctx,
