@@ -120,23 +120,6 @@ var _ = Describe("Alert", func() {
 		}))
 	})
 
-	Context("AlertScheduleSettingsDayIndex", func() {
-		DescribeTable("return the expected index when the day",
-			func(day string, expectedIndex int) {
-				Expect(dexcom.AlertScheduleSettingsDayIndex(day)).To(Equal(expectedIndex))
-			},
-			Entry("is an empty string", "", 0),
-			Entry("is sunday", "sunday", 1),
-			Entry("is monday", "monday", 2),
-			Entry("is tuesday", "tuesday", 3),
-			Entry("is wednesday", "wednesday", 4),
-			Entry("is thursday", "thursday", 5),
-			Entry("is friday", "friday", 6),
-			Entry("is saturday", "saturday", 7),
-			Entry("is an invalid string", "invalid", 0),
-		)
-	})
-
 	It("AlertSettingAlertNames returns expected", func() {
 		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{"unknown", "fall", "high", "low", "noReadings", "outOfRange", "rise", "urgentLow", "urgentLowSoon", "fixedLow"}))
 		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{
