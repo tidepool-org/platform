@@ -122,9 +122,9 @@ type DataMigration struct {
 	updates              []mongo.WriteModel
 	groupedDiffs         map[string][]UpdateData
 	groupedErrors        groupedErrors
-	rawData              []bson.M
 	errorsCount          int
 	updatedCount         int
+	fetchedCount         int
 	lastUpdatedId        string
 	startedAt            time.Time
 	mongoInstanceChecker MongoInstanceCheck
@@ -154,11 +154,11 @@ func NewMigration(ctx context.Context, config *DataMigrationConfig, checker Mong
 		mongoInstanceChecker: checker,
 		config:               config,
 		updates:              []mongo.WriteModel{},
-		rawData:              []bson.M{},
 		groupedErrors:        groupedErrors{},
 		groupedDiffs:         map[string][]UpdateData{},
 		errorsCount:          0,
 		updatedCount:         0,
+		fetchedCount:         0,
 		startedAt:            time.Now(),
 	}
 	if lastID != nil {
@@ -258,13 +258,13 @@ func (m *DataMigration) SetLastProcessed(lastID string) {
 }
 
 func (m *DataMigration) SetFetched(raw []bson.M) {
-	m.rawData = append(m.rawData, raw...)
+	m.fetchedCount += len(raw)
 }
 
 func (m *DataMigration) GetStats() MigrationStats {
 	return MigrationStats{
 		Errored: m.errorsCount,
-		Fetched: len(m.rawData),
+		Fetched: m.fetchedCount,
 		ToApply: len(m.updates),
 		Applied: m.updatedCount,
 		Elapsed: time.Since(m.startedAt).Truncate(time.Millisecond),
