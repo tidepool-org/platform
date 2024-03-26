@@ -211,6 +211,8 @@ func (m *DataMigration) Execute(
 		if m.capReached() {
 			break
 		}
+		m.writeErrors(nil)
+		m.writeAudit(nil)
 	}
 	m.GetStats().report()
 	m.writeErrors(nil)
