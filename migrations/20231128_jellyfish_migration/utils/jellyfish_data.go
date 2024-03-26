@@ -122,7 +122,7 @@ var JellyfishDataUpdatesFn = func(m *DataMigration) (int, error) {
 	if dataC == nil {
 		return 0, errors.New("missing required collection to write updates to")
 	}
-	if len(m.GetUpdates()) == 0 {
+	if len(updates) == 0 {
 		return 0, nil
 	}
 
@@ -140,10 +140,9 @@ var JellyfishDataUpdatesFn = func(m *DataMigration) (int, error) {
 	writtenCount := 0
 	for _, batch := range getBatches(int(*settings.WriteBatchSize)) {
 
-		if err := m.UpdateChecks(); err != nil {
+		if err := m.CheckMongoInstance(); err != nil {
 			return writtenCount, err
 		}
-
 		if settings.DryRun {
 			writtenCount += len(batch)
 			continue
@@ -155,6 +154,5 @@ var JellyfishDataUpdatesFn = func(m *DataMigration) (int, error) {
 		}
 		writtenCount += int(results.ModifiedCount)
 	}
-	m.ResetUpdates()
 	return writtenCount, nil
 }

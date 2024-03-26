@@ -207,8 +207,8 @@ func (m *DataMigration) Execute(
 			m.writeErrors(nil)
 			return err
 		}
-		m.updatedCount += count
-		if m.capReached() {
+		m.updatesApplied(count)
+		if m.completeUpdates() {
 			break
 		}
 		m.writeErrors(nil)
@@ -244,8 +244,25 @@ func (m *DataMigration) SetUpdates(data UpdateData) {
 	m.updates = append(m.updates, data.getMongoUpdates(m.config.rollback, m.config.rollbackSectionName)...)
 }
 
-func (m *DataMigration) ResetUpdates() {
+func (m *DataMigration) updatesApplied(updatedCount int) {
 	m.updates = []mongo.WriteModel{}
+	m.updatedCount += updatedCount
+}
+
+func (m *DataMigration) completeUpdates() bool {
+	if m.config.cap != nil {
+		stats := m.GetStats()
+
+		percent := (float64(stats.Fetched) * float64(100)) / float64(*m.config.cap)
+
+		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *m.config.cap, stats.Applied)
+
+		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
+			log.Printf("cap [%d] updates applied [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
+			return true
+		}
+	}
+	return false
 }
 
 func (m *DataMigration) GetUpdates() []mongo.WriteModel {
@@ -278,15 +295,13 @@ func (m *DataMigration) GetLastID() string {
 func (m *DataMigration) OnError(data ErrorData) {
 	m.errorsCount++
 	m.groupedErrors[data.ItemType] = append(m.groupedErrors[data.ItemType], data)
-	var errFormat = "[_id=%s] %s %s\n"
-
 	if m.config.stopOnErr {
-		log.Printf(errFormat, data.ItemID, data.Msg, data.Error.Error())
+		log.Printf("[_id=%s] %s %s\n", data.ItemID, data.Msg, data.Error.Error())
 		os.Exit(1)
 	}
 }
 
-func (m *DataMigration) UpdateChecks() error {
+func (m *DataMigration) CheckMongoInstance() error {
 	if err := m.mongoInstanceChecker.BlockUntilDBReady(m.GetCtx()); err != nil {
 		return err
 	}
@@ -294,22 +309,6 @@ func (m *DataMigration) UpdateChecks() error {
 		return err
 	}
 	return nil
-}
-
-func (m *DataMigration) capReached() bool {
-	if m.config.cap != nil {
-		stats := m.GetStats()
-
-		percent := (float64(stats.Fetched) * float64(100)) / float64(*m.config.cap)
-
-		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *m.config.cap, stats.Applied)
-
-		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
-			log.Printf("cap [%d] updates applied [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
-			return true
-		}
-	}
-	return false
 }
 
 func (c MigrationStats) report() {
