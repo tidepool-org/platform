@@ -75,13 +75,13 @@ func (c *Client) requestWithAuth(ctx context.Context, method, url string, body a
 
 // Upsert updates cfg if it exists or creates it if it doesn't.
 func (c *Client) Upsert(ctx context.Context, cfg *Config) error {
-	url := c.client.ConstructURL("v1", "alerts", cfg.UserID, cfg.FollowedUserID)
+	url := c.client.ConstructURL("v1", "users", cfg.FollowedUserID, "followers", cfg.UserID, "alerts")
 	return c.request(ctx, http.MethodPost, url, cfg)
 }
 
 // Delete the alerts config.
 func (c *Client) Delete(ctx context.Context, cfg *Config) error {
-	url := c.client.ConstructURL("v1", "alerts", cfg.UserID, cfg.FollowedUserID)
+	url := c.client.ConstructURL("v1", "users", cfg.FollowedUserID, "followers", cfg.UserID, "alerts")
 	return c.request(ctx, http.MethodDelete, url, nil)
 }
 
