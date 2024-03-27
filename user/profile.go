@@ -41,23 +41,23 @@ func (u *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
 	if u.FullName != "" {
-		addAttribute(attributes, "profile.fullName", u.FullName)
+		addAttribute(attributes, "profile_full_name", u.FullName)
 	}
 	if u.Patient != nil {
 		patient := u.Patient
-		addAttribute(attributes, "profile.patient.birthday", string(patient.Birthday))
-		addAttribute(attributes, "profile.patient.diagnosisDate", string(patient.DiagnosisDate))
-		addAttribute(attributes, "profile.patient.diagnosisType", patient.DiagnosisType)
-		addAttributes(attributes, "profile.patient.targetDevices", patient.TargetDevices...)
-		addAttribute(attributes, "profile.patient.targetTimezone", patient.TargetTimezone)
-		addAttribute(attributes, "profile.patient.about", patient.About)
+		addAttribute(attributes, "profile_patient_birthday", string(patient.Birthday))
+		addAttribute(attributes, "profile_patient_diagnosis_date", string(patient.DiagnosisDate))
+		addAttribute(attributes, "profile_patient_diagnosis_type", patient.DiagnosisType)
+		addAttributes(attributes, "profile_patient_target_devices", patient.TargetDevices...)
+		addAttribute(attributes, "profile_patient_target_timezone", patient.TargetTimezone)
+		addAttribute(attributes, "profile_patient_about", patient.About)
 	}
 
 	if u.Clinic != nil {
 		clinic := u.Clinic
-		addAttribute(attributes, "profile.clinic.name", clinic.Name)
-		addAttributes(attributes, "profile.clinic.role", clinic.Role...)
-		addAttribute(attributes, "profile.clinic.telephone", clinic.Telephone)
+		addAttribute(attributes, "profile_clinic_name", clinic.Name)
+		addAttributes(attributes, "profile_clinic_role", clinic.Role...)
+		addAttribute(attributes, "profile_clinic_telephone", clinic.Telephone)
 	}
 
 	return attributes
@@ -65,24 +65,24 @@ func (u *UserProfile) ToAttributes() map[string][]string {
 
 func profileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
 	u := &UserProfile{}
-	u.FullName = getAttribute(attributes, "profile.fullName")
+	u.FullName = getAttribute(attributes, "profile_full_name")
 
-	if containsAnyAttributeKeys(attributes, "profile.patient.birthday", "profile.patient.diagnosisDate", "profile.patient.diagnosisType", "profile.patient.targetDevices", "profile.patient.targetTimezone", "profile.patient.about") {
+	if containsAnyAttributeKeys(attributes, "profile_patient_birthday", "profile_patient_diagnosis_date", "profile_patient_diagnosis_type", "profile_patient_target_devices", "profile_patient_target_timezone", "profile_patient_about") {
 		patient := &PatientProfile{}
-		patient.Birthday = Date(getAttribute(attributes, "profile.patient.birthday"))
-		patient.DiagnosisDate = Date(getAttribute(attributes, "profile.patient.diagnosisDate"))
-		patient.DiagnosisType = getAttribute(attributes, "profile.patient.diagnosisType")
-		patient.TargetDevices = getAttributes(attributes, "profile.patient.targetDevices")
-		patient.TargetTimezone = getAttribute(attributes, "profile.patient.targetTimezone")
-		patient.About = getAttribute(attributes, "profile.patient.about")
+		patient.Birthday = Date(getAttribute(attributes, "profile_patient_birthday"))
+		patient.DiagnosisDate = Date(getAttribute(attributes, "profile_patient_diagnosis_date"))
+		patient.DiagnosisType = getAttribute(attributes, "profile_patient_diagnosis_type")
+		patient.TargetDevices = getAttributes(attributes, "profile_patient_target_devices")
+		patient.TargetTimezone = getAttribute(attributes, "profile_patient_target_timezone")
+		patient.About = getAttribute(attributes, "profile_patient_about")
 		u.Patient = patient
 	}
 
-	if containsAnyAttributeKeys(attributes, "profile.clinic.name", "profile.clinic.role", "profile.clinic.telephone") {
+	if containsAnyAttributeKeys(attributes, "profile_clinic_name", "profile_clinic_role", "profile_clinic_telephone") {
 		clinic := &ClinicProfile{}
-		clinic.Name = getAttribute(attributes, "profile.clinic.name")
-		clinic.Role = getAttributes(attributes, "profile.clinic.role")
-		clinic.Telephone = getAttribute(attributes, "profile.clinic.telephone")
+		clinic.Name = getAttribute(attributes, "profile_clinic_name")
+		clinic.Role = getAttributes(attributes, "profile_clinic_role")
+		clinic.Telephone = getAttribute(attributes, "profile_clinic_telephone")
 		u.Clinic = clinic
 	}
 
