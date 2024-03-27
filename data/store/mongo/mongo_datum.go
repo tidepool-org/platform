@@ -548,7 +548,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -557,7 +557,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 		return nil, errors.New("userId is empty")
 	}
 
-	if typ == "" {
+	if len(typ) < 1 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -589,11 +589,16 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
-		"type":    typ,
 		"time": bson.M{
 			"$gt":  status.FirstData,
 			"$lte": status.LastData,
 		},
+	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
 	}
 
 	// we have everything we need to pull only modified records, but other areas are not ready for this yet
@@ -614,7 +619,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	return cursor, nil
 }
 
-func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (err error) {
+func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (err error) {
 	timestamp := time.Now().UTC()
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
@@ -623,11 +628,16 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
-		"type":    typ,
 		"time": bson.M{
 			"$gte": pastCutoff,
 			"$lte": futureCutoff,
 		},
+	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
 	}
 
 	findOptions := options.Find()
@@ -654,17 +664,23 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 	return nil
 }
 
-func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (err error) {
 	// get latest modified record
 	selector := bson.M{
 		"_userId": userId,
 		"_active": bson.M{"$in": bson.A{true, false}},
-		"type":    typ,
 		"time": bson.M{
 			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
 	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
+	}
+
 	findOptions := options.Find()
 	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
 	findOptions.SetLimit(1)
@@ -695,16 +711,21 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	return nil
 }
 
-func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (err error) {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
 		"_userId": userId,
 		"_active": bson.M{"$in": bson.A{true, false}},
-		"type":    typ,
 		"time": bson.M{
 			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
+	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
 	}
 
 	findOptions := options.Find()
@@ -740,7 +761,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
 	var err error
 
 	if ctx == nil {
@@ -751,7 +772,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, errors.New("userId is empty")
 	}
 
-	if typ == "" {
+	if len(typ) < 1 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -788,7 +809,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	return status, nil
 }
 
-func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
+func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
 	var distinctUserIDMap = make(map[string]struct{})
 	var empty struct{}
 
@@ -796,7 +817,7 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 		return nil, errors.New("context is missing")
 	}
 
-	if typ == "" {
+	if len(typ) < 1 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -812,8 +833,13 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 	selector := bson.M{
 		"_userId": bson.M{"$ne": -1111},
 		"_active": true,
-		"type":    typ,
 		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
+	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
 	}
 
 	result, err := d.Distinct(ctx, "_userId", selector)

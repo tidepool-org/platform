@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/upload"
-
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -26,13 +24,6 @@ type BGMBucketData struct {
 
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
-
-	// RealtimeRecords is the total count of records which were both uploaded within 24h of the record creation
-	// and from a continuous dataset
-	RealtimeRecords int `json:"realtimeRecords" bson:"realtimeRecords"`
-
-	// DeferredRecords is the total count of records which are in continuous datasets, but not uploaded within 24h
-	DeferredRecords int `json:"deferredRecords" bson:"deferredRecords"`
 }
 
 type BGMPeriod struct {
@@ -103,18 +94,6 @@ type BGMPeriod struct {
 	HasTimeInAnyHighRecords   bool `json:"hasTimeInAnyHighRecords" bson:"hasTimeInAnyHighRecords"`
 	TimeInAnyHighRecords      *int `json:"timeInAnyHighRecords" bson:"timeInAnyHighRecords"`
 	TimeInAnyHighRecordsDelta *int `json:"timeInAnyHighRecordsDelta" bson:"timeInAnyHighRecordsDelta"`
-
-	RealtimeRecords      *int `json:"realtimeRecords" bson:"realtimeRecords"`
-	RealtimeRecordsDelta *int `json:"realtimeRecordsDelta" bson:"realtimeRecordsDelta"`
-
-	RealtimePercent      *float64 `json:"realtimeRecordsPercent" bson:"realtimeRecordsPercent"`
-	RealtimePercentDelta *float64 `json:"realtimeRecordsPercentDelta" bson:"realtimeRecordsPercentDelta"`
-
-	DeferredRecords      *int `json:"deferredRecords" bson:"deferredRecords"`
-	DeferredRecordsDelta *int `json:"deferredRecordsDelta" bson:"deferredRecordsDelta"`
-
-	DeferredPercent      *float64 `json:"deferredPercent" bson:"deferredPercent"`
-	DeferredPercentDelta *float64 `json:"deferredPercentDelta" bson:"deferredPercentDelta"`
 }
 
 type BGMPeriods map[string]*BGMPeriod
@@ -130,8 +109,8 @@ func (*BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (*BGMStats) GetDeviceDataType() string {
-	return selfmonitored.Type
+func (*BGMStats) GetDeviceDataTypes() []string {
+	return []string{selfmonitored.Type}
 }
 
 func (s *BGMStats) Init() {
@@ -176,8 +155,6 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
 	var err error
 	var userData []*glucoseDatum.Glucose = nil
-	var uploadRecord *upload.Upload
-	uploadIds := map[string]bool{}
 
 	for cursor.Next(ctx) {
 		if userData == nil {
@@ -190,20 +167,9 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo
 		}
 		userData = append(userData, r)
 
-		if _, ok := uploadIds[*r.UploadID]; !ok {
-			uploadRecord, err = dataRepo.GetDataSetByID(ctx, *r.UploadID)
-			if err != nil {
-				return err
-			}
-
-			if uploadRecord != nil && uploadRecord.HasDataSetTypeContinuous() {
-				uploadIds[*r.UploadID] = true
-			}
-		}
-
 		// we call AddData before each network call to the db to reduce thrashing
 		if cursor.RemainingBatchLength() != 0 {
-			err = AddData(&s.Buckets, userData, uploadIds)
+			err = AddData(&s.Buckets, userData)
 			if err != nil {
 				return err
 			}
@@ -213,7 +179,7 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo
 
 	// add the final partial batch
 	if userData != nil {
-		err = AddData(&s.Buckets, userData, uploadIds)
+		err = AddData(&s.Buckets, userData)
 		if err != nil {
 			return err
 		}
@@ -225,7 +191,7 @@ func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo
 	return nil
 }
 
-func (B *BGMBucketData) CalculateStats(r any, _ *time.Time, continuous bool) (bool, error) {
+func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("BGM record for calculation is not compatible with Glucose type")
@@ -247,14 +213,6 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time, continuous bool) (bo
 
 	B.TotalRecords++
 	B.TotalGlucose += normalizedValue
-
-	if continuous {
-		if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
-			B.RealtimeRecords++
-		} else {
-			B.DeferredRecords++
-		}
-	}
 
 	return false, nil
 }
@@ -285,9 +243,6 @@ func (s *BGMStats) CalculateSummary() {
 
 			totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
-
-			totalStats.DeferredRecords += s.Buckets[currentIndex].Data.DeferredRecords
-			totalStats.RealtimeRecords += s.Buckets[currentIndex].Data.RealtimeRecords
 		}
 
 		// only add to offset stats when primary stop point is ahead of offset
@@ -306,9 +261,6 @@ func (s *BGMStats) CalculateSummary() {
 
 			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
-
-			totalOffsetStats.DeferredRecords += s.Buckets[currentIndex].Data.DeferredRecords
-			totalOffsetStats.RealtimeRecords += s.Buckets[currentIndex].Data.RealtimeRecords
 		}
 	}
 
@@ -450,34 +402,6 @@ func (s *BGMStats) CalculateDelta() {
 			s.Periods[k].TimeInAnyHighRecordsDelta = pointer.FromAny(delta)
 			s.OffsetPeriods[k].TimeInAnyHighRecordsDelta = pointer.FromAny(-delta)
 		}
-
-		if s.Periods[k].RealtimePercent != nil && s.OffsetPeriods[k].RealtimePercent != nil {
-			delta := *s.Periods[k].RealtimePercent - *s.OffsetPeriods[k].RealtimePercent
-
-			s.Periods[k].RealtimePercentDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].RealtimePercentDelta = pointer.FromAny(-delta)
-		}
-
-		if s.Periods[k].RealtimeRecords != nil && s.OffsetPeriods[k].RealtimeRecords != nil {
-			delta := *s.Periods[k].RealtimeRecords - *s.OffsetPeriods[k].RealtimeRecords
-
-			s.Periods[k].RealtimeRecordsDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].RealtimeRecordsDelta = pointer.FromAny(-delta)
-		}
-
-		if s.Periods[k].DeferredPercent != nil && s.OffsetPeriods[k].DeferredPercent != nil {
-			delta := *s.Periods[k].DeferredPercent - *s.OffsetPeriods[k].DeferredPercent
-
-			s.Periods[k].DeferredPercentDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].DeferredPercentDelta = pointer.FromAny(-delta)
-		}
-
-		if s.Periods[k].DeferredRecords != nil && s.OffsetPeriods[k].DeferredRecords != nil {
-			delta := *s.Periods[k].DeferredRecords - *s.OffsetPeriods[k].DeferredRecords
-
-			s.Periods[k].DeferredRecordsDelta = pointer.FromAny(delta)
-			s.OffsetPeriods[k].DeferredRecordsDelta = pointer.FromAny(-delta)
-		}
 	}
 }
 
@@ -509,10 +433,6 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 
 		HasTimeInAnyHighRecords: true,
 		TimeInAnyHighRecords:    pointer.FromAny(totalStats.VeryHighRecords + totalStats.HighRecords),
-
-		RealtimeRecords: pointer.FromAny(totalStats.RealtimeRecords + totalStats.RealtimeRecords),
-
-		DeferredRecords: pointer.FromAny(totalStats.DeferredRecords + totalStats.DeferredRecords),
 	}
 
 	if totalStats.TotalRecords != 0 {
@@ -539,10 +459,6 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 
 		newPeriod.HasAverageGlucoseMmol = true
 		newPeriod.AverageGlucoseMmol = pointer.FromAny(totalStats.TotalGlucose / float64(totalStats.TotalRecords))
-
-		newPeriod.RealtimePercent = pointer.FromAny(float64(totalStats.RealtimeRecords) / float64(totalStats.TotalRecords))
-
-		newPeriod.DeferredPercent = pointer.FromAny(float64(totalStats.DeferredRecords) / float64(totalStats.TotalRecords))
 	}
 
 	if offset {

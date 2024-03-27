@@ -161,7 +161,7 @@ type GetLastUpdatedForUserOutput struct {
 type GetDataRangeInput struct {
 	Context context.Context
 	UserId  string
-	Typ     string
+	Typ     []string
 	Status  *data.UserLastUpdated
 }
 
@@ -182,7 +182,7 @@ type GetUsersWithBGDataSinceOutput struct {
 
 type DistinctUserIDsInput struct {
 	Context context.Context
-	Typ     string
+	Typ     []string
 }
 
 type DistinctUserIDsOutput struct {
@@ -503,7 +503,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId strin
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
 	d.GetDataRangeInvocations++
 
 	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})
@@ -527,7 +527,7 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
 	d.DistinctUserIDsInvocations++
 
 	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})

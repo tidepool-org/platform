@@ -29,9 +29,10 @@ import (
 )
 
 const (
-	SummaryTypeCGM = "cgm"
-	SummaryTypeBGM = "bgm"
-	SchemaVersion  = 4
+	SummaryTypeCGM        = "cgm"
+	SummaryTypeBGM        = "bgm"
+	SummaryTypeContinuous = "continuous"
+	SchemaVersion         = 4
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0
@@ -62,7 +63,7 @@ type OutdatedSummariesResponse struct {
 }
 
 type BucketData interface {
-	CGMBucketData | BGMBucketData
+	CGMBucketData | BGMBucketData | ContinuousBucketData
 }
 
 type RecordTypes interface {
@@ -85,9 +86,9 @@ type DeviceDataCursor interface {
 
 type DeviceDataFetcher interface {
 	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error)
-	GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error)
-	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserLastUpdated, error)
+	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error)
+	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 }
 
 type Config struct {
@@ -145,7 +146,7 @@ type Bucket[S BucketDataPt[T], T BucketData] struct {
 
 type BucketDataPt[T BucketData] interface {
 	*T
-	CalculateStats(interface{}, *time.Time, bool) (bool, error)
+	CalculateStats(interface{}, *time.Time) (bool, error)
 }
 
 func CreateBucket[A BucketDataPt[T], T BucketData](t time.Time) *Bucket[A, T] {
@@ -156,13 +157,13 @@ func CreateBucket[A BucketDataPt[T], T BucketData](t time.Time) *Bucket[A, T] {
 }
 
 type Stats interface {
-	CGMStats | BGMStats
+	CGMStats | BGMStats | ContinuousStats
 }
 
 type StatsPt[T Stats] interface {
 	*T
 	GetType() string
-	GetDeviceDataType() string
+	GetDeviceDataTypes() []string
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
@@ -252,9 +253,9 @@ func GetTypeString[A StatsPt[T], T Stats]() string {
 	return s.Stats.GetType()
 }
 
-func GetDeviceDataTypeString[A StatsPt[T], T Stats]() string {
+func GetDeviceDataTypeStrings[A StatsPt[T], T Stats]() []string {
 	s := new(Summary[A, T])
-	return s.Stats.GetDeviceDataType()
+	return s.Stats.GetDeviceDataTypes()
 }
 
 type Period interface {
@@ -357,14 +358,7 @@ func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, 
 	*buckets = (*buckets)[excess:]
 }
 
-type ContinuousUploads map[string]bool
-
-func (r *ContinuousUploads) IsContinuous(uploadId string) bool {
-	val, _ := (*r)[uploadId]
-	return val
-}
-
-func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D, uploads ContinuousUploads) error {
+func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 
@@ -425,7 +419,7 @@ func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]]
 
 		previousPeriod = currentPeriod
 
-		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime, uploads.IsContinuous(*r.GetUploadID()))
+		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
 
 		if err != nil {
 			return err

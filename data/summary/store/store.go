@@ -84,7 +84,7 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 
 // GetNumberOfDaysWithRealtimeData processes two slices of Item and returns an int count of days with realtime records.
 // this currently doesn't handle N slices, only 1-2, might need adjustment for more types.
-func GetNumberOfDaysWithRealtimeData(a, b []*types.Bucket[*types.CGMBucketData, types.CGMBucketData]) int {
+func GetNumberOfDaysWithRealtimeData(a, b []*types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData]) int {
 	var count int
 
 	// Calculate the offset in hours between the first items of each list
@@ -143,7 +143,7 @@ func GetNumberOfDaysWithRealtimeData(a, b []*types.Bucket[*types.CGMBucketData, 
 	return count
 }
 
-func (r *TypelessRepo) GetRealtimeDaysForUsers(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
+func (r *Repo[A, T]) GetRealtimeDaysForUsers(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -193,12 +193,12 @@ func (r *TypelessRepo) GetRealtimeDaysForUsers(ctx context.Context, userIds []st
 			return nil, fmt.Errorf("unable to get realtime summaries for %s:  %w", userId, err)
 		}
 
-		var userSummaries []types.Summary[*types.CGMStats, types.CGMStats]
+		var userSummaries []types.Summary[*types.ContinuousStats, types.ContinuousStats]
 		if err = cursor.All(ctx, &userSummaries); err != nil {
 			return nil, fmt.Errorf("unable to decode summaries for user %s: %w", userId, err)
 		}
 
-		var buckets [][]*types.Bucket[*types.CGMBucketData, types.CGMBucketData]
+		var buckets [][]*types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData]
 		for i := 0; i < len(userSummaries); i++ {
 			if len(userSummaries[i].Stats.Buckets) > 0 {
 

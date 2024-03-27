@@ -60,9 +60,9 @@ type DatumRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-	GetDataRange(ctx context.Context, userId string, typ string, status *data.UserLastUpdated) (*mongo.Cursor, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error)
-	DistinctUserIDs(ctx context.Context, typ string) ([]string, error)
+	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error)
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserLastUpdated, error)
+	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 }
 
 // DataRepository is the combined interface of DataSetRepository and

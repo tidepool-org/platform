@@ -163,6 +163,7 @@ var _ = Describe("Summary", func() {
 		var userId string
 		var cgmStore *dataStoreSummary.Repo[*types.CGMStats, types.CGMStats]
 		var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
+		var continuousStore *dataStoreSummary.Repo[*types.ContinuousStats, types.ContinuousStats]
 
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
@@ -180,6 +181,7 @@ var _ = Describe("Summary", func() {
 
 			cgmStore = dataStoreSummary.New[*types.CGMStats](summaryRepository)
 			bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
+			continuousStore = dataStoreSummary.New[*types.ContinuousStats](summaryRepository)
 		})
 
 		AfterEach(func() {
@@ -189,14 +191,16 @@ var _ = Describe("Summary", func() {
 
 		It("with all summary types outdated", func() {
 			updatesSummary := map[string]struct{}{
-				"cgm": empty,
-				"bgm": empty,
+				"cgm":        empty,
+				"bgm":        empty,
+				"continuous": empty,
 			}
 
 			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(2))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
 
 			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -205,6 +209,10 @@ var _ = Describe("Summary", func() {
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeBGM]))
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
 		})
 
 		It("with cgm summary type outdated", func() {
@@ -223,6 +231,10 @@ var _ = Describe("Summary", func() {
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userBgmSummary).To(BeNil())
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userContinuousSummary).To(BeNil())
 		})
 
 		It("with bgm summary type outdated", func() {
@@ -241,6 +253,32 @@ var _ = Describe("Summary", func() {
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeBGM]))
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userContinuousSummary).To(BeNil())
+		})
+
+		It("with continuous summary type outdated", func() {
+			updatesSummary := map[string]struct{}{
+				"continuous": empty,
+			}
+
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			Expect(outdatedSinceMap).To(HaveLen(1))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
+
+			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userCgmSummary).To(BeNil())
+
+			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userBgmSummary).To(BeNil())
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
 		})
 
 		It("with unknown summary type outdated", func() {
@@ -329,6 +367,7 @@ var _ = Describe("Summary", func() {
 		var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
 		var cgmSummarizer summary.Summarizer[*types.CGMStats, types.CGMStats]
 		var bgmSummarizer summary.Summarizer[*types.BGMStats, types.BGMStats]
+		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
 		var dataCollection *mongo.Collection
 		var datumTime time.Time
 
@@ -352,6 +391,7 @@ var _ = Describe("Summary", func() {
 
 			cgmSummarizer = summary.GetSummarizer[*types.CGMStats](registry)
 			bgmSummarizer = summary.GetSummarizer[*types.BGMStats](registry)
+			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
 
 			datumTime = time.Now().UTC().Truncate(time.Hour)
 		})
@@ -578,7 +618,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("summary calc with realtime data", func() {
-			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
 			var deviceData []mongo.WriteModel
 			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
 
@@ -591,7 +631,7 @@ var _ = Describe("Summary", func() {
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
-			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userSummary).ToNot(BeNil())
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
@@ -603,7 +643,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("summary calc with deferred data", func() {
-			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
 			var deviceData []mongo.WriteModel
 			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
 
@@ -616,7 +656,7 @@ var _ = Describe("Summary", func() {
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
-			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userSummary).ToNot(BeNil())
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
@@ -628,7 +668,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("summary calc with non-continuous data", func() {
-			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
 			var deviceData []mongo.WriteModel
 			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
 
@@ -641,7 +681,7 @@ var _ = Describe("Summary", func() {
 			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 			Expect(err).ToNot(HaveOccurred())
 
-			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userSummary).ToNot(BeNil())
 			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
