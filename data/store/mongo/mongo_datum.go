@@ -482,34 +482,6 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func (d *DatumRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if id == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
-
-	var dataSet *data.DataSet
-	selector := bson.M{
-		"uploadId": id,
-		"type":     "upload",
-	}
-
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
-	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DatumRepository.GetDataSet")
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
-		return nil, fmt.Errorf("unable to get data set: %w", err)
-	}
-
-	return dataSet, nil
-}
-
 func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	if selectors == nil {
 		return bson.M{}, nil
