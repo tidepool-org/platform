@@ -569,6 +569,11 @@ github.com/russross/blackfriday/v2
 # github.com/schollz/closestmatch v2.1.0+incompatible
 ## explicit
 github.com/schollz/closestmatch
+# github.com/sideshow/apns2 v0.23.0
+## explicit; go 1.15
+github.com/sideshow/apns2
+github.com/sideshow/apns2/payload
+github.com/sideshow/apns2/token
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
