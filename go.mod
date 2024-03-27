@@ -20,10 +20,10 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240306220554-4e22e08f6bba
-	github.com/tidepool-org/devices/api v0.0.0-20240306231908-f4276c62bd18
-	github.com/tidepool-org/go-common v0.11.1-0.20240306185825-1ddb2b762e00
-	github.com/tidepool-org/hydrophone/client v0.0.0-20240307000130-371717e2c64c
+	github.com/tidepool-org/clinic/client v0.0.0-20240327000654-159f9ee1d246
+	github.com/tidepool-org/devices/api v0.0.0-20240327001001-df237a2348d7
+	github.com/tidepool-org/go-common v0.12.0
+	github.com/tidepool-org/hydrophone/client v0.0.0-20240327002534-0960758c4a58
 	github.com/urfave/cli v1.22.14
 	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/fx v1.20.1
@@ -54,7 +54,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.14.0 // indirect
-	github.com/cloudevents/sdk-go/v2 v2.14.0 // indirect
+	github.com/cloudevents/sdk-go/v2 v2.15.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.16.2 // indirect

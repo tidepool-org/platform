@@ -133,8 +133,8 @@ github.com/chenzhuoyu/iasm/x86_64
 # github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.14.0
 ## explicit; go 1.17
 github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2
-# github.com/cloudevents/sdk-go/v2 v2.14.0
-## explicit; go 1.17
+# github.com/cloudevents/sdk-go/v2 v2.15.2
+## explicit; go 1.18
 github.com/cloudevents/sdk-go/v2
 github.com/cloudevents/sdk-go/v2/binding
 github.com/cloudevents/sdk-go/v2/binding/format
@@ -591,13 +591,13 @@ github.com/tdewolff/parse/v2/js
 github.com/tdewolff/parse/v2/json
 github.com/tdewolff/parse/v2/strconv
 github.com/tdewolff/parse/v2/xml
-# github.com/tidepool-org/clinic/client v0.0.0-20240306220554-4e22e08f6bba
+# github.com/tidepool-org/clinic/client v0.0.0-20240327000654-159f9ee1d246
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
-# github.com/tidepool-org/devices/api v0.0.0-20240306231908-f4276c62bd18
+# github.com/tidepool-org/devices/api v0.0.0-20240327001001-df237a2348d7
 ## explicit; go 1.22
 github.com/tidepool-org/devices/api
-# github.com/tidepool-org/go-common v0.11.1-0.20240306185825-1ddb2b762e00
+# github.com/tidepool-org/go-common v0.12.0
 ## explicit; go 1.22
 github.com/tidepool-org/go-common/clients
 github.com/tidepool-org/go-common/clients/disc
@@ -608,7 +608,7 @@ github.com/tidepool-org/go-common/clients/status
 github.com/tidepool-org/go-common/errors
 github.com/tidepool-org/go-common/events
 github.com/tidepool-org/go-common/jepson
-# github.com/tidepool-org/hydrophone/client v0.0.0-20240307000130-371717e2c64c
+# github.com/tidepool-org/hydrophone/client v0.0.0-20240327002534-0960758c4a58
 ## explicit; go 1.22
 github.com/tidepool-org/hydrophone/client
 # github.com/twitchyliquid64/golang-asm v0.15.1
