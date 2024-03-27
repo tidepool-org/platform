@@ -1,7 +1,7 @@
-package api
+package client
 
-//go:generate mockgen -source=./client.go -destination=./mock.go -package api ClientInterface
-//go:generate mockgen -source=./client.go -destination=./mock.go -package api ClientWithResponsesInterface
+//go:generate mockgen -source=./client.go -destination=./mock.go -package client ClientInterface
+//go:generate mockgen -source=./client.go -destination=./mock.go -package client ClientWithResponsesInterface
 
 import "github.com/golang/mock/gomock"
 

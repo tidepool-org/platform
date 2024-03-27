@@ -315,7 +315,7 @@ clean-bin:
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin
 
 clean-cover:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -o -name "coverprofile.out" -delete
 
 clean-debug:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
