@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tidepool-org/platform/clinics"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -207,6 +209,10 @@ func (c *mockDataServiceContext) SummarizerRegistry() *summary.SummarizerRegistr
 }
 
 func (c *mockDataServiceContext) DataClient() dataClient.Client {
+	panic("not implemented") // TODO: Implement
+}
+
+func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
 	panic("not implemented") // TODO: Implement
 }
 

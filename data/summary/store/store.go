@@ -16,7 +16,9 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-type Repo[T types.Stats, A types.StatsPt[T]] struct {
+const RealtimeUserThreshold = 16
+
+type Repo[A types.StatsPt[T], T types.Stats] struct {
 	*storeStructuredMongo.Repository
 }
 
@@ -24,8 +26,8 @@ type TypelessRepo struct {
 	*storeStructuredMongo.Repository
 }
 
-func New[T types.Stats, A types.StatsPt[T]](delegate *storeStructuredMongo.Repository) *Repo[T, A] {
-	return &Repo[T, A]{
+func New[A types.StatsPt[T], T types.Stats](delegate *storeStructuredMongo.Repository) *Repo[A, T] {
+	return &Repo[A, T]{
 		delegate,
 	}
 }
@@ -36,7 +38,7 @@ func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessRepo {
 	}
 }
 
-func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error) {
+func (r *Repo[A, T]) GetSummary(ctx context.Context, userId string) (*types.Summary[A, T], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -80,7 +82,51 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
+func (r *Repo[A, T]) GetRealtimeDaysForUsers(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userIds == nil {
+		return nil, errors.New("userIds is missing")
+	}
+	if len(userIds) == 0 {
+		return nil, errors.New("no userIds provided")
+	}
+	if startTime.IsZero() {
+		return nil, errors.New("startTime is missing")
+	}
+	if endTime.IsZero() {
+		return nil, errors.New("startTime is missing")
+	}
+
+	if startTime.After(endTime) {
+		return nil, errors.New("startTime is after endTime")
+	}
+
+	if startTime.Before(time.Now().AddDate(0, 0, -60)) {
+		return nil, errors.New("startTime is too old ( >60d ago ) ")
+	}
+
+	if int(endTime.Sub(startTime).Hours()/24) < RealtimeUserThreshold {
+		return nil, errors.New("time range smaller than threshold, impossible")
+	}
+
+	realtimeUsers := make(map[string]int)
+
+	for _, userId := range userIds {
+		userSummary, err := r.GetSummary(ctx, userId)
+		if err != nil {
+			return nil, err
+		}
+
+		realtimeUsers[userId] = userSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+
+	}
+
+	return realtimeUsers, nil
+}
+
+func (r *Repo[A, T]) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -90,7 +136,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 
 	selector := bson.M{
 		"userId": userId,
-		"type":   types.GetTypeString[T, A](),
+		"type":   types.GetTypeString[A](),
 	}
 
 	_, err := r.DeleteMany(ctx, selector)
@@ -101,7 +147,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) ReplaceSummary(ctx context.Context, userSummary *types.Summary[T, A]) error {
+func (r *Repo[A, T]) ReplaceSummary(ctx context.Context, userSummary *types.Summary[A, T]) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -109,7 +155,7 @@ func (r *Repo[T, A]) ReplaceSummary(ctx context.Context, userSummary *types.Summ
 		return errors.New("summary object is missing")
 	}
 
-	var expectedType = types.GetTypeString[T, A]()
+	var expectedType = types.GetTypeString[A]()
 	if userSummary.Type != expectedType {
 		return fmt.Errorf("invalid summary type '%v', expected '%v'", userSummary.Type, expectedType)
 	}
@@ -186,7 +232,7 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 	return count, nil
 }
 
-func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+func (r *Repo[A, T]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}

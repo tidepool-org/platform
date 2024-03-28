@@ -164,8 +164,8 @@ func (*CGMStats) GetType() string {
 	return SummaryTypeCGM
 }
 
-func (*CGMStats) GetDeviceDataType() string {
-	return continuous.Type
+func (*CGMStats) GetDeviceDataTypes() []string {
+	return []string{continuous.Type}
 }
 
 func (s *CGMStats) Init() {
@@ -207,9 +207,9 @@ func (s *CGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	return
 }
 
-func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
-	var userData []*glucoseDatum.Glucose = nil
+func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
 	var err error
+	var userData []*glucoseDatum.Glucose = nil
 
 	for cursor.Next(ctx) {
 		if userData == nil {
@@ -662,7 +662,6 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 
 			newPeriod.HasTimeInAnyHighPercent = true
 			newPeriod.TimeInAnyHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords+totalStats.HighRecords) / float64(totalStats.TotalRecords))
-
 		}
 
 		newPeriod.HasAverageGlucoseMmol = true
@@ -681,4 +680,8 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 		s.Periods[strconv.Itoa(i)+"d"] = newPeriod
 	}
 
+}
+
+func (s *CGMStats) GetNumberOfDaysWithRealtimeData(_ time.Time, _ time.Time) (count int) {
+	return -1
 }

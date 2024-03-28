@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/tidepool-org/platform/clinics"
+
 	"github.com/Shopify/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -40,6 +42,7 @@ type Standard struct {
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
 	dataClient                *Client
+	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
 	userEventsHandler         events.Runner
 	api                       *api.Standard
@@ -76,6 +79,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeDataClient(); err != nil {
+		return err
+	}
+	if err := s.initializeClinicsClient(); err != nil {
 		return err
 	}
 	if err := s.initializeDataSourceClient(); err != nil {
@@ -337,6 +343,18 @@ func (s *Standard) initializeDataSourceClient() error {
 		return errors.Wrap(err, "unable to create source data client")
 	}
 	s.dataSourceClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeClinicsClient() error {
+	s.Logger().Debug("Creating clinics client")
+
+	clnt, err := clinics.NewClient(s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create clinics client")
+	}
+	s.clinicsClient = &clnt
 
 	return nil
 }

@@ -109,8 +109,8 @@ func (*BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (*BGMStats) GetDeviceDataType() string {
-	return selfmonitored.Type
+func (*BGMStats) GetDeviceDataTypes() []string {
+	return []string{selfmonitored.Type}
 }
 
 func (s *BGMStats) Init() {
@@ -152,9 +152,9 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	return
 }
 
-func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
-	var userData []*glucoseDatum.Glucose = nil
+func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
 	var err error
+	var userData []*glucoseDatum.Glucose = nil
 
 	for cursor.Next(ctx) {
 		if userData == nil {
@@ -466,4 +466,8 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 	} else {
 		s.Periods[strconv.Itoa(i)+"d"] = newPeriod
 	}
+}
+
+func (s *BGMStats) GetNumberOfDaysWithRealtimeData(_ time.Time, _ time.Time) (count int) {
+	return -1
 }

@@ -26,6 +26,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
+	GetPatients(ctx context.Context, clinicId string, userToken string) ([]clinic.Patient, error)
 }
 
 type config struct {
@@ -154,4 +155,24 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return response.JSON200, nil
+}
+
+func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string) ([]clinic.Patient, error) {
+	params := &clinic.ListPatientsParams{
+		Limit: pointer.FromAny(1001),
+	}
+
+	response, err := d.httpClient.ListPatientsWithResponse(ctx, clinicId, params, func(ctx context.Context, req *http.Request) error {
+		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, userToken)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+	}
+
+	return *response.JSON200.Data, nil
 }

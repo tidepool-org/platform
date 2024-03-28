@@ -6,8 +6,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/tidepool-org/platform/data/summary/types"
-
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -126,6 +124,16 @@ type GetDataSetOutput struct {
 	Error   error
 }
 
+type IsDataSetAutomatedInput struct {
+	Context context.Context
+	ID      string
+}
+
+type IsDataSetAutomatedOutput struct {
+	Automated bool
+	Error     error
+}
+
 type ListUserDataSetsInput struct {
 	Context    context.Context
 	UserID     string
@@ -146,15 +154,15 @@ type GetLastUpdatedForUserInput struct {
 }
 
 type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated *types.UserLastUpdated
+	UserLastUpdated *data.UserLastUpdated
 	Error           error
 }
 
 type GetDataRangeInput struct {
 	Context context.Context
 	UserId  string
-	Typ     string
-	Status  *types.UserLastUpdated
+	Typ     []string
+	Status  *data.UserLastUpdated
 }
 
 type GetDataRangeOutput struct {
@@ -174,25 +182,12 @@ type GetUsersWithBGDataSinceOutput struct {
 
 type DistinctUserIDsInput struct {
 	Context context.Context
-	Typ     string
+	Typ     []string
 }
 
 type DistinctUserIDsOutput struct {
 	UserIDs []string
 	Error   error
-}
-
-type CheckDataSetContainsTypeInRangeInput struct {
-	Context   context.Context
-	DataSetID string
-	Typ       string
-	StartTime time.Time
-	EndTime   time.Time
-}
-
-type CheckDataSetContainsTypeInRangeOutput struct {
-	Status bool
-	Error  error
 }
 
 type DataRepository struct {
@@ -248,6 +243,9 @@ type DataRepository struct {
 	GetDataSetInvocations                                int
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
+	IsDataSetAutomatedInvocations                        int
+	IsDataSetAutomatedInputs                             []IsDataSetAutomatedInput
+	IsDataSetAutomatedOutputs                            []IsDataSetAutomatedOutput
 
 	GetDataRangeInvocations int
 	GetDataRangeInputs      []GetDataRangeInput
@@ -264,10 +262,6 @@ type DataRepository struct {
 	DistinctUserIDsInvocations int
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
-
-	CheckDataSetContainsTypeInRangeInvocations int
-	CheckDataSetContainsTypeInRangeInputs      []CheckDataSetContainsTypeInRangeInput
-	CheckDataSetContainsTypeInRangeOutputs     []CheckDataSetContainsTypeInRangeOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -303,6 +297,18 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 	output := d.GetDataSetByIDOutputs[0]
 	d.GetDataSetByIDOutputs = d.GetDataSetByIDOutputs[1:]
 	return output.DataSet, output.Error
+}
+
+func (d *DataRepository) IsDataSetAutomated(ctx context.Context, dataSetID string) (bool, error) {
+	d.IsDataSetAutomatedInvocations++
+
+	d.IsDataSetAutomatedInputs = append(d.IsDataSetAutomatedInputs, IsDataSetAutomatedInput{Context: ctx, ID: dataSetID})
+
+	gomega.Expect(d.IsDataSetAutomatedOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.IsDataSetAutomatedOutputs[0]
+	d.IsDataSetAutomatedOutputs = d.IsDataSetAutomatedOutputs[1:]
+	return output.Automated, output.Error
 }
 
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
@@ -485,7 +491,7 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
 	d.GetLastUpdatedForUserInvocations++
 
 	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ, LastUpdated: lastUpdated})
@@ -497,7 +503,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId strin
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
 	d.GetDataRangeInvocations++
 
 	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})
@@ -521,7 +527,7 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
 	d.DistinctUserIDsInvocations++
 
 	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})
@@ -531,18 +537,6 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	output := d.DistinctUserIDsOutputs[0]
 	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
-}
-
-func (d *DataRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
-	d.CheckDataSetContainsTypeInRangeInvocations++
-
-	d.CheckDataSetContainsTypeInRangeInputs = append(d.CheckDataSetContainsTypeInRangeInputs, CheckDataSetContainsTypeInRangeInput{Context: ctx, Typ: typ, DataSetID: dataSetId, StartTime: startTime, EndTime: endTime})
-
-	gomega.Expect(d.CheckDataSetContainsTypeInRangeOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.CheckDataSetContainsTypeInRangeOutputs[0]
-	d.CheckDataSetContainsTypeInRangeOutputs = d.CheckDataSetContainsTypeInRangeOutputs[1:]
-	return output.Status, output.Error
 }
 
 func (d *DataRepository) Expectations() {

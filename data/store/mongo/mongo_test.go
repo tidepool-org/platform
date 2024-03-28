@@ -26,7 +26,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	summaryTypes "github.com/tidepool-org/platform/data/summary/types"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -1184,7 +1183,7 @@ var _ = Describe("Mongo", func() {
 
 					Context("GetDataRange", func() {
 						It("returns an error if context is missing", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1199,7 +1198,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the userId is empty", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1214,7 +1213,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns an error if the typ is empty", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1229,7 +1228,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns error if the data times are inverted", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[len(dataSetData)-1].GetTime(),
 								LastData:        *dataSetData[0].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1244,7 +1243,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns error if the LastUpdated times are inverted", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserLastUpdated{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Now(),
@@ -1269,7 +1268,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly returns data within range", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserLastUpdated{
 									FirstData:       *dataSetData[0].GetTime(),
 									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 									LastUpdated:     time.Time{},
@@ -1297,7 +1296,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly misses data outside range", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserLastUpdated{
 									FirstData:       dataSetData[0].GetTime().AddDate(-1, 0, 0),
 									LastData:        dataSetData[len(dataSetData)-1].GetTime().AddDate(-1, 0, 0),
 									LastUpdated:     time.Time{},
@@ -1319,7 +1318,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly misses data of wrong type", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserLastUpdated{
 									FirstData:       *dataSetData[0].GetTime(),
 									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 									LastUpdated:     time.Time{},
@@ -1338,71 +1337,6 @@ var _ = Describe("Mongo", func() {
 
 								Expect(userData).To(HaveLen(0))
 							})
-						})
-					})
-
-					Context("CheckDataSetContainsType", func() {
-						twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
-						oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-						It("returns an error if context is missing", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(nil, *dataSet.UploadID, "1234", twoYearsPast, oneDayFuture)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError("context is missing"))
-						})
-
-						It("returns an error if dataSetId is empty", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(ctx, "", "1234", twoYearsPast, oneDayFuture)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError("dataSetId is empty"))
-						})
-
-						It("returns an error if context is missing", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, "", twoYearsPast, oneDayFuture)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError("typ is empty"))
-						})
-
-						It("returns error if the times are inverted", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, "1234", oneDayFuture, twoYearsPast)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError(MatchRegexp("^startTime.*after endTime")))
-						})
-
-						Context("with database access", func() {
-							BeforeEach(func() {
-								dataSetData[0].SetType(selfmonitored.Type)
-								dataSetData[0].SetActive(false)
-
-								for i := 1; i < len(dataSetData); i++ {
-									dataSetData[i].SetType(continuous.Type)
-									dataSetData[i].SetActive(true)
-								}
-								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							})
-
-							It("correctly finds type in dataset", func() {
-								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, continuous.Type, twoYearsPast, oneDayFuture)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(status).To(BeTrue())
-							})
-
-							It("correctly does not find type in dataset", func() {
-								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, bolus.Type, twoYearsPast, oneDayFuture)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(status).To(BeFalse())
-							})
-
-							It("correctly does not find inactive type in dataset", func() {
-								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, selfmonitored.Type, twoYearsPast, oneDayFuture)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(status).To(BeFalse())
-							})
-
 						})
 					})
 
@@ -1459,15 +1393,13 @@ var _ = Describe("Mongo", func() {
 							It("correctly does not find the LastUpload and LastData for an inactive type", func() {
 								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, selfmonitored.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(status.LastData.IsZero()).To(BeTrue())
-								Expect(status.LastUpload.IsZero()).To(BeTrue())
+								Expect(status).To(BeNil())
 							})
 
 							It("correctly does not find the LastUpload and LastData for an unused type", func() {
 								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, bolus.Type, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(status.LastData.IsZero()).To(BeTrue())
-								Expect(status.LastUpload.IsZero()).To(BeTrue())
+								Expect(status).To(BeNil())
 							})
 
 						})

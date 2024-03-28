@@ -3,6 +3,7 @@ package service
 import (
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -30,6 +31,8 @@ type Context interface {
 
 	SummarizerRegistry() *summary.SummarizerRegistry
 	DataClient() dataClient.Client
+
+	ClinicsClient() clinics.Client
 	DataSourceClient() dataSource.Client
 }
 
