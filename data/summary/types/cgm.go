@@ -681,3 +681,7 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 	}
 
 }
+
+func (s *CGMStats) GetNumberOfDaysWithRealtimeData(_ time.Time, _ time.Time) (count int) {
+	return -1
+}

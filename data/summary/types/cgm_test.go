@@ -9,7 +9,6 @@ import (
 
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -51,33 +50,6 @@ func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []
 
 			dataSetData[requiredRecords-count-i-1] = datum
 		}
-	}
-
-	return dataSetData
-}
-
-func NewDataSetDataRealtime(t string, startTime time.Time, hours float64, realtime bool) []*glucose.Glucose {
-	requiredRecords := int(hours * 2)
-	typ := pointer.FromAny(t)
-
-	var dataSetData = make([]*glucose.Glucose, requiredRecords)
-	var glucoseValue = inTargetBloodGlucose
-	var deviceId = "SummaryTestDevice"
-	var uploadId = test.RandomSetID()
-
-	// generate X hours of data
-	for count := 0; count < requiredRecords; count += 1 {
-		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
-
-		datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
-		datum.Value = pointer.FromFloat64(glucoseValue)
-
-		if realtime {
-			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
-			datum.ModifiedTime = pointer.FromAny(datumTime.Add(10 * time.Minute))
-		}
-
-		dataSetData[count] = datum
 	}
 
 	return dataSetData
@@ -148,13 +120,12 @@ var _ = Describe("CGM Summary", func() {
 		var userCGMSummary *types.Summary[*types.CGMStats, types.CGMStats]
 		var periodKeys = []string{"1d", "7d", "14d", "30d"}
 		var periodInts = []int{1, 7, 14, 30}
-		var continuousUploads = map[string]bool{}
 
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 336, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(336))
@@ -163,7 +134,7 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct hour count when given 1 week", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(168))
@@ -172,7 +143,7 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct hour count when given 3 weeks", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 504, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(504))
@@ -190,7 +161,7 @@ var _ = Describe("CGM Summary", func() {
 					doubledCGMData[i*2] = dataSetCGMData[i]
 					doubledCGMData[i*2+1] = dataSetCGMDataTwo[i]
 				}
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(24))
@@ -201,11 +172,11 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 24, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 
@@ -217,19 +188,19 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime, 5, NewDataRangesSingle(lowBloodGlucose-0.5))
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(1*time.Hour), 1, NewDataRangesSingle(highBloodGlucose+0.5))
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(24*60*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userCGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(10))
 
@@ -243,11 +214,11 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime, 1, NewDataRangesSingle(lowBloodGlucose-0.5))
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(24*62*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
@@ -265,7 +236,7 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(168))
@@ -280,7 +251,7 @@ var _ = Describe("CGM Summary", func() {
 				}
 
 				dataSetCGMData = NewDataSetCGMDataAvg(secondDatumTime, 168, secondRequestedAvgGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(528)) // 22 days
@@ -308,7 +279,7 @@ var _ = Describe("CGM Summary", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 144, inTargetBloodGlucose)
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(144))
@@ -317,7 +288,7 @@ var _ = Describe("CGM Summary", func() {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetCGMData = NewDataSetCGMDataAvg(incrementalDatumTime, 1, float64(i))
 
-					err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+					err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(144 + i))
@@ -351,7 +322,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = append(dataSetCGMDataOne, dataSetCGMDataTwo...)
 				dataSetCGMData = append(dataSetCGMData, dataSetCGMDataThree...)
 
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(72))
@@ -386,15 +357,15 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMDataFive := NewDataSetCGMDataRanges(datumTime, 1, veryHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataThree, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFour, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFour)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFive, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(5))
@@ -491,13 +462,13 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMDataTwo := NewDataSetCGMDataAvg(datumTime.AddDate(0, 0, -1), 24, inTargetBloodGlucose+1)
 				dataSetCGMDataThree := NewDataSetCGMDataAvg(datumTime, 24, inTargetBloodGlucose+2)
 
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataThree, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne, continuousUploads)
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(72))
@@ -512,81 +483,6 @@ var _ = Describe("CGM Summary", func() {
 
 					expectedTotalGlucose = (inTargetBloodGlucose + float64(i/24)) * 12 * 5
 					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", expectedTotalGlucose, 0.001))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with realtime data", func() {
-				userCGMSummary = types.Create[*types.CGMStats](userId)
-				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
-				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, realtimeDatumTime, 10, true)
-
-				// flag upload as continuous
-				continuousUploads[*dataSetCGMData[0].UploadID] = true
-
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
-					Expect(userCGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(2))
-					Expect(userCGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with deferred data", func() {
-				userCGMSummary = types.Create[*types.CGMStats](userId)
-
-				// by default non-realtime datums will be made with time.now createdTime, so we generate 2 day old data
-				deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
-				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, deferredDatumTime, 10, false)
-
-				// flag upload as continuous
-				continuousUploads[*dataSetCGMData[0].UploadID] = true
-
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
-					Expect(userCGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-					Expect(userCGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(2))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with false continuous flagged data", func() {
-				userCGMSummary = types.Create[*types.CGMStats](userId)
-				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
-				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, realtimeDatumTime, 10, true)
-
-				// flag upload as not continuous
-				continuousUploads[*dataSetCGMData[0].UploadID] = false
-
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
-					Expect(userCGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-					Expect(userCGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with non flagged data", func() {
-				userCGMSummary = types.Create[*types.CGMStats](userId)
-				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
-				dataSetCGMData = NewDataSetDataRealtime(continuous.Type, realtimeDatumTime, 10, true)
-
-				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
-					Expect(userCGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-					Expect(userCGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
 				}
 			})
 		})

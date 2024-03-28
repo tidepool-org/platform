@@ -169,6 +169,7 @@ type StatsPt[T Stats] interface {
 	GetBucketDate(int) time.Time
 	Update(context.Context, DeviceDataCursor, DeviceDataFetcher) error
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
+	GetNumberOfDaysWithRealtimeData(startTime time.Time, endTime time.Time) (count int)
 }
 
 type Summary[A StatsPt[T], T Stats] struct {
