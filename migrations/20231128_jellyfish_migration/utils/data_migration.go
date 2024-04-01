@@ -407,8 +407,8 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 	}
 
 	logName = fmt.Sprintf(logName, dataGroup)
-	dateContainer := time.Now().Round(6 * time.Hour).Format(time.DateTime)
-	logPath := filepath.Join(".", dateContainer, fileType)
+	dateContainer := time.Now().Round(6 * time.Hour).Format("2006-01-02T15-04-05")
+	logPath := filepath.Join(".", fileType, dateContainer)
 
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
