@@ -391,6 +391,7 @@ func (m *DataMigration) writeLastProcessed(itemID string) {
 }
 
 func createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
+
 	var err error
 	if fileType == "" {
 		errors.Join(err, errors.New("missing file type"))
@@ -404,12 +405,15 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 	if err != nil {
 		return nil, err
 	}
+
 	logName = fmt.Sprintf(logName, dataGroup)
-	logPath := filepath.Join(".", fileType)
+	dateContainer := time.Now().Round(6 * time.Hour).Format(time.DateTime)
+	logPath := filepath.Join(".", dateContainer, fileType)
 
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
+
 	return os.OpenFile(logPath+"/"+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 }
