@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	shorelineManagedRoles = map[string]struct{}{"patient": {}, "clinic": {}, "clinician": {}, "custodial_account": {}}
+	ShorelineManagedRoles = map[string]struct{}{"patient": {}, "clinic": {}, "clinician": {}, "custodial_account": {}}
 
 	ErrUserNotFound    = errors.New("user not found")
 	ErrUserConflict    = errors.New("user already exists")

@@ -100,7 +100,7 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	return attributes
 }
 
-func profileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
+func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
 	up := &UserProfile{}
 	if val := getAttribute(attributes, "profile_full_name"); val != "" {
 		up.FullName = val

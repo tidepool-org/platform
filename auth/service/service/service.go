@@ -63,6 +63,7 @@ import (
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/user/keycloak"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
@@ -834,11 +835,11 @@ func (s *Service) initializeUserEventsHandler() error {
 func (s *Service) initializeUserAccessor() error {
 	s.Logger().Debug("Initializing user accessor")
 
-	config := &user.KeycloakConfig{}
+	config := &keycloak.KeycloakConfig{}
 	if err := config.FromEnv(); err != nil {
 		return err
 	}
-	s.userAccessor = user.NewKeycloakUserAccessor(config)
+	s.userAccessor = keycloak.NewKeycloakUserAccessor(config)
 
 	return nil
 }
