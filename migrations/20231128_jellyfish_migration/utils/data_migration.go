@@ -394,13 +394,13 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 
 	var err error
 	if fileType == "" {
-		errors.Join(err, errors.New("missing file type"))
+		err = errors.Join(err, errors.New("missing file type"))
 	}
 	if dataGroup == "" {
-		errors.Join(err, errors.New("missing data group"))
+		err = errors.Join(err, errors.New("missing data group"))
 	}
 	if logName == "" {
-		errors.Join(err, errors.New("missing log group"))
+		err = errors.Join(err, errors.New("missing log group"))
 	}
 	if err != nil {
 		return nil, err
