@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/user"
+	"github.com/tidepool-org/platform/user/keycloak"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -456,11 +457,11 @@ func (s *Service) initializeUserEventsHandler() error {
 func (s *Service) initializeUserAccessor() error {
 	s.Logger().Debug("Initializing user accessor")
 
-	config := &user.KeycloakConfig{}
+	config := &keycloak.KeycloakConfig{}
 	if err := config.FromEnv(); err != nil {
 		return err
 	}
-	s.userAccessor = user.NewKeycloakUserAccessor(config)
+	s.userAccessor = keycloak.NewKeycloakUserAccessor(config)
 
 	return nil
 }
