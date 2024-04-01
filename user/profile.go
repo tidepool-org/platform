@@ -16,7 +16,44 @@ const (
 // of a time.Time is to ignore timezones when marshaling.
 type Date string
 
+// UserProfile represents the user modifiable attributes of a user. It is named
+// somewhat redundantly as UserProfile instead of Profile because there already
+// exists a type Profile in this package.
 type UserProfile struct {
+	FullName       string   `json:"fullName"`
+	Birthday       Date     `json:"birthday"`
+	DiagnosisDate  Date     `json:"diagnosisDate"`
+	DiagnosisType  string   `json:"diagnosisType"`
+	TargetDevices  []string `json:"targetDevices"`
+	TargetTimezone string   `json:"targetTimezone"`
+	About          string   `json:"about"`
+}
+
+func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
+	return &LegacyUserProfile{
+		FullName: up.FullName,
+		Patient: &PatientProfile{
+			Birthday:       up.Birthday,
+			DiagnosisDate:  up.DiagnosisDate,
+			TargetDevices:  up.TargetDevices,
+			TargetTimezone: up.TargetTimezone,
+			About:          up.About,
+		},
+	}
+}
+
+func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
+	return &UserProfile{
+		FullName:       p.FullName,
+		Birthday:       p.Patient.Birthday,
+		DiagnosisDate:  p.Patient.DiagnosisDate,
+		TargetDevices:  p.Patient.TargetDevices,
+		TargetTimezone: p.Patient.TargetTimezone,
+		About:          p.Patient.About,
+	}
+}
+
+type LegacyUserProfile struct {
 	FullName string          `json:"fullName"`
 	Patient  *PatientProfile `json:"patient,omitempty"`
 	Clinic   *ClinicProfile  `json:"clinic,omitempty"`
@@ -37,59 +74,64 @@ type ClinicProfile struct {
 	Telephone string   `json:"telephone"`
 }
 
-func (u *UserProfile) ToAttributes() map[string][]string {
+func (up *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
-	if u.FullName != "" {
-		addAttribute(attributes, "profile_full_name", u.FullName)
+	if up.FullName != "" {
+		addAttribute(attributes, "profile_full_name", up.FullName)
 	}
-	if u.Patient != nil {
-		patient := u.Patient
-		addAttribute(attributes, "profile_patient_birthday", string(patient.Birthday))
-		addAttribute(attributes, "profile_patient_diagnosis_date", string(patient.DiagnosisDate))
-		addAttribute(attributes, "profile_patient_diagnosis_type", patient.DiagnosisType)
-		addAttributes(attributes, "profile_patient_target_devices", patient.TargetDevices...)
-		addAttribute(attributes, "profile_patient_target_timezone", patient.TargetTimezone)
-		addAttribute(attributes, "profile_patient_about", patient.About)
+	if string(up.Birthday) != "" {
+		addAttribute(attributes, "profile_birthday", string(up.Birthday))
 	}
-
-	if u.Clinic != nil {
-		clinic := u.Clinic
-		addAttribute(attributes, "profile_clinic_name", clinic.Name)
-		addAttributes(attributes, "profile_clinic_role", clinic.Role...)
-		addAttribute(attributes, "profile_clinic_telephone", clinic.Telephone)
+	if string(up.DiagnosisDate) != "" {
+		addAttribute(attributes, "profile_diagnosis_date", string(up.DiagnosisDate))
+	}
+	if up.DiagnosisType != "" {
+		addAttribute(attributes, "profile_diagnosis_type", up.DiagnosisType)
+	}
+	addAttributes(attributes, "profile_target_devices", up.TargetDevices...)
+	if up.TargetTimezone != "" {
+		addAttribute(attributes, "profile_target_timezone", up.TargetTimezone)
+	}
+	if up.About != "" {
+		addAttribute(attributes, "profile_about", up.About)
 	}
 
 	return attributes
 }
 
 func profileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
-	u := &UserProfile{}
-	u.FullName = getAttribute(attributes, "profile_full_name")
-
-	if containsAnyAttributeKeys(attributes, "profile_patient_birthday", "profile_patient_diagnosis_date", "profile_patient_diagnosis_type", "profile_patient_target_devices", "profile_patient_target_timezone", "profile_patient_about") {
-		patient := &PatientProfile{}
-		patient.Birthday = Date(getAttribute(attributes, "profile_patient_birthday"))
-		patient.DiagnosisDate = Date(getAttribute(attributes, "profile_patient_diagnosis_date"))
-		patient.DiagnosisType = getAttribute(attributes, "profile_patient_diagnosis_type")
-		patient.TargetDevices = getAttributes(attributes, "profile_patient_target_devices")
-		patient.TargetTimezone = getAttribute(attributes, "profile_patient_target_timezone")
-		patient.About = getAttribute(attributes, "profile_patient_about")
-		u.Patient = patient
+	up := &UserProfile{}
+	if val := getAttribute(attributes, "profile_full_name"); val != "" {
+		up.FullName = val
+		ok = true
+	}
+	if val := getAttribute(attributes, "profile_birthday"); val != "" {
+		up.Birthday = Date(val)
+		ok = true
+	}
+	if val := getAttribute(attributes, "profile_diagnosis_date"); val != "" {
+		up.DiagnosisDate = Date(val)
+		ok = true
+	}
+	if val := getAttribute(attributes, "profile_diagnosis_type"); val != "" {
+		up.DiagnosisType = val
+		ok = true
+	}
+	if vals := getAttributes(attributes, "profile_target_devices"); len(vals) > 0 {
+		up.TargetDevices = vals
+		ok = true
+	}
+	if val := getAttribute(attributes, "profile_target_timezone"); val != "" {
+		up.TargetTimezone = val
+		ok = true
+	}
+	if val := getAttribute(attributes, "profile_about"); val != "" {
+		up.About = val
+		ok = true
 	}
 
-	if containsAnyAttributeKeys(attributes, "profile_clinic_name", "profile_clinic_role", "profile_clinic_telephone") {
-		clinic := &ClinicProfile{}
-		clinic.Name = getAttribute(attributes, "profile_clinic_name")
-		clinic.Role = getAttributes(attributes, "profile_clinic_role")
-		clinic.Telephone = getAttribute(attributes, "profile_clinic_telephone")
-		u.Clinic = clinic
-	}
-
-	if u.Clinic == nil && u.Patient == nil && u.FullName == "" {
-		return nil, false
-	}
-	return u, true
+	return up, ok
 }
 
 func addAttribute(attributes map[string][]string, attribute, value string) (ok bool) {
@@ -146,20 +188,10 @@ func (d Date) Validate(v structure.Validator) {
 	v.String("date", &str).AsTime(time.DateOnly)
 }
 
-func (p *PatientProfile) Validate(v structure.Validator) {
-	p.Birthday.Validate(v.WithReference("birthday"))
-	p.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
-	v.String("about", &p.About).LengthLessThanOrEqualTo(maxAboutLength)
-}
-
-func (p *UserProfile) Validate(v structure.Validator) {
-	if p.Patient != nil {
-		p.Patient.Validate(v.WithReference("patient"))
-	}
-	if p.Clinic != nil {
-		p.Clinic.Validate(v.WithReference("clinic"))
-	}
-	v.String("fullName", &p.FullName).LengthLessThanOrEqualTo(maxNameLength)
+func (up *UserProfile) Validate(v structure.Validator) {
+	up.Birthday.Validate(v.WithReference("birthday"))
+	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxNameLength)
 }
 
 func (p *ClinicProfile) Validate(v structure.Validator) {
