@@ -20,6 +20,7 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 		rest.Put("/v1/users/:userId/profile", r.requireWriteAccess("userId", r.UpdateProfile)),
 		rest.Put("/v1/users/legacy/:userId/profile", r.requireWriteAccess("userId", r.UpdateLegacyProfile)),
 		rest.Delete("/v1/users/:userId/profile", r.requireWriteAccess("userId", r.DeleteProfile)),
+		rest.Delete("/v1/users/legacy/:userId/profile", r.requireWriteAccess("userId", r.DeleteProfile)),
 	}
 }
 
