@@ -59,16 +59,16 @@ func NewJellyfishMigration(ctx context.Context) *Migration {
 }
 
 func (c *config) report() string {
-	return fmt.Sprintf("MIGRATION DETAILS:\n\nPROCESSED CAP [%d]\nROLLBACK? [%t]\nDRY_RUN? [%t]\nSTOP ON ERROR? [%t]\nLAST ID [%s]\nQUERY [SIZE=%d LIMIT=%d]\nUSER ID[%s]",
-		c.cap,
-		c.dryRun,
-		c.rollback,
-		c.stopOnErr,
-		c.lastUpdatedId,
-		c.queryBatchSize,
-		c.queryLimit,
-		c.userID,
-	)
+	details := "\nMIGRATION DETAILS:\n"
+	details += fmt.Sprintf("- CAP\t[%d]\n", c.cap)
+	details += fmt.Sprintf("- AUDIT? \t[%t]\n", c.dryRun)
+	details += fmt.Sprintf("- ROLLBACK\t[%t]\n", c.rollback)
+	details += fmt.Sprintf("- STOP ON ERROR\t[%t]\n", c.stopOnErr)
+	details += fmt.Sprintf("- LAST PROCESSED ID\t[%s]\n", c.lastUpdatedId)
+	details += fmt.Sprintf("- USER ID\t[%s]\n", c.userID)
+	details += fmt.Sprintf("- QUERY BATCH\t[%d]\n", c.queryBatchSize)
+	details += fmt.Sprintf("- QUERY LIMIT\t[%d]\n", c.queryLimit)
+	return details
 }
 
 func (m *Migration) RunAndExit() {
@@ -133,6 +133,7 @@ func (m *Migration) RunAndExit() {
 				m.config.queryLimit,
 			)
 		}
+		log.Printf("query: %v ", selector)
 		if err := m.migrationUtil.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn); err != nil {
 			log.Printf("execute failed: %s", err)
 			return err
