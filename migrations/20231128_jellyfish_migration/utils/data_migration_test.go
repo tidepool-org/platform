@@ -58,27 +58,31 @@ var _ = Describe("back-37", func() {
 		const datumCount = 1000
 		var store *dataStoreMongo.Store
 		var ctx context.Context
-		var rollbackConfig *utils.DataMigrationConfig
-		var migtaionConfig *utils.DataMigrationConfig
+		var rollbackSettings *utils.Settings
+		var migrationSettings *utils.Settings
 
 		BeforeEach(func() {
 			logger := logTest.NewLogger()
 			ctx = platformLog.NewContextWithLogger(context.Background(), logger)
 			testData = test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", datumCount)
-			rollbackConfig = utils.NewDataMigrationConfig(
+			rollbackSettings = utils.NewSettings(
 				pointer.FromBool(false),
 				pointer.FromBool(false),
 				pointer.FromBool(true),
 				pointer.FromString("_testRollback"),
 				nil,
+				pointer.FromInt(50),
+				pointer.FromInt(100),
 				pointer.FromBool(false),
 			)
-			migtaionConfig = utils.NewDataMigrationConfig(
+			migrationSettings = utils.NewSettings(
 				pointer.FromBool(false),
 				pointer.FromBool(false),
 				pointer.FromBool(false),
 				pointer.FromString("_testRollback"),
 				nil,
+				pointer.FromInt(50),
+				pointer.FromInt(100),
 				pointer.FromBool(false),
 			)
 			var err error
@@ -95,7 +99,7 @@ var _ = Describe("back-37", func() {
 			collection := store.GetCollection("testMigration")
 			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
 
-			migration, err := utils.NewMigration(ctx, migtaionConfig, newMongoInstanceChecker(), collection, nil)
+			migration, err := utils.NewMigration(ctx, migrationSettings, newMongoInstanceChecker(), collection, nil)
 			Expect(err).To(BeNil())
 
 			Expect(testData).ToNot(BeNil())
@@ -103,8 +107,7 @@ var _ = Describe("back-37", func() {
 			allDocs, err := collection.CountDocuments(ctx, bson.D{})
 			Expect(err).To(BeNil())
 			Expect(allDocs).To(Equal(int64(datumCount)))
-			selector, opt := utils.JellyfishDataQuery(nil, nil, 50, 100)
-			Expect(migration.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
+			Expect(migration.Execute(utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
 			stats := migration.GetStats()
 			Expect(stats.Errored).To(Equal(0))
 			Expect(stats.Fetched).To(Equal(datumCount))
@@ -133,7 +136,7 @@ var _ = Describe("back-37", func() {
 			findOptions := options.Find()
 			findOptions.SetSort(bson.D{{Key: "_id", Value: -1}})
 
-			migration, err := utils.NewMigration(ctx, migtaionConfig, newMongoInstanceChecker(), collection, nil)
+			migration, err := utils.NewMigration(ctx, migrationSettings, newMongoInstanceChecker(), collection, nil)
 			Expect(err).To(BeNil())
 
 			Expect(testData).ToNot(BeNil())
@@ -146,8 +149,7 @@ var _ = Describe("back-37", func() {
 			cur.All(ctx, &original)
 			Expect(len(original)).To(Equal(datumCount))
 
-			selector, opt := utils.JellyfishDataQuery(nil, nil, 50, 100)
-			Expect(migration.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
+			Expect(migration.Execute(utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
 
 			cur, err = collection.Find(ctx, bson.D{}, findOptions)
 			Expect(err).To(BeNil())
@@ -155,11 +157,10 @@ var _ = Describe("back-37", func() {
 			cur.All(ctx, &migrated)
 			Expect(len(migrated)).To(Equal(datumCount))
 
-			rollback, err := utils.NewMigration(ctx, rollbackConfig, newMongoInstanceChecker(), collection, nil)
+			rollback, err := utils.NewMigration(ctx, rollbackSettings, newMongoInstanceChecker(), collection, nil)
 			Expect(err).To(BeNil())
 
-			rollbackSelector, rollbackOpt := utils.JellyfishDataRollbackQuery(rollback.GetSettings().RollbackSectionName, nil, nil, 50, 100)
-			Expect(rollback.Execute(rollbackSelector, rollbackOpt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
+			Expect(rollback.Execute(utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
 
 			cur, err = collection.Find(ctx, bson.D{}, findOptions)
 			Expect(err).To(BeNil())

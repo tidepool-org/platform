@@ -5,13 +5,23 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/tidepool-org/platform/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func commonQuery(selector bson.M, userID *string, lastFetchedID *string) {
+func jellyfishQuery(settings Settings, userID *string, lastFetchedID *string) (bson.M, *options.FindOptions) {
+	selector := bson.M{
+		"_deduplicator": bson.M{"$exists": false},
+	}
+	if settings.Rollback {
+		selector = bson.M{
+			settings.RollbackSectionName: bson.M{"$exists": true},
+		}
+	}
+
 	if userID != nil && *userID != "" {
 		log.Printf("fetching for user %s", *userID)
 		selector["_userId"] = *userID
@@ -26,35 +36,31 @@ func commonQuery(selector bson.M, userID *string, lastFetchedID *string) {
 	} else {
 		selector["_id"] = idNotObjectID
 	}
-}
 
-func opt(batchSize int32, queryLimit int64) *options.FindOptions {
-	return &options.FindOptions{
+	bSize := int32(settings.QueryBatchSize)
+	limit := int64(settings.QueryBatchLimit)
+	opts := &options.FindOptions{
 		Sort:      bson.M{"_id": 1},
-		BatchSize: &batchSize,
-		Limit:     &queryLimit,
+		BatchSize: &bSize,
+		Limit:     &limit,
 	}
+
+	return selector, opts
 }
 
-func JellyfishDataQuery(userID *string, lastFetchedID *string, batchSize int64, queryLimit int64) (bson.M, *options.FindOptions) {
-	selector := bson.M{
-		"_deduplicator": bson.M{"$exists": false},
-	}
-	commonQuery(selector, userID, lastFetchedID)
-	return selector, opt(int32(batchSize), queryLimit)
-}
+var JellyfishDataQueryFn = func(m *DataMigration) bool {
 
-func JellyfishDataRollbackQuery(rollbackSectionName string, userID *string, lastFetchedID *string, batchSize int64, queryLimit int64) (bson.M, *options.FindOptions) {
-	selector := bson.M{
-		rollbackSectionName: bson.M{"$exists": true},
-	}
-	commonQuery(selector, userID, lastFetchedID)
-	return selector, opt(int32(batchSize), queryLimit)
-}
+	settings := m.GetSettings()
 
-var JellyfishDataQueryFn = func(m *DataMigration, selector bson.M, opts ...*options.FindOptions) bool {
 	if dataC := m.GetDataCollection(); dataC != nil {
-		dDataCursor, err := dataC.Find(m.GetCtx(), selector, opts...)
+
+		selector, opts := jellyfishQuery(
+			settings,
+			nil,
+			pointer.FromString(m.GetLastID()),
+		)
+
+		dDataCursor, err := dataC.Find(m.GetCtx(), selector, opts)
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
 			return false
@@ -72,8 +78,8 @@ var JellyfishDataQueryFn = func(m *DataMigration, selector bson.M, opts ...*opti
 			itemID := fmt.Sprintf("%v", item["_id"])
 			userID := fmt.Sprintf("%v", item["_userId"])
 			itemType := fmt.Sprintf("%v", item["type"])
-			if m.GetSettings().Rollback {
-				if rollback, ok := item[m.GetSettings().RollbackSectionName].(primitive.A); ok {
+			if settings.Rollback {
+				if rollback, ok := item[settings.RollbackSectionName].(primitive.A); ok {
 					cmds := []bson.M{}
 					for _, cmd := range rollback {
 						if cmd, ok := cmd.(bson.M); ok {

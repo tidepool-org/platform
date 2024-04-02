@@ -106,7 +106,6 @@ func (m *mongoInstance) SetWriteBatchSize(ctx context.Context) error {
 }
 
 func (m *mongoInstance) CheckFreeSpace(ctx context.Context, dataC *mongo.Collection) error {
-	// pass in config and mongo collection being migrated
 	if dataC == nil {
 		return errors.New("missing required mongo data collection")
 	}
@@ -116,18 +115,16 @@ func (m *mongoInstance) CheckFreeSpace(ctx context.Context, dataC *mongo.Collect
 		FsUsedSize  int `json:"fsUsedSize"`
 	}
 	var metaData MongoMetaData
-	if dataC != nil {
-		if err := dataC.Database().RunCommand(ctx, bson.M{"dbStats": 1}).Decode(&metaData); err != nil {
-			return err
-		}
-		bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
-		percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
-		if m.config.minFreePercent > percentFree {
-			return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
-		}
-		return nil
+
+	if err := dataC.Database().RunCommand(ctx, bson.M{"dbStats": 1}).Decode(&metaData); err != nil {
+		return err
 	}
-	return errors.New("could not get deviceData database")
+	bytesFree := metaData.FsTotalSize - metaData.FsUsedSize
+	percentFree := int(math.Floor(float64(bytesFree) / float64(metaData.FsTotalSize) * 100))
+	if m.config.minFreePercent > percentFree {
+		return fmt.Errorf("error %d%% is  below minimum free space of %d%%", percentFree, m.config.minFreePercent)
+	}
+	return nil
 }
 
 func (m *mongoInstance) BlockUntilDBReady(ctx context.Context) error {

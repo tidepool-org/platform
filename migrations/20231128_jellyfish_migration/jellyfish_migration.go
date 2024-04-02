@@ -33,8 +33,8 @@ type config struct {
 	userID              string
 	lastUpdatedId       string
 	nopPercent          int
-	queryBatchSize      int64
-	queryLimit          int64
+	queryBatchSize      int
+	queryLimit          int
 }
 
 const DryRunFlag = "dry-run"
@@ -60,14 +60,14 @@ func NewJellyfishMigration(ctx context.Context) *Migration {
 
 func (c *config) report() string {
 	details := "\nMIGRATION DETAILS:\n"
-	details += fmt.Sprintf("- CAP\t[%d]\n", c.cap)
-	details += fmt.Sprintf("- AUDIT? \t[%t]\n", c.dryRun)
-	details += fmt.Sprintf("- ROLLBACK\t[%t]\n", c.rollback)
-	details += fmt.Sprintf("- STOP ON ERROR\t[%t]\n", c.stopOnErr)
+	details += fmt.Sprintf("- CAP\t\t\t[%d]\n", c.cap)
+	details += fmt.Sprintf("- AUDIT? \t\t[%t]\n", c.dryRun)
+	details += fmt.Sprintf("- ROLLBACK\t\t[%t]\n", c.rollback)
+	details += fmt.Sprintf("- STOP ON ERROR\t\t[%t]\n", c.stopOnErr)
 	details += fmt.Sprintf("- LAST PROCESSED ID\t[%s]\n", c.lastUpdatedId)
-	details += fmt.Sprintf("- USER ID\t[%s]\n", c.userID)
-	details += fmt.Sprintf("- QUERY BATCH\t[%d]\n", c.queryBatchSize)
-	details += fmt.Sprintf("- QUERY LIMIT\t[%d]\n", c.queryLimit)
+	details += fmt.Sprintf("- USER ID\t\t[%s]\n", c.userID)
+	details += fmt.Sprintf("- QUERY BATCH\t\t[%d]\n", c.queryBatchSize)
+	details += fmt.Sprintf("- QUERY LIMIT\t\t[%d]\n", c.queryLimit)
 	return details
 }
 
@@ -92,12 +92,14 @@ func (m *Migration) RunAndExit() {
 
 		m.migrationUtil, err = utils.NewMigration(
 			m.ctx,
-			utils.NewDataMigrationConfig(
+			utils.NewSettings(
 				&m.config.dryRun,
 				&m.config.stopOnErr,
 				&m.config.rollback,
 				&m.config.rollbackSectionName,
 				&m.config.cap,
+				&m.config.queryBatchSize,
+				&m.config.queryLimit,
 				pointer.FromBool(true),
 			),
 			dbChecker,
@@ -115,26 +117,7 @@ func (m *Migration) RunAndExit() {
 			log.Printf("prepare failed: %s", err)
 			return err
 		}
-		lastFetchedID := m.migrationUtil.GetLastID()
-
-		selector, opt := utils.JellyfishDataQuery(
-			&m.config.userID,
-			&lastFetchedID,
-			m.config.queryBatchSize,
-			m.config.queryLimit,
-		)
-
-		if m.config.rollback {
-			selector, opt = utils.JellyfishDataRollbackQuery(
-				m.config.rollbackSectionName,
-				&m.config.userID,
-				&lastFetchedID,
-				m.config.queryBatchSize,
-				m.config.queryLimit,
-			)
-		}
-		log.Printf("query: %v ", selector)
-		if err := m.migrationUtil.Execute(selector, opt, utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn); err != nil {
+		if err := m.migrationUtil.Execute(utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn); err != nil {
 			log.Printf("execute failed: %s", err)
 			return err
 		}
@@ -209,14 +192,14 @@ func (m *Migration) Initialize() error {
 			Destination: &m.config.userID,
 			Required:    false,
 		},
-		cli.Int64Flag{
+		cli.IntFlag{
 			Name:        "query-limit",
 			Usage:       "max number of items to return",
 			Destination: &m.config.queryLimit,
 			Value:       50000,
 			Required:    false,
 		},
-		cli.Int64Flag{
+		cli.IntFlag{
 			Name:        "query-batch",
 			Usage:       "max number of items in each query batch",
 			Destination: &m.config.queryBatchSize,

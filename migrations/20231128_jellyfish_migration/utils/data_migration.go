@@ -13,7 +13,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type UpdateData struct {
@@ -46,79 +45,56 @@ type Settings struct {
 	Rollback            bool
 	RollbackSectionName string
 	StopOnErr           bool
-	Cap                 *int
 	WriteBatchSize      *int64
-}
+	QueryBatchSize      int
+	QueryBatchLimit     int
 
-type DataMigrationConfig struct {
+	capacity    *int
 	writeToDisk bool
-	//apply no changes
-	dryRun bool
-	//rollback the changes that have been applied
-	rollback bool
-	//name of section with mongo document that stores the original values
-	rollbackSectionName string
-	//halt on error
-	stopOnErr bool
-	// cap for number of items to migrate
-	cap *int
 }
 
-func NewDataMigrationConfig(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionName *string, cap *int, writeToDisk *bool) *DataMigrationConfig {
-	cfg := &DataMigrationConfig{
+func NewSettings(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionName *string, capacity *int, queryBatch *int, queryLimit *int, writeToDisk *bool) *Settings {
+	settings := &Settings{
 		writeToDisk:         false,
-		rollback:            true,
-		rollbackSectionName: "_rollbackMigration",
-		dryRun:              true,
-		stopOnErr:           true,
+		Rollback:            true,
+		RollbackSectionName: "_rollbackMigration",
+		DryRun:              true,
+		StopOnErr:           true,
+		QueryBatchSize:      50,
+		QueryBatchLimit:     100,
 	}
 	if dryRun != nil {
-		cfg.SetDryRun(*dryRun)
+		settings.DryRun = *dryRun
 	}
 	if stopOnErr != nil {
-		cfg.SetStopOnErr(*stopOnErr)
+		settings.StopOnErr = *stopOnErr
 	}
 	if rollback != nil {
-		cfg.SetRollback(*rollback)
+		settings.Rollback = *rollback
 	}
 	if rollbackSectionName != nil {
-		cfg.SetRollbackSectionName(*rollbackSectionName)
+		settings.RollbackSectionName = *rollbackSectionName
 	}
 	if writeToDisk != nil {
-		cfg.SetWriteToDisk(*writeToDisk)
+		settings.writeToDisk = *writeToDisk
 	}
-	if cap != nil && *cap > 0 {
-		cfg.cap = cap
-		log.Printf("capped at %d items", *cfg.cap)
+	if queryBatch != nil {
+		settings.QueryBatchSize = *queryBatch
 	}
-	return cfg
-}
-
-func (c *DataMigrationConfig) SetDryRun(dryRun bool) *DataMigrationConfig {
-	c.dryRun = dryRun
-	return c
-}
-func (c *DataMigrationConfig) SetStopOnErr(stopOnErr bool) *DataMigrationConfig {
-	c.stopOnErr = stopOnErr
-	return c
-}
-func (c *DataMigrationConfig) SetRollback(rollback bool) *DataMigrationConfig {
-	c.rollback = rollback
-	return c
-}
-func (c *DataMigrationConfig) SetRollbackSectionName(rollbackSectionName string) *DataMigrationConfig {
-	c.rollbackSectionName = rollbackSectionName
-	return c
-}
-func (c *DataMigrationConfig) SetWriteToDisk(writeToDisk bool) *DataMigrationConfig {
-	c.writeToDisk = writeToDisk
-	return c
+	if queryLimit != nil {
+		settings.QueryBatchLimit = *queryLimit
+	}
+	if capacity != nil && *capacity > 0 {
+		settings.capacity = capacity
+		log.Printf("capped at %d items", *settings.capacity)
+	}
+	return settings
 }
 
 type DataMigration struct {
 	ctx                  context.Context
 	dataC                *mongo.Collection
-	config               *DataMigrationConfig
+	settings             *Settings
 	updates              []mongo.WriteModel
 	groupedDiffs         map[string][]UpdateData
 	groupedErrors        groupedErrors
@@ -130,15 +106,15 @@ type DataMigration struct {
 	mongoInstanceChecker MongoInstanceCheck
 }
 
-type DataMigrationQueryFn func(m *DataMigration, selector bson.M, opts ...*options.FindOptions) bool
+type DataMigrationQueryFn func(m *DataMigration) bool
 type DataMigrationUpdateFn func(m *DataMigration) (int, error)
 
 type groupedErrors map[string][]ErrorData
 
-func NewMigration(ctx context.Context, config *DataMigrationConfig, checker MongoInstanceCheck, dataC *mongo.Collection, lastID *string) (*DataMigration, error) {
+func NewMigration(ctx context.Context, settings *Settings, checker MongoInstanceCheck, dataC *mongo.Collection, lastID *string) (*DataMigration, error) {
 	var err error
-	if config == nil {
-		err = errors.Join(err, errors.New("missing required configuration"))
+	if settings == nil {
+		err = errors.Join(err, errors.New("missing required settings"))
 	}
 	if checker == nil {
 		err = errors.Join(err, errors.New("missing required mongo checker"))
@@ -152,7 +128,7 @@ func NewMigration(ctx context.Context, config *DataMigrationConfig, checker Mong
 		ctx:                  ctx,
 		dataC:                dataC,
 		mongoInstanceChecker: checker,
-		config:               config,
+		settings:             settings,
 		updates:              []mongo.WriteModel{},
 		groupedErrors:        groupedErrors{},
 		groupedDiffs:         map[string][]UpdateData{},
@@ -182,14 +158,8 @@ func (m *DataMigration) GetCtx() context.Context {
 }
 
 func (m *DataMigration) GetSettings() Settings {
-	return Settings{
-		DryRun:              m.config.dryRun,
-		Rollback:            m.config.rollback,
-		RollbackSectionName: m.config.rollbackSectionName,
-		Cap:                 m.config.cap,
-		StopOnErr:           m.config.stopOnErr,
-		WriteBatchSize:      m.mongoInstanceChecker.GetWriteBatchSize(),
-	}
+	m.settings.WriteBatchSize = m.mongoInstanceChecker.GetWriteBatchSize()
+	return *m.settings
 }
 
 func (m *DataMigration) GetDataCollection() *mongo.Collection {
@@ -197,11 +167,9 @@ func (m *DataMigration) GetDataCollection() *mongo.Collection {
 }
 
 func (m *DataMigration) Execute(
-	selector bson.M,
-	selectorOpt *options.FindOptions,
 	queryFn DataMigrationQueryFn,
 	updateFn DataMigrationUpdateFn) error {
-	for queryFn(m, selector, selectorOpt) {
+	for queryFn(m) {
 		count, err := updateFn(m)
 		if err != nil {
 			m.writeErrors(nil)
@@ -241,7 +209,7 @@ func (d UpdateData) getMongoUpdates(rollback bool, rollbackSectionName string) [
 
 func (m *DataMigration) SetUpdates(data UpdateData) {
 	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	m.updates = append(m.updates, data.getMongoUpdates(m.config.rollback, m.config.rollbackSectionName)...)
+	m.updates = append(m.updates, data.getMongoUpdates(m.settings.Rollback, m.settings.RollbackSectionName)...)
 }
 
 func (m *DataMigration) updatesApplied(updatedCount int) {
@@ -250,15 +218,16 @@ func (m *DataMigration) updatesApplied(updatedCount int) {
 }
 
 func (m *DataMigration) completeUpdates() bool {
-	if m.config.cap != nil {
+	capacity := m.settings.capacity
+	if capacity != nil {
 		stats := m.GetStats()
 
-		percent := (float64(stats.Fetched) * float64(100)) / float64(*m.config.cap)
+		percent := (float64(stats.Fetched) * float64(100)) / float64(*capacity)
 
-		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *m.config.cap, stats.Applied)
+		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *capacity, stats.Applied)
 
-		if *m.config.cap <= stats.Applied || *m.config.cap <= stats.Fetched {
-			log.Printf("cap [%d] updates applied [%d] fetched [%d]", *m.config.cap, stats.Applied, stats.Fetched)
+		if *capacity <= stats.Applied || *capacity <= stats.Fetched {
+			log.Printf("cap [%d] updates applied [%d] fetched [%d]", *capacity, stats.Applied, stats.Fetched)
 			return true
 		}
 	}
@@ -295,7 +264,7 @@ func (m *DataMigration) GetLastID() string {
 func (m *DataMigration) OnError(data ErrorData) {
 	m.errorsCount++
 	m.groupedErrors[data.ItemType] = append(m.groupedErrors[data.ItemType], data)
-	if m.config.stopOnErr {
+	if m.settings.StopOnErr {
 		log.Printf("[_id=%s] %s %s\n", data.ItemID, data.Msg, data.Error.Error())
 		os.Exit(1)
 	}
@@ -320,7 +289,7 @@ func (c MigrationStats) report() {
 }
 
 func (m *DataMigration) writeErrors(groupLimit *int) {
-	if !m.config.writeToDisk {
+	if !m.settings.writeToDisk {
 		m.groupedErrors = map[string][]ErrorData{}
 	}
 	for group, errors := range m.groupedErrors {
@@ -348,7 +317,7 @@ func (m *DataMigration) writeErrors(groupLimit *int) {
 }
 
 func (m *DataMigration) writeAudit(groupLimit *int) {
-	if !m.config.writeToDisk || !m.config.dryRun {
+	if !m.settings.writeToDisk || !m.settings.DryRun {
 		m.groupedDiffs = map[string][]UpdateData{}
 		return
 	}
@@ -377,7 +346,7 @@ func (m *DataMigration) writeAudit(groupLimit *int) {
 }
 
 func (m *DataMigration) writeLastProcessed(itemID string) {
-	if m.config.writeToDisk {
+	if m.settings.writeToDisk {
 		if strings.TrimSpace(itemID) != "" {
 			f, err := os.Create("./lastProcessedId")
 			if err != nil {
