@@ -236,6 +236,33 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	}
 	t.logger.Debug("Finished User BGM Summary Update")
 
+	t.logger.Debug("Starting User Continuous Summary Update")
+	iCount = 0
+	for {
+		t.logger.Info("Searching for User Continuous Summaries requiring Update")
+		outdatedContinuous, err := t.dataClient.GetOutdatedUserIDs(t.context, "continuous", pagination)
+		if err != nil {
+			return err
+		}
+
+		if err = t.UpdateContinuousSummaries(outdatedContinuous.UserIds); err != nil {
+			return err
+		}
+
+		if iCount > IterLimit {
+			t.logger.Warn("Exiting Continuous batch loop early, too many iterations")
+			break
+		}
+
+		if outdatedContinuous.End.After(targetTime) || outdatedContinuous.End.IsZero() {
+			// we are sufficiently caught up
+			break
+		}
+
+		iCount++
+	}
+	t.logger.Debug("Finished User Continuous Summary Update")
+
 	return nil
 }
 
@@ -299,6 +326,41 @@ func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 				}
 
 				t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
+
+				return nil
+			})
+		}
+
+		return nil
+	})
+	return eg.Wait()
+}
+
+func (t *UpdateTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) error {
+	eg, ctx := errgroup.WithContext(t.context)
+
+	eg.Go(func() error {
+		sem := semaphore.NewWeighted(UpdateWorkerCount)
+		for _, userID := range outdatedUserIds {
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return err
+			}
+
+			// we can't pass arguments to errgroup goroutines
+			// we need to explicitly redefine the variables,
+			// because we're launching the goroutines in a loop
+			userID := userID
+			eg.Go(func() error {
+				defer sem.Release(1)
+				t.logger.WithField("UserID", userID).Debug("Updating User Continuous Summary")
+
+				// update summary
+				_, err := t.dataClient.UpdateContinuousSummary(t.context, userID)
+				if err != nil {
+					return err
+				}
+
+				t.logger.WithField("UserID", userID).Debug("Finished Updating User Continuous Summary")
 
 				return nil
 			})

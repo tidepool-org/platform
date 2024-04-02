@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/pointer"
-	"strconv"
-	"time"
 )
 
 type ContinuousBucketData struct {

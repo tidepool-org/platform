@@ -20,18 +20,23 @@ func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/continuous/:userId", GetSummary[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
 
 		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/continuous/:userId", UpdateSummary[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
 
 		dataService.Post("/v1/summaries/backfill/cgm", BackfillSummaries[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Post("/v1/summaries/backfill/bgm", BackfillSummaries[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/backfill/continuous", BackfillSummaries[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/continuous", GetOutdatedUserIDs[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
 		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/continuous", GetMigratableUserIDs[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
 
 		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
 	}

@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	clinic "github.com/tidepool-org/clinic/client"
+
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/pointer"
-	"time"
 
 	"github.com/tidepool-org/platform/data"
 

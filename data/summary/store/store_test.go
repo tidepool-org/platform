@@ -2,9 +2,10 @@ package store_test
 
 import (
 	"context"
+	"time"
+
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

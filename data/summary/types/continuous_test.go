@@ -2,8 +2,9 @@ package types_test
 
 import (
 	"fmt"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"time"
+
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 
 	summaryTest "github.com/tidepool-org/platform/data/summary/types/test"
 	"github.com/tidepool-org/platform/data/test"

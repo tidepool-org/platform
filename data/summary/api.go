@@ -1,8 +1,9 @@
 package summary
 
 import (
-	"github.com/tidepool-org/platform/structure"
 	"time"
+
+	"github.com/tidepool-org/platform/structure"
 )
 
 type RealtimePatientsResponse struct {

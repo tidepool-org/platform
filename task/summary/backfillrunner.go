@@ -181,5 +181,12 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	}
 	t.logger.Info(fmt.Sprintf("Backfilled %d BGM summaries", count))
 
+	t.logger.Debug("Starting User Continuous Summary Creation")
+	count, err = t.dataClient.BackfillSummaries(t.context, "continuous")
+	if err != nil {
+		return err
+	}
+	t.logger.Info(fmt.Sprintf("Backfilled %d Continuous summaries", count))
+
 	return nil
 }
