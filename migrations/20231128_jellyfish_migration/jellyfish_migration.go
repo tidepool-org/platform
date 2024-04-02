@@ -58,6 +58,19 @@ func NewJellyfishMigration(ctx context.Context) *Migration {
 	}
 }
 
+func (c *config) report() string {
+	return fmt.Sprintf("MIGRATION DETAILS:\n\nPROCESSED CAP [%d]\nROLLBACK? [%t]\nDRY_RUN? [%t]\nSTOP ON ERROR? [%t]\nLAST ID [%s]\nQUERY [SIZE=%d LIMIT=%d]\nUSER ID[%s]",
+		c.cap,
+		c.dryRun,
+		c.rollback,
+		c.stopOnErr,
+		c.lastUpdatedId,
+		c.queryBatchSize,
+		c.queryLimit,
+		c.userID,
+	)
+}
+
 func (m *Migration) RunAndExit() {
 	if err := m.Initialize(); err != nil {
 		os.Exit(1)
@@ -91,6 +104,9 @@ func (m *Migration) RunAndExit() {
 			m.client.Database("data").Collection("deviceData"),
 			&m.config.lastUpdatedId,
 		)
+
+		log.Printf("%s", m.config.report())
+
 		if err != nil {
 			return fmt.Errorf("unable to create migration utils : %w", err)
 		}
