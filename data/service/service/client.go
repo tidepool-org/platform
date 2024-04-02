@@ -81,3 +81,11 @@ func (c *Client) BackfillSummaries(ctx context.Context, t string) (int, error) {
 func (c *Client) GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error) {
 	panic("Not Implemented!")
 }
+
+func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+	panic("Not Implemented!")
+}
+
+func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+	panic("Not Implemented!")
+}

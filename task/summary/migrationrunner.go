@@ -187,6 +187,12 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 		return err
 	}
 
+	t.logger.Info("Searching for User Continuous Summaries requiring Migration")
+	outdatedContinuousSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "continuous", pagination)
+	if err != nil {
+		return err
+	}
+
 	t.logger.Debug("Starting User CGM Summary Migration")
 	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
 		return err
@@ -200,7 +206,7 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	t.logger.Debug("Finished User BGM Summary Migration")
 
 	t.logger.Debug("Starting User Continuous Summary Migration")
-	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
+	if err := t.UpdateContinuousSummaries(outdatedContinuousSummaryUserIDs); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User Continuous Summary Migration")
