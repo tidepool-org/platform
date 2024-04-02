@@ -548,7 +548,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	return selector, nil
 }
 
-func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -619,7 +619,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ [
 	return cursor, nil
 }
 
-func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (err error) {
+func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	timestamp := time.Now().UTC()
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
@@ -664,7 +664,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	return nil
 }
 
-func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	// get latest modified record
 	selector := bson.M{
 		"_userId": userId,
@@ -711,7 +711,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	return nil
 }
 
-func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
 		"_userId": userId,
@@ -761,7 +761,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	var err error
 
 	if ctx == nil {
@@ -781,7 +781,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	status := &data.UserLastUpdated{
+	status := &data.UserDataStatus{
 		LastUpdated:     lastUpdated,
 		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}

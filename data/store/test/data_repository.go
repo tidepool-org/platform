@@ -149,12 +149,12 @@ type ListUserDataSetsOutput struct {
 type GetLastUpdatedForUserInput struct {
 	Context     context.Context
 	UserID      string
-	Typ         string
+	Typ         []string
 	LastUpdated time.Time
 }
 
 type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated *data.UserLastUpdated
+	UserLastUpdated *data.UserDataStatus
 	Error           error
 }
 
@@ -162,7 +162,7 @@ type GetDataRangeInput struct {
 	Context context.Context
 	UserId  string
 	Typ     []string
-	Status  *data.UserLastUpdated
+	Status  *data.UserDataStatus
 }
 
 type GetDataRangeOutput struct {
@@ -491,7 +491,7 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*data.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	d.GetLastUpdatedForUserInvocations++
 
 	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ, LastUpdated: lastUpdated})
@@ -503,7 +503,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId strin
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
 	d.GetDataRangeInvocations++
 
 	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})

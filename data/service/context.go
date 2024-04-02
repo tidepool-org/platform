@@ -30,6 +30,7 @@ type Context interface {
 	AlertsRepository() alerts.Repository
 
 	SummarizerRegistry() *summary.SummarizerRegistry
+	SummaryReporter() *summary.Reporter
 	DataClient() dataClient.Client
 
 	ClinicsClient() clinics.Client

@@ -197,7 +197,7 @@ var _ = Describe("Summary", func() {
 			}
 
 			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
-			Expect(outdatedSinceMap).To(HaveLen(2))
+			Expect(outdatedSinceMap).To(HaveLen(3))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
 			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
@@ -266,7 +266,7 @@ var _ = Describe("Summary", func() {
 
 			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(1))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
 
 			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -274,11 +274,11 @@ var _ = Describe("Summary", func() {
 
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userBgmSummary).To(BeNil())
+			Expect(userBgmSummary).To(BeNil())
 
 			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
+			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
 		})
 
 		It("with unknown summary type outdated", func() {
@@ -683,13 +683,7 @@ var _ = Describe("Summary", func() {
 
 			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(userSummary).ToNot(BeNil())
-			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
-
-			for i := 0; i < len(userSummary.Stats.Buckets); i++ {
-				Expect(userSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-				Expect(userSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
-			}
+			Expect(userSummary).To(BeNil())
 		})
 	})
 })

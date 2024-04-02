@@ -218,3 +218,5 @@ func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
 func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 	panic("not implemented") // TODO: Implement
 }
+
+func (c *mockDataServiceContext) SummaryReporter() *summary.Reporter { panic("not implemented") }

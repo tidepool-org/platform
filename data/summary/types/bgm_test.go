@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -120,13 +118,12 @@ var _ = Describe("BGM Summary", func() {
 		var userBGMSummary *types.Summary[*types.BGMStats, types.BGMStats]
 		var periodKeys = []string{"1d", "7d", "14d", "30d"}
 		var periodInts = []int{1, 7, 14, 30}
-		var continuousUploads = map[string]bool{}
 
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 336, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(336))
@@ -135,7 +132,7 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correct hour count when given 1 week", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(168))
@@ -144,7 +141,7 @@ var _ = Describe("BGM Summary", func() {
 			It("Returns correct hour count when given 3 weeks", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 504, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(504))
@@ -163,7 +160,7 @@ var _ = Describe("BGM Summary", func() {
 					doubledBGMData[i*2] = dataSetBGMData[i]
 					doubledBGMData[i*2+1] = dataSetBGMDataTwo[i]
 				}
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
@@ -175,11 +172,11 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 24, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime.Add(15*time.Second), 24, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(24))
@@ -195,7 +192,7 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(168))
@@ -210,7 +207,7 @@ var _ = Describe("BGM Summary", func() {
 				}
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, secondDatumTime, 168, secondRequestedAvgGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(528)) // 22 days
@@ -238,7 +235,7 @@ var _ = Describe("BGM Summary", func() {
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 
 				dataSetBGMData = NewDataSetBGMDataAvg(deviceId, datumTime, 144, inTargetBloodGlucose)
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144))
@@ -247,7 +244,7 @@ var _ = Describe("BGM Summary", func() {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
 					dataSetBGMData = NewDataSetBGMDataAvg(deviceId, incrementalDatumTime, 1, float64(i))
 
-					err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+					err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(144 + i))
 					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(6))
@@ -279,7 +276,7 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMData = append(dataSetBGMDataOne, dataSetBGMDataTwo...)
 				dataSetBGMData = append(dataSetBGMData, dataSetBGMDataThree...)
 
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(72))
 
@@ -312,15 +309,15 @@ var _ = Describe("BGM Summary", func() {
 				dataSetBGMDataFive := NewDataSetBGMDataRanges(deviceId, datumTime, 1, veryHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataOne, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataOne)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataTwo, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataTwo)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataThree, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataThree)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFour, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFour)
 				Expect(err).ToNot(HaveOccurred())
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFive, continuousUploads)
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(5))
@@ -369,81 +366,6 @@ var _ = Describe("BGM Summary", func() {
 				Expect(userBGMSummary.Stats.Buckets[4].Data.TargetRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[4].Data.HighRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(5))
-			})
-
-			It("Returns correct Realtime and Deferred record stats with realtime data", func() {
-				userBGMSummary = types.Create[*types.BGMStats](userId)
-				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
-				dataSetBGMData = NewDataSetDataRealtime(selfmonitored.Type, realtimeDatumTime, 10, true)
-
-				// flag upload as continuous
-				continuousUploads[*dataSetBGMData[0].UploadID] = true
-
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userBGMSummary.Stats.Buckets); i++ {
-					Expect(userBGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(2))
-					Expect(userBGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with deferred data", func() {
-				userBGMSummary = types.Create[*types.BGMStats](userId)
-
-				// by default non-realtime datums will be made with time.now createdTime, so we generate 2 day old data
-				deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
-				dataSetBGMData = NewDataSetDataRealtime(selfmonitored.Type, deferredDatumTime, 10, false)
-
-				// flag upload as continuous
-				continuousUploads[*dataSetBGMData[0].UploadID] = true
-
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userBGMSummary.Stats.Buckets); i++ {
-					Expect(userBGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-					Expect(userBGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(2))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with false continuous flagged data", func() {
-				userBGMSummary = types.Create[*types.BGMStats](userId)
-				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
-				dataSetBGMData = NewDataSetDataRealtime(selfmonitored.Type, realtimeDatumTime, 10, true)
-
-				// flag upload as not continuous
-				continuousUploads[*dataSetBGMData[0].UploadID] = false
-
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userBGMSummary.Stats.Buckets); i++ {
-					Expect(userBGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-					Expect(userBGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
-				}
-			})
-
-			It("Returns correct Realtime and Deferred record stats with non flagged data", func() {
-				userBGMSummary = types.Create[*types.BGMStats](userId)
-				realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
-				dataSetBGMData = NewDataSetDataRealtime(selfmonitored.Type, realtimeDatumTime, 10, true)
-
-				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMData, continuousUploads)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(10))
-
-				for i := 0; i < len(userBGMSummary.Stats.Buckets); i++ {
-					Expect(userBGMSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
-					Expect(userBGMSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
-				}
 			})
 		})
 

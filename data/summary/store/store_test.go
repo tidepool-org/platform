@@ -141,12 +141,12 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						err = continuousStore.ReplaceSummary(ctx, userContinuousSummary)
 						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("invalid summary type 'asdf', expected 'bgm'"))
+						Expect(err).To(MatchError("invalid summary type 'asdf', expected 'continuous'"))
 					})
 
 					It("Insert Summary", func() {
 						userContinuousSummary = test.RandomContinousSummary(userId)
-						Expect(userContinuousSummary.Type).To(Equal("bgm"))
+						Expect(userContinuousSummary.Type).To(Equal("continuous"))
 
 						err = continuousStore.ReplaceSummary(ctx, userContinuousSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -166,7 +166,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 
 						// generate and insert first summary
 						userContinuousSummary = test.RandomContinousSummary(userId)
-						Expect(userContinuousSummary.Type).To(Equal("bgm"))
+						Expect(userContinuousSummary.Type).To(Equal("continuous"))
 
 						err = continuousStore.ReplaceSummary(ctx, userContinuousSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -191,8 +191,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(userContinuousSummaryWrittenTwo.ID).To(Equal(userContinuousSummaryWritten.ID))
 
 						// confirm the written summary matches the new summary
-						userContinuousSummaryWrittenTwo.ID = userContinuousSummaryWritten.ID
-						Expect(userContinuousSummaryWrittenTwo).To(Equal(userContinuousSummaryTwo))
+						userContinuousSummaryWrittenTwo.ID = userContinuousSummaryTwo.ID
+						Expect(userContinuousSummaryWrittenTwo).To(BeComparableTo(userContinuousSummaryTwo))
 					})
 				})
 
@@ -213,7 +213,7 @@ var _ = Describe("Summary Stats Mongo", func() {
 						var userContinuousSummaryWritten *types.Summary[*types.ContinuousStats, types.ContinuousStats]
 
 						userContinuousSummary = test.RandomContinousSummary(userId)
-						Expect(userContinuousSummary.Type).To(Equal("cgm"))
+						Expect(userContinuousSummary.Type).To(Equal("continuous"))
 
 						err = continuousStore.ReplaceSummary(ctx, userContinuousSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -513,8 +513,8 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userContinuousSummary).ToNot(BeNil())
 
-						cgmSummaries[0].ID = userContinuousSummary.ID
-						Expect(userContinuousSummary).To(Equal(continuousSummaries[0]))
+						continuousSummaries[0].ID = userContinuousSummary.ID
+						Expect(userContinuousSummary).To(BeComparableTo(continuousSummaries[0]))
 					})
 				})
 
@@ -729,104 +729,6 @@ var _ = Describe("Summary Stats Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userIds.UserIds).To(ConsistOf([]string{userIdFive}))
 					})
-				})
-
-				Context("GetPatientsWithRealtimeData", func() {
-
-					It("with some realtime users", func() {
-						endTime := time.Now().UTC().Truncate(time.Hour * 24)
-						startTime := endTime.AddDate(0, 0, -30)
-						userIds := make([]string, 5)
-						userSummaries := make([]*types.Summary[*types.ContinuousStats, types.ContinuousStats], 5)
-
-						startingDays := 14
-
-						for i := 0; i < 5; i++ {
-							userIds[i] = userTest.RandomID()
-							userSummaries[i] = test.NewRealtimeSummary(userIds[i], startTime, endTime, startingDays+i)
-						}
-
-						var count int
-						count, err = continuousStore.CreateSummaries(ctx, userSummaries)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(len(userIds)))
-
-						// remove one userId to ensure we aren't accidentally grabbing everyone
-						trimmedUserIds := userIds[:len(userIds)-1]
-
-						var list map[string]int
-						list, err = continuousStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime, endTime)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(list).To(HaveLen(len(trimmedUserIds)))
-
-						// make sure days match input
-						for i := 0; i < 4; i++ {
-							Expect(list[userIds[i]]).To(Equal(startingDays + i))
-						}
-					})
-
-					It("with no realtime user", func() {
-						endTime := time.Now().UTC().Truncate(time.Hour * 24)
-						startTime := endTime.AddDate(0, 0, -30)
-						userIds := make([]string, 5)
-						userContinuousSummaries := make([]*types.Summary[*types.ContinuousStats, types.ContinuousStats], 5)
-
-						for i := 0; i < 5; i++ {
-							userIds[i] = userTest.RandomID()
-							userContinuousSummaries[i] = test.NewRealtimeSummary(userIds[i], startTime, endTime, 0)
-						}
-
-						var count int
-						count, err = continuousStore.CreateSummaries(ctx, userContinuousSummaries)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(len(userIds)))
-
-						// remove one userId to ensure we aren't accidentally grabbing everyone
-						trimmedUserIds := userIds[:len(userIds)-1]
-
-						var list map[string]int
-						list, err = continuousStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime, endTime)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(list).To(HaveLen(len(trimmedUserIds)))
-
-						// make sure days match input
-						for i := 0; i < 4; i++ {
-							Expect(list[userIds[i]]).To(Equal(0))
-						}
-					})
-
-					It("with 60 days of buckets", func() {
-						endTime := time.Now().UTC().Truncate(time.Hour * 24)
-						startTime := endTime.AddDate(0, 0, -60)
-						userIds := make([]string, 5)
-						userContinuousSummaries := make([]*types.Summary[*types.ContinuousStats, types.ContinuousStats], 5)
-
-						startingDays := 30 + 14
-
-						for i := 0; i < 5; i++ {
-							userIds[i] = userTest.RandomID()
-							userContinuousSummaries[i] = test.NewRealtimeSummary(userIds[i], startTime, endTime, startingDays+i)
-						}
-
-						var count int
-						count, err = continuousStore.CreateSummaries(ctx, userContinuousSummaries)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(count).To(Equal(len(userIds)))
-
-						// remove one userId to ensure we aren't accidentally grabbing everyone
-						trimmedUserIds := userIds[:len(userIds)-1]
-
-						var list map[string]int
-						list, err = continuousStore.GetRealtimeDaysForUsers(ctx, trimmedUserIds, startTime.AddDate(0, 0, 30), endTime)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(list).To(HaveLen(len(trimmedUserIds)))
-
-						// make sure days match input
-						for i := 0; i < 4; i++ {
-							Expect(list[userIds[i]]).To(Equal(startingDays + i - 30))
-						}
-					})
-
 				})
 			})
 

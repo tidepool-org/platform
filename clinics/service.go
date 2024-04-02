@@ -26,7 +26,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
-	GetPatients(ctx context.Context, clinicId string, userToken string) ([]clinic.Patient, error)
+	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams) ([]clinic.Patient, error)
 }
 
 type config struct {
@@ -53,7 +53,11 @@ func NewClient(authClient auth.ExternalAccessor) (Client, error) {
 			return err
 		}
 
-		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		// conditionally set token only if not already present
+		if req.Header.Get(auth.TidepoolSessionTokenHeaderKey) == "" {
+			req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		}
+
 		return nil
 	})
 	httpClient, err := clinic.NewClientWithResponses(cfg.ServiceAddress, opts)
@@ -157,13 +161,9 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string) ([]clinic.Patient, error) {
-	params := &clinic.ListPatientsParams{
-		Limit: pointer.FromAny(1001),
-	}
-
+func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams) ([]clinic.Patient, error) {
 	response, err := d.httpClient.ListPatientsWithResponse(ctx, clinicId, params, func(ctx context.Context, req *http.Request) error {
-		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, userToken)
+		req.Header.Set(auth.TidepoolSessionTokenHeaderKey, userToken)
 		return nil
 	})
 

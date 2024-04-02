@@ -86,8 +86,8 @@ type DeviceDataCursor interface {
 
 type DeviceDataFetcher interface {
 	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserLastUpdated, error)
-	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserLastUpdated) (*mongo.Cursor, error)
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
+	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
 	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 }
 
@@ -119,7 +119,7 @@ type Dates struct {
 	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
-func (d *Dates) Update(status *data.UserLastUpdated, firstBucketDate time.Time) {
+func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
 	d.LastUpdatedReason = d.OutdatedReason
 
@@ -169,7 +169,6 @@ type StatsPt[T Stats] interface {
 	GetBucketDate(int) time.Time
 	Update(context.Context, DeviceDataCursor, DeviceDataFetcher) error
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
-	GetNumberOfDaysWithRealtimeData(startTime time.Time, endTime time.Time) (count int)
 }
 
 type Summary[A StatsPt[T], T Stats] struct {

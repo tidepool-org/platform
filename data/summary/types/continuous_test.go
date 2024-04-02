@@ -1,19 +1,12 @@
 package types_test
 
 import (
-	"context"
 	"fmt"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"time"
 
-	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	summaryTest "github.com/tidepool-org/platform/data/summary/types/test"
 	"github.com/tidepool-org/platform/data/test"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-
-	"go.mongodb.org/mongo-driver/mongo"
-
-	"github.com/tidepool-org/platform/log"
-	logTest "github.com/tidepool-org/platform/log/test"
-
 	userTest "github.com/tidepool-org/platform/user/test"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -56,16 +49,12 @@ func NewDataSetDataRealtime(t string, startTime time.Time, hours float64, realti
 var _ = Describe("Continuous Summary", func() {
 	var userId string
 	var datumTime time.Time
-	var logger log.Logger
-	var ctx context.Context
 	var err error
-	var dataSetCGMData []*glucose.Glucose
+	var dataSetContinuousData []*glucose.Glucose
 
 	BeforeEach(func() {
-		logger = logTest.NewLogger()
-		ctx = log.NewContextWithLogger(context.Background(), logger)
 		userId = userTest.RandomID()
-		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+		datumTime = time.Now().UTC().Truncate(time.Hour)
 	})
 
 	Context("Create Summary", func() {
@@ -85,8 +74,8 @@ var _ = Describe("Continuous Summary", func() {
 		Context("AddData Bucket Testing", func() {
 			It("Returns correct hour count when given 2 weeks", func() {
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 336, inTargetBloodGlucose)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 336, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(336))
@@ -94,8 +83,8 @@ var _ = Describe("Continuous Summary", func() {
 
 			It("Returns correct hour count when given 1 week", func() {
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 168, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(168))
@@ -103,8 +92,8 @@ var _ = Describe("Continuous Summary", func() {
 
 			It("Returns correct hour count when given 3 weeks", func() {
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 504, inTargetBloodGlucose)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 504, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(504))
@@ -113,22 +102,22 @@ var _ = Describe("Continuous Summary", func() {
 			It("Returns correct records when given >60d of data", func() {
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataRanges(datumTime, 5, NewDataRangesSingle(lowBloodGlucose-0.5))
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 5, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userContinuousSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
+				Expect(userContinuousSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(2))
 
-				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(1*time.Hour), 1, NewDataRangesSingle(highBloodGlucose+0.5))
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime.Add(1*time.Hour), 1, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userContinuousSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
+				Expect(userContinuousSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(2))
 
-				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(24*60*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime.Add(24*60*time.Hour), 1, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userContinuousSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(10))
+				Expect(userContinuousSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(2))
 
 				for i := 0; i < len(userContinuousSummary.Stats.Buckets); i++ {
 					Expect(userContinuousSummary.Stats.Buckets[i]).ToNot(BeNil())
@@ -139,12 +128,12 @@ var _ = Describe("Continuous Summary", func() {
 			It("Returns correct records when given data a full 60d ahead of previous data", func() {
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataRanges(datumTime, 1, NewDataRangesSingle(lowBloodGlucose-0.5))
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 1, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 				Expect(err).ToNot(HaveOccurred())
 
-				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(24*62*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime.Add(24*62*time.Hour), 1, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 				Expect(err).ToNot(HaveOccurred())
 
 				for i := 0; i < len(userContinuousSummary.Stats.Buckets); i++ {
@@ -158,11 +147,10 @@ var _ = Describe("Continuous Summary", func() {
 				var hourlyStatsLen int
 				var newHourlyStatsLen int
 				secondDatumTime := datumTime.AddDate(0, 0, 15)
-				secondRequestedAvgGlucose := lowBloodGlucose
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 168, inTargetBloodGlucose)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 168, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(168))
@@ -170,32 +158,32 @@ var _ = Describe("Continuous Summary", func() {
 				By("check total glucose and dates for first batch")
 				hourlyStatsLen = len(userContinuousSummary.Stats.Buckets)
 				for i := hourlyStatsLen - 1; i >= 0; i-- {
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", inTargetBloodGlucose*12*5, 0.001))
+					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
 
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 5*time.Minute)
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 30*time.Minute)
 					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
-				dataSetCGMData = NewDataSetCGMDataAvg(secondDatumTime, 168, secondRequestedAvgGlucose)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, secondDatumTime, 168, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(528)) // 22 days
 
 				By("check total glucose and dates for second batch")
 				newHourlyStatsLen = len(userContinuousSummary.Stats.Buckets)
-				expectedNewHourlyStatsLenStart := newHourlyStatsLen - len(dataSetCGMData)/12 // 12 per day, need length without the gap
+				expectedNewHourlyStatsLenStart := newHourlyStatsLen - len(dataSetContinuousData)/2 // 2 per day, need length without the gap
 				for i := newHourlyStatsLen - 1; i >= expectedNewHourlyStatsLenStart; i-- {
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", secondRequestedAvgGlucose*12*5))
+					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
 
-					lastRecordTime = secondDatumTime.Add(-time.Hour*time.Duration(newHourlyStatsLen-i-1) - 5*time.Minute)
+					lastRecordTime = secondDatumTime.Add(-time.Hour*time.Duration(newHourlyStatsLen-i-1) - 30*time.Minute)
 					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				By("check total glucose and dates for gap")
 				expectedGapEnd := newHourlyStatsLen - expectedNewHourlyStatsLenStart
 				for i := hourlyStatsLen; i <= expectedGapEnd; i++ {
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalGlucose).To(Equal(float64(0)))
+					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(0))
 				}
 			})
 
@@ -204,35 +192,30 @@ var _ = Describe("Continuous Summary", func() {
 				var lastRecordTime time.Time
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
 
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 144, inTargetBloodGlucose)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 144, true)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(144))
 
 				for i := 1; i <= 24; i++ {
 					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
-					dataSetCGMData = NewDataSetCGMDataAvg(incrementalDatumTime, 1, float64(i))
+					dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, incrementalDatumTime, 1, true)
 
-					err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMData)
+					err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(144 + i))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(12))
+					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
 				}
 
 				for i := 144; i < len(userContinuousSummary.Stats.Buckets); i++ {
 					f := fmt.Sprintf("hour %d", i)
 					By(f)
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(12))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalMinutes).To(Equal(60))
+					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
 
-					lastRecordTime = datumTime.Add(time.Hour*time.Duration(i-143) - time.Minute*5)
+					lastRecordTime = datumTime.Add(time.Hour*time.Duration(i-143) - time.Minute*30)
 					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalGlucose).To(BeNumerically("~", float64((i-143)*12*5), 0.001))
-
-					averageGlucoseMmol := userContinuousSummary.Stats.Buckets[i].Data.TotalGlucose / float64(userContinuousSummary.Stats.Buckets[i].Data.TotalMinutes)
-					Expect(averageGlucoseMmol).To(BeNumerically("~", i-143))
 				}
 			})
 
@@ -241,163 +224,64 @@ var _ = Describe("Continuous Summary", func() {
 				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
 
 				// Datasets use +1 and +2 offset to allow for checking via iteration
-				dataSetCGMDataOne := NewDataSetCGMDataAvg(datumTime.AddDate(0, 0, -2), 24, inTargetBloodGlucose)
-				dataSetCGMDataTwo := NewDataSetCGMDataAvg(datumTime.AddDate(0, 0, -1), 24, inTargetBloodGlucose+1)
-				dataSetCGMDataThree := NewDataSetCGMDataAvg(datumTime, 24, inTargetBloodGlucose+2)
+				dataSetContinuousDataOne := NewDataSetDataRealtime(continuous.Type, datumTime.AddDate(0, 0, -2), 24, true)
+				dataSetContinuousDataTwo := NewDataSetDataRealtime(continuous.Type, datumTime.AddDate(0, 0, -1), 24, true)
+				dataSetContinuousDataThree := NewDataSetDataRealtime(continuous.Type, datumTime, 24, true)
 
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMDataThree)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousDataThree)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMDataTwo)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousDataTwo)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetCGMDataOne)
+				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousDataOne)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(72))
 
 				for i := len(userContinuousSummary.Stats.Buckets) - 1; i >= 0; i-- {
 					By(fmt.Sprintf("hour %d", i+1))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(12))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalMinutes).To(Equal(60))
+					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
 
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userContinuousSummary.Stats.Buckets)-i-1) - 5*time.Minute)
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userContinuousSummary.Stats.Buckets)-i-1) - 30*time.Minute)
 					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 			})
 		})
 
-		Context("ClearInvalidatedBuckets", func() {
-			var dataStore types.DeviceDataFetcher
+		Context("GetPatientsWithRealtimeData", func() {
 
-			BeforeEach(func() {
-				config := storeStructuredMongoTest.NewConfig()
-				store, err := dataStoreMongo.NewStore(config)
+			It("with some realtime data", func() {
+				endTime := time.Now().UTC().Truncate(time.Hour * 24)
+				startTime := endTime.AddDate(0, 0, -30)
+
+				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 15)
+
+				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+				Expect(count).To(Equal(15))
+			})
+
+			It("with no realtime data", func() {
+				endTime := time.Now().UTC().Truncate(time.Hour * 24)
+				startTime := endTime.AddDate(0, 0, -30)
+
+				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 0)
+
+				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+				Expect(count).To(Equal(0))
+			})
+
+			It("with 60d of realtime data", func() {
+				endTime := time.Now().UTC().Truncate(time.Hour * 24)
+				startTime := endTime.AddDate(0, 0, -30)
+
+				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 60)
+
+				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 				Expect(err).ToNot(HaveOccurred())
-				dataStore = store.NewDataRepository()
+				Expect(count).To(Equal(30))
 			})
 
-			It("trims the correct buckets", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 10, inTargetBloodGlucose)
-				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
-
-				err = userContinuousSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-				Expect(userContinuousSummary.Stats.TotalHours).To(Equal(10))
-
-				firstData := userContinuousSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-5 * time.Hour))
-
-				// we have the right length
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(5))
-
-				// we didn't overshoot and nil something we shouldn't have
-				Expect(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1]).ToNot(BeNil())
-
-				Expect(firstData).To(Equal(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1].LastRecordTime))
-			})
-
-			It("trims the all buckets with data beyond the beginning of the buckets", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 10, inTargetBloodGlucose)
-				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
-
-				err = userContinuousSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-				Expect(userContinuousSummary.Stats.TotalHours).To(Equal(10))
-
-				firstData := userContinuousSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(-15 * time.Hour))
-
-				// we have the right length
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(0))
-
-				Expect(firstData.IsZero()).To(BeTrue())
-			})
-
-			It("doesnt trim if only modified in the future", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 10, inTargetBloodGlucose)
-				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
-
-				err = userContinuousSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-				Expect(userContinuousSummary.Stats.TotalHours).To(Equal(10))
-
-				firstData := userContinuousSummary.Stats.ClearInvalidatedBuckets(datumTime.Add(time.Hour))
-
-				// we have the right length
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-
-				// we didn't overshoot and nil something we shouldn't have
-				Expect(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1]).ToNot(BeNil())
-
-				Expect(firstData).To(Equal(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1].LastRecordTime))
-			})
-
-			It("doesnt trim if only modified on the same hour, but after the bucket time", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				midDatumTime := datumTime.Add(30 * time.Minute)
-				dataSetCGMData = NewDataSetCGMDataAvg(midDatumTime, 9, inTargetBloodGlucose)
-				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
-
-				err = userContinuousSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-				Expect(userContinuousSummary.Stats.TotalHours).To(Equal(10))
-
-				firstData := userContinuousSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(10 * time.Minute))
-
-				// we have the right length
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-
-				// we didn't overshoot and nil something we shouldn't have
-				Expect(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1]).ToNot(BeNil())
-
-				Expect(firstData).To(Equal(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1].LastRecordTime))
-			})
-
-			It("trims if modified on the same hour, and before the bucket time", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				midDatumTime := datumTime.Add(30 * time.Minute)
-				dataSetCGMData = NewDataSetCGMDataAvg(midDatumTime, 9, inTargetBloodGlucose)
-				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
-
-				err = userContinuousSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(10))
-				Expect(userContinuousSummary.Stats.TotalHours).To(Equal(10))
-
-				firstData := userContinuousSummary.Stats.ClearInvalidatedBuckets(midDatumTime.Add(-10 * time.Minute))
-
-				// we have the right length
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(9))
-
-				// we didn't overshoot and nil something we shouldn't have
-				Expect(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1]).ToNot(BeNil())
-
-				Expect(firstData).To(Equal(userContinuousSummary.Stats.Buckets[len(userContinuousSummary.Stats.Buckets)-1].LastRecordTime))
-			})
-
-			It("successfully does nothing if there are no buckets", func() {
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(0))
-				Expect(userContinuousSummary.Stats.TotalHours).To(Equal(0))
-
-				firstData := userContinuousSummary.Stats.ClearInvalidatedBuckets(datumTime)
-
-				// we have the right length
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(0))
-
-				Expect(firstData.IsZero()).To(BeTrue())
-			})
 		})
 	})
 })

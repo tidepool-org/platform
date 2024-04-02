@@ -467,7 +467,3 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 		s.Periods[strconv.Itoa(i)+"d"] = newPeriod
 	}
 }
-
-func (s *BGMStats) GetNumberOfDaysWithRealtimeData(_ time.Time, _ time.Time) (count int) {
-	return -1
-}

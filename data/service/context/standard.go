@@ -32,6 +32,7 @@ type Standard struct {
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
 	summarizerRegistry      *summary.SummarizerRegistry
+	summaryReporter         *summary.Reporter
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
@@ -120,6 +121,9 @@ func (s *Standard) Close() {
 	if s.summarizerRegistry != nil {
 		s.summarizerRegistry = nil
 	}
+	if s.summaryReporter != nil {
+		s.summaryReporter = nil
+	}
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
@@ -163,6 +167,13 @@ func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 		s.summarizerRegistry = summary.New(summaryRepo.GetStore(), dataRepo)
 	}
 	return s.summarizerRegistry
+}
+
+func (s *Standard) SummaryReporter() *summary.Reporter {
+	if s.summaryReporter == nil {
+		s.summaryReporter = summary.NewReporter(s.summarizerRegistry)
+	}
+	return s.summaryReporter
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
