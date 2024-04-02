@@ -20,13 +20,18 @@ type Date string
 // somewhat redundantly as UserProfile instead of Profile because there already
 // exists a type Profile in this package.
 type UserProfile struct {
-	FullName       string   `json:"fullName"`
-	Birthday       Date     `json:"birthday"`
-	DiagnosisDate  Date     `json:"diagnosisDate"`
-	DiagnosisType  string   `json:"diagnosisType"`
-	TargetDevices  []string `json:"targetDevices"`
-	TargetTimezone string   `json:"targetTimezone"`
-	About          string   `json:"about"`
+	FullName       string     `json:"fullName"`
+	Birthday       Date       `json:"birthday"`
+	DiagnosisDate  Date       `json:"diagnosisDate"`
+	DiagnosisType  string     `json:"diagnosisType"`
+	TargetDevices  []string   `json:"targetDevices"`
+	TargetTimezone string     `json:"targetTimezone"`
+	About          string     `json:"about"`
+	Custodian      *Custodian `json:"custodian,omitempty"`
+}
+
+type Custodian struct {
+	FullName string `json:"fullName"`
 }
 
 func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
@@ -80,6 +85,9 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	if up.FullName != "" {
 		addAttribute(attributes, "profile_full_name", up.FullName)
 	}
+	if up.Custodian != nil && up.Custodian.FullName != "" {
+		addAttribute(attributes, "profile_custodian_full_name", up.Custodian.FullName)
+	}
 	if string(up.Birthday) != "" {
 		addAttribute(attributes, "profile_birthday", string(up.Birthday))
 	}
@@ -104,6 +112,12 @@ func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile
 	up := &UserProfile{}
 	if val := getAttribute(attributes, "profile_full_name"); val != "" {
 		up.FullName = val
+		ok = true
+	}
+	if val := getAttribute(attributes, "profile_custodian_full_name"); val != "" {
+		up.Custodian = &Custodian{
+			FullName: val,
+		}
 		ok = true
 	}
 	if val := getAttribute(attributes, "profile_birthday"); val != "" {
