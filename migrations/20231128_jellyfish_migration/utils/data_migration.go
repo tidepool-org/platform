@@ -51,11 +51,13 @@ type Settings struct {
 
 	capacity    *int
 	writeToDisk bool
+	splitLogs   bool
 }
 
 func NewSettings(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionName *string, capacity *int, queryBatch *int, queryLimit *int, writeToDisk *bool) *Settings {
 	settings := &Settings{
 		writeToDisk:         false,
+		splitLogs:           false,
 		Rollback:            true,
 		RollbackSectionName: "_rollbackMigration",
 		DryRun:              true,
@@ -298,7 +300,7 @@ func (m *DataMigration) writeErrors(groupLimit *int) {
 				continue
 			}
 		}
-		f, err := createFile("error", group, "%s.log")
+		f, err := m.createFile("error", group, "%s.log")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -327,7 +329,7 @@ func (m *DataMigration) writeAudit(groupLimit *int) {
 				continue
 			}
 		}
-		f, err := createFile("audit", group, "%s.json")
+		f, err := m.createFile("audit", group, "%s.json")
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -359,7 +361,7 @@ func (m *DataMigration) writeLastProcessed(itemID string) {
 	}
 }
 
-func createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
+func (m *DataMigration) createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
 
 	var err error
 	if fileType == "" {
@@ -376,8 +378,11 @@ func createFile(fileType string, dataGroup string, logName string) (*os.File, er
 	}
 
 	logName = fmt.Sprintf(logName, dataGroup)
-	dateContainer := time.Now().Round(6 * time.Hour).Format("2006-01-02T15-04-05")
-	logPath := filepath.Join(".", fileType, dateContainer)
+	logPath := filepath.Join(".", fileType)
+	if m.settings.splitLogs {
+		dateContainer := time.Now().Round(6 * time.Hour).Format("2006-01-02T15-04-05")
+		logPath = filepath.Join(".", fileType, dateContainer)
+	}
 
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
