@@ -51,13 +51,11 @@ type Settings struct {
 
 	capacity    *int
 	writeToDisk bool
-	splitLogs   bool
 }
 
 func NewSettings(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionName *string, capacity *int, queryBatch *int, queryLimit *int, writeToDisk *bool) *Settings {
 	settings := &Settings{
 		writeToDisk:         false,
-		splitLogs:           false,
 		Rollback:            true,
 		RollbackSectionName: "_rollbackMigration",
 		DryRun:              true,
@@ -379,11 +377,6 @@ func (m *DataMigration) createFile(fileType string, dataGroup string, logName st
 
 	logName = fmt.Sprintf(logName, dataGroup)
 	logPath := filepath.Join(".", fileType)
-	if m.settings.splitLogs {
-		dateContainer := time.Now().Round(6 * time.Hour).Format("2006-01-02T15-04-05")
-		logPath = filepath.Join(".", fileType, dateContainer)
-	}
-
 	err = os.MkdirAll(logPath, os.ModePerm)
 	if err != nil {
 		return nil, err
