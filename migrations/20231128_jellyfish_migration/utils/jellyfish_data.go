@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/tidepool-org/platform/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/tidepool-org/platform/pointer"
 )
 
 func jellyfishQuery(settings Settings, userID *string, lastFetchedID *string) (bson.M, *options.FindOptions) {

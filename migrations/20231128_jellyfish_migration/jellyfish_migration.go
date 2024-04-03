@@ -31,7 +31,7 @@ type config struct {
 	rollback            bool
 	rollbackSectionName string
 	userID              string
-	lastUpdatedId       string
+	lastUpdatedID       string
 	nopPercent          int
 	queryBatchSize      int
 	queryLimit          int
@@ -64,7 +64,7 @@ func (c *config) report() string {
 	details += fmt.Sprintf("- AUDIT? \t\t[%t]\n", c.dryRun)
 	details += fmt.Sprintf("- ROLLBACK\t\t[%t]\n", c.rollback)
 	details += fmt.Sprintf("- STOP ON ERROR\t\t[%t]\n", c.stopOnErr)
-	details += fmt.Sprintf("- LAST PROCESSED ID\t[%s]\n", c.lastUpdatedId)
+	details += fmt.Sprintf("- LAST PROCESSED ID\t[%s]\n", c.lastUpdatedID)
 	details += fmt.Sprintf("- USER ID\t\t[%s]\n", c.userID)
 	details += fmt.Sprintf("- QUERY BATCH\t\t[%d]\n", c.queryBatchSize)
 	details += fmt.Sprintf("- QUERY LIMIT\t\t[%d]\n", c.queryLimit)
@@ -104,7 +104,7 @@ func (m *Migration) RunAndExit() {
 			),
 			dbChecker,
 			m.client.Database("data").Collection("deviceData"),
-			&m.config.lastUpdatedId,
+			&m.config.lastUpdatedID,
 		)
 
 		log.Printf("%s", m.config.report())
@@ -181,7 +181,7 @@ func (m *Migration) Initialize() error {
 		cli.StringFlag{
 			Name:        "datum-id",
 			Usage:       "id of last datum updated",
-			Destination: &m.config.lastUpdatedId,
+			Destination: &m.config.lastUpdatedID,
 			Required:    false,
 			//id of last datum updated read and written to file `lastProcessedId`
 			FilePath: "./lastProcessedId",

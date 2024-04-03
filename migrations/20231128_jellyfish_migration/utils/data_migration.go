@@ -101,7 +101,7 @@ type DataMigration struct {
 	errorsCount          int
 	updatedCount         int
 	fetchedCount         int
-	lastUpdatedId        string
+	lastUpdatedID        string
 	startedAt            time.Time
 	mongoInstanceChecker MongoInstanceCheck
 }
@@ -138,7 +138,7 @@ func NewMigration(ctx context.Context, settings *Settings, checker MongoInstance
 		startedAt:            time.Now(),
 	}
 	if lastID != nil {
-		m.lastUpdatedId = *lastID
+		m.lastUpdatedID = *lastID
 	}
 	return m, nil
 }
@@ -239,8 +239,8 @@ func (m *DataMigration) GetUpdates() []mongo.WriteModel {
 }
 
 func (m *DataMigration) SetLastProcessed(lastID string) {
-	m.lastUpdatedId = lastID
-	m.writeLastProcessed(m.lastUpdatedId)
+	m.lastUpdatedID = lastID
+	m.writeLastProcessed(m.lastUpdatedID)
 }
 
 func (m *DataMigration) SetFetched(raw []bson.M) {
@@ -258,7 +258,7 @@ func (m *DataMigration) GetStats() MigrationStats {
 }
 
 func (m *DataMigration) GetLastID() string {
-	return m.lastUpdatedId
+	return m.lastUpdatedID
 }
 
 func (m *DataMigration) OnError(data ErrorData) {
