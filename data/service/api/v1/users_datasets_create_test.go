@@ -1,10 +1,11 @@
 package v1_test
 
 import (
-	"github.com/tidepool-org/platform/data/summary/reporters"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/tidepool-org/platform/data/summary/reporters"
 
 	"github.com/tidepool-org/platform/clinics"
 

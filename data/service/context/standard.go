@@ -1,8 +1,9 @@
 package context
 
 import (
-	"github.com/tidepool-org/platform/data/summary/reporters"
 	"net/http"
+
+	"github.com/tidepool-org/platform/data/summary/reporters"
 
 	"github.com/tidepool-org/platform/clinics"
 

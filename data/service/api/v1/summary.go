@@ -2,9 +2,10 @@ package v1
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary/reporters"
 	"net/http"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary/reporters"
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
