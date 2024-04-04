@@ -2,6 +2,9 @@ package summary
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
@@ -22,11 +25,11 @@ type SummarizerRegistry struct {
 	summarizers map[string]any
 }
 
-func New(summaryRepository *storeStructuredMongo.Repository, dataRepository types.DeviceDataFetcher) *SummarizerRegistry {
+func New(summaryRepository *storeStructuredMongo.Repository, fetcher DeviceDataFetcher) *SummarizerRegistry {
 	registry := &SummarizerRegistry{summarizers: make(map[string]any)}
-	addSummarizer(registry, NewBGMSummarizer(summaryRepository, dataRepository))
-	addSummarizer(registry, NewCGMSummarizer(summaryRepository, dataRepository))
-	addSummarizer(registry, NewContinuousSummarizer(summaryRepository, dataRepository))
+	addSummarizer(registry, NewBGMSummarizer(summaryRepository, fetcher))
+	addSummarizer(registry, NewCGMSummarizer(summaryRepository, fetcher))
+	addSummarizer(registry, NewContinuousSummarizer(summaryRepository, fetcher))
 	return registry
 }
 
@@ -55,29 +58,44 @@ var _ Summarizer[*types.CGMStats, types.CGMStats] = &GlucoseSummarizer[*types.CG
 var _ Summarizer[*types.BGMStats, types.BGMStats] = &GlucoseSummarizer[*types.BGMStats, types.BGMStats]{}
 var _ Summarizer[*types.ContinuousStats, types.ContinuousStats] = &GlucoseSummarizer[*types.ContinuousStats, types.ContinuousStats]{}
 
+func CreateGlucoseDatum() data.Datum {
+	return &glucoseDatum.Glucose{}
+}
+
 type GlucoseSummarizer[A types.StatsPt[T], T types.Stats] struct {
-	userData  types.DeviceDataFetcher
-	summaries *store.Repo[A, T]
+	cursorFactory DataCursorFactory
+	dataFetcher   DeviceDataFetcher
+	summaries     *store.Repo[A, T]
 }
 
-func NewBGMSummarizer(collection *storeStructuredMongo.Repository, dataRepo types.DeviceDataFetcher) Summarizer[*types.BGMStats, types.BGMStats] {
+func NewBGMSummarizer(collection *storeStructuredMongo.Repository, dataFetcher DeviceDataFetcher) Summarizer[*types.BGMStats, types.BGMStats] {
 	return &GlucoseSummarizer[*types.BGMStats, types.BGMStats]{
-		userData:  dataRepo,
-		summaries: store.New[*types.BGMStats](collection),
+		cursorFactory: func(c *mongo.Cursor) DeviceDataCursor {
+			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+		},
+		dataFetcher: dataFetcher,
+		summaries:   store.New[*types.BGMStats](collection),
 	}
 }
 
-func NewCGMSummarizer(collection *storeStructuredMongo.Repository, dataRepo types.DeviceDataFetcher) Summarizer[*types.CGMStats, types.CGMStats] {
+func NewCGMSummarizer(collection *storeStructuredMongo.Repository, dataFetcher DeviceDataFetcher) Summarizer[*types.CGMStats, types.CGMStats] {
 	return &GlucoseSummarizer[*types.CGMStats, types.CGMStats]{
-		userData:  dataRepo,
-		summaries: store.New[*types.CGMStats](collection),
+		cursorFactory: func(c *mongo.Cursor) DeviceDataCursor {
+			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+		},
+		dataFetcher: dataFetcher,
+		summaries:   store.New[*types.CGMStats](collection),
 	}
 }
 
-func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, dataRepo types.DeviceDataFetcher) Summarizer[*types.ContinuousStats, types.ContinuousStats] {
+func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, dataFetcher DeviceDataFetcher) Summarizer[*types.ContinuousStats, types.ContinuousStats] {
 	return &GlucoseSummarizer[*types.ContinuousStats, types.ContinuousStats]{
-		userData:  dataRepo,
-		summaries: store.New[*types.ContinuousStats](collection),
+		cursorFactory: func(c *mongo.Cursor) DeviceDataCursor {
+			defaultCursor := fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+			return fetcher.NewContinuousDeviceDataCursor(defaultCursor, dataFetcher, CreateGlucoseDatum)
+		},
+		dataFetcher: dataFetcher,
+		summaries:   store.New[*types.ContinuousStats](collection),
 	}
 }
 
@@ -104,7 +122,7 @@ func (gs *GlucoseSummarizer[A, T]) GetMigratableUserIDs(ctx context.Context, pag
 func (gs *GlucoseSummarizer[A, T]) BackfillSummaries(ctx context.Context) (int, error) {
 	var empty struct{}
 
-	distinctDataUserIDs, err := gs.userData.DistinctUserIDs(ctx, types.GetDeviceDataTypeStrings[A]())
+	distinctDataUserIDs, err := gs.dataFetcher.DistinctUserIDs(ctx, types.GetDeviceDataTypeStrings[A]())
 	if err != nil {
 		return 0, err
 	}
@@ -173,7 +191,7 @@ func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId str
 	}
 
 	var status *data.UserDataStatus
-	status, err = gs.userData.GetLastUpdatedForUser(ctx, userId, summaryType, userSummary.Dates.LastUpdatedDate)
+	status, err = gs.dataFetcher.GetLastUpdatedForUser(ctx, userId, summaryType, userSummary.Dates.LastUpdatedDate)
 	if err != nil {
 		return nil, err
 	}
@@ -197,14 +215,13 @@ func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId str
 		status.FirstData = first
 	}
 
-	var cursor types.DeviceDataCursor
-	cursor, err = gs.userData.GetDataRange(ctx, userId, summaryType, status)
+	cursor, err := gs.dataFetcher.GetDataRange(ctx, userId, summaryType, status)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(ctx)
 
-	err = userSummary.Stats.Update(ctx, cursor, gs.userData)
+	err = userSummary.Stats.Update(ctx, gs.cursorFactory(cursor))
 	if err != nil {
 		return nil, err
 	}

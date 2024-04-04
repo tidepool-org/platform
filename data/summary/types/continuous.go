@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/tidepool-org/platform/data/summary"
 	"strconv"
 	"time"
 
@@ -87,77 +87,18 @@ func (s *ContinuousStats) ClearInvalidatedBuckets(earliestModified time.Time) (f
 	return
 }
 
-func NewContinuousDeviceDataCursor[D RecordTypesPt[R], R RecordTypes](cursor DeviceDataCursor, dataRepo DeviceDataFetcher) *ContinuousDeviceDataCursor[D, R] {
-	return &ContinuousDeviceDataCursor[D, R]{
-		cursor:        cursor,
-		dataRepo:      dataRepo,
-		uploadIdCache: map[string]bool{},
-	}
-}
-
-type ContinuousDeviceDataCursor[D RecordTypesPt[R], R RecordTypes] struct {
-	cursor        DeviceDataCursor
-	dataRepo      DeviceDataFetcher
-	uploadIdCache map[string]bool
-}
-
-func (c *ContinuousDeviceDataCursor[D, R]) GetNextData(ctx context.Context) ([]D, error) {
-	userData := make([]D, 0, c.cursor.RemainingBatchLength())
-
-	for c.cursor.Next(ctx) {
-		r := D(new(R))
-		if err := c.cursor.Decode(r); err != nil {
-			return nil, fmt.Errorf("unable to decode userData: %w", err)
-		}
-
-		if isContinuous, err := c.isUploadContinuous(ctx, *r.GetUploadID()); err != nil {
-			return nil, err
-		} else if isContinuous {
-			userData = append(userData, r)
-		}
-
-		// we call AddData before each network call to the db to reduce thrashing
-		if c.cursor.RemainingBatchLength() != 0 {
-			return userData, nil
-		}
-	}
-
-	return userData, nil
-}
-
-func (c *ContinuousDeviceDataCursor[D, R]) isUploadContinuous(ctx context.Context, uploadId string) (bool, error) {
-	// check if we already cached if the uploadId is continuous or not, query if unknown
-	if _, ok := c.uploadIdCache[uploadId]; !ok {
-		uploadRecord, err := c.dataRepo.GetDataSetByID(ctx, uploadId)
-		if err != nil {
-			return false, err
-		}
-
-		if uploadRecord != nil && uploadRecord.HasDataSetTypeContinuous() {
-			c.uploadIdCache[uploadId] = true
-		} else {
-			c.uploadIdCache[uploadId] = false
-		}
-	}
-
-	return c.uploadIdCache[uploadId], nil
-}
-
-func (s *ContinuousStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
-	userCursor := NewContinuousDeviceDataCursor[*glucoseDatum.Glucose](cursor, dataRepo)
-
-	userData, err := userCursor.GetNextData(ctx)
-	if err != nil {
-		return err
-	}
-
-	for len(userData) > 0 {
-		err = AddData(&s.Buckets, userData)
+func (s *ContinuousStats) Update(ctx context.Context, cursor summary.DeviceDataCursor) error {
+	for cursor.Next(ctx) {
+		userData, err := cursor.GetNextBatch(ctx)
 		if err != nil {
 			return err
 		}
-
-		userData, err = userCursor.GetNextData(ctx)
+		if len(userData) > 0 {
+			err = AddData(&s.Buckets, userData)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	s.CalculateSummary()

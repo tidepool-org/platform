@@ -3,12 +3,9 @@ package types
 import (
 	"context"
 	"fmt"
+	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
-	"github.com/tidepool-org/platform/data/types/upload"
-
-	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
 
@@ -75,20 +72,6 @@ type RecordTypesPt[T RecordTypes] interface {
 	GetTime() *time.Time
 	GetCreatedTime() *time.Time
 	GetUploadID() *string
-}
-
-type DeviceDataCursor interface {
-	Decode(val interface{}) error
-	RemainingBatchLength() int
-	Next(ctx context.Context) bool
-	Close(ctx context.Context) error
-}
-
-type DeviceDataFetcher interface {
-	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
-	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
-	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 }
 
 type Config struct {
@@ -167,7 +150,7 @@ type StatsPt[T Stats] interface {
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
-	Update(context.Context, DeviceDataCursor, DeviceDataFetcher) error
+	Update(context.Context, summary.DeviceDataCursor) error
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
 }
 
@@ -358,7 +341,7 @@ func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, 
 	*buckets = (*buckets)[excess:]
 }
 
-func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D) error {
+func AddData[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], userData []data.Datum) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 

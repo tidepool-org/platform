@@ -3,7 +3,7 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/tidepool-org/platform/data/summary"
 	"strconv"
 	"time"
 
@@ -152,38 +152,18 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	return
 }
 
-func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
-	var err error
-	var userData []*glucoseDatum.Glucose = nil
-
+func (s *BGMStats) Update(ctx context.Context, cursor summary.DeviceDataCursor) error {
 	for cursor.Next(ctx) {
-		if userData == nil {
-			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+		userData, err := cursor.GetNextBatch(ctx)
+		if err != nil {
+			return err
 		}
-
-		r := &glucoseDatum.Glucose{}
-		if err = cursor.Decode(r); err != nil {
-			return fmt.Errorf("unable to decode userData: %w", err)
-		}
-		userData = append(userData, r)
-
-		// we call AddData before each network call to the db to reduce thrashing
-		if cursor.RemainingBatchLength() != 0 {
+		if len(userData) > 0 {
 			err = AddData(&s.Buckets, userData)
 			if err != nil {
 				return err
 			}
-			userData = nil
 		}
-	}
-
-	// add the final partial batch
-	if userData != nil {
-		err = AddData(&s.Buckets, userData)
-		if err != nil {
-			return err
-		}
-		userData = nil
 	}
 
 	s.CalculateSummary()
