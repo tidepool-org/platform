@@ -7,6 +7,8 @@ import (
 	"github.com/tidepool-org/platform/data/summary"
 )
 
+var ErrCursorExhausted = fmt.Errorf("cursor is exhausted")
+
 func NewContinuousDeviceDataCursor(cursor summary.DeviceDataCursor, fetcher summary.DeviceDataFetcher, create DatumCreator) *ContinuousDeviceDataCursor {
 	return &ContinuousDeviceDataCursor{
 		DeviceDataCursor: cursor,
@@ -24,13 +26,17 @@ type ContinuousDeviceDataCursor struct {
 
 	create        DatumCreator
 	fetcher       summary.DeviceDataFetcher
+	isExhausted   bool
 	uploadIdCache map[string]bool
 }
 
 func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) {
-	userData := make([]data.Datum, 0, c.RemainingBatchLength())
+	if c.isExhausted == true {
+		return nil, ErrCursorExhausted
+	}
 
-	for c.RemainingBatchLength() != 0 {
+	userData := make([]data.Datum, 0, c.RemainingBatchLength())
+	for c.Next(ctx) && c.RemainingBatchLength() != 0 {
 		datum := c.create()
 		if err := c.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
@@ -40,11 +46,14 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 		} else if isContinuous {
 			userData = append(userData, datum)
 		}
-
-		c.Next(ctx)
 	}
 
 	return userData, c.Err()
+}
+
+func (c *ContinuousDeviceDataCursor) Next(ctx context.Context) bool {
+	c.isExhausted = c.Next(ctx)
+	return c.isExhausted
 }
 
 func (c *ContinuousDeviceDataCursor) isUploadContinuous(ctx context.Context, uploadId *string) (bool, error) {

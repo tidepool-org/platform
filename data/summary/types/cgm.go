@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"strconv"
 	"time"
 
@@ -208,11 +209,15 @@ func (s *CGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 }
 
 func (s *CGMStats) Update(ctx context.Context, cursor summary.DeviceDataCursor) error {
-	for cursor.Next(ctx) {
+	hasMoreData := true
+	for hasMoreData {
 		userData, err := cursor.GetNextBatch(ctx)
-		if err != nil {
+		if errors.Is(err, fetcher.ErrCursorExhausted) {
+			hasMoreData = false
+		} else if err != nil {
 			return err
 		}
+
 		if len(userData) > 0 {
 			err = AddData(&s.Buckets, userData)
 			if err != nil {

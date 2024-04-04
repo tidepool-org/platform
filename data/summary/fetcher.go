@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-type DataCursorFactory func(cursor *mongo.Cursor) DeviceDataCursor
-
 type DeviceDataCursor interface {
 	Decode(val interface{}) error
 	RemainingBatchLength() int

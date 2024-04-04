@@ -9,6 +9,7 @@ import (
 )
 
 type DatumCreator func() data.Datum
+type DataCursorFactory func(cursor *mongo.Cursor) summary.DeviceDataCursor
 
 func NewDefaultCursor(c *mongo.Cursor, create DatumCreator) summary.DeviceDataCursor {
 	return &DefaultCursor{
@@ -20,8 +21,9 @@ func NewDefaultCursor(c *mongo.Cursor, create DatumCreator) summary.DeviceDataCu
 var _ summary.DeviceDataCursor = &DefaultCursor{}
 
 type DefaultCursor struct {
-	c      *mongo.Cursor
-	create DatumCreator
+	c           *mongo.Cursor
+	create      DatumCreator
+	isExhausted bool
 }
 
 func (d *DefaultCursor) Decode(val interface{}) error {
@@ -33,27 +35,28 @@ func (d *DefaultCursor) RemainingBatchLength() int {
 }
 
 func (d *DefaultCursor) Next(ctx context.Context) bool {
-	return d.c.Next(ctx)
+	d.isExhausted = d.c.Next(ctx)
+	return d.isExhausted
 }
 
 func (d *DefaultCursor) Close(ctx context.Context) error {
 	return d.c.Close(ctx)
 }
 
-func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) {
-	userData := make([]data.Datum, 0, d.c.RemainingBatchLength())
-
-	for d.c.RemainingBatchLength() != 0 {
-		datum := d.create()
-		if err := d.c.Decode(datum); err != nil {
-			return nil, fmt.Errorf("unable to decode userData: %w", err)
-		}
-		userData = append(userData, datum)
-
-		d.c.Next(ctx)
+func (c *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) {
+	if c.isExhausted == true {
+		return nil, ErrCursorExhausted
 	}
 
-	return userData, d.Err()
+	userData := make([]data.Datum, 0, c.RemainingBatchLength())
+	for c.Next(ctx) && c.RemainingBatchLength() != 0 {
+		datum := c.create()
+		if err := c.Decode(datum); err != nil {
+			return nil, fmt.Errorf("unable to decode userData: %w", err)
+		}
+	}
+
+	return userData, c.Err()
 }
 
 func (d *DefaultCursor) Err() error {
