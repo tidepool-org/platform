@@ -43,20 +43,20 @@ func (d *DefaultCursor) Close(ctx context.Context) error {
 	return d.c.Close(ctx)
 }
 
-func (c *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) {
-	if c.isExhausted == true {
+func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) {
+	if d.isExhausted == true {
 		return nil, ErrCursorExhausted
 	}
 
-	userData := make([]data.Datum, 0, c.RemainingBatchLength())
-	for c.Next(ctx) && c.RemainingBatchLength() != 0 {
-		datum := c.create()
-		if err := c.Decode(datum); err != nil {
+	userData := make([]data.Datum, 0, d.RemainingBatchLength())
+	for d.Next(ctx) && d.RemainingBatchLength() != 0 {
+		datum := d.create()
+		if err := d.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}
 	}
 
-	return userData, c.Err()
+	return userData, d.Err()
 }
 
 func (d *DefaultCursor) Err() error {
