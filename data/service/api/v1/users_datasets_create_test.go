@@ -1,6 +1,7 @@
 package v1_test
 
 import (
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	"io"
 	"net/http"
 	"strings"
@@ -219,4 +220,6 @@ func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 	panic("not implemented") // TODO: Implement
 }
 
-func (c *mockDataServiceContext) SummaryReporter() *summary.Reporter { panic("not implemented") }
+func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	panic("not implemented")
+}

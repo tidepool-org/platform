@@ -124,16 +124,6 @@ type GetDataSetOutput struct {
 	Error   error
 }
 
-type IsDataSetAutomatedInput struct {
-	Context context.Context
-	ID      string
-}
-
-type IsDataSetAutomatedOutput struct {
-	Automated bool
-	Error     error
-}
-
 type ListUserDataSetsInput struct {
 	Context    context.Context
 	UserID     string
@@ -243,9 +233,6 @@ type DataRepository struct {
 	GetDataSetInvocations                                int
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
-	IsDataSetAutomatedInvocations                        int
-	IsDataSetAutomatedInputs                             []IsDataSetAutomatedInput
-	IsDataSetAutomatedOutputs                            []IsDataSetAutomatedOutput
 
 	GetDataRangeInvocations int
 	GetDataRangeInputs      []GetDataRangeInput
@@ -297,18 +284,6 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 	output := d.GetDataSetByIDOutputs[0]
 	d.GetDataSetByIDOutputs = d.GetDataSetByIDOutputs[1:]
 	return output.DataSet, output.Error
-}
-
-func (d *DataRepository) IsDataSetAutomated(ctx context.Context, dataSetID string) (bool, error) {
-	d.IsDataSetAutomatedInvocations++
-
-	d.IsDataSetAutomatedInputs = append(d.IsDataSetAutomatedInputs, IsDataSetAutomatedInput{Context: ctx, ID: dataSetID})
-
-	gomega.Expect(d.IsDataSetAutomatedOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.IsDataSetAutomatedOutputs[0]
-	d.IsDataSetAutomatedOutputs = d.IsDataSetAutomatedOutputs[1:]
-	return output.Automated, output.Error
 }
 
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {

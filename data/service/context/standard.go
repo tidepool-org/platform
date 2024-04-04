@@ -1,6 +1,7 @@
 package context
 
 import (
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	"net/http"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -32,7 +33,7 @@ type Standard struct {
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
 	summarizerRegistry      *summary.SummarizerRegistry
-	summaryReporter         *summary.Reporter
+	summaryReporter         *reporters.PatientRealtimeDaysReporter
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
@@ -169,9 +170,9 @@ func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	return s.summarizerRegistry
 }
 
-func (s *Standard) SummaryReporter() *summary.Reporter {
+func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
 	if s.summaryReporter == nil {
-		s.summaryReporter = summary.NewReporter(s.summarizerRegistry)
+		s.summaryReporter = reporters.NewReporter(s.summarizerRegistry)
 	}
 	return s.summaryReporter
 }

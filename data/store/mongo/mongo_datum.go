@@ -557,7 +557,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ [
 		return nil, errors.New("userId is empty")
 	}
 
-	if len(typ) < 1 {
+	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -634,10 +634,10 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 		},
 	}
 
-	if len(typ) > 1 {
-		selector["type"] = bson.M{"$in": typ}
-	} else {
+	if len(typ) == 1 {
 		selector["type"] = typ[0]
+	} else {
+		selector["type"] = bson.M{"$in": typ}
 	}
 
 	findOptions := options.Find()
@@ -675,10 +675,10 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 		},
 	}
 
-	if len(typ) > 1 {
-		selector["type"] = bson.M{"$in": typ}
-	} else {
+	if len(typ) == 1 {
 		selector["type"] = typ[0]
+	} else {
+		selector["type"] = bson.M{"$in": typ}
 	}
 
 	findOptions := options.Find()
@@ -722,10 +722,10 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		},
 	}
 
-	if len(typ) > 1 {
-		selector["type"] = bson.M{"$in": typ}
-	} else {
+	if len(typ) == 1 {
 		selector["type"] = typ[0]
+	} else {
+		selector["type"] = bson.M{"$in": typ}
 	}
 
 	findOptions := options.Find()
@@ -772,7 +772,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, errors.New("userId is empty")
 	}
 
-	if len(typ) < 1 {
+	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -817,7 +817,7 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]
 		return nil, errors.New("context is missing")
 	}
 
-	if len(typ) < 1 {
+	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 

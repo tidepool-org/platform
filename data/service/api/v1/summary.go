@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	"net/http"
 	"time"
 
@@ -96,7 +97,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 
 	clinicId := req.PathParam("clinicId")
 
-	filter := summary.NewRealtimePatientsFilter()
+	filter := reporters.NewPatientRealtimeDaysFilter()
 	if err := request.DecodeRequestQuery(req.Request, filter); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return

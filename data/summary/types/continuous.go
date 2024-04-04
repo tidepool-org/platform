@@ -8,7 +8,6 @@ import (
 	"time"
 
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -88,57 +87,77 @@ func (s *ContinuousStats) ClearInvalidatedBuckets(earliestModified time.Time) (f
 	return
 }
 
-func (s *ContinuousStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
-	var err error
-	var uploadRecord *upload.Upload
-	var userData []*glucoseDatum.Glucose = nil
-	uploadIds := map[string]bool{}
+func NewContinuousDeviceDataCursor[D RecordTypesPt[R], R RecordTypes](cursor DeviceDataCursor, dataRepo DeviceDataFetcher) *ContinuousDeviceDataCursor[D, R] {
+	return &ContinuousDeviceDataCursor[D, R]{
+		cursor:        cursor,
+		dataRepo:      dataRepo,
+		uploadIdCache: map[string]bool{},
+	}
+}
 
-	for cursor.Next(ctx) {
-		if userData == nil {
-			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+type ContinuousDeviceDataCursor[D RecordTypesPt[R], R RecordTypes] struct {
+	cursor        DeviceDataCursor
+	dataRepo      DeviceDataFetcher
+	uploadIdCache map[string]bool
+}
+
+func (c *ContinuousDeviceDataCursor[D, R]) GetNextData(ctx context.Context) ([]D, error) {
+	userData := make([]D, 0, c.cursor.RemainingBatchLength())
+
+	for c.cursor.Next(ctx) {
+		r := *new(D)
+		if err := c.cursor.Decode(r); err != nil {
+			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}
 
-		r := &glucoseDatum.Glucose{}
-		if err = cursor.Decode(r); err != nil {
-			return fmt.Errorf("unable to decode userData: %w", err)
-		}
-
-		// check if we already cached if the uploadId is continuous or not, query if unknown
-		if _, ok := uploadIds[*r.UploadID]; !ok {
-			uploadRecord, err = dataRepo.GetDataSetByID(ctx, *r.UploadID)
-			if err != nil {
-				return err
-			}
-
-			if uploadRecord != nil && uploadRecord.HasDataSetTypeContinuous() {
-				uploadIds[*r.UploadID] = true
-			} else {
-				uploadIds[*r.UploadID] = false
-			}
-		}
-
-		if uploadIds[*r.UploadID] {
+		if isContinuous, err := c.isUploadContinuous(ctx, *r.GetUploadID()); err != nil {
+			return nil, err
+		} else if isContinuous {
 			userData = append(userData, r)
 		}
 
 		// we call AddData before each network call to the db to reduce thrashing
-		if cursor.RemainingBatchLength() != 0 {
-			err = AddData(&s.Buckets, userData)
-			if err != nil {
-				return err
-			}
-			userData = nil
+		if c.cursor.RemainingBatchLength() != 0 {
+			return userData, nil
 		}
 	}
 
-	// add the final partial batch
-	if userData != nil {
+	return userData, nil
+}
+
+func (c *ContinuousDeviceDataCursor[D, R]) isUploadContinuous(ctx context.Context, uploadId string) (bool, error) {
+	// check if we already cached if the uploadId is continuous or not, query if unknown
+	if _, ok := c.uploadIdCache[uploadId]; !ok {
+		uploadRecord, err := c.dataRepo.GetDataSetByID(ctx, uploadId)
+		if err != nil {
+			return false, err
+		}
+
+		if uploadRecord != nil && uploadRecord.HasDataSetTypeContinuous() {
+			c.uploadIdCache[uploadId] = true
+		} else {
+			c.uploadIdCache[uploadId] = false
+		}
+	}
+
+	return c.uploadIdCache[uploadId], nil
+}
+
+func (s *ContinuousStats) Update(ctx context.Context, cursor DeviceDataCursor, dataRepo DeviceDataFetcher) error {
+	userCursor := NewContinuousDeviceDataCursor[*glucoseDatum.Glucose](cursor, dataRepo)
+
+	userData, err := userCursor.GetNextData(ctx)
+	if err != nil {
+		return err
+	}
+
+	for len(userData) > 0 {
 		err = AddData(&s.Buckets, userData)
 		if err != nil {
 			return err
 		}
-		userData = nil
+
+		userData, err = userCursor.GetNextData(ctx)
 	}
 
 	s.CalculateSummary()
