@@ -105,7 +105,7 @@ func (c *ContinuousDeviceDataCursor[D, R]) GetNextData(ctx context.Context) ([]D
 	userData := make([]D, 0, c.cursor.RemainingBatchLength())
 
 	for c.cursor.Next(ctx) {
-		r := *new(D)
+		r := D(new(R))
 		if err := c.cursor.Decode(r); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}
