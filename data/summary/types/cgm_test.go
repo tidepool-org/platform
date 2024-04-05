@@ -7,11 +7,13 @@ import (
 	"strconv"
 	"time"
 
-	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	"github.com/tidepool-org/platform/data/test"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/data/test"
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -23,16 +25,18 @@ import (
 
 	"github.com/tidepool-org/platform/data/summary/types"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-
 	"github.com/tidepool-org/platform/pointer"
 )
 
-func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []*glucose.Glucose {
+func CGMCursorFetcher(c *mongo.Cursor) fetcher.DeviceDataCursor {
+	return fetcher.NewDefaultCursor(c, summary.CreateGlucoseDatum)
+}
+
+func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []data.Datum {
 	requiredRecords := int(hours * 12)
 	typ := pointer.FromString("cbg")
 
-	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+	var dataSetData = make([]data.Datum, requiredRecords)
 	var deviceId = "SummaryTestDevice"
 	var uploadId = test.RandomSetID()
 
@@ -57,12 +61,12 @@ func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []
 
 // creates a dataset with random values evenly divided between ranges
 // NOTE: only generates 98.9% CGMUse, due to needing to be divisible by 5
-func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRanges) []*glucose.Glucose {
+func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRanges) []data.Datum {
 	requiredRecords := int(hours * 10)
 	typ := pointer.FromString("cbg")
 	var gapCompensation time.Duration
 
-	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+	var dataSetData = make([]data.Datum, requiredRecords)
 	var uploadId = test.RandomSetID()
 	var deviceId = "SummaryTestDevice"
 
@@ -96,7 +100,7 @@ var _ = Describe("CGM Summary", func() {
 	var logger log.Logger
 	var ctx context.Context
 	var err error
-	var dataSetCGMData []*glucose.Glucose
+	var dataSetCGMData []data.Datum
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -150,7 +154,7 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("Returns correct record count when given overlapping records", func() {
-				var doubledCGMData = make([]*glucose.Glucose, 288*2)
+				var doubledCGMData = make([]data.Datum, 288*2)
 
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 24, inTargetBloodGlucose)
@@ -841,15 +845,7 @@ var _ = Describe("CGM Summary", func() {
 
 		Context("CalculateSummary/Update", func() {
 			var newDatumTime time.Time
-			var dataSetCGMDataCursor types.DeviceDataCursor
-			var dataStore types.DeviceDataFetcher
-
-			BeforeEach(func() {
-				config := storeStructuredMongoTest.NewConfig()
-				store, err := dataStoreMongo.NewStore(config)
-				Expect(err).ToNot(HaveOccurred())
-				dataStore = store.NewDataRepository()
-			})
+			var dataSetCGMDataCursor *mongo.Cursor
 
 			It("Returns correct time in range for stats", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
@@ -857,7 +853,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime, 720, ranges)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -957,7 +953,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 720, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -987,7 +983,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 720, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1013,7 +1009,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime.AddDate(0, 0, 31), 16, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(1440))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(60 * 24)) // 60 days currently capped
@@ -1044,7 +1040,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 720, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1075,7 +1071,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 1, lowBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(1))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(1))
@@ -1102,7 +1098,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(newDatumTime, 720, highBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(721))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(721))
@@ -1133,7 +1129,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 720, lowBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1159,7 +1155,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(newDatumTime, 23, highBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(743))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(743))
@@ -1192,7 +1188,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 24, highBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(24))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(24))
@@ -1222,7 +1218,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(newDatumTime, 168, highBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(768))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(768)) // 30 days
@@ -1263,7 +1259,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 720, lowBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(720))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
@@ -1289,7 +1285,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMData = NewDataSetCGMDataAvg(newDatumTime, 1, highBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(1440)) // 60 days
@@ -1380,7 +1376,7 @@ var _ = Describe("CGM Summary", func() {
 				dataSetCGMDataFive := NewDataSetCGMDataAvg(newDatumTimeFive, 24, lowBloodGlucose)
 				dataSetCGMDataFiveCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMDataFive), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataOneCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataOneCursor))
 				Expect(err).ToNot(HaveOccurred())
 
 				// first day, should have 24 buckets
@@ -1391,7 +1387,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["7d"].TotalRecords).To(Equal(24 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["7d"].TotalRecords).To(Equal(0))
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataTwoCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataTwoCursor))
 				Expect(err).ToNot(HaveOccurred())
 
 				// 33 days elapsed, should have 33*24 (792) buckets
@@ -1402,7 +1398,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 12))
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataThreeCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataThreeCursor))
 				Expect(err).ToNot(HaveOccurred())
 
 				// 47 days elapsed, should have 47*24 (1128) buckets
@@ -1411,7 +1407,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 2 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 12))
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataFourCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataFourCursor))
 				Expect(err).ToNot(HaveOccurred())
 
 				// 59 days elapsed, should have 59*24 (1416) buckets
@@ -1420,7 +1416,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(*userCGMSummary.Stats.Periods["30d"].TotalRecords).To(Equal(24 * 3 * 12))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(24 * 1 * 12))
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataFiveCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataFiveCursor))
 				Expect(err).ToNot(HaveOccurred())
 
 				// 60 days elapsed, should have 60*24 (1440) buckets
@@ -1457,22 +1453,14 @@ var _ = Describe("CGM Summary", func() {
 		})
 
 		Context("ClearInvalidatedBuckets", func() {
-			var dataStore types.DeviceDataFetcher
-
-			BeforeEach(func() {
-				config := storeStructuredMongoTest.NewConfig()
-				store, err := dataStoreMongo.NewStore(config)
-				Expect(err).ToNot(HaveOccurred())
-				dataStore = store.NewDataRepository()
-			})
+			var dataSetCGMDataCursor *mongo.Cursor
 
 			It("trims the correct buckets", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
@@ -1489,12 +1477,11 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("trims the all buckets with data beyond the beginning of the buckets", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
@@ -1508,12 +1495,11 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("doesnt trim if only modified in the future", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 10, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
@@ -1530,13 +1516,12 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("doesnt trim if only modified on the same hour, but after the bucket time", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				midDatumTime := datumTime.Add(30 * time.Minute)
 				dataSetCGMData = NewDataSetCGMDataAvg(midDatumTime, 9, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))
@@ -1553,13 +1538,12 @@ var _ = Describe("CGM Summary", func() {
 			})
 
 			It("trims if modified on the same hour, and before the bucket time", func() {
-				var dataSetCGMDataCursor types.DeviceDataCursor
 				userCGMSummary = types.Create[*types.CGMStats](userId)
 				midDatumTime := datumTime.Add(30 * time.Minute)
 				dataSetCGMData = NewDataSetCGMDataAvg(midDatumTime, 9, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
-				err = userCGMSummary.Stats.Update(ctx, dataSetCGMDataCursor, dataStore)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(10))
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(10))

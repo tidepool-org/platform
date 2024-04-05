@@ -3,7 +3,8 @@ package types
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/data/summary"
+
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
@@ -20,9 +21,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	mapset "github.com/deckarep/golang-set/v2"
-
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 )
 
 const (
@@ -61,17 +59,6 @@ type OutdatedSummariesResponse struct {
 
 type BucketData interface {
 	CGMBucketData | BGMBucketData | ContinuousBucketData
-}
-
-type RecordTypes interface {
-	glucoseDatum.Glucose | insulinDatum.Insulin
-}
-
-type RecordTypesPt[T RecordTypes] interface {
-	*T
-	GetTime() *time.Time
-	GetCreatedTime() *time.Time
-	GetUploadID() *string
 }
 
 type Config struct {
@@ -150,7 +137,7 @@ type StatsPt[T Stats] interface {
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
-	Update(context.Context, summary.DeviceDataCursor) error
+	Update(context.Context, fetcher.DeviceDataCursor) error
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
 }
 

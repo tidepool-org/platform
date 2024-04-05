@@ -4,6 +4,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
+
 	"github.com/tidepool-org/platform/data/test"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -86,7 +88,7 @@ func ExpectedAverage(windowSize int, hoursAdded int, newAvg float64, oldAvg floa
 	return (oldAvgTotal + newAvgTotal) / float64(windowSize)
 }
 
-func ConvertToIntArray[T types.RecordTypes](arr []*T) []interface{} {
+func ConvertToIntArray[T data.Datum](arr []T) []interface{} {
 	s := make([]interface{}, len(arr))
 	for i, v := range arr {
 		s[i] = v

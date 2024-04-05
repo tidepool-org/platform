@@ -3,10 +3,10 @@ package types
 import (
 	"context"
 	"errors"
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"strconv"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
@@ -88,7 +88,7 @@ func (s *ContinuousStats) ClearInvalidatedBuckets(earliestModified time.Time) (f
 	return
 }
 
-func (s *ContinuousStats) Update(ctx context.Context, cursor summary.DeviceDataCursor) error {
+func (s *ContinuousStats) Update(ctx context.Context, cursor fetcher.DeviceDataCursor) error {
 	hasMoreData := true
 	for hasMoreData {
 		userData, err := cursor.GetNextBatch(ctx)

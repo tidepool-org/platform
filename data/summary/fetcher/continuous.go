@@ -3,13 +3,13 @@ package fetcher
 import (
 	"context"
 	"fmt"
+
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/summary"
 )
 
 var ErrCursorExhausted = fmt.Errorf("cursor is exhausted")
 
-func NewContinuousDeviceDataCursor(cursor summary.DeviceDataCursor, fetcher summary.DeviceDataFetcher, create DatumCreator) *ContinuousDeviceDataCursor {
+func NewContinuousDeviceDataCursor(cursor DeviceDataCursor, fetcher DeviceDataFetcher, create DatumCreator) *ContinuousDeviceDataCursor {
 	return &ContinuousDeviceDataCursor{
 		DeviceDataCursor: cursor,
 
@@ -19,13 +19,13 @@ func NewContinuousDeviceDataCursor(cursor summary.DeviceDataCursor, fetcher summ
 	}
 }
 
-var _ summary.DeviceDataCursor = &ContinuousDeviceDataCursor{}
+var _ DeviceDataCursor = &ContinuousDeviceDataCursor{}
 
 type ContinuousDeviceDataCursor struct {
-	summary.DeviceDataCursor
+	DeviceDataCursor
 
 	create        DatumCreator
-	fetcher       summary.DeviceDataFetcher
+	fetcher       DeviceDataFetcher
 	isExhausted   bool
 	uploadIdCache map[string]bool
 }
@@ -35,18 +35,23 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 		return nil, ErrCursorExhausted
 	}
 
-	userData := make([]data.Datum, 0, c.RemainingBatchLength())
+	var userData []data.Datum
 	for c.Next(ctx) {
+		if userData == nil {
+			userData = make([]data.Datum, 0, c.RemainingBatchLength())
+		}
+
 		datum := c.create()
 		if err := c.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}
+
 		if isContinuous, err := c.isUploadContinuous(ctx, datum.GetUploadID()); err != nil {
 			return nil, err
 		} else if isContinuous {
 			userData = append(userData, datum)
 		}
-		
+
 		if c.RemainingBatchLength() == 0 {
 			break
 		}
@@ -56,7 +61,7 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 }
 
 func (c *ContinuousDeviceDataCursor) Next(ctx context.Context) bool {
-	c.isExhausted = c.Next(ctx)
+	c.isExhausted = c.DeviceDataCursor.Next(ctx)
 	return c.isExhausted
 }
 

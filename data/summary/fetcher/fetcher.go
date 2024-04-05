@@ -1,11 +1,13 @@
-package summary
+package fetcher
 
 import (
 	"context"
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
-	"go.mongodb.org/mongo-driver/mongo"
-	"time"
 )
 
 type DeviceDataCursor interface {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
+
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 
 	summaryTest "github.com/tidepool-org/platform/data/summary/types/test"
@@ -15,16 +17,14 @@ import (
 
 	"github.com/tidepool-org/platform/data/summary/types"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-
 	"github.com/tidepool-org/platform/pointer"
 )
 
-func NewDataSetDataRealtime(t string, startTime time.Time, hours float64, realtime bool) []*glucose.Glucose {
+func NewDataSetDataRealtime(t string, startTime time.Time, hours float64, realtime bool) []data.Datum {
 	requiredRecords := int(hours * 2)
 	typ := pointer.FromAny(t)
 
-	var dataSetData = make([]*glucose.Glucose, requiredRecords)
+	var dataSetData = make([]data.Datum, requiredRecords)
 	var glucoseValue = inTargetBloodGlucose
 	var deviceId = "SummaryTestDevice"
 	var uploadId = test.RandomSetID()
@@ -51,7 +51,7 @@ var _ = Describe("Continuous Summary", func() {
 	var userId string
 	var datumTime time.Time
 	var err error
-	var dataSetContinuousData []*glucose.Glucose
+	var dataSetContinuousData []data.Datum
 
 	BeforeEach(func() {
 		userId = userTest.RandomID()

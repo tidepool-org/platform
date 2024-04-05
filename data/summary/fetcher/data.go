@@ -3,22 +3,23 @@ package fetcher
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/summary"
+
 	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/data"
 )
 
 type DatumCreator func() data.Datum
-type DataCursorFactory func(cursor *mongo.Cursor) summary.DeviceDataCursor
+type DataCursorFactory func(cursor *mongo.Cursor) DeviceDataCursor
 
-func NewDefaultCursor(c *mongo.Cursor, create DatumCreator) summary.DeviceDataCursor {
+func NewDefaultCursor(c *mongo.Cursor, create DatumCreator) DeviceDataCursor {
 	return &DefaultCursor{
 		c:      c,
 		create: create,
 	}
 }
 
-var _ summary.DeviceDataCursor = &DefaultCursor{}
+var _ DeviceDataCursor = &DefaultCursor{}
 
 type DefaultCursor struct {
 	c           *mongo.Cursor
@@ -48,12 +49,17 @@ func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) 
 		return nil, ErrCursorExhausted
 	}
 
-	userData := make([]data.Datum, 0, d.RemainingBatchLength())
+	var userData []data.Datum
 	for d.Next(ctx) {
+		if userData == nil {
+			userData = make([]data.Datum, 0, d.RemainingBatchLength())
+		}
 		datum := d.create()
 		if err := d.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}
+
+		userData = append(userData, datum)
 
 		if d.RemainingBatchLength() == 0 {
 			break
