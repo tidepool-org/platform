@@ -591,13 +591,13 @@ github.com/tdewolff/parse/v2/js
 github.com/tdewolff/parse/v2/json
 github.com/tdewolff/parse/v2/strconv
 github.com/tdewolff/parse/v2/xml
-# github.com/tidepool-org/clinic/client v0.0.0-20240327000654-159f9ee1d246
+# github.com/tidepool-org/clinic/client v0.0.0-20240405005007-70f5eaa69633
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
-# github.com/tidepool-org/devices/api v0.0.0-20240327001001-df237a2348d7
+# github.com/tidepool-org/devices/api v0.0.0-20240405003151-3a1ebcf01c24
 ## explicit; go 1.22
 github.com/tidepool-org/devices/api
-# github.com/tidepool-org/go-common v0.12.0
+# github.com/tidepool-org/go-common v0.12.1
 ## explicit; go 1.22
 github.com/tidepool-org/go-common/clients
 github.com/tidepool-org/go-common/clients/disc
@@ -608,7 +608,7 @@ github.com/tidepool-org/go-common/clients/status
 github.com/tidepool-org/go-common/errors
 github.com/tidepool-org/go-common/events
 github.com/tidepool-org/go-common/jepson
-# github.com/tidepool-org/hydrophone/client v0.0.0-20240327002534-0960758c4a58
+# github.com/tidepool-org/hydrophone/client v0.0.0-20240405005834-0ee9eb1c6e51
 ## explicit; go 1.22
 github.com/tidepool-org/hydrophone/client
 # github.com/twitchyliquid64/golang-asm v0.15.1
@@ -755,7 +755,7 @@ go.uber.org/zap/zapcore
 # golang.org/x/arch v0.7.0
 ## explicit; go 1.18
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.18.0
+# golang.org/x/crypto v0.21.0
 ## explicit; go 1.18
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -778,7 +778,7 @@ golang.org/x/lint/golint
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.20.0
+# golang.org/x/net v0.23.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
@@ -804,13 +804,13 @@ golang.org/x/oauth2/internal
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
-# golang.org/x/sys v0.16.0
+# golang.org/x/sys v0.18.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/term v0.16.0
+# golang.org/x/term v0.18.0
 ## explicit; go 1.18
 golang.org/x/term
 # golang.org/x/text v0.14.0
