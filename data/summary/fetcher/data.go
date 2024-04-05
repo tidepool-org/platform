@@ -49,10 +49,14 @@ func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) 
 	}
 
 	userData := make([]data.Datum, 0, d.RemainingBatchLength())
-	for d.Next(ctx) && d.RemainingBatchLength() != 0 {
+	for d.Next(ctx) {
 		datum := d.create()
 		if err := d.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
+		}
+
+		if d.RemainingBatchLength() == 0 {
+			break
 		}
 	}
 

@@ -36,7 +36,7 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 	}
 
 	userData := make([]data.Datum, 0, c.RemainingBatchLength())
-	for c.Next(ctx) && c.RemainingBatchLength() != 0 {
+	for c.Next(ctx) {
 		datum := c.create()
 		if err := c.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
@@ -45,6 +45,10 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 			return nil, err
 		} else if isContinuous {
 			userData = append(userData, datum)
+		}
+		
+		if c.RemainingBatchLength() == 0 {
+			break
 		}
 	}
 
