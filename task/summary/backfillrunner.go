@@ -169,7 +169,7 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 
 	for _, typ := range []string{"bgm", "cgm", "continuous"} {
 		t.logger.Debugf("Starting User %s Summary Backfill", typ)
-		count, err := t.dataClient.BackfillSummaries(t.context, "cgm")
+		count, err := t.dataClient.BackfillSummaries(t.context, typ)
 		if err != nil {
 			return err
 		}
