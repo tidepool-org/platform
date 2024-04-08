@@ -353,6 +353,65 @@ var _ = Describe("Summary", func() {
 		})
 	})
 
+	Context("BackfillSummaries", func() {
+		var err error
+		var logger log.Logger
+		var ctx context.Context
+		var config *storeStructuredMongo.Config
+		var store *dataStoreMongo.Store
+		var dataCollection *mongo.Collection
+		var datumTime time.Time
+		var deviceData []mongo.WriteModel
+		var opts *options.BulkWriteOptions
+		var registry *summary.SummarizerRegistry
+		var dataStore dataStore.DataRepository
+		var summaryRepository *storeStructuredMongo.Repository
+		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
+
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
+			config = storeStructuredMongoTest.NewConfig()
+			store, err = dataStoreMongo.NewStore(config)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(store.EnsureIndexes()).To(Succeed())
+			dataCollection = store.GetCollection("deviceData")
+			datumTime = time.Now().UTC().Truncate(time.Hour)
+			opts = options.BulkWrite().SetOrdered(false)
+			dataStore = store.NewDataRepository()
+			summaryRepository = store.NewSummaryRepository().GetStore()
+			registry = summary.New(summaryRepository, dataStore)
+			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
+		})
+
+		It("backfill continuous summaries", func() {
+			userIdOne := userTest.RandomID()
+			userIdTwo := userTest.RandomID()
+
+			deviceData = NewDataSetData(continuous.Type, userIdOne, datumTime, 2, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			deviceData = NewDataSetData(selfmonitored.Type, userIdTwo, datumTime, 2, 5)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			count, err := continuousSummarizer.BackfillSummaries(ctx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(2))
+
+			userSummary, err := continuousSummarizer.GetSummary(ctx, userIdOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary.UserID).To(Equal(userIdOne))
+			Expect(userSummary.Type).To(Equal(types.SummaryTypeContinuous))
+
+			userSummary, err = continuousSummarizer.GetSummary(ctx, userIdTwo)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary.UserID).To(Equal(userIdTwo))
+			Expect(userSummary.Type).To(Equal(types.SummaryTypeContinuous))
+		})
+	})
+
 	Context("end to end summary calculation", func() {
 		var err error
 		var logger log.Logger
@@ -370,6 +429,7 @@ var _ = Describe("Summary", func() {
 		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
 		var dataCollection *mongo.Collection
 		var datumTime time.Time
+		var deviceData []mongo.WriteModel
 
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
@@ -398,7 +458,6 @@ var _ = Describe("Summary", func() {
 
 		It("repeat out of order cgm summary calc", func() {
 			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
-			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
 			deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
@@ -448,7 +507,6 @@ var _ = Describe("Summary", func() {
 
 		It("repeat out of order bgm summary calc", func() {
 			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
-			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
 			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
@@ -498,7 +556,6 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with very old data", func() {
 			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
-			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
 			deviceData = NewDataSetData("smbg", userId, datumTime.AddDate(-3, 0, 0), 5, 5)
@@ -512,7 +569,6 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with jellyfish created summary", func() {
 			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
-			var deviceData []mongo.WriteModel
 			opts := options.BulkWrite().SetOrdered(false)
 
 			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
@@ -592,7 +648,6 @@ var _ = Describe("Summary", func() {
 		It("summary calc with no new data correctly leaves summary unchanged", func() {
 			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
 			var userSummaryNew *types.Summary[*types.CGMStats, types.CGMStats]
-			var deviceData []mongo.WriteModel
 
 			opts := options.BulkWrite().SetOrdered(false)
 			deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
@@ -619,7 +674,6 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with realtime data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
-			var deviceData []mongo.WriteModel
 			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
@@ -644,7 +698,6 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with deferred data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
-			var deviceData []mongo.WriteModel
 			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
@@ -669,7 +722,6 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with non-continuous data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
-			var deviceData []mongo.WriteModel
 			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeNormal)

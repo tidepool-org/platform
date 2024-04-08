@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/tidepool-org/platform/data/types/insulin"
+
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 
 	"github.com/tidepool-org/platform/data/types/bolus"
@@ -1430,6 +1432,7 @@ var _ = Describe("Mongo", func() {
 						Context("with database access", func() {
 							var userIdOne string
 							var userIdTwo string
+							var userIdThree string
 
 							BeforeEach(func() {
 								userIdOne = userTest.RandomID()
@@ -1439,6 +1442,10 @@ var _ = Describe("Mongo", func() {
 								userIdTwo = userTest.RandomID()
 								dataSetTwo := NewDataSet(userIdTwo, deviceID)
 								dataSetDataTwo := NewDataSetData(deviceID)
+
+								userIdThree = userTest.RandomID()
+								dataSetThree := NewDataSet(userIdThree, deviceID)
+								dataSetDataThree := NewDataSetData(deviceID)
 
 								dataSetDataOne[0].SetType(selfmonitored.Type)
 								dataSetDataOne[0].SetActive(false)
@@ -1454,8 +1461,14 @@ var _ = Describe("Mongo", func() {
 									dataSetDataTwo[i].SetActive(true)
 								}
 
+								for i := 0; i < len(dataSetDataThree); i++ {
+									dataSetDataThree[i].SetType(insulin.Type)
+									dataSetDataThree[i].SetActive(true)
+								}
+
 								Expect(repository.CreateDataSetData(ctx, dataSetOne, dataSetDataOne)).To(Succeed())
 								Expect(repository.CreateDataSetData(ctx, dataSetTwo, dataSetDataTwo)).To(Succeed())
+								Expect(repository.CreateDataSetData(ctx, dataSetThree, dataSetDataThree)).To(Succeed())
 							})
 
 							It("correctly identifies distinct users", func() {
@@ -1479,6 +1492,14 @@ var _ = Describe("Mongo", func() {
 								Expect(userIds).ToNot(BeNil())
 								Expect(err).ToNot(HaveOccurred())
 								Expect(userIds).To(HaveLen(0))
+							})
+
+							It("correctly identifies distinct users with multiple types", func() {
+								userIds, err := repository.DistinctUserIDs(ctx, []string{selfmonitored.Type, insulin.Type})
+								Expect(userIds).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userIds).To(HaveLen(2))
+								Expect(userIds).To(ConsistOf([]string{userIdThree, userIdTwo}))
 							})
 						})
 					})

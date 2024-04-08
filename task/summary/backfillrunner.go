@@ -22,7 +22,7 @@ import (
 const (
 	DefaultBackfillAvailableAfterDurationMinimum = 23 * time.Hour
 	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
-	BackfillTaskDurationMaximum                  = 5 * time.Minute
+	BackfillTaskDurationMaximum                  = 15 * time.Minute
 	BackfillType                                 = "org.tidepool.summary.backfill"
 )
 

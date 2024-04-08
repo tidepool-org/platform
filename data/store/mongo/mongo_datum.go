@@ -810,9 +810,6 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 }
 
 func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
-	var distinctUserIDMap = make(map[string]struct{})
-	var empty struct{}
-
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -847,13 +844,9 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]
 		return nil, fmt.Errorf("error fetching distinct userIDs: %w", err)
 	}
 
+	userIDs := make([]string, 0, len(result))
 	for _, v := range result {
-		distinctUserIDMap[v.(string)] = empty
-	}
-
-	userIDs := make([]string, 0, len(distinctUserIDMap))
-	for k := range distinctUserIDMap {
-		userIDs = append(userIDs, k)
+		userIDs = append(userIDs, v.(string))
 	}
 
 	return userIDs, nil
