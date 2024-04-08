@@ -230,11 +230,12 @@ func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId str
 
 	// this filters out users which may have appeared to have relevant data, but was filtered during calculation
 	if userSummary.Stats.GetBucketsLen() == 0 {
-		logger.Warnf("User %s has a summary, but no valid data within range, deleting summary", userId)
-		return nil, gs.summaries.DeleteSummary(ctx, userId)
+		logger.Warnf("User %s has a summary, but no valid data within range, creating placeholder summary", userId)
+		userSummary.Dates.Reset()
+		userSummary.Stats = nil
+	} else {
+		userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
 	}
-
-	userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
 
 	err = gs.summaries.ReplaceSummary(ctx, userSummary)
 

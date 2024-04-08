@@ -683,7 +683,11 @@ var _ = Describe("Summary", func() {
 
 			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(userSummary).To(BeNil())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
+			Expect(userSummary.Dates.LastData).To(BeNil())
+			Expect(userSummary.Stats).To(BeNil())
 		})
 	})
 })
