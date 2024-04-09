@@ -282,6 +282,8 @@ func (b *builder) buildDatum(obj map[string]interface{}) error {
 	switch b.datumType {
 	case continuous.Type:
 		validator.String("subType", parser.String("subType"))
+		validator.String("jsDate", parser.String("jsDate"))
+		validator.Int("index", parser.Int("index"))
 	case bolus.Type:
 		validator.String("deliveryContext", parser.String("deliveryContext"))
 	case basal.Type:
