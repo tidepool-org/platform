@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/tidepool-org/platform/data/summary/reporters"
 
@@ -104,16 +103,14 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 		return
 	}
 
-	startTime := time.Now().UTC().AddDate(0, 0, -60)
-	endTime := time.Now().UTC()
-
 	details := request.GetAuthDetails(ctx)
 	if !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
 
-	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), startTime, endTime)
+	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(
+		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
