@@ -461,6 +461,9 @@ github.com/microcosm-cc/bluemonday/css
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
+# github.com/mitchellh/mapstructure v1.1.2
+## explicit
+github.com/mitchellh/mapstructure
 # github.com/mjibson/esc v0.2.0
 ## explicit
 github.com/mjibson/esc

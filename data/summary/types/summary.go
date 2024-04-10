@@ -58,51 +58,39 @@ type OutdatedSummariesResponse struct {
 }
 
 type BucketData interface {
-	CGMBucketData | BGMBucketData | ContinuousBucketData
+	GlucoseBucketData | ContinuousBucketData
 }
 
 type Config struct {
 	SchemaVersion int `json:"schemaVersion" bson:"schemaVersion"`
 
 	// these are just constants right now.
-	HighGlucoseThreshold     float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
-	VeryHighGlucoseThreshold float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold"`
-	LowGlucoseThreshold      float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold"`
-	VeryLowGlucoseThreshold  float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold"`
+	HighGlucoseThreshold     float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold,omitempty"`
+	VeryHighGlucoseThreshold float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold,omitempty"`
+	LowGlucoseThreshold      float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold,omitempty"`
+	VeryLowGlucoseThreshold  float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold,omitempty"`
 }
 
 type Dates struct {
-	LastUpdatedDate   time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	LastUpdatedReason []string  `json:"lastUpdatedReason" bson:"lastUpdatedReason"`
+	LastUpdatedDate   time.Time  `json:"lastUpdatedDate" bson:"lastUpdatedDate,omitempty"`
+	LastUpdatedReason []string   `json:"lastUpdatedReason" bson:"lastUpdatedReason,omitempty"`
+	LastUploadDate    *time.Time `json:"lastUploadDate" bson:"lastUploadDate,omitempty"`
 
-	HasLastUploadDate bool       `json:"hasLastUploadDate" bson:"hasLastUploadDate"`
-	LastUploadDate    *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
+	FirstData *time.Time `json:"firstData" bson:"firstData,omitempty"`
+	LastData  *time.Time `json:"lastData" bson:"lastData,omitempty"`
 
-	HasFirstData bool       `json:"hasFirstData" bson:"hasFirstData"`
-	FirstData    *time.Time `json:"firstData" bson:"firstData"`
-
-	HasLastData bool       `json:"hasLastData" bson:"hasLastData"`
-	LastData    *time.Time `json:"lastData" bson:"lastData"`
-
-	HasOutdatedSince bool       `json:"hasOutdatedSince" bson:"hasOutdatedSince"`
-	OutdatedSince    *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
+	OutdatedSince  *time.Time `json:"outdatedSince" bson:"outdatedSince,omitempty"`
+	OutdatedReason []string   `json:"outdatedReason" bson:"outdatedReason,omitempty"`
 }
 
 func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
 	d.LastUpdatedReason = d.OutdatedReason
-
-	d.HasLastUploadDate = true
 	d.LastUploadDate = &status.LastUpload
 
-	d.HasFirstData = true
 	d.FirstData = &firstBucketDate
-
-	d.HasLastData = true
 	d.LastData = &status.LastData
 
-	d.HasOutdatedSince = false
 	d.OutdatedSince = nil
 	d.OutdatedReason = nil
 }
@@ -176,33 +164,25 @@ func (s *Summary[A, T]) SetOutdated(reason string) {
 
 	if s.Dates.OutdatedSince == nil {
 		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Truncate(time.Millisecond).UTC())
-		s.Dates.HasOutdatedSince = true
 	}
 }
 
 func (s *Summary[A, T]) SetNotOutdated() {
 	s.Dates.OutdatedReason = nil
 	s.Dates.OutdatedSince = nil
-	s.Dates.HasOutdatedSince = false
 }
 
 func NewDates() Dates {
 	return Dates{
 		LastUpdatedDate:   time.Time{},
 		LastUpdatedReason: nil,
-
-		HasLastUploadDate: false,
 		LastUploadDate:    nil,
 
-		HasFirstData: false,
-		FirstData:    nil,
+		FirstData: nil,
+		LastData:  nil,
 
-		HasLastData: false,
-		LastData:    nil,
-
-		HasOutdatedSince: false,
-		OutdatedSince:    nil,
-		OutdatedReason:   nil,
+		OutdatedSince:  nil,
+		OutdatedReason: nil,
 	}
 }
 
@@ -229,7 +209,7 @@ func GetDeviceDataTypeStrings[A StatsPt[T], T Stats]() []string {
 }
 
 type Period interface {
-	BGMPeriod | CGMPeriod
+	GlucosePeriod
 }
 
 func AddBin[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
