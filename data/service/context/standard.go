@@ -187,6 +187,14 @@ func (s *Standard) DataClient() dataClient.Client {
 }
 
 func (s *Standard) ClinicsClient() clinics.Client {
+	if s.clinicsClient == nil {
+		var err error
+		s.clinicsClient, err = clinics.NewClient(s.AuthClient())
+		if err != nil {
+			s.Logger().Error("unable to create clinics client")
+		}
+	}
+
 	return s.clinicsClient
 }
 
