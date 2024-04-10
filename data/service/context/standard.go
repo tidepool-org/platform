@@ -162,18 +162,15 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 }
 
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
-	dataRepo := s.DataRepository()
-	summaryRepo := s.SummaryRepository()
-
 	if s.summarizerRegistry == nil {
-		s.summarizerRegistry = summary.New(summaryRepo.GetStore(), dataRepo)
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.DataRepository())
 	}
 	return s.summarizerRegistry
 }
 
 func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
 	if s.summaryReporter == nil {
-		s.summaryReporter = reporters.NewReporter(s.summarizerRegistry)
+		s.summaryReporter = reporters.NewReporter(s.SummarizerRegistry())
 	}
 	return s.summaryReporter
 }
