@@ -116,7 +116,9 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Contex
 			return nil, err
 		}
 
-		realtimeUsers[userId] = userSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+		if userSummary.Stats != nil {
+			realtimeUsers[userId] = userSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+		}
 
 	}
 
