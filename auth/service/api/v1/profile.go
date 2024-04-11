@@ -14,8 +14,8 @@ import (
 
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Get("/v1/users/:userId/profile", api.RequireUser(r.GetProfile)),
-		rest.Get("/v1/users/legacy/:userId/profile", api.RequireUser(r.GetLegacyProfile)),
+		rest.Get("/v1/users/:userId/profile", api.RequireAuth(r.GetProfile)),
+		rest.Get("/v1/users/legacy/:userId/profile", api.RequireAuth(r.GetLegacyProfile)),
 		// The following modification routes required custodian access in seagull, but I'm not sure that's quite right - it seems it should be if the user can modify the userId.
 		rest.Put("/v1/users/:userId/profile", r.requireWriteAccess("userId", r.UpdateProfile)),
 		rest.Put("/v1/users/legacy/:userId/profile", r.requireWriteAccess("userId", r.UpdateLegacyProfile)),
@@ -29,14 +29,17 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
 	userID := req.PathParam("userId")
-	hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
-	if err != nil {
-		responder.InternalServerError(err)
-		return
-	}
-	if !hasPerms {
-		responder.Empty(http.StatusForbidden)
-		return
+
+	if details.IsUser() {
+		hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
+		if err != nil {
+			responder.InternalServerError(err)
+			return
+		}
+		if !hasPerms {
+			responder.Empty(http.StatusForbidden)
+			return
+		}
 	}
 
 	user, err := r.UserAccessor().FindUserById(ctx, userID)
@@ -57,14 +60,17 @@ func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
 	userID := req.PathParam("userId")
-	hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
-	if err != nil {
-		responder.InternalServerError(err)
-		return
-	}
-	if !hasPerms {
-		responder.Empty(http.StatusForbidden)
-		return
+
+	if details.IsUser() {
+		hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
+		if err != nil {
+			responder.InternalServerError(err)
+			return
+		}
+		if !hasPerms {
+			responder.Empty(http.StatusForbidden)
+			return
+		}
 	}
 
 	user, err := r.UserAccessor().FindUserById(ctx, userID)
