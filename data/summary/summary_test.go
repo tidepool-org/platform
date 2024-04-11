@@ -831,5 +831,28 @@ var _ = Describe("Summary", func() {
 			Expect(result[userId]).To(Equal(1))
 			Expect(result[userIdTwo]).To(Equal(0))
 		})
+
+		It("run with a user that doesnt have a summary at all", func() {
+			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+			userIdTwo := userTest.RandomID()
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := realtimeReporter.GetRealtimeDaysForUsers(ctx, []string{userId, userIdTwo}, realtimeDatumTime.AddDate(0, -1, 0), realtimeDatumTime)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result[userId]).To(Equal(1))
+			Expect(result[userIdTwo]).To(Equal(0))
+		})
 	})
 })
