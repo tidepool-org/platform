@@ -17,7 +17,8 @@ type Config struct {
 	// client. If left empty, the default Go http.Client value should be used.
 	//
 	// This value can be helpful when debugging. But remember that these
-	// values can be spoofed, so when in doubt, verify the client's source IP.
+	// values can be spoofed, it's better to verify via some other means, like
+	// the request's access token's "azp" claim.
 	//
 	// More info: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 	UserAgent string `envconfig:"TIDEPOOL_USER_AGENT"`

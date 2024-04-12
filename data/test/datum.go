@@ -62,6 +62,8 @@ type Datum struct {
 	SetDeduplicatorDescriptorInvocations int
 	IsActiveInvocations                  int
 	IsActiveOutputs                      []bool
+	SetProvenanceInvocations             int
+	SetProvenanceInputs                  []*data.Provenance
 	GetUploadIDInvocations               int
 	GetUploadIDOutputs                   []*string
 }
@@ -222,6 +224,11 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInvocations++
 
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
+}
+
+func (d *Datum) SetProvenance(p *data.Provenance) {
+	d.SetProvenanceInvocations++
+	d.SetProvenanceInputs = append(d.SetProvenanceInputs, p)
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
