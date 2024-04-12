@@ -10,7 +10,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/golang-jwt/jwt/v4"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -46,10 +45,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	var details request.AuthDetails
-	if details = request.GetAuthDetails(ctx); !details.IsService() {
+	var authDetails request.AuthDetails
+	if authDetails = request.GetAuthDetails(ctx); !authDetails.IsService() {
 		var permissions permission.Permissions
-		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
+		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, authDetails.UserID(), *dataSet.UserID)
 		if err != nil {
 			if request.IsErrorUnauthorized(err) {
 				dataServiceContext.RespondWithError(service.ErrorUnauthorized())
@@ -106,7 +105,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		datum.SetProvenance(CollectProvenanceInfo(ctx, req, details))
+		datum.SetProvenance(CollectProvenanceInfo(ctx, req, authDetails))
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
@@ -136,19 +135,15 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 // CollectProvenanceInfo from a request and its auth details.
 //
 // All work is done as a best effort right now.
-func CollectProvenanceInfo(ctx context.Context, req *rest.Request, details request.AuthDetails) *data.Provenance {
+func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails request.AuthDetails) *data.Provenance {
 	lgr := log.LoggerFromContext(ctx)
 	provenance := &data.Provenance{}
 
-	token := req.Header.Get(auth.TidepoolSessionTokenHeaderKey)
-	if token == "" {
-		token = req.Header.Get(auth.TidepoolAuthorizationHeaderKey)
-		if token != "" {
-			if strings.EqualFold(token[:len("bearer ")], "bearer ") {
-				token = token[len("bearer "):]
-			}
-		}
+	token := authDetails.Token()
+	if strings.HasPrefix(strings.ToLower(token), "bearer ") {
+		token = token[len("bearer "):]
 	}
+
 	if token != "" {
 		claims := &TokenClaims{}
 		if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err != nil {
@@ -156,8 +151,8 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, details reque
 		} else {
 			provenance.ClientID = claims.ClientID
 		}
-	} else {
-		lgr.Warn("Unable to find access token for provenance")
+	} else if !authDetails.IsService() {
+		lgr.Warn("Unable to read ClientID: The request's access token is blank")
 	}
 
 	if xff := SelectXFF(req.Header); xff != "" {
@@ -170,7 +165,7 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, details reque
 		}
 	}
 
-	if userID := details.UserID(); userID == "" {
+	if userID := authDetails.UserID(); userID == "" {
 		lgr.Warnf("Unable to read the request's userID for provenance: userID is empty")
 	} else {
 		provenance.ByUserID = userID
