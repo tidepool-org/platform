@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	api "github.com/tidepool-org/clinic/client"
+	client "github.com/tidepool-org/clinic/client"
 )
 
 // MockClient is a mock of Client interface.
@@ -36,10 +36,10 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // GetClinician mocks base method.
-func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*api.Clinician, error) {
+func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*client.Clinician, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClinician", ctx, clinicID, clinicianID)
-	ret0, _ := ret[0].(*api.Clinician)
+	ret0, _ := ret[0].(*client.Clinician)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,10 +51,10 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 }
 
 // GetPatients mocks base method.
-func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *api.ListPatientsParams) ([]api.Patient, error) {
+func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams) ([]client.Patient, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPatients", ctx, clinicId, userToken, params)
-	ret0, _ := ret[0].([]api.Patient)
+	ret0, _ := ret[0].([]client.Patient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,10 +66,10 @@ func (mr *MockClientMockRecorder) GetPatients(ctx, clinicId, userToken, params i
 }
 
 // ListEHREnabledClinics mocks base method.
-func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]api.Clinic, error) {
+func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]client.Clinic, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEHREnabledClinics", ctx)
-	ret0, _ := ret[0].([]api.Clinic)
+	ret0, _ := ret[0].([]client.Clinic)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -81,10 +81,10 @@ func (mr *MockClientMockRecorder) ListEHREnabledClinics(ctx interface{}) *gomock
 }
 
 // SharePatientAccount mocks base method.
-func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*api.Patient, error) {
+func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*client.Patient, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SharePatientAccount", ctx, clinicID, patientID)
-	ret0, _ := ret[0].(*api.Patient)
+	ret0, _ := ret[0].(*client.Patient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

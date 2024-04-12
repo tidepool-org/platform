@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/data/summary/reporters"
+
 	"github.com/tidepool-org/platform/data/test"
 
 	"github.com/tidepool-org/platform/data"
@@ -182,11 +184,6 @@ var _ = Describe("Summary", func() {
 			cgmStore = dataStoreSummary.New[*types.CGMStats](summaryRepository)
 			bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
 			continuousStore = dataStoreSummary.New[*types.ContinuousStats](summaryRepository)
-		})
-
-		AfterEach(func() {
-			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("with all summary types outdated", func() {
@@ -375,6 +372,7 @@ var _ = Describe("Summary", func() {
 			store, err = dataStoreMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store.EnsureIndexes()).To(Succeed())
+
 			dataCollection = store.GetCollection("deviceData")
 			datumTime = time.Now().UTC().Truncate(time.Hour)
 			opts = options.BulkWrite().SetOrdered(false)
@@ -382,6 +380,14 @@ var _ = Describe("Summary", func() {
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			registry = summary.New(summaryRepository, dataStore)
 			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
+		})
+
+		AfterEach(func() {
+			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = dataCollection.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("backfill continuous summaries", func() {
@@ -454,6 +460,14 @@ var _ = Describe("Summary", func() {
 			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
 
 			datumTime = time.Now().UTC().Truncate(time.Hour)
+		})
+
+		AfterEach(func() {
+			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = dataCollection.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("repeat out of order cgm summary calc", func() {
@@ -740,6 +754,105 @@ var _ = Describe("Summary", func() {
 			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
 			Expect(userSummary.Dates.LastData).To(BeNil())
 			Expect(userSummary.Stats).To(BeNil())
+		})
+	})
+
+	Context("PatientRealtimeDaysReporter", func() {
+		var err error
+		var logger log.Logger
+		var ctx context.Context
+		var registry *summary.SummarizerRegistry
+		var config *storeStructuredMongo.Config
+		var store *dataStoreMongo.Store
+		var summaryRepository *storeStructuredMongo.Repository
+		var dataStore dataStore.DataRepository
+		var userId string
+		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
+		var dataCollection *mongo.Collection
+		var realtimeReporter *reporters.PatientRealtimeDaysReporter
+		var deviceData []mongo.WriteModel
+
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
+			config = storeStructuredMongoTest.NewConfig()
+
+			store, err = dataStoreMongo.NewStore(config)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(store.EnsureIndexes()).To(Succeed())
+
+			summaryRepository = store.NewSummaryRepository().GetStore()
+			dataCollection = store.GetCollection("deviceData")
+			dataStore = store.NewDataRepository()
+			registry = summary.New(summaryRepository, dataStore)
+			userId = userTest.RandomID()
+
+			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
+			realtimeReporter = reporters.NewReporter(registry)
+		})
+
+		AfterEach(func() {
+			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = dataCollection.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("realtime reporter run with mix of users", func() {
+			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+			userIdTwo := userTest.RandomID()
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			uploadRecord = NewDataSet(userIdTwo, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			deviceData = NewDataSetData("smbg", userIdTwo, realtimeDatumTime, 10, 5)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = continuousSummarizer.UpdateSummary(ctx, userIdTwo)
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := realtimeReporter.GetRealtimeDaysForUsers(ctx, []string{userId, userIdTwo}, realtimeDatumTime.AddDate(0, -1, 0), realtimeDatumTime)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result[userId]).To(Equal(1))
+			Expect(result[userIdTwo]).To(Equal(0))
+		})
+
+		It("run with a user that doesnt have a summary at all", func() {
+			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+			userIdTwo := userTest.RandomID()
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := realtimeReporter.GetRealtimeDaysForUsers(ctx, []string{userId, userIdTwo}, realtimeDatumTime.AddDate(0, -1, 0), realtimeDatumTime)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result[userId]).To(Equal(1))
+			Expect(result[userIdTwo]).To(Equal(0))
 		})
 	})
 })

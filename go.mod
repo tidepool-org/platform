@@ -1,8 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.21
-
-toolchain go1.21.0
+go 1.22
 
 require (
 	github.com/Shopify/sarama v1.38.1
@@ -23,14 +21,14 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240125151732-338a1e40e083
-	github.com/tidepool-org/devices/api v0.0.0-20220914225528-c7373eb1babc
-	github.com/tidepool-org/go-common v0.11.0
-	github.com/tidepool-org/hydrophone/client v0.0.0-20240125152812-cb08e6b3fbc7
+	github.com/tidepool-org/clinic/client v0.0.0-20240412011046-bbcf4250e5c4
+	github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
+	github.com/tidepool-org/go-common v0.12.1
+	github.com/tidepool-org/hydrophone/client v0.0.0-20240412013722-bff995d59e73
 	github.com/urfave/cli v1.22.14
 	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/fx v1.20.1
-	golang.org/x/crypto v0.18.0
+	golang.org/x/crypto v0.21.0
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/oauth2 v0.16.0
@@ -57,7 +55,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2 v2.14.0 // indirect
-	github.com/cloudevents/sdk-go/v2 v2.14.0 // indirect
+	github.com/cloudevents/sdk-go/v2 v2.15.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.16.2 // indirect
@@ -149,9 +147,9 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
-	golang.org/x/term v0.16.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
@@ -162,3 +160,9 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Resolve GO-2023-2116, GO-2023-2115, GO-2023-2052
+replace github.com/gofiber/fiber/v2 v2.49.1 => github.com/gofiber/fiber/v2 v2.52.0
+
+// Resolve GO-2024-2611
+replace google.golang.org/protobuf v1.32.0 => google.golang.org/protobuf v1.33.0

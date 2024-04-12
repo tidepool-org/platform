@@ -36,6 +36,9 @@ func NewContextWithServerSessionToken(ctx context.Context, serverSessionToken st
 	return context.WithValue(ctx, serverSessionTokenContextKey, serverSessionToken)
 }
 
+// ServerSessionTokenFromContext returns a JWT access token from a Context.
+//
+// An empty string is returned if no token is found.
 func ServerSessionTokenFromContext(ctx context.Context) string {
 	if ctx != nil {
 		if serverSessionToken, ok := ctx.Value(serverSessionTokenContextKey).(string); ok {
