@@ -75,16 +75,13 @@ func Parse(r *parse.Input, o Options) (*AST, error) {
 		}
 	}
 
-	if p.err == nil {
-		p.err = p.l.Err()
-	} else {
+	if p.err != nil {
 		offset := p.l.r.Offset() - len(p.data)
-		p.err = parse.NewError(buffer.NewReader(p.l.r.Bytes()), offset, p.err.Error())
+		return nil, parse.NewError(buffer.NewReader(p.l.r.Bytes()), offset, p.err.Error())
+	} else if p.l.Err() != nil && p.l.Err() != io.EOF {
+		return nil, p.l.Err()
 	}
-	if p.err == io.EOF {
-		p.err = nil
-	}
-	return ast, p.err
+	return ast, nil
 }
 
 ////////////////////////////////////////////////////////////////
@@ -831,15 +828,17 @@ func (p *Parser) parseExportStmt() (exportStmt ExportStmt) {
 		exportStmt.Default = true
 		p.next()
 		if p.tt == FunctionToken {
+			// hoistable declaration
 			exportStmt.Decl = p.parseFuncDecl()
 		} else if p.tt == AsyncToken { // async function or async arrow function
 			async := p.data
 			p.next()
 			if p.tt == FunctionToken && !p.prevLT {
+				// hoistable declaration
 				exportStmt.Decl = p.parseAsyncFuncDecl()
 			} else {
 				// expression
-				exportStmt.Decl = p.parseAsyncExpression(OpExpr, async)
+				exportStmt.Decl = p.parseAsyncExpression(OpAssign, async)
 			}
 		} else if p.tt == ClassToken {
 			exportStmt.Decl = p.parseClassDecl()
@@ -2003,6 +2002,9 @@ func (p *Parser) parseExpressionSuffix(left IExpr, prec, precLeft OpPrec) IExpr 
 		case OptChainToken:
 			if OpCall < prec {
 				return left
+			} else if precLeft < OpCall {
+				p.fail("expression")
+				return nil
 			}
 			p.next()
 			if p.tt == OpenParenToken {
