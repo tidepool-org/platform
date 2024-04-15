@@ -48,7 +48,7 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 
 	userIds := make([]string, len(patients))
 	for i := 0; i < len(patients); i++ {
-		userIds[i] = *patients[0].Id
+		userIds[i] = *patients[i].Id
 	}
 
 	userIdsRealtimeDays, err := r.GetRealtimeDaysForUsers(ctx, userIds, startTime, endTime)
@@ -61,7 +61,7 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 		patientsResponse[i] = PatientRealtimeDaysResponse{
 			Id:                *patients[i].Id,
 			FullName:          patients[i].FullName,
-			BirthDate:         patients[i].BirthDate.Time,
+			BirthDate:         patients[i].BirthDate.Format(time.DateOnly),
 			MRN:               patients[i].Mrn,
 			RealtimeDays:      userIdsRealtimeDays[*patients[i].Id],
 			HasSufficientData: userIdsRealtimeDays[*patients[i].Id] >= realtimeDaysThreshold,
@@ -139,12 +139,12 @@ type PatientsRealtimeDaysConfigResponse struct {
 }
 
 type PatientRealtimeDaysResponse struct {
-	Id                string    `json:"id"`
-	FullName          string    `json:"fullName"`
-	BirthDate         time.Time `json:"birthDate"`
-	MRN               *string   `json:"mrn"`
-	RealtimeDays      int       `json:"realtimeDays"`
-	HasSufficientData bool      `json:"hasSufficientData"`
+	Id                string  `json:"id"`
+	FullName          string  `json:"fullName"`
+	BirthDate         string  `json:"birthDate"`
+	MRN               *string `json:"mrn"`
+	RealtimeDays      int     `json:"realtimeDays"`
+	HasSufficientData bool    `json:"hasSufficientData"`
 }
 
 type PatientRealtimeDaysFilter struct {
