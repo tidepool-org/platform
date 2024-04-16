@@ -49,18 +49,66 @@ var _ = Describe("back-37", func() {
 				Expect(revertSet).Should(HaveKeyWithValue("percent", float64(0.47857142857142865)))
 			})
 
+			It("cgm settings with blood glucose precsion updates", func() {
+				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.CGMSetting))
+
+				Expect(applySet).Should(HaveLen(4))
+				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "gyyB8OqbErdW2aOOo8POTXk1SNJmu5gDEIaCugTVn3M="}))
+				Expect(applySet).Should(HaveKeyWithValue("lowAlerts.level", 3.88552))
+				Expect(applySet).Should(HaveKeyWithValue("highAlerts.level", 22.20299))
+				Expect(applySet).Should(HaveKeyWithValue("rateOfChangeAlert", map[string]interface{}{
+					"fallRate": map[string]interface{}{
+						"rate":    -0.16652243973136602,
+						"enabled": false,
+					},
+					"riseRate": map[string]interface{}{
+						"rate":    0.16652243973136602,
+						"enabled": false,
+					},
+				}))
+
+				Expect(applyUnset).Should(HaveLen(2))
+				Expect(applyUnset).Should(HaveKey("rateOfChangeAlerts"))
+				Expect(applyUnset).Should(HaveKey("localTime"))
+
+				Expect(revertSet).Should(HaveLen(4))
+				Expect(revertSet).Should(HaveKeyWithValue("lowAlerts.level", 3.8855235937318735))
+				Expect(revertSet).Should(HaveKeyWithValue("highAlerts.level", 22.202991964182132))
+				Expect(revertSet).Should(HaveKeyWithValue("rateOfChangeAlerts", map[string]interface{}{
+					"fallRate": map[string]interface{}{
+						"rate":    -0.16652243973136602,
+						"enabled": false,
+					},
+					"riseRate": map[string]interface{}{
+						"rate":    0.16652243973136602,
+						"enabled": false,
+					},
+				}))
+
+				Expect(revertUnset).Should(HaveLen(2))
+				Expect(revertUnset).Should(HaveKey("_deduplicator"))
+				Expect(revertUnset).Should(HaveKey("rateOfChangeAlert"))
+			})
+
 			It("pump settings with blood glucose precsion updates", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.PumpSettingsTandem))
 
+				Expect(applySet).Should(HaveLen(6))
 				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "l5e6HoVqMu3ZOUjqaky/m6ZNw+D0UFxbYw/fM9P4PXc="}))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Simple.0.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Simple.1.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Standard.0.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("bgTargets.Standard.1.target", 5.55075))
 				Expect(applySet).Should(HaveKeyWithValue("units.bg", "mmol/L"))
+
+				Expect(applyUnset).Should(HaveLen(1))
 				Expect(applyUnset).Should(HaveKeyWithValue("localTime", ""))
+
+				Expect(revertUnset).Should(HaveLen(1))
 				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
+
+				Expect(revertSet).Should(HaveLen(6))
 				Expect(revertSet).Should(HaveKeyWithValue("localTime", "2017-11-05T12:56:51.000Z"))
 				Expect(revertSet).Should(HaveKeyWithValue("bgTargets.Simple.0.target", 5.550747991045533))
 				Expect(revertSet).Should(HaveKeyWithValue("bgTargets.Simple.1.target", 5.550747991045533))

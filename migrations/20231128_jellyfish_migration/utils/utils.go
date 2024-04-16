@@ -173,18 +173,20 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 	case cgm.Type:
 		units := fmt.Sprintf("%v", updatedObject["units"])
 		if units == glucose.MmolL || units == glucose.Mmoll {
-			if lowAlerts, ok := updatedObject["lowAlerts"].(bson.M); ok {
+			if lowAlerts, ok := updatedObject["lowAlerts"].(map[string]interface{}); ok {
 				if bgVal, ok := lowAlerts["level"].(float64); ok {
 					lowAlerts["level"] = getBGValuePrecision(bgVal)
 					updatedObject["lowAlerts"] = lowAlerts
 				}
 			}
-			if highAlerts, ok := updatedObject["highAlerts"].(bson.M); ok {
+			if highAlerts, ok := updatedObject["highAlerts"].(map[string]interface{}); ok {
 				if bgVal, ok := highAlerts["level"].(float64); ok {
 					highAlerts["level"] = getBGValuePrecision(bgVal)
 					updatedObject["highAlerts"] = highAlerts
 				}
 			}
+			// NOTE `rateOfChangeAlerts` not included as the fallRate.rate and riseRate.rate maintain orginal
+			// precicsion see platform/data/types/settings/cgm/rate_alert_DEPRECATED.go RateDEPRECATEDMmolLThree and RateDEPRECATEDMmolLTwo
 		}
 	case calculator.Type:
 
