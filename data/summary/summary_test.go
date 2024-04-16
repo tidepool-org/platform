@@ -318,8 +318,9 @@ var _ = Describe("Summary", func() {
 			datum := NewDatum(continuous.Type)
 
 			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
-			Expect(updatesSummary).To(HaveLen(1))
+			Expect(updatesSummary).To(HaveLen(2))
 			Expect(updatesSummary).To(HaveKey(types.SummaryTypeCGM))
+			Expect(updatesSummary).To(HaveKey(types.SummaryTypeContinuous))
 		})
 
 		It("with BGM summary affecting record", func() {
@@ -327,8 +328,9 @@ var _ = Describe("Summary", func() {
 			datum := NewDatum(selfmonitored.Type)
 
 			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
-			Expect(updatesSummary).To(HaveLen(1))
+			Expect(updatesSummary).To(HaveLen(2))
 			Expect(updatesSummary).To(HaveKey(types.SummaryTypeBGM))
+			Expect(updatesSummary).To(HaveKey(types.SummaryTypeContinuous))
 		})
 
 		It("with inactive BGM summary affecting record", func() {
