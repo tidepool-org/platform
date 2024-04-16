@@ -247,7 +247,7 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 	lgr := log.LoggerFromContext(ctx)
 
 	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
-		summarizer := GetSummarizer[*types.CGMStats, types.CGMStats](registry)
+		summarizer := GetSummarizer[*types.CGMStats](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set cgm summary outdated")
@@ -256,7 +256,7 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 	}
 
 	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
-		summarizer := GetSummarizer[*types.BGMStats, types.BGMStats](registry)
+		summarizer := GetSummarizer[*types.BGMStats](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set bgm summary outdated")
@@ -265,10 +265,10 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 	}
 
 	if _, ok := updatesSummary[types.SummaryTypeContinuous]; ok {
-		summarizer := GetSummarizer[*types.ContinuousStats, types.ContinuousStats](registry)
+		summarizer := GetSummarizer[*types.ContinuousStats](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
-			lgr.WithError(err).Error("Unable to set bgm summary outdated")
+			lgr.WithError(err).Error("Unable to set continuous summary outdated")
 		}
 		outdatedSinceMap[types.SummaryTypeContinuous] = outdatedSince
 	}
@@ -286,6 +286,9 @@ func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Dat
 		typ := datum.GetType()
 		if types.DeviceDataTypesSet.Contains(typ) && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
 			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+
+			// Currently, both types update continuous summaries, this may need to be a separate check in the future.
+			updatesSummary[types.SummaryTypeContinuous] = struct{}{}
 		}
 	}
 }

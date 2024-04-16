@@ -161,13 +161,10 @@ func (s *ContinuousStats) CalculateSummary() {
 
 func (s *ContinuousStats) CalculatePeriod(i int, totalStats *ContinuousBucketData) {
 	newPeriod := &ContinuousPeriod{
-		TotalRecords: pointer.FromAny(totalStats.TotalRecords),
-
+		TotalRecords:        pointer.FromAny(totalStats.TotalRecords),
 		AverageDailyRecords: pointer.FromAny(float64(totalStats.TotalRecords) / float64(i)),
-
-		RealtimeRecords: pointer.FromAny(totalStats.RealtimeRecords + totalStats.RealtimeRecords),
-
-		DeferredRecords: pointer.FromAny(totalStats.DeferredRecords + totalStats.DeferredRecords),
+		RealtimeRecords:     pointer.FromAny(totalStats.RealtimeRecords),
+		DeferredRecords:     pointer.FromAny(totalStats.DeferredRecords),
 	}
 
 	if totalStats.TotalRecords != 0 {
