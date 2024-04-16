@@ -56,6 +56,8 @@ var _ = Describe("back-37", func() {
 				Expect(applySet).Should(HaveKeyWithValue("_deduplicator", map[string]interface{}{"hash": "gyyB8OqbErdW2aOOo8POTXk1SNJmu5gDEIaCugTVn3M="}))
 				Expect(applySet).Should(HaveKeyWithValue("lowAlerts.level", 3.88552))
 				Expect(applySet).Should(HaveKeyWithValue("highAlerts.level", 22.20299))
+				// NOTE `rateOfChangeAlert` does not truncate the fallRate.rate and riseRate.rate
+				// see platform/data/types/settings/cgm/rate_alert_DEPRECATED.go RateDEPRECATEDMmolLThree and RateDEPRECATEDMmolLTwo
 				Expect(applySet).Should(HaveKeyWithValue("rateOfChangeAlert", map[string]interface{}{
 					"fallRate": map[string]interface{}{
 						"rate":    -0.16652243973136602,

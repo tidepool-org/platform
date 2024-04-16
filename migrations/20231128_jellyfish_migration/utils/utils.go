@@ -185,8 +185,6 @@ func (b *builder) applyBaseUpdates(incomingObject map[string]interface{}) (map[s
 					updatedObject["highAlerts"] = highAlerts
 				}
 			}
-			// NOTE `rateOfChangeAlerts` not included as the fallRate.rate and riseRate.rate maintain orginal
-			// precicsion see platform/data/types/settings/cgm/rate_alert_DEPRECATED.go RateDEPRECATEDMmolLThree and RateDEPRECATEDMmolLTwo
 		}
 	case calculator.Type:
 
