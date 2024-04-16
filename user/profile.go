@@ -35,9 +35,10 @@ type Custodian struct {
 }
 
 func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
-	return &LegacyUserProfile{
+	legacyProfile := &LegacyUserProfile{
 		FullName: up.FullName,
 		Patient: &PatientProfile{
+			FullName:       up.FullName,
 			Birthday:       up.Birthday,
 			DiagnosisDate:  up.DiagnosisDate,
 			TargetDevices:  up.TargetDevices,
@@ -45,17 +46,28 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			About:          up.About,
 		},
 	}
+	if up.Custodian != nil {
+		legacyProfile.FullName = up.Custodian.FullName
+	}
+	return legacyProfile
 }
 
 func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
-	return &UserProfile{
-		FullName:       p.FullName,
-		Birthday:       p.Patient.Birthday,
-		DiagnosisDate:  p.Patient.DiagnosisDate,
-		TargetDevices:  p.Patient.TargetDevices,
-		TargetTimezone: p.Patient.TargetTimezone,
-		About:          p.Patient.About,
+	up := &UserProfile{
+		FullName: p.FullName,
 	}
+	if p.Patient != nil {
+		up.FullName = p.Patient.FullName
+		up.Custodian = &Custodian{
+			FullName: p.FullName,
+		}
+		up.Birthday = p.Patient.Birthday
+		up.DiagnosisDate = p.Patient.DiagnosisDate
+		up.TargetDevices = p.Patient.TargetDevices
+		up.TargetTimezone = p.Patient.TargetTimezone
+		up.About = p.Patient.About
+	}
+	return up
 }
 
 type LegacyUserProfile struct {
@@ -65,6 +77,7 @@ type LegacyUserProfile struct {
 }
 
 type PatientProfile struct {
+	FullName       string   `json:"fullName"`
 	Birthday       Date     `json:"birthday"`
 	DiagnosisDate  Date     `json:"diagnosisDate"`
 	DiagnosisType  string   `json:"diagnosisType"`
@@ -79,6 +92,8 @@ type ClinicProfile struct {
 	Telephone string   `json:"telephone"`
 }
 
+// TODO: may or may not have the "profile_" prefix in the keycloak attribute name as it is somewhat redundant.
+
 func (up *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
@@ -87,6 +102,9 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 	if up.Custodian != nil && up.Custodian.FullName != "" {
 		addAttribute(attributes, "profile_custodian_full_name", up.Custodian.FullName)
+		// The "profile_has_custodian" attribute is only added so that filtering on users is simpler via the keycloak API - because
+		// there is a way to filter by custom attribute values but not by the presence of one.
+		addAttribute(attributes, "profile_has_custodian", "true")
 	}
 	if string(up.Birthday) != "" {
 		addAttribute(attributes, "profile_birthday", string(up.Birthday))
