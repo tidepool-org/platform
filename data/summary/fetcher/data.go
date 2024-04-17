@@ -36,8 +36,8 @@ func (d *DefaultCursor) RemainingBatchLength() int {
 }
 
 func (d *DefaultCursor) Next(ctx context.Context) bool {
-	d.isExhausted = d.c.Next(ctx)
-	return d.isExhausted
+	d.isExhausted = !d.c.Next(ctx)
+	return !d.isExhausted
 }
 
 func (d *DefaultCursor) Close(ctx context.Context) error {

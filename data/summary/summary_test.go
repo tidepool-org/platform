@@ -690,7 +690,7 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with realtime data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
-			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
 			err = dataStore.CreateDataSet(ctx, uploadRecord)
@@ -714,7 +714,7 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with deferred data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
-			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
+			deferredDatumTime := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -2)
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
 			err = dataStore.CreateDataSet(ctx, uploadRecord)
@@ -738,7 +738,7 @@ var _ = Describe("Summary", func() {
 
 		It("summary calc with non-continuous data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
-			deferredDatumTime := time.Now().UTC().Truncate(time.Hour).AddDate(0, 0, -2)
+			deferredDatumTime := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -2)
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeNormal)
 			err = dataStore.CreateDataSet(ctx, uploadRecord)
@@ -756,6 +756,53 @@ var _ = Describe("Summary", func() {
 			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
 			Expect(userSummary.Dates.LastData).To(BeNil())
 			Expect(userSummary.Stats).To(BeNil())
+		})
+
+		It("continuous summary calc with >batch of realtime data", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 200, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(200))
+		})
+
+		It("bgm summary calc with >batch of data", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("smbg", userId, datumTime, 350, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(350))
+		})
+
+		It("cgm summary calc with >batch of data", func() {
+			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("cbg", userId, datumTime, 350, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(350))
 		})
 	})
 

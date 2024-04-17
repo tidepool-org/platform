@@ -61,8 +61,8 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 }
 
 func (c *ContinuousDeviceDataCursor) Next(ctx context.Context) bool {
-	c.isExhausted = c.DeviceDataCursor.Next(ctx)
-	return c.isExhausted
+	c.isExhausted = !c.DeviceDataCursor.Next(ctx)
+	return !c.isExhausted
 }
 
 func (c *ContinuousDeviceDataCursor) isUploadContinuous(ctx context.Context, uploadId *string) (bool, error) {
