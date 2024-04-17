@@ -81,8 +81,8 @@ var _ = Describe("V1", func() {
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/blobs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/users/:userId/blobs")})),
-					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/device-logs")})),
-					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/device-logs")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodPost), "PathExp": Equal("/v1/users/:userId/device_logs")})),
+					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/users/:userId/device_logs")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodGet), "PathExp": Equal("/v1/blobs/:id/content")})),
 					PointTo(MatchFields(IgnoreExtras, Fields{"HttpMethod": Equal(http.MethodDelete), "PathExp": Equal("/v1/blobs/:id")})),
@@ -326,7 +326,7 @@ var _ = Describe("V1", func() {
 				Context("ListDeviceLogs", func() {
 					BeforeEach(func() {
 						req.Method = http.MethodGet
-						req.URL.Path = fmt.Sprintf("/v1/users/%s/device-logs", userID)
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", userID)
 					})
 
 					It("panics when the response is missing", func() {
@@ -593,7 +593,7 @@ var _ = Describe("V1", func() {
 				Context("CreateDeviceLogs", func() {
 					BeforeEach(func() {
 						req.Method = http.MethodPost
-						req.URL.Path = fmt.Sprintf("/v1/users/%s/device-logs", userID)
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", userID)
 					})
 
 					It("panics when the response is missing", func() {
@@ -615,7 +615,7 @@ var _ = Describe("V1", func() {
 
 						When("the path does not contain a user id", func() {
 							BeforeEach(func() {
-								req.URL.Path = "/v1/users//device-logs"
+								req.URL.Path = "/v1/users//device_logs"
 							})
 
 							It("responds with bad request and expected error in body", func() {
@@ -628,7 +628,7 @@ var _ = Describe("V1", func() {
 
 						When("the path contains an invalid user id", func() {
 							BeforeEach(func() {
-								req.URL.Path = "/v1/users/invalid/device-logs"
+								req.URL.Path = "/v1/users/invalid/device_logs"
 							})
 
 							It("responds with bad request and expected error in body", func() {
