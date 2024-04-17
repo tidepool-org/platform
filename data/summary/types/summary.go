@@ -51,6 +51,8 @@ var DeviceDataToSummaryTypes = map[string]string{
 	selfmonitored.Type: SummaryTypeBGM,
 }
 
+var AllSummaryTypes = []string{SummaryTypeCGM, SummaryTypeBGM, SummaryTypeContinuous}
+
 type OutdatedSummariesResponse struct {
 	UserIds []string  `json:"userIds"`
 	Start   time.Time `json:"start"`

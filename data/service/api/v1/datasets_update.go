@@ -96,8 +96,8 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 
 		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
 		updatesSummary := make(map[string]struct{})
-		for _, typ := range types.DeviceDataTypes {
-			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+		for _, typ := range types.AllSummaryTypes {
+			updatesSummary[typ] = struct{}{}
 		}
 
 		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
