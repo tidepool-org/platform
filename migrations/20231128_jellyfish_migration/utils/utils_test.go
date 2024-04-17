@@ -39,7 +39,7 @@ var _ = Describe("back-37", func() {
 
 		var _ = Describe("ProcessDatum", func() {
 
-			It("basal with unwanted percent feild", func() {
+			It("basal with unwanted percent field", func() {
 
 				applySet, applyUnset, revertUnset, revertSet := setup(getBSONData(test.AutomatedBasalTandem))
 
@@ -47,6 +47,14 @@ var _ = Describe("back-37", func() {
 				Expect(applyUnset).Should(HaveKeyWithValue("percent", ""))
 				Expect(revertUnset).Should(HaveKeyWithValue("_deduplicator", ""))
 				Expect(revertSet).Should(HaveKeyWithValue("percent", float64(0.47857142857142865)))
+			})
+
+			It("bolus out of range expection", func() {
+				bsonObj := getBSONData(test.AutomatedBolus)
+				datumType := fmt.Sprintf("%v", bsonObj["type"])
+				datumID := fmt.Sprintf("%v", bsonObj["_id"])
+				_, _, err := utils.ProcessDatum(datumID, datumType, bsonObj)
+				Expect(err).To(BeNil())
 			})
 
 			It("cgm settings with blood glucose precsion updates", func() {

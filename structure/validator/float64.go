@@ -1,6 +1,8 @@
 package validator
 
 import (
+	"math"
+
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -85,9 +87,17 @@ func (f *Float64) GreaterThanOrEqualTo(limit float64) structure.Float64 {
 	return f
 }
 
+func toFixed(num float64, precision int) float64 {
+	var round = func(num float64) int {
+		return int(num + math.Copysign(0.5, num))
+	}
+	output := math.Pow(10, float64(precision))
+	return float64(round(num*output)) / output
+}
+
 func (f *Float64) InRange(lowerLimit float64, upperLimit float64) structure.Float64 {
 	if f.value != nil {
-		if *f.value < lowerLimit || *f.value > upperLimit {
+		if *f.value < toFixed(lowerLimit, 1) || *f.value > upperLimit {
 			f.base.ReportError(ErrorValueNotInRange(*f.value, lowerLimit, upperLimit))
 		}
 	}
