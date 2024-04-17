@@ -55,7 +55,7 @@ var _ = Describe("Continuous Summary", func() {
 
 	BeforeEach(func() {
 		userId = userTest.RandomID()
-		datumTime = time.Now().UTC().Truncate(time.Hour)
+		datumTime = time.Now().UTC().Truncate(24 * time.Hour)
 	})
 
 	Context("Create Summary", func() {

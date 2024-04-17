@@ -802,7 +802,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("realtime reporter run with mix of users", func() {
-			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
 			userIdTwo := userTest.RandomID()
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
@@ -835,7 +835,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("run with a user that doesnt have a summary at all", func() {
-			realtimeDatumTime := time.Now().UTC().Truncate(time.Hour)
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
 			userIdTwo := userTest.RandomID()
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
