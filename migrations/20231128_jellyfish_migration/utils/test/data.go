@@ -177,14 +177,6 @@ func tandemPumpSettingsWithSleepScheduleDatum(datum map[string]interface{}) map[
 	return datum
 }
 
-func automatedBolusRange(datum map[string]interface{}) map[string]interface{} {
-	datum["type"] = "bolus"
-	datum["subType"] = "automated"
-	datum["normal"] = 2.51753
-	datum["expectedNormal"] = 2.51752
-	return datum
-}
-
 func carelinkPumpSettings(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "standard"
@@ -405,13 +397,13 @@ var PumpSettingsCarelink = carelinkPumpSettings(base("MiniMed 530G - 751-=-11111
 var PumpSettingsOmnipod = omnipodPumpSettingsDatum(base("InsOmn-837268"))
 var PumpSettingsOmnipodBGTargetCorrect = omnipodPumpSettingsDatumTargetSet(base("InsOmn-837268"))
 var AutomatedBasalTandem = tandemAutomatedBasalDatum(base("tandemCIQ1111111111111"))
-var AutomatedBolus = automatedBolusRange(base("tandemCIQ1111111111111"))
 var WizardTandem = tandemWizardDatum(base("tandemCIQ1111111111111"))
 var ReservoirChangeWithStatus = reservoirChangeDeviceEventDatum(base("InsOmn-1111111111111"))
 var AlarmDeviceEventDatum = alarmDeviceEventDatum(base("tandemCIQ100000000000"))
 var CGMSetting = cgmSettingsDatum(base("DexG5MobRec-1111111111111"))
 var EmptyPayloadDatum = emptyPayload(base("Dex-device"))
 var PumpSettingsWithBolusDatum = pumpSettingsWithBolus(base("tandem99999999"))
+var DatumBaseFunc = base
 
 func BulkJellyfishData(deviceID string, groupID string, userID string, requiredRecords int) []map[string]interface{} {
 	data := []map[string]interface{}{}

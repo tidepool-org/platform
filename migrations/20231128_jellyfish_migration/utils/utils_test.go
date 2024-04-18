@@ -49,12 +49,20 @@ var _ = Describe("back-37", func() {
 				Expect(revertSet).Should(HaveKeyWithValue("percent", float64(0.47857142857142865)))
 			})
 
-			It("bolus out of range expection", func() {
-				bsonObj := getBSONData(test.AutomatedBolus)
+			It("bolus range validation ralxed for very precise values", func() {
+				datum := test.DatumBaseFunc("my-test-device-id")
+				datum["type"] = "bolus"
+				datum["subType"] = "automated"
+				datum["normal"] = 2.51753
+				datum["expectedNormal"] = 2.51752
+
+				bsonObj := getBSONData(datum)
 				datumType := fmt.Sprintf("%v", bsonObj["type"])
 				datumID := fmt.Sprintf("%v", bsonObj["_id"])
-				_, _, err := utils.ProcessDatum(datumID, datumType, bsonObj)
+				apply, revert, err := utils.ProcessDatum(datumID, datumType, bsonObj)
 				Expect(err).To(BeNil())
+				Expect(apply).ToNot(BeNil())
+				Expect(revert).ToNot(BeNil())
 			})
 
 			It("cgm settings with blood glucose precsion updates", func() {
