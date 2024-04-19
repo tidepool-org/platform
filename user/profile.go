@@ -38,7 +38,6 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	legacyProfile := &LegacyUserProfile{
 		FullName: up.FullName,
 		Patient: &PatientProfile{
-			FullName:       up.FullName,
 			Birthday:       up.Birthday,
 			DiagnosisDate:  up.DiagnosisDate,
 			TargetDevices:  up.TargetDevices,
@@ -46,8 +45,10 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			About:          up.About,
 		},
 	}
+	// only custodiaL fake child accounts have Patient.FullName set
 	if up.Custodian != nil {
 		legacyProfile.FullName = up.Custodian.FullName
+		legacyProfile.Patient.FullName = up.FullName
 	}
 	return legacyProfile
 }
@@ -58,8 +59,12 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 	}
 	if p.Patient != nil {
 		up.FullName = p.Patient.FullName
-		up.Custodian = &Custodian{
-			FullName: p.FullName,
+		// Only users with isOtherPerson set has a patient.fullName field set so
+		// they have a custodian.
+		if p.Patient.FullName != "" {
+			up.Custodian = &Custodian{
+				FullName: p.FullName,
+			}
 		}
 		up.Birthday = p.Patient.Birthday
 		up.DiagnosisDate = p.Patient.DiagnosisDate
@@ -70,6 +75,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 	return up
 }
 
+// LegacyUserProfile represents the old seagull format for a profile.
 type LegacyUserProfile struct {
 	FullName string          `json:"fullName"`
 	Patient  *PatientProfile `json:"patient,omitempty"`
@@ -77,7 +83,7 @@ type LegacyUserProfile struct {
 }
 
 type PatientProfile struct {
-	FullName       string   `json:"fullName"`
+	FullName       string   `json:"fullName,omitempty"` // This is only non-empty if the user is also a fake child (has the patient.isOtherPerson field set)
 	Birthday       Date     `json:"birthday"`
 	DiagnosisDate  Date     `json:"diagnosisDate"`
 	DiagnosisType  string   `json:"diagnosisType"`
