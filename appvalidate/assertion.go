@@ -29,8 +29,14 @@ type AssertionUpdate struct {
 	AssertionCounter uint32    `bson:"assertionCounter,omitempty"`
 }
 
+type AssertionResponse struct {
+	Data any `json:"data"`
+}
+
 type AssertionClientData struct {
-	Challenge string `json:"challenge"`
+	Challenge   string          `json:"challenge"`
+	Partner     string          `json:"partner"`     // Which partner are we requesting a secret from - currently only one supported
+	PartnerData json.RawMessage `json:"partnerData"` // Data to send to partner - This is a RawMessage because it is partner specific. The validation of this is delayed until later.
 }
 
 func NewAssertionVerify(userID string) *AssertionVerify {
@@ -42,6 +48,7 @@ func NewAssertionVerify(userID string) *AssertionVerify {
 func (av *AssertionVerify) Validate(v structure.Validator) {
 	v.String("assertion", &av.Assertion).NotEmpty().Matches(base64Chars)
 	v.String("clientData.challenge", &av.ClientData.Challenge).NotEmpty()
+	v.String("clientData.partner", &av.ClientData.Partner).OneOf(partners...)
 
 	v.String("userId", &av.UserID).NotEmpty()
 	v.String("keyId", &av.KeyID).NotEmpty()

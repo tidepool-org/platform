@@ -150,14 +150,16 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	var vErr error
 	var pubKey []byte
 	var receipt []byte
+	var foundValidAppID bool
 	for _, appleAppID := range v.appleAppIDs {
 		pubKey, receipt, vErr = attestation.Verify(appleAppID, v.isProduction)
 		// Stop at first working Apple App Id
 		if vErr == nil {
+			foundValidAppID = true
 			break
 		}
 	}
-	if vErr != nil {
+	if vErr != nil && !foundValidAppID {
 		return errors.Wrap(ErrAttestationVerificationFailed, vErr.Error())
 	}
 

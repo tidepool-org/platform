@@ -93,6 +93,10 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	return output
 }
 
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return nil
+}
+
 func (s *Service) Expectations() {
 	s.Service.Expectations()
 	s.AuthStoreImpl.Expectations()
