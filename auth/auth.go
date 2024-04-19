@@ -14,6 +14,8 @@ const (
 )
 
 //go:generate mockgen --build_flags=--mod=mod -source=./auth.go -destination=./test/mock.go -package test -aux_files=github.com/tidepool-org/platform/auth=provider_session.go,github.com/tidepool-org/platform/auth=restricted_token.go Client
+//go:generate mockgen -build_flags=--mod=mod -destination=./auth_client_mock.go -package=auth -mock_names Client=MockAuthClient github.com/tidepool-org/platform/auth Client
+
 type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor

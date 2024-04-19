@@ -1,9 +1,11 @@
 package mongo
 
 import (
+	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
+
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -33,6 +35,11 @@ func (s *Store) EnsureIndexes() error {
 		return err
 	}
 
+	appValidateRepository := s.restrictedAppValidateRepository()
+	if err := appValidateRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
 	restrictedTokenRepository := s.restrictedTokenRepository()
 	return restrictedTokenRepository.EnsureIndexes()
 }
@@ -47,6 +54,10 @@ func (s *Store) NewRestrictedTokenRepository() store.RestrictedTokenRepository {
 
 func (s *Store) NewDeviceTokenRepository() store.DeviceTokenRepository {
 	return s.deviceTokenRepository()
+}
+
+func (s *Store) NewAppValidateRepository() appvalidate.Repository {
+	return s.restrictedAppValidateRepository()
 }
 
 func (s *Store) providerSessionRepository() *ProviderSessionRepository {
@@ -64,4 +75,10 @@ func (s *Store) restrictedTokenRepository() *RestrictedTokenRepository {
 func (s *Store) deviceTokenRepository() devicetokens.Repository {
 	r := deviceTokenRepo(*s.Store.GetRepository("deviceTokens"))
 	return &r
+}
+
+func (s *Store) restrictedAppValidateRepository() *AppValidateRepository {
+	return &AppValidateRepository{
+		s.Store.GetRepository("app_validations"),
+	}
 }
