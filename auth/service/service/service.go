@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	stdErrors "errors"
 	"net/http"
 	"time"
 
@@ -55,6 +56,9 @@ type Service struct {
 	userEventsHandler  events.Runner
 	deviceCheck        apple.DeviceCheck
 	appValidator       *appvalidate.Validator
+	partnerSecrets     *appvalidate.PartnerSecrets
+	coastalSecrets     *appvalidate.CoastalSecrets
+	palmTreeSecrets    *appvalidate.PalmTreeSecrets
 }
 
 func New() *Service {
@@ -110,6 +114,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAppValidate(); err != nil {
 		return err
 	}
+	if err := s.initializePartnerSecrets(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -159,6 +166,10 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 
 func (s *Service) AppValidator() *appvalidate.Validator {
 	return s.appValidator
+}
+
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return s.partnerSecrets
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -443,10 +454,12 @@ func (s *Service) initializeDeviceCheck() error {
 }
 
 func (s *Service) initializeAppValidate() error {
+	s.Logger().Debug("Initializing app validate")
 	cfg, err := appvalidate.NewValidatorConfig()
 	if err != nil {
 		return err
 	}
+	s.Logger().Infof("Initialized AppValidate with: %#v", *cfg)
 	authStore := s.AuthStore()
 	if authStore == nil {
 		return errors.New("auth store should be initialized before app validate")
@@ -456,6 +469,20 @@ func (s *Service) initializeAppValidate() error {
 		return err
 	}
 	s.appValidator = validator
+	return nil
+}
+
+func (s *Service) initializePartnerSecrets() error {
+	s.Logger().Debug("Initializing partner secrets")
+	var err error
+	s.partnerSecrets, err = appvalidate.NewPartnerSecrets()
+	// Allow system to not fail if there are no credentials loaded.
+	if err != nil {
+		s.Logger().Warnf("error initializing partner secrets: %v", err)
+	}
+	if err != nil && !stdErrors.Is(err, appvalidate.ErrInvalidPartnerCredentials) {
+		return err
+	}
 	return nil
 }
 
