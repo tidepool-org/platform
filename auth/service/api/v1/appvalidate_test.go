@@ -1,6 +1,5 @@
 package v1_test
 
-/*
 import (
 	"bytes"
 	"context"
@@ -34,16 +33,12 @@ import (
 var _ = Describe("App Validation", func() {
 	defer GinkgoRecover()
 
-	// Note the setup is outside a BeforeEach because this would simulate
-	// multiple calls to a single http.Handler which is more representative
-	// of actual use as opposed to creating an http.Handler for every request.
-	ctrl := gomock.NewController(GinkgoT())
-
-	service := v1.NewMockAuthService(ctrl)
-	service.EXPECT().
-		Logger().
-		Return(logTest.NewLogger()).
-		AnyTimes()
+	var ctrl *gomock.Controller
+	var service *v1.MockAuthService
+	var repo *appvalidate.MockRepository
+	var generator *appvalidate.MockChallengeGenerator
+	var authClient *auth.MockAuthClient
+	var handler http.Handler
 
 	challenge := "challenge"
 	serverSessionToken := "serverToken"
@@ -100,62 +95,71 @@ var _ = Describe("App Validation", func() {
 		}
 		initialValidations[i] = validation
 	}
-	repo := newRepository(ctrl, initialValidations)
-	generator := appvalidate.NewMockChallengeGenerator(ctrl)
-	generator.EXPECT().
-		GenerateChallenge(gomock.Any()).
-		Return(challenge, nil).
-		AnyTimes()
-	validator, err := appvalidate.NewValidator(repo, generator, appvalidate.ValidatorConfig{
-		AppleAppIDs:   []string{"org.tidepool.app"},
-		ChallengeSize: 10,
-	})
-	Expect(err).ToNot(HaveOccurred())
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		service = v1.NewMockAuthService(ctrl)
+		repo = newRepository(ctrl, initialValidations)
+		generator = appvalidate.NewMockChallengeGenerator(ctrl)
+		authClient = auth.NewMockAuthClient(ctrl)
 
-	service.EXPECT().
-		AppValidator().
-		Return(validator).
-		AnyTimes()
-
-	authClient := auth.NewMockAuthClient(ctrl)
-	authClient.EXPECT().
-		ServerSessionToken().
-		Return(serverSessionToken, nil).
-		AnyTimes()
-	authClient.EXPECT().
-		ValidateSessionToken(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, token string) (request.AuthDetails, error) {
-			for _, user := range users {
-				if token == user.SessionToken {
-					return user.Details, nil
-				}
-			}
-			return nil, request.ErrorUnauthorized()
-		}).
-		AnyTimes()
-
-	api := rest.NewApi()
-	api.Use(rest.DefaultDevStack...)
-
-	router, err := v1.NewRouter(service)
-	Expect(err).ToNot(HaveOccurred())
-
-	authMiddleware, err := middleware.NewAuthenticator("secret", authClient)
-	Expect(err).ToNot(HaveOccurred())
-
-	// Use a subset of the middlewares used in the actual
-	// API.InitializeMiddleware - just auth is really needed for testing.
-	middlewares := []rest.Middleware{
-		authMiddleware,
-	}
-	api.Use(middlewares...)
-
-	app, err := rest.MakeRouter(router.Routes()...)
-	if err != nil {
+		service.EXPECT().
+			Logger().
+			Return(logTest.NewLogger()).
+			AnyTimes()
+		generator.EXPECT().
+			GenerateChallenge(gomock.Any()).
+			Return(challenge, nil).
+			AnyTimes()
+		validator, err := appvalidate.NewValidator(repo, generator, appvalidate.ValidatorConfig{
+			AppleAppIDs:   []string{"org.tidepool.app"},
+			ChallengeSize: 10,
+		})
 		Expect(err).ToNot(HaveOccurred())
-	}
-	api.SetApp(app)
-	handler := api.MakeHandler()
+
+		service.EXPECT().
+			AppValidator().
+			Return(validator).
+			AnyTimes()
+
+		authClient.EXPECT().
+			ServerSessionToken().
+			Return(serverSessionToken, nil).
+			AnyTimes()
+		authClient.EXPECT().
+			ValidateSessionToken(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, token string) (request.AuthDetails, error) {
+				for _, user := range users {
+					if token == user.SessionToken {
+						return user.Details, nil
+					}
+				}
+				return nil, request.ErrorUnauthorized()
+			}).
+			AnyTimes()
+
+		api := rest.NewApi()
+		api.Use(rest.DefaultDevStack...)
+
+		router, err := v1.NewRouter(service)
+		Expect(err).ToNot(HaveOccurred())
+
+		authMiddleware, err := middleware.NewAuthenticator("secret", authClient)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Use a subset of the middlewares used in the actual
+		// API.InitializeMiddleware - just auth is really needed for testing.
+		middlewares := []rest.Middleware{
+			authMiddleware,
+		}
+		api.Use(middlewares...)
+
+		app, err := rest.MakeRouter(router.Routes()...)
+		if err != nil {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		api.SetApp(app)
+		handler = api.MakeHandler()
+	})
 
 	Describe("POST /v1/attestations/challenges", func() {
 		It("succeeds with correct input", func() {
@@ -479,4 +483,3 @@ func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.App
 
 	return repo
 }
-*/
