@@ -62,7 +62,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 
-	if err := envconfig.Process("", s.cfg); err != nil {
+	if err := envconfig.Process("", &s.cfg); err != nil {
 		return err
 	}
 
