@@ -49,6 +49,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	if up.Custodian != nil {
 		legacyProfile.FullName = up.Custodian.FullName
 		legacyProfile.Patient.FullName = up.FullName
+		legacyProfile.Patient.IsOtherPerson = true
 	}
 	return legacyProfile
 }
@@ -61,9 +62,12 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.FullName = p.Patient.FullName
 		// Only users with isOtherPerson set has a patient.fullName field set so
 		// they have a custodian.
-		if p.Patient.FullName != "" {
+		if p.Patient.FullName != "" || p.Patient.IsOtherPerson {
 			up.Custodian = &Custodian{
 				FullName: p.FullName,
+			}
+			if up.Custodian.FullName == "" {
+				up.Custodian.FullName = p.FullName
 			}
 		}
 		up.Birthday = p.Patient.Birthday
@@ -90,6 +94,7 @@ type PatientProfile struct {
 	TargetDevices  []string `json:"targetDevices"`
 	TargetTimezone string   `json:"targetTimezone"`
 	About          string   `json:"about"`
+	IsOtherPerson  bool     `json:"isOtherPerson,omitempty"`
 }
 
 type ClinicProfile struct {
@@ -98,35 +103,33 @@ type ClinicProfile struct {
 	Telephone string   `json:"telephone"`
 }
 
-// TODO: may or may not have the "profile_" prefix in the keycloak attribute name as it is somewhat redundant.
-
 func (up *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
 	if up.FullName != "" {
-		addAttribute(attributes, "profile_full_name", up.FullName)
+		addAttribute(attributes, "full_name", up.FullName)
 	}
 	if up.Custodian != nil && up.Custodian.FullName != "" {
-		addAttribute(attributes, "profile_custodian_full_name", up.Custodian.FullName)
-		// The "profile_has_custodian" attribute is only added so that filtering on users is simpler via the keycloak API - because
+		addAttribute(attributes, "custodian_full_name", up.Custodian.FullName)
+		// The "has_custodian" attribute is only added so that filtering on users is simpler via the keycloak API - because
 		// there is a way to filter by custom attribute values but not by the presence of one.
-		addAttribute(attributes, "profile_has_custodian", "true")
+		addAttribute(attributes, "has_custodian", "true")
 	}
 	if string(up.Birthday) != "" {
-		addAttribute(attributes, "profile_birthday", string(up.Birthday))
+		addAttribute(attributes, "birthday", string(up.Birthday))
 	}
 	if string(up.DiagnosisDate) != "" {
-		addAttribute(attributes, "profile_diagnosis_date", string(up.DiagnosisDate))
+		addAttribute(attributes, "diagnosis_date", string(up.DiagnosisDate))
 	}
 	if up.DiagnosisType != "" {
-		addAttribute(attributes, "profile_diagnosis_type", up.DiagnosisType)
+		addAttribute(attributes, "diagnosis_type", up.DiagnosisType)
 	}
-	addAttributes(attributes, "profile_target_devices", up.TargetDevices...)
+	addAttributes(attributes, "target_devices", up.TargetDevices...)
 	if up.TargetTimezone != "" {
-		addAttribute(attributes, "profile_target_timezone", up.TargetTimezone)
+		addAttribute(attributes, "target_timezone", up.TargetTimezone)
 	}
 	if up.About != "" {
-		addAttribute(attributes, "profile_about", up.About)
+		addAttribute(attributes, "about", up.About)
 	}
 
 	return attributes
@@ -134,37 +137,37 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 
 func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
 	up := &UserProfile{}
-	if val := getAttribute(attributes, "profile_full_name"); val != "" {
+	if val := getAttribute(attributes, "full_name"); val != "" {
 		up.FullName = val
 		ok = true
 	}
-	if val := getAttribute(attributes, "profile_custodian_full_name"); val != "" {
+	if val := getAttribute(attributes, "custodian_full_name"); val != "" {
 		up.Custodian = &Custodian{
 			FullName: val,
 		}
 		ok = true
 	}
-	if val := getAttribute(attributes, "profile_birthday"); val != "" {
+	if val := getAttribute(attributes, "birthday"); val != "" {
 		up.Birthday = Date(val)
 		ok = true
 	}
-	if val := getAttribute(attributes, "profile_diagnosis_date"); val != "" {
+	if val := getAttribute(attributes, "diagnosis_date"); val != "" {
 		up.DiagnosisDate = Date(val)
 		ok = true
 	}
-	if val := getAttribute(attributes, "profile_diagnosis_type"); val != "" {
+	if val := getAttribute(attributes, "diagnosis_type"); val != "" {
 		up.DiagnosisType = val
 		ok = true
 	}
-	if vals := getAttributes(attributes, "profile_target_devices"); len(vals) > 0 {
+	if vals := getAttributes(attributes, "target_devices"); len(vals) > 0 {
 		up.TargetDevices = vals
 		ok = true
 	}
-	if val := getAttribute(attributes, "profile_target_timezone"); val != "" {
+	if val := getAttribute(attributes, "target_timezone"); val != "" {
 		up.TargetTimezone = val
 		ok = true
 	}
-	if val := getAttribute(attributes, "profile_about"); val != "" {
+	if val := getAttribute(attributes, "about"); val != "" {
 		up.About = val
 		ok = true
 	}
