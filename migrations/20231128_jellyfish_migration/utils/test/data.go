@@ -389,6 +389,28 @@ func pumpSettingsWithBolus(datum map[string]interface{}) map[string]interface{} 
 	return datum
 }
 
+// payload as a string rather than object or array
+func cbgDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "cbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 3.8855235937318735
+	return datum
+}
+
+func smbgDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "smbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 22.202991964182132
+	return datum
+}
+
+func bloodKetoneDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "bloodKetone"
+	datum["units"] = "mmol/L"
+	datum["value"] = 7.2159723883591935
+	return datum
+}
+
 var CBGDexcomG5StringPayloadDatum = dexG5MobDatumStringPayload(base("DexG5Mob_iPhone"))
 var CBGDexcomG5StringAnnotationsDatum = dexG5MobDatumStringAnnotations(base("DexG5Mob_iPhone"))
 var PumpSettingsTandem = tandemPumpSettingsDatum(base("tandem99999999"))
@@ -403,6 +425,10 @@ var AlarmDeviceEventDatum = alarmDeviceEventDatum(base("tandemCIQ100000000000"))
 var CGMSetting = cgmSettingsDatum(base("DexG5MobRec-1111111111111"))
 var EmptyPayloadDatum = emptyPayload(base("Dex-device"))
 var PumpSettingsWithBolusDatum = pumpSettingsWithBolus(base("tandem99999999"))
+
+var SMBGValueDatum = smbgDatum(base("smbg-device-123"))
+var CBGValueDatum = cbgDatum(base("cbg-device-987"))
+var BloodKetoneValueDatum = bloodKetoneDatum(base("blood-ketone-device-456"))
 
 func BulkJellyfishData(deviceID string, groupID string, userID string, requiredRecords int) []map[string]interface{} {
 	data := []map[string]interface{}{}
