@@ -111,8 +111,9 @@ var _ = Describe("back-37", func() {
 			stats := migration.GetStats()
 			Expect(stats.Errored).To(Equal(0))
 			Expect(stats.Fetched).To(Equal(datumCount))
-			// TODO more than 2000 changes
-			// Expect(stats.Applied).To(Equal(datumCount * 2))
+			// There are 'at least' 2000 changes applied but we don't know the exact amount
+			// as it varies depending which types are included in the original data
+			Expect(stats.Applied > datumCount*2).To(BeTrue())
 
 			cur, err := collection.Find(ctx, bson.D{})
 			Expect(err).To(BeNil())
