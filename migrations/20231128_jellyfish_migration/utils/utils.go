@@ -383,38 +383,6 @@ func (b *builder) datumChanges(storedObj map[string]interface{}) ([]bson.M, []bs
 		"uploadId",
 		"deduplicator",
 		"time",
-
-		//ignore common
-		"payload",
-		"annotations",
-
-		//ignore extra fields
-		"localTime",
-
-		//cgmSettings:
-		// normalisation changes
-		"rateOfChangeAlert",
-		"rateOfChangeAlerts",
-		// bg precision changes
-		"lowAlerts",
-		"highAlerts",
-
-		//pumpSettings:
-		// bg precision changes
-		"bgTargetPhysicalActivity",
-		"bgTargetPreprandial",
-		"bgTarget",
-		"bgTargets",
-		"units",
-
-		//wizard:
-		// bg precision changes
-		"bgInput",
-		// extra fields
-		"duration",
-		"rate",
-		"recommended",
-		"percent",
 	}
 
 	for _, key := range notRequired {
