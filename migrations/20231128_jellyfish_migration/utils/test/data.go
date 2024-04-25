@@ -18,7 +18,6 @@ func base(deviceID string) map[string]interface{} {
 		"deviceId":    deviceID,
 		"deviceTime":  "2017-11-05T12:56:51",
 		"id":          "3f0075ad57ad603c83dc1e1a76aefcaf",
-		"localTime":   "2017-11-05T12:56:51.000Z",
 		"_userId":     "8da6e693b8",
 		"_groupId":    "87df73fd41",
 		"createdTime": "2022-06-21T22:40:07.732+00:00",
@@ -36,7 +35,6 @@ func baseWithTime(deviceID string, groupID string, userID string, t time.Time) m
 		"deviceId":    deviceID,
 		"deviceTime":  t.Format("2006-01-02T15:04:05"),
 		"id":          "3f0075ad57ad603c83dc1e1a76aefcaf",
-		"localTime":   t.Format("2006-01-02T15:04:05.999Z"),
 		"_userId":     userID,
 		"_groupId":    groupID,
 		"createdTime": now.Format("2006-01-02T15:04:05.999+07:00"),
@@ -67,7 +65,7 @@ func dexG5MobDatumStringAnnotations(datum map[string]interface{}) map[string]int
 func tandemPumpSettingsDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "Simple"
-	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
+	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mmol/l"}
 	datum["basalSchedules"] = map[string]interface{}{
 		"Simple": []map[string]interface{}{
 			{"rate": 0.5, "start": 0},
@@ -96,17 +94,6 @@ func tandemPumpSettingsDatum(datum map[string]interface{}) map[string]interface{
 		"Standard": []map[string]interface{}{
 			{"amount": 2.7753739955227665, "start": 0},
 			{"amount": 2.7753739955227665, "start": 46800000},
-		},
-	}
-
-	datum["bgTargets"] = map[string]interface{}{
-		"Simple": []map[string]interface{}{
-			{"target": 5.550747991045533, "start": 0},
-			{"target": 5.550747991045533, "start": 46800000},
-		},
-		"Standard": []map[string]interface{}{
-			{"target": 5.550747991045533, "start": 0},
-			{"target": 5.550747991045533, "start": 46800000},
 		},
 	}
 
@@ -120,7 +107,7 @@ func tandemPumpSettingsDatum(datum map[string]interface{}) map[string]interface{
 func tandemPumpSettingsWithSleepScheduleDatum(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "Simple"
-	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
+	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mmol/L"}
 	datum["basalSchedules"] = map[string]interface{}{
 		"Simple": []map[string]interface{}{
 			{"rate": 0.5, "start": 0},
@@ -167,8 +154,6 @@ func tandemPumpSettingsWithSleepScheduleDatum(datum map[string]interface{}) map[
 		"logIndices": []interface{}{0},
 	}
 
-	//## TODO test for [pumpSettings] sleepSchedules []interface {}{map[string]interface {}{"days":[]interface {}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, "enabled":true, "end":25200, "start":82800}, map[string]interface {}{"days":[]interface {}{"Sunday"}, "enabled":false, "end":32400, "start":3600}}
-
 	datum["sleepSchedules"] = []interface{}{
 		map[string]interface{}{"days": []interface{}{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}, "enabled": true, "end": 25200, "start": 82800},
 		map[string]interface{}{"days": []interface{}{"Sunday"}, "enabled": false, "end": 32400, "start": 3600},
@@ -180,7 +165,7 @@ func tandemPumpSettingsWithSleepScheduleDatum(datum map[string]interface{}) map[
 func carelinkPumpSettings(datum map[string]interface{}) map[string]interface{} {
 	datum["type"] = "pumpSettings"
 	datum["activeSchedule"] = "standard"
-	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mg/dL"}
+	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mmol/L"}
 	datum["basalSchedules"] = map[string]interface{}{
 		"standard": []map[string]interface{}{
 			{"rate": 0.5, "start": 0},
@@ -240,6 +225,41 @@ func omnipodPumpSettingsDatum(datum map[string]interface{}) map[string]interface
 		{"target": 5.550747991045533, "start": 0, "high": 7.2159723883591935},
 		{"target": 5.550747991045533, "start": 46800000, "high": 7.2159723883591935},
 	}
+	return datum
+}
+
+func pumpSettingsWithTargetsDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "pumpSettings"
+	datum["activeSchedule"] = "test"
+	datum["units"] = map[string]interface{}{"carb": "grams", "bg": "mmol/L"}
+	datum["basalSchedules"] = map[string]interface{}{
+		"test": []map[string]interface{}{
+			{"rate": 0.5, "start": 0},
+			{"rate": 1.35, "start": 55800000},
+		},
+		"weekend b": []map[string]interface{}{},
+	}
+	datum["carbRatio"] = []map[string]interface{}{
+		{"amount": 10, "start": 0},
+		{"amount": 10, "start": 32400000},
+	}
+	datum["insulinSensitivity"] = []map[string]interface{}{
+		{"amount": 2.7753739955227665, "start": 0},
+		{"amount": 2.7753739955227665, "start": 46800000},
+	}
+
+	datum["bgTarget"] = []map[string]interface{}{
+		{"target": 5.550747991045533, "start": 0, "high": 7.2159723883591935},
+	}
+
+	datum["bgTargetPhysicalActivity"] = map[string]interface{}{
+		"low": 2.7753739955227665, "high": 7.2159723883591935,
+	}
+
+	datum["bgTargetPreprandial"] = map[string]interface{}{
+		"low": 2.7753739955227665, "high": 7.2159723883591935,
+	}
+
 	return datum
 }
 
@@ -380,12 +400,45 @@ func emptyPayload(datum map[string]interface{}) map[string]interface{} {
 	return datum
 }
 
+func extraFields(datum map[string]interface{}) map[string]interface{} {
+	datum["payload"] = map[string]interface{}{}
+	datum["type"] = "cbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 8.1596
+	datum["index"] = 0
+	datum["localTime"] = "2017-11-05T12:56:51.000Z"
+	datum["jsDate"] = "2017-11-05T12:56:51.000Z"
+	return datum
+}
+
 func pumpSettingsWithBolus(datum map[string]interface{}) map[string]interface{} {
 	datum = tandemPumpSettingsDatum(datum)
 	datum["bolus"] = &pump.BolusMap{
 		"bolus-1": pumpTest.NewRandomBolus(),
 		"bolus-2": pumpTest.NewRandomBolus(),
 	}
+	return datum
+}
+
+// payload as a string rather than object or array
+func cbgDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "cbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 3.8855235937318735
+	return datum
+}
+
+func smbgDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "smbg"
+	datum["units"] = "mmol/L"
+	datum["value"] = 22.202991964182132
+	return datum
+}
+
+func bloodKetoneDatum(datum map[string]interface{}) map[string]interface{} {
+	datum["type"] = "bloodKetone"
+	datum["units"] = "mmol/L"
+	datum["value"] = 7.2159723883591935
 	return datum
 }
 
@@ -402,7 +455,13 @@ var ReservoirChangeWithStatus = reservoirChangeDeviceEventDatum(base("InsOmn-111
 var AlarmDeviceEventDatum = alarmDeviceEventDatum(base("tandemCIQ100000000000"))
 var CGMSetting = cgmSettingsDatum(base("DexG5MobRec-1111111111111"))
 var EmptyPayloadDatum = emptyPayload(base("Dex-device"))
+var ExtraFieldsDatum = extraFields(base("my-device"))
 var PumpSettingsWithBolusDatum = pumpSettingsWithBolus(base("tandem99999999"))
+var PumpSettingsWithTarget = pumpSettingsWithTargetsDatum(base("my-pump-123"))
+
+var SMBGValueDatum = smbgDatum(base("smbg-device-123"))
+var CBGValueDatum = cbgDatum(base("cbg-device-987"))
+var BloodKetoneValueDatum = bloodKetoneDatum(base("blood-ketone-device-456"))
 
 func BulkJellyfishData(deviceID string, groupID string, userID string, requiredRecords int) []map[string]interface{} {
 	data := []map[string]interface{}{}

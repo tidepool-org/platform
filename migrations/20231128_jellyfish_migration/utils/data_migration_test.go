@@ -111,7 +111,9 @@ var _ = Describe("back-37", func() {
 			stats := migration.GetStats()
 			Expect(stats.Errored).To(Equal(0))
 			Expect(stats.Fetched).To(Equal(datumCount))
-			Expect(stats.Applied).To(Equal(datumCount * 3))
+			// There are 'at least' 2000 changes applied but we don't know the exact amount
+			// as it varies depending which types are included in the original data
+			Expect(stats.Applied > datumCount*2).To(BeTrue())
 
 			cur, err := collection.Find(ctx, bson.D{})
 			Expect(err).To(BeNil())
@@ -122,14 +124,13 @@ var _ = Describe("back-37", func() {
 
 			for _, item := range migrated {
 				Expect(item).Should(HaveKey("_deduplicator"))
+				Expect(item["_deduplicator"]).Should(HaveKey("hash"))
 				Expect(item).Should(HaveKey(migration.GetSettings().RollbackSectionName))
-				Expect(item).ShouldNot(HaveKey("localTime"))
 			}
 
 		})
 
 		It("apply then rollback migration will return the data to its orginal state", func() {
-
 			collection := store.GetCollection("testRollback")
 			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
 
