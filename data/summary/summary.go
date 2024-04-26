@@ -183,7 +183,7 @@ func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId str
 	logger.Debugf("Starting %s summary calculation for %s", types.GetTypeString[A](), userId)
 
 	// user has no usable summary for incremental update
-	if userSummary == nil {
+	if userSummary == nil || userSummary.Stats == nil {
 		userSummary = types.Create[A](userId)
 	}
 
@@ -232,7 +232,7 @@ func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId str
 	if userSummary.Stats.GetBucketsLen() == 0 {
 		logger.Warnf("User %s has a summary, but no valid data within range, creating placeholder summary", userId)
 		userSummary.Dates.Reset()
-		userSummary.Stats = nil
+		userSummary.Stats.Init()
 	} else {
 		userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
 	}
