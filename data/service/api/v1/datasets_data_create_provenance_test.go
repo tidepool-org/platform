@@ -8,18 +8,20 @@ import (
 	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
+	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/request"
 )
 
+//go:generate mockgen -destination mocks/mocklogger_test_gen.go -package mocks github.com/tidepool-org/platform/log Logger
+
 var _ = Describe("collectProvenanceInfo", func() {
-	// logger, err := logJson.NewLogger(os.Stderr, log.DefaultLevelRanks(), log.DefaultLevel())
-	// Expect(err).ShouldNot(HaveOccurred())
 	logger := null.NewLogger()
 	ctx := log.NewContextWithLogger(context.Background(), logger)
 
@@ -50,6 +52,36 @@ var _ = Describe("collectProvenanceInfo", func() {
 	It("handles a missing ClientID", func() {
 		req, details := newTestReqAndDetails("", "bar", "192.0.2.1")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
+		Expect(prov).ToNot(BeNil())
+		Expect(prov.ByUserID).To(Equal("bar"))
+		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(prov.ClientID).To(Equal(""))
+	})
+
+	It("logs missing ClientIDs when expected, but not found", func() {
+		ctrl := gomock.NewController(GinkgoT())
+		defer ctrl.Finish()
+		mockLogger := mocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().Warn("Unable to read ClientID: The request's access token is blank")
+		ctx := log.NewContextWithLogger(context.Background(), mockLogger)
+		req, _ := newTestReqAndDetails("", "", "192.0.2.1")
+		details := request.NewAuthDetails(request.MethodSessionToken, "bar", "")
+		prov := v1.CollectProvenanceInfo(ctx, req, details)
+		Expect(prov).ToNot(BeNil())
+		Expect(prov.ByUserID).To(Equal("bar"))
+		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(prov.ClientID).To(Equal(""))
+	})
+
+	It("doesn't log missing ClientIDs for service secret authenticated requests", func() {
+		ctrl := gomock.NewController(GinkgoT())
+		defer ctrl.Finish()
+		mockLogger := mocks.NewMockLogger(ctrl)
+		ctx := log.NewContextWithLogger(context.Background(), mockLogger)
+		req, _ := newTestReqAndDetails("", "", "192.0.2.1")
+		details := request.NewAuthDetails(request.MethodServiceSecret, "bar", "")
+		prov := v1.CollectProvenanceInfo(ctx, req, details)
+		Expect(prov).ToNot(BeNil())
 		Expect(prov.ByUserID).To(Equal("bar"))
 		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
 		Expect(prov.ClientID).To(Equal(""))
@@ -58,18 +90,27 @@ var _ = Describe("collectProvenanceInfo", func() {
 
 func newTestReqAndDetails(clientID, userID, sourceIP string) (*rest.Request, request.AuthDetails) {
 	remoteAddr := ""
+	headers := http.Header{}
 	if sourceIP != "" {
 		remoteAddr = sourceIP + ":1234"
+		headers.Set("X-Forwarded-For", sourceIP)
+	}
+	token := ""
+	if clientID != "" {
+		token = newTestToken(clientID)
+		headers.Set("X-Tidepool-Session-Token", token)
 	}
 	req := &rest.Request{
 		Request: &http.Request{
 			RemoteAddr: remoteAddr,
-			Header: http.Header{
-				"X-Tidepool-Session-Token": {newTestToken(clientID)},
-				"X-Forwarded-For":          {sourceIP}},
+			Header:     headers,
 		},
 	}
-	details := request.NewAuthDetails("", userID, "token")
+	method := request.MethodSessionToken
+	if userID == "" {
+		method = request.MethodServiceSecret
+	}
+	details := request.NewAuthDetails(method, userID, token)
 	return req, details
 }
 
