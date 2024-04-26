@@ -121,7 +121,7 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 		mutators = append(mutators, request.NewHeaderMutator("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339)))
 	}
 
-	url := c.client.ConstructURL("v1", "users", userID, "device-logs")
+	url := c.client.ConstructURL("v1", "users", userID, "device_logs")
 	result := &blob.DeviceLogsBlob{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, content.Body, result); err != nil {
 		return nil, err

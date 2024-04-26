@@ -16,7 +16,8 @@ import (
 )
 
 func UsersDataSetsCreate(dataServiceContext dataService.Context) {
-	ctx := dataServiceContext.Request().Context()
+	req := dataServiceContext.Request()
+	ctx := req.Context()
 	lgr := log.LoggerFromContext(ctx)
 
 	targetUserID := dataServiceContext.Request().PathParam("userId")
@@ -82,6 +83,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 
 	dataSet.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
 	dataSet.State = pointer.FromString("open")
+	dataSet.Provenance = CollectProvenanceInfo(ctx, req, details)
 
 	if err := dataServiceContext.DataRepository().CreateDataSet(ctx, dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert data set", err)

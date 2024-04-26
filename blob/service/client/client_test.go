@@ -396,7 +396,7 @@ var _ = Describe("Client", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("the device-logs blob is created", func() {
+				When("the device_logs blob is created", func() {
 					AfterEach(func() {
 						structuredCreate := blobStoreStructured.NewCreate()
 						structuredCreate.MediaType = content.MediaType

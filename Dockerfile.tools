@@ -1,5 +1,5 @@
 # Development
-FROM golang:1.21-alpine AS development
+FROM golang:1.22.2-alpine AS development
 WORKDIR /go/src/github.com/tidepool-org/platform
 RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories && \
     echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories && \
@@ -14,7 +14,7 @@ RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
-FROM mongo:6.0.8 AS production
+FROM mongo:6.0.14 AS production
 # this statically set $HOME is non-ideal, but is to combat it being hardcoded to /data/db upstream
 ENV HOME="/home/tidepool/" DEBIAN_FRONTEND="noninteractive"
 RUN apt -y update && \

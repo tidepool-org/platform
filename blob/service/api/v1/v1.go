@@ -44,8 +44,8 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Post("/v1/users/:userId/blobs", r.Create),
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 
-		rest.Post("/v1/users/:userId/device-logs", r.CreateDeviceLogs),
-		rest.Get("/v1/users/:userId/device-logs", r.ListDeviceLogs),
+		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
+		rest.Get("/v1/users/:userId/device_logs", r.ListDeviceLogs),
 
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),

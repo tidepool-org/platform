@@ -12,6 +12,7 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
@@ -159,7 +160,7 @@ func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, data i
 }
 
 func (c *mockDataServiceContext) AuthClient() auth.Client {
-	panic("not implemented") // TODO: Implement
+	return authTest.NewClient()
 }
 
 func (c *mockDataServiceContext) MetricClient() metric.Client {
