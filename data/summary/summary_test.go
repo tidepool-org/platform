@@ -758,6 +758,36 @@ var _ = Describe("Summary", func() {
 			Expect(userSummary.Stats).To(BeNil())
 		})
 
+		It("summary calc with non-continuous data multiple times", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			deferredDatumTime := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -2)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeNormal)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, deferredDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
+			Expect(userSummary.Dates.LastData).To(BeNil())
+			Expect(userSummary.Stats).To(BeNil())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
+			Expect(userSummary.Dates.LastData).To(BeNil())
+			Expect(userSummary.Stats).To(BeNil())
+		})
+
 		It("continuous summary calc with >batch of realtime data", func() {
 			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
 			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
