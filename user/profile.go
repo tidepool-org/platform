@@ -98,7 +98,7 @@ type PatientProfile struct {
 }
 
 type ClinicProfile struct {
-	Name      string   `json:"diagnosisDate"`
+	Name      string   `json:"name"`
 	Role      []string `json:"role"`
 	Telephone string   `json:"telephone"`
 }
