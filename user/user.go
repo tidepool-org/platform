@@ -3,12 +3,23 @@ package user
 import (
 	"context"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	RoleClinic           = "clinic"
+	RoleClinician        = "clinician"
+	RoleCustodialAccount = "custodial_account"
+	RoleMigratedClinic   = "migrated_clinic"
+	RolePatient          = "patient"
+	RoleBrokered         = "brokered"
 )
 
 func Roles() []string {
@@ -27,6 +38,24 @@ type User struct {
 	EmailVerified *bool     `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
 	TermsAccepted *string   `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
 	Roles         *[]string `json:"roles,omitempty" bson:"roles,omitempty"`
+	Emails        []string  `json:"emails,omitempty" bson:"emails,omitempty"`
+	// EmailVerified bool     `json:"emailVerified" bson:"authenticated"` //tag is name `authenticated` for historical reasons
+	PwHash string `json:"-" bson:"pwhash,omitempty"`
+	Hash   string `json:"-" bson:"userhash,omitempty"`
+	// Private              map[string]*IdHashPair `json:"-" bson:"private"`
+	IsMigrated           bool                `json:"-" bson:"-"`
+	IsUnclaimedCustodial bool                `json:"-" bson:"-"`
+	Enabled              bool                `json:"-" bson:"-"`
+	CreatedTime          string              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID        string              `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	ModifiedTime         string              `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID       string              `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	DeletedTime          string              `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID        string              `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	Attributes           map[string][]string `json:"-"`
+	Profile              *UserProfile        `json:"-"`
+	FirstName            string              `json:"firstName,omitempty"`
+	LastName             string              `json:"lastName,omitempty"`
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
@@ -74,6 +103,80 @@ func (u *User) Sanitize(details request.AuthDetails) error {
 	return nil
 }
 
+func (u *User) Email() string {
+	if u.Username != nil {
+		return strings.ToLower(*u.Username)
+	}
+	return ""
+}
+
+// IsClinic returns true if the user is legacy clinic Account
+func (u *User) IsClinic() bool {
+	return u.HasRole(RoleClinic)
+}
+
+func (u *User) IsCustodialAccount() bool {
+	return u.HasRole(RoleCustodialAccount)
+}
+
+// IsClinician returns true if the user is a clinician
+func (u *User) IsClinician() bool {
+	return u.HasRole(RoleClinician)
+}
+
+func (u *User) AreTermsAccepted() bool {
+	if u.TermsAccepted == nil {
+		return false
+	}
+	_, err := TimestampToUnixString(*u.TermsAccepted)
+	return err == nil
+}
+
+func (u *User) IsEnabled() bool {
+	if u.IsMigrated {
+		return u.Enabled
+	}
+	return u.PwHash != "" && !u.IsDeleted()
+}
+
+func (u *User) IsDeleted() bool {
+	// mdb only?
+	return u.DeletedTime != ""
+}
+
+func (u *User) HashPassword(pw, salt string) error {
+	if passwordHash, err := GeneratePasswordHash(*u.UserID, pw, salt); err != nil {
+		return err
+	} else {
+		u.PwHash = passwordHash
+		return nil
+	}
+}
+
+func (u *User) PasswordsMatch(pw, salt string) bool {
+	if u.PwHash == "" || pw == "" {
+		return false
+	} else if pwMatch, err := GeneratePasswordHash(*u.UserID, pw, salt); err != nil {
+		return false
+	} else {
+		return u.PwHash == pwMatch
+	}
+}
+
+func (u *User) IsEmailVerified(secret string) bool {
+	if secret != "" {
+		if u.Username != nil && strings.Contains(*u.Username, secret) {
+			return true
+		}
+		for i := range u.Emails {
+			if strings.Contains(u.Emails[i], secret) {
+				return true
+			}
+		}
+	}
+	return pointer.ToBool(u.EmailVerified)
+}
+
 type UserArray []*User
 
 func (u UserArray) Sanitize(details request.AuthDetails) error {
@@ -107,3 +210,8 @@ func ValidateID(value string) error {
 }
 
 var idExpression = regexp.MustCompile(`^([0-9a-f]{10}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
+
+func IsValidUserID(id string) bool {
+	ok, _ := regexp.MatchString(`^([a-fA-F0-9]{10})$|^([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})$`, id)
+	return ok
+}

@@ -17,7 +17,6 @@ const (
 
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
-	// Not sure whether to put these methods in platform/permission or go-common/clients
 	HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
