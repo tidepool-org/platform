@@ -32,16 +32,14 @@ type Client interface {
 }
 
 type User struct {
-	UserID        *string   `json:"userid,omitempty" bson:"userid,omitempty"`
-	Username      *string   `json:"username,omitempty" bson:"username,omitempty"`
-	EmailVerified *bool     `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
-	TermsAccepted *string   `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
-	Roles         *[]string `json:"roles,omitempty" bson:"roles,omitempty"`
-	Emails        []string  `json:"emails,omitempty" bson:"emails,omitempty"`
-	// EmailVerified bool     `json:"emailVerified" bson:"authenticated"` //tag is name `authenticated` for historical reasons
-	PwHash string `json:"-" bson:"pwhash,omitempty"`
-	Hash   string `json:"-" bson:"userhash,omitempty"`
-	// Private              map[string]*IdHashPair `json:"-" bson:"private"`
+	UserID               *string             `json:"userid,omitempty" bson:"userid,omitempty"`
+	Username             *string             `json:"username,omitempty" bson:"username,omitempty"`
+	EmailVerified        *bool               `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
+	TermsAccepted        *string             `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
+	Roles                *[]string           `json:"roles,omitempty" bson:"roles,omitempty"`
+	Emails               []string            `json:"emails,omitempty" bson:"emails,omitempty"`
+	PwHash               string              `json:"-" bson:"pwhash,omitempty"`
+	Hash                 string              `json:"-" bson:"userhash,omitempty"`
 	IsMigrated           bool                `json:"-" bson:"-"`
 	IsUnclaimedCustodial bool                `json:"-" bson:"-"`
 	Enabled              bool                `json:"-" bson:"-"`
