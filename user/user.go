@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -142,39 +141,6 @@ func (u *User) IsEnabled() bool {
 func (u *User) IsDeleted() bool {
 	// mdb only?
 	return u.DeletedTime != ""
-}
-
-func (u *User) HashPassword(pw, salt string) error {
-	if passwordHash, err := GeneratePasswordHash(*u.UserID, pw, salt); err != nil {
-		return err
-	} else {
-		u.PwHash = passwordHash
-		return nil
-	}
-}
-
-func (u *User) PasswordsMatch(pw, salt string) bool {
-	if u.PwHash == "" || pw == "" {
-		return false
-	} else if pwMatch, err := GeneratePasswordHash(*u.UserID, pw, salt); err != nil {
-		return false
-	} else {
-		return u.PwHash == pwMatch
-	}
-}
-
-func (u *User) IsEmailVerified(secret string) bool {
-	if secret != "" {
-		if u.Username != nil && strings.Contains(*u.Username, secret) {
-			return true
-		}
-		for i := range u.Emails {
-			if strings.Contains(u.Emails[i], secret) {
-				return true
-			}
-		}
-	}
-	return pointer.ToBool(u.EmailVerified)
 }
 
 type UserArray []*User
