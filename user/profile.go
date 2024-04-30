@@ -27,6 +27,7 @@ type UserProfile struct {
 	TargetDevices  []string   `json:"targetDevices"`
 	TargetTimezone string     `json:"targetTimezone"`
 	About          string     `json:"about"`
+	MRN            string     `json:"mrn"`
 	Custodian      *Custodian `json:"custodian,omitempty"`
 }
 
@@ -37,12 +38,13 @@ type Custodian struct {
 func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	legacyProfile := &LegacyUserProfile{
 		FullName: up.FullName,
-		Patient: &PatientProfile{
+		Patient: &LegacyPatientProfile{
 			Birthday:       up.Birthday,
 			DiagnosisDate:  up.DiagnosisDate,
 			TargetDevices:  up.TargetDevices,
 			TargetTimezone: up.TargetTimezone,
 			About:          up.About,
+			MRN:            up.MRN,
 		},
 	}
 	// only custodiaL fake child accounts have Patient.FullName set
@@ -75,18 +77,19 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.TargetDevices = p.Patient.TargetDevices
 		up.TargetTimezone = p.Patient.TargetTimezone
 		up.About = p.Patient.About
+		up.MRN = p.Patient.MRN
 	}
 	return up
 }
 
 // LegacyUserProfile represents the old seagull format for a profile.
 type LegacyUserProfile struct {
-	FullName string          `json:"fullName"`
-	Patient  *PatientProfile `json:"patient,omitempty"`
-	Clinic   *ClinicProfile  `json:"clinic,omitempty"`
+	FullName string                `json:"fullName"`
+	Patient  *LegacyPatientProfile `json:"patient,omitempty"`
+	Clinic   *ClinicProfile        `json:"clinic,omitempty"`
 }
 
-type PatientProfile struct {
+type LegacyPatientProfile struct {
 	FullName       string   `json:"fullName,omitempty"` // This is only non-empty if the user is also a fake child (has the patient.isOtherPerson field set)
 	Birthday       Date     `json:"birthday"`
 	DiagnosisDate  Date     `json:"diagnosisDate"`
@@ -95,6 +98,7 @@ type PatientProfile struct {
 	TargetTimezone string   `json:"targetTimezone"`
 	About          string   `json:"about"`
 	IsOtherPerson  bool     `json:"isOtherPerson,omitempty"`
+	MRN            string   `json:"mrn"`
 }
 
 type ClinicProfile struct {
@@ -130,6 +134,9 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 	if up.About != "" {
 		addAttribute(attributes, "about", up.About)
+	}
+	if up.MRN != "" {
+		addAttribute(attributes, "mrn", up.MRN)
 	}
 
 	return attributes
@@ -169,6 +176,10 @@ func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile
 	}
 	if val := getAttribute(attributes, "about"); val != "" {
 		up.About = val
+		ok = true
+	}
+	if val := getAttribute(attributes, "mrn"); val != "" {
+		up.MRN = val
 		ok = true
 	}
 
