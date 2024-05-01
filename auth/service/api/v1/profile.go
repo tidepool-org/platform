@@ -7,22 +7,21 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/service/api"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Get("/v1/users/:userId/profile", api.RequireAuth(r.GetProfile)),
-		rest.Get("/v1/users/legacy/:userId/profile", api.RequireAuth(r.GetLegacyProfile)),
+		rest.Get("/v1/users/:userId/profile", r.requireMembership("userId", r.GetProfile)),
+		rest.Get("/v1/users/legacy/:userId/profile", r.requireMembership("userId", r.GetLegacyProfile)),
 		// The following modification routes required custodian access in seagull, but I'm not sure that's quite right - it seems it should be if the user can modify the userId.
-		rest.Put("/v1/users/:userId/profile", r.requireWriteAccess("userId", r.UpdateProfile)),
-		rest.Put("/v1/users/legacy/:userId/profile", r.requireWriteAccess("userId", r.UpdateLegacyProfile)),
-		rest.Post("/v1/users/:userId/profile", r.requireWriteAccess("userId", r.UpdateProfile)),
-		rest.Post("/v1/users/legacy/:userId/profile", r.requireWriteAccess("userId", r.UpdateLegacyProfile)),
-		rest.Delete("/v1/users/:userId/profile", r.requireWriteAccess("userId", r.DeleteProfile)),
-		rest.Delete("/v1/users/legacy/:userId/profile", r.requireWriteAccess("userId", r.DeleteProfile)),
+		rest.Put("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
+		rest.Put("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+		rest.Post("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
+		rest.Post("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+		rest.Delete("/v1/users/:userId/profile", r.requireCustodian("userId", r.DeleteProfile)),
+		rest.Delete("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.DeleteProfile)),
 	}
 }
 
