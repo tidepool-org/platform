@@ -28,20 +28,7 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.GetAuthDetails(ctx)
 	userID := req.PathParam("userId")
-
-	if details.IsUser() {
-		hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
-		if err != nil {
-			responder.InternalServerError(err)
-			return
-		}
-		if !hasPerms {
-			responder.Empty(http.StatusForbidden)
-			return
-		}
-	}
 
 	user, err := r.UserAccessor().FindUserById(ctx, userID)
 	if err != nil {
@@ -59,20 +46,7 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.GetAuthDetails(ctx)
 	userID := req.PathParam("userId")
-
-	if details.IsUser() {
-		hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
-		if err != nil {
-			responder.InternalServerError(err)
-			return
-		}
-		if !hasPerms {
-			responder.Empty(http.StatusForbidden)
-			return
-		}
-	}
 
 	user, err := r.UserAccessor().FindUserById(ctx, userID)
 	if err != nil {
