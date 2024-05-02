@@ -1,15 +1,23 @@
 package user
 
 import (
+	"regexp"
 	"slices"
 	"time"
 
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
 	maxAboutLength = 256
-	maxNameLength  = 256
+	maxFullNameLen = 50
+	minNameLen     = 2
+	maxNameLen     = 25
+)
+
+var (
+	alphabet = regexp.MustCompile(`^[a-zA-Z]{2,25}$`)
 )
 
 // Date is a string of type YYYY-mm-dd, the reason this isn't just a type definition
@@ -20,6 +28,8 @@ type Date string
 // somewhat redundantly as UserProfile instead of Profile because there already
 // exists a type Profile in this package.
 type UserProfile struct {
+	FirstName      *string    `json:"firstName,omitempty"`
+	LastName       *string    `json:"lastName,omitempty"`
 	FullName       string     `json:"fullName"`
 	Birthday       Date       `json:"birthday"`
 	DiagnosisDate  Date       `json:"diagnosisDate"`
@@ -110,6 +120,12 @@ type ClinicProfile struct {
 func (up *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
+	if val := pointer.ToString(up.FirstName); val != "" {
+		addAttribute(attributes, "first_name", val)
+	}
+	if val := pointer.ToString(up.LastName); val != "" {
+		addAttribute(attributes, "last_name", val)
+	}
 	if up.FullName != "" {
 		addAttribute(attributes, "full_name", up.FullName)
 	}
@@ -144,6 +160,14 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 
 func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
 	up := &UserProfile{}
+	if val := getAttribute(attributes, "first_name"); val != "" {
+		up.FirstName = pointer.FromString(val)
+		ok = true
+	}
+	if val := getAttribute(attributes, "last_name"); val != "" {
+		up.LastName = pointer.FromString(val)
+		ok = true
+	}
 	if val := getAttribute(attributes, "full_name"); val != "" {
 		up.FullName = val
 		ok = true
@@ -243,9 +267,15 @@ func (d Date) Validate(v structure.Validator) {
 func (up *UserProfile) Validate(v structure.Validator) {
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
-	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxNameLength)
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxFullNameLen)
+	if up.FirstName != nil {
+		v.String("firstName", up.FirstName).LengthInRange(minNameLen, maxNameLen).Matches(alphabet)
+	}
+	if up.LastName != nil {
+		v.String("lastName", up.LastName).LengthInRange(minNameLen, maxNameLen).Matches(alphabet)
+	}
 }
 
 func (p *ClinicProfile) Validate(v structure.Validator) {
-	v.String("name", &p.Name).NotEmpty().LengthLessThanOrEqualTo(maxNameLength)
+	v.String("name", &p.Name).NotEmpty().LengthLessThanOrEqualTo(maxFullNameLen)
 }
