@@ -239,6 +239,7 @@ type Repository interface {
 	Get(ctx context.Context, conf *Config) (*Config, error)
 	Upsert(ctx context.Context, conf *Config) error
 	Delete(ctx context.Context, conf *Config) error
+	List(ctx context.Context, userID string) ([]*Config, error)
 
 	EnsureIndexes() error
 }
