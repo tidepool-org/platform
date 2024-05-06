@@ -160,12 +160,15 @@ var _ = Describe("Alerts endpoints", func() {
 })
 
 type mockRepo struct {
-	UserID string
-	Error  error
+	UserID          string
+	Error           error
+	AlertsForUserID map[string][]*alerts.Config
 }
 
 func newMockRepo() *mockRepo {
-	return &mockRepo{}
+	return &mockRepo{
+		AlertsForUserID: make(map[string][]*alerts.Config),
+	}
 }
 
 func (r *mockRepo) ReturnsError(err error) {
@@ -200,6 +203,18 @@ func (r *mockRepo) Delete(ctx context.Context, conf *alerts.Config) error {
 		r.UserID = conf.UserID
 	}
 	return nil
+}
+
+func (r *mockRepo) List(ctx context.Context, userID string) ([]*alerts.Config, error) {
+	if r.Error != nil {
+		return nil, r.Error
+	}
+	r.UserID = userID
+	alerts, ok := r.AlertsForUserID[userID]
+	if !ok {
+		return nil, nil
+	}
+	return alerts, nil
 }
 
 func (r *mockRepo) EnsureIndexes() error {

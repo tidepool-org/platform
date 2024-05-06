@@ -24,6 +24,7 @@ func AlertsRoutes() []service.Route {
 		service.Get("/v1/users/:userId/followers/:followerUserId/alerts", GetAlert, api.RequireAuth),
 		service.Post("/v1/users/:userId/followers/:followerUserId/alerts", UpsertAlert, api.RequireAuth),
 		service.Delete("/v1/users/:userId/followers/:followerUserId/alerts", DeleteAlert, api.RequireAuth),
+		service.Get("/v1/users/:userId/followers/alerts", ListAlerts, api.RequireServer),
 	}
 }
 
@@ -132,6 +133,42 @@ func UpsertAlert(dCtx service.Context) {
 		lgr.WithError(err).Error("upserting alerts config")
 		return
 	}
+}
+
+func ListAlerts(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
+	authDetails := request.GetAuthDetails(ctx)
+	repo := dCtx.AlertsRepository()
+	lgr := log.LoggerFromContext(ctx)
+
+	if err := checkAuthentication(authDetails); err != nil {
+		lgr.Debug("authentication failed")
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	pathsUserID := r.PathParam("userId")
+	if err := checkUserIDConsistency(authDetails, pathsUserID); err != nil {
+		lgr.WithFields(log.Fields{"path": pathsUserID, "auth": authDetails.UserID()}).
+			Debug("user id consistency failed")
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	alerts, err := repo.List(ctx, pathsUserID)
+	if err != nil {
+		dCtx.RespondWithInternalServerFailure("listing alerts configs", err)
+		lgr.WithError(err).Error("listing alerts config")
+		return
+	}
+	if len(alerts) == 0 {
+		dCtx.RespondWithError(ErrorUserIDNotFound(pathsUserID))
+		lgr.Debug("no alerts configs found")
+	}
+
+	responder := request.MustNewResponder(dCtx.Response(), r)
+	responder.Data(http.StatusOK, alerts)
 }
 
 // checkUserIDConsistency verifies the userIDs in a request.
