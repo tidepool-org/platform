@@ -43,7 +43,6 @@ var _ = Describe("Config", func() {
   },
   "urgentLow": {
     "enabled": false,
-    "repeat": 30,
     "threshold": {
       "units": "mg/dL",
       "value": 47.5
@@ -60,12 +59,10 @@ var _ = Describe("Config", func() {
   },
   "notLooping": {
     "enabled": true,
-    "repeat": 32,
     "delay": 4
   },
   "noCommunication": {
     "enabled": true,
-    "repeat": 33,
     "delay": 6
   }
 }`, mockUserID1, mockUserID2, mockUploadID)
@@ -86,14 +83,11 @@ var _ = Describe("Config", func() {
 		Expect(conf.Low.Threshold.Value).To(Equal(80.0))
 		Expect(conf.Low.Threshold.Units).To(Equal(glucose.MgdL))
 		Expect(conf.UrgentLow.Enabled).To(Equal(false))
-		Expect(conf.UrgentLow.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.UrgentLow.Threshold.Value).To(Equal(47.5))
 		Expect(conf.UrgentLow.Threshold.Units).To(Equal(glucose.MgdL))
 		Expect(conf.NotLooping.Enabled).To(Equal(true))
-		Expect(conf.NotLooping.Repeat).To(Equal(DurationMinutes(32 * time.Minute)))
 		Expect(conf.NotLooping.Delay).To(Equal(DurationMinutes(4 * time.Minute)))
 		Expect(conf.NoCommunication.Enabled).To(Equal(true))
-		Expect(conf.NoCommunication.Repeat).To(Equal(DurationMinutes(33 * time.Minute)))
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
 	})
 
@@ -322,32 +316,41 @@ var _ = Describe("Config", func() {
 	})
 
 	Context("repeat", func() {
+		var defaultAlert = LowAlert{
+			Threshold: Threshold{Value: 11, Units: glucose.MmolL},
+		}
+
 		It("accepts values of 0 (indicating disabled)", func() {
 			val := validator.New()
-			b := Base{Repeat: 0}
-			b.Validate(val)
+			l := defaultAlert
+			l.Repeat = 0
+			l.Validate(val)
 			Expect(val.Error()).To(Succeed())
 		})
 
 		It("accepts values of 15 minutes to 4 hours (inclusive)", func() {
 			val := validator.New()
-			b := Base{Repeat: DurationMinutes(15 * time.Minute)}
-			b.Validate(val)
+			l := defaultAlert
+			l.Repeat = DurationMinutes(15 * time.Minute)
+			l.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
 			val = validator.New()
-			b = Base{Repeat: DurationMinutes(4 * time.Hour)}
-			b.Validate(val)
+			l = defaultAlert
+			l.Repeat = DurationMinutes(4 * time.Hour)
+			l.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
 			val = validator.New()
-			b = Base{Repeat: DurationMinutes(4*time.Hour + 1)}
-			b.Validate(val)
+			l = defaultAlert
+			l.Repeat = DurationMinutes(4*time.Hour + 1)
+			l.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
 
 			val = validator.New()
-			b = Base{Repeat: DurationMinutes(15*time.Minute - 1)}
-			b.Validate(val)
+			l = defaultAlert
+			l.Repeat = DurationMinutes(15*time.Minute - 1)
+			l.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
 		})
 	})
@@ -357,41 +360,6 @@ var _ = Describe("Config", func() {
 			buf := buff(`{"urgentLow": {"threshold": {"units":"%s","value":42}}`, "garbage")
 			threshold := &Threshold{}
 			err := request.DecodeObject(nil, buf, threshold)
-			Expect(err).To(MatchError("json is malformed"))
-		})
-		It("validates repeat minutes (negative)", func() {
-			buf := buff(`{
-  "userId": "%s",
-  "followedUserId": "%s",
-  "uploadId": "%s",
-  "urgentLow": {
-    "enabled": false,
-    "repeat": -11,
-    "threshold": {
-      "units": "%s",
-      "value": 47.5
-    }
-  }
-}`, mockUserID1, mockUserID2, mockUploadID, glucose.MgdL)
-			cfg := &Config{}
-			err := request.DecodeObject(nil, buf, cfg)
-			Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
-		})
-		It("validates repeat minutes (string)", func() {
-			buf := buff(`{
-  "userId": "%s",
-  "followedUserId": "%s",
-  "urgentLow": {
-    "enabled": false,
-    "repeat": "a",
-    "threshold": {
-      "units": "%s",
-      "value": 1
-    }
-  }
-}`, mockUserID1, mockUserID2, glucose.MgdL)
-			cfg := &Config{}
-			err := request.DecodeObject(nil, buf, cfg)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 	})
@@ -417,9 +385,45 @@ var _ = Describe("Config", func() {
 			Expect(conf.Low.Repeat).To(Equal(DurationMinutes(0)))
 		})
 	})
+	It("validates repeat minutes (negative)", func() {
+		buf := buff(`{
+  "userId": "%s",
+  "followedUserId": "%s",
+  "uploadId": "%s",
+  "low": {
+    "enabled": false,
+    "repeat": -11,
+    "threshold": {
+      "units": "%s",
+      "value": 47.5
+    }
+  }
+}`, mockUserID1, mockUserID2, mockUploadID, glucose.MgdL)
+		cfg := &Config{}
+		err := request.DecodeObject(nil, buf, cfg)
+		Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
+	})
+	It("validates repeat minutes (string)", func() {
+		buf := buff(`{
+  "userId": "%s",
+  "followedUserId": "%s",
+  "uploadId": "%s",
+  "low": {
+    "enabled": false,
+    "repeat": "a",
+    "threshold": {
+      "units": "%s",
+      "value": 1
+    }
+  }
+}`, mockUserID1, mockUserID2, mockUploadID, glucose.MgdL)
+		cfg := &Config{}
+		err := request.DecodeObject(nil, buf, cfg)
+		Expect(err).To(MatchError("json is malformed"))
+	})
 })
 
-var _ = Describe("Duration", func() {
+var _ = Describe("DurationMinutes", func() {
 	It("parses 42", func() {
 		d := DurationMinutes(0)
 		err := d.UnmarshalJSON([]byte(`42`))
