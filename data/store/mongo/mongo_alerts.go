@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/alerts"
+	"github.com/tidepool-org/platform/errors"
 	structuredmongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -32,6 +33,26 @@ func (r *alertsRepo) Delete(ctx context.Context, cfg *alerts.Config) error {
 		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
 	return nil
+}
+
+// List will retrieve any Configs that are defined by followers of the given user.
+func (r *alertsRepo) List(ctx context.Context, followedUserID string) ([]*alerts.Config, error) {
+	filter := bson.D{
+		{Key: "followedUserId", Value: followedUserID},
+	}
+	cursor, err := r.Find(ctx, filter, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to list alerts.Config(s) for followed user %s", followedUserID)
+	}
+	defer cursor.Close(ctx)
+	out := []*alerts.Config{}
+	if err := cursor.All(ctx, &out); err != nil {
+		return nil, errors.Wrapf(err, "Unable to decode alerts.Config(s) for followed user %s", followedUserID)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, errors.Wrapf(err, "Unexpected error for followed user %s", followedUserID)
+	}
+	return out, nil
 }
 
 // Get will retrieve the given Config.
