@@ -72,10 +72,30 @@ func (a Alerts) Validate(validator structure.Validator) {
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
 	Enabled bool `json:"enabled" bson:"enabled"`
+
+	// Activity tracks when events related to the alert occurred.
+	Activity `json:"-" bson:"activity,omitempty"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
+}
+
+type Activity struct {
+	// Triggered records the last time this alert was triggered.
+	Triggered time.Time `json:"triggered" bson:"triggered"`
+	// Sent records the last time this alert was sent.
+	Sent time.Time `json:"sent" bson:"sent"`
+	// Resolved records the last time this alert was resolved.
+	Resolved time.Time `json:"resolved" bson:"resolved"`
+}
+
+func (a Activity) IsActive() bool {
+	return a.Triggered.After(a.Resolved)
+}
+
+func (a Activity) IsSent() bool {
+	return a.Sent.After(a.Triggered)
 }
 
 const (
