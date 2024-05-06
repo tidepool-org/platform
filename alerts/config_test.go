@@ -127,6 +127,54 @@ var _ = Describe("Config", func() {
 		})
 	})
 
+	Context("Base", func() {
+		Context("Activity", func() {
+			Context("IsActive()", func() {
+				It("is true", func() {
+					triggered := time.Now()
+					resolved := triggered.Add(-time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Resolved:  resolved,
+					}
+					Expect(a.IsActive()).To(BeTrue())
+				})
+
+				It("is false", func() {
+					triggered := time.Now()
+					resolved := triggered.Add(time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Resolved:  resolved,
+					}
+					Expect(a.IsActive()).To(BeFalse())
+				})
+			})
+
+			Context("IsSent()", func() {
+				It("is true", func() {
+					triggered := time.Now()
+					sent := triggered.Add(time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Sent:      sent,
+					}
+					Expect(a.IsSent()).To(BeTrue())
+				})
+
+				It("is false", func() {
+					triggered := time.Now()
+					notified := triggered.Add(-time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Sent:      notified,
+					}
+					Expect(a.IsSent()).To(BeFalse())
+				})
+			})
+		})
+	})
+
 	Context("UrgentLowAlert", func() {
 		Context("Threshold", func() {
 			It("accepts values between 0 and 1000 mg/dL", func() {
