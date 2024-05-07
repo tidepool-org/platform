@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -306,6 +307,18 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+// GetDeviceTokens belonging to a given user.
+func (c *Client) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	ctx = log.NewContextWithLogger(ctx, c.logger)
+	url := c.client.ConstructURL("v1", "users", userID, "device_tokens")
+	tokens := []*devicetokens.DeviceToken{}
+	err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, &tokens)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to request device token data")
+	}
+	return tokens, nil
 }
 
 type ConfigLoader interface {
