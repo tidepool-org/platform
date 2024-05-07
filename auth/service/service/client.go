@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/auth/client"
 	authStore "github.com/tidepool-org/platform/auth/store"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -114,6 +115,19 @@ func (c *Client) deleteProviderSession(ctx context.Context, repository authStore
 			logger.WithError(err).Warn("Unable to delete provider session from provider")
 		}
 	}
+}
+
+func (c *Client) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	repo := c.authStore.NewDeviceTokenRepository()
+	docs, err := repo.GetAllByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	tokens := make([]*devicetokens.DeviceToken, 0, len(docs))
+	for _, doc := range docs {
+		tokens = append(tokens, &doc.DeviceToken)
+	}
+	return tokens, nil
 }
 
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
