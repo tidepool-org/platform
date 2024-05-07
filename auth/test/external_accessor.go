@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -153,4 +154,12 @@ func (e *ExternalAccessor) AssertOutputsEmpty() {
 	if len(e.EnsureAuthorizedUserOutputs) > 0 {
 		panic("EnsureAuthorizedUserOutputs is not empty")
 	}
+}
+
+func NewDeviceTokensClient() *DeviceTokensClient { return &DeviceTokensClient{} }
+
+type DeviceTokensClient struct{}
+
+func (c *DeviceTokensClient) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	return nil, nil
 }
