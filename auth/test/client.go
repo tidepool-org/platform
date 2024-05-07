@@ -4,6 +4,7 @@ type Client struct {
 	*ProviderSessionAccessor
 	*RestrictedTokenAccessor
 	*ExternalAccessor
+	*DeviceTokensClient
 }
 
 func NewClient() *Client {
@@ -11,6 +12,7 @@ func NewClient() *Client {
 		ProviderSessionAccessor: NewProviderSessionAccessor(),
 		RestrictedTokenAccessor: NewRestrictedTokenAccessor(),
 		ExternalAccessor:        NewExternalAccessor(),
+		DeviceTokensClient:      NewDeviceTokensClient(),
 	}
 }
 
