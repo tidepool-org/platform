@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 
 	auth "github.com/tidepool-org/platform/auth"
+	devicetokens "github.com/tidepool-org/platform/devicetokens"
 	page "github.com/tidepool-org/platform/page"
 	request "github.com/tidepool-org/platform/request"
 )
@@ -165,6 +166,21 @@ func (m *MockClient) EnsureAuthorizedUser(ctx context.Context, targetUserID, per
 func (mr *MockClientMockRecorder) EnsureAuthorizedUser(ctx, targetUserID, permission interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureAuthorizedUser", reflect.TypeOf((*MockClient)(nil).EnsureAuthorizedUser), ctx, targetUserID, permission)
+}
+
+// GetDeviceTokens mocks base method.
+func (m *MockClient) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDeviceTokens", ctx, userID)
+	ret0, _ := ret[0].([]*devicetokens.DeviceToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDeviceTokens indicates an expected call of GetDeviceTokens.
+func (mr *MockClientMockRecorder) GetDeviceTokens(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeviceTokens", reflect.TypeOf((*MockClient)(nil).GetDeviceTokens), ctx, userID)
 }
 
 // GetProviderSession mocks base method.
@@ -381,4 +397,42 @@ func (m *MockExternalAccessor) ValidateSessionToken(ctx context.Context, token s
 func (mr *MockExternalAccessorMockRecorder) ValidateSessionToken(ctx, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateSessionToken", reflect.TypeOf((*MockExternalAccessor)(nil).ValidateSessionToken), ctx, token)
+}
+
+// MockDeviceTokensClient is a mock of DeviceTokensClient interface.
+type MockDeviceTokensClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockDeviceTokensClientMockRecorder
+}
+
+// MockDeviceTokensClientMockRecorder is the mock recorder for MockDeviceTokensClient.
+type MockDeviceTokensClientMockRecorder struct {
+	mock *MockDeviceTokensClient
+}
+
+// NewMockDeviceTokensClient creates a new mock instance.
+func NewMockDeviceTokensClient(ctrl *gomock.Controller) *MockDeviceTokensClient {
+	mock := &MockDeviceTokensClient{ctrl: ctrl}
+	mock.recorder = &MockDeviceTokensClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDeviceTokensClient) EXPECT() *MockDeviceTokensClientMockRecorder {
+	return m.recorder
+}
+
+// GetDeviceTokens mocks base method.
+func (m *MockDeviceTokensClient) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDeviceTokens", ctx, userID)
+	ret0, _ := ret[0].([]*devicetokens.DeviceToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDeviceTokens indicates an expected call of GetDeviceTokens.
+func (mr *MockDeviceTokensClientMockRecorder) GetDeviceTokens(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeviceTokens", reflect.TypeOf((*MockDeviceTokensClient)(nil).GetDeviceTokens), ctx, userID)
 }
