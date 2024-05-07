@@ -3,6 +3,7 @@ package v1
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,14 +13,18 @@ import (
 	. "github.com/onsi/gomega"
 
 	serviceTest "github.com/tidepool-org/platform/auth/service/test"
+	storetest "github.com/tidepool-org/platform/auth/store/test"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/test"
 )
 
 var _ = Describe("Device tokens endpoints", func() {
 	var rtr *Router
+	var svc *serviceTest.Service
+
 	BeforeEach(func() {
-		svc := serviceTest.NewService()
+		svc = serviceTest.NewService()
 		var err error
 		rtr, err = NewRouter(svc)
 		Expect(err).ToNot(HaveOccurred())
@@ -66,6 +71,65 @@ var _ = Describe("Device tokens endpoints", func() {
 
 	})
 
+	Describe("List", func() {
+		It("succeeds with valid input", func() {
+			res := test.NewMockRestResponseWriter()
+			req := newDeviceTokensTestRequest(nil, nil, "")
+
+			rtr.GetDeviceTokens(res, req)
+
+			Expect(res.Code).To(Equal(http.StatusOK))
+		})
+
+		It("rejects non-service users", func() {
+			svcDetails := test.NewMockAuthDetails(request.MethodAccessToken, "test-user", test.TestToken2)
+			req := newDeviceTokensTestRequest(svcDetails, nil, "")
+			res := test.NewMockRestResponseWriter()
+
+			rtr.GetDeviceTokens(res, req)
+
+			Expect(res.Code).To(Equal(http.StatusForbidden))
+		})
+
+		It("may return multiple documents", func() {
+			repo := &storetest.DeviceTokenRepository{
+				Documents: []*devicetokens.Document{
+					{
+						DeviceToken: devicetokens.DeviceToken{},
+					},
+					{
+						DeviceToken: devicetokens.DeviceToken{},
+					},
+				},
+			}
+			raw := rtr.Service.AuthStore().(*storetest.Store)
+			raw.NewDeviceTokenRepositoryImpl = repo
+			res := test.NewMockRestResponseWriter()
+			req := newDeviceTokensTestRequest(nil, nil, "")
+
+			rtr.GetDeviceTokens(res, req)
+
+			Expect(res.Code).To(Equal(http.StatusOK))
+			got := []*devicetokens.DeviceToken{}
+			err := json.Unmarshal(res.Body.Bytes(), &got)
+			Expect(err).To(Succeed())
+			Expect(got).To(HaveLen(2))
+		})
+
+		It("handles repository errors", func() {
+			repo := &storetest.DeviceTokenRepository{
+				Error: fmt.Errorf("test error"),
+			}
+			raw := rtr.Service.AuthStore().(*storetest.Store)
+			raw.NewDeviceTokenRepositoryImpl = repo
+			res := test.NewMockRestResponseWriter()
+			req := newDeviceTokensTestRequest(nil, nil, "")
+
+			rtr.GetDeviceTokens(res, req)
+
+			Expect(res.Code).To(Equal(http.StatusInternalServerError))
+		})
+	})
 })
 
 func buff(template string, args ...any) *bytes.Buffer {
@@ -91,5 +155,4 @@ func newDeviceTokensTestRequest(auth request.AuthDetails, body io.Reader, userID
 		Request:    httpReq,
 		PathParams: map[string]string{"userId": userIDFromPath},
 	}
-
 }
