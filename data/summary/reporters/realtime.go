@@ -100,7 +100,8 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Contex
 		return nil, errors.New("startTime is after endTime")
 	}
 
-	if startTime.Before(time.Now().AddDate(0, 0, -60)) {
+	endOfHour := time.Now().Truncate(time.Hour).Add(time.Second * 3599)
+	if startTime.Before(endOfHour.AddDate(0, 0, -60)) {
 		return nil, errors.New("startTime is too old ( >60d ago ) ")
 	}
 

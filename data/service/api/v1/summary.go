@@ -112,7 +112,8 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if filter.StartTime.Before(time.Now().AddDate(0, 0, -60)) {
+	endOfHour := time.Now().Truncate(time.Hour).Add(time.Second * 3599)
+	if filter.StartTime.Before(endOfHour.AddDate(0, 0, -60)) {
 		responder.Error(http.StatusBadRequest, errors.New("startTime is too old ( >60d ago ) "))
 		return
 	}
