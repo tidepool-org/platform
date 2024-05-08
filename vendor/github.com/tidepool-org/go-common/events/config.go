@@ -2,6 +2,7 @@ package events
 
 import (
 	"errors"
+
 	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -9,17 +10,19 @@ import (
 const DeadLetterSuffix = "-dead-letters"
 
 type CloudEventsConfig struct {
-	EventSource           string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"false"`
-	KafkaBrokers          []string `envconfig:"KAFKA_BROKERS" required:"true"`
-	KafkaConsumerGroup    string   `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
-	KafkaTopic            string   `envconfig:"KAFKA_TOPIC" default:"events"`
-	KafkaDeadLettersTopic string   `envconfig:"KAFKA_DEAD_LETTERS_TOPIC"`
-	KafkaTopicPrefix      string   `envconfig:"KAFKA_TOPIC_PREFIX" required:"true"`
-	KafkaRequireSSL       bool     `envconfig:"KAFKA_REQUIRE_SSL" required:"true"`
-	KafkaVersion          string   `envconfig:"KAFKA_VERSION" required:"true"`
-	KafkaUsername         string   `envconfig:"KAFKA_USERNAME" required:"false"`
-	KafkaPassword         string   `envconfig:"KAFKA_PASSWORD" required:"false"`
-	SaramaConfig          *sarama.Config
+	EventSource             string   `envconfig:"CLOUD_EVENTS_SOURCE" required:"false"`
+	KafkaBrokers            []string `envconfig:"KAFKA_BROKERS" required:"true"`
+	KafkaConsumerGroup      string   `envconfig:"KAFKA_CONSUMER_GROUP" required:"false"`
+	KafkaTopic              string   `envconfig:"KAFKA_TOPIC" default:"events"`
+	KafkaDeadLettersTopic   string   `envconfig:"KAFKA_DEAD_LETTERS_TOPIC"`
+	KafkaTopicPrefix        string   `envconfig:"KAFKA_TOPIC_PREFIX" required:"true"`
+	KafkaRequireSSL         bool     `envconfig:"KAFKA_REQUIRE_SSL" required:"true"`
+	KafkaVersion            string   `envconfig:"KAFKA_VERSION" required:"true"`
+	KafkaUsername           string   `envconfig:"KAFKA_USERNAME" required:"false"`
+	KafkaPassword           string   `envconfig:"KAFKA_PASSWORD" required:"false"`
+	KafkaAlertsConfigTopics []string `envconfig:"KAFKA_ALERTS_CONFIG_TOPICS" default:"alerts"`
+	KafkaAlertsDataTopics   []string `envconfig:"KAFKA_DATA_ALERTS_TOPICS" default:"data.alerts"`
+	SaramaConfig            *sarama.Config
 }
 
 func NewConfig() *CloudEventsConfig {
