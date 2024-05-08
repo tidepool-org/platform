@@ -23,7 +23,7 @@ require (
 	github.com/sideshow/apns2 v0.23.0
 	github.com/tidepool-org/clinic/client v0.0.0-20240629034458-1365c8963143
 	github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
-	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
+	github.com/tidepool-org/go-common v0.12.2-0.20240711192928-70d1d0216072
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 	github.com/urfave/cli v1.22.15
 	go.mongodb.org/mongo-driver v1.16.0
