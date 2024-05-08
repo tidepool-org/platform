@@ -185,8 +185,8 @@ github.com/tidepool-org/clinic/client v0.0.0-20240926112325-657da308fce2 h1:fTIg
 github.com/tidepool-org/clinic/client v0.0.0-20240926112325-657da308fce2/go.mod h1:7BpAdFdGJNB3aw/xvCz5XnWjSWRoUtWIX4xcMc4Bsko=
 github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5 h1:1kiZtHhs++yXayRD/Mh/3POLwtmxV99YR2bSCle1Q74=
 github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5/go.mod h1:xuQ8k0mLR1ZyEmwe/m0v2BuXctqQuCZeR43urSQpTUM=
-github.com/tidepool-org/go-common v0.12.2-0.20250129210214-bd36b59b9733 h1:WCOSrazmNv7KdjIJafWyHkLkHNp2SsoLAm6OXp2rAco=
-github.com/tidepool-org/go-common v0.12.2-0.20250129210214-bd36b59b9733/go.mod h1:BeqsQcDwfSsmnmc+/N/EOT8h3m8/YtqrLNykk5kGkv4=
+github.com/tidepool-org/go-common v0.12.2 h1:3mse3wJtq5irbgdCz3LeEfs8XE9oDX9kzDcHuWNW/jw=
+github.com/tidepool-org/go-common v0.12.2/go.mod h1:BeqsQcDwfSsmnmc+/N/EOT8h3m8/YtqrLNykk5kGkv4=
 github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace h1:L0UiCj2eL/NOpLa19Tf5IgoK6feILmdA+zK3nCTIhqU=
 github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace/go.mod h1:gon+x+jAh8DZZ2hD23fBWqrYwOizVSwIBbxEsuXCbZ4=
 github.com/ugorji/go v1.2.4/go.mod h1:EuaSCk8iZMdIspsu6HXH7X2UGKw1ezO4wCfGszGmmo4=
