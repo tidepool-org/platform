@@ -2,21 +2,19 @@ package v1
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/errors"
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary/reporters"
-
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	"github.com/tidepool-org/platform/data/summary/types"
-	"github.com/tidepool-org/platform/service/api"
-
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/api"
 )
 
 func SummaryRoutes() []dataService.Route {
