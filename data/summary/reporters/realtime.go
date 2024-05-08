@@ -104,10 +104,6 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Contex
 		return nil, errors.New("startTime is too old ( >60d ago ) ")
 	}
 
-	if int(endTime.Sub(startTime).Hours()/24) < realtimeDaysThreshold {
-		return nil, errors.New("time range smaller than threshold, impossible")
-	}
-
 	realtimeUsers := make(map[string]int)
 
 	for _, userId := range userIds {

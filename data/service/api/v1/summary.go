@@ -2,7 +2,9 @@ package v1
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/errors"
 	"net/http"
+	"time"
 
 	"github.com/tidepool-org/platform/data/summary/reporters"
 
@@ -104,6 +106,16 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	}
 
 	details := request.GetAuthDetails(ctx)
+
+	if filter.StartTime.After(*filter.EndTime) {
+		responder.Error(http.StatusBadRequest, errors.New("startTime is after endTime"))
+		return
+	}
+
+	if filter.StartTime.Before(time.Now().AddDate(0, 0, -60)) {
+		responder.Error(http.StatusBadRequest, errors.New("startTime is too old ( >60d ago ) "))
+		return
+	}
 
 	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(
 		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime)
