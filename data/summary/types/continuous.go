@@ -176,14 +176,16 @@ func (s *ContinuousStats) CalculatePeriod(i int, totalStats *ContinuousBucketDat
 }
 
 func (s *ContinuousStats) GetNumberOfDaysWithRealtimeData(startTime time.Time, endTime time.Time) (count int) {
+	loc1 := startTime.Location()
+	loc2 := endTime.Location()
 
-	startOffset := int(startTime.Sub(s.Buckets[0].Date).Hours())
+	startOffset := int(startTime.Sub(s.Buckets[0].Date.In(loc1)).Hours())
 	// cap to start of list
 	if startOffset < 0 {
 		startOffset = 0
 	}
 
-	endOffset := int(endTime.Sub(s.Buckets[0].Date).Hours())
+	endOffset := int(endTime.Sub(s.Buckets[0].Date.In(loc2)).Hours())
 	// cap to end of list
 	if endOffset > len(s.Buckets) {
 		endOffset = len(s.Buckets)
@@ -192,7 +194,7 @@ func (s *ContinuousStats) GetNumberOfDaysWithRealtimeData(startTime time.Time, e
 	for i := startOffset; i < endOffset; i++ {
 		if s.Buckets[i].Data.RealtimeRecords > 0 {
 			count += 1
-			i += 23 - s.Buckets[i].Date.Hour()
+			i += 23 - s.Buckets[i].Date.In(loc1).Hour()
 			continue
 		}
 	}
