@@ -38,7 +38,7 @@ type DataSetRepository interface {
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
-	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
+	GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error)
 }
 
 // DatumRepository is the interface for interacting and modifying
@@ -59,6 +59,7 @@ type DatumRepository interface {
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
+	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 
 	GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error)
