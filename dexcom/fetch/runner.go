@@ -373,6 +373,13 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 	return false
 }
 
+func (t *TaskRunner) updateDataSetWithTimezoneOffset(timezoneOffset *int) error {
+	if timezoneOffset == nil {
+		return nil
+	}
+	return t.updateDataSet(&data.DataSetUpdate{TimeZoneOffset: timezoneOffset})
+}
+
 func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 	if dataSetUpdate.IsEmpty() {
 		return nil
@@ -713,6 +720,15 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 		earliestDataTime := payloadSystemTime(datumArray[0])
 		latestDataTime := payloadSystemTime(datumArray[endIndex-1])
 		if err := t.updateDataSourceWithDataTime(earliestDataTime, latestDataTime); err != nil {
+			return err
+		}
+
+		// Determine last known timezone offset and persist with the data set
+		var timezoneOffset *int
+		for index := endIndex - 1; index >= 0 && timezoneOffset == nil; index-- {
+			timezoneOffset = datumArray[index].GetTimeZoneOffset()
+		}
+		if err := t.updateDataSetWithTimezoneOffset(timezoneOffset); err != nil {
 			return err
 		}
 	}

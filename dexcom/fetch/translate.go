@@ -45,7 +45,11 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 	var conversionOffsetDuration time.Duration
 	var timeZoneOffsetDuration time.Duration
 
-	delta := displayTime.Sub(*systemTime.Raw())
+	// Force system time to UTC and default display time to system time
+	calculatedSystemTime := systemTime.UTC()
+	calculatedDisplayTime := pointer.DefaultTime(displayTime.Raw(), *systemTime.Raw())
+
+	delta := calculatedDisplayTime.Sub(calculatedSystemTime)
 	if delta > 0 {
 		offsetCount := time.Duration((float64(delta) + float64(OffsetDuration)/2) / float64(OffsetDuration))
 		clockDriftOffsetDuration = delta - offsetCount*OffsetDuration
@@ -64,8 +68,13 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
-	datum.Time = systemTime.Raw()
-	datum.DeviceTime = pointer.FromString(displayTime.Format(dataTypes.DeviceTimeFormat))
+	// If display time zone offset is non-zero, then apply
+	if _, calculatedDisplayTimeZoneOffset := calculatedDisplayTime.Zone(); calculatedDisplayTimeZoneOffset != 0 {
+		timeZoneOffsetDuration += time.Duration(calculatedDisplayTimeZoneOffset) * time.Second
+	}
+
+	datum.Time = pointer.FromTime(calculatedSystemTime)
+	datum.DeviceTime = pointer.FromString(calculatedDisplayTime.Format(dataTypes.DeviceTimeFormat))
 	datum.TimeZoneOffset = pointer.FromInt(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
 		datum.ClockDriftOffset = pointer.FromInt(int(clockDriftOffsetDuration / time.Millisecond))
@@ -78,6 +87,7 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 		datum.Payload = metadata.NewMetadata()
 	}
 	(*datum.Payload)["systemTime"] = systemTime.Raw()
+	(*datum.Payload)["displayTime"] = displayTime.Raw()
 }
 
 func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
