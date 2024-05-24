@@ -106,11 +106,7 @@ func newTestReqAndDetails(clientID, userID, sourceIP string) (*rest.Request, req
 			Header:     headers,
 		},
 	}
-	method := request.MethodSessionToken
-	if userID == "" {
-		method = request.MethodServiceSecret
-	}
-	details := request.NewAuthDetails(method, userID, token)
+	details := request.NewAuthDetails(request.MethodSessionToken, userID, token)
 	return req, details
 }
 
