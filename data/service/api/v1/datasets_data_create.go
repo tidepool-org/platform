@@ -144,7 +144,7 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 		token = token[len("bearer "):]
 	}
 
-	if token != "" {
+	if token != "" && shouldHaveJWT(authDetails) {
 		claims := &TokenClaims{}
 		if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err != nil {
 			lgr.WithError(err).Warn("Unable to parse access token for provenance")
@@ -172,6 +172,20 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 	}
 
 	return provenance
+}
+
+// shouldHaveJWT indicates if it is expected that this token is a JWT.
+//
+// Of the current authentication methods, three of the four provide token
+// information, but only two of those three, use a JSON Web Token (JWT).
+func shouldHaveJWT(authDetails request.AuthDetails) bool {
+	switch authDetails.Method() {
+	case request.MethodAccessToken:
+		return true
+	case request.MethodSessionToken:
+		return true
+	}
+	return false
 }
 
 // SelectXFF is the first public IP from the X-Forwarded-For request header.
