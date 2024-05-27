@@ -89,7 +89,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "createdTime", Value: -1},
 			},
 			Options: options.Index().
-				SetName("ListUserDataSetsAlso").
+				SetName("ListUserDataSetsDeviceId").
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 				}),

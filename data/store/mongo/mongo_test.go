@@ -387,7 +387,7 @@ var _ = Describe("Mongo", func() {
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "-createdTime")),
-						"Name": Equal("ListUserDataSetsAlso"),
+						"Name": Equal("ListUserDataSetsDeviceId"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 						}),
