@@ -38,7 +38,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
@@ -49,7 +48,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
 		},
 		{
@@ -68,25 +66,33 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "client.name", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "createdTime", Value: -1},
+			},
+			Options: options.Index().
+				SetName("ListUserDataSets").
+				SetPartialFilterExpression(bson.D{
+					{Key: "_active", Value: true},
+				}),
 		},
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
 				{Key: "type", Value: 1},
-				{Key: "_active", Value: 1},
-				{Key: "_deduplicator.hash", Value: 1},
+				{Key: "createdTime", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
+				SetName("ListUserDataSetsDeviceId").
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
-					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
-					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
-				}).
-				SetName("DeduplicatorHash"),
+				}),
 		},
 	})
 }
