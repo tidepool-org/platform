@@ -46,12 +46,16 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 
 		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
-		rest.Get("/v1/users/:userId/device_logs", api.RequireServer(r.ListDeviceLogs)),
+		rest.Get("/v1/users/:userId/device_logs", api.RequireMembership(r.permissionsClient, "userId", r.ListDeviceLogs)),
 
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
 		rest.Delete("/v1/blobs/:id", r.Delete),
 	}
+}
+
+func (r *Router) permissionsClient() permission.Client {
+	return r.AuthClient()
 }
 
 func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {

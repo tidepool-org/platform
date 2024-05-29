@@ -83,13 +83,11 @@ func (d *DeviceLogsRepository) List(ctx context.Context, userID string, filter *
 	if filter.Start != nil {
 		query["startAtTime"] = bson.M{
 			"$gte": *filter.Start,
-			"$lte": *filter.Start,
 		}
 	}
 	if filter.End != nil {
 		query["endAtTime"] = bson.M{
-			"$gte": *filter.End,
-			"$lte": *filter.End,
+			"$lt": *filter.End,
 		}
 	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).

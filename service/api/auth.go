@@ -5,6 +5,7 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -60,6 +61,40 @@ func RequireUser(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 			} else {
 				handlerFunc(res, req)
 			}
+		}
+	}
+}
+
+// RequireMembership aborts a handler if there is no connection between the
+// user with the id identified in the url param targetParamUserID and the
+// request is not a service to service request. It takes a function that
+// returns a permission.Client instead of one directly because this may be used
+// within middleware where the client has not been created yet.
+func RequireMembership(permissionsClient func() permission.Client, targetParamUserID string, handlerFunc rest.HandlerFunc) rest.HandlerFunc {
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handlerFunc != nil && res != nil && req != nil {
+			targetUserID := req.PathParam(targetParamUserID)
+			responder := request.MustNewResponder(res, req)
+			ctx := req.Context()
+			details := request.GetAuthDetails(ctx)
+			if details == nil {
+				request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
+				return
+			}
+			if details.IsService() || details.UserID() == targetUserID {
+				handlerFunc(res, req)
+				return
+			}
+			hasPerms, err := permission.HasMembershipRelationship(ctx, permissionsClient(), details.UserID(), targetUserID)
+			if err != nil {
+				responder.InternalServerError(err)
+				return
+			}
+			if !hasPerms {
+				responder.Empty(http.StatusForbidden)
+				return
+			}
+			handlerFunc(res, req)
 		}
 	}
 }
