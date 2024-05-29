@@ -2,13 +2,16 @@ package cgm_test
 
 import (
 	"sort"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -593,6 +596,48 @@ var _ = Describe("CGM", func() {
 					nil,
 				),
 			)
+		})
+
+		Context("LegacyIdentityFields", func() {
+			var datum *cgm.CGM
+
+			BeforeEach(func() {
+				datum = dataTypesSettingsCgmTest.RandomCGM(pointer.FromString("mmol/l"))
+			})
+
+			It("returns error if device id is missing", func() {
+				datum.DeviceID = nil
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("device id is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if device id is empty", func() {
+				datum.DeviceID = pointer.FromString("")
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("device id is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if time is missing", func() {
+				datum.Time = nil
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("time is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if time is empty", func() {
+				datum.Time = &time.Time{}
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("time is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
+			})
 		})
 	})
 

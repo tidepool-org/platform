@@ -25,6 +25,7 @@ const (
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339Nano
+	LegacyFieldTimeFormat   = "2006-01-02T15:04:05.999+07:00"
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionInternalMinimum  = 0
@@ -261,6 +262,13 @@ func (b *Base) IdentityFields() ([]string, error) {
 	}
 
 	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+}
+
+func (b *Base) LegacyIdentityFields() ([]string, error) {
+	if b.Type == "" {
+		return nil, errors.New("type is empty")
+	}
+	return []string{b.Type}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

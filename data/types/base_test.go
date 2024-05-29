@@ -966,6 +966,22 @@ var _ = Describe("Base", func() {
 			})
 		})
 
+		Context("LegacyIdentityFields", func() {
+
+			It("returns error if type is empty", func() {
+				datum.Type = ""
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(identityFields).To(Equal([]string{datum.Type}))
+			})
+		})
+
 		Context("GetPayload", func() {
 			It("gets the payload", func() {
 				Expect(datum.GetPayload()).To(Equal(datum.Payload))

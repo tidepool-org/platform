@@ -9,7 +9,16 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
+type HashType int
+
+const (
+	_ HashType = iota
+	PlatformHash
+	LegacyHash
+)
+
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
+const DeviceDeactivateLegacyHashName = "org.tidepool.deduplicator.device.deactivate.legacy.hash"
 
 var DeviceDeactivateHashDeviceManufacturerDeviceModels = map[string][]string{
 	"Abbott":          {"FreeStyle Libre"},
@@ -18,8 +27,34 @@ var DeviceDeactivateHashDeviceManufacturerDeviceModels = map[string][]string{
 	"Trividia Health": {"TRUE METRIX", "TRUE METRIX AIR", "TRUE METRIX GO"},
 }
 
+var DeviceDeactivateLegacyHasheManufacturerDeviceModels = map[string][]string{
+	"Tandem":         {"T:Slim"},
+	"InsuletOmniPod": {"Dash", "Eros"},
+	//TODO: other devices here
+}
+
 type DeviceDeactivateHash struct {
 	*Base
+}
+
+func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
+	base, err := NewBase(DeviceDeactivateLegacyHashName, "0.0.0")
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeviceDeactivateHash{
+		Base: base,
+	}, nil
+}
+
+func (d *DeviceDeactivateHash) getHashType() (HashType, error) {
+	if d.name == DeviceDeactivateHashName {
+		return PlatformHash, nil
+	} else if d.name == DeviceDeactivateLegacyHashName {
+		return LegacyHash, nil
+	}
+	return 0, errors.New("unknown hash type")
 }
 
 func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
@@ -53,11 +88,28 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 		return false, nil
 	}
 
-	for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
-		if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
-			for _, allowedDeviceModel := range allowedDeviceModels {
-				if allowedDeviceModel == *dataSet.DeviceModel {
-					return true, nil
+	hasher, err := d.getHashType()
+
+	if err != nil {
+		return false, err
+	}
+	if hasher == PlatformHash {
+		for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
+			if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
+				for _, allowedDeviceModel := range allowedDeviceModels {
+					if allowedDeviceModel == *dataSet.DeviceModel {
+						return true, nil
+					}
+				}
+			}
+		}
+	} else if hasher == LegacyHash {
+		for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
+			if allowedDeviceModels, found := DeviceDeactivateLegacyHasheManufacturerDeviceModels[deviceManufacturer]; found {
+				for _, allowedDeviceModel := range allowedDeviceModels {
+					if allowedDeviceModel == *dataSet.DeviceModel {
+						return true, nil
+					}
 				}
 			}
 		}
@@ -88,7 +140,13 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		return errors.New("data set data is missing")
 	}
 
-	if err := AssignDataSetDataIdentityHashes(dataSetData); err != nil {
+	hasher, err := d.getHashType()
+
+	if err != nil {
+		return err
+	}
+
+	if err := AssignDataSetDataIdentityHashes(dataSetData, hasher); err != nil {
 		return err
 	}
 

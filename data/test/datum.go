@@ -16,6 +16,11 @@ type IdentityFieldsOutput struct {
 	Error          error
 }
 
+type LegacyIdentityFieldsOutput struct {
+	LegacyIdentityFields []string
+	Error                error
+}
+
 type Datum struct {
 	MetaInvocations                      int
 	MetaOutputs                          []interface{}
@@ -27,6 +32,8 @@ type Datum struct {
 	NormalizeInputs                      []data.Normalizer
 	IdentityFieldsInvocations            int
 	IdentityFieldsOutputs                []IdentityFieldsOutput
+	LegacyIdentityFieldsInvocations      int
+	LegacyIdentityFieldsOutputs          []LegacyIdentityFieldsOutput
 	GetPayloadInvocations                int
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
@@ -106,6 +113,16 @@ func (d *Datum) IdentityFields() ([]string, error) {
 	output := d.IdentityFieldsOutputs[0]
 	d.IdentityFieldsOutputs = d.IdentityFieldsOutputs[1:]
 	return output.IdentityFields, output.Error
+}
+
+func (d *Datum) LegacyIdentityFields() ([]string, error) {
+	d.LegacyIdentityFieldsInvocations++
+
+	gomega.Expect(d.LegacyIdentityFieldsOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.LegacyIdentityFieldsOutputs[0]
+	d.LegacyIdentityFieldsOutputs = d.LegacyIdentityFieldsOutputs[1:]
+	return output.LegacyIdentityFields, output.Error
 }
 
 func (d *Datum) GetPayload() *metadata.Metadata {

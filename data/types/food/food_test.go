@@ -1,11 +1,15 @@
 package food_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/food"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -430,6 +434,48 @@ var _ = Describe("Food", func() {
 					func(datum *dataTypesFood.Food) { datum.Nutrition = nil },
 				),
 			)
+		})
+
+		Context("LegacyIdentityFields", func() {
+			var datum *food.Food
+
+			BeforeEach(func() {
+				datum = dataTypesFoodTest.RandomFood(3)
+			})
+
+			It("returns error if device id is missing", func() {
+				datum.DeviceID = nil
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("device id is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if device id is empty", func() {
+				datum.DeviceID = pointer.FromString("")
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("device id is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if time is missing", func() {
+				datum.Time = nil
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("time is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if time is empty", func() {
+				datum.Time = &time.Time{}
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("time is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+			})
 		})
 	})
 })

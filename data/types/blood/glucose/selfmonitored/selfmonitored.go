@@ -1,6 +1,9 @@
 package selfmonitored
 
 import (
+	"errors"
+	"strconv"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
@@ -64,4 +67,17 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
 	}
 
 	s.Glucose.Normalize(normalizer)
+}
+
+func (s *SelfMonitored) LegacyIdentityFields() ([]string, error) {
+	identityFields, err := s.Blood.LegacyIdentityFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if s.Value == nil {
+		return nil, errors.New("value is missing")
+	}
+
+	return append(identityFields, strconv.FormatFloat(*s.Value, 'f', -1, 64)), nil
 }

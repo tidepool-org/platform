@@ -1,6 +1,8 @@
 package food
 
 import (
+	"errors"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/structure"
@@ -103,4 +105,28 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 	}
 
 	f.Base.Normalize(normalizer)
+}
+
+func (f *Food) LegacyIdentityFields() ([]string, error) {
+	identityFields, err := f.Base.LegacyIdentityFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if f.DeviceID == nil {
+		return nil, errors.New("device id is missing")
+	}
+
+	if *f.DeviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
+	if f.Time == nil {
+		return nil, errors.New("time is missing")
+	}
+
+	if (*f.Time).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+
+	return append(identityFields, *f.DeviceID, (*f.Time).Format(types.LegacyFieldTimeFormat)), nil
 }

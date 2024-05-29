@@ -156,6 +156,31 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	}
 }
 
+func (c *CGM) LegacyIdentityFields() ([]string, error) {
+	identityFields, err := c.Base.LegacyIdentityFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if c.Time == nil {
+		return nil, errors.New("time is missing")
+	}
+
+	if (*c.Time).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+
+	if c.DeviceID == nil {
+		return nil, errors.New("device id is missing")
+	}
+
+	if *c.DeviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
+
+	return append(identityFields, (*c.Time).Format(dataTypes.LegacyFieldTimeFormat), *c.DeviceID), nil
+}
+
 func IsValidTransmitterID(value string) bool {
 	return ValidateTransmitterID(value) == nil
 }
