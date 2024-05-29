@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -45,7 +46,7 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 
 		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
-		rest.Get("/v1/users/:userId/device_logs", r.ListDeviceLogs),
+		rest.Get("/v1/users/:userId/device_logs", api.RequireServer(r.ListDeviceLogs)),
 
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
@@ -200,7 +201,23 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	responder.Error(http.StatusNotImplemented, errors.New("not yet implemented"))
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	filter := blob.NewDeviceLogsFilter()
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	logs, err := r.Provider.BlobClient().ListDeviceLogs(req.Context(), userID, filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	responder.Data(http.StatusOK, logs)
 }
 
 func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {

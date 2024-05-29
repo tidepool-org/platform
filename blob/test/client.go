@@ -39,6 +39,17 @@ type CreateDeviceLogsOutput struct {
 	Error error
 }
 
+type ListDeviceLogsInput struct {
+	UserID     string
+	Filter     *blob.DeviceLogsFilter
+	Pagination *page.Pagination
+}
+
+type ListDeviceLogsOutput struct {
+	DeviceLogs blob.DeviceLogsBlobArray
+	Error      error
+}
+
 type GetOutput struct {
 	Blob  *blob.Blob
 	Error error
@@ -65,6 +76,11 @@ type Client struct {
 	ListStub                    func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
 	ListOutputs                 []ListOutput
 	ListOutput                  *ListOutput
+	ListDeviceLogsInvocations   int
+	ListDeviceLogsInputs        []ListDeviceLogsInput
+	ListDeviceLogsStub          func(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error)
+	ListDeviceLogsOutputs       []ListDeviceLogsOutput
+	ListDeviceLogsOutput        *ListDeviceLogsOutput
 	CreateInvocations           int
 	CreateInputs                []CreateInput
 	CreateDeviceLogsInvocations int
@@ -133,6 +149,23 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		return c.CreateOutput.Blob, c.CreateOutput.Error
 	}
 	panic("Create has no output")
+}
+
+func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	c.ListDeviceLogsInvocations++
+	c.ListDeviceLogsInputs = append(c.ListDeviceLogsInputs, ListDeviceLogsInput{UserID: userID, Filter: filter, Pagination: pagination})
+	if c.ListDeviceLogsStub != nil {
+		return c.ListDeviceLogsStub(ctx, userID, filter, pagination)
+	}
+	if len(c.ListDeviceLogsOutputs) > 0 {
+		output := c.ListDeviceLogsOutputs[0]
+		c.ListDeviceLogsOutputs = c.ListDeviceLogsOutputs[1:]
+		return output.DeviceLogs, output.Error
+	}
+	if c.ListDeviceLogsOutput != nil {
+		return c.ListDeviceLogsOutput.DeviceLogs, c.ListOutput.Error
+	}
+	panic("List has no output")
 }
 
 func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {

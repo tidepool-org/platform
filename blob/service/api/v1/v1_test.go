@@ -345,11 +345,108 @@ var _ = Describe("V1", func() {
 						AfterEach(func() {
 							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
 						})
-						It("responds with not implemented request and expected error in body", func() {
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotImplemented}))
-							Expect(res.WriteInputs).To(HaveLen(1))
-							errorsTest.ExpectErrorJSON(errors.New("not yet implemented"), res.WriteInputs[0])
+
+						Context("with clients", func() {
+							var authClient *authTest.Client
+							var client *blobTest.Client
+
+							parameterAssertions := func() {
+								It("responds with an internal server error when the client returns an unknown error", func() {
+									client.ListDeviceLogsOutputs = []blobTest.ListDeviceLogsOutput{{DeviceLogs: nil, Error: errorsTest.RandomError()}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorInternalServerError(nil), res.WriteInputs[0])
+								})
+
+								It("responds successfully when the client does not return device logs", func() {
+									client.ListDeviceLogsOutputs = []blobTest.ListDeviceLogsOutput{{DeviceLogs: blob.DeviceLogsBlobArray{}, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									Expect(res.WriteInputs[0]).To(MatchJSON("[]"))
+								})
+
+								It("responds successfully when the client returns device logs", func() {
+									logs := blobTest.RandomDeviceLogsArray(1, 4)
+									client.ListDeviceLogsOutputs = []blobTest.ListDeviceLogsOutput{{DeviceLogs: logs, Error: nil}}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									Expect(json.Marshal(logs)).To(MatchJSON(res.WriteInputs[0]))
+								})
+							}
+
+							BeforeEach(func() {
+								authClient = authTest.NewClient()
+								client = blobTest.NewClient()
+								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
+							})
+
+							BeforeEach(func() {
+								authClient.EnsureAuthorizedServiceOutputs = []error{nil}
+							})
+
+							AfterEach(func() {
+								authClient.AssertOutputsEmpty()
+								client.AssertOutputsEmpty()
+							})
+
+							When("the client returns an unauthorized error", func() {
+								It("responds with an unauthorized error", func() {
+									provider.BlobClientOutputs = nil
+									authClient.EnsureAuthorizedServiceOutputs = []error{request.ErrorUnauthorized()}
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+								})
+							})
+
+							When("the filter and pagination query parameters are not specified", func() {
+								AfterEach(func() {
+									Expect(client.ListInputs).To(Equal([]blobTest.ListDeviceLogsInput{{
+										UserID:     userID,
+										Filter:     blob.NewDeviceLogsFilter(),
+										Pagination: page.NewPagination(),
+									}}))
+								})
+
+								parameterAssertions()
+							})
+
+							When("the filter and pagination query parameters are specified", func() {
+								var paige int
+								var size int
+								var startTime time.Time
+
+								BeforeEach(func() {
+									startTime = test.PastNearTime()
+									paige = test.RandomIntFromRange(0, math.MaxInt32)
+									size = test.RandomIntFromRange(1, 100)
+									query := url.Values{
+										"page": []string{strconv.Itoa(paige)},
+										"size": []string{strconv.Itoa(size)},
+									}
+									req.URL.RawQuery = query.Encode()
+								})
+
+								AfterEach(func() {
+									Expect(client.ListInputs).To(Equal([]blobTest.ListDeviceLogsInput{{
+										UserID: userID,
+										Filter: &blob.DeviceLogsFilter{
+											Start: &startTime,
+										},
+										Pagination: &page.Pagination{
+											Page: paige,
+											Size: size,
+										},
+									}}))
+								})
+
+								parameterAssertions()
+							})
 						})
 					})
 				})

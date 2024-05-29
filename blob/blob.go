@@ -37,6 +37,7 @@ type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
 	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
 	CreateDeviceLogs(ctx context.Context, userID string, content *DeviceLogsContent) (*DeviceLogsBlob, error)
+	ListDeviceLogs(ctx context.Context, userID string, filter *DeviceLogsFilter, pagination *page.Pagination) (DeviceLogsBlobArray, error)
 	DeleteAll(ctx context.Context, userID string) error
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
@@ -190,6 +191,35 @@ func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 	validator.Time("startAtTime", b.StartAtTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("endAtTime", b.EndAtTime).Exists().NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
+}
+
+type DeviceLogsFilter struct {
+	Start *time.Time `json:"start,omitempty"`
+	End   *time.Time `json:"end,omitempty"`
+}
+
+func NewDeviceLogsFilter() *DeviceLogsFilter {
+	return &DeviceLogsFilter{}
+}
+
+func (f *DeviceLogsFilter) Parse(parser structure.ObjectParser) {
+	f.Start = parser.Time("start", time.RFC3339Nano)
+	f.End = parser.Time("end", time.RFC3339Nano)
+}
+
+func (f *DeviceLogsFilter) Validate(validator structure.Validator) {
+
+}
+
+func (f *DeviceLogsFilter) MutateRequest(req *http.Request) error {
+	parameters := map[string][]string{}
+	if f.Start != nil {
+		parameters["start"] = []string{f.Start.Format(time.RFC3339Nano)}
+	}
+	if f.End != nil {
+		parameters["end"] = []string{f.End.Format(time.RFC3339Nano)}
+	}
+	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
 
 func NewID() string {
