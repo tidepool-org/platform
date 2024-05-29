@@ -59,30 +59,7 @@ func (d *Device) IdentityFields() ([]string, error) {
 }
 
 func (d *Device) LegacyIdentityFields() ([]string, error) {
-	identityFields, err := d.Base.LegacyIdentityFields()
-	if err != nil {
-		return nil, err
-	}
-
-	if d.SubType == "" {
-		return nil, errors.New("sub type is empty")
-	}
-
-	if d.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-
-	if (*d.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-
-	if d.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-
-	if *d.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-
-	return append(identityFields, d.SubType, (*d.Time).Format(types.LegacyFieldTimeFormat), *d.DeviceID), nil
+	builder := types.NewLegacyIdentityBuilder(&d.Base, types.TypeTimeDeviceIDFormat)
+	builder.SetExtra(&d.SubType, "sub type")
+	return builder.Build()
 }

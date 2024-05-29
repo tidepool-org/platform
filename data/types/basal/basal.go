@@ -64,32 +64,9 @@ func (b *Basal) IdentityFields() ([]string, error) {
 }
 
 func (b *Basal) LegacyIdentityFields() ([]string, error) {
-	identityFields, err := b.Base.LegacyIdentityFields()
-	if err != nil {
-		return nil, err
-	}
-
-	if b.DeliveryType == "" {
-		return nil, errors.New("delivery type is empty")
-	}
-
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-
-	if b.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-
-	if (*b.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-
-	return append(identityFields, b.DeliveryType, *b.DeviceID, (*b.Time).Format(types.LegacyFieldTimeFormat)), nil
+	builder := types.NewLegacyIdentityBuilder(&b.Base, types.TypeDeviceIDTimeFormat)
+	builder.SetExtra(&b.DeliveryType, "delivery type")
+	return builder.Build()
 }
 
 func ParseDeliveryType(parser structure.ObjectParser) *string {

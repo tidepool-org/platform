@@ -1,8 +1,6 @@
 package insulin
 
 import (
-	"errors"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/structure"
@@ -76,25 +74,5 @@ func (i *Insulin) Normalize(normalizer data.Normalizer) {
 }
 
 func (i *Insulin) LegacyIdentityFields() ([]string, error) {
-	identityFields, err := i.Base.LegacyIdentityFields()
-	if err != nil {
-		return nil, err
-	}
-
-	if i.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-
-	if *i.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-	if i.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-
-	if (*i.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-
-	return append(identityFields, *i.DeviceID, (*i.Time).Format(types.LegacyFieldTimeFormat)), nil
+	return types.NewLegacyIdentityBuilder(&i.Base, types.TypeDeviceIDTimeFormat).Build()
 }

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -264,11 +265,75 @@ func (b *Base) IdentityFields() ([]string, error) {
 	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
 }
 
-func (b *Base) LegacyIdentityFields() ([]string, error) {
-	if b.Type == "" {
+type LegacyIdentityFormat int
+
+const (
+	_ LegacyIdentityFormat = iota
+	TypeDeviceIDTimeFormat
+	TypeTimeDeviceIDFormat
+)
+
+type legacyIdentityBuilder struct {
+	base       *Base
+	format     LegacyIdentityFormat
+	extraValue *string
+	extraName  string
+}
+
+func NewLegacyIdentityBuilder(base *Base, format LegacyIdentityFormat) *legacyIdentityBuilder {
+	return &legacyIdentityBuilder{
+		base:   base,
+		format: format,
+	}
+}
+
+func (b *legacyIdentityBuilder) SetExtra(val *string, name string) *legacyIdentityBuilder {
+	b.extraValue = val
+	b.extraName = name
+	return b
+}
+
+func (b *legacyIdentityBuilder) Build() ([]string, error) {
+	if b.base.Type == "" {
 		return nil, errors.New("type is empty")
 	}
-	return []string{b.Type}, nil
+
+	if b.base.DeviceID == nil {
+		return nil, errors.New("device id is missing")
+	}
+
+	if *b.base.DeviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
+
+	if b.base.Time == nil {
+		return nil, errors.New("time is missing")
+	}
+
+	if (*b.base.Time).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+
+	if b.extraValue != nil {
+		if *b.extraValue == "" {
+			return nil, fmt.Errorf("%s is empty", b.extraName)
+		}
+	}
+	if b.format == TypeDeviceIDTimeFormat {
+		if b.extraValue != nil {
+			return []string{b.base.Type, *b.extraValue, *b.base.DeviceID, (*b.base.Time).Format(LegacyFieldTimeFormat)}, nil
+		}
+		return []string{b.base.Type, *b.base.DeviceID, (*b.base.Time).Format(LegacyFieldTimeFormat)}, nil
+	}
+	if b.extraValue != nil {
+		return []string{b.base.Type, *b.extraValue, (*b.base.Time).Format(LegacyFieldTimeFormat), *b.base.DeviceID}, nil
+	}
+	return []string{b.base.Type, (*b.base.Time).Format(LegacyFieldTimeFormat), *b.base.DeviceID}, nil
+
+}
+
+func (b *Base) LegacyIdentityFields() ([]string, error) {
+	return nil, errors.New("function must be implemented on data type")
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

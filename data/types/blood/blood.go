@@ -45,26 +45,5 @@ func (b *Blood) IdentityFields() ([]string, error) {
 }
 
 func (b *Blood) LegacyIdentityFields() ([]string, error) {
-	identityFields, err := b.Base.LegacyIdentityFields()
-	if err != nil {
-		return nil, err
-	}
-
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-
-	if b.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-
-	if (*b.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-
-	return append(identityFields, *b.DeviceID, (*b.Time).Format(types.LegacyFieldTimeFormat)), nil
+	return types.NewLegacyIdentityBuilder(&b.Base, types.TypeDeviceIDTimeFormat).Build()
 }

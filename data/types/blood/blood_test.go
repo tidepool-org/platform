@@ -130,41 +130,8 @@ var _ = Describe("Blood", func() {
 		})
 
 		Context("LegacyIdentityFields", func() {
-			var datum *blood.Blood
-
-			BeforeEach(func() {
-				datum = dataTypesBloodTest.NewBlood()
-			})
-
-			It("returns error if device id is missing", func() {
-				datum.DeviceID = nil
-				identityFields, err := datum.LegacyIdentityFields()
-				Expect(err).To(MatchError("device id is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if device id is empty", func() {
-				datum.DeviceID = pointer.FromString("")
-				identityFields, err := datum.LegacyIdentityFields()
-				Expect(err).To(MatchError("device id is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if time is missing", func() {
-				datum.Time = nil
-				identityFields, err := datum.LegacyIdentityFields()
-				Expect(err).To(MatchError("time is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if time is empty", func() {
-				datum.Time = &time.Time{}
-				identityFields, err := datum.LegacyIdentityFields()
-				Expect(err).To(MatchError("time is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
 			It("returns the expected legacy identity fields", func() {
+				datum := dataTypesBloodTest.NewBlood()
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))

@@ -1,8 +1,6 @@
 package physical
 
 import (
-	"errors"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/structure"
@@ -300,25 +298,5 @@ func (p *Physical) Normalize(normalizer data.Normalizer) {
 }
 
 func (p *Physical) LegacyIdentityFields() ([]string, error) {
-	identityFields, err := p.Base.LegacyIdentityFields()
-	if err != nil {
-		return nil, err
-	}
-
-	if p.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-
-	if *p.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-	if p.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-
-	if (*p.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-
-	return append(identityFields, *p.DeviceID, (*p.Time).Format(types.LegacyFieldTimeFormat)), nil
+	return types.NewLegacyIdentityBuilder(&p.Base, types.TypeDeviceIDTimeFormat).Build()
 }

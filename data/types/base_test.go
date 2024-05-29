@@ -968,17 +968,88 @@ var _ = Describe("Base", func() {
 
 		Context("LegacyIdentityFields", func() {
 
-			It("returns error if type is empty", func() {
-				datum.Type = ""
+			var datum *types.Base
+
+			BeforeEach(func() {
+				datum = dataTypesTest.RandomBase()
+			})
+
+			It("returns error if not implemented", func() {
 				identityFields, err := datum.LegacyIdentityFields()
-				Expect(err).To(MatchError("type is empty"))
+				Expect(err).To(MatchError("function must be implemented on data type"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
-			It("returns the expected legacy identity fields", func() {
-				identityFields, err := datum.LegacyIdentityFields()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{datum.Type}))
+			Context("Builder", func() {
+
+				It("returns error if type is empty", func() {
+					datum.Type = ""
+					identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat).Build()
+					Expect(err).To(MatchError("type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is missing", func() {
+					datum.DeviceID = nil
+					identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat).Build()
+					Expect(err).To(MatchError("device id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is empty", func() {
+					datum.DeviceID = pointer.FromString("")
+					identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat).Build()
+					Expect(err).To(MatchError("device id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is missing", func() {
+					datum.Time = nil
+					identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat).Build()
+					Expect(err).To(MatchError("time is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is empty", func() {
+					datum.Time = &time.Time{}
+					identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat).Build()
+					Expect(err).To(MatchError("time is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if extra is empty", func() {
+					builder := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat)
+					builder.SetExtra(pointer.FromString(""), "delivery type")
+					identityFields, err := builder.Build()
+					Expect(err).To(MatchError("delivery type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				Context("with TypeDeviceIDTimeLegacyIdentityFields", func() {
+					It("returns the expected legacy identity fields", func() {
+						identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeDeviceIDTimeFormat).Build()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(identityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+					})
+				})
+
+				Context("with TypeTimeDeviceIDLegacyIdentityFields", func() {
+					It("returns the expected legacy identity fields", func() {
+						identityFields, err := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat).Build()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(identityFields).To(Equal([]string{datum.Type, (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
+					})
+				})
+				Context("with extra", func() {
+					It("returns the expected legacy identity fields", func() {
+						builder := types.NewLegacyIdentityBuilder(datum, types.TypeTimeDeviceIDFormat)
+						builder.SetExtra(pointer.FromString("some-sub-type"), "sub type")
+
+						identityFields, err := builder.Build()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(identityFields).To(Equal([]string{datum.Type, "some-sub-type", (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
+					})
+				})
 			})
 		})
 
