@@ -117,7 +117,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	}
 
 	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(
-		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime)
+		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime, filter.PatientFilters)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

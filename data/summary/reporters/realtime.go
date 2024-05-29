@@ -32,12 +32,10 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 	}
 }
 
-func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time) (*PatientsRealtimeDaysResponse, error) {
-	params := &clinic.ListPatientsParams{
-		Limit: pointer.FromAny(realtimePatientsLengthLimit + 1),
-	}
+func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters *clinic.ListPatientsParams) (*PatientsRealtimeDaysResponse, error) {
+	patientFilters.Limit = pointer.FromAny(realtimePatientsLengthLimit + 1)
 
-	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, params)
+	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, patientFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +143,9 @@ type PatientRealtimeDaysResponse struct {
 }
 
 type PatientRealtimeDaysFilter struct {
-	StartTime *time.Time
-	EndTime   *time.Time
+	StartTime      *time.Time
+	EndTime        *time.Time
+	PatientFilters *clinic.ListPatientsParams
 }
 
 func NewPatientRealtimeDaysFilter() *PatientRealtimeDaysFilter {
@@ -156,6 +155,9 @@ func NewPatientRealtimeDaysFilter() *PatientRealtimeDaysFilter {
 func (d *PatientRealtimeDaysFilter) Parse(parser structure.ObjectParser) {
 	d.StartTime = parser.Time("startDate", time.RFC3339)
 	d.EndTime = parser.Time("endDate", time.RFC3339)
+
+	d.PatientFilters = &clinic.ListPatientsParams{}
+	parser.JSON("patientFilters", d.PatientFilters)
 }
 
 func (d *PatientRealtimeDaysFilter) Validate(validator structure.Validator) {
