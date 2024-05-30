@@ -157,7 +157,7 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 }
 
 func (c *CGM) LegacyIdentityFields() ([]string, error) {
-	return dataTypes.NewLegacyIdentityBuilder(&c.Base, dataTypes.TypeTimeDeviceIDFormat).Build()
+	return dataTypes.GetLegacyIdentityFields(&c.Base, dataTypes.TypeTimeDeviceIDFormat, nil)
 }
 
 func IsValidTransmitterID(value string) bool {

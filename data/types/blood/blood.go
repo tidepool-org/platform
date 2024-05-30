@@ -45,5 +45,5 @@ func (b *Blood) IdentityFields() ([]string, error) {
 }
 
 func (b *Blood) LegacyIdentityFields() ([]string, error) {
-	return types.NewLegacyIdentityBuilder(&b.Base, types.TypeDeviceIDTimeFormat).Build()
+	return types.GetLegacyIdentityFields(&b.Base, types.TypeDeviceIDTimeFormat, nil)
 }

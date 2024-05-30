@@ -74,5 +74,5 @@ func (i *Insulin) Normalize(normalizer data.Normalizer) {
 }
 
 func (i *Insulin) LegacyIdentityFields() ([]string, error) {
-	return types.NewLegacyIdentityBuilder(&i.Base, types.TypeDeviceIDTimeFormat).Build()
+	return types.GetLegacyIdentityFields(&i.Base, types.TypeDeviceIDTimeFormat, nil)
 }

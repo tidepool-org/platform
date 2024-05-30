@@ -298,5 +298,5 @@ func (p *Physical) Normalize(normalizer data.Normalizer) {
 }
 
 func (p *Physical) LegacyIdentityFields() ([]string, error) {
-	return types.NewLegacyIdentityBuilder(&p.Base, types.TypeDeviceIDTimeFormat).Build()
+	return types.GetLegacyIdentityFields(&p.Base, types.TypeDeviceIDTimeFormat, nil)
 }

@@ -273,63 +273,48 @@ const (
 	TypeTimeDeviceIDFormat
 )
 
-type legacyIdentityBuilder struct {
-	base       *Base
-	format     LegacyIdentityFormat
-	extraValue *string
-	extraName  string
+type LegacyIdentityCustomField struct {
+	Value string
+	Name  string
 }
 
-func NewLegacyIdentityBuilder(base *Base, format LegacyIdentityFormat) *legacyIdentityBuilder {
-	return &legacyIdentityBuilder{
-		base:   base,
-		format: format,
-	}
-}
-
-func (b *legacyIdentityBuilder) SetExtra(val *string, name string) *legacyIdentityBuilder {
-	b.extraValue = val
-	b.extraName = name
-	return b
-}
-
-func (b *legacyIdentityBuilder) Build() ([]string, error) {
-	if b.base.Type == "" {
+func GetLegacyIdentityFields(base *Base, format LegacyIdentityFormat, opt *LegacyIdentityCustomField) ([]string, error) {
+	if base.Type == "" {
 		return nil, errors.New("type is empty")
 	}
 
-	if b.base.DeviceID == nil {
+	if base.DeviceID == nil {
 		return nil, errors.New("device id is missing")
 	}
 
-	if *b.base.DeviceID == "" {
+	if *base.DeviceID == "" {
 		return nil, errors.New("device id is empty")
 	}
 
-	if b.base.Time == nil {
+	if base.Time == nil {
 		return nil, errors.New("time is missing")
 	}
 
-	if (*b.base.Time).IsZero() {
+	if (*base.Time).IsZero() {
 		return nil, errors.New("time is empty")
 	}
 
-	if b.extraValue != nil {
-		if *b.extraValue == "" {
-			return nil, fmt.Errorf("%s is empty", b.extraName)
+	if opt != nil {
+		if opt.Value == "" {
+			return nil, fmt.Errorf("%s is empty", opt.Name)
 		}
 	}
-	if b.format == TypeDeviceIDTimeFormat {
-		if b.extraValue != nil {
-			return []string{b.base.Type, *b.extraValue, *b.base.DeviceID, (*b.base.Time).Format(LegacyFieldTimeFormat)}, nil
-		}
-		return []string{b.base.Type, *b.base.DeviceID, (*b.base.Time).Format(LegacyFieldTimeFormat)}, nil
-	}
-	if b.extraValue != nil {
-		return []string{b.base.Type, *b.extraValue, (*b.base.Time).Format(LegacyFieldTimeFormat), *b.base.DeviceID}, nil
-	}
-	return []string{b.base.Type, (*b.base.Time).Format(LegacyFieldTimeFormat), *b.base.DeviceID}, nil
 
+	if format == TypeDeviceIDTimeFormat {
+		if opt != nil {
+			return []string{base.Type, opt.Value, *base.DeviceID, (*base.Time).Format(LegacyFieldTimeFormat)}, nil
+		}
+		return []string{base.Type, *base.DeviceID, (*base.Time).Format(LegacyFieldTimeFormat)}, nil
+	}
+	if opt != nil {
+		return []string{base.Type, opt.Value, (*base.Time).Format(LegacyFieldTimeFormat), *base.DeviceID}, nil
+	}
+	return []string{base.Type, (*base.Time).Format(LegacyFieldTimeFormat), *base.DeviceID}, nil
 }
 
 func (b *Base) LegacyIdentityFields() ([]string, error) {

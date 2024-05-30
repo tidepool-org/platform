@@ -106,5 +106,5 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 }
 
 func (f *Food) LegacyIdentityFields() ([]string, error) {
-	return types.NewLegacyIdentityBuilder(&f.Base, types.TypeDeviceIDTimeFormat).Build()
+	return types.GetLegacyIdentityFields(&f.Base, types.TypeDeviceIDTimeFormat, nil)
 }

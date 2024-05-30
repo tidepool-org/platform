@@ -59,7 +59,5 @@ func (d *Device) IdentityFields() ([]string, error) {
 }
 
 func (d *Device) LegacyIdentityFields() ([]string, error) {
-	builder := types.NewLegacyIdentityBuilder(&d.Base, types.TypeTimeDeviceIDFormat)
-	builder.SetExtra(&d.SubType, "sub type")
-	return builder.Build()
+	return types.GetLegacyIdentityFields(&d.Base, types.TypeTimeDeviceIDFormat, &types.LegacyIdentityCustomField{Value: d.SubType, Name: "sub type"})
 }

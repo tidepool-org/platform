@@ -81,7 +81,5 @@ func (b *Bolus) IdentityFields() ([]string, error) {
 }
 
 func (b *Bolus) LegacyIdentityFields() ([]string, error) {
-	builder := types.NewLegacyIdentityBuilder(&b.Base, types.TypeDeviceIDTimeFormat)
-	builder.SetExtra(&b.SubType, "sub type")
-	return builder.Build()
+	return types.GetLegacyIdentityFields(&b.Base, types.TypeDeviceIDTimeFormat, &types.LegacyIdentityCustomField{Value: b.SubType, Name: "sub type"})
 }
