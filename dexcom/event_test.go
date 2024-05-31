@@ -6,11 +6,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure/validator"
-
-	"github.com/tidepool-org/platform/dexcom"
 )
 
 var _ = Describe("Event", func() {
@@ -116,14 +116,14 @@ var _ = Describe("Event", func() {
 			event := test.RandomEvent(pointer.FromString(dexcom.EventTypeHealth))
 			event.Unit = nil
 			event.Value = pointer.FromString("stuff")
-			validator := validator.New()
+			validator := validator.New(logTest.NewLogger())
 			event.Validate(validator)
 			Expect(validator.Error()).ToNot(HaveOccurred())
 		})
 		DescribeTable("requires",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testEvent.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
@@ -178,7 +178,7 @@ var _ = Describe("Event", func() {
 		DescribeTable("expects value to be valid",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testEvent.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
@@ -206,7 +206,7 @@ var _ = Describe("Event", func() {
 		DescribeTable("value is valid at minimum",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testEvent.Validate(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
 			},
@@ -234,7 +234,7 @@ var _ = Describe("Event", func() {
 		DescribeTable("does not require",
 			func(setupEventFunc func() *dexcom.Event) {
 				testEvent := setupEventFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testEvent.Validate(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
 			},

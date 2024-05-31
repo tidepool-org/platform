@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -31,11 +32,12 @@ var _ = Describe("Calibration", func() {
 		Expect(dexcom.CalibrationUnits()).To(Equal([]string{"unknown", "mg/dL", "mmol/L"}))
 		Expect(dexcom.CalibrationUnits()).To(Equal([]string{dexcom.CalibrationUnitUnknown, dexcom.CalibrationUnitMgdL, dexcom.CalibrationUnitMmolL}))
 	})
+
 	Describe("Validate", func() {
 		DescribeTable("errors when",
 			func(setupFunc func() *dexcom.Calibration) {
 				testCalibration := setupFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testCalibration.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},

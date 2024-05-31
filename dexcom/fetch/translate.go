@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"context"
 	"strconv"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
+	"github.com/tidepool-org/platform/log"
 
 	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -44,7 +46,7 @@ const DailyOffsets = DailyDuration / OffsetDuration
 // - systemTime must not be nil
 // - displayTime can be nil (systemTime used, if so)
 // - datum must not be nil
-func TranslateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dataTypes.Base) {
+func TranslateTime(ctx context.Context, systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dataTypes.Base) {
 	var clockDriftOffsetDuration time.Duration
 	var conversionOffsetDuration time.Duration
 	var timeZoneOffsetDuration time.Duration
@@ -61,6 +63,7 @@ func TranslateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 
 	// If no display time, then no other calculations can be made
 	if displayTime == nil {
+		log.LoggerFromContext(ctx).Warn("Display time missing")
 		return
 	}
 
@@ -106,7 +109,7 @@ func TranslateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 	datum.Payload.Set("displayTime", displayTime) // Original display time
 }
 
-func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
+func translateCalibrationToDatum(ctx context.Context, calibration *dexcom.Calibration) data.Datum {
 	datum := dataTypesDeviceCalibration.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -131,11 +134,11 @@ func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
 	if calibration.ID != nil {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(calibration.ID)}
 	}
-	TranslateTime(calibration.SystemTime, calibration.DisplayTime, &datum.Base)
+	TranslateTime(ctx, calibration.SystemTime, calibration.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateDeviceToDatum(device *dexcom.Device) data.Datum {
+func translateDeviceToDatum(_ context.Context, device *dexcom.Device) data.Datum {
 	datum := dataTypesSettingsCgm.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -354,7 +357,7 @@ func translateAlertSettingUnitToRateAlertUnits(unit *string) *string {
 	return nil
 }
 
-func translateAlertToDatum(alert *dexcom.Alert, version *string) data.Datum {
+func translateAlertToDatum(ctx context.Context, alert *dexcom.Alert, version *string) data.Datum {
 	datum := dataTypesAlert.New()
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -383,11 +386,11 @@ func translateAlertToDatum(alert *dexcom.Alert, version *string) data.Datum {
 	}
 	datum.IssuedTime = alert.DisplayTime.Raw()
 	datum.Name = pointer.CloneString(alert.AlertName)
-	TranslateTime(alert.SystemTime, alert.DisplayTime, &datum.Base)
+	TranslateTime(ctx, alert.SystemTime, alert.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateEGVToDatum(egv *dexcom.EGV) data.Datum {
+func translateEGVToDatum(ctx context.Context, egv *dexcom.EGV) data.Datum {
 	datum := dataTypesBloodGlucoseContinuous.New()
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
@@ -457,11 +460,11 @@ func translateEGVToDatum(egv *dexcom.EGV) data.Datum {
 	if egv.ID != nil {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(egv.ID)}
 	}
-	TranslateTime(egv.SystemTime, egv.DisplayTime, &datum.Base)
+	TranslateTime(ctx, egv.SystemTime, egv.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateEventCarbsToDatum(event *dexcom.Event) data.Datum {
+func translateEventCarbsToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesFood.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -481,11 +484,11 @@ func translateEventCarbsToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
+func translateEventExerciseToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesActivityPhysical.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -515,11 +518,11 @@ func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateEventHealthToDatum(event *dexcom.Event) data.Datum {
+func translateEventHealthToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesStateReported.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -546,11 +549,11 @@ func translateEventHealthToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
+func translateEventInsulinToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesInsulin.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -578,12 +581,12 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 
 	return datum
 }
 
-func translateEventBGToDatum(event *dexcom.Event) data.Datum {
+func translateEventBGToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesBloodGlucoseSelfMonitored.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -602,11 +605,11 @@ func translateEventBGToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
-func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
+func translateEventNoteToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesStateReported.New()
 
 	// TODO: Refactor so we don't have to clear these here
@@ -637,6 +640,6 @@ func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
 		datum.Notes = pointer.FromStringArray([]string{})
 	}
 
-	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }

@@ -46,65 +46,65 @@ var _ = Describe("None", func() {
 
 		Context("New", func() {
 			It("returns an error when the data set is missing", func() {
-				found, err := deduplicator.New(nil)
+				found, err := deduplicator.New(context.Background(), nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(found).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator is missing", func() {
 				dataSet.Deduplicator = nil
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name is missing", func() {
 				dataSet.Deduplicator.Name = nil
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name does not match", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns true when the deduplicator name matches", func() {
-				Expect(deduplicator.New(dataSet)).To(BeTrue())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 			})
 
 			It("returns true when the deduplicator name matches deprecated", func() {
 				dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.continuous")
-				Expect(deduplicator.New(dataSet)).To(BeTrue())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 			})
 		})
 
 		Context("Get", func() {
 			It("returns an error when the data set is missing", func() {
-				found, err := deduplicator.Get(nil)
+				found, err := deduplicator.Get(context.Background(), nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(found).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator is missing", func() {
 				dataSet.Deduplicator = nil
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name is missing", func() {
 				dataSet.Deduplicator.Name = nil
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name does not match", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns true when the deduplicator name matches", func() {
-				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeTrue())
 			})
 
 			It("returns true when the deduplicator name matches deprecated", func() {
 				dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.continuous")
-				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeTrue())
 			})
 		})
 

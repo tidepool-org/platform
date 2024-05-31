@@ -189,7 +189,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(t.context))
 
 	if err := t.getProviderSession(); err != nil {
 		return err
@@ -481,7 +481,7 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (*dexc
 	var devicesDatumArray data.Data
 	for _, device := range *devices {
 		if t.updateDeviceHash(device) {
-			devicesDatumArray = append(devicesDatumArray, translateDeviceToDatum(device))
+			devicesDatumArray = append(devicesDatumArray, translateDeviceToDatum(t.context, device))
 		}
 	}
 
@@ -553,7 +553,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	datumArray := data.Data{}
 	for _, c := range *response.Calibrations {
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateCalibrationToDatum(c))
+			datumArray = append(datumArray, translateCalibrationToDatum(t.context, c))
 		}
 	}
 
@@ -576,7 +576,7 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 	datumArray := data.Data{}
 	for _, c := range *response.Alerts {
 		if t.afterLatestDataTime(c.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateAlertToDatum(c, response.RecordVersion))
+			datumArray = append(datumArray, translateAlertToDatum(t.context, c, response.RecordVersion))
 		}
 	}
 
@@ -601,7 +601,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateEGVToDatum(e))
+			datumArray = append(datumArray, translateEGVToDatum(t.context, e))
 		}
 	}
 
@@ -629,17 +629,17 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 			if t.afterLatestDataTime(e.SystemTime.Raw()) {
 				switch *e.Type {
 				case dexcom.EventTypeCarbs:
-					datumArray = append(datumArray, translateEventCarbsToDatum(e))
+					datumArray = append(datumArray, translateEventCarbsToDatum(t.context, e))
 				case dexcom.EventTypeExercise:
-					datumArray = append(datumArray, translateEventExerciseToDatum(e))
+					datumArray = append(datumArray, translateEventExerciseToDatum(t.context, e))
 				case dexcom.EventTypeHealth:
-					datumArray = append(datumArray, translateEventHealthToDatum(e))
+					datumArray = append(datumArray, translateEventHealthToDatum(t.context, e))
 				case dexcom.EventTypeInsulin:
-					datumArray = append(datumArray, translateEventInsulinToDatum(e))
+					datumArray = append(datumArray, translateEventInsulinToDatum(t.context, e))
 				case dexcom.EventTypeBG:
-					datumArray = append(datumArray, translateEventBGToDatum(e))
+					datumArray = append(datumArray, translateEventBGToDatum(t.context, e))
 				case dexcom.EventTypeNote, dexcom.EventTypeNotes:
-					datumArray = append(datumArray, translateEventNoteToDatum(e))
+					datumArray = append(datumArray, translateEventNoteToDatum(t.context, e))
 				}
 			}
 		case dexcom.EventStatusUpdated, dexcom.EventStatusDeleted:

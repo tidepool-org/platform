@@ -4,10 +4,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/dexcom"
-	"github.com/tidepool-org/platform/structure/parser"
-
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/dexcom"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/structure/parser"
 )
 
 var _ = Describe("Default", func() {
@@ -21,7 +21,7 @@ var _ = Describe("Default", func() {
 				"unit":      dataBloodGlucose.MmolL,
 				"empty-val": "",
 			}
-			objParser = parser.NewObject(&objectData)
+			objParser = parser.NewObject(logTest.NewLogger(), &objectData)
 		})
 
 		It("returns the unit value when set", func() {

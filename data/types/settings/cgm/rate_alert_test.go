@@ -9,6 +9,7 @@ import (
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -84,7 +85,7 @@ var _ = Describe("RateAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.RateAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomRateAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.RateAlert) {},
@@ -217,7 +218,7 @@ var _ = Describe("RateAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.FallAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomFallAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.FallAlert) {},
@@ -416,7 +417,7 @@ var _ = Describe("RateAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.RiseAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomRiseAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.RiseAlert) {},

@@ -10,6 +10,7 @@ import (
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -323,7 +324,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneHighLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -366,7 +367,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					datum := dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesSettingsCgmTest.CloneHighLevelAlertDEPRECATED(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -408,7 +409,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneHighLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -707,7 +708,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneLowLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -750,7 +751,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					datum := dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesSettingsCgmTest.CloneLowLevelAlertDEPRECATED(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -792,7 +793,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneLowLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())

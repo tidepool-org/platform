@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -40,7 +41,7 @@ var _ = Describe("Device", func() {
 		DescribeTable("errors when",
 			func(setupDeviceFunc func() *dexcom.Device) {
 				testDevice := setupDeviceFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testDevice.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
@@ -68,7 +69,7 @@ var _ = Describe("Device", func() {
 		DescribeTable("does not error when",
 			func(setupDeviceFunc func() *dexcom.Device) {
 				testDevice := setupDeviceFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testDevice.Validate(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
 			},

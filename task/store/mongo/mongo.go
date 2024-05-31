@@ -181,10 +181,10 @@ func (t *TaskRepository) EnsureEHRReconcileTask(ctx context.Context) error {
 }
 
 func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate) error {
-	tsk, err := task.NewTask(create)
+	tsk, err := task.NewTask(ctx, create)
 	if err != nil {
 		return err
-	} else if err = structureValidator.New().Validate(tsk); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(tsk); err != nil {
 		return fmt.Errorf("task is invalid: %w", err)
 	}
 	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
@@ -219,12 +219,12 @@ func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter,
 	}
 	if filter == nil {
 		filter = task.NewTaskFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, fmt.Errorf("filter is invalid: %w", err)
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, fmt.Errorf("pagination is invalid: %w", err)
 	}
 	if err := t.assertType(t.typeFilter, filter.Type); err != nil {
@@ -270,10 +270,10 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 		return nil, errors.New("context is missing")
 	}
 
-	tsk, err := task.NewTask(create)
+	tsk, err := task.NewTask(ctx, create)
 	if err != nil {
 		return nil, err
-	} else if err = structureValidator.New().Validate(tsk); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(tsk); err != nil {
 		return nil, fmt.Errorf("task is invalid: %w", err)
 	}
 	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
@@ -332,7 +332,7 @@ func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, fmt.Errorf("update is invalid: %w", err)
 	}
 

@@ -16,6 +16,7 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
@@ -60,7 +61,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromFilter(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Filter{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -146,7 +147,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Filter), expectedErrors ...error) {
 					datum := dataSourceTest.RandomFilter()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Filter) {},
@@ -371,7 +372,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromCreate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Create{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -457,7 +458,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Create), expectedErrors ...error) {
 					datum := dataSourceTest.RandomCreate()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Create) {},
@@ -595,7 +596,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromUpdate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Update{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(dataSourceTest.MatchUpdate(expectedDatum))
 				},
 				Entry("succeeds",
@@ -753,7 +754,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Update), expectedErrors ...error) {
 					datum := dataSourceTest.RandomUpdate()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Update) {},
@@ -1058,7 +1059,7 @@ var _ = Describe("Source", func() {
 					datum := dataSourceTest.RandomUpdate()
 					mutator(datum)
 					expectedDatum := dataSourceTest.CloneUpdate(datum)
-					normalizer := structureNormalizer.New()
+					normalizer := structureNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					Expect(normalizer.Normalize(datum)).ToNot(HaveOccurred())
 					if expectator != nil {
@@ -1149,7 +1150,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromSource(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Source{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(dataSourceTest.MatchSource(expectedDatum))
 				},
 				Entry("succeeds",
@@ -1440,7 +1441,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Source), expectedErrors ...error) {
 					datum := dataSourceTest.RandomSource()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Source) {},
@@ -1812,7 +1813,7 @@ var _ = Describe("Source", func() {
 					datum := dataSourceTest.RandomSource()
 					mutator(datum)
 					expectedDatum := dataSourceTest.CloneSource(datum)
-					normalizer := structureNormalizer.New()
+					normalizer := structureNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					Expect(normalizer.Normalize(datum)).ToNot(HaveOccurred())
 					if expectator != nil {

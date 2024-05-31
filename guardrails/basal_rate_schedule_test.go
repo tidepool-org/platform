@@ -3,13 +3,14 @@ package guardrails_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/tidepool-org/devices/api"
 
-	"github.com/tidepool-org/platform/guardrails"
+	"github.com/tidepool-org/devices/api"
 
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/guardrails"
 	"github.com/tidepool-org/platform/guardrails/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -20,7 +21,7 @@ var _ = Describe("ValidateBasalRateSchedule", func() {
 
 	BeforeEach(func() {
 		guardRail = test.NewBasalRatesGuardRail()
-		validator = structureValidator.New()
+		validator = structureValidator.New(logTest.NewLogger())
 	})
 
 	It("doesn't return error with a single valid value", func() {

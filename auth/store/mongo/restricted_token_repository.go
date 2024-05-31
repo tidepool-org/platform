@@ -45,12 +45,12 @@ func (r *RestrictedTokenRepository) ListUserRestrictedTokens(ctx context.Context
 	}
 	if filter == nil {
 		filter = auth.NewRestrictedTokenFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -85,10 +85,10 @@ func (r *RestrictedTokenRepository) CreateUserRestrictedToken(ctx context.Contex
 		return nil, errors.New("context is missing")
 	}
 
-	restrictedToken, err := auth.NewRestrictedToken(userID, create)
+	restrictedToken, err := auth.NewRestrictedToken(ctx, userID, create)
 	if err != nil {
 		return nil, err
-	} else if err = structureValidator.New().Validate(restrictedToken); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(restrictedToken); err != nil {
 		return nil, errors.Wrap(err, "restricted token is invalid")
 	}
 
@@ -167,7 +167,7 @@ func (r *RestrictedTokenRepository) UpdateRestrictedToken(ctx context.Context, i
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 

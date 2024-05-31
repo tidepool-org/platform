@@ -2,6 +2,7 @@ package alerts
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -68,7 +70,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2)
 		conf := &Config{}
-		err := request.DecodeObject(nil, buf, conf)
+		err := request.DecodeObject(context.Background(), nil, buf, conf)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conf.UserID).To(Equal(mockUserID1))
 		Expect(conf.FollowedUserID).To(Equal(mockUserID2))
@@ -97,22 +99,22 @@ var _ = Describe("Config", func() {
 	Context("UrgentLowAlert", func() {
 		Context("Threshold", func() {
 			It("accepts values between 0 and 1000 mg/dL", func() {
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := UrgentLowAlert{Threshold: Threshold{Value: 0, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = UrgentLowAlert{Threshold: Threshold{Value: 1000, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = UrgentLowAlert{Threshold: Threshold{Value: 1001, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 1001 is not between 0 and 1000"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = UrgentLowAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
@@ -123,29 +125,29 @@ var _ = Describe("Config", func() {
 	Context("LowAlert", func() {
 		Context("Threshold", func() {
 			It("accepts values in mmol/L", func() {
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := LowAlert{Threshold: Threshold{Value: 4.2735, Units: "mmol/L"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 			})
 
 			It("accepts values between 0 and 1000 mg/dL", func() {
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := LowAlert{Threshold: Threshold{Value: 0, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = LowAlert{Threshold: Threshold{Value: 1000, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = LowAlert{Threshold: Threshold{Value: 1001, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 1001 is not between 0 and 1000"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = LowAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
@@ -156,22 +158,22 @@ var _ = Describe("Config", func() {
 			It("accepts values between 0 and 6 hours (inclusive)", func() {
 				okThresh := Threshold{Units: "mg/dL", Value: 123}
 
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := HighAlert{Delay: 0, Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Delay: DurationMinutes(time.Hour * 6 / time.Minute), Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Delay: -1, Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Delay: DurationMinutes(time.Hour*6 + time.Minute), Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 6h1m0s is not between 0s and 6h0m0s"))
@@ -182,22 +184,22 @@ var _ = Describe("Config", func() {
 	Context("HighAlert", func() {
 		Context("Threshold", func() {
 			It("accepts values between 0 and 1000 mg/dL", func() {
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := HighAlert{Threshold: Threshold{Value: 0, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Threshold: Threshold{Value: 1000, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Threshold: Threshold{Value: 1001, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 1001 is not between 0 and 1000"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
@@ -208,22 +210,22 @@ var _ = Describe("Config", func() {
 			It("accepts values between 0 and 6 hours (inclusive)", func() {
 				okThresh := Threshold{Units: "mg/dL", Value: 123}
 
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := HighAlert{Delay: 0, Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Delay: DurationMinutes(time.Hour * 6 / time.Minute), Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Delay: -1, Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = HighAlert{Delay: DurationMinutes(time.Hour*6 + time.Minute), Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 6h1m0s is not between 0s and 6h0m0s"))
@@ -234,22 +236,22 @@ var _ = Describe("Config", func() {
 	Context("NoCommunicationAlert", func() {
 		Context("Delay", func() {
 			It("accepts values between 0 and 6 hours (inclusive)", func() {
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := NoCommunicationAlert{Delay: 0}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = NoCommunicationAlert{Delay: DurationMinutes(time.Hour * 6)}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = NoCommunicationAlert{Delay: -1}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = NoCommunicationAlert{Delay: DurationMinutes(time.Hour*6 + time.Second)}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 6h0m1s is not between 0s and 6h0m0s"))
@@ -260,22 +262,22 @@ var _ = Describe("Config", func() {
 	Context("NotLoopingAlert", func() {
 		Context("Delay", func() {
 			It("accepts values between 0 and 2 hours (inclusive)", func() {
-				val := validator.New()
+				val := validator.New(logTest.NewLogger())
 				b := NotLoopingAlert{Delay: 0}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = NotLoopingAlert{Delay: DurationMinutes(2 * time.Hour)}
 				b.Validate(val)
 				Expect(val.Error()).To(Succeed())
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = NotLoopingAlert{Delay: -1}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 2h0m0s"))
 
-				val = validator.New()
+				val = validator.New(logTest.NewLogger())
 				b = NotLoopingAlert{Delay: DurationMinutes(2*time.Hour + time.Second)}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 2h0m1s is not between 0s and 2h0m0s"))
@@ -286,29 +288,29 @@ var _ = Describe("Config", func() {
 
 	Context("repeat", func() {
 		It("accepts values of 0 (indicating disabled)", func() {
-			val := validator.New()
+			val := validator.New(logTest.NewLogger())
 			b := Base{Repeat: 0}
 			b.Validate(val)
 			Expect(val.Error()).To(Succeed())
 		})
 
 		It("accepts values of 15 minutes to 4 hours (inclusive)", func() {
-			val := validator.New()
+			val := validator.New(logTest.NewLogger())
 			b := Base{Repeat: DurationMinutes(15 * time.Minute)}
 			b.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
-			val = validator.New()
+			val = validator.New(logTest.NewLogger())
 			b = Base{Repeat: DurationMinutes(4 * time.Hour)}
 			b.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
-			val = validator.New()
+			val = validator.New(logTest.NewLogger())
 			b = Base{Repeat: DurationMinutes(4*time.Hour + 1)}
 			b.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
 
-			val = validator.New()
+			val = validator.New(logTest.NewLogger())
 			b = Base{Repeat: DurationMinutes(15*time.Minute - 1)}
 			b.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
@@ -319,7 +321,7 @@ var _ = Describe("Config", func() {
 		It("validates threshold units", func() {
 			buf := buff(`{"urgentLow": {"threshold": {"units":"%s","value":42}}`, "garbage")
 			threshold := &Threshold{}
-			err := request.DecodeObject(nil, buf, threshold)
+			err := request.DecodeObject(context.Background(), nil, buf, threshold)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 		It("validates repeat minutes (negative)", func() {
@@ -336,7 +338,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2, glucose.MgdL)
 			cfg := &Config{}
-			err := request.DecodeObject(nil, buf, cfg)
+			err := request.DecodeObject(context.Background(), nil, buf, cfg)
 			Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
 		})
 		It("validates repeat minutes (string)", func() {
@@ -353,7 +355,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2, glucose.MgdL)
 			cfg := &Config{}
-			err := request.DecodeObject(nil, buf, cfg)
+			err := request.DecodeObject(context.Background(), nil, buf, cfg)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 	})
@@ -373,7 +375,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2)
 			conf := &Config{}
-			err := request.DecodeObject(nil, buf, conf)
+			err := request.DecodeObject(context.Background(), nil, buf, conf)
 			Expect(err).To(Succeed())
 			Expect(conf.Low.Repeat).To(Equal(DurationMinutes(0)))
 		})
@@ -417,7 +419,7 @@ var _ = Describe("Threshold", func() {
 	It("accepts mg/dL", func() {
 		buf := buff(`{"units":"%s","value":42}`, glucose.MgdL)
 		threshold := &Threshold{}
-		err := request.DecodeObject(nil, buf, threshold)
+		err := request.DecodeObject(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
 		Expect(threshold.Units).To(Equal(glucose.MgdL))
@@ -425,25 +427,25 @@ var _ = Describe("Threshold", func() {
 	It("accepts mmol/L", func() {
 		buf := buff(`{"units":"%s","value":42}`, glucose.MmolL)
 		threshold := &Threshold{}
-		err := request.DecodeObject(nil, buf, threshold)
+		err := request.DecodeObject(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
 		Expect(threshold.Units).To(Equal(glucose.MmolL))
 	})
 	It("rejects lb/gal", func() {
 		buf := buff(`{"units":"%s","value":42}`, "lb/gal")
-		err := request.DecodeObject(nil, buf, &Threshold{})
+		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 	It("rejects blank units", func() {
 		buf := buff(`{"units":"","value":42}`)
-		err := request.DecodeObject(nil, buf, &Threshold{})
+		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 	It("is case-sensitive with respect to Units", func() {
 		badUnits := strings.ToUpper(glucose.MmolL)
 		buf := buff(`{"units":"%s","value":42}`, badUnits)
-		err := request.DecodeObject(nil, buf, &Threshold{})
+		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 

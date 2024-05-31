@@ -159,7 +159,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -239,7 +239,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -280,7 +280,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -482,10 +482,10 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (bson.M, error) {
 	if selectors == nil {
 		return bson.M{}, nil
-	} else if err := structureValidator.New().Validate(selectors); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
 		return nil, errors.Join(ErrSelectorsInvalid, err)
 	}
 

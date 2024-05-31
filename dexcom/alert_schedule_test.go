@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -260,7 +261,7 @@ var _ = Describe("Alert", func() {
 		DescribeTable("empty",
 			func(value *dexcom.AlertSchedules) {
 				Expect(value).ToNot(BeNil())
-				testValidator := structureValidator.New()
+				testValidator := structureValidator.New(logTest.NewLogger())
 				value.Validate(testValidator)
 				Expect(testValidator.HasError()).To(BeFalse())
 				Expect(len(*value)).To(Equal(0))
@@ -270,7 +271,7 @@ var _ = Describe("Alert", func() {
 		DescribeTable("AlertScheduleSettings",
 			func(setupFunc func() *dexcom.AlertScheduleSettings) {
 				val := setupFunc()
-				testValidator := structureValidator.New()
+				testValidator := structureValidator.New(logTest.NewLogger())
 				val.Validate(testValidator)
 				Expect(testValidator.HasError()).To(BeFalse())
 			},
@@ -352,7 +353,7 @@ var _ = Describe("Alert", func() {
 		DescribeTable("AlertScheduleSettings",
 			func(setupFunc func() *dexcom.AlertScheduleSettings, expectError bool) {
 				val := setupFunc()
-				testValidator := structureValidator.New()
+				testValidator := structureValidator.New(logTest.NewLogger())
 				val.Validate(testValidator)
 				Expect(testValidator.HasError()).To(Equal(expectError))
 			},
@@ -464,7 +465,7 @@ var _ = Describe("Alert", func() {
 		DescribeTable("AlertSetting",
 			func(setupFunc func() *dexcom.AlertSetting, expectError bool) {
 				val := setupFunc()
-				testValidator := structureValidator.New()
+				testValidator := structureValidator.New(logTest.NewLogger())
 
 				val.Validate(testValidator)
 				Expect(testValidator.HasError()).To(Equal(expectError))

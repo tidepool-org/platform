@@ -3,6 +3,7 @@ package validator
 import (
 	"time"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -11,14 +12,18 @@ type Validator struct {
 	base *structureBase.Base
 }
 
-func New() *Validator {
-	return NewValidator(structureBase.New().WithSource(structure.NewPointerSource()))
+func New(logger log.Logger) *Validator {
+	return NewValidator(structureBase.New(logger).WithSource(structure.NewPointerSource()))
 }
 
 func NewValidator(base *structureBase.Base) *Validator {
 	return &Validator{
 		base: base,
 	}
+}
+
+func (v *Validator) Logger() log.Logger {
+	return v.base.Logger()
 }
 
 func (v *Validator) Origin() structure.Origin {
