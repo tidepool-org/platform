@@ -165,10 +165,10 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 		}
 	}
 
-	if userID := authDetails.UserID(); userID == "" {
-		lgr.Warnf("Unable to read the request's userID for provenance: userID is empty")
-	} else {
+	if userID := authDetails.UserID(); userID != "" {
 		provenance.ByUserID = userID
+	} else if shouldHaveJWT(authDetails) && !authDetails.IsService() {
+		lgr.Warnf("Unable to read the request's userID for provenance: userID is empty")
 	}
 
 	return provenance
