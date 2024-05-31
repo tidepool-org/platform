@@ -13,6 +13,10 @@ import (
 )
 
 var _ = Describe("Dexcom", func() {
+	It("DateRangeTimeFormat is expected", func() {
+		Expect(dexcom.DateRangeTimeFormat).To(Equal("2006-01-02T15:04:05"))
+	})
+
 	It("SystemTimeNowThreshold is expected", func() {
 		Expect(dexcom.SystemTimeNowThreshold).To(Equal(24 * time.Hour))
 	})

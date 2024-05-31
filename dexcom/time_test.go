@@ -77,7 +77,7 @@ var _ = Describe("Time", func() {
 			Entry("valid time string with milliseconds", "2001-02-03T14:15:16.7531", time.Date(2001, 2, 3, 14, 15, 16, 753100000, time.UTC)),
 			Entry("valid time string with milliseconds and Z time zone", "2001-02-03T14:15:16.7531Z", time.Date(2001, 2, 3, 14, 15, 16, 753100000, time.UTC)),
 			Entry("valid time string with milliseconds and -05:00 time zone", "2001-02-03T14:15:16.7531-05:00", time.Date(2001, 2, 3, 14, 15, 16, 753100000, time.FixedZone("", -5*60*60))),
-			Entry("valid time string with missing zero prefixes", "2001-2-3T4:5:6.", time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC)),
+			Entry("valid time string with missing zero prefixes", "2001-2-3T4:0:6.", time.Date(2001, 2, 3, 4, 0, 6, 0, time.UTC)),
 		)
 	})
 
@@ -141,7 +141,7 @@ var _ = Describe("Time", func() {
 			Entry("valid time string with milliseconds", "2001-02-03T14:15:16.7531", time.Date(2001, 2, 3, 14, 15, 16, 753100000, time.UTC), false),
 			Entry("valid time string with milliseconds and Z time zone", "2001-02-03T14:15:16.7531Z", time.Date(2001, 2, 3, 14, 15, 16, 753100000, time.UTC), true),
 			Entry("valid time string with milliseconds and -05:00 time zone", "2001-02-03T14:15:16.7531-05:00", time.Date(2001, 2, 3, 14, 15, 16, 753100000, time.FixedZone("", -5*60*60)), true),
-			Entry("valid time string with missing zero prefixes", "2001-2-3T4:5:6.", time.Date(2001, 2, 3, 4, 5, 6, 0, time.UTC), false),
+			Entry("valid time string with missing zero prefixes", "2001-2-3T4:0:6.", time.Date(2001, 2, 3, 4, 0, 6, 0, time.UTC), false),
 		)
 	})
 
