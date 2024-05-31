@@ -97,8 +97,8 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 	now := time.Now()
 
 	url = c.client.AppendURLQuery(url, map[string]string{
-		"startDate": startTime.UTC().Format(dexcom.TimeFormat),
-		"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
+		"startDate": startTime.UTC().Format(dexcom.DateRangeTimeFormat),
+		"endDate":   endTime.UTC().Format(dexcom.DateRangeTimeFormat),
 	})
 
 	err := c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)

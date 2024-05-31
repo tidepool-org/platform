@@ -549,8 +549,8 @@ func NewAlertSetting() *AlertSetting {
 }
 
 func (a *AlertSetting) Parse(parser structure.ObjectParser) {
-	a.SystemTime = TimeFromString(parser.String("systemTime"))
-	a.DisplayTime = TimeFromString(parser.String("displayTime"))
+	a.SystemTime = ParseTime("systemTime", parser)
+	a.DisplayTime = ParseTime("displayTime", parser)
 	a.AlertName = parser.String("alertName")
 	a.Unit = parser.String("unit")
 	a.Value = parser.Float64("value")

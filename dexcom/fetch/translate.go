@@ -40,16 +40,31 @@ const MinimumOffsets = (-12 * time.Hour) / OffsetDuration // Minimum time zone o
 const DailyDuration = 24 * time.Hour
 const DailyOffsets = DailyDuration / OffsetDuration
 
-func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dataTypes.Base) {
+// Expectations:
+// - systemTime must not be nil
+// - displayTime can be nil (systemTime used, if so)
+// - datum must not be nil
+func TranslateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dataTypes.Base) {
 	var clockDriftOffsetDuration time.Duration
 	var conversionOffsetDuration time.Duration
 	var timeZoneOffsetDuration time.Duration
 
-	// Force system time to UTC and default display time to system time
-	calculatedSystemTime := systemTime.UTC()
-	calculatedDisplayTime := pointer.DefaultTime(displayTime.Raw(), *systemTime.Raw())
+	// Get system time in UTC
+	systemTimeUTC := systemTime.UTC()
 
-	delta := calculatedDisplayTime.Sub(calculatedSystemTime)
+	// Update datum
+	datum.Time = pointer.FromTime(systemTimeUTC)
+	if datum.Payload == nil {
+		datum.Payload = metadata.NewMetadata()
+	}
+	datum.Payload.Set("systemTime", systemTime) // Original system time
+
+	// If no display time, then no other calculations can be made
+	if displayTime == nil {
+		return
+	}
+
+	delta := displayTime.Sub(systemTimeUTC)
 	if delta > 0 {
 		offsetCount := time.Duration((float64(delta) + float64(OffsetDuration)/2) / float64(OffsetDuration))
 		clockDriftOffsetDuration = delta - offsetCount*OffsetDuration
@@ -68,13 +83,19 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
-	// If display time zone offset is non-zero, then apply
-	if _, calculatedDisplayTimeZoneOffset := calculatedDisplayTime.Zone(); calculatedDisplayTimeZoneOffset != 0 {
-		timeZoneOffsetDuration += time.Duration(calculatedDisplayTimeZoneOffset) * time.Second
+	// If the display time zone was parsed, then force the time zone offset to match
+	if displayTime.ZoneParsed() {
+
+		// Apply any current time zone offset to the conversion offset
+		conversionOffsetDuration += timeZoneOffsetDuration
+
+		// Force time zone offset to what is specified in the display time
+		_, displayTimeZoneOffset := displayTime.Zone()
+		timeZoneOffsetDuration = time.Duration(displayTimeZoneOffset) * time.Second
 	}
 
-	datum.Time = pointer.FromTime(calculatedSystemTime)
-	datum.DeviceTime = pointer.FromString(calculatedDisplayTime.Format(dataTypes.DeviceTimeFormat))
+	// Update datum
+	datum.DeviceTime = pointer.FromString(displayTime.Format(dataTypes.DeviceTimeFormat))
 	datum.TimeZoneOffset = pointer.FromInt(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
 		datum.ClockDriftOffset = pointer.FromInt(int(clockDriftOffsetDuration / time.Millisecond))
@@ -82,12 +103,7 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 	if conversionOffsetDuration != 0 {
 		datum.ConversionOffset = pointer.FromInt(int(conversionOffsetDuration / time.Millisecond))
 	}
-
-	if datum.Payload == nil {
-		datum.Payload = metadata.NewMetadata()
-	}
-	(*datum.Payload)["systemTime"] = systemTime.Raw()
-	(*datum.Payload)["displayTime"] = displayTime.Raw()
+	datum.Payload.Set("displayTime", displayTime) // Original display time
 }
 
 func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
@@ -115,7 +131,7 @@ func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
 	if calibration.ID != nil {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(calibration.ID)}
 	}
-	translateTime(calibration.SystemTime, calibration.DisplayTime, &datum.Base)
+	TranslateTime(calibration.SystemTime, calibration.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -367,7 +383,7 @@ func translateAlertToDatum(alert *dexcom.Alert, version *string) data.Datum {
 	}
 	datum.IssuedTime = alert.DisplayTime.Raw()
 	datum.Name = pointer.CloneString(alert.AlertName)
-	translateTime(alert.SystemTime, alert.DisplayTime, &datum.Base)
+	TranslateTime(alert.SystemTime, alert.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -441,7 +457,7 @@ func translateEGVToDatum(egv *dexcom.EGV) data.Datum {
 	if egv.ID != nil {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(egv.ID)}
 	}
-	translateTime(egv.SystemTime, egv.DisplayTime, &datum.Base)
+	TranslateTime(egv.SystemTime, egv.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -465,7 +481,7 @@ func translateEventCarbsToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -499,7 +515,7 @@ func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -530,7 +546,7 @@ func translateEventHealthToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -562,7 +578,7 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
 
 	return datum
 }
@@ -586,7 +602,7 @@ func translateEventBGToDatum(event *dexcom.Event) data.Datum {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
 	}
 
-	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }
 
@@ -621,6 +637,6 @@ func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
 		datum.Notes = pointer.FromStringArray([]string{})
 	}
 
-	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	TranslateTime(event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
 }

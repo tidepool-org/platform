@@ -199,8 +199,8 @@ func NewEvent() *Event {
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {
-	e.SystemTime = TimeFromString(parser.String("systemTime"))
-	e.DisplayTime = TimeFromString(parser.String("displayTime"))
+	e.SystemTime = ParseTime("systemTime", parser)
+	e.DisplayTime = ParseTime("displayTime", parser)
 	e.Type = parser.String("eventType")
 	e.SubType = parser.String("eventSubType")
 
