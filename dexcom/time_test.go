@@ -15,7 +15,7 @@ var _ = Describe("Time", func() {
 	Context("ParseTime", func() {
 		It("returns nil if key not present in parser", func() {
 			parser := structureParser.NewObject(&map[string]any{})
-			tm := dexcom.ParseTime("test", parser)
+			tm := dexcom.ParseTime(parser, "test")
 			Expect(tm).To(BeNil())
 			Expect(parser.HasError()).To(BeFalse())
 		})
@@ -23,7 +23,7 @@ var _ = Describe("Time", func() {
 		DescribeTable("does not parse an invalid time string",
 			func(timeString string) {
 				parser := structureParser.NewObject(&map[string]any{"test": timeString})
-				tm := dexcom.ParseTime("test", parser)
+				tm := dexcom.ParseTime(parser, "test")
 				Expect(parser.HasError()).To(BeTrue())
 				Expect(parser.Error()).To(MatchError(fmt.Sprintf(`value "%s" is not a parsable time of format "2006-01-02T15:04:05.999999999Z07:00"`, timeString)))
 				Expect(tm).To(BeNil())
@@ -53,7 +53,7 @@ var _ = Describe("Time", func() {
 		DescribeTable("parses the time appropriately",
 			func(timeString string, expectedTime time.Time) {
 				parser := structureParser.NewObject(&map[string]any{"test": timeString})
-				tm := dexcom.ParseTime("test", parser)
+				tm := dexcom.ParseTime(parser, "test")
 				Expect(parser.HasError()).To(BeFalse())
 				Expect(tm).ToNot(BeNil())
 				Expect(tm.Raw()).ToNot(BeNil())

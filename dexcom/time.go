@@ -14,7 +14,7 @@ import (
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 )
 
-func ParseTime(reference string, parser structure.ObjectParser) *Time {
+func ParseTime(parser structure.ObjectParser, reference string) *Time {
 	serialized := parser.String(reference)
 	if serialized == nil {
 		return nil

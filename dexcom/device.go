@@ -157,7 +157,7 @@ func NewDevice() *Device {
 }
 
 func (d *Device) Parse(parser structure.ObjectParser) {
-	d.LastUploadDate = ParseTime("lastUploadDate", parser)
+	d.LastUploadDate = ParseTime(parser, "lastUploadDate")
 	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertSchedules"))
 	d.TransmitterID = parser.String("transmitterId")
 	d.TransmitterGeneration = parser.String("transmitterGeneration")

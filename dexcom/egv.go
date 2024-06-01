@@ -183,8 +183,8 @@ func NewEGV() *EGV {
 
 func (e *EGV) Parse(parser structure.ObjectParser) {
 	e.ID = parser.String("recordId")
-	e.SystemTime = ParseTime("systemTime", parser)
-	e.DisplayTime = ParseTime("displayTime", parser)
+	e.SystemTime = ParseTime(parser, "systemTime")
+	e.DisplayTime = ParseTime(parser, "displayTime")
 	e.Unit = StringOrDefault(parser, "unit", EGVUnitMgdL)
 	e.RateUnit = StringOrDefault(parser, "rateUnit", EGVRateUnitMgdLMinute)
 	e.Value = parser.Float64("value")

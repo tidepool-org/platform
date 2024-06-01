@@ -121,8 +121,8 @@ func NewCalibration() *Calibration {
 
 func (c *Calibration) Parse(parser structure.ObjectParser) {
 	c.ID = parser.String("recordId")
-	c.SystemTime = ParseTime("systemTime", parser)
-	c.DisplayTime = ParseTime("displayTime", parser)
+	c.SystemTime = ParseTime(parser, "systemTime")
+	c.DisplayTime = ParseTime(parser, "displayTime")
 	c.Unit = StringOrDefault(parser, "unit", CalibrationUnitMgdL)
 	c.Value = parser.Float64("value")
 	c.TransmitterID = parser.String("transmitterId")

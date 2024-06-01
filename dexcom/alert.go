@@ -142,8 +142,8 @@ func NewAlert() *Alert {
 
 func (a *Alert) Parse(parser structure.ObjectParser) {
 	a.ID = parser.String("recordId")
-	a.SystemTime = ParseTime("systemTime", parser)
-	a.DisplayTime = ParseTime("displayTime", parser)
+	a.SystemTime = ParseTime(parser, "systemTime")
+	a.DisplayTime = ParseTime(parser, "displayTime")
 	a.TransmitterID = parser.String("transmitterId")
 	a.TransmitterGeneration = parser.String("transmitterGeneration")
 	a.DisplayDevice = parser.String("displayDevice")
