@@ -51,7 +51,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
@@ -101,8 +100,20 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "origin.id", Value: 1},
+				{Key: "deletedTime", Value: -1},
+				{Key: "_active", Value: 1},
+			},
+			Options: options.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+				}).
+				SetName("UserIdOriginId"),
 		},
 		{
 			Keys: bson.D{
@@ -112,7 +123,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
 		},
 		{
@@ -124,7 +134,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -195,7 +204,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
+	// selector["type"] = bson.M{"$ne": "upload"} // xtype
 	selector["_active"] = false
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -235,7 +244,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
+	// selector["type"] = bson.M{"$ne": "upload"} // xtype
 	selector["_active"] = true
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -275,7 +284,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	// selector["type"] = bson.M{"$ne": "upload"}
+	// selector["type"] = bson.M{"$ne": "upload"} // xtype
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
@@ -352,7 +361,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
+	// selector["type"] = bson.M{"$ne": "upload"} // xtype
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
@@ -382,7 +391,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 	selector := bson.M{
 		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
+		// "type":     bson.M{"$ne": "upload"}, // xtype
 	}
 
 	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
@@ -390,7 +399,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 		selector = bson.M{
 			"_userId":  dataSet.UserID,
 			"deviceId": *dataSet.DeviceID,
-			// "type":               bson.M{"$ne": "upload"},
+			// "type":               bson.M{"$ne": "upload"}, // xtype
 			"_active":            true,
 			"_deduplicator.hash": bson.M{"$in": hashes},
 		}
@@ -432,7 +441,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 		{
 			"$match": bson.M{
 				"uploadId": dataSet.UploadID,
-				"type":     bson.M{"$ne": "upload"},
+				// "type":     bson.M{"$ne": "upload"}, // xtype
 			},
 		},
 		{
