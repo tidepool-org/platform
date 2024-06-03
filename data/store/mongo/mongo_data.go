@@ -39,17 +39,8 @@ func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, fi
 	return d.DataSetRepository.ListUserDataSets(ctx, userID, filter, pagination)
 }
 
-func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	// Try reading from both new and old collections that hold dataSets, starting with the new one.
-	// Can read only from the new deviceDataSets collection via DataSetRepository when migration completed.
-	dataSet, err := d.DataSetRepository.GetDataSet(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if dataSet != nil {
-		return dataSet, nil
-	}
-	return d.DatumRepository.GetDataSet(ctx, id)
+func (d *DataRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
+	return d.DataSetRepository.GetDataSet(ctx, dataSetID)
 }
 
 func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {

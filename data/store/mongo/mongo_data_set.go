@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	stdErrs "errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -109,7 +110,7 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string
 	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.GetDataSetByID")
 
-	if err == mongo.ErrNoDocuments {
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set by id")
@@ -208,25 +209,25 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSetRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+func (d *DataSetRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
+	if dataSetID == "" {
 		return nil, errors.New("id is missing")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
+	logger := log.LoggerFromContext(ctx).WithField("id", dataSetID)
 
 	var dataSet *data.DataSet
 	selector := bson.M{
-		"uploadId": id,
+		"uploadId": dataSetID,
 	}
 
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DataSet.GetDataSet")
-	if err == mongo.ErrNoDocuments {
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set")
