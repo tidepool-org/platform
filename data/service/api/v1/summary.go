@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/clinics"
+
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/reporters"
@@ -119,7 +121,12 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(
 		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime, filter.PatientFilters)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		if errors.Code(err) == clinics.ErrorCodeClinicClientFailure {
+			res := errors.Meta(err).(*http.Response)
+			responder.Reader(res.StatusCode, res.Body)
+		} else {
+			responder.Error(http.StatusInternalServerError, err)
+		}
 		return
 	}
 

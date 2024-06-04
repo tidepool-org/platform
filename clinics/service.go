@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/tidepool-org/platform/errors"
+
 	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/kelseyhightower/envconfig"
@@ -16,6 +18,8 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 )
+
+const ErrorCodeClinicClientFailure = "clinic-client-failure"
 
 var ClientModule = fx.Provide(NewClient)
 
@@ -166,12 +170,17 @@ func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userTo
 		req.Header.Set(auth.TidepoolSessionTokenHeaderKey, userToken)
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
+
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+
+		return nil, err
 	}
 
 	return *response.JSON200.Data, nil

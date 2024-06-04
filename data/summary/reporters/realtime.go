@@ -55,14 +55,31 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 	}
 
 	patientsResponse := make([]PatientRealtimeDaysResponse, len(userIdsRealtimeDays))
+	var patient PatientRealtimeDaysResponse
+	var sufficient bool
+
+	// we want to put >= realtimeDaysThreshold records first in the list, before any <
+	// so we will insert from both directions on the list, and meet in the middle
+	frontIndex := 0
+	rearIndex := len(userIdsRealtimeDays) - 1
+
 	for i := 0; i < len(userIdsRealtimeDays); i++ {
-		patientsResponse[i] = PatientRealtimeDaysResponse{
+		sufficient = userIdsRealtimeDays[*patients[i].Id] >= realtimeDaysThreshold
+		patient = PatientRealtimeDaysResponse{
 			Id:                *patients[i].Id,
 			FullName:          patients[i].FullName,
 			BirthDate:         patients[i].BirthDate.Format(time.DateOnly),
 			MRN:               patients[i].Mrn,
 			RealtimeDays:      userIdsRealtimeDays[*patients[i].Id],
-			HasSufficientData: userIdsRealtimeDays[*patients[i].Id] >= realtimeDaysThreshold,
+			HasSufficientData: sufficient,
+		}
+
+		if sufficient {
+			patientsResponse[frontIndex] = patient
+			frontIndex++
+		} else {
+			patientsResponse[rearIndex] = patient
+			rearIndex--
 		}
 	}
 
