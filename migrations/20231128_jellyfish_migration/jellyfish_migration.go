@@ -24,17 +24,15 @@ type Migration struct {
 }
 
 type config struct {
-	cap                 int
-	uri                 string
-	dryRun              bool
-	stopOnErr           bool
-	rollback            bool
-	rollbackSectionName string
-	userID              string
-	lastUpdatedID       string
-	nopPercent          int
-	queryBatchSize      int
-	queryLimit          int
+	cap            int
+	uri            string
+	dryRun         bool
+	stopOnErr      bool
+	userID         string
+	lastUpdatedID  string
+	nopPercent     int
+	queryBatchSize int
+	queryLimit     int
 }
 
 const DryRunFlag = "dry-run"
@@ -50,11 +48,9 @@ func main() {
 
 func NewJellyfishMigration(ctx context.Context) *Migration {
 	return &Migration{
-		config: &config{
-			rollbackSectionName: "_rollbackJellyfishMigration",
-		},
-		ctx: ctx,
-		cli: cli.NewApp(),
+		config: &config{},
+		ctx:    ctx,
+		cli:    cli.NewApp(),
 	}
 }
 
@@ -62,7 +58,6 @@ func (c *config) report() string {
 	details := "\nMIGRATION DETAILS:\n"
 	details += fmt.Sprintf("- CAP\t\t\t[%d]\n", c.cap)
 	details += fmt.Sprintf("- AUDIT? \t\t[%t]\n", c.dryRun)
-	details += fmt.Sprintf("- ROLLBACK\t\t[%t]\n", c.rollback)
 	details += fmt.Sprintf("- STOP ON ERROR\t\t[%t]\n", c.stopOnErr)
 	details += fmt.Sprintf("- LAST PROCESSED ID\t[%s]\n", c.lastUpdatedID)
 	details += fmt.Sprintf("- USER ID\t\t[%s]\n", c.userID)
@@ -95,8 +90,6 @@ func (m *Migration) RunAndExit() {
 			utils.NewSettings(
 				&m.config.dryRun,
 				&m.config.stopOnErr,
-				&m.config.rollback,
-				&m.config.rollbackSectionName,
 				&m.config.cap,
 				&m.config.queryBatchSize,
 				&m.config.queryLimit,
@@ -151,11 +144,6 @@ func (m *Migration) Initialize() error {
 			Name:        "stop-error",
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
-		},
-		cli.BoolFlag{
-			Name:        "rollback",
-			Usage:       "rollback migration changes that have been applied",
-			Destination: &m.config.rollback,
 		},
 		cli.IntFlag{
 			Name:        "cap",

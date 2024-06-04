@@ -16,13 +16,9 @@ import (
 )
 
 type UpdateData struct {
-	Filter    interface{} `json:"-"`
-	ItemID    string      `json:"_id"`
-	UserID    string      `json:"_userId"`
-	ItemType  string      `json:"-"`
-	Apply     []bson.M    `json:"apply"`
-	ApplyLast bson.M      `json:"applyLast"`
-	Revert    []bson.M    `json:"revert"`
+	Filter interface{} `json:"-"`
+	ItemID string      `json:"_id"`
+	Apply  []bson.M    `json:"apply"`
 }
 
 type ErrorData struct {
@@ -41,27 +37,23 @@ type MigrationStats struct {
 }
 
 type Settings struct {
-	DryRun              bool
-	Rollback            bool
-	RollbackSectionName string
-	StopOnErr           bool
-	WriteBatchSize      *int64
-	QueryBatchSize      int
-	QueryBatchLimit     int
+	DryRun          bool
+	StopOnErr       bool
+	WriteBatchSize  *int64
+	QueryBatchSize  int
+	QueryBatchLimit int
 
 	capacity    *int
 	writeToDisk bool
 }
 
-func NewSettings(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionName *string, capacity *int, queryBatch *int, queryLimit *int, writeToDisk *bool) *Settings {
+func NewSettings(dryRun *bool, stopOnErr *bool, capacity *int, queryBatch *int, queryLimit *int, writeToDisk *bool) *Settings {
 	settings := &Settings{
-		writeToDisk:         false,
-		Rollback:            true,
-		RollbackSectionName: "_rollbackMigration",
-		DryRun:              true,
-		StopOnErr:           true,
-		QueryBatchSize:      50,
-		QueryBatchLimit:     100,
+		writeToDisk:     false,
+		DryRun:          true,
+		StopOnErr:       true,
+		QueryBatchSize:  50,
+		QueryBatchLimit: 100,
 	}
 	if dryRun != nil {
 		settings.DryRun = *dryRun
@@ -69,12 +61,7 @@ func NewSettings(dryRun *bool, stopOnErr *bool, rollback *bool, rollbackSectionN
 	if stopOnErr != nil {
 		settings.StopOnErr = *stopOnErr
 	}
-	if rollback != nil {
-		settings.Rollback = *rollback
-	}
-	if rollbackSectionName != nil {
-		settings.RollbackSectionName = *rollbackSectionName
-	}
+
 	if writeToDisk != nil {
 		settings.writeToDisk = *writeToDisk
 	}
@@ -188,7 +175,7 @@ func (m *DataMigration) Execute(
 	return nil
 }
 
-func (d UpdateData) getMongoUpdates(rollback bool, rollbackSectionName string) []mongo.WriteModel {
+func (d UpdateData) getMongoUpdates() []mongo.WriteModel {
 	updates := []mongo.WriteModel{}
 	for _, u := range d.Apply {
 		updateOp := mongo.NewUpdateOneModel()
@@ -196,20 +183,11 @@ func (d UpdateData) getMongoUpdates(rollback bool, rollbackSectionName string) [
 		updateOp.SetUpdate(u)
 		updates = append(updates, updateOp)
 	}
-	updateOp := mongo.NewUpdateOneModel()
-	updateOp.Filter = d.Filter
-	if !rollback && len(d.Revert) > 0 {
-		updateOp.SetUpdate(bson.M{"$set": bson.M{rollbackSectionName: d.Revert}})
-	} else if rollback {
-		updateOp.SetUpdate(bson.M{"$unset": bson.M{rollbackSectionName: ""}})
-	}
-	updates = append(updates, updateOp)
 	return updates
 }
 
 func (m *DataMigration) SetUpdates(data UpdateData) {
-	m.groupedDiffs[data.ItemType] = append(m.groupedDiffs[data.ItemType], data)
-	m.updates = append(m.updates, data.getMongoUpdates(m.settings.Rollback, m.settings.RollbackSectionName)...)
+	m.updates = append(m.updates, data.getMongoUpdates()...)
 }
 
 func (m *DataMigration) updatesApplied(updatedCount int) {
@@ -243,8 +221,8 @@ func (m *DataMigration) SetLastProcessed(lastID string) {
 	m.writeLastProcessed(m.lastUpdatedID)
 }
 
-func (m *DataMigration) SetFetched(raw []bson.M) {
-	m.fetchedCount += len(raw)
+func (m *DataMigration) UpdateFetchedCount() {
+	m.fetchedCount++
 }
 
 func (m *DataMigration) GetStats() MigrationStats {

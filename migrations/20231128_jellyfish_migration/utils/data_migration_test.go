@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	platformLog "github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -54,32 +55,23 @@ func setCollectionData(ctx context.Context, dataC *mongo.Collection, dataSetData
 var _ = Describe("back-37", func() {
 	var _ = Describe("migrationUtil", func() {
 
-		var testData []map[string]interface{}
+		var testJFData []map[string]interface{}
+		var testJFUploads []map[string]interface{}
 		const datumCount = 1000
+		const uploadCount = 99
 		var store *dataStoreMongo.Store
 		var ctx context.Context
-		var rollbackSettings *utils.Settings
 		var migrationSettings *utils.Settings
 
 		BeforeEach(func() {
 			logger := logTest.NewLogger()
 			ctx = platformLog.NewContextWithLogger(context.Background(), logger)
-			testData = test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", datumCount)
-			rollbackSettings = utils.NewSettings(
-				pointer.FromBool(false),
-				pointer.FromBool(false),
-				pointer.FromBool(true),
-				pointer.FromString("_testRollback"),
-				nil,
-				pointer.FromInt(50),
-				pointer.FromInt(100),
-				pointer.FromBool(false),
-			)
+			testJFData = test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", datumCount)
+			testJFUploads = test.BulkJellyfishData("test-device-other", "test-group-id_2", "test-user-id-987", uploadCount)
+
 			migrationSettings = utils.NewSettings(
 				pointer.FromBool(false),
 				pointer.FromBool(false),
-				pointer.FromBool(false),
-				pointer.FromString("_testRollback"),
 				nil,
 				pointer.FromInt(50),
 				pointer.FromInt(100),
@@ -95,15 +87,15 @@ var _ = Describe("back-37", func() {
 				_ = store.Terminate(ctx)
 			}
 		})
-		It("apply migration will set _deduplicator and also rollback data", func() {
-			collection := store.GetCollection("testMigration")
-			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
+		It("will set _deduplicator.hash to be the datum _id for jellyfish data", func() {
+			collection := store.GetCollection("testJFDatum")
+			Expect(setCollectionData(ctx, collection, testJFData)).To(Succeed())
 
 			migration, err := utils.NewMigration(ctx, migrationSettings, newMongoInstanceChecker(), collection, nil)
 			Expect(err).To(BeNil())
 
-			Expect(testData).ToNot(BeNil())
-			Expect(len(testData)).To(Equal(datumCount))
+			Expect(testJFData).ToNot(BeNil())
+			Expect(len(testJFData)).To(Equal(datumCount))
 			allDocs, err := collection.CountDocuments(ctx, bson.D{})
 			Expect(err).To(BeNil())
 			Expect(allDocs).To(Equal(int64(datumCount)))
@@ -111,10 +103,7 @@ var _ = Describe("back-37", func() {
 			stats := migration.GetStats()
 			Expect(stats.Errored).To(Equal(0))
 			Expect(stats.Fetched).To(Equal(datumCount))
-			// There are 'at least' 2000 changes applied but we don't know the exact amount
-			// as it varies depending which types are included in the original data
-			Expect(stats.Applied > datumCount*2).To(BeTrue())
-
+			Expect(stats.Applied).To(Equal(datumCount))
 			cur, err := collection.Find(ctx, bson.D{})
 			Expect(err).To(BeNil())
 			migrated := []map[string]interface{}{}
@@ -124,56 +113,41 @@ var _ = Describe("back-37", func() {
 
 			for _, item := range migrated {
 				Expect(item).Should(HaveKey("_deduplicator"))
-				Expect(item["_deduplicator"]).Should(HaveKey("hash"))
-				Expect(item).Should(HaveKey(migration.GetSettings().RollbackSectionName))
+				Expect(item["_deduplicator"]).Should(HaveLen(1))
+				Expect(item["_deduplicator"]).Should(HaveKeyWithValue("hash", item["_id"]))
 			}
-
 		})
 
-		It("apply then rollback migration will return the data to its orginal state", func() {
-			collection := store.GetCollection("testRollback")
-			Expect(setCollectionData(ctx, collection, testData)).To(Succeed())
-
-			findOptions := options.Find()
-			findOptions.SetSort(bson.D{{Key: "_id", Value: -1}})
+		It("will set _deduplicator to be the datum _id for jellyfish uploads", func() {
+			collection := store.GetCollection("testJFUploads")
+			Expect(setCollectionData(ctx, collection, testJFUploads)).To(Succeed())
 
 			migration, err := utils.NewMigration(ctx, migrationSettings, newMongoInstanceChecker(), collection, nil)
 			Expect(err).To(BeNil())
 
-			Expect(testData).ToNot(BeNil())
-			Expect(len(testData)).To(Equal(datumCount))
-
-			cur, err := collection.Find(ctx, bson.D{}, findOptions)
+			Expect(testJFUploads).ToNot(BeNil())
+			Expect(len(testJFUploads)).To(Equal(uploadCount))
+			allUploadDocs, err := collection.CountDocuments(ctx, bson.D{})
 			Expect(err).To(BeNil())
-
-			original := []map[string]interface{}{}
-			cur.All(ctx, &original)
-			Expect(len(original)).To(Equal(datumCount))
-
-			Expect(migration.Execute(utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
-
-			cur, err = collection.Find(ctx, bson.D{}, findOptions)
+			Expect(allUploadDocs).To(Equal(int64(uploadCount)))
+			Expect(migration.Execute(utils.JellyfishUploadQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
+			stats := migration.GetStats()
+			Expect(stats.Errored).To(Equal(0))
+			Expect(stats.Fetched).To(Equal(uploadCount))
+			Expect(stats.Applied).To(Equal(uploadCount))
+			cur, err := collection.Find(ctx, bson.D{})
 			Expect(err).To(BeNil())
 			migrated := []map[string]interface{}{}
 			cur.All(ctx, &migrated)
-			Expect(len(migrated)).To(Equal(datumCount))
 
-			rollback, err := utils.NewMigration(ctx, rollbackSettings, newMongoInstanceChecker(), collection, nil)
-			Expect(err).To(BeNil())
+			Expect(len(migrated)).To(Equal(uploadCount))
 
-			Expect(rollback.Execute(utils.JellyfishDataQueryFn, utils.JellyfishDataUpdatesFn)).To(Succeed())
-
-			cur, err = collection.Find(ctx, bson.D{}, findOptions)
-			Expect(err).To(BeNil())
-			rolledback := []map[string]interface{}{}
-			cur.All(ctx, &rolledback)
-			Expect(len(rolledback)).To(Equal(datumCount))
-
-			for i, rollbackItem := range rolledback {
-				Expect(migrated[i]["_id"]).To(Equal(rollbackItem["_id"]))
-				Expect(original[i]).To(Equal(rollbackItem))
+			for _, item := range migrated {
+				Expect(item).Should(HaveKey("_deduplicator"))
+				Expect(item["_deduplicator"]).Should(HaveLen(2))
+				Expect(item["_deduplicator"]).Should(HaveKeyWithValue("name", deduplicator.DeviceDeactivateLegacyHashName))
+				Expect(item["_deduplicator"]).Should(HaveKeyWithValue("version", "0.0.0"))
 			}
-
 		})
 	})
 })

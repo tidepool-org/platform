@@ -2,25 +2,19 @@ package utils
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	"github.com/tidepool-org/platform/pointer"
 )
 
 func jellyfishQuery(settings Settings, userID *string, lastFetchedID *string) (bson.M, *options.FindOptions) {
 	selector := bson.M{
 		"_deduplicator": bson.M{"$exists": false},
-	}
-	if settings.Rollback {
-		selector = bson.M{
-			settings.RollbackSectionName: bson.M{"$exists": true},
-		}
 	}
 
 	if userID != nil && *userID != "" {
@@ -61,6 +55,7 @@ var JellyfishDataQueryFn = func(m *DataMigration) bool {
 			pointer.FromString(m.GetLastID()),
 		)
 
+		opts.Projection = bson.M{"_id": 1}
 		dDataCursor, err := dataC.Find(m.GetCtx(), selector, opts)
 		if err != nil {
 			log.Printf("failed to select data: %s", err)
@@ -68,56 +63,28 @@ var JellyfishDataQueryFn = func(m *DataMigration) bool {
 		}
 		defer dDataCursor.Close(m.GetCtx())
 
-		all := []bson.M{}
+		count := 0
 
 		for dDataCursor.Next(m.GetCtx()) {
-			item := bson.M{}
-			if err := dDataCursor.Decode(&item); err != nil {
-				log.Printf("error decoding data: %s", err)
-				return false
+			m.UpdateFetchedCount()
+			var result struct {
+				ID string `bson:"_id"`
 			}
-			itemID := fmt.Sprintf("%v", item["_id"])
-			userID := fmt.Sprintf("%v", item["_userId"])
-			itemType := fmt.Sprintf("%v", item["type"])
-			if settings.Rollback {
-				if rollback, ok := item[settings.RollbackSectionName].(primitive.A); ok {
-					cmds := []bson.M{}
-					for _, cmd := range rollback {
-						if cmd, ok := cmd.(bson.M); ok {
-							cmds = append(cmds, cmd)
-						}
-					}
-					if len(cmds) > 0 {
-						m.SetUpdates(UpdateData{
-							Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
-							ItemID:   itemID,
-							UserID:   userID,
-							ItemType: itemType,
-							Apply:    cmds,
-						})
-					}
-				}
-
+			if err := dDataCursor.Decode(&result); err != nil {
+				m.OnError(ErrorData{Error: err})
+				continue
 			} else {
-				updates, revert, err := ProcessDatum(itemID, itemType, item)
-				if err != nil {
-					m.OnError(ErrorData{Error: err, ItemID: itemID, ItemType: itemType})
-				} else if len(updates) > 0 {
-					m.SetUpdates(UpdateData{
-						Filter:   bson.M{"_id": itemID, "modifiedTime": item["modifiedTime"]},
-						ItemID:   itemID,
-						UserID:   userID,
-						ItemType: itemType,
-						Apply:    updates,
-						Revert:   revert,
-					})
-				}
+				setDeduplicator := bson.M{"$set": bson.M{"_deduplicator": bson.M{"hash": result.ID}}}
+				m.SetUpdates(UpdateData{
+					Filter: bson.M{"_id": result.ID},
+					ItemID: result.ID,
+					Apply:  []bson.M{setDeduplicator},
+				})
+				count++
+				m.SetLastProcessed(result.ID)
 			}
-			m.SetLastProcessed(itemID)
-			all = append(all, item)
 		}
-		m.SetFetched(all)
-		return len(all) > 0
+		return count > 0
 	}
 	return false
 }
@@ -146,7 +113,6 @@ var JellyfishDataUpdatesFn = func(m *DataMigration) (int, error) {
 	}
 	writtenCount := 0
 	for _, batch := range getBatches(int(*settings.WriteBatchSize)) {
-
 		if err := m.CheckMongoInstance(); err != nil {
 			return writtenCount, err
 		}
@@ -162,4 +128,49 @@ var JellyfishDataUpdatesFn = func(m *DataMigration) (int, error) {
 		writtenCount += int(results.ModifiedCount)
 	}
 	return writtenCount, nil
+}
+
+var JellyfishUploadQueryFn = func(m *DataMigration) bool {
+
+	settings := m.GetSettings()
+
+	if dataC := m.GetDataCollection(); dataC != nil {
+
+		selector, opts := jellyfishQuery(
+			settings,
+			nil,
+			pointer.FromString(m.GetLastID()),
+		)
+
+		opts.Projection = bson.M{"_id": 1}
+		dDataCursor, err := dataC.Find(m.GetCtx(), selector, opts)
+		if err != nil {
+			log.Printf("failed to select upload data: %s", err)
+			return false
+		}
+		defer dDataCursor.Close(m.GetCtx())
+
+		count := 0
+
+		for dDataCursor.Next(m.GetCtx()) {
+			m.UpdateFetchedCount()
+			var result struct {
+				ID string `bson:"_id"`
+			}
+			if err := dDataCursor.Decode(&result); err != nil {
+				m.OnError(ErrorData{Error: err})
+				continue
+			} else {
+				m.SetUpdates(UpdateData{
+					Filter: bson.M{"_id": result.ID},
+					ItemID: result.ID,
+					Apply:  []bson.M{{"$set": bson.M{"_deduplicator": bson.M{"name": deduplicator.DeviceDeactivateLegacyHashName, "version": "0.0.0"}}}},
+				})
+				count++
+				m.SetLastProcessed(result.ID)
+			}
+		}
+		return count > 0
+	}
+	return false
 }
