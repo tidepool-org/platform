@@ -63,6 +63,17 @@ func (m *keycloakUserAccessor) FindUserById(ctx context.Context, id string) (*us
 	return newUserFromKeycloakUser(keycloakUser), nil
 }
 
+func (m *keycloakUserAccessor) FindUserProfile(ctx context.Context, id string) (*userLib.UserProfile, error) {
+	user, err := m.FindUserById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, userLib.ErrUserProfileNotFound
+	}
+	return user.Profile, nil
+}
+
 func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) (users []*userLib.User, err error) {
 	keycloakUsers, err := m.keycloakClient.FindUsersWithIds(ctx, ids)
 	if err != nil {
