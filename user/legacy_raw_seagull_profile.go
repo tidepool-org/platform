@@ -10,11 +10,15 @@ import (
 type LegacyRawSeagullProfile struct {
 	UserID string `bson:"userId"`
 	Value  string `bson:"value"`
-	// The presence of migrationStart in the seagull collection
-	// means migration of this profile is in progress.
-	MigrationStart *time.Time `bson:"migrationStart,omitempty"`
+
+	// The presence of these various migration markers indicate the migration
+	// status of a seagull profile into keycloak. A non nil MigrationStart and
+	// nil MigrationEnd indicates an inprogress migration UNLESS MigrationError
+	// is non empty, in which migration should be reattempted.
+	MigrationStart *time.Time `bson:"_migrationStart,omitempty"`
 	// The presence of migrationEnd means the profile is fully migrated and all reads / writes to a user profile should go through keycloak
-	MigrationEnd *time.Time `bson:"migrationEnd,omitempty"`
+	MigrationEnd   *time.Time `bson:"_migrationEnd,omitempty"`
+	MigrationError string     `bson:"_migrationError,omitempty"`
 }
 
 // ToLegacyProfile returns an object that is suitable as a JSON response - ie, the profile is not just a stringified JSON blob.
@@ -31,6 +35,14 @@ func (up *LegacyRawSeagullProfile) ToLegacyProfile() (*LegacyUserProfile, error)
 	var legacyProfile LegacyUserProfile
 	if err := marshalThenUnmarshal(profileRaw, &legacyProfile); err != nil {
 		return nil, err
+	}
+
+	legacyProfile.MigrationStatus = migrationUnmigrated
+	if up.MigrationStart != nil && up.MigrationEnd != nil {
+		legacyProfile.MigrationStatus = migrationCompleted
+	}
+	if up.MigrationStart != nil && up.MigrationEnd == nil && up.MigrationError == "" {
+		legacyProfile.MigrationStatus = migrationInProgress
 	}
 	return &legacyProfile, nil
 }

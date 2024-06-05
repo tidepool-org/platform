@@ -7,7 +7,13 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+type migrationStatus int
+
 const (
+	migrationUnmigrated migrationStatus = iota
+	migrationCompleted
+	migrationInProgress
+
 	maxAboutLength = 256
 	maxNameLength  = 256
 )
@@ -58,7 +64,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			About:          up.About,
 			MRN:            up.MRN,
 		},
-		Migrated: true, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull
+		MigrationStatus: migrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
 	}
 	// only custodiaL fake child accounts have Patient.FullName set
 	if up.Custodian != nil {
@@ -97,11 +103,10 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 
 // LegacyUserProfile represents the old seagull format for a profile.
 type LegacyUserProfile struct {
-	FullName            string                `json:"fullName"`
-	Patient             *LegacyPatientProfile `json:"patient,omitempty"`
-	Clinic              *ClinicProfile        `json:"clinic,omitempty"`
-	Migrated            bool                  `json:"-"`
-	MigrationInProgress bool                  `json:"-"`
+	FullName        string                `json:"fullName"`
+	Patient         *LegacyPatientProfile `json:"patient,omitempty"`
+	Clinic          *ClinicProfile        `json:"clinic,omitempty"`
+	MigrationStatus migrationStatus       `json:"-"`
 }
 
 type LegacyPatientProfile struct {
