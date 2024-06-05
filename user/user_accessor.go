@@ -16,22 +16,39 @@ const (
 var (
 	ShorelineManagedRoles = map[string]struct{}{"patient": {}, "clinic": {}, "clinician": {}, "custodial_account": {}}
 
-	ErrUserNotFound    = errors.New("user not found")
-	ErrUserConflict    = errors.New("user already exists")
-	ErrEmailConflict   = errors.New("email already exists")
-	ErrUserNotMigrated = errors.New("user has not been migrated")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrUserProfileNotFound = errors.New("profile not found")
+	ErrUserConflict        = errors.New("user already exists")
+	ErrEmailConflict       = errors.New("email already exists")
+	ErrUserNotMigrated     = errors.New("user has not been migrated")
+	// ErrUserProfileMigrationInProgress means a specific user profile is
+	// currently being migrated so the client should ideally wait and
+	// retry their operation again - the migration for a single user
+	// should be no longer than a few seconds.
+	ErrUserProfileMigrationInProgress = errors.New("user migration is in progress")
 )
+
+type LegacyUserProfileAccessor interface {
+	FindUserProfile(ctx context.Context, id string) (*LegacyUserProfile, error)
+	UpdateUserProfile(ctx context.Context, id string, p *LegacyUserProfile) error
+	DeleteUserProfile(ctx context.Context, id string) error
+}
+
+type UserProfileAccessor interface {
+	FindUserProfile(ctx context.Context, id string) (*UserProfile, error)
+	UpdateUserProfile(ctx context.Context, id string, p *UserProfile) error
+	DeleteUserProfile(ctx context.Context, id string) error
+}
 
 // UserAccessor is the interface that can retrieve users.
 // It is the equivalent of shoreline's shoreline's Storage
 // interface, but for now will only retrieve user
 // information.
 type UserAccessor interface {
+	UserProfileAccessor
 	FindUser(ctx context.Context, user *User) (*User, error)
 	FindUserById(ctx context.Context, id string) (*User, error)
 	FindUsersWithIds(ctx context.Context, ids []string) ([]*User, error)
-	UpdateUserProfile(ctx context.Context, id string, p *UserProfile) error
-	DeleteUserProfile(ctx context.Context, id string) error
 }
 
 type TokenIntrospectionResult struct {
