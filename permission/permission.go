@@ -6,6 +6,7 @@ import (
 
 type Permission map[string]interface{}
 type Permissions map[string]Permission
+type GroupedPermissions map[string]Permissions
 
 const (
 	Follow    = "follow"
@@ -17,9 +18,17 @@ const (
 
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
+	GroupsForUser(ctx context.Context, granteeUserID string) (GroupedPermissions, error)
 	HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
+}
+
+func FixGroupedOwnerPermissions(groupPermissions GroupedPermissions) GroupedPermissions {
+	for key, perms := range groupPermissions {
+		groupPermissions[key] = FixOwnerPermissions(perms)
+	}
+	return groupPermissions
 }
 
 func FixOwnerPermissions(permissions Permissions) Permissions {
