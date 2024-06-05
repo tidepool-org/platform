@@ -274,6 +274,9 @@ var _ = Describe("Continuous", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+
+					expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
+					expectedDatum.RawUnits = pointer.CloneString(datum.RawUnits)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -322,6 +325,8 @@ var _ = Describe("Continuous", func() {
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
+				expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
+				expectedDatum.RawUnits = pointer.CloneString(datum.RawUnits)
 				if expectator != nil {
 					expectator(datum, expectedDatum, units)
 				}
