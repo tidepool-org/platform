@@ -12,6 +12,18 @@ const (
 	maxNameLength  = 256
 )
 
+var (
+	diabetesTypes = []string{
+		"type1",
+		"type2",
+		"gestational",
+		"lada",
+		"other",
+		"prediabetes",
+		"mody",
+	}
+)
+
 // Date is a string of type YYYY-mm-dd, the reason this isn't just a type definition
 // of a time.Time is to ignore timezones when marshaling.
 type Date string
@@ -46,6 +58,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			About:          up.About,
 			MRN:            up.MRN,
 		},
+		Migrated: true, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull
 	}
 	// only custodiaL fake child accounts have Patient.FullName set
 	if up.Custodian != nil {
@@ -84,9 +97,11 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 
 // LegacyUserProfile represents the old seagull format for a profile.
 type LegacyUserProfile struct {
-	FullName string                `json:"fullName"`
-	Patient  *LegacyPatientProfile `json:"patient,omitempty"`
-	Clinic   *ClinicProfile        `json:"clinic,omitempty"`
+	FullName            string                `json:"fullName"`
+	Patient             *LegacyPatientProfile `json:"patient,omitempty"`
+	Clinic              *ClinicProfile        `json:"clinic,omitempty"`
+	Migrated            bool                  `json:"-"`
+	MigrationInProgress bool                  `json:"-"`
 }
 
 type LegacyPatientProfile struct {
@@ -244,8 +259,28 @@ func (up *UserProfile) Validate(v structure.Validator) {
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxNameLength)
+	if up.DiagnosisType != "" {
+		v.String("diagnosisType", &up.DiagnosisType).OneOf(diabetesTypes...)
+	}
 }
 
 func (p *ClinicProfile) Validate(v structure.Validator) {
+	// TODO: confirm: can be empty
 	v.String("name", &p.Name).NotEmpty().LengthLessThanOrEqualTo(maxNameLength)
+}
+
+func (up *LegacyUserProfile) Validate(v structure.Validator) {
+	if up.Patient != nil {
+		up.Patient.Validate(v.WithReference("patient"))
+	}
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxNameLength)
+}
+
+func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
+	pp.Birthday.Validate(v.WithReference("birthday"))
+	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
+	v.String("fullName", &pp.FullName).LengthLessThanOrEqualTo(maxNameLength)
+	if pp.DiagnosisType != "" {
+		v.String("diagnosisType", &pp.DiagnosisType).OneOf(diabetesTypes...)
+	}
 }
