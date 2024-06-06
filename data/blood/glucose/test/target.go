@@ -41,7 +41,19 @@ func CloneTarget(datum *dataBloodGlucose.Target) *dataBloodGlucose.Target {
 	clone.Low = pointer.CloneFloat64(datum.Low)
 	clone.Range = pointer.CloneFloat64(datum.Range)
 	clone.Target = pointer.CloneFloat64(datum.Target)
+	clone.RawHigh = pointer.CloneFloat64(datum.RawHigh)
+	clone.RawLow = pointer.CloneFloat64(datum.RawLow)
+	clone.RawRange = pointer.CloneFloat64(datum.RawRange)
+	clone.RawTarget = pointer.CloneFloat64(datum.RawTarget)
 	return clone
+}
+
+func SetTargetRaw(datum *dataBloodGlucose.Target, normalized *dataBloodGlucose.Target) *dataBloodGlucose.Target {
+	datum.RawHigh = pointer.CloneFloat64(normalized.RawHigh)
+	datum.RawLow = pointer.CloneFloat64(normalized.RawLow)
+	datum.RawRange = pointer.CloneFloat64(normalized.RawRange)
+	datum.RawTarget = pointer.CloneFloat64(normalized.RawTarget)
+	return datum
 }
 
 func NewObjectFromTarget(datum *dataBloodGlucose.Target, objectFormat test.ObjectFormat) map[string]interface{} {

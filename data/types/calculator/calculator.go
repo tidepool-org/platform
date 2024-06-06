@@ -8,6 +8,7 @@ import (
 	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
 	dataTypesBolusFactory "github.com/tidepool-org/platform/data/types/bolus/factory"
 	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -47,6 +48,10 @@ type Calculator struct {
 	Recommended              *Recommended             `json:"recommended,omitempty" bson:"recommended,omitempty"`
 	Units                    *string                  `json:"units,omitempty" bson:"units,omitempty"`
 	CarbUnits                *string                  `json:"carbUnits,omitempty" bson:"carbUnits,omitempty"`
+
+	RawBloodGlucoseInput  *float64 `json:"rawBgInput,omitempty" bson:"rawBgInput,omitempty"`
+	RawInsulinSensitivity *float64 `json:"rawInsulinSensitivity,omitempty" bson:"rawInsulinSensitivity,omitempty"`
+	RawUnits              *string  `json:"rawUnits,omitempty" bson:"rawUnits,omitempty"`
 }
 
 func New() *Calculator {
@@ -126,11 +131,17 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	c.Base.Normalize(normalizer)
 
 	if normalizer.Origin() == structure.OriginExternal {
-		c.BloodGlucoseInput = dataBloodGlucose.NormalizeValueForUnits(c.BloodGlucoseInput, c.Units)
+		c.RawBloodGlucoseInput = pointer.CloneFloat64(c.BloodGlucoseInput)
+		c.RawInsulinSensitivity = pointer.CloneFloat64(c.InsulinSensitivity)
+		c.RawUnits = pointer.CloneString(c.Units)
+
+		c.Units = dataBloodGlucose.NormalizeUnits(c.RawUnits)
+		c.BloodGlucoseInput = dataBloodGlucose.NormalizeValueForUnits(c.RawBloodGlucoseInput, c.RawUnits)
+		c.InsulinSensitivity = dataBloodGlucose.NormalizeValueForUnits(c.InsulinSensitivity, c.RawUnits)
 	}
 
 	if c.BloodGlucoseTarget != nil {
-		c.BloodGlucoseTarget.Normalize(normalizer.WithReference("bgTarget"), c.Units)
+		c.BloodGlucoseTarget.Normalize(normalizer.WithReference("bgTarget"), c.RawUnits)
 	}
 
 	if c.Bolus != nil {
@@ -150,14 +161,9 @@ func (c *Calculator) Normalize(normalizer data.Normalizer) {
 			}
 			c.Bolus = nil
 		}
-		c.InsulinSensitivity = dataBloodGlucose.NormalizeValueForUnits(c.InsulinSensitivity, c.Units)
 	}
 
 	if c.Recommended != nil {
 		c.Recommended.Normalize(normalizer.WithReference("recommended"))
-	}
-
-	if normalizer.Origin() == structure.OriginExternal {
-		c.Units = dataBloodGlucose.NormalizeUnits(c.Units)
 	}
 }

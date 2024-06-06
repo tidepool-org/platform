@@ -84,6 +84,7 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 	clone := calculator.New()
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.BloodGlucoseInput = pointer.CloneFloat64(datum.BloodGlucoseInput)
+	clone.RawBloodGlucoseInput = pointer.CloneFloat64(datum.RawBloodGlucoseInput)
 	clone.BloodGlucoseTarget = dataBloodGlucoseTest.CloneTarget(datum.BloodGlucoseTarget)
 	if datum.Bolus != nil {
 		switch bolus := (*datum.Bolus).(type) {
@@ -100,10 +101,22 @@ func CloneCalculator(datum *calculator.Calculator) *calculator.Calculator {
 	clone.InsulinCarbohydrateRatio = pointer.CloneFloat64(datum.InsulinCarbohydrateRatio)
 	clone.InsulinOnBoard = pointer.CloneFloat64(datum.InsulinOnBoard)
 	clone.InsulinSensitivity = pointer.CloneFloat64(datum.InsulinSensitivity)
+	clone.RawInsulinSensitivity = pointer.CloneFloat64(datum.RawInsulinSensitivity)
 	clone.Recommended = CloneRecommended(datum.Recommended)
 	clone.Units = pointer.CloneString(datum.Units)
+	clone.RawUnits = pointer.CloneString(datum.RawUnits)
 	clone.CarbUnits = pointer.CloneString(datum.CarbUnits)
 	return clone
+}
+
+func SetCalculatorRaw(datum *calculator.Calculator, normalized *calculator.Calculator) {
+	if datum == nil || normalized == nil {
+		return
+	}
+	datum.RawBloodGlucoseInput = pointer.CloneFloat64(normalized.RawBloodGlucoseInput)
+	datum.RawInsulinSensitivity = pointer.CloneFloat64(normalized.RawInsulinSensitivity)
+	datum.RawUnits = pointer.CloneString(normalized.RawUnits)
+	dataBloodGlucoseTest.SetTargetRaw(datum.BloodGlucoseTarget, normalized.BloodGlucoseTarget)
 }
 
 var _ = Describe("Calculator", func() {
@@ -1822,6 +1835,7 @@ var _ = Describe("Calculator", func() {
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
+				SetCalculatorRaw(expectedDatum, datum)
 				Expect(datum).To(Equal(expectedDatum))
 			})
 
@@ -1837,6 +1851,7 @@ var _ = Describe("Calculator", func() {
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datumBolus}))
 				expectedDatum.Bolus = nil
 				expectedDatum.BolusID = pointer.FromString(*datumBolus.ID)
+				SetCalculatorRaw(expectedDatum, datum)
 				Expect(datum).To(Equal(expectedDatum))
 			})
 
@@ -1852,6 +1867,7 @@ var _ = Describe("Calculator", func() {
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datumBolus}))
 				expectedDatum.Bolus = nil
 				expectedDatum.BolusID = pointer.FromString(*datumBolus.ID)
+				SetCalculatorRaw(expectedDatum, datum)
 				Expect(datum).To(Equal(expectedDatum))
 			})
 
@@ -1867,6 +1883,7 @@ var _ = Describe("Calculator", func() {
 				Expect(normalizer.Data()).To(Equal([]data.Datum{datumBolus}))
 				expectedDatum.Bolus = nil
 				expectedDatum.BolusID = pointer.FromString(*datumBolus.ID)
+				SetCalculatorRaw(expectedDatum, datum)
 				Expect(datum).To(Equal(expectedDatum))
 			})
 
@@ -1881,6 +1898,7 @@ var _ = Describe("Calculator", func() {
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						SetCalculatorRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
@@ -1909,6 +1927,7 @@ var _ = Describe("Calculator", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					SetCalculatorRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
