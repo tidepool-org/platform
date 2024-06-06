@@ -1,12 +1,15 @@
 package v1
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -175,6 +178,10 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 			}
 		}
 	}
+
+	// TODO: Remove.
+	transport := DebuggingTransport{Logger: log.LoggerFromContext(ctx)}
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, http.Client{Transport: &transport})
 
 	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
 	if err != nil {

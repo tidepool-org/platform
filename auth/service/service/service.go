@@ -367,9 +367,9 @@ func (s *Service) initializeProviderFactory() error {
 	}
 
 	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
+		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+		return errors.Wrap(prvdrErr, "unable to add twiist provider")
 	}
 
 	return nil
