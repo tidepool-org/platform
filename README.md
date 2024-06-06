@@ -2,7 +2,7 @@
 
 The Tidepool Platform API.
 
-[![Build Status](https://travis-ci.com/tidepool-org/platform.png)](https://travis-ci.com/tidepool-org/platform)
+[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg&branch=master)](https://app.travis-ci.com/tidepool-org/platform)
 [![Code Climate](https://codeclimate.com/github/tidepool-org/platform/badges/gpa.svg)](https://codeclimate.com/github/tidepool-org/platform)
 [![Issue Count](https://codeclimate.com/github/tidepool-org/platform/badges/issue_count.svg)](https://codeclimate.com/github/tidepool-org/platform)
 
