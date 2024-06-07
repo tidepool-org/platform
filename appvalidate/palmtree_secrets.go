@@ -86,14 +86,9 @@ func newPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
 }
 
 type PalmTreePayload struct {
-	CSR                       string                            `json:"csr"`
-	ProfileID                 string                            `json:"profileId"`
-	RequiredFormat            palmTreeRequiredFormat            `json:"requiredFormat"`
-	CertificateRequestDetails palmTreeCertificateRequestDetails `json:"optionalCertificateRequestDetails"`
-}
-
-type palmTreeCertificateRequestDetails struct {
-	SubjectDN string `json:"subjectDn"`
+	CSR            string                 `json:"csr"`
+	ProfileID      string                 `json:"profileId"`
+	RequiredFormat palmTreeRequiredFormat `json:"requiredFormat"`
 }
 
 type palmTreeRequiredFormat struct {
@@ -174,7 +169,6 @@ func (p *PalmTreePayload) Validate(v structure.Validator) {
 	v.String("csr", &p.CSR).NotEmpty()
 	v.String("profileId", &p.ProfileID).NotEmpty()
 	v.String("requiredFormat.format", &p.RequiredFormat.Format).EqualTo("PEM")
-	v.String("optionalCertificateRequestDetails.subjectDn", &p.CertificateRequestDetails.SubjectDN).EqualTo("C=US")
 }
 
 func newPalmtreePayload(profileID string) *PalmTreePayload {
@@ -182,9 +176,6 @@ func newPalmtreePayload(profileID string) *PalmTreePayload {
 		ProfileID: profileID,
 		RequiredFormat: palmTreeRequiredFormat{
 			Format: "PEM",
-		},
-		CertificateRequestDetails: palmTreeCertificateRequestDetails{
-			SubjectDN: "C=US",
 		},
 	}
 }
