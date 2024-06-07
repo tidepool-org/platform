@@ -3,11 +3,13 @@ package pump
 import (
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Units struct {
-	BloodGlucose *string `json:"bg,omitempty" bson:"bg,omitempty"` // TODO: Rename "bloodGlucose"
+	BloodGlucose    *string `json:"bg,omitempty" bson:"bg,omitempty"` // TODO: Rename "bloodGlucose"
+	RawBloodGlucose *string `json:"rawBloodGlucose,omitempty" bson:"rawBloodGlucose,omitempty"`
 }
 
 func ParseUnits(parser structure.ObjectParser) *Units {
@@ -33,6 +35,7 @@ func (u *Units) Validate(validator structure.Validator) {
 
 func (u *Units) Normalize(normalizer data.Normalizer) {
 	if normalizer.Origin() == structure.OriginExternal {
-		u.BloodGlucose = dataBloodGlucose.NormalizeUnits(u.BloodGlucose)
+		u.RawBloodGlucose = pointer.CloneString(u.BloodGlucose)
+		u.BloodGlucose = dataBloodGlucose.NormalizeUnits(u.RawBloodGlucose)
 	}
 }

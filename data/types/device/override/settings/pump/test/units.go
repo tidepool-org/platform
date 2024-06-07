@@ -19,7 +19,14 @@ func CloneUnits(datum *dataTypesDeviceOverrideSettingsPump.Units) *dataTypesDevi
 	}
 	clone := dataTypesDeviceOverrideSettingsPump.NewUnits()
 	clone.BloodGlucose = pointer.CloneString(datum.BloodGlucose)
+	clone.RawBloodGlucose = pointer.CloneString(datum.RawBloodGlucose)
 	return clone
+}
+
+func SetUnitsRaw(datum *dataTypesDeviceOverrideSettingsPump.Units, normalized *dataTypesDeviceOverrideSettingsPump.Units) {
+	if normalized != nil {
+		datum.RawBloodGlucose = pointer.CloneString(normalized.RawBloodGlucose)
+	}
 }
 
 func NewObjectFromUnits(datum *dataTypesDeviceOverrideSettingsPump.Units, objectFormat test.ObjectFormat) map[string]interface{} {
