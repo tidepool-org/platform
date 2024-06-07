@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"encoding/json"
 	stdErrors "errors"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,15 +32,15 @@ func (p *FallbackUserProfileRepository) FindUserProfile(ctx context.Context, use
 	selector := bson.M{
 		"userId": userID,
 	}
-	var profile user.LegacyUserProfile
-	if err := p.FindOne(ctx, selector).Decode(&profile); err != nil {
+	var doc user.LegacySeagullDocument
+	if err := p.FindOne(ctx, selector).Decode(&doc); err != nil {
 		if stdErrors.Is(err, mongo.ErrNoDocuments) {
 			return nil, user.ErrUserProfileNotFound
 		}
 		return nil, err
 	}
-	return &profile, nil
 
+	return doc.ToLegacyProfile()
 }
 
 func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.LegacyUserProfile) error {
@@ -54,40 +53,26 @@ func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, u
 	if err := structureValidator.New().Validate(profile); err != nil {
 		return err
 	}
-	var doc user.LegacyRawSeagullProfile
-	// The original seagull code just had a JSONified string as the value
-	// so we have to Unmarshal that to a an actual object, add any
-	// updates to the profile, and then Marshal it back to JSON to store
-	// in the database.
-	opts := options.FindOne().SetProjection(bson.M{"_id": 0, "value": 1})
+	var doc user.LegacySeagullDocument
 	selector := bson.M{"userId": userID}
-	err := p.FindOne(ctx, selector, opts).Decode(&doc)
+	err := p.FindOne(ctx, selector).Decode(&doc)
 
 	// A user can have no profile set - see seagull/lib/routes/seagullApi.js `if (err.statusCode == 404 && addIfNotThere)`
-	var noDocument bool
-	if stdErrors.Is(err, mongo.ErrNoDocuments) {
-		noDocument = true
-	}
-	if err != nil && !noDocument {
+	if err != nil && !stdErrors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	}
-	// Since the legacy seagull is actually a stringified JSON object
-	// we need to JSON parse it so we can then add the profile as a regular object, then restrigify it
-	value := make(map[string]any)
-	if !noDocument {
-		if err := json.Unmarshal([]byte(doc.Value), &value); err != nil {
-			return err
-		}
-	}
-	value["profile"] = profile
-	valueRaw, err := json.Marshal(value)
+
+	// This will create a new value even if doc.Value is empty
+	updatedValueRaw, err := user.AddProfileToSeagullValue(doc.Value, profile)
 	if err != nil {
 		return err
 	}
+
 	uselector := bson.M{"userId": userID}
 	update := bson.M{
 		"$set": bson.M{
-			"value": string(valueRaw),
+			"value":  updatedValueRaw,
+			"userId": userID, // Set because of possible upsert
 		},
 	}
 	uopts := options.Update().SetUpsert(true)

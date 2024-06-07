@@ -5,9 +5,10 @@ import (
 	"time"
 )
 
-// LegacyRawSeagullProfile is database model representation of the legacy seagull collection object. The value is a raw stringified JSON blob.
-// TODO: delete once all profiles are migrated over
-type LegacyRawSeagullProfile struct {
+// LegacySeagullDocument is the database model representation of the legacy
+// seagull collection object. The value is a raw stringified JSON blob. TODO:
+// delete once all profiles are migrated over
+type LegacySeagullDocument struct {
 	UserID string `bson:"userId"`
 	Value  string `bson:"value"`
 
@@ -17,39 +18,74 @@ type LegacyRawSeagullProfile struct {
 	// is non empty, in which migration should be reattempted.
 	MigrationStart *time.Time `bson:"_migrationStart,omitempty"`
 	// The presence of migrationEnd means the profile is fully migrated and all reads / writes to a user profile should go through keycloak
-	MigrationEnd   *time.Time `bson:"_migrationEnd,omitempty"`
-	MigrationError string     `bson:"_migrationError,omitempty"`
+	MigrationEnd       *time.Time `bson:"_migrationEnd,omitempty"`
+	MigrationError     string     `bson:"_migrationError,omitempty"`
+	MigrationErrorTime *time.Time `bson:"_migrationErrorTime,omitempty"`
 }
 
 // ToLegacyProfile returns an object that is suitable as a JSON response - ie, the profile is not just a stringified JSON blob.
-func (up *LegacyRawSeagullProfile) ToLegacyProfile() (*LegacyUserProfile, error) {
-	var value map[string]any
-	if err := json.Unmarshal([]byte(up.Value), &value); err != nil {
+func (doc *LegacySeagullDocument) ToLegacyProfile() (*LegacyUserProfile, error) {
+	valueObj, err := extractSeagullValue(doc.Value)
+	if err != nil {
 		return nil, err
 	}
-	// Unfortunately since the profile is embedded within the raw string, we will need Marshal and Unmarshal to our actual LegacyUserProfile object.
-	profileRaw, ok := value["profile"].(map[string]any)
+	// Unfortunately since the profile is embedded within the raw string and unmarshaled to a map[string]any, we will need Marshal and Unmarshal to our actual LegacyUserProfile object.
+	profileRaw, ok := valueObj["profile"].(map[string]any)
 	if !ok {
 		return nil, ErrUserProfileNotFound
 	}
 	var legacyProfile LegacyUserProfile
-	if err := marshalThenUnmarshal(profileRaw, &legacyProfile); err != nil {
+	if err := MarshalThenUnmarshal(profileRaw, &legacyProfile); err != nil {
 		return nil, err
 	}
 
 	legacyProfile.MigrationStatus = migrationUnmigrated
-	if up.MigrationStart != nil && up.MigrationEnd != nil {
+	if doc.MigrationStart != nil && doc.MigrationEnd != nil {
 		legacyProfile.MigrationStatus = migrationCompleted
 	}
-	if up.MigrationStart != nil && up.MigrationEnd == nil && up.MigrationError == "" {
+	if doc.MigrationStart != nil && doc.MigrationEnd == nil && doc.MigrationError == "" {
 		legacyProfile.MigrationStatus = migrationInProgress
 	}
 	return &legacyProfile, nil
 }
 
-// marshalThenUnmarshal marshal's src into JSON, then Unmarshals
-// that JSON into dst. This is needed if we only need to marshal part of a map[string]any object into dst
-func marshalThenUnmarshal(src, dst any) error {
+// extractSeagullValue unmarshals the jsonified string field "value" in the
+// seagull collection to a map[string]any - the reason the fields aren't
+// explicitly defined is because there is / was no defined schema at the
+// time for seagull, so we should preserve these fields.
+func extractSeagullValue(valueRaw string) (valueAsMap map[string]any, err error) {
+	var value map[string]any
+	if err := json.Unmarshal([]byte(valueRaw), &value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+// AddProfileToSeagullValue takes a legacy profile and adds it to an
+// existing valueObj (the unmarshaled "value" of the seagull
+// collection"), then returns the marshaled version of it. It returns
+// this new object as a raw string to be compatible with the seagull
+// collection. This is done to preserve any non profile fields that were
+// stored in the "value" field - TODO: is this even necessary? was any
+// non profile info just junk? TODO confirm
+func AddProfileToSeagullValue(valueRaw string, profile *LegacyUserProfile) (updatedValueRaw string, err error) {
+	valueObj, err := extractSeagullValue(valueRaw)
+	// If there was an error, just make a new field "value" value.
+	if err != nil {
+		valueObj = map[string]any{}
+	}
+	valueObj["profile"] = profile
+	bytes, err := json.Marshal(valueObj)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+// MarshalThenUnmarshal marshal's src into JSON, then Unmarshals that
+// JSON into dst. This is useful if src has some fields fields common to
+// dst but are defined explicitly or in the same way.
+func MarshalThenUnmarshal(src, dst any) error {
 	bytes, err := json.Marshal(src)
 	if err != nil {
 		return err
