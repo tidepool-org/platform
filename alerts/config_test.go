@@ -21,8 +21,9 @@ func TestSuite(t *testing.T) {
 }
 
 const (
-	mockUserID1 = "008c7f79-6545-4466-95fb-34e3ba728d38"
-	mockUserID2 = "b1880201-30d5-4190-92bb-6afcf08ca15e"
+	mockUserID1  = "008c7f79-6545-4466-95fb-34e3ba728d38"
+	mockUserID2  = "b1880201-30d5-4190-92bb-6afcf08ca15e"
+	mockUploadID = "4d3b1abc280511ef9f41abf13a093b64"
 )
 
 var _ = Describe("Config", func() {
@@ -30,6 +31,7 @@ var _ = Describe("Config", func() {
 		buf := buff(`{
   "userId": "%s",
   "followedUserId": "%s",
+  "uploadId": "%s",
   "low": {
     "enabled": true,
     "repeat": 30,
@@ -66,12 +68,13 @@ var _ = Describe("Config", func() {
     "repeat": 33,
     "delay": 6
   }
-}`, mockUserID1, mockUserID2)
+}`, mockUserID1, mockUserID2, mockUploadID)
 		conf := &Config{}
 		err := request.DecodeObject(nil, buf, conf)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conf.UserID).To(Equal(mockUserID1))
 		Expect(conf.FollowedUserID).To(Equal(mockUserID2))
+		Expect(conf.UploadID).To(Equal(mockUploadID))
 		Expect(conf.High.Enabled).To(Equal(false))
 		Expect(conf.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
@@ -92,6 +95,40 @@ var _ = Describe("Config", func() {
 		Expect(conf.NoCommunication.Enabled).To(Equal(true))
 		Expect(conf.NoCommunication.Repeat).To(Equal(DurationMinutes(33 * time.Minute)))
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
+	})
+
+	Context("validations", func() {
+		testConfig := func() Config {
+			return Config{
+				UserID:         mockUserID1,
+				FollowedUserID: mockUserID2,
+				UploadID:       mockUploadID,
+			}
+		}
+
+		It("requires an UploadID", func() {
+			c := testConfig()
+			c.UploadID = ""
+			val := validator.New()
+			c.Validate(val)
+			Expect(val.Error()).To(MatchError(ContainSubstring("value is empty")))
+		})
+
+		It("requires an FollowedUserID", func() {
+			c := testConfig()
+			c.FollowedUserID = ""
+			val := validator.New()
+			c.Validate(val)
+			Expect(val.Error()).To(MatchError(ContainSubstring("value is empty")))
+		})
+
+		It("requires an UserID", func() {
+			c := testConfig()
+			c.UserID = ""
+			val := validator.New()
+			c.Validate(val)
+			Expect(val.Error()).To(MatchError(ContainSubstring("value is empty")))
+		})
 	})
 
 	Context("UrgentLowAlert", func() {
@@ -326,6 +363,7 @@ var _ = Describe("Config", func() {
 			buf := buff(`{
   "userId": "%s",
   "followedUserId": "%s",
+  "uploadId": "%s",
   "urgentLow": {
     "enabled": false,
     "repeat": -11,
@@ -334,7 +372,7 @@ var _ = Describe("Config", func() {
       "value": 47.5
     }
   }
-}`, mockUserID1, mockUserID2, glucose.MgdL)
+}`, mockUserID1, mockUserID2, mockUploadID, glucose.MgdL)
 			cfg := &Config{}
 			err := request.DecodeObject(nil, buf, cfg)
 			Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
@@ -363,6 +401,7 @@ var _ = Describe("Config", func() {
 			buf := buff(`{
   "userId": "%s",
   "followedUserId": "%s",
+  "uploadId": "%s",
   "low": {
     "enabled": true,
     "delay": 10,
@@ -371,7 +410,7 @@ var _ = Describe("Config", func() {
       "value": 80
     }
   }
-}`, mockUserID1, mockUserID2)
+}`, mockUserID1, mockUserID2, mockUploadID)
 			conf := &Config{}
 			err := request.DecodeObject(nil, buf, conf)
 			Expect(err).To(Succeed())
