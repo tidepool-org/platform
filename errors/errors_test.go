@@ -1,20 +1,22 @@
 package errors_test
 
 import (
+	"context"
+	"encoding/json"
+	stdErrors "errors"
 	"fmt"
-
-	"go.mongodb.org/mongo-driver/bson"
-
-	errorsTest "github.com/tidepool-org/platform/errors/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	e "errors"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
-
-	//errorsTest "github.com/tidepool-org/platform/errors/test"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
+	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -67,187 +69,405 @@ var _ = Describe("Errors", func() {
 		})
 	})
 
-	Context("Marshal / Unmarshal", func() {
-		DescribeTable("works correctly",
-			func(err error) {
-				wrapped := SerializableWrapper{
-					Value: errors.NewSerializable(err),
-				}
+	Context("First", func() {
+		It("returns nil if the error is nil", func() {
+			Expect(errors.First(nil)).To(BeNil())
+		})
 
-				serialized, err := bson.Marshal(wrapped)
-				Expect(err).ToNot(HaveOccurred())
+		It("returns the error itself if the error is a standard error", func() {
+			err := stdErrors.New("standard library error")
+			Expect(errors.First(err)).To(BeIdenticalTo(err))
+		})
 
-				deserialized := SerializableWrapper{}
-				err = bson.Unmarshal(serialized, &deserialized)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(deserialized).To(Equal(deserialized))
-			},
-			Entry("with std lib error", e.New("std lib err")),
-			Entry("with a single error object", errorsTest.RandomError()),
-			Entry("with an array of object errors", errors.Append(errorsTest.RandomError(), errorsTest.RandomError())),
-			Entry("with a mixed type errors", errors.Append(errorsTest.RandomError(), e.New("std lib err"))),
-			Entry("with nested errors", errors.Append(errorsTest.RandomError(), errorsTest.RandomError())),
-		)
+		It("returns the error itself if the error is an object", func() {
+			err := errors.New("object error")
+			Expect(errors.First(err)).To(BeIdenticalTo(err))
+		})
+
+		It("returns the first error itself if the error is an array", func() {
+			firstErr := errors.New("first error")
+			middleErr := errors.New("middle error")
+			lastErr := errors.New("last error")
+			err := errors.Append(firstErr, middleErr, lastErr)
+			Expect(errors.First(err)).To(BeIdenticalTo(firstErr))
+		})
 	})
 
-	// Context("NewSource", func() {
-	// 	It("return successfully", func() {
-	// 		source := errors.NewSource()
-	// 		Expect(source).ToNot(BeNil())
-	// 		Expect(source.Parameter).To(BeEmpty())
-	// 		Expect(source.Pointer).To(BeEmpty())
-	// 	})
-	// })
+	Context("Last", func() {
+		It("returns nil if the error is nil", func() {
+			Expect(errors.Last(nil)).To(BeNil())
+		})
 
-	// Context("NewError", func() {
-	// 	It("return successfully", func() {
-	// 		code := test.RandomStringFromRange(1, 16)
-	// 		title := test.RandomStringFromRange(1, 64)
-	// 		detail := test.RandomStringFromRange(1, 64)
-	// 		err := errors.Prepared(code, title, detail)
-	// 		Expect(err).ToNot(BeNil())
-	// 		Expect(err.Code).To(Equal(code))
-	// 		Expect(err.Title).To(Equal(title))
-	// 		Expect(err.Detail).To(Equal(detail))
-	// 	})
-	// })
+		It("returns the error itself if the error is a standard error", func() {
+			err := stdErrors.New("standard library error")
+			Expect(errors.Last(err)).To(BeIdenticalTo(err))
+		})
 
-	// Context("with new error", func() {
-	// 	var code string
-	// 	var title string
-	// 	var detail string
-	// 	var source *errors.Source
-	// 	var meta interface{}
-	// 	var err *errors.Error
+		It("returns the error itself if the error is an object", func() {
+			err := errors.New("object error")
+			Expect(errors.Last(err)).To(BeIdenticalTo(err))
+		})
 
-	// 	BeforeEach(func() {
-	// 		code = test.RandomStringFromRange(1, 16)
-	// 		title = test.RandomStringFromRange(1, 64)
-	// 		detail = test.RandomStringFromRange(1, 64)
-	// 		source = errors.NewSource()
-	// 		Expect(source).ToNot(BeNil())
-	// 		source.Parameter = errorsTest.NewSourceParameter()
-	// 		source.Pointer = errorsTest.NewSourcePointer()
-	// 		meta = test.RandomStringFromRange(1, 64)
-	// 		err = errors.Prepared(code, title, detail)
-	// 		Expect(err).ToNot(BeNil())
-	// 		err.Source = source
-	// 		err.Meta = meta
-	// 	})
+		It("returns the first error itself if the error is an array", func() {
+			firstErr := errors.New("first error")
+			middleErr := errors.New("middle error")
+			lastErr := errors.New("last error")
+			err := errors.Append(firstErr, middleErr, lastErr)
+			Expect(errors.Last(err)).To(BeIdenticalTo(lastErr))
+		})
+	})
 
-	// 	Context("Error", func() {
-	// 		It("returns the expected string", func() {
-	// 			Expect(err.Error()).To(Equal(detail))
-	// 		})
-	// 	})
+	Context("NewSerializable", func() {
+		It("returns nil if the error is nil", func() {
+			serializable := errors.NewSerializable(nil)
+			Expect(serializable).To(BeNil())
+		})
 
-	// 	Context("WithSource", func() {
-	// 		It("returns a copy of the error with new source", func() {
-	// 			withSource := errors.NewSource()
-	// 			withSource.Parameter = errorsTest.NewSourceParameter()
-	// 			withSource.Pointer = errorsTest.NewSourcePointer()
-	// 			result := err.WithSource(withSource)
-	// 			Expect(result).ToNot(BeNil())
-	// 			Expect(result).ToNot(BeIdenticalTo(err))
-	// 			Expect(result.Code).To(Equal(code))
-	// 			Expect(result.Title).To(Equal(title))
-	// 			Expect(result.Detail).To(Equal(detail))
-	// 			Expect(result.Source).To(BeIdenticalTo(withSource))
-	// 			Expect(result.Meta).To(BeIdenticalTo(meta))
-	// 		})
-	// 	})
+		It("returns a serializable if the error is not nil", func() {
+			err := errorsTest.RandomError()
+			serializable := errors.NewSerializable(err)
+			Expect(serializable).ToNot(BeNil())
+			Expect(serializable.Error).To(Equal(err))
+		})
+	})
 
-	// 	Context("WithMeta", func() {
-	// 		It("returns a copy of the error with new meta", func() {
-	// 			withMeta := test.RandomStringFromRange(1, 64)
-	// 			result := err.WithMeta(withMeta)
-	// 			Expect(result).ToNot(BeNil())
-	// 			Expect(result).ToNot(BeIdenticalTo(err))
-	// 			Expect(result.Code).To(Equal(code))
-	// 			Expect(result.Title).To(Equal(title))
-	// 			Expect(result.Detail).To(Equal(detail))
-	// 			Expect(result.Source).To(Equal(source))
-	// 			Expect(result.Source).ToNot(BeIdenticalTo(source))
-	// 			Expect(result.Meta).To(BeIdenticalTo(withMeta))
-	// 		})
-	// 	})
-	// })
+	Context("Serializable", func() {
 
-	// Context("NewErrors", func() {
-	// 	It("return successfully", func() {
-	// 		errs := errors.NewErrors()
-	// 		Expect(errs).ToNot(BeNil())
-	// 		Expect(*errs).To(BeEmpty())
-	// 	})
-	// })
+		DescribeTable("parses, validates, and normalizes successfully",
+			func(inputJSON string) {
+				serializableJSON := `{"error": ` + inputJSON + `}`
 
-	// Context("with new errors", func() {
-	// 	var errs *errors.Errors
+				serializableObject := &map[string]any{}
+				err := json.Unmarshal([]byte(serializableJSON), serializableObject)
+				Expect(err).ToNot(HaveOccurred())
 
-	// 	BeforeEach(func() {
-	// 		errs = errors.NewErrors()
-	// 		Expect(errs).ToNot(BeNil())
-	// 	})
+				serializable := &errors.Serializable{}
 
-	// 	Context("Error", func() {
-	// 		It("returns the expected string", func() {
-	// 			expected := []string{}
-	// 			for index := 0; index < 3; index++ {
-	// 				code := test.RandomStringFromRange(1, 16)
-	// 				title := test.RandomStringFromRange(1, 64)
-	// 				detail := test.RandomStringFromRange(1, 64)
-	// 				err := errors.Prepared(code, title, detail)
-	// 				Expect(err).ToNot(BeNil())
-	// 				errs.Append(err)
-	// 				expected = append(expected, err.Error())
-	// 			}
-	// 			Expect(errs.Error()).To(Equal(strings.Join(expected, ", ")))
-	// 		})
-	// 	})
+				parser := structureParser.NewObject(logTest.NewLogger(), serializableObject)
+				Expect(parser).ToNot(BeNil())
+				serializable.Parse("error", parser)
+				Expect(parser.Error()).ToNot(HaveOccurred())
 
-	// 	Context("Append", func() {
-	// 		It("successfully appends errors", func() {
-	// 			expected := []interface{}{}
-	// 			for index := 0; index < 3; index++ {
-	// 				code := test.RandomStringFromRange(1, 16)
-	// 				title := test.RandomStringFromRange(1, 64)
-	// 				detail := test.RandomStringFromRange(1, 64)
-	// 				err := errors.Prepared(code, title, detail)
-	// 				Expect(err).ToNot(BeNil())
-	// 				errs.Append(err)
-	// 				expected = append(expected, err)
-	// 			}
-	// 			Expect(*errs).To(ConsistOf(expected...))
-	// 		})
+				validator := structureValidator.New(logTest.NewLogger())
+				Expect(validator).ToNot(BeNil())
+				serializable.Validate(validator)
+				Expect(validator.Error()).ToNot(HaveOccurred())
 
-	// 		It("does not append if the error is nil", func() {
-	// 			errs.Append(nil)
-	// 			Expect(*errs).To(BeEmpty())
-	// 		})
-	// 	})
-	// })
+				normalizer := structureNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				serializable.Normalize(normalizer)
+				Expect(normalizer.Error()).ToNot(HaveOccurred())
 
-	// Context("NewContextWithError", func() {
-	// 	It("returns a new context", func() {
-	// 		ctx := context.Background()
-	// 		result := errors.NewContextWithError(ctx, errors.NewErrors())
-	// 		Expect(result).ToNot(BeNil())
-	// 		Expect(result).ToNot(Equal(ctx))
-	// 	})
-	// })
+				outputJSON, err := json.Marshal(serializable)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(outputJSON).To(MatchJSON(inputJSON))
+			},
+			Entry("an array", `
+					[
+						{
+							"detail": "standard library error"
+						},
+						{
+							"code": "ñnホôÓ6😀🍕",
+							"title": "🦖þ\":;💔🏄VFb",
+							"detail": "Üg🍕60🧠{XźsYฝuGטíñnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
+							"source": {
+								"parameter": "b🏄วは",
+								"pointer": ",øูLAn"
+							},
+							"meta": "supermeta",
+							"caller": {
+								"package": "github.com/tidepool-org/platform/errors/test",
+								"function": "RandomError",
+								"file": "errors/test/errors.go",
+								"line": 28
+							}
+						},
+						{
+							"detail": "wrapped error",
+							"caller": {
+								"package": "github.com/tidepool-org/platform/errors_test",
+								"function": "1",
+								"file": "errors/errors_test.go",
+								"line": 145
+							},
+							"cause": {
+								"detail": "o0cä",
+								"caller": {
+									"package": "github.com/tidepool-org/platform/errors/test",
+									"function": "RandomError",
+									"file": "errors/test/errors.go",
+									"line": 28
+								}
+							}
+						}
+					]
+				`),
+			Entry("an object", `
+					{
+						"code": "ñnホôÓ6😀🍕",
+						"title": "🦖þ\":;💔🏄VFb",
+						"detail": "wrapped error",
+						"source": {
+							"parameter": "b🏄วは",
+							"pointer": ",øูLAn"
+						},
+						"caller": {
+							"package": "github.com/tidepool-org/platform/errors_test",
+							"function": "1",
+							"file": "errors/errors_test.go",
+							"line": 145
+						},
+						"cause": {
+							"detail": "o0cä",
+							"caller": {
+								"package": "github.com/tidepool-org/platform/errors/test",
+								"function": "RandomError",
+								"file": "errors/test/errors.go",
+								"line": 28
+							}
+						}
+					}
+				`),
+			Entry("a string", `"test error"`),
+		)
 
-	// Context("ErrorFromContext", func() {
-	// 	It("returns nil if context is nil", func() {
-	// 		Expect(errors.ErrorFromContext(nil)).To(BeNil())
-	// 	})
+		DescribeTable("reports parse errors",
+			func(inputJSON string, expectedError string) {
+				serializableJSON := `{"error": ` + inputJSON + `}`
 
-	// 	It("returns nil if errors is not in context", func() {
-	// 		Expect(errors.ErrorFromContext(context.Background())).To(BeNil())
-	// 	})
+				serializableObject := &map[string]any{}
+				err := json.Unmarshal([]byte(serializableJSON), serializableObject)
+				Expect(err).ToNot(HaveOccurred())
 
-	// 	It("returns errors", func() {
-	// 		errs := errors.NewErrors()
-	// 		Expect(errors.ErrorFromContext(errors.NewContextWithError(context.Background(), errs))).To(BeIdenticalTo(errs))
-	// 	})
-	// })
+				serializable := &errors.Serializable{}
+
+				parser := structureParser.NewObject(logTest.NewLogger(), serializableObject)
+				Expect(parser).ToNot(BeNil())
+				serializable.Parse("error", parser)
+				Expect(parser.Error()).To(MatchError(expectedError))
+			},
+			Entry("an array", `
+					[
+						{
+							"detail": "standard library error"
+						},
+						{
+							"code": true,
+							"title": true,
+							"detail": true,
+							"source": {
+								"parameter": true,
+								"pointer": true,
+								"extra": true
+							},
+							"meta": "supermeta",
+							"caller": {
+								"package": true,
+								"function": true,
+								"file": true,
+								"line": true,
+								"extra": true
+							},
+							"extra": true
+						},
+						{
+							"detail": "wrapped error",
+							"caller": {
+								"package": "github.com/tidepool-org/platform/errors_test",
+								"function": "1",
+								"file": "errors/errors_test.go",
+								"line": 145
+							},
+							"cause": {
+								"detail": "o0cä",
+								"caller": {
+									"package": "github.com/tidepool-org/platform/errors/test",
+									"function": "RandomError",
+									"file": "errors/test/errors.go",
+									"line": 28
+								}
+							}
+						}
+					]
+				`, "type is not string, but bool, type is not string, but bool, type is not string, but bool, type is not string, but bool, type is not string, but bool, not parsed, type is not string, but bool, type is not string, but bool, type is not string, but bool, type is not int, but bool, not parsed, not parsed"),
+			Entry("an object", `
+					{
+						"code": true,
+						"title": true,
+						"detail": true,
+						"source": {
+							"parameter": true,
+							"pointer": true,
+							"extra": true
+						},
+						"meta": "supermeta",
+						"caller": {
+							"package": true,
+							"function": true,
+							"file": true,
+							"line": true,
+							"extra": true
+						},
+						"extra": true
+					}
+				`, "type is not string, but bool, type is not string, but bool, type is not string, but bool, type is not string, but bool, type is not string, but bool, not parsed, type is not string, but bool, type is not string, but bool, type is not string, but bool, type is not int, but bool, not parsed, not parsed"),
+		)
+
+		DescribeTable("reports validate errors",
+			func(inputJSON string, expectedError string) {
+				serializableJSON := `{"error": ` + inputJSON + `}`
+
+				serializableObject := &map[string]any{}
+				err := json.Unmarshal([]byte(serializableJSON), serializableObject)
+				Expect(err).ToNot(HaveOccurred())
+
+				serializable := &errors.Serializable{}
+
+				parser := structureParser.NewObject(logTest.NewLogger(), serializableObject)
+				Expect(parser).ToNot(BeNil())
+				serializable.Parse("error", parser)
+				Expect(parser.Error()).ToNot(HaveOccurred())
+
+				validator := structureValidator.New(logTest.NewLogger())
+				Expect(validator).ToNot(BeNil())
+				serializable.Validate(validator)
+				Expect(validator.Error()).To(MatchError(expectedError))
+			},
+			Entry("an array", `
+					[
+						{
+							"detail": "standard library error"
+						},
+						{
+							"code": "ñnホôÓ6😀🍕",
+							"title": "🦖þ\":;💔🏄VFb",
+							"detail": "Üg🍕60🧠{XźsYฝuGטíñnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
+							"source": {
+								"parameter": "",
+								"pointer": ""
+							},
+							"meta": "supermeta",
+							"caller": {
+								"package": "",
+								"function": "",
+								"file": "",
+								"line": -1
+							}
+						},
+						{
+							"detail": "wrapped error",
+							"caller": {
+								"package": "github.com/tidepool-org/platform/errors_test",
+								"function": "1",
+								"file": "errors/errors_test.go",
+								"line": 145
+							},
+							"cause": {
+								"detail": "o0cä",
+								"caller": {
+									"package": "github.com/tidepool-org/platform/errors/test",
+									"function": "RandomError",
+									"file": "errors/test/errors.go",
+									"line": 28
+								}
+							}
+						}
+					]
+				`, "value is empty, value is empty, value is empty, value is empty, value -1 is not greater than or equal to 0"),
+			Entry("an object", `
+					{
+						"code": "ñnホôÓ6😀🍕",
+						"title": "🦖þ\":;💔🏄VFb",
+						"detail": "Üg🍕60🧠{XźsYฝuGטíñnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
+						"source": {
+							"parameter": "",
+							"pointer": ""
+						},
+						"meta": "supermeta",
+						"caller": {
+							"package": "",
+							"function": "",
+							"file": "",
+							"line": -1
+						}
+					}
+				`, "value is empty, value is empty, value is empty, value is empty, value -1 is not greater than or equal to 0"),
+		)
+
+		Context("marshaling and unmarshaling with JSON", func() {
+			DescribeTable("work correctly",
+				func(err error) {
+					wrapped := SerializableWrapper{
+						Value: errors.NewSerializable(err),
+					}
+
+					serializedJSON, err := json.Marshal(wrapped)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(serializedJSON).ToNot(BeEmpty())
+
+					deserialized := SerializableWrapper{}
+					err = json.Unmarshal(serializedJSON, &deserialized)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(deserialized).To(Equal(wrapped))
+				},
+				Entry("with standard library error", stdErrors.New("standard library error")), // Standard library errors used for testing platform errors only
+				Entry("with a single error object", errorsTest.RandomError()),
+				Entry("with an array of object errors", errors.Append(errorsTest.RandomError(), errorsTest.RandomError())),
+				Entry("with a mixed type errors", errors.Append(errorsTest.RandomError(), stdErrors.New("standard library error"))), // Standard library errors used for testing platform errors only
+				Entry("with wrapped errors", errors.Wrap(errorsTest.RandomError(), "wrapped error")),
+			)
+		})
+
+		Context("marshaling and unmarshaling with BSON", func() {
+			DescribeTable("work correctly",
+				func(err error) {
+					wrapped := SerializableWrapper{
+						Value: errors.NewSerializable(err),
+					}
+
+					serializedBSON, err := bson.Marshal(wrapped)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(serializedBSON).ToNot(BeEmpty())
+
+					deserialized := SerializableWrapper{}
+					err = bson.Unmarshal(serializedBSON, &deserialized)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(deserialized).To(Equal(wrapped))
+				},
+				Entry("with standard library error", stdErrors.New("standard library error")), // Standard library errors used for testing platform errors only
+				Entry("with a single error object", errorsTest.RandomError()),
+				Entry("with an array of object errors", errors.Append(errorsTest.RandomError(), errorsTest.RandomError())),
+				Entry("with a mixed type errors", errors.Append(errorsTest.RandomError(), stdErrors.New("standard library error"))), // Standard library errors used for testing platform errors only
+				Entry("with wrapped errors", errors.Wrap(errorsTest.RandomError(), "wrapped error")),
+			)
+		})
+	})
+
+	Context("NewContextWithError", func() {
+		It("returns a new context", func() {
+			ctx := context.Background()
+			result := errors.NewContextWithError(ctx, errorsTest.RandomError())
+			Expect(result).ToNot(BeNil())
+			Expect(result).ToNot(Equal(ctx))
+		})
+	})
+
+	Context("ErrorFromContext", func() {
+		It("returns nil if context is nil", func() {
+			var ctx context.Context
+			Expect(errors.ErrorFromContext(ctx)).To(BeNil())
+		})
+
+		It("returns nil if errors is not in context", func() {
+			Expect(errors.ErrorFromContext(context.Background())).To(BeNil())
+		})
+
+		It("returns errors", func() {
+			err := errorsTest.RandomError()
+			Expect(errors.ErrorFromContext(errors.NewContextWithError(context.Background(), err))).To(BeIdenticalTo(err))
+		})
+	})
 })
