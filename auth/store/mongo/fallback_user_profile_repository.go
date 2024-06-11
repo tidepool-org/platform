@@ -18,6 +18,20 @@ type FallbackUserProfileRepository struct {
 	*storeStructuredMongo.Repository
 }
 
+func NewFallbackUserProfileRepository(c *storeStructuredMongo.Config) (*FallbackUserProfileRepository, error) {
+	if c == nil {
+		return nil, errors.New("config is missing")
+	}
+
+	store, err := storeStructuredMongo.NewStore(c)
+	if err != nil {
+		return nil, err
+	}
+	return &FallbackUserProfileRepository{
+		store.GetRepository("seagull"),
+	}, nil
+}
+
 func (p *FallbackUserProfileRepository) EnsureIndexes() error {
 	return nil
 }
@@ -43,14 +57,15 @@ func (p *FallbackUserProfileRepository) FindUserProfile(ctx context.Context, use
 	return doc.ToLegacyProfile()
 }
 
-func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.LegacyUserProfile) error {
+func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.UserProfile) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if userID == "" {
 		return errors.New("user id is missing")
 	}
-	if err := structureValidator.New().Validate(profile); err != nil {
+	legacyProfile := profile.ToLegacyProfile()
+	if err := structureValidator.New().Validate(legacyProfile); err != nil {
 		return err
 	}
 	var doc user.LegacySeagullDocument
@@ -63,7 +78,7 @@ func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, u
 	}
 
 	// This will create a new value even if doc.Value is empty
-	updatedValueRaw, err := user.AddProfileToSeagullValue(doc.Value, profile)
+	updatedValueRaw, err := user.AddProfileToSeagullValue(doc.Value, legacyProfile)
 	if err != nil {
 		return err
 	}

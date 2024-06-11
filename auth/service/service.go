@@ -21,6 +21,7 @@ type Service interface {
 	Domain() string
 	AuthStore() store.Store
 	UserAccessor() user.UserAccessor
+	UserProfileAccessor() user.UserProfileAccessor // UserProfileAccessor is separate from UserAccessor while the seagull migration is in progress because the user returned from UserAccessor is the keycloak user and their profile may not have been migrated yet
 	PermissionsClient() permission.Client
 
 	ProviderFactory() provider.Factory

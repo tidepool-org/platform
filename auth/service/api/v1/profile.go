@@ -1,7 +1,8 @@
 package v1
 
 import (
-	stdErrs "errors"
+	"context"
+	"errors"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -24,40 +25,51 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 	}
 }
 
+func (r *Router) getProfile(ctx context.Context, userID string) (*user.UserProfile, error) {
+	// Until seagull migration is complete use UserProfileAccessor() to get a profile instead of the profile within the user itself.
+	profile, err := r.UserProfileAccessor().FindUserProfile(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if profile == nil {
+		return nil, user.ErrUserProfileNotFound
+	}
+	// Once seagull migration is compelte, we can return
+	// the profile attached to the user directly via person.Profile
+	// through r.UserAccessor().FindUserProfile
+	return profile, nil
+}
+
 func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
+	if r.handledUserNotExists(ctx, responder, userID) {
+		return
+	}
 
-	user, err := r.UserAccessor().FindUserById(ctx, userID)
+	profile, err := r.getProfile(ctx, userID)
 	if err != nil {
-		responder.Error(http.StatusBadRequest, err)
+		r.handleProfileErr(responder, err)
 		return
 	}
-	if user == nil || user.Profile == nil {
-		responder.Empty(http.StatusNotFound)
-		return
-	}
-
-	responder.Data(http.StatusOK, user.Profile)
+	responder.Data(http.StatusOK, profile)
 }
 
 func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
+	if r.handledUserNotExists(ctx, responder, userID) {
+		return
+	}
 
-	user, err := r.UserAccessor().FindUserById(ctx, userID)
+	profile, err := r.getProfile(ctx, userID)
 	if err != nil {
-		responder.Error(http.StatusBadRequest, err)
+		r.handleProfileErr(responder, err)
 		return
 	}
-	if user == nil || user.Profile == nil {
-		responder.Empty(http.StatusNotFound)
-		return
-	}
-
-	responder.Data(http.StatusOK, user.Profile.ToLegacyProfile())
+	responder.Data(http.StatusOK, profile.ToLegacyProfile())
 }
 
 func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
@@ -90,13 +102,12 @@ func (r *Router) updateProfile(res rest.ResponseWriter, req *rest.Request, profi
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	err := r.UserAccessor().UpdateUserProfile(ctx, userID, profile)
-	if stdErrs.Is(err, user.ErrUserNotFound) {
-		responder.Empty(http.StatusNotFound)
+	if r.handledUserNotExists(ctx, responder, userID) {
 		return
 	}
-	if err != nil {
-		responder.InternalServerError(err)
+	// Once seagull migration is complete, we can use r.UserAccessor().UpdateUserProfile.
+	if err := r.UserProfileAccessor().UpdateUserProfile(ctx, userID, profile); err != nil {
+		r.handleProfileErr(responder, err)
 		return
 	}
 	responder.Empty(http.StatusOK)
@@ -107,14 +118,33 @@ func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	userID := req.PathParam("userId")
 
-	err := r.UserAccessor().DeleteUserProfile(ctx, userID)
-	if stdErrs.Is(err, user.ErrUserNotFound) {
-		responder.Empty(http.StatusNotFound)
-		return
-	}
+	err := r.UserProfileAccessor().DeleteUserProfile(ctx, userID)
 	if err != nil {
-		responder.InternalServerError(err)
+		r.handleProfileErr(responder, err)
 		return
 	}
 	responder.Empty(http.StatusOK)
+}
+
+func (r *Router) handleProfileErr(responder *request.Responder, err error) {
+	switch {
+	case errors.Is(err, user.ErrUserNotFound), errors.Is(err, user.ErrUserProfileNotFound):
+		responder.Empty(http.StatusNotFound)
+		return
+	default:
+		responder.InternalServerError(err)
+	}
+}
+
+func (r *Router) handledUserNotExists(ctx context.Context, responder *request.Responder, userID string) (handled bool) {
+	person, err := r.UserAccessor().FindUserById(ctx, userID)
+	if err != nil {
+		r.handleProfileErr(responder, err)
+		return true
+	}
+	if person == nil {
+		responder.Empty(http.StatusNotFound)
+		return true
+	}
+	return false
 }
