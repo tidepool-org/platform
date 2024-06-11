@@ -44,9 +44,9 @@ type Alerts struct {
 }
 
 func (c Config) Validate(validator structure.Validator) {
-	validator.String("UserID", &c.UserID).Using(user.IDValidator)
-	validator.String("FollowedUserID", &c.FollowedUserID).Using(user.IDValidator)
-	validator.String("UploadID", &c.UploadID).Exists().Using(data.SetIDValidator)
+	validator.String("userID", &c.UserID).Using(user.IDValidator)
+	validator.String("followedUserID", &c.FollowedUserID).Using(user.IDValidator)
+	validator.String("uploadID", &c.UploadID).Exists().Using(data.SetIDValidator)
 	c.Alerts.Validate(validator)
 }
 
