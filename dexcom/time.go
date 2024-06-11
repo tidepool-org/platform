@@ -8,8 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
+
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 )
@@ -52,39 +53,26 @@ func TimeFromString(serialized string) (*Time, error) {
 	}
 
 	// Parse out all of the fields, be *very* lenient
-	if year, parsable, err = parseDigits(parsable, 4, 4); err == nil && parsable != "" {
-		if parsable, err = parseCharacter(parsable, "-"); err == nil && parsable != "" {
-			if month, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
-				if parsable, err = parseCharacter(parsable, "-"); err == nil && parsable != "" {
-					if day, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
-						if parsable, err = parseCharacter(parsable, "T"); err == nil && parsable != "" {
-							if hour, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
-								if parsable, err = parseCharacter(parsable, ":"); err == nil && parsable != "" {
-									if minute, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
-										if parsable, err = parseCharacter(parsable, ":"); err == nil && parsable != "" {
-											if second, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
-												if parsable, err = parseCharacter(parsable, "."); err == nil && parsable != "" {
-													if length := len(parsable); length < 9 {
-														parsable += strings.Repeat("0", 9-length)
-													}
-													if nanoseconds, parsable, err = parseDigits(parsable, 9, 9); err == nil && parsable != "" {
-														return nil, errors.New("time is not parsable")
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+	pipeline := parsePipeline{
+		digitsParser(4, 4, &year),
+		characterParser("-"),
+		digitsParser(1, 2, &month),
+		characterParser("-"),
+		digitsParser(1, 2, &day),
+		characterParser("T"),
+		digitsParser(1, 2, &hour),
+		characterParser(":"),
+		digitsParser(1, 2, &minute),
+		characterParser(":"),
+		digitsParser(1, 2, &second),
+		characterParser("."),
+		nanosecondsPadder(),
+		digitsParser(9, 9, &nanoseconds),
 	}
+	remaining, err := pipeline.Parse(parsable)
 
-	// If we had an error, then bail
-	if err != nil {
+	// If we had an error or there are unparsed characters left, then bail
+	if err != nil || remaining != "" {
 		return nil, errors.New("time is not parsable")
 	}
 
@@ -216,5 +204,49 @@ func intOrDefault(value *int, defowlt int) int {
 		return *value
 	} else {
 		return defowlt
+	}
+}
+
+// parseFn is a function which when called will run the parser and return the remaining characters or an error
+type parserFn func(string) (string, error)
+
+// parsePipeline is pipeline of parser functions
+type parsePipeline []parserFn
+
+// Parse executed the parse pipeline until an error is returned or no remaining characters are left
+func (p parsePipeline) Parse(original string) (remaining string, err error) {
+	remaining = original
+	for _, f := range p {
+		remaining, err = f(remaining)
+		if err != nil || remaining == "" {
+			break
+		}
+	}
+
+	return
+}
+
+// digitsParser creates a digits parser function which can be added to a parser pipeline
+func digitsParser(minimum int, maximum int, result **int) parserFn {
+	return func(parsable string) (remaining string, err error) {
+		*result, remaining, err = parseDigits(parsable, minimum, maximum)
+		return
+	}
+}
+
+// digitsParser creates a character parser function which can be added to a parser pipeline
+func characterParser(character string) parserFn {
+	return func(parsable string) (string, error) {
+		return parseCharacter(parsable, character)
+	}
+}
+
+// nanosecondsPadder pads the passed string with up to nine '0' chars if the length of string is less than nine
+func nanosecondsPadder() parserFn {
+	return func(parsable string) (string, error) {
+		if length := len(parsable); length < 9 {
+			parsable += strings.Repeat("0", 9-length)
+		}
+		return parsable, nil
 	}
 }
