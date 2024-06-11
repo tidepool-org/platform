@@ -14,11 +14,13 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-type FallbackUserProfileRepository struct {
+// LegacySeagullProfileRepository accesses legacy seagull profiles while the
+// seagll migration to keycloak is in progress.
+type LegacySeagullProfileRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func NewFallbackUserProfileRepository(c *storeStructuredMongo.Config) (*FallbackUserProfileRepository, error) {
+func NewLegacySeagullProfileRepository(c *storeStructuredMongo.Config) (*LegacySeagullProfileRepository, error) {
 	if c == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -27,16 +29,16 @@ func NewFallbackUserProfileRepository(c *storeStructuredMongo.Config) (*Fallback
 	if err != nil {
 		return nil, err
 	}
-	return &FallbackUserProfileRepository{
+	return &LegacySeagullProfileRepository{
 		store.GetRepository("seagull"),
 	}, nil
 }
 
-func (p *FallbackUserProfileRepository) EnsureIndexes() error {
+func (p *LegacySeagullProfileRepository) EnsureIndexes() error {
 	return nil
 }
 
-func (p *FallbackUserProfileRepository) FindUserProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
+func (p *LegacySeagullProfileRepository) FindUserProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -57,7 +59,7 @@ func (p *FallbackUserProfileRepository) FindUserProfile(ctx context.Context, use
 	return doc.ToLegacyProfile()
 }
 
-func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.UserProfile) error {
+func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.UserProfile) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -95,7 +97,7 @@ func (p *FallbackUserProfileRepository) UpdateUserProfile(ctx context.Context, u
 	return err
 }
 
-func (p *FallbackUserProfileRepository) DeleteUserProfile(ctx context.Context, userID string) error {
+func (p *LegacySeagullProfileRepository) DeleteUserProfile(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
