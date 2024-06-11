@@ -109,7 +109,15 @@ func IsAccessTokenError(err error) bool {
 }
 
 func IsRefreshTokenError(err error) bool {
-	return err != nil && strings.Contains(errors.Cause(err).Error(), "oauth2: cannot fetch token: 400 Bad Request")
+	if err == nil {
+		return false
+	} else if err = errors.Cause(err); err == nil {
+		return false
+	} else if errString := err.Error(); !strings.Contains(errString, "oauth2: cannot fetch token:") && !strings.Contains(errString, `oauth2: "invalid_grant"`) {
+		return false
+	} else {
+		return true
+	}
 }
 
 const ErrorAccessDenied = "access_denied"

@@ -66,13 +66,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 }
 
 func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
-	serverSessionToken, err := r.authClient.ServerSessionToken()
-	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to get server session token"))
-		return
-	}
-
-	ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	// Get the list of all existing EHR sync tasks
 	syncTasks, err := r.getSyncTasks(ctx)

@@ -9,7 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"github.com/golang/mock/gomock"
+
 	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
@@ -94,11 +97,16 @@ var _ = Describe("Client", func() {
 			})
 
 			Context("with server token", func() {
-				var token string
+				var serverSessionTokenProviderController *gomock.Controller
+				var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
+				var sessionToken string
 
 				BeforeEach(func() {
-					token = dataTest.NewSessionToken()
-					ctx = auth.NewContextWithServerSessionToken(ctx, token)
+					serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+					serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+					sessionToken = dataTest.NewSessionToken()
+					serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
+					ctx = auth.NewContextWithServerSessionTokenProvider(ctx, serverSessionTokenProvider)
 				})
 
 				Context("with an unauthorized response", func() {
@@ -107,7 +115,7 @@ var _ = Describe("Client", func() {
 							CombineHandlers(
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, nil)),
 						)
@@ -126,7 +134,7 @@ var _ = Describe("Client", func() {
 							CombineHandlers(
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusForbidden, nil)),
 						)
@@ -145,7 +153,7 @@ var _ = Describe("Client", func() {
 							CombineHandlers(
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusOK, nil)),
 						)

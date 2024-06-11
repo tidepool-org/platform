@@ -110,21 +110,16 @@ func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	tsk.ClearError()
 
 	config := r.GetConfig(tsk)
 
-	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
-	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
-		if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-		} else if tErr = taskRunner.Run(ctx); tErr != nil {
-			tsk.AppendError(tErr)
-		}
+	if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+	} else if tErr = taskRunner.Run(ctx); tErr != nil {
+		tsk.AppendError(tErr)
 	}
 
 	if !tsk.IsFailed() {

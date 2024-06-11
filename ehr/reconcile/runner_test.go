@@ -148,7 +148,6 @@ var _ = Describe("Runner", func() {
 					tasksList = append(tasksList, &t)
 				}
 
-				authClient.EXPECT().ServerSessionToken().Return("token", nil)
 				clinicsClient.EXPECT().ListEHREnabledClinics(gomock.Any()).Return(clinics, nil)
 				taskClient.EXPECT().ListTasks(gomock.Any(), gomock.Any(), gomock.Any()).Return(tasksList, nil)
 				taskClient.EXPECT().DeleteTask(gomock.Any(), gomock.Eq(tasks[*toBeDeleted.Id].ID)).Return(nil)
