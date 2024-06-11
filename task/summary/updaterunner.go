@@ -72,7 +72,11 @@ func (r *UpdateRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(UpdateTaskDurationMaximum * 3)
 }
 
-func (r *UpdateRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *UpdateRunner) GetRunnerTimeout() time.Duration {
+	return UpdateTaskDurationMaximum * 2
+}
+
+func (r *UpdateRunner) GetRunnerDurationMaximum() time.Duration {
 	return UpdateTaskDurationMaximum
 }
 
@@ -115,9 +119,7 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
@@ -134,12 +136,6 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type UpdateTaskRunner struct {

@@ -68,7 +68,11 @@ func (r *MigrationRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(MigrationTaskDurationMaximum * 3)
 }
 
-func (r *MigrationRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *MigrationRunner) GetRunnerTimeout() time.Duration {
+	return MigrationTaskDurationMaximum * 2
+}
+
+func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 	return MigrationTaskDurationMaximum
 }
 
@@ -111,9 +115,7 @@ func (r *MigrationRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
@@ -130,12 +132,6 @@ func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type MigrationTaskRunner struct {
