@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
@@ -27,6 +28,9 @@ type Config struct {
 	// UserID permission to that data.
 	FollowedUserID string `json:"followedUserId" bson:"followedUserId"`
 
+	// UploadID identifies the device dataset for which these alerts apply.
+	UploadID string `json:"uploadId" bson:"uploadId,omitempty"`
+
 	Alerts `bson:",inline,omitempty"`
 }
 
@@ -42,6 +46,7 @@ type Alerts struct {
 func (c Config) Validate(validator structure.Validator) {
 	validator.String("UserID", &c.UserID).Using(user.IDValidator)
 	validator.String("FollowedUserID", &c.FollowedUserID).Using(user.IDValidator)
+	validator.String("UploadID", &c.UploadID).Exists().Using(data.SetIDValidator)
 	c.Alerts.Validate(validator)
 }
 
