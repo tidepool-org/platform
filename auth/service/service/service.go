@@ -493,7 +493,7 @@ func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) 
 
 	s.Logger().Debug("creating legacy seagull profile accessor")
 
-	repo, err := authMongo.NewFallbackUserProfileRepository(cfg)
+	repo, err := authMongo.NewLegacySeagullProfileRepository(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create fallback user profile repository")
 	}
