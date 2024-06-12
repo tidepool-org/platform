@@ -67,8 +67,6 @@ type DatumRepository interface {
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
 	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 
-	CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error)
-
 	// GetAlertableData queries for the data used to evaluate alerts configurations.
 	GetAlertableData(ctx context.Context, params AlertableParams) (*AlertableResponse, error)
 }
