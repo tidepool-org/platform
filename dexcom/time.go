@@ -153,7 +153,7 @@ func (t Time) MarshalJSON() ([]byte, error) {
 	}
 }
 
-var zoneRegexp = regexp.MustCompile(`^(.*)(Z|-\d\d:\d\d)$`)
+var zoneRegexp = regexp.MustCompile(`^(.*)(Z|[+-]\d\d:\d\d)$`)
 
 func parseDigits(original string, minimum int, maximum int) (*int, string, error) {
 	digits, remaining, err := parseCharacters(original, "1234567890", minimum, maximum)
