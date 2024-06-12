@@ -542,9 +542,8 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
-						"Background": Equal(true),
-						"Name":       Equal("UserIdTypeWeighted_v2"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
@@ -560,20 +559,33 @@ var _ = Describe("Mongo", func() {
 							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
 						}),
 					}),
+					// MatchFields(IgnoreExtras, Fields{
+					// 	"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+					// 	"Name": Equal("OriginId"),
+					// }),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("OriginId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "origin.id", "-deletedTime", "_active")),
+						"Name": Equal("UserIdOriginId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("UploadId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
 					}),
+					// MatchFields(IgnoreExtras, Fields{
+					// 	"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
+					// 	"Name": Equal("DeduplicatorHash"),
+					// 	"PartialFilterExpression": Equal(bson.D{
+					// 		{Key: "_active", Value: true},
+					// 		{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
+					// 		{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
+					// 	}),
+					// }),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
-						"Background": Equal(true),
-						"Name":       Equal("DeduplicatorHash"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "_deduplicator.hash")),
+						"Name": Equal("DeduplicatorHashNoType"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
