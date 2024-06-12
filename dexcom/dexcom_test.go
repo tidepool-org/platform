@@ -13,24 +13,8 @@ import (
 )
 
 var _ = Describe("Dexcom", func() {
-	It("TimeFormatMilli is expected", func() {
-		Expect(dexcom.TimeFormatMilli).To(Equal("2006-01-02T15:04:05.999"))
-	})
-
-	It("TimeFormatMilliZ is expected", func() {
-		Expect(dexcom.TimeFormatMilliZ).To(Equal("2006-01-02T15:04:05.999-07:00"))
-	})
-
-	It("TimeFormatMilliUTC is expected", func() {
-		Expect(dexcom.TimeFormatMilliUTC).To(Equal("2006-01-02T15:04:05.999Z"))
-	})
-
-	It("TimeFormat is expected", func() {
-		Expect(dexcom.TimeFormat).To(Equal("2006-01-02T15:04:05"))
-	})
-
-	It("TimeMinimalFormat is expected", func() {
-		Expect(dexcom.TimeMinimalFormat).To(Equal("2006-01-02T15:04"))
+	It("DateRangeTimeFormat is expected", func() {
+		Expect(dexcom.DateRangeTimeFormat).To(Equal("2006-01-02T15:04:05"))
 	})
 
 	It("SystemTimeNowThreshold is expected", func() {

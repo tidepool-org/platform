@@ -1,8 +1,6 @@
 package dexcom_test
 
 import (
-	"log"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -469,9 +467,6 @@ var _ = Describe("Alert", func() {
 				testValidator := structureValidator.New()
 
 				val.Validate(testValidator)
-				if expectError != testValidator.HasError() {
-					log.Println("failed alert: ", *val.AlertName)
-				}
 				Expect(testValidator.HasError()).To(Equal(expectError))
 			},
 			Entry("errors if alertName not set", func() *dexcom.AlertSetting {

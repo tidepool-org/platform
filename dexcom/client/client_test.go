@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomClient "github.com/tidepool-org/platform/dexcom/client"
 	dexcomTest "github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -85,7 +85,7 @@ var _ = Describe("Client", func() {
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 			startTime = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
 			endTime = test.RandomTimeFromRange(startTime, time.Now())
-			requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.TimeFormat), endTime.UTC().Format(dexcom.TimeFormat))
+			requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.DateRangeTimeFormat), endTime.UTC().Format(dexcom.DateRangeTimeFormat))
 			tokenSource = oauthTest.NewTokenSource()
 		})
 

@@ -373,6 +373,13 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 	return false
 }
 
+func (t *TaskRunner) updateDataSetWithTimezoneOffset(timezoneOffset *int) error {
+	if timezoneOffset == nil {
+		return nil
+	}
+	return t.updateDataSet(&data.DataSetUpdate{TimeZoneOffset: timezoneOffset})
+}
+
 func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 	if dataSetUpdate.IsEmpty() {
 		return nil
@@ -524,7 +531,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
 
-	sort.Sort(BySystemTime(datumArray))
+	sort.Sort(ByTime(datumArray))
 
 	return datumArray, nil
 }
@@ -710,9 +717,20 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 			return errors.Wrap(err, "unable to create data set data")
 		}
 
-		earliestDataTime := payloadSystemTime(datumArray[0])
-		latestDataTime := payloadSystemTime(datumArray[endIndex-1])
+		earliestDataTime := datumArray[0].GetTime()
+		latestDataTime := datumArray[endIndex-1].GetTime()
 		if err := t.updateDataSourceWithDataTime(earliestDataTime, latestDataTime); err != nil {
+			return err
+		}
+
+		// Determine last known timezone offset and persist with the data set
+		var timezoneOffset *int
+		for index := endIndex - 1; index >= 0; index-- {
+			if timezoneOffset = datumArray[index].GetTimeZoneOffset(); timezoneOffset != nil {
+				break
+			}
+		}
+		if err := t.updateDataSetWithTimezoneOffset(timezoneOffset); err != nil {
 			return err
 		}
 	}
@@ -738,34 +756,22 @@ func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
 	return latestDataTime != nil && (t.dataSource.LatestDataTime == nil || latestDataTime.After(*t.dataSource.LatestDataTime))
 }
 
-func payloadSystemTime(datum data.Datum) *time.Time {
-	if payload := datum.GetPayload(); payload == nil {
-		return nil
-	} else if value := payload.Get("systemTime"); value == nil {
-		return nil
-	} else if systemTime, ok := value.(*time.Time); !ok {
-		return nil
-	} else {
-		return systemTime
-	}
-}
+type ByTime data.Data
 
-type BySystemTime data.Data
-
-func (b BySystemTime) Len() int {
+func (b ByTime) Len() int {
 	return len(b)
 }
 
-func (b BySystemTime) Less(left int, right int) bool {
-	if leftSystemTime := payloadSystemTime(b[left]); leftSystemTime == nil {
+func (b ByTime) Less(left int, right int) bool {
+	if leftTime := b[left].GetTime(); leftTime == nil {
 		return true
-	} else if rightSystemTime := payloadSystemTime(b[right]); rightSystemTime == nil {
+	} else if rightTime := b[right].GetTime(); rightTime == nil {
 		return false
 	} else {
-		return leftSystemTime.Before(*rightSystemTime)
+		return leftTime.Before(*rightTime)
 	}
 }
 
-func (b BySystemTime) Swap(left int, right int) {
+func (b ByTime) Swap(left int, right int) {
 	b[left], b[right] = b[right], b[left]
 }
