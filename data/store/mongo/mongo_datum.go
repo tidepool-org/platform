@@ -92,16 +92,16 @@ func (d *DatumRepository) EnsureIndexes() error {
 					},
 				}),
 		},
-		{
-			Keys: bson.D{
-				{Key: "origin.id", Value: 1},
-				{Key: "type", Value: 1},
-				{Key: "deletedTime", Value: -1},
-				{Key: "_active", Value: 1},
-			},
-			Options: options.Index().
-				SetName("OriginId"),
-		},
+		// {
+		// 	Keys: bson.D{
+		// 		{Key: "origin.id", Value: 1},
+		// 		{Key: "type", Value: 1},
+		// 		{Key: "deletedTime", Value: -1},
+		// 		{Key: "_active", Value: 1},
+		// 	},
+		// 	Options: options.Index().
+		// 		SetName("OriginId"),
+		// },
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
@@ -125,12 +125,26 @@ func (d *DatumRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetName("UploadId"),
 		},
+		// {
+		// 	Keys: bson.D{
+		// 		{Key: "_userId", Value: 1},
+		// 		{Key: "deviceId", Value: 1},
+		// 		{Key: "type", Value: 1},
+		// 		{Key: "_active", Value: 1},
+		// 		{Key: "_deduplicator.hash", Value: 1},
+		// 	},
+		// 	Options: options.Index().
+		// 		SetPartialFilterExpression(bson.D{
+		// 			{Key: "_active", Value: true},
+		// 			{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
+		// 			{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
+		// 		}).
+		// 		SetName("DeduplicatorHash"),
+		// },
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
-				{Key: "type", Value: 1},
-				{Key: "_active", Value: 1},
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
@@ -139,7 +153,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
 					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
 				}).
-				SetName("DeduplicatorHash"),
+				SetName("DeduplicatorHashNoType"),
 		},
 	})
 }
@@ -233,7 +247,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -256,7 +270,11 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 		"archivedDatasetId": 1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("UserIdOriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to archive data set data")
 		return fmt.Errorf("unable to archive data set data: %w", err)
@@ -299,7 +317,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	}
 	opts := options.Update()
 	if hasOriginID {
-		opts.SetHint("OriginId")
+		opts.SetHint("UserIdOriginId")
 	}
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
@@ -332,7 +350,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	selector["deletedTime"] = bson.M{"$exists": true}
 	opts := options.Delete()
 	if hasOriginID {
-		opts.SetHint("OriginId")
+		opts.SetHint("UserIdOriginId")
 	}
 	changeInfo, err := d.DeleteMany(ctx, selector, opts)
 	if err != nil {
@@ -410,7 +428,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 			"modifiedTime":      timestamp,
 		}
 		unset := bson.M{}
-		opts := options.Update().SetHint("DeduplicatorHash")
+		opts := options.Update().SetHint("DeduplicatorHashNoType")
 		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	}
 
