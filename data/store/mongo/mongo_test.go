@@ -2551,6 +2551,75 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
+		Context("GetAlertableData", func() {
+			testDataSet := func(userID, deviceID string) *upload.Upload {
+				GinkgoHelper()
+				collection = store.GetCollection("deviceData")
+				dataSetCollection = store.GetCollection("deviceDataSets")
+				upload := NewDataSet(userID, deviceID)
+				creationTime := time.Now().Add(-24 * time.Hour)
+				upload.Active = true
+				upload.CreatedTime = pointer.FromTime(creationTime)
+				upload.ModifiedTime = pointer.FromTime(creationTime)
+				return upload
+			}
+
+			testDataSetData := func(upload *upload.Upload) []data.Datum {
+				requiredRecords := test.RandomIntFromRange(6, 8)
+				recordInterval := 5 * time.Minute
+				t := time.Now().UTC().Add(-time.Duration(requiredRecords) * recordInterval)
+				var dataSetData = make([]data.Datum, 0, 2*requiredRecords)
+				for count := 0; count < requiredRecords; count++ {
+					datum := dataTypesTest.RandomBase()
+					datum.Type = "cbg"
+					datumTime := t.Add(time.Duration(count) * recordInterval)
+					datum.Time = pointer.FromAny(datumTime)
+					datum.Active = true
+					datum.DeviceID = pointer.FromAny(*upload.DeviceID)
+					datum.UploadID = pointer.FromAny(*upload.UploadID)
+					dataSetData = append(dataSetData, datum)
+
+					datum = dataTypesTest.RandomBase()
+					datum.Type = "dosingDecision"
+					datum.Time = pointer.FromAny(datumTime)
+					datum.Active = true
+					datum.DeviceID = pointer.FromAny(*upload.DeviceID)
+					datum.UploadID = pointer.FromAny(*upload.UploadID)
+					dataSetData = append(dataSetData, datum)
+				}
+				return dataSetData
+			}
+
+			It("retrieves both cbg and dosing data", func() {
+				var err error
+				ctx := context.Background()
+				ctx = log.NewContextWithLogger(ctx, logTest.NewLogger())
+				repository = store.NewDataRepository()
+				Expect(repository).ToNot(BeNil())
+				testUserID := userTest.RandomID()
+				testDeviceID := dataTest.NewDeviceID()
+				testSet := testDataSet(testUserID, testDeviceID)
+				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
+				testSetData := testDataSetData(testSet)
+				Expect(repository.CreateDataSetData(ctx, testSet, testSetData)).To(Succeed())
+				store, err = dataStoreMongo.NewStore(config)
+				Expect(err).To(Succeed())
+
+				params := dataStore.AlertableParams{
+					Start:    time.Now().Add(-time.Hour),
+					UserID:   testUserID,
+					UploadID: *testSet.UploadID,
+				}
+				resp, err := store.NewDataRepository().GetAlertableData(ctx, params)
+
+				Expect(err).To(Succeed())
+				Expect(resp).ToNot(BeNil())
+				Expect(resp.Glucose).ToNot(BeEmpty())
+				Expect(resp.DosingDecisions).ToNot(BeEmpty())
+			})
+
+		})
+
 		Context("alerts", func() {
 			BeforeEach(func() {
 				var err error

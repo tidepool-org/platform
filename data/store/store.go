@@ -7,6 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
@@ -34,6 +37,7 @@ type DataSetRepository interface {
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
+
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error)
 }
@@ -62,6 +66,11 @@ type DatumRepository interface {
 	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
 	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
+
+	CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error)
+
+	// GetAlertableData queries for the data used to evaluate alerts configurations.
+	GetAlertableData(ctx context.Context, params AlertableParams) (*AlertableResponse, error)
 }
 
 // DataRepository is the combined interface of DataSetRepository and
@@ -91,4 +100,20 @@ type SummaryRepository interface {
 	EnsureIndexes() error
 
 	GetStore() *storeStructuredMongo.Repository
+}
+
+type AlertableParams struct {
+	// UserID of the user that owns the data.
+	UserID string
+	// UploadID of the device data set to query.
+	UploadID string
+	// Start limits the data to those recorded after this time.
+	Start time.Time
+	// End limits the data to those recorded before this time.
+	End time.Time
+}
+
+type AlertableResponse struct {
+	Glucose         []*glucose.Glucose
+	DosingDecisions []*dosingdecision.DosingDecision
 }

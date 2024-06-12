@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -209,7 +209,7 @@ func (t *Tool) loadBenchmarks() error {
 func (t *Tool) loadBenchmarksFile(benchmarksFile string) (Benchmarks, error) {
 	t.Logger().Debugf("Loading benchmarks file %q", benchmarksFile)
 
-	content, err := ioutil.ReadFile(benchmarksFile)
+	content, err := os.ReadFile(benchmarksFile)
 	if err != nil {
 		return nil, errors.Newf("unable to read content from benchmarks file %q", benchmarksFile)
 	}

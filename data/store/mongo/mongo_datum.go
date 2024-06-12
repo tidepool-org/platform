@@ -12,9 +12,14 @@ import (
 	"errors"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/types"
 	baseDatum "github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/data/types/upload"
+	platerrors "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -588,6 +593,56 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ [
 		return nil, fmt.Errorf("unable to get %s data in date range for user: %w", typ, err)
 	}
 
+	return cursor, nil
+}
+
+func (d *DatumRepository) GetAlertableData(ctx context.Context,
+	params store.AlertableParams) (*store.AlertableResponse, error) {
+
+	if params.End.IsZero() {
+		params.End = time.Now()
+	}
+
+	cursor, err := d.getAlertableData(ctx, params, dosingdecision.Type)
+	if err != nil {
+		return nil, err
+	}
+	dosingDecisions := []*dosingdecision.DosingDecision{}
+	if err := cursor.All(ctx, &dosingDecisions); err != nil {
+		return nil, platerrors.Wrap(err, "Unable to load alertable dosing documents")
+	}
+	cursor, err = d.getAlertableData(ctx, params, continuous.Type)
+	if err != nil {
+		return nil, err
+	}
+	glucoseData := []*glucose.Glucose{}
+	if err := cursor.All(ctx, &glucoseData); err != nil {
+		return nil, platerrors.Wrap(err, "Unable to load alertable glucose documents")
+	}
+	response := &store.AlertableResponse{
+		DosingDecisions: dosingDecisions,
+		Glucose:         glucoseData,
+	}
+
+	return response, nil
+}
+
+func (d *DatumRepository) getAlertableData(ctx context.Context,
+	params store.AlertableParams, typ string) (*mongo.Cursor, error) {
+
+	selector := bson.M{
+		"_active":  true,
+		"uploadId": params.UploadID,
+		"type":     typ,
+		"_userId":  params.UserID,
+		"time":     bson.M{"$gte": params.Start, "$lte": params.End},
+	}
+	findOptions := options.Find().SetSort(bson.D{{Key: "time", Value: -1}})
+	cursor, err := d.Find(ctx, selector, findOptions)
+	if err != nil {
+		format := "Unable to find alertable %s data in dataset %s"
+		return nil, platerrors.Wrapf(err, format, typ, params.UploadID)
+	}
 	return cursor, nil
 }
 

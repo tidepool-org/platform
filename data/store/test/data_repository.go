@@ -4,12 +4,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -180,6 +182,16 @@ type DistinctUserIDsOutput struct {
 	Error   error
 }
 
+type GetAlertableDataInput struct {
+	Context context.Context
+	Params  dataStore.AlertableParams
+}
+
+type GetAlertableDataOutput struct {
+	Response *dataStore.AlertableResponse
+	Error    error
+}
+
 type DataRepository struct {
 	*test.Closer
 	GetDataSetsForUserByIDInvocations                    int
@@ -249,6 +261,10 @@ type DataRepository struct {
 	DistinctUserIDsInvocations int
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
+
+	GetAlertableDataInvocations int
+	GetAlertableDataInputs      []GetAlertableDataInput
+	GetAlertableDataOutputs     []GetAlertableDataOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -512,6 +528,18 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]s
 	output := d.DistinctUserIDsOutputs[0]
 	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
+}
+
+func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.AlertableParams) (*dataStore.AlertableResponse, error) {
+	d.GetAlertableDataInvocations++
+
+	d.GetAlertableDataInputs = append(d.GetAlertableDataInputs, GetAlertableDataInput{Context: ctx, Params: params})
+
+	gomega.Expect(d.GetAlertableDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetAlertableDataOutputs[0]
+	d.GetAlertableDataOutputs = d.GetAlertableDataOutputs[1:]
+	return output.Response, output.Error
 }
 
 func (d *DataRepository) Expectations() {
