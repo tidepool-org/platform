@@ -15,6 +15,11 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+// NOTE: Should only be used with standard library or third-party library errors
+func Is(err error, target error) bool {
+	return errors.Is(err, target)
+}
+
 type Source interface {
 	Parameter() string
 	Pointer() string
@@ -222,6 +227,20 @@ func Append(errs ...error) error {
 			Errors: errors,
 		}
 	}
+}
+
+func First(err error) error {
+	if arrayErr, arrayOK := err.(*array); arrayOK {
+		return arrayErr.First()
+	}
+	return err
+}
+
+func Last(err error) error {
+	if arrayErr, arrayOK := err.(*array); arrayOK {
+		return arrayErr.Last()
+	}
+	return err
 }
 
 func appendErrors(errors []error, err error) []error {
@@ -481,6 +500,20 @@ func (a *array) Sanitize() error {
 	return &array{
 		Errors: errors,
 	}
+}
+
+func (a *array) First() error {
+	if errorsLength := len(a.Errors); errorsLength > 0 {
+		return a.Errors[0]
+	}
+	return nil
+}
+
+func (a *array) Last() error {
+	if errorsLength := len(a.Errors); errorsLength > 0 {
+		return a.Errors[errorsLength-1]
+	}
+	return nil
 }
 
 type object struct {
