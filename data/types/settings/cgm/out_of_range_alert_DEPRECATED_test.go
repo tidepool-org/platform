@@ -9,6 +9,7 @@ import (
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -91,7 +92,7 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlertDEPRECATED()
 						mutator(datum)
 						expectedDatum := dataTypesSettingsCgmTest.CloneOutOfRangeAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

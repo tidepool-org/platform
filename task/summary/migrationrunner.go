@@ -170,7 +170,7 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 
 	pagination := page.NewPagination()
 	pagination.Size = batch

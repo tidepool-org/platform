@@ -1,6 +1,7 @@
 package fetch_test
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -10,6 +11,8 @@ import (
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -32,6 +35,8 @@ var _ = Describe("Translate", func() {
 				var datum *dataTypes.Base
 				var err error
 
+				ctx := log.NewContextWithLogger(context.Background(), logTest.NewLogger())
+
 				dexcomSystemTime, err = dexcom.TimeFromString(systemTime)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(dexcomSystemTime).ToNot(BeNil())
@@ -42,7 +47,7 @@ var _ = Describe("Translate", func() {
 				}
 				datum = &dataTypes.Base{}
 
-				dexcomFetch.TranslateTime(dexcomSystemTime, dexcomDisplayTime, datum)
+				dexcomFetch.TranslateTime(ctx, dexcomSystemTime, dexcomDisplayTime, datum)
 				Expect(datum.Time).To(Equal(expectedDatum.Time))
 				Expect(datum.DeviceTime).To(Equal(expectedDatum.DeviceTime))
 				Expect(datum.TimeZoneOffset).To(Equal(expectedDatum.TimeZoneOffset))

@@ -735,7 +735,7 @@ var _ = Describe("Client", func() {
 						It("returns success", func() {
 							devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
 							Expect(err).ToNot(HaveOccurred())
-							Expect(structureNormalizer.New().Normalize(responseDevicesResponse)).To(Succeed())
+							Expect(structureNormalizer.New(logTest.NewLogger()).Normalize(responseDevicesResponse)).To(Succeed())
 							Expect(devicesResponse).To(Equal(responseDevicesResponse))
 						})
 					})

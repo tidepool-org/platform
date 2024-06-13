@@ -165,7 +165,7 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 
 	t.logger.Debug("Starting User CGM Summary Creation")
 	count, err := t.dataClient.BackfillSummaries(t.context, "cgm")

@@ -57,7 +57,7 @@ var _ = Describe("Runner", func() {
 			tasks = make(map[string]task.Task)
 			for _, clinic := range clinics {
 				clinic := clinic
-				tsk, err := task.NewTask(sync.NewTaskCreate(*clinic.Id))
+				tsk, err := task.NewTask(context.Background(), sync.NewTaskCreate(*clinic.Id))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tsk).ToNot(BeNil())
 				tasks[*clinic.Id] = *tsk
@@ -132,7 +132,7 @@ var _ = Describe("Runner", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(runner).ToNot(BeNil())
 
-				t, err := task.NewTask(reconcile.NewTaskCreate())
+				t, err := task.NewTask(context.Background(), reconcile.NewTaskCreate())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(t).ToNot(BeNil())
 

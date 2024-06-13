@@ -57,7 +57,7 @@ func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -111,12 +111,12 @@ func (d *DeviceLogsRepository) Update(ctx context.Context, id string, condition 
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -190,7 +190,7 @@ func (d *DeviceLogsRepository) Destroy(ctx context.Context, id string, condition
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 

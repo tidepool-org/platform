@@ -49,7 +49,7 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
 	if content == nil {
 		return nil, errors.New("content is missing")
-	} else if err := structureValidator.New().Validate(content); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(content); err != nil {
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
@@ -108,7 +108,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
 	if content == nil {
 		return nil, errors.New("content is missing")
-	} else if err := structureValidator.New().Validate(content); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(content); err != nil {
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 

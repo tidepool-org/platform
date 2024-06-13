@@ -9,8 +9,8 @@ import (
 )
 
 type Factory interface {
-	New(dataSet *dataTypesUpload.Upload) (Deduplicator, error)
-	Get(dataSet *dataTypesUpload.Upload) (Deduplicator, error)
+	New(ctx context.Context, dataSet *dataTypesUpload.Upload) (Deduplicator, error)
+	Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (Deduplicator, error)
 }
 
 type Deduplicator interface {

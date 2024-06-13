@@ -8,13 +8,14 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
+	logTest "github.com/tidepool-org/platform/log/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 )
 
 var _ = Describe("Time", func() {
 	Context("ParseTime", func() {
 		It("returns nil if key not present in parser", func() {
-			parser := structureParser.NewObject(&map[string]any{})
+			parser := structureParser.NewObject(logTest.NewLogger(), &map[string]any{})
 			tm := dexcom.ParseTime(parser, "test")
 			Expect(tm).To(BeNil())
 			Expect(parser.HasError()).To(BeFalse())
@@ -22,7 +23,7 @@ var _ = Describe("Time", func() {
 
 		DescribeTable("does not parse an invalid time string",
 			func(timeString string) {
-				parser := structureParser.NewObject(&map[string]any{"test": timeString})
+				parser := structureParser.NewObject(logTest.NewLogger(), &map[string]any{"test": timeString})
 				tm := dexcom.ParseTime(parser, "test")
 				Expect(parser.HasError()).To(BeTrue())
 				Expect(parser.Error()).To(MatchError(fmt.Sprintf(`value "%s" is not a parsable time of format "2006-01-02T15:04:05.999999999Z07:00"`, timeString)))
@@ -54,7 +55,7 @@ var _ = Describe("Time", func() {
 
 		DescribeTable("parses the time appropriately",
 			func(timeString string, expectedTime time.Time) {
-				parser := structureParser.NewObject(&map[string]any{"test": timeString})
+				parser := structureParser.NewObject(logTest.NewLogger(), &map[string]any{"test": timeString})
 				tm := dexcom.ParseTime(parser, "test")
 				Expect(parser.HasError()).To(BeFalse())
 				Expect(tm).ToNot(BeNil())

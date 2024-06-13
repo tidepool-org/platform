@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure/validator"
 )
@@ -45,7 +46,7 @@ var _ = Describe("Alert", func() {
 		DescribeTable("requires",
 			func(setupAlertFunc func() *dexcom.Alert) {
 				testAlert := setupAlertFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testAlert.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},

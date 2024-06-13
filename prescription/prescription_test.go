@@ -4,20 +4,19 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"syreclabs.com/go/faker"
-
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/structure/validator"
-	userTest "github.com/tidepool-org/platform/user/test"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/prescription/test"
-	"github.com/tidepool-org/platform/user"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"syreclabs.com/go/faker"
 
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/prescription"
+	"github.com/tidepool-org/platform/prescription/test"
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Prescription", func() {
@@ -253,7 +252,7 @@ var _ = Describe("Prescription", func() {
 					filter, err = prescription.NewPatientFilter(*usr.UserID)
 					Expect(err).ToNot(HaveOccurred())
 
-					validate = validator.New()
+					validate = validator.New(logTest.NewLogger())
 					Expect(validate.Validate(filter)).ToNot(HaveOccurred())
 				})
 
@@ -353,7 +352,7 @@ var _ = Describe("Prescription", func() {
 					filter, err = prescription.NewClinicFilter(clinicID)
 					Expect(err).ToNot(HaveOccurred())
 
-					validate = validator.New()
+					validate = validator.New(logTest.NewLogger())
 					Expect(validate.Validate(filter)).ToNot(HaveOccurred())
 				})
 

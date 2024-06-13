@@ -10,6 +10,7 @@ type Validatable interface {
 }
 
 type Validator interface {
+	LoggerReporter
 	OriginReporter
 	SourceReporter
 	MetaReporter

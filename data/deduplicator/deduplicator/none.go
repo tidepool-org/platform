@@ -26,12 +26,12 @@ func NewNone() (*None, error) {
 	}, nil
 }
 
-func (n *None) New(dataSet *dataTypesUpload.Upload) (bool, error) {
-	return n.Get(dataSet)
+func (n *None) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	return n.Get(ctx, dataSet)
 }
 
-func (n *None) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := n.Base.Get(dataSet); err != nil || found {
+func (n *None) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	if found, err := n.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 

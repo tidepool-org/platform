@@ -65,12 +65,12 @@ func (b *BlobRepository) List(ctx context.Context, userID string, filter *blob.F
 	}
 	if filter == nil {
 		filter = blob.NewFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -128,7 +128,7 @@ func (b *BlobRepository) Create(ctx context.Context, userID string, create *blob
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -244,7 +244,7 @@ func (b *BlobRepository) Get(ctx context.Context, id string, condition *request.
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
@@ -273,12 +273,12 @@ func (b *BlobRepository) Update(ctx context.Context, id string, condition *reque
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -349,7 +349,7 @@ func (b *BlobRepository) Delete(ctx context.Context, id string, condition *reque
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 
@@ -390,7 +390,7 @@ func (b *BlobRepository) Destroy(ctx context.Context, id string, condition *requ
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 

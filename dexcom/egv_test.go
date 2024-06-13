@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure/validator"
 
@@ -84,7 +85,7 @@ var _ = Describe("EGV", func() {
 		DescribeTable("requires",
 			func(setupEGVFunc func() *dexcom.EGV) {
 				testEGV := setupEGVFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testEGV.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
@@ -144,7 +145,7 @@ var _ = Describe("EGV", func() {
 		DescribeTable("does not require",
 			func(setupEGVFunc func() *dexcom.EGV) {
 				testEGV := setupEGVFunc()
-				validator := validator.New()
+				validator := validator.New(logTest.NewLogger())
 				testEGV.Validate(validator)
 				Expect(validator.Error()).ToNot(HaveOccurred())
 			},

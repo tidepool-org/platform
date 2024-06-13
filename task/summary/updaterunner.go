@@ -174,7 +174,7 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 	targetTime := time.Now().UTC().Add(-1 * time.Minute)
 
 	pagination := page.NewPagination()

@@ -15,6 +15,7 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
@@ -814,7 +815,7 @@ var _ = Describe("Base", func() {
 						datum := dataTypesTest.RandomBase()
 						mutator(datum)
 						expectedDatum := dataTypesTest.CloneBase(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -838,7 +839,7 @@ var _ = Describe("Base", func() {
 					datum := dataTypesTest.RandomBase()
 					mutator(datum)
 					expectedDatum := dataTypesTest.CloneBase(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -875,7 +876,7 @@ var _ = Describe("Base", func() {
 						datum := dataTypesTest.RandomBase()
 						mutator(datum)
 						expectedDatum := dataTypesTest.CloneBase(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

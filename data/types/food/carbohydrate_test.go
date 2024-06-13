@@ -8,6 +8,7 @@ import (
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -85,13 +86,13 @@ var _ = Describe("Carbohydrate", func() {
 
 		Context("ParseCarbohydrate", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesFood.ParseCarbohydrate(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesFood.ParseCarbohydrate(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesFoodTest.RandomCarbohydrate()
 				object := dataTypesFoodTest.NewObjectFromCarbohydrate(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesFood.ParseCarbohydrate(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})

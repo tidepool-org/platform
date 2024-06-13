@@ -2,6 +2,7 @@ package devicetokens
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"testing"
@@ -23,45 +24,45 @@ var _ = Describe("DeviceToken", func() {
 	It("parses", func() {
 		buf := buff(`{"apple":{"token":"c29tZXRoaW5n","environment":"sandbox"}}`)
 		token := &DeviceToken{}
-		err := request.DecodeObject(nil, buf, token)
+		err := request.DecodeObject(context.Background(), nil, buf, token)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("validates environment", func() {
 		token := &DeviceToken{}
 		bad := buff(`{"apple":{"token":"c29tZXRoaW5n","environment":"bad"}}`)
-		err := request.DecodeObject(nil, bad, token)
+		err := request.DecodeObject(context.Background(), nil, bad, token)
 		Expect(err).To(MatchError("value \"bad\" is not one of [\"production\", \"sandbox\"]"))
 
 		prod := buff(`{"apple":{"token":"c29tZXRoaW5n","environment":"production"}}`)
-		err = request.DecodeObject(nil, prod, token)
+		err = request.DecodeObject(context.Background(), nil, prod, token)
 		Expect(err).ToNot(HaveOccurred())
 
 		sbox := buff(`{"apple":{"token":"c29tZXRoaW5n","environment":"sandbox"}}`)
-		err = request.DecodeObject(nil, sbox, token)
+		err = request.DecodeObject(context.Background(), nil, sbox, token)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("validates token", func() {
 		token := &DeviceToken{}
 		buf := buff(`{"apple":{"token":"","environment":"sandbox"}}`)
-		err := request.DecodeObject(nil, buf, token)
+		err := request.DecodeObject(context.Background(), nil, buf, token)
 		Expect(err).To(MatchError("value is empty"))
 
 		buf = buff(`{"apple":{"token":"not-base64","environment":"sandbox"}}`)
-		err = request.DecodeObject(nil, buf, token)
+		err = request.DecodeObject(context.Background(), nil, buf, token)
 		Expect(err).To(MatchError("json is malformed"))
 
 		testToken := buildTokenLongerThan(MaxTokenLen)
 		buf = buff(`{"apple":{"token":"%s","environment":"sandbox"}}`, testToken)
-		err = request.DecodeObject(nil, buf, token)
+		err = request.DecodeObject(context.Background(), nil, buf, token)
 		Expect(err).To(MatchError(ContainSubstring("is not less than or equal to")))
 	})
 
 	It("apple must exist (there's no other supported device yet)", func() {
 		token := &DeviceToken{}
 		buf := buff(`{}`)
-		err := request.DecodeObject(nil, buf, token)
+		err := request.DecodeObject(context.Background(), nil, buf, token)
 		Expect(err).To(MatchError(ContainSubstring("value does not exist")))
 	})
 
@@ -81,7 +82,7 @@ var _ = Describe("DeviceToken", func() {
 		It("produces a hash", func() {
 			token := &DeviceToken{}
 			buf := buff(`{"apple":{"token":"c29tZXRoaW5n","environment":"sandbox"}}`)
-			err := request.DecodeObject(nil, buf, token)
+			err := request.DecodeObject(context.Background(), nil, buf, token)
 			Expect(err).ToNot(HaveOccurred())
 			key := token.key()
 			Expect(key).To(HaveLen(64))

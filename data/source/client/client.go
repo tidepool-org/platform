@@ -6,6 +6,7 @@ import (
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
@@ -39,12 +40,12 @@ func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Fil
 	}
 	if filter == nil {
 		filter = dataSource.NewFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -68,7 +69,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -128,12 +129,12 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -160,7 +161,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 

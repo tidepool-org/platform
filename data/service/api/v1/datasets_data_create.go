@@ -74,9 +74,10 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	parser := structureParser.NewArray(&rawDatumArray)
-	validator := structureValidator.New()
-	normalizer := dataNormalizer.New()
+	logger := log.LoggerFromContext(ctx)
+	parser := structureParser.NewArray(logger, &rawDatumArray)
+	validator := structureValidator.New(logger)
+	normalizer := dataNormalizer.New(logger)
 
 	datumArray := []data.Datum{}
 	for _, reference := range parser.References() {
@@ -108,7 +109,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		datum.SetProvenance(CollectProvenanceInfo(ctx, req, authDetails))
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
+	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet); getErr != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
 	} else if deduplicator == nil {
