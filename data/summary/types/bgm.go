@@ -3,9 +3,10 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
@@ -109,8 +110,8 @@ func (*BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (*BGMStats) GetDeviceDataType() string {
-	return selfmonitored.Type
+func (*BGMStats) GetDeviceDataTypes() []string {
+	return []string{selfmonitored.Type}
 }
 
 func (s *BGMStats) Init() {
@@ -152,38 +153,22 @@ func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	return
 }
 
-func (s *BGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
-	var userData []*glucoseDatum.Glucose = nil
-	var err error
-
-	for cursor.Next(ctx) {
-		if userData == nil {
-			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+func (s *BGMStats) Update(ctx context.Context, cursor fetcher.DeviceDataCursor) error {
+	hasMoreData := true
+	for hasMoreData {
+		userData, err := cursor.GetNextBatch(ctx)
+		if errors.Is(err, fetcher.ErrCursorExhausted) {
+			hasMoreData = false
+		} else if err != nil {
+			return err
 		}
 
-		r := &glucoseDatum.Glucose{}
-		if err = cursor.Decode(r); err != nil {
-			return fmt.Errorf("unable to decode userData: %w", err)
-		}
-		userData = append(userData, r)
-
-		// we call AddData before each network call to the db to reduce thrashing
-		if cursor.RemainingBatchLength() != 0 {
+		if len(userData) > 0 {
 			err = AddData(&s.Buckets, userData)
 			if err != nil {
 				return err
 			}
-			userData = nil
 		}
-	}
-
-	// add the final partial batch
-	if userData != nil {
-		err = AddData(&s.Buckets, userData)
-		if err != nil {
-			return err
-		}
-		userData = nil
 	}
 
 	s.CalculateSummary()

@@ -3,6 +3,13 @@ package types
 import (
 	"context"
 	"fmt"
+
+	"github.com/tidepool-org/platform/data/summary/fetcher"
+
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+
+	"github.com/tidepool-org/platform/data"
+
 	"time"
 
 	"github.com/tidepool-org/platform/pointer"
@@ -10,20 +17,17 @@ import (
 	"github.com/tidepool-org/platform/errors"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	mapset "github.com/deckarep/golang-set/v2"
-
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	insulinDatum "github.com/tidepool-org/platform/data/types/insulin"
 )
 
 const (
-	SummaryTypeCGM = "cgm"
-	SummaryTypeBGM = "bgm"
-	SchemaVersion  = 3
+	SummaryTypeCGM        = "cgm"
+	SummaryTypeBGM        = "bgm"
+	SummaryTypeContinuous = "continuous"
+	SchemaVersion         = 3
 
 	lowBloodGlucose      = 3.9
 	veryLowBloodGlucose  = 3.0
@@ -47,6 +51,8 @@ var DeviceDataToSummaryTypes = map[string]string{
 	selfmonitored.Type: SummaryTypeBGM,
 }
 
+var AllSummaryTypes = []string{SummaryTypeCGM, SummaryTypeBGM, SummaryTypeContinuous}
+
 type OutdatedSummariesResponse struct {
 	UserIds []string  `json:"userIds"`
 	Start   time.Time `json:"start"`
@@ -54,35 +60,7 @@ type OutdatedSummariesResponse struct {
 }
 
 type BucketData interface {
-	CGMBucketData | BGMBucketData
-}
-
-type RecordTypes interface {
-	glucoseDatum.Glucose | insulinDatum.Insulin
-}
-
-type RecordTypesPt[T RecordTypes] interface {
-	*T
-	GetTime() *time.Time
-}
-
-type DeviceDataCursor interface {
-	Decode(val interface{}) error
-	RemainingBatchLength() int
-	Next(ctx context.Context) bool
-	Close(ctx context.Context) error
-}
-
-type UserLastUpdated struct {
-	FirstData time.Time
-	LastData  time.Time
-
-	EarliestModified time.Time
-
-	LastUpload time.Time
-
-	LastUpdated     time.Time
-	NextLastUpdated time.Time
+	CGMBucketData | BGMBucketData | ContinuousBucketData
 }
 
 type Config struct {
@@ -113,7 +91,7 @@ type Dates struct {
 	OutdatedReason   []string   `json:"outdatedReason" bson:"outdatedReason"`
 }
 
-func (d *Dates) Update(status *UserLastUpdated, firstBucketDate time.Time) {
+func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
 	d.LastUpdatedReason = d.OutdatedReason
 
@@ -151,21 +129,21 @@ func CreateBucket[A BucketDataPt[T], T BucketData](t time.Time) *Bucket[A, T] {
 }
 
 type Stats interface {
-	CGMStats | BGMStats
+	CGMStats | BGMStats | ContinuousStats
 }
 
 type StatsPt[T Stats] interface {
 	*T
 	GetType() string
-	GetDeviceDataType() string
+	GetDeviceDataTypes() []string
 	Init()
 	GetBucketsLen() int
 	GetBucketDate(int) time.Time
-	Update(context.Context, DeviceDataCursor) error
+	Update(context.Context, fetcher.DeviceDataCursor) error
 	ClearInvalidatedBuckets(earliestModified time.Time) time.Time
 }
 
-type Summary[T Stats, A StatsPt[T]] struct {
+type Summary[A StatsPt[T], T Stats] struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	Type   string             `json:"type" bson:"type"`
 	UserID string             `json:"userId" bson:"userId"`
@@ -186,7 +164,7 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[T, A]) SetOutdated(reason string) {
+func (s *Summary[A, T]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
 		set.Append(s.Dates.OutdatedReason...)
@@ -202,6 +180,12 @@ func (s *Summary[T, A]) SetOutdated(reason string) {
 		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Truncate(time.Millisecond).UTC())
 		s.Dates.HasOutdatedSince = true
 	}
+}
+
+func (s *Summary[A, T]) SetNotOutdated() {
+	s.Dates.OutdatedReason = nil
+	s.Dates.OutdatedSince = nil
+	s.Dates.HasOutdatedSince = false
 }
 
 func NewDates() Dates {
@@ -224,8 +208,8 @@ func NewDates() Dates {
 	}
 }
 
-func Create[A StatsPt[T], T Stats](userId string) *Summary[T, A] {
-	s := new(Summary[T, A])
+func Create[A StatsPt[T], T Stats](userId string) *Summary[A, T] {
+	s := new(Summary[A, T])
 	s.UserID = userId
 	s.Stats = new(T)
 	s.Stats.Init()
@@ -236,21 +220,21 @@ func Create[A StatsPt[T], T Stats](userId string) *Summary[T, A] {
 	return s
 }
 
-func GetTypeString[T Stats, A StatsPt[T]]() string {
-	s := new(Summary[T, A])
+func GetTypeString[A StatsPt[T], T Stats]() string {
+	s := new(Summary[A, T])
 	return s.Stats.GetType()
 }
 
-func GetDeviceDataTypeString[T Stats, A StatsPt[T]]() string {
-	s := new(Summary[T, A])
-	return s.Stats.GetDeviceDataType()
+func GetDeviceDataTypeStrings[A StatsPt[T], T Stats]() []string {
+	s := new(Summary[A, T])
+	return s.Stats.GetDeviceDataTypes()
 }
 
 type Period interface {
 	BGMPeriod | CGMPeriod
 }
 
-func AddBin[T BucketData, A BucketDataPt[T]](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
+func AddBin[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], newBucket *Bucket[A, T]) error {
 	if len(*buckets) == 0 {
 		*buckets = append(*buckets, newBucket)
 		return nil
@@ -346,7 +330,7 @@ func removeExcessBuckets[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, 
 	*buckets = (*buckets)[excess:]
 }
 
-func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]](buckets *[]*Bucket[A, T], userData []D) error {
+func AddData[A BucketDataPt[T], T BucketData](buckets *[]*Bucket[A, T], userData []data.Datum) error {
 	previousPeriod := time.Time{}
 	var newBucket *Bucket[A, T]
 
@@ -408,6 +392,7 @@ func AddData[A BucketDataPt[T], T BucketData, R RecordTypes, D RecordTypesPt[R]]
 		previousPeriod = currentPeriod
 
 		skipped, err := newBucket.Data.CalculateStats(r, &newBucket.LastRecordTime)
+
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"math"
 	"sort"
 	"time"
@@ -276,6 +277,28 @@ func (o *Object) Array(reference string) *[]interface{} {
 	}
 
 	return &arrayValue
+}
+
+func (o *Object) JSON(reference string, target any) {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return
+	}
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		o.base.WithReference(reference).ReportError(ErrorTypeNotString(rawValue))
+		return
+	}
+
+	if stringValue == "" {
+		return
+	}
+
+	err := json.Unmarshal([]byte(stringValue), target)
+	if err != nil {
+		o.base.WithReference(reference).ReportError(ErrorTypeNotJSON(rawValue, err))
+	}
 }
 
 func (o *Object) Interface(reference string) *interface{} {

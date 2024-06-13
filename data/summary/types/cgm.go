@@ -3,9 +3,10 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 
@@ -164,8 +165,8 @@ func (*CGMStats) GetType() string {
 	return SummaryTypeCGM
 }
 
-func (*CGMStats) GetDeviceDataType() string {
-	return continuous.Type
+func (*CGMStats) GetDeviceDataTypes() []string {
+	return []string{continuous.Type}
 }
 
 func (s *CGMStats) Init() {
@@ -207,38 +208,22 @@ func (s *CGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstDat
 	return
 }
 
-func (s *CGMStats) Update(ctx context.Context, cursor DeviceDataCursor) error {
-	var userData []*glucoseDatum.Glucose = nil
-	var err error
-
-	for cursor.Next(ctx) {
-		if userData == nil {
-			userData = make([]*glucoseDatum.Glucose, 0, cursor.RemainingBatchLength())
+func (s *CGMStats) Update(ctx context.Context, cursor fetcher.DeviceDataCursor) error {
+	hasMoreData := true
+	for hasMoreData {
+		userData, err := cursor.GetNextBatch(ctx)
+		if errors.Is(err, fetcher.ErrCursorExhausted) {
+			hasMoreData = false
+		} else if err != nil {
+			return err
 		}
 
-		r := &glucoseDatum.Glucose{}
-		if err = cursor.Decode(r); err != nil {
-			return fmt.Errorf("unable to decode userData: %w", err)
-		}
-		userData = append(userData, r)
-
-		// we call AddData before each network call to the db to reduce thrashing
-		if cursor.RemainingBatchLength() != 0 {
+		if len(userData) > 0 {
 			err = AddData(&s.Buckets, userData)
 			if err != nil {
 				return err
 			}
-			userData = nil
 		}
-	}
-
-	// add the final partial batch
-	if userData != nil {
-		err = AddData(&s.Buckets, userData)
-		if err != nil {
-			return err
-		}
-		userData = nil
 	}
 
 	s.CalculateSummary()
@@ -662,7 +647,6 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 
 			newPeriod.HasTimeInAnyHighPercent = true
 			newPeriod.TimeInAnyHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords+totalStats.HighRecords) / float64(totalStats.TotalRecords))
-
 		}
 
 		newPeriod.HasAverageGlucoseMmol = true
