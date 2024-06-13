@@ -32,8 +32,6 @@ const (
 	TaskDurationMaximum           = 10 * time.Minute
 )
 
-var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
-
 type Runner struct {
 	logger           log.Logger
 	versionReporter  version.Reporter
@@ -390,9 +388,21 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 }
 
 func (t *TaskRunner) fetchSinceLatestDataTime() error {
-	startTime := initialDataTime
-	if t.dataSource.LatestDataTime != nil && startTime.Before(*t.dataSource.LatestDataTime) {
+
+	var startTime = time.Time{}
+	var err error
+	if t.dataSource.LatestDataTime != nil {
 		startTime = *t.dataSource.LatestDataTime
+	} else {
+		startTime, err = t.fetchDataRangeStart()
+		if err != nil {
+			return err
+		}
+	}
+	if startTime.IsZero() {
+		t.logger.Info("there is no data to fetch")
+		t.task.SetCompleted()
+		return nil
 	}
 
 	almostNow := time.Now().Add(-time.Minute)
@@ -402,7 +412,8 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			endTime = almostNow
 		}
 
-		if err := t.fetch(startTime, endTime); err != nil {
+		err = t.fetch(startTime, endTime)
+		if err != nil {
 			return err
 		}
 
@@ -527,6 +538,26 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	sort.Sort(BySystemTime(datumArray))
 
 	return datumArray, nil
+}
+
+func (t *TaskRunner) fetchDataRangeStart() (time.Time, error) {
+	t.logger.Debug("fetching dataRange ...")
+	response, err := t.DexcomClient().GetDataRange(t.context, t.tokenSource)
+	if err != nil {
+		return time.Time{}, err
+	}
+	t.validator.Validate(response)
+	if err = t.validator.Error(); err != nil {
+		return time.Time{}, err
+	}
+
+	oldest, err := response.GetOldestStartDate()
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	t.logger.Debugf("dataRange start %s", oldest.Format(time.RFC3339))
+	return oldest, nil
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {
