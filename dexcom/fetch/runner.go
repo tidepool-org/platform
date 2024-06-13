@@ -105,11 +105,15 @@ func (r *Runner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(TaskDurationMaximum * 3)
 }
 
-func (r *Runner) GetRunnerMaximumDuration() time.Duration {
+func (r *Runner) GetRunnerTimeout() time.Duration {
+	return TaskDurationMaximum * 2
+}
+
+func (r *Runner) GetRunnerDurationMaximum() time.Duration {
 	return TaskDurationMaximum
 }
 
-func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
+func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
@@ -137,11 +141,6 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
-		r.Logger().WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-	return true
 }
 
 func (r *Runner) ignoreAndLogTaskError(tsk *task.Task, err error) {

@@ -306,6 +306,13 @@ func (t *Task) HasError() bool {
 	return t.Error != nil && t.Error.Error != nil
 }
 
+func (t *Task) GetError() error {
+	if t.Error != nil {
+		return t.Error.Error
+	}
+	return nil
+}
+
 func (t *Task) AppendError(err error) {
 	if err != nil {
 		if t.Error == nil {
