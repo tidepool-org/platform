@@ -24,7 +24,12 @@ type Client struct {
 }
 
 func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
-	clnt, err := oauthClient.New(cfg, tknSrcSrc)
+	baseClient, err := client.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	clnt, err := oauthClient.New(baseClient, tknSrcSrc)
 	if err != nil {
 		return nil, err
 	}

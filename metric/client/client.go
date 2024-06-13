@@ -29,7 +29,7 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs, name string, ve
 		return nil, errors.New("version reporter is missing")
 	}
 
-	clnt, err := platform.NewClient(cfg, authorizeAs)
+	clnt, err := platform.NewLegacyClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}

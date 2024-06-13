@@ -113,6 +113,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.AuthClient())
 
 	// HACK: Dexcom - skip 2:45am - 3:45am PST to avoid intermittent refresh token failure due to Dexcom backups (per Dexcom)
 	var skipToAvoidDexcomBackup bool
@@ -126,15 +127,10 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	if !skipToAvoidDexcomBackup {
 		tsk.ClearError()
 
-		if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
-			r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to get server session token"))
-		} else {
-			ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
-				r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to create task runner"))
-			} else if tErr = taskRunner.Run(ctx); tErr != nil {
-				ErrorOrRetryTask(tsk, errors.Wrap(tErr, "unable to run task runner"))
-			}
+		if taskRunner, err := NewTaskRunner(r, tsk); err != nil {
+			r.ignoreAndLogTaskError(tsk, errors.Wrap(err, "unable to create task runner"))
+		} else if err = taskRunner.Run(ctx); err != nil {
+			ErrorOrRetryTask(tsk, errors.Wrap(err, "unable to run task runner"))
 		}
 	}
 
