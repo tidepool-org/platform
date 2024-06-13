@@ -175,37 +175,37 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination.Size = batch
 
 	t.logger.Info("Searching for User CGM Summaries requiring Migration")
-	outdatedCGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
-	if err != nil {
-		return err
-	}
-
-	t.logger.Info("Searching for User BGM Summaries requiring Migration")
-	outdatedBGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
-	if err != nil {
-		return err
-	}
-
-	t.logger.Info("Searching for User Continuous Summaries requiring Migration")
-	outdatedContinuousSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "continuous", pagination)
+	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
 	if err != nil {
 		return err
 	}
 
 	t.logger.Debug("Starting User CGM Summary Migration")
-	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
+	if err := t.UpdateCGMSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User CGM Summary Migration")
 
+	t.logger.Info("Searching for User BGM Summaries requiring Migration")
+	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
+	if err != nil {
+		return err
+	}
+
 	t.logger.Debug("Starting User BGM Summary Migration")
-	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
+	if err := t.UpdateBGMSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User BGM Summary Migration")
 
+	t.logger.Info("Searching for User Continuous Summaries requiring Migration")
+	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "continuous", pagination)
+	if err != nil {
+		return err
+	}
+
 	t.logger.Debug("Starting User Continuous Summary Migration")
-	if err := t.UpdateContinuousSummaries(outdatedContinuousSummaryUserIDs); err != nil {
+	if err := t.UpdateContinuousSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User Continuous Summary Migration")
