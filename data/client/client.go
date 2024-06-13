@@ -19,7 +19,7 @@ import (
 const (
 	// ExtendedTimeout is used by requests that we expect to take longer than
 	// usual.
-	ExtendedTimeout = 5 * time.Minute
+	ExtendedTimeout = 15 * time.Minute
 )
 
 // TODO: Move interface to data package once upload dependency broken
