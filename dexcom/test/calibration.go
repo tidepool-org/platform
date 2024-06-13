@@ -10,7 +10,10 @@ import (
 
 func RandomCalibrationsResponse() *dexcom.CalibrationsResponse {
 	datum := dexcom.NewCalibrationsResponse()
-	datum.Calibrations = RandomCalibrations(0, 3)
+	datum.RecordType = pointer.FromString(dexcom.CalibrationsResponseRecordType)
+	datum.RecordVersion = pointer.FromString(dexcom.CalibrationsResponseRecordVersion)
+	datum.UserID = pointer.FromString(test.RandomString())
+	datum.Records = RandomCalibrations(0, 3)
 	return datum
 }
 
@@ -19,7 +22,10 @@ func CloneCalibrationsResponse(datum *dexcom.CalibrationsResponse) *dexcom.Calib
 		return nil
 	}
 	clone := dexcom.NewCalibrationsResponse()
-	clone.Calibrations = CloneCalibrations(datum.Calibrations)
+	clone.RecordType = pointer.CloneString(datum.RecordType)
+	clone.RecordVersion = pointer.CloneString(datum.RecordVersion)
+	clone.UserID = pointer.CloneString(datum.UserID)
+	clone.Records = CloneCalibrations(datum.Records)
 	return clone
 }
 
@@ -44,7 +50,7 @@ func CloneCalibrations(datum *dexcom.Calibrations) *dexcom.Calibrations {
 
 func RandomCalibration() *dexcom.Calibration {
 	datum := dexcom.NewCalibration()
-	datum.ID = pointer.FromString(test.RandomString())
+	datum.RecordID = pointer.FromString(test.RandomString())
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
 	datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.CalibrationUnits()))
@@ -69,7 +75,7 @@ func CloneCalibration(datum *dexcom.Calibration) *dexcom.Calibration {
 	}
 	clone := dexcom.NewCalibration()
 
-	clone.ID = pointer.CloneString(datum.ID)
+	clone.RecordID = pointer.CloneString(datum.RecordID)
 	clone.SystemTime = CloneTime(datum.SystemTime)
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.Unit = pointer.CloneString(datum.Unit)

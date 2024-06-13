@@ -7,14 +7,16 @@ import (
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Device", func() {
 
 	It("DeviceDisplayDevices returns expected", func() {
-		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
+		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"unknown", "android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
 		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{
+			dexcom.DeviceDisplayDeviceUnknown,
 			dexcom.DeviceDisplayDeviceAndroid,
 			dexcom.DeviceDisplayDeviceIOS,
 			dexcom.DeviceDisplayDeviceReceiver,
@@ -45,14 +47,9 @@ var _ = Describe("Device", func() {
 				testDevice.Validate(validator)
 				Expect(validator.Error()).To(HaveOccurred())
 			},
-			Entry("required lastUploadDate is not set", func() *dexcom.Device {
-				device := test.RandomDevice()
-				device.LastUploadDate = nil
-				return device
-			}),
 			Entry("required alertSchedules is not set", func() *dexcom.Device {
 				device := test.RandomDevice()
-				device.AlertScheduleList = nil
+				device.AlertSchedules = nil
 				return device
 			}),
 			Entry("required transmitterGeneration is not set", func() *dexcom.Device {
@@ -76,6 +73,16 @@ var _ = Describe("Device", func() {
 			Entry("transmitterID is not set", func() *dexcom.Device {
 				device := test.RandomDevice()
 				device.TransmitterID = nil
+				return device
+			}),
+			Entry("lastUploadDate is not set", func() *dexcom.Device {
+				device := test.RandomDevice()
+				device.LastUploadDate = nil
+				return device
+			}),
+			Entry("displayDevice is unknown", func() *dexcom.Device {
+				device := test.RandomDevice()
+				device.DisplayDevice = pointer.FromString("unknown")
 				return device
 			}),
 			Entry("displayApp is not set", func() *dexcom.Device {

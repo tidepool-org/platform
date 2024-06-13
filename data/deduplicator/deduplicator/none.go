@@ -10,13 +10,14 @@ import (
 )
 
 const NoneName = "org.tidepool.deduplicator.none"
+const NoneVersion = "1.0.0"
 
 type None struct {
 	*Base
 }
 
 func NewNone() (*None, error) {
-	base, err := NewBase(NoneName, "1.0.0")
+	base, err := NewBase(NoneName, NoneVersion)
 	if err != nil {
 		return nil, err
 	}

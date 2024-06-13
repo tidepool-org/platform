@@ -1,10 +1,10 @@
 package dexcom
 
 import (
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/errors"
@@ -30,40 +30,66 @@ const (
 	AlertScheduleSettingsOverrideModeVibrate = "vibrate"
 
 	AlertSettingAlertNameUnknown       = "unknown"
-	AlertSettingAlertNameFall          = "fall"
 	AlertSettingAlertNameHigh          = "high"
 	AlertSettingAlertNameLow           = "low"
-	AlertSettingAlertNameNoReadings    = "noReadings"
-	AlertSettingAlertNameOutOfRange    = "outOfRange"
 	AlertSettingAlertNameRise          = "rise"
+	AlertSettingAlertNameFall          = "fall"
+	AlertSettingAlertNameOutOfRange    = "outOfRange"
 	AlertSettingAlertNameUrgentLow     = "urgentLow"
 	AlertSettingAlertNameUrgentLowSoon = "urgentLowSoon"
+	AlertSettingAlertNameNoReadings    = "noReadings"
 	AlertSettingAlertNameFixedLow      = "fixedLow"
 
 	AlertSettingSnoozeMinutesMaximum = dataTypesSettingsCgm.SnoozeDurationMinutesMaximum
 	AlertSettingSnoozeMinutesMinimum = dataTypesSettingsCgm.SnoozeDurationMinutesMinimum
 
-	AlertSettingUnitUnknown    = "unknown"
-	AlertSettingUnitMinutes    = "minutes"
-	AlertSettingUnitMgdL       = "mg/dL"
-	AlertSettingUnitMgdLMinute = "mg/dL/min"
+	AlertSettingUnitUnknown     = "unknown"
+	AlertSettingUnitMinutes     = "minutes"
+	AlertSettingUnitMgdL        = "mg/dL"
+	AlertSettingUnitMmolL       = "mmol/L"
+	AlertSettingUnitMgdLMinute  = "mg/dL/min"
+	AlertSettingUnitMmolLMinute = "mmol/L/min"
 
-	AlertSettingValueFallMgdLMinuteMaximum    = dataTypesSettingsCgm.FallAlertRateMgdLMinuteMaximum
-	AlertSettingValueFallMgdLMinuteMinimum    = dataTypesSettingsCgm.FallAlertRateMgdLMinuteMinimum
-	AlertSettingValueHighMgdLMaximum          = dataTypesSettingsCgm.HighAlertLevelMgdLMaximum
-	AlertSettingValueHighMgdLMinimum          = dataTypesSettingsCgm.HighAlertLevelMgdLMinimum
-	AlertSettingValueLowMgdLMaximum           = dataTypesSettingsCgm.LowAlertLevelMgdLMaximum
-	AlertSettingValueLowMgdLMinimum           = dataTypesSettingsCgm.LowAlertLevelMgdLMinimum
-	AlertSettingValueNoReadingsMgdLMaximum    = dataTypesSettingsCgm.NoDataAlertDurationMinutesMaximum
-	AlertSettingValueNoReadingsMgdLMinimum    = dataTypesSettingsCgm.NoDataAlertDurationMinutesMinimum
-	AlertSettingValueOutOfRangeMgdLMaximum    = dataTypesSettingsCgm.OutOfRangeAlertDurationMinutesMaximum
-	AlertSettingValueOutOfRangeMgdLMinimum    = dataTypesSettingsCgm.OutOfRangeAlertDurationMinutesMinimum
-	AlertSettingValueRiseMgdLMinuteMaximum    = dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMaximum
-	AlertSettingValueRiseMgdLMinuteMinimum    = dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMinimum
-	AlertSettingValueUrgentLowMgdLMaximum     = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
-	AlertSettingValueUrgentLowMgdLMinimum     = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
-	AlertSettingValueUrgentLowSoonMgdLMaximum = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
-	AlertSettingValueUrgentLowSoonMgdLMinimum = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
+	AlertSettingValueHighMgdLMaximum  = dataTypesSettingsCgm.HighAlertLevelMgdLMaximum
+	AlertSettingValueHighMgdLMinimum  = dataTypesSettingsCgm.HighAlertLevelMgdLMinimum
+	AlertSettingValueHighMmolLMaximum = dataTypesSettingsCgm.HighAlertLevelMmolLMaximum
+	AlertSettingValueHighMmolLMinimum = dataTypesSettingsCgm.HighAlertLevelMmolLMinimum
+
+	AlertSettingValueLowMgdLMaximum  = dataTypesSettingsCgm.LowAlertLevelMgdLMaximum
+	AlertSettingValueLowMgdLMinimum  = dataTypesSettingsCgm.LowAlertLevelMgdLMinimum
+	AlertSettingValueLowMmolLMaximum = dataTypesSettingsCgm.LowAlertLevelMmolLMaximum
+	AlertSettingValueLowMmolLMinimum = dataTypesSettingsCgm.LowAlertLevelMmolLMinimum
+
+	AlertSettingValueRiseMgdLMinuteMaximum  = dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMaximum
+	AlertSettingValueRiseMgdLMinuteMinimum  = dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMinimum
+	AlertSettingValueRiseMmolLMinuteMaximum = dataTypesSettingsCgm.RiseAlertRateMmolLMinuteMaximum
+	AlertSettingValueRiseMmolLMinuteMinimum = dataTypesSettingsCgm.RiseAlertRateMmolLMinuteMinimum
+
+	AlertSettingValueFallMgdLMinuteMaximum  = dataTypesSettingsCgm.FallAlertRateMgdLMinuteMaximum
+	AlertSettingValueFallMgdLMinuteMinimum  = dataTypesSettingsCgm.FallAlertRateMgdLMinuteMinimum
+	AlertSettingValueFallMmolLMinuteMaximum = dataTypesSettingsCgm.FallAlertRateMmolLMinuteMaximum
+	AlertSettingValueFallMmolLMinuteMinimum = dataTypesSettingsCgm.FallAlertRateMmolLMinuteMinimum
+
+	AlertSettingValueOutOfRangeMinutesMaximum = dataTypesSettingsCgm.OutOfRangeAlertDurationMinutesMaximum
+	AlertSettingValueOutOfRangeMinutesMinimum = dataTypesSettingsCgm.OutOfRangeAlertDurationMinutesMinimum
+
+	AlertSettingValueUrgentLowMgdLMaximum  = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
+	AlertSettingValueUrgentLowMgdLMinimum  = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
+	AlertSettingValueUrgentLowMmolLMaximum = dataTypesSettingsCgm.UrgentLowAlertLevelMmolLMaximum
+	AlertSettingValueUrgentLowMmolLMinimum = dataTypesSettingsCgm.UrgentLowAlertLevelMmolLMinimum
+
+	AlertSettingValueUrgentLowSoonMgdLMaximum  = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum
+	AlertSettingValueUrgentLowSoonMgdLMinimum  = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum
+	AlertSettingValueUrgentLowSoonMmolLMaximum = dataTypesSettingsCgm.UrgentLowAlertLevelMmolLMaximum
+	AlertSettingValueUrgentLowSoonMmolLMinimum = dataTypesSettingsCgm.UrgentLowAlertLevelMmolLMinimum
+
+	AlertSettingValueNoReadingsMinutesMaximum = dataTypesSettingsCgm.NoDataAlertDurationMinutesMaximum
+	AlertSettingValueNoReadingsMinutesMinimum = dataTypesSettingsCgm.NoDataAlertDurationMinutesMinimum
+
+	AlertSettingValueFixedLowMgdLMaximum  = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMaximum  // TODO: Is this right?
+	AlertSettingValueFixedLowMgdLMinimum  = dataTypesSettingsCgm.UrgentLowAlertLevelMgdLMinimum  // TODO: Is this right?
+	AlertSettingValueFixedLowMmolLMaximum = dataTypesSettingsCgm.UrgentLowAlertLevelMmolLMaximum // TODO: Is this right?
+	AlertSettingValueFixedLowMmolLMinimum = dataTypesSettingsCgm.UrgentLowAlertLevelMmolLMinimum // TODO: Is this right?
 
 	AlertSettingSoundThemeUnknown = "unknown"
 	AlertSettingSoundThemeModern  = "modern"
@@ -119,15 +145,23 @@ func AlertScheduleSettingsDayIndex(day string) int {
 func AlertSettingAlertNames() []string {
 	return []string{
 		AlertSettingAlertNameUnknown,
-		AlertSettingAlertNameFall,
 		AlertSettingAlertNameHigh,
 		AlertSettingAlertNameLow,
-		AlertSettingAlertNameNoReadings,
-		AlertSettingAlertNameOutOfRange,
 		AlertSettingAlertNameRise,
+		AlertSettingAlertNameFall,
+		AlertSettingAlertNameOutOfRange,
 		AlertSettingAlertNameUrgentLow,
 		AlertSettingAlertNameUrgentLowSoon,
+		AlertSettingAlertNameNoReadings,
 		AlertSettingAlertNameFixedLow,
+	}
+}
+
+func AlertSettingSoundThemes() []string {
+	return []string{
+		AlertSettingSoundThemeUnknown,
+		AlertSettingSoundThemeModern,
+		AlertSettingSoundThemeClassic,
 	}
 }
 
@@ -140,44 +174,70 @@ func AlertSettingSoundOutputModes() []string {
 	}
 }
 
-func AlertSettingSoundThemes() []string {
+func AlertSettingUnitUnknowns() []string {
 	return []string{
-		AlertSettingSoundThemeUnknown,
-		AlertSettingSoundThemeModern,
-		AlertSettingSoundThemeClassic,
+		AlertSettingUnitUnknown,
+	}
+}
+
+func AlertSettingUnitHighs() []string {
+	return []string{
+		AlertSettingUnitMgdL,
+		AlertSettingUnitMmolL,
+	}
+}
+
+func AlertSettingUnitLows() []string {
+	return []string{
+		AlertSettingUnitMgdL,
+		AlertSettingUnitMmolL,
+	}
+}
+
+func AlertSettingUnitRises() []string {
+	return []string{
+		AlertSettingUnitMgdLMinute,
+		AlertSettingUnitMmolLMinute,
 	}
 }
 
 func AlertSettingUnitFalls() []string {
-	return []string{AlertSettingUnitMgdLMinute}
-}
-
-func AlertSettingUnitHighs() []string {
-	return []string{AlertSettingUnitMgdL}
-}
-
-func AlertSettingUnitLows() []string {
-	return []string{AlertSettingUnitMgdL}
-}
-
-func AlertSettingUnitNoReadings() []string {
-	return []string{AlertSettingUnitMinutes}
+	return []string{
+		AlertSettingUnitMgdLMinute,
+		AlertSettingUnitMmolLMinute,
+	}
 }
 
 func AlertSettingUnitOutOfRanges() []string {
-	return []string{AlertSettingUnitMinutes}
-}
-
-func AlertSettingUnitRises() []string {
-	return []string{AlertSettingUnitMgdLMinute}
+	return []string{
+		AlertSettingUnitMinutes,
+	}
 }
 
 func AlertSettingUnitUrgentLows() []string {
-	return []string{AlertSettingUnitMgdL}
+	return []string{
+		AlertSettingUnitMgdL,
+		AlertSettingUnitMmolL,
+	}
 }
 
 func AlertSettingUnitUrgentLowSoons() []string {
-	return []string{AlertSettingUnitMgdL}
+	return []string{
+		AlertSettingUnitMgdL,
+		AlertSettingUnitMmolL,
+	}
+}
+
+func AlertSettingUnitNoReadings() []string {
+	return []string{
+		AlertSettingUnitMinutes,
+	}
+}
+
+func AlertSettingUnitFixedLows() []string {
+	return []string{
+		AlertSettingUnitMinutes,
+	}
 }
 
 type AlertSchedules []*AlertSchedule
@@ -312,26 +372,20 @@ func (a *AlertSchedule) IsDefault() bool {
 
 func (a *AlertSchedule) Name() *string {
 	if a.AlertScheduleSettings != nil {
-		return a.AlertScheduleSettings.Name
+		return a.AlertScheduleSettings.AlertScheduleName
 	}
 	return nil
 }
 
 type AlertScheduleSettings struct {
-	Name       *string          `json:"alertScheduleName,omitempty" yaml:"alertScheduleName,omitempty"`
-	Enabled    *bool            `json:"isEnabled,omitempty" yaml:"isEnabled,omitempty"`
-	Default    *bool            `json:"isDefaultSchedule,omitempty" yaml:"isDefaultSchedule,omitempty"`
-	StartTime  *string          `json:"startTime,omitempty" yaml:"startTime,omitempty"`
-	EndTime    *string          `json:"endTime,omitempty" yaml:"endTime,omitempty"`
-	DaysOfWeek *[]string        `json:"daysOfWeek,omitempty" yaml:"daysOfWeek,omitempty"`
-	Active     *bool            `json:"isActive,omitempty" yaml:"isActive,omitempty"`
-	Override   *OverrideSetting `json:"override,omitempty" yaml:"override,omitempty"`
-}
-
-type OverrideSetting struct {
-	Enabled *bool   `json:"isOverrideEnabled,omitempty" yaml:"isOverrideEnabled,omitempty"`
-	Mode    *string `json:"mode,omitempty" yaml:"mode,omitempty"`
-	EndTime *string `json:"endTime,omitempty" yaml:"endTime,omitempty"`
+	IsDefaultSchedule *bool     `json:"isDefaultSchedule,omitempty" yaml:"isDefaultSchedule,omitempty"`
+	IsEnabled         *bool     `json:"isEnabled,omitempty" yaml:"isEnabled,omitempty"`
+	IsActive          *bool     `json:"isActive,omitempty" yaml:"isActive,omitempty"`
+	AlertScheduleName *string   `json:"alertScheduleName,omitempty" yaml:"alertScheduleName,omitempty"`
+	StartTime         *string   `json:"startTime,omitempty" yaml:"startTime,omitempty"`
+	EndTime           *string   `json:"endTime,omitempty" yaml:"endTime,omitempty"`
+	DaysOfWeek        *[]string `json:"daysOfWeek,omitempty" yaml:"daysOfWeek,omitempty"`
+	Override          *Override `json:"override,omitempty" yaml:"override,omitempty"`
 }
 
 func ParseAlertScheduleSettings(parser structure.ObjectParser) *AlertScheduleSettings {
@@ -348,36 +402,27 @@ func NewAlertScheduleSettings() *AlertScheduleSettings {
 }
 
 func (a *AlertScheduleSettings) Parse(parser structure.ObjectParser) {
-	a.Name = parser.String("alertScheduleName")
-	a.Enabled = parser.Bool("isEnabled")
-	a.Default = parser.Bool("isDefaultSchedule")
+	a.IsDefaultSchedule = parser.Bool("isDefaultSchedule")
+	a.IsEnabled = parser.Bool("isEnabled")
+	a.IsActive = parser.Bool("isActive")
+	a.AlertScheduleName = parser.String("alertScheduleName")
 	a.StartTime = parser.String("startTime")
 	a.EndTime = parser.String("endTime")
 	a.DaysOfWeek = parser.StringArray("daysOfWeek")
-	a.Active = parser.Bool("isActive")
 	a.Override = ParseOverrideSetting(parser.WithReferenceObjectParser("override"))
-}
-
-func ParseOverrideSetting(parser structure.ObjectParser) *OverrideSetting {
-	if !parser.Exists() {
-		return nil
-	}
-	datum := &OverrideSetting{}
-	parser.Parse(datum)
-	return datum
-}
-
-func (o *OverrideSetting) Parse(parser structure.ObjectParser) {
-	o.Enabled = parser.Bool("isOverrideEnabled")
-	o.Mode = parser.String("mode")
-	o.EndTime = parser.String("endTime")
 }
 
 func (a *AlertScheduleSettings) Validate(validator structure.Validator) {
 	// HACK: Dexcom - force default schedule to use expected startTime and endTime
-	if a.Default != nil && *a.Default {
-		a.StartTime = pointer.FromString(AlertScheduleSettingsStartTimeDefault)
-		a.EndTime = pointer.FromString(AlertScheduleSettingsEndTimeDefault)
+	if a.IsDefaultSchedule != nil && *a.IsDefaultSchedule {
+		if a.StartTime == nil || *a.StartTime != AlertScheduleSettingsStartTimeDefault {
+			a.StartTime = pointer.FromString(AlertScheduleSettingsStartTimeDefault)
+			validator.Logger().Warn("Missing or non-default start time of alert schedule settings")
+		}
+		if a.EndTime == nil || *a.EndTime != AlertScheduleSettingsEndTimeDefault {
+			a.EndTime = pointer.FromString(AlertScheduleSettingsEndTimeDefault)
+			validator.Logger().Warn("Missing or non-default end time of alert schedule settings")
+		}
 	}
 
 	// HACK: Dexcom - remove empty strings from daysOfWeek
@@ -388,23 +433,31 @@ func (a *AlertScheduleSettings) Validate(validator structure.Validator) {
 				daysOfWeek = append(daysOfWeek, dayOfWeek)
 			}
 		}
+		if len(daysOfWeek) != len(*a.DaysOfWeek) {
+			validator.Logger().Warn("Empty string in days of week of alert schedule settings")
+		}
 		a.DaysOfWeek = pointer.FromStringArray(daysOfWeek)
 	}
 
-	validator = validator.WithMeta(a)
-	validator.Bool("isDefaultSchedule", a.Default).Exists()
-	if a.Default != nil && *a.Default {
-		validator.String("alertScheduleName", a.Name).Exists().Empty()
-		validator.Bool("isEnabled", a.Enabled).Exists()
+	validator.Bool("isDefaultSchedule", a.IsDefaultSchedule).Exists()
+	if a.IsDefaultSchedule != nil && *a.IsDefaultSchedule {
+		validator.Bool("isEnabled", a.IsEnabled).Exists()
+		validator.Bool("isActive", a.IsActive) // DEXCOM: May not exist
+		validator.String("alertScheduleName", a.AlertScheduleName).Exists().Empty()
 		validator.String("startTime", a.StartTime).Exists().EqualTo(AlertScheduleSettingsStartTimeDefault)
 		validator.String("endTime", a.EndTime).Exists().EqualTo(AlertScheduleSettingsEndTimeDefault)
 		validator.StringArray("daysOfWeek", a.DaysOfWeek).Exists().EachOneOf(AlertScheduleSettingsDays()...).EachUnique().LengthEqualTo(len(AlertScheduleSettingsDays()))
 	} else {
-		validator.String("alertScheduleName", a.Name).Exists().NotEmpty()
-		validator.Bool("isEnabled", a.Enabled).Exists()
-		validator.String("startTime", a.StartTime).Exists().Using(AlertScheduleSettingsTimeValidator)
-		validator.String("endTime", a.EndTime).Exists().Using(AlertScheduleSettingsTimeValidator)
+		validator.Bool("isEnabled", a.IsEnabled).Exists()
+		validator.Bool("isActive", a.IsActive).Exists()
+		validator.String("alertScheduleName", a.AlertScheduleName).Exists().NotEmpty()
+		validator.String("startTime", a.StartTime).Exists().Using(AlertScheduleSettingsStartTimeValidator)
+		validator.String("endTime", a.EndTime).Exists().Using(AlertScheduleSettingsEndTimeValidator)
 		validator.StringArray("daysOfWeek", a.DaysOfWeek).Exists().EachOneOf(AlertScheduleSettingsDays()...).EachUnique()
+	}
+
+	if a.Override != nil {
+		a.Override.Validate(validator.WithReference("override"))
 	}
 }
 
@@ -412,11 +465,43 @@ func (a *AlertScheduleSettings) Normalize(normalizer structure.Normalizer) {
 	if a.DaysOfWeek != nil {
 		sort.Sort(DaysOfWeekByAlertScheduleSettingsDayIndex(*a.DaysOfWeek))
 	}
+	if a.Override != nil {
+		a.Override.Normalize(normalizer.WithReference("override"))
+	}
 }
 
 func (a *AlertScheduleSettings) IsDefault() bool {
-	return a.Default != nil && *a.Default
+	return a.IsDefaultSchedule != nil && *a.IsDefaultSchedule
 }
+
+type Override struct {
+	IsOverrideEnabled *bool   `json:"isOverrideEnabled,omitempty" yaml:"isOverrideEnabled,omitempty"`
+	Mode              *string `json:"mode,omitempty" yaml:"mode,omitempty"`
+	EndTime           *string `json:"endTime,omitempty" yaml:"endTime,omitempty"`
+}
+
+func ParseOverrideSetting(parser structure.ObjectParser) *Override {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := &Override{}
+	parser.Parse(datum)
+	return datum
+}
+
+func (o *Override) Parse(parser structure.ObjectParser) {
+	o.IsOverrideEnabled = parser.Bool("isOverrideEnabled")
+	o.Mode = parser.String("mode")
+	o.EndTime = parser.String("endTime")
+}
+
+func (o *Override) Validate(validator structure.Validator) {
+	validator.Bool("isOverrideEnabled", o.IsOverrideEnabled).Exists()
+	validator.String("mode", o.Mode).Exists().OneOf(AlertScheduleSettingsOverrideModes()...)
+	validator.String("endTime", o.EndTime).Exists().Using(AlertScheduleSettingsEndTimeValidator)
+}
+
+func (o *Override) Normalize(normalizer structure.Normalizer) {}
 
 type DaysOfWeekByAlertScheduleSettingsDayIndex []string
 
@@ -563,42 +648,35 @@ func (a *AlertSetting) Parse(parser structure.ObjectParser) {
 }
 
 func (a *AlertSetting) Validate(validator structure.Validator) {
-	validator = validator.WithMeta(a)
-	if a.SystemTime != nil {
-		validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
-	}
-	if a.DisplayTime != nil {
-		validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
-	}
+	validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero().BeforeNow(SystemTimeNowThreshold)
+	validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
 	validator.String("alertName", a.AlertName).Exists().OneOf(AlertSettingAlertNames()...)
-
 	if a.AlertName != nil {
 		switch *a.AlertName {
-		case AlertSettingAlertNameFall:
-			a.validateFall(validator)
+		case AlertSettingAlertNameUnknown:
+			a.validateUnknown(validator)
 		case AlertSettingAlertNameHigh:
 			a.validateHigh(validator)
 		case AlertSettingAlertNameLow:
 			a.validateLow(validator)
-		case AlertSettingAlertNameNoReadings:
-			a.validateNoReadings(validator)
-		case AlertSettingAlertNameOutOfRange:
-			a.validateOutOfRange(validator)
 		case AlertSettingAlertNameRise:
 			a.validateRise(validator)
+		case AlertSettingAlertNameFall:
+			a.validateFall(validator)
+		case AlertSettingAlertNameOutOfRange:
+			a.validateOutOfRange(validator)
 		case AlertSettingAlertNameUrgentLow:
 			a.validateUrgentLow(validator)
 		case AlertSettingAlertNameUrgentLowSoon:
 			a.validateUrgentLowSoon(validator)
+		case AlertSettingAlertNameNoReadings:
+			a.validateNoReadings(validator)
 		case AlertSettingAlertNameFixedLow:
 			a.validateFixedLow(validator)
-		case AlertSettingAlertNameUnknown:
-			a.validateUnknown(validator)
 		}
 	}
-
-	validator.String("soundTheme", a.SoundTheme).OneOf(AlertSettingSoundThemes()...)
-	validator.String("soundOutputMode", a.SoundOutputMode).OneOf(AlertSettingSoundOutputModes()...)
+	validator.String("soundTheme", a.SoundTheme).Exists().OneOf(AlertSettingSoundThemes()...)
+	validator.String("soundOutputMode", a.SoundOutputMode).Exists().OneOf(AlertSettingSoundOutputModes()...)
 }
 
 func (a *AlertSetting) Normalize(normalizer structure.Normalizer) {}
@@ -608,152 +686,267 @@ func (a *AlertSetting) IsNewerMatchThan(alertSetting *AlertSetting) bool {
 		a.SystemTime != nil && alertSetting.SystemTime != nil && a.SystemTime.After(*alertSetting.SystemTime.Raw())
 }
 
-func (a *AlertSetting) validateFall(validator structure.Validator) {
-	// HACK: Dexcom - negative value is invalid; use positive value instead (per Dexcom)
-	if a.Value != nil && *a.Value < 0 {
-		a.Value = pointer.FromFloat64(-*a.Value)
-	}
-
-	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitFalls()...)
-	if a.Unit != nil {
-		switch *a.Unit {
-		case AlertSettingUnitMgdLMinute:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueFallMgdLMinuteMinimum, AlertSettingValueFallMgdLMinuteMaximum)
-		}
-	}
-	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
+func (a *AlertSetting) validateUnknown(validator structure.Validator) {
+	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitUnknown)
+	validator.Float64("value", a.Value).NotExists()
+	validator.Int("snooze", a.Snooze).NotExists()
 	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
 func (a *AlertSetting) validateHigh(validator structure.Validator) {
 	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitHighs()...)
-	if a.Unit != nil {
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueHighMgdLMinimum, AlertSettingValueHighMgdLMaximum)
+			valueValidator.Exists().InRange(AlertSettingValueHighMgdLMinimum, AlertSettingValueHighMgdLMaximum)
+		case AlertSettingUnitMmolL:
+			valueValidator.Exists().InRange(AlertSettingValueHighMmolLMinimum, AlertSettingValueHighMmolLMaximum)
+		default:
+			valueValidator.Exists()
 		}
 	}
 	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
 func (a *AlertSetting) validateLow(validator structure.Validator) {
 	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitLows()...)
-	if a.Unit != nil {
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueLowMgdLMinimum, AlertSettingValueLowMgdLMaximum)
+			valueValidator.Exists().InRange(AlertSettingValueLowMgdLMinimum, AlertSettingValueLowMgdLMaximum)
+		case AlertSettingUnitMmolL:
+			valueValidator.Exists().InRange(AlertSettingValueLowMmolLMinimum, AlertSettingValueLowMmolLMaximum)
+		default:
+			valueValidator.Exists()
 		}
 	}
 	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
-}
-
-func (a *AlertSetting) validateNoReadings(validator structure.Validator) {
-	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitNoReadings()...)
-	if a.Unit != nil {
-		switch *a.Unit {
-		case AlertSettingUnitMinutes:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueNoReadingsMgdLMinimum, AlertSettingValueNoReadingsMgdLMaximum)
-		}
-	}
-	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
-	validator.Bool("enabled", a.Enabled).Exists()
-}
-
-func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
-	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitOutOfRanges()...)
-	if a.Unit != nil {
-		switch *a.Unit {
-		case AlertSettingUnitMinutes:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueOutOfRangeMgdLMinimum, AlertSettingValueOutOfRangeMgdLMaximum)
-		}
-	}
-	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
-	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
 func (a *AlertSetting) validateRise(validator structure.Validator) {
 	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitRises()...)
-	if a.Unit != nil {
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdLMinute:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueRiseMgdLMinuteMinimum, AlertSettingValueRiseMgdLMinuteMaximum)
+			valueValidator.Exists().InRange(AlertSettingValueRiseMgdLMinuteMinimum, AlertSettingValueRiseMgdLMinuteMaximum)
+		case AlertSettingUnitMmolLMinute:
+			valueValidator.Exists().InRange(AlertSettingValueRiseMmolLMinuteMinimum, AlertSettingValueRiseMmolLMinuteMaximum)
+		default:
+			valueValidator.Exists()
+		}
+	}
+	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
+	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
+}
+
+func (a *AlertSetting) validateFall(validator structure.Validator) {
+	// HACK: Dexcom - negative value is invalid; use positive value instead (per Dexcom)
+	if a.Value != nil && *a.Value < 0 {
+		a.Value = pointer.FromFloat64(-*a.Value)
+		validator.Logger().Warn("Negative value for value of fall alert setting")
+	}
+
+	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitFalls()...)
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
+		switch *a.Unit {
+		case AlertSettingUnitMgdLMinute:
+			valueValidator.Exists().InRange(AlertSettingValueFallMgdLMinuteMinimum, AlertSettingValueFallMgdLMinuteMaximum)
+		case AlertSettingUnitMmolLMinute:
+			valueValidator.Exists().InRange(AlertSettingValueFallMmolLMinuteMinimum, AlertSettingValueFallMmolLMinuteMaximum)
+		default:
+			valueValidator.Exists()
+		}
+	}
+	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum) // DEXCOM: May not exist
+	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists() // DEXCOM: May not exist
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
+}
+
+func (a *AlertSetting) validateOutOfRange(validator structure.Validator) {
+	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitOutOfRanges()...)
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
+		switch *a.Unit {
+		case AlertSettingUnitMinutes:
+			valueValidator.Exists().InRange(AlertSettingValueOutOfRangeMinutesMinimum, AlertSettingValueOutOfRangeMinutesMaximum)
+		default:
+			valueValidator.Exists()
 		}
 	}
 	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
 func (a *AlertSetting) validateUrgentLow(validator structure.Validator) {
 	// HACK: Dexcom - snooze of 28 is invalid; use snooze of 30 instead (per Dexcom); exists in v2 (20180914)
 	if a.Snooze != nil && *a.Snooze == 28 {
 		a.Snooze = pointer.FromInt(30)
+		validator.Logger().Warn("Invalid value for snooze of urgent low alert setting")
 	}
 
 	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitUrgentLows()...)
-	if a.Unit != nil {
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueUrgentLowMgdLMinimum, AlertSettingValueUrgentLowMgdLMaximum)
+			valueValidator.Exists().InRange(AlertSettingValueUrgentLowMgdLMinimum, AlertSettingValueUrgentLowMgdLMaximum)
+		case AlertSettingUnitMmolL:
+			valueValidator.Exists().InRange(AlertSettingValueUrgentLowMmolLMinimum, AlertSettingValueUrgentLowMmolLMaximum)
+		default:
+			valueValidator.Exists()
 		}
 	}
 	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists().True()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
 func (a *AlertSetting) validateUrgentLowSoon(validator structure.Validator) {
 	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitUrgentLowSoons()...)
-	if a.Unit != nil {
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
 		switch *a.Unit {
 		case AlertSettingUnitMgdL:
-			validator.Float64("value", a.Value).Exists().InRange(AlertSettingValueUrgentLowSoonMgdLMinimum, AlertSettingValueUrgentLowSoonMgdLMaximum)
+			valueValidator.Exists().InRange(AlertSettingValueUrgentLowSoonMgdLMinimum, AlertSettingValueUrgentLowSoonMgdLMaximum)
+		case AlertSettingUnitMmolL:
+			valueValidator.Exists().InRange(AlertSettingValueUrgentLowSoonMmolLMinimum, AlertSettingValueUrgentLowSoonMmolLMaximum)
+		default:
+			valueValidator.Exists()
 		}
 	}
 	validator.Int("snooze", a.Snooze).Exists().InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
-func (a *AlertSetting) validateUnknown(validator structure.Validator) {
-	validator.String("unit", a.Unit).OneOf(AlertSettingUnitUnknown)
+func (a *AlertSetting) validateNoReadings(validator structure.Validator) {
+	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitNoReadings()...)
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
+		switch *a.Unit {
+		case AlertSettingUnitMinutes:
+			valueValidator.Exists().InRange(AlertSettingValueNoReadingsMinutesMinimum, AlertSettingValueNoReadingsMinutesMaximum)
+		default:
+			valueValidator.Exists()
+		}
+	}
+	validator.Int("snooze", a.Snooze).InRange(AlertSettingSnoozeMinutesMinimum, AlertSettingSnoozeMinutesMaximum)
 	validator.Bool("enabled", a.Enabled).Exists()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
 func (a *AlertSetting) validateFixedLow(validator structure.Validator) {
-	validator.Bool("enabled", a.Enabled).Exists()
+	validator.String("unit", a.Unit).Exists().OneOf(AlertSettingUnitFixedLows()...)
+	if valueValidator := validator.Float64("value", a.Value); a.Unit != nil {
+		switch *a.Unit {
+		case AlertSettingUnitMgdL:
+			valueValidator.Exists().InRange(AlertSettingValueFixedLowMgdLMinimum, AlertSettingValueFixedLowMgdLMaximum)
+		case AlertSettingUnitMmolL:
+			valueValidator.Exists().InRange(AlertSettingValueFixedLowMmolLMinimum, AlertSettingValueFixedLowMmolLMaximum)
+		default:
+			valueValidator.Exists()
+		}
+	}
+	validator.Int("snooze", a.Snooze).NotExists()
+	validator.Bool("enabled", a.Enabled).Exists().True()
+	validator.Int("delay", a.Delay).NotExists()
+	validator.Int("secondaryTriggerCondition", a.SecondaryTriggerCondition).NotExists()
 }
 
+// Parse HH:MM where HH and MM can be any two digits, potentially parsing AM/PM suffix to convert
+// standard time.
 func ParseAlertScheduleSettingsTime(value string) (int, int, bool) {
-	timeFormat := "15:04"
-	value = strings.ToUpper(value)
-	if strings.Contains(value, "AM") || strings.Contains(value, "PM") {
-		timeFormat = "3:04PM"
-		value = strings.ReplaceAll(value, " ", "")
+	var hour *int
+	var minute *int
+	var err error
+
+	// Parse a copy to retain original, upper case with spaces removed
+	parsable := strings.ReplaceAll(strings.ToUpper(value), " ", "")
+
+	// Determine if there is a meridiem, if so only use the non-meridiem portion
+	meridiemMatches := meridiemRegexp.FindStringSubmatch(parsable)
+	if meridiemMatches != nil {
+		parsable = meridiemMatches[1]
 	}
-	t, err := time.Parse(timeFormat, value)
+
+	if hour, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
+		if parsable, err = parseCharacter(parsable, ":"); err == nil && parsable != "" {
+			if minute, parsable, err = parseDigits(parsable, 1, 2); err == nil && parsable != "" {
+				return 0, 0, false
+			}
+		}
+	}
+
+	// If we had an error, then bail
 	if err != nil {
 		return 0, 0, false
 	}
-	return t.Hour(), t.Minute(), true
+
+	// If meridiem exists, then translate to 24-hour time
+	if meridiemMatches != nil {
+		if *hour == 12 {
+			*hour = *hour - 12
+		}
+		if meridiem := meridiemMatches[2]; meridiem == "P" || meridiem == "PM" {
+			*hour = *hour + 12
+		}
+	}
+
+	return *hour, *minute, true
 }
 
-func IsValidAlertScheduleSettingsTime(value string) bool {
-	return ValidateAlertScheduleSettingsTime(value) == nil
+func IsValidAlertScheduleSettingsStartTime(value string) bool {
+	return ValidateAlertScheduleSettingsStartTime(value) == nil
 }
 
-func AlertScheduleSettingsTimeValidator(value string, errorReporter structure.ErrorReporter) {
-	errorReporter.ReportError(ValidateAlertScheduleSettingsTime(value))
+func AlertScheduleSettingsStartTimeValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateAlertScheduleSettingsStartTime(value))
 }
 
-func ValidateAlertScheduleSettingsTime(value string) error {
+func ValidateAlertScheduleSettingsStartTime(value string) error {
 	if value == "" {
 		return structureValidator.ErrorValueEmpty()
-	} else if _, _, ok := ParseAlertScheduleSettingsTime(value); !ok {
-		return ErrorValueStringAsAlertScheduleSettingsTimeNotValid(value)
+	} else if hour, minute, ok := ParseAlertScheduleSettingsTime(value); !ok || hour > 23 || minute > 59 {
+		return ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid(value)
 	}
 	return nil
 }
 
-func ErrorValueStringAsAlertScheduleSettingsTimeNotValid(value string) error {
-	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as alert schedule settings time", value)
+func ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as alert schedule settings start time", value)
 }
+
+func IsValidAlertScheduleSettingsEndTime(value string) bool {
+	return ValidateAlertScheduleSettingsEndTime(value) == nil
+}
+
+func AlertScheduleSettingsEndTimeValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateAlertScheduleSettingsEndTime(value))
+}
+
+func ValidateAlertScheduleSettingsEndTime(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if hour, minute, ok := ParseAlertScheduleSettingsTime(value); !ok || hour > 47 || minute > 59 {
+		return ErrorValueStringAsAlertScheduleSettingsEndTimeNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsAlertScheduleSettingsEndTimeNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as alert schedule settings end time", value)
+}
+
+var meridiemRegexp = regexp.MustCompile(`^(.*)(A|P|AM|PM)$`) // Assumes upper case

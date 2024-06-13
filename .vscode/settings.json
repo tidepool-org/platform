@@ -1,3 +1,12 @@
 {
-    "go.formatFlags": ["-local", "github.com/tidepool-org/platform"]
+    "go.formatFlags": [
+        "-local",
+        "github.com/tidepool-org/platform"
+    ],
+    "ginkgotestexplorer.ginkgoPath": "/Users/darinkrauss/Code/github.com/tidepool-org/platform/.gvm_local/pkgsets/go1.22.2/local/bin/ginkgo",
+    "files.exclude": {
+        "**/*.coverprofile": true,
+        "**/*.test": true,
+        "**/coverprofile.out": true
+    },
 }

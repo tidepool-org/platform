@@ -2,7 +2,9 @@ package context
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
+	"net/url"
 
 	"golang.org/x/oauth2"
 
@@ -45,6 +47,19 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 		if err != nil {
 			return nil, err
 		}
+
+		// TODO: DO NOT COMMIT!!!
+		proxyUrl, _ := url.Parse("http://192.168.0.102:9090")
+		baseHTTPClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyUrl),
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+		}
+
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, baseHTTPClient)
 
 		httpClient := oauth2.NewClient(ctx, tknSrc)
 		if httpClient == nil {

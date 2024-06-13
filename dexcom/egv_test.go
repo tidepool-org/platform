@@ -44,13 +44,13 @@ var _ = Describe("EGV", func() {
 	})
 
 	It("EGVsResponseRateUnits returns expected", func() {
-		Expect(dexcom.EGVsResponseRateUnits()).To(Equal([]string{"unknown", "mg/dL/min", "mmol/L/min"}))
-		Expect(dexcom.EGVsResponseRateUnits()).To(Equal([]string{dexcom.EGVRateUnitUnknown, dexcom.EGVRateUnitMgdLMinute, dexcom.EGVRateUnitMmolLMinute}))
+		Expect(dexcom.EGVRateUnits()).To(Equal([]string{"unknown", "mg/dL/min", "mmol/L/min"}))
+		Expect(dexcom.EGVRateUnits()).To(Equal([]string{dexcom.EGVRateUnitUnknown, dexcom.EGVRateUnitMgdLMinute, dexcom.EGVRateUnitMmolLMinute}))
 	})
 
 	It("EGVsResponseUnits returns expected", func() {
-		Expect(dexcom.EGVsResponseUnits()).To(Equal([]string{"unknown", "mg/dL", "mmol/L"}))
-		Expect(dexcom.EGVsResponseUnits()).To(Equal([]string{dexcom.EGVUnitUnknown, dexcom.EGVUnitMgdL, dexcom.EGVUnitMmolL}))
+		Expect(dexcom.EGVUnits()).To(Equal([]string{"unknown", "mg/dL", "mmol/L"}))
+		Expect(dexcom.EGVUnits()).To(Equal([]string{dexcom.EGVUnitUnknown, dexcom.EGVUnitMgdL, dexcom.EGVUnitMmolL}))
 	})
 
 	It("EGVStatuses returns expected", func() {
@@ -80,7 +80,7 @@ var _ = Describe("EGV", func() {
 	})
 	Describe("Validate", func() {
 		var getTestEVG = func() *dexcom.EGV {
-			return test.RandomEGV(pointer.FromString(platform_test.RandomStringFromArray(dexcom.EGVsResponseUnits())))
+			return test.RandomEGV(pointer.FromString(platform_test.RandomStringFromArray(dexcom.EGVUnits())))
 		}
 		DescribeTable("requires",
 			func(setupEGVFunc func() *dexcom.EGV) {
@@ -103,7 +103,7 @@ var _ = Describe("EGV", func() {
 			}),
 			Entry("id to be set", func() *dexcom.EGV {
 				egv := getTestEVG()
-				egv.ID = nil
+				egv.RecordID = nil
 				return egv
 			}),
 			Entry("transmitterTicks to be set", func() *dexcom.EGV {

@@ -50,16 +50,16 @@ func CloneAlertSchedule(datum *dexcom.AlertSchedule) *dexcom.AlertSchedule {
 func RandomAlertScheduleSettings(isDefault bool) *dexcom.AlertScheduleSettings {
 	datum := dexcom.NewAlertScheduleSettings()
 	if isDefault {
-		datum.Name = pointer.FromString("")
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-		datum.Default = pointer.FromBool(true)
+		datum.AlertScheduleName = pointer.FromString("")
+		datum.IsEnabled = pointer.FromBool(test.RandomBool())
+		datum.IsDefaultSchedule = pointer.FromBool(true)
 		datum.StartTime = pointer.FromString(dexcom.AlertScheduleSettingsStartTimeDefault)
 		datum.EndTime = pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault)
 		datum.DaysOfWeek = pointer.FromStringArray(dexcom.AlertScheduleSettingsDays())
 	} else {
-		datum.Name = pointer.FromString(RandomAlertScheduleSettingsName())
-		datum.Enabled = pointer.FromBool(test.RandomBool())
-		datum.Default = pointer.FromBool(false)
+		datum.AlertScheduleName = pointer.FromString(RandomAlertScheduleSettingsName())
+		datum.IsEnabled = pointer.FromBool(test.RandomBool())
+		datum.IsDefaultSchedule = pointer.FromBool(false)
 		datum.StartTime = pointer.FromString(fmt.Sprintf("%02d:%02d", test.RandomIntFromRange(0, 23), test.RandomIntFromRange(0, 59)))
 		datum.EndTime = pointer.FromString(fmt.Sprintf("%02d:%02d", test.RandomIntFromRange(0, 23), test.RandomIntFromRange(0, 59)))
 		datum.DaysOfWeek = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dexcom.AlertScheduleSettingsDays()), dexcom.AlertScheduleSettingsDays()))
@@ -72,9 +72,9 @@ func CloneAlertScheduleSettings(datum *dexcom.AlertScheduleSettings) *dexcom.Ale
 		return nil
 	}
 	clone := dexcom.NewAlertScheduleSettings()
-	clone.Name = pointer.CloneString(datum.Name)
-	clone.Enabled = pointer.CloneBool(datum.Enabled)
-	clone.Default = pointer.CloneBool(datum.Default)
+	clone.AlertScheduleName = pointer.CloneString(datum.AlertScheduleName)
+	clone.IsEnabled = pointer.CloneBool(datum.IsEnabled)
+	clone.IsDefaultSchedule = pointer.CloneBool(datum.IsDefaultSchedule)
 	clone.StartTime = pointer.CloneString(datum.StartTime)
 	clone.EndTime = pointer.CloneString(datum.EndTime)
 	clone.DaysOfWeek = pointer.CloneStringArray(datum.DaysOfWeek)
@@ -139,7 +139,7 @@ func RandomAlertSetting(withName *string) *dexcom.AlertSetting {
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitNoReadings()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMinutes:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueNoReadingsMgdLMinimum, dexcom.AlertSettingValueNoReadingsMgdLMaximum))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueNoReadingsMinutesMinimum, dexcom.AlertSettingValueNoReadingsMinutesMaximum))
 		}
 		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())
@@ -147,7 +147,7 @@ func RandomAlertSetting(withName *string) *dexcom.AlertSetting {
 		datum.Unit = pointer.FromString(test.RandomStringFromArray(dexcom.AlertSettingUnitOutOfRanges()))
 		switch *datum.Unit {
 		case dexcom.AlertSettingUnitMinutes:
-			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueOutOfRangeMgdLMinimum, dexcom.AlertSettingValueOutOfRangeMgdLMaximum))
+			datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dexcom.AlertSettingValueOutOfRangeMinutesMinimum, dexcom.AlertSettingValueOutOfRangeMinutesMaximum))
 		}
 		datum.Snooze = pointer.FromInt(test.RandomIntFromRange(dexcom.AlertSettingSnoozeMinutesMinimum, dexcom.AlertSettingSnoozeMinutesMaximum))
 		datum.Enabled = pointer.FromBool(test.RandomBool())

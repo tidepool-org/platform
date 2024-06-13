@@ -131,8 +131,8 @@ func translateCalibrationToDatum(ctx context.Context, calibration *dexcom.Calibr
 	if calibration.TransmitterTicks != nil {
 		(*datum.Payload)["transmitterTicks"] = *calibration.TransmitterTicks
 	}
-	if calibration.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(calibration.ID)}
+	if calibration.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(calibration.RecordID)}
 	}
 	TranslateTime(ctx, calibration.SystemTime, calibration.DisplayTime, &datum.Base)
 	return datum
@@ -150,9 +150,9 @@ func translateDeviceToDatum(_ context.Context, device *dexcom.Device) data.Datum
 	//TODO: potenially not true in the future. Currently the v3 API returns only MgdL but it does also have MmolL as valid units although it doesn't return them
 	datum.Units = pointer.FromString(dataBloodGlucose.MgdL)
 
-	defaultAlertSchedule := device.AlertScheduleList.Default()
+	defaultAlertSchedule := device.AlertSchedules.Default()
 	if defaultAlertSchedule != nil {
-		datum.DefaultAlerts = translateAlertSettingsToAlerts(defaultAlertSchedule.AlertScheduleSettings.Enabled, defaultAlertSchedule.AlertSettings)
+		datum.DefaultAlerts = translateAlertSettingsToAlerts(defaultAlertSchedule.AlertScheduleSettings.IsEnabled, defaultAlertSchedule.AlertSettings)
 		for _, alertSetting := range *defaultAlertSchedule.AlertSettings {
 			switch *alertSetting.AlertName {
 			case dexcom.AlertSettingAlertNameFall:
@@ -188,7 +188,7 @@ func translateDeviceToDatum(_ context.Context, device *dexcom.Device) data.Datum
 	}
 
 	var scheduledAlerts dataTypesSettingsCgm.ScheduledAlerts
-	for _, alertSchedule := range *device.AlertScheduleList {
+	for _, alertSchedule := range *device.AlertSchedules {
 		if alertSchedule != defaultAlertSchedule {
 			scheduledAlerts = append(scheduledAlerts, translateAlertScheduleToScheduledAlert(alertSchedule))
 		}
@@ -212,11 +212,11 @@ func translateDeviceToDatum(_ context.Context, device *dexcom.Device) data.Datum
 
 func translateAlertScheduleToScheduledAlert(alertSchedule *dexcom.AlertSchedule) *dataTypesSettingsCgm.ScheduledAlert {
 	scheduledAlert := dataTypesSettingsCgm.NewScheduledAlert()
-	scheduledAlert.Name = pointer.CloneString(alertSchedule.AlertScheduleSettings.Name)
+	scheduledAlert.Name = pointer.CloneString(alertSchedule.AlertScheduleSettings.AlertScheduleName)
 	scheduledAlert.Days = translateAlertScheduleSettingsDaysOfWeekToScheduledAlertDays(alertSchedule.AlertScheduleSettings.DaysOfWeek)
 	scheduledAlert.Start = translateAlertScheduleSettingsTimeToScheduledAlertTime(alertSchedule.AlertScheduleSettings.StartTime)
 	scheduledAlert.End = translateAlertScheduleSettingsTimeToScheduledAlertTime(alertSchedule.AlertScheduleSettings.EndTime)
-	scheduledAlert.Alerts = translateAlertSettingsToAlerts(alertSchedule.AlertScheduleSettings.Enabled, alertSchedule.AlertSettings)
+	scheduledAlert.Alerts = translateAlertSettingsToAlerts(alertSchedule.AlertScheduleSettings.IsEnabled, alertSchedule.AlertSettings)
 	return scheduledAlert
 }
 
@@ -381,8 +381,8 @@ func translateAlertToDatum(ctx context.Context, alert *dexcom.Alert, version *st
 		(*datum.Payload)["version"] = *version
 	}
 
-	if alert.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(alert.ID)}
+	if alert.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(alert.RecordID)}
 	}
 	datum.IssuedTime = alert.DisplayTime.Raw()
 	datum.Name = pointer.CloneString(alert.AlertName)
@@ -457,8 +457,8 @@ func translateEGVToDatum(ctx context.Context, egv *dexcom.EGV) data.Datum {
 			}}
 		}
 	}
-	if egv.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(egv.ID)}
+	if egv.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(egv.RecordID)}
 	}
 	TranslateTime(ctx, egv.SystemTime, egv.DisplayTime, &datum.Base)
 	return datum
@@ -480,8 +480,8 @@ func translateEventCarbsToDatum(ctx context.Context, event *dexcom.Event) data.D
 			},
 		}
 	}
-	if event.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	if event.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.RecordID)}
 	}
 
 	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
@@ -495,8 +495,8 @@ func translateEventExerciseToDatum(ctx context.Context, event *dexcom.Event) dat
 	datum.ID = nil
 	datum.GUID = nil
 
-	if event.SubType != nil {
-		switch *event.SubType {
+	if event.EventSubType != nil {
+		switch *event.EventSubType {
 		case dexcom.EventSubTypeExerciseLight:
 			datum.ReportedIntensity = pointer.FromString(dataTypesActivityPhysical.ReportedIntensityLow)
 		case dexcom.EventSubTypeExerciseMedium:
@@ -514,8 +514,8 @@ func translateEventExerciseToDatum(ctx context.Context, event *dexcom.Event) dat
 			}
 		}
 	}
-	if event.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	if event.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.RecordID)}
 	}
 
 	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
@@ -529,8 +529,8 @@ func translateEventHealthToDatum(ctx context.Context, event *dexcom.Event) data.
 	datum.ID = nil
 	datum.GUID = nil
 
-	if event.SubType != nil {
-		switch *event.SubType {
+	if event.EventSubType != nil {
+		switch *event.EventSubType {
 		case dexcom.EventSubTypeHealthIllness:
 			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateIllness)}}
 		case dexcom.EventSubTypeHealthStress:
@@ -545,8 +545,8 @@ func translateEventHealthToDatum(ctx context.Context, event *dexcom.Event) data.
 			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateAlcohol)}}
 		}
 	}
-	if event.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	if event.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.RecordID)}
 	}
 
 	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
@@ -560,8 +560,8 @@ func translateEventInsulinToDatum(ctx context.Context, event *dexcom.Event) data
 	datum.ID = nil
 	datum.GUID = nil
 
-	if event.SubType != nil {
-		switch *event.SubType {
+	if event.EventSubType != nil {
+		switch *event.EventSubType {
 		case dexcom.EventSubTypeInsulinFastActing:
 			datum.Formulation = &dataTypesInsulin.Formulation{Simple: &dataTypesInsulin.Simple{ActingType: pointer.FromString(dataTypesInsulin.SimpleActingTypeRapid)}}
 		case dexcom.EventSubTypeInsulinLongActing:
@@ -577,8 +577,8 @@ func translateEventInsulinToDatum(ctx context.Context, event *dexcom.Event) data
 			}
 		}
 	}
-	if event.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	if event.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.RecordID)}
 	}
 
 	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
@@ -601,8 +601,8 @@ func translateEventBGToDatum(ctx context.Context, event *dexcom.Event) data.Datu
 		datum.Units = pointer.CloneString(event.Unit)
 	}
 
-	if event.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	if event.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.RecordID)}
 	}
 
 	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
@@ -616,8 +616,8 @@ func translateEventNoteToDatum(ctx context.Context, event *dexcom.Event) data.Da
 	datum.ID = nil
 	datum.GUID = nil
 
-	if event.SubType != nil {
-		switch *event.SubType {
+	if event.EventSubType != nil {
+		switch *event.EventSubType {
 		case dexcom.EventSubTypeHealthIllness:
 			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateIllness)}}
 		case dexcom.EventSubTypeHealthStress:
@@ -632,8 +632,8 @@ func translateEventNoteToDatum(ctx context.Context, event *dexcom.Event) data.Da
 			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateAlcohol)}}
 		}
 	}
-	if event.ID != nil {
-		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	if event.RecordID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.RecordID)}
 	}
 
 	if event.Value != nil {

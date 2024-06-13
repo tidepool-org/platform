@@ -126,10 +126,11 @@ func (s *Service) initializeTaskStore() error {
 		return errors.Wrap(err, "unable to ensure task store indexes")
 	}
 
-	err = taskStore.EnsureDefaultTasks()
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure task store contains default tasks")
-	}
+	// TODO: DO NOT COMMIT!!!
+	// err = taskStore.EnsureDefaultTasks()
+	// if err != nil {
+	// 	return errors.Wrap(err, "unable to ensure task store contains default tasks")
+	// }
 
 	return nil
 }
@@ -298,7 +299,7 @@ func (s *Service) initializeTaskQueue() error {
 	if s.dexcomClient != nil {
 		s.Logger().Debug("Creating dexcom fetch runner")
 
-		rnnr, rnnrErr := dexcomFetch.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
+		rnnr, rnnrErr := dexcomFetch.NewRunner(s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
 		if rnnrErr != nil {
 			return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
 		}
@@ -345,6 +346,13 @@ func (s *Service) initializeTaskQueue() error {
 		return errors.Wrap(err, "unable to create ehr sync runner")
 	}
 	runners = append(runners, ehrSyncRnnr)
+
+	// // TODO: DO NOT COMMIT!!!
+	// exampleRunner, err := taskExample.NewRunner(s.taskClient, s.Logger())
+	// if err != nil {
+	// 	return errors.Wrap(err, "unable to create example runner")
+	// }
+	// runners = append(runners, exampleRunner)
 
 	for _, r := range runners {
 		r := r

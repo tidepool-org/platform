@@ -64,7 +64,7 @@ var _ = Describe("Alert", func() {
 			}),
 			Entry("id to be set", func() *dexcom.Alert {
 				alert := getTestAlert()
-				alert.ID = nil
+				alert.RecordID = nil
 				return alert
 			}),
 			Entry("transmitterGeneration to be set", func() *dexcom.Alert {

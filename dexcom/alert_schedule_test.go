@@ -47,7 +47,7 @@ var _ = Describe("Alert", func() {
 	})
 
 	It("AlertSettingValueFallMgdLMinuteMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueFallMgdLMinuteMinimum).To(Equal(1.0))
+		Expect(dexcom.AlertSettingValueFallMgdLMinuteMinimum).To(Equal(0.0))
 	})
 
 	It("AlertSettingValueHighMgdLMaximum is expected", func() {
@@ -67,19 +67,19 @@ var _ = Describe("Alert", func() {
 	})
 
 	It("AlertSettingValueNoReadingsMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMgdLMaximum).To(Equal(360.0))
+		Expect(dexcom.AlertSettingValueNoReadingsMinutesMaximum).To(Equal(360.0))
 	})
 
 	It("AlertSettingValueNoReadingsMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMgdLMinimum).To(Equal(0.0))
+		Expect(dexcom.AlertSettingValueNoReadingsMinutesMinimum).To(Equal(0.0))
 	})
 
 	It("AlertSettingValueOutOfRangeMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMaximum).To(Equal(360.0))
+		Expect(dexcom.AlertSettingValueOutOfRangeMinutesMaximum).To(Equal(360.0))
 	})
 
 	It("AlertSettingValueOutOfRangeMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMinimum).To(Equal(0.0))
+		Expect(dexcom.AlertSettingValueOutOfRangeMinutesMinimum).To(Equal(0.0))
 	})
 
 	It("AlertSettingValueRiseMgdLMinuteMaximum is expected", func() {
@@ -87,7 +87,7 @@ var _ = Describe("Alert", func() {
 	})
 
 	It("AlertSettingValueRiseMgdLMinuteMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMinimum).To(Equal(1.0))
+		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMinimum).To(Equal(0.0))
 	})
 
 	It("AlertSettingValueUrgentLowMgdLMaximum is expected", func() {
@@ -214,13 +214,8 @@ var _ = Describe("Alert", func() {
 			Entry("is an empty string", "", 0, 0, false),
 			Entry("contains non-numbers", "a$: b", 0, 0, false),
 			Entry("does not exactly match format", "1;23", 0, 0, false),
-			Entry("has hour in range (lower)", "00:00", 0, 0, true),
-			Entry("has hour in range (upper)", "23:59", 23, 59, true),
-			Entry("has hour out of range (upper)", "24:00", 0, 0, false),
-			Entry("has minute in range (lower)", "00:00", 0, 0, true),
-			Entry("has minute in range (upper)", "23:59", 23, 59, true),
-			Entry("has minute out of range (upper)", "23:60", 0, 0, false),
-
+			Entry("has hour and minute minimum", "00:00", 0, 0, true),
+			Entry("has hour and minute maximum", "99:99", 99, 99, true),
 			Entry("is 12hr format with AM postfix", "8:00 Am", 8, 0, true),
 			Entry("is 12hr format with AM postfix", "08:00 aM", 8, 0, true),
 			Entry("is 12hr format with PM postfix", "9:00 Pm", 21, 0, true),
@@ -229,34 +224,56 @@ var _ = Describe("Alert", func() {
 		)
 	})
 
-	Context("IsValidAlertScheduleSettingsTime, AlertScheduleSettingsTimeValidator, and ValidateAlertScheduleSettingsTime", func() {
+	Context("IsValidAlertScheduleSettingsStartTime, AlertScheduleSettingsStartTimeValidator, and ValidateAlertScheduleSettingsStartTime", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
-				Expect(dexcom.IsValidAlertScheduleSettingsTime(value)).To(Equal(len(expectedErrors) == 0))
+				Expect(dexcom.IsValidAlertScheduleSettingsStartTime(value)).To(Equal(len(expectedErrors) == 0))
 				errorReporter := structureTest.NewErrorReporter()
-				dexcom.AlertScheduleSettingsTimeValidator(value, errorReporter)
+				dexcom.AlertScheduleSettingsStartTimeValidator(value, errorReporter)
 				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
-				errorsTest.ExpectEqual(dexcom.ValidateAlertScheduleSettingsTime(value), expectedErrors...)
+				errorsTest.ExpectEqual(dexcom.ValidateAlertScheduleSettingsStartTime(value), expectedErrors...)
 			},
 			Entry("is an empty string", "", structureValidator.ErrorValueEmpty()),
-			Entry("contains non-numbers", "a$: b", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("a$: b")),
-			Entry("does not exactly match format", "1;23", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("1;23")),
+			Entry("contains non-numbers", "a$: b", dexcom.ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid("a$: b")),
+			Entry("does not exactly match format", "1;23", dexcom.ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid("1;23")),
 			Entry("has hour in range (lower)", "00:00"),
 			Entry("has hour in range (upper)", "23:59"),
-			Entry("has hour out of range (upper)", "24:00", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("24:00")),
+			Entry("has hour out of range (upper)", "24:00", dexcom.ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid("24:00")),
 			Entry("has minute in range (lower)", "00:00"),
 			Entry("has minute in range (upper)", "23:59"),
-			Entry("has minute out of range (upper)", "23:60", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("23:60")),
+			Entry("has minute out of range (upper)", "23:60", dexcom.ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid("23:60")),
+		)
+	})
+
+	Context("IsValidAlertScheduleSettingsEndTime, AlertScheduleSettingsEndTimeValidator, and ValidateAlertScheduleSettingsEndTime", func() {
+		DescribeTable("return the expected results when the input",
+			func(value string, expectedErrors ...error) {
+				Expect(dexcom.IsValidAlertScheduleSettingsEndTime(value)).To(Equal(len(expectedErrors) == 0))
+				errorReporter := structureTest.NewErrorReporter()
+				dexcom.AlertScheduleSettingsEndTimeValidator(value, errorReporter)
+				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				errorsTest.ExpectEqual(dexcom.ValidateAlertScheduleSettingsEndTime(value), expectedErrors...)
+			},
+			Entry("is an empty string", "", structureValidator.ErrorValueEmpty()),
+			Entry("contains non-numbers", "a$: b", dexcom.ErrorValueStringAsAlertScheduleSettingsEndTimeNotValid("a$: b")),
+			Entry("does not exactly match format", "1;47", dexcom.ErrorValueStringAsAlertScheduleSettingsEndTimeNotValid("1;47")),
+			Entry("has hour in range (lower)", "00:00"),
+			Entry("has hour in range (upper)", "47:59"),
+			Entry("has hour out of range (upper)", "48:00", dexcom.ErrorValueStringAsAlertScheduleSettingsEndTimeNotValid("48:00")),
+			Entry("has minute in range (lower)", "00:00"),
+			Entry("has minute in range (upper)", "47:59"),
+			Entry("has minute out of range (upper)", "47:60", dexcom.ErrorValueStringAsAlertScheduleSettingsEndTimeNotValid("47:60")),
 		)
 	})
 
 	Context("Errors", func() {
 		DescribeTable("have expected details when error",
 			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as alert schedule settings time`),
-			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with non-empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("XX:XX"), "value-not-valid", "value is not valid", `value "XX:XX" is not valid as alert schedule settings time`),
+			Entry("is ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid with empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as alert schedule settings time`),
+			Entry("is ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid with non-empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsStartTimeNotValid("XX:XX"), "value-not-valid", "value is not valid", `value "XX:XX" is not valid as alert schedule settings time`),
 		)
 	})
+
 	Context("AlertSchedules can be", func() {
 		DescribeTable("empty",
 			func(value *dexcom.AlertSchedules) {
@@ -277,12 +294,12 @@ var _ = Describe("Alert", func() {
 			},
 			Entry("valid if active not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Active = nil
+				settings.IsActive = nil
 				return settings
 			}),
 			Entry("valid if active not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Active = nil
+				settings.IsActive = nil
 				return settings
 			}),
 			Entry("valid if override not set", func() *dexcom.AlertScheduleSettings {
@@ -297,55 +314,55 @@ var _ = Describe("Alert", func() {
 			}),
 			Entry("valid if override.Enabled not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: nil,
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: nil,
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}),
 			Entry("valid if override.Enabled not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: nil,
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: nil,
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}),
 			Entry("valid if override.Mode not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    nil,
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              nil,
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}),
 			Entry("valid if override.Mode not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    nil,
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              nil,
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}),
 			Entry("valid if override.EndTime not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
-					EndTime: nil,
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime:           nil,
 				}
 				return settings
 			}),
 			Entry("valid if override.EndTime not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
-					EndTime: nil,
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime:           nil,
 				}
 				return settings
 			}),
@@ -359,12 +376,12 @@ var _ = Describe("Alert", func() {
 			},
 			Entry("valid if active not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Active = nil
+				settings.IsActive = nil
 				return settings
 			}, false),
 			Entry("valid if active not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Active = nil
+				settings.IsActive = nil
 				return settings
 			}, false),
 			Entry("valid if override not set", func() *dexcom.AlertScheduleSettings {
@@ -379,71 +396,71 @@ var _ = Describe("Alert", func() {
 			}, false),
 			Entry("valid if override.Enabled not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: nil,
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: nil,
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}, false),
 			Entry("valid if override.Enabled not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: nil,
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: nil,
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeQuiet),
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}, false),
 			Entry("valid if override.Mode not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    nil,
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              nil,
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}, false),
 			Entry("valid if override.Mode not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    nil,
-					EndTime: pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              nil,
+					EndTime:           pointer.FromString(dexcom.AlertScheduleSettingsEndTimeDefault),
 				}
 				return settings
 			}, false),
 			Entry("valid if override.EndTime not set when default", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(true)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
-					EndTime: nil,
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime:           nil,
 				}
 				return settings
 			}, false),
 			Entry("valid if override.EndTime not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Override = &dexcom.OverrideSetting{
-					Enabled: pointer.FromBool(true),
-					Mode:    pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
-					EndTime: nil,
+				settings.Override = &dexcom.Override{
+					IsOverrideEnabled: pointer.FromBool(true),
+					Mode:              pointer.FromString(dexcom.AlertScheduleSettingsOverrideModeVibrate),
+					EndTime:           nil,
 				}
 				return settings
 			}, false),
 			Entry("errors if name not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Name = nil
+				settings.AlertScheduleName = nil
 				return settings
 			}, true),
 			Entry("errors if enabled not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Enabled = nil
+				settings.IsEnabled = nil
 				return settings
 			}, true),
 			Entry("errors if default not set", func() *dexcom.AlertScheduleSettings {
 				settings := test.RandomAlertScheduleSettings(false)
-				settings.Default = nil
+				settings.IsDefaultSchedule = nil
 				return settings
 			}, true),
 			Entry("errors if startTime not set", func() *dexcom.AlertScheduleSettings {

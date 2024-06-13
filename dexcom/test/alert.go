@@ -8,7 +8,10 @@ import (
 
 func RandomAlertsResponse() *dexcom.AlertsResponse {
 	datum := dexcom.NewAlertsResponse()
-	datum.Alerts = RandomAlerts(0, 5)
+	datum.RecordType = pointer.FromString(dexcom.AlertsResponseRecordType)
+	datum.RecordVersion = pointer.FromString(dexcom.AlertsResponseRecordVersion)
+	datum.UserID = pointer.FromString(test.RandomString())
+	datum.Records = RandomAlerts(0, 5)
 	return datum
 }
 
@@ -17,7 +20,10 @@ func CloneAlertsResponse(datum *dexcom.AlertsResponse) *dexcom.AlertsResponse {
 		return nil
 	}
 	clone := dexcom.NewAlertsResponse()
-	clone.Alerts = CloneAlerts(datum.Alerts)
+	clone.RecordType = pointer.CloneString(datum.RecordType)
+	clone.RecordVersion = pointer.CloneString(datum.RecordVersion)
+	clone.UserID = pointer.CloneString(datum.UserID)
+	clone.Records = CloneAlerts(datum.Records)
 	return clone
 }
 
@@ -42,7 +48,7 @@ func CloneAlerts(datum *dexcom.Alerts) *dexcom.Alerts {
 
 func RandomAlert() *dexcom.Alert {
 	datum := dexcom.NewAlert()
-	datum.ID = pointer.FromString(test.RandomString())
+	datum.RecordID = pointer.FromString(test.RandomString())
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
 	datum.AlertName = pointer.FromString(test.RandomStringFromArray(dexcom.AlertNames()))
@@ -58,7 +64,7 @@ func CloneAlert(datum *dexcom.Alert) *dexcom.Alert {
 		return nil
 	}
 	clone := dexcom.NewAlert()
-	clone.ID = pointer.CloneString(datum.ID)
+	clone.RecordID = pointer.CloneString(datum.RecordID)
 	clone.SystemTime = CloneTime(datum.SystemTime)
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.AlertState = pointer.CloneString(datum.AlertState)

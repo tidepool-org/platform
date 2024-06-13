@@ -10,8 +10,11 @@ import (
 
 func RandomEGVsResponse() *dexcom.EGVsResponse {
 	datum := dexcom.NewEGVsResponse()
-	unit := pointer.FromString(test.RandomStringFromArray(dexcom.EGVsResponseUnits()))
-	datum.EGVs = RandomEGVs(unit, 0, 3)
+	datum.RecordType = pointer.FromString(dexcom.EGVsResponseRecordType)
+	datum.RecordVersion = pointer.FromString(dexcom.EGVsResponseRecordVersion)
+	datum.UserID = pointer.FromString(test.RandomString())
+	unit := pointer.FromString(test.RandomStringFromArray(dexcom.EGVUnits()))
+	datum.Records = RandomEGVs(unit, 0, 3)
 	return datum
 }
 
@@ -20,7 +23,10 @@ func CloneEGVsResponse(datum *dexcom.EGVsResponse) *dexcom.EGVsResponse {
 		return nil
 	}
 	clone := dexcom.NewEGVsResponse()
-	clone.EGVs = CloneEGVs(datum.EGVs)
+	clone.RecordType = pointer.CloneString(datum.RecordType)
+	clone.RecordVersion = pointer.CloneString(datum.RecordVersion)
+	clone.UserID = pointer.CloneString(datum.UserID)
+	clone.Records = CloneEGVs(datum.Records)
 	return clone
 }
 
@@ -46,7 +52,7 @@ func CloneEGVs(datum *dexcom.EGVs) *dexcom.EGVs {
 func RandomEGV(unit *string) *dexcom.EGV {
 	datum := dexcom.NewEGV()
 	datum.Unit = unit
-	datum.ID = pointer.FromString(test.RandomString())
+	datum.RecordID = pointer.FromString(test.RandomString())
 	datum.SystemTime = RandomSystemTime()
 	datum.DisplayTime = RandomDisplayTime()
 	switch *datum.Unit {
@@ -75,7 +81,7 @@ func CloneEGV(datum *dexcom.EGV) *dexcom.EGV {
 		return nil
 	}
 	clone := dexcom.NewEGV()
-	clone.ID = pointer.CloneString(datum.ID)
+	clone.RecordID = pointer.CloneString(datum.RecordID)
 	clone.SystemTime = CloneTime(datum.SystemTime)
 	clone.DisplayTime = CloneTime(datum.DisplayTime)
 	clone.Unit = pointer.CloneString(datum.Unit)

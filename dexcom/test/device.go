@@ -8,7 +8,10 @@ import (
 
 func RandomDevicesResponse() *dexcom.DevicesResponse {
 	datum := dexcom.NewDevicesResponse()
-	datum.Devices = RandomDevices(0, 3)
+	datum.RecordType = pointer.FromString(dexcom.DevicesResponseRecordType)
+	datum.RecordVersion = pointer.FromString(dexcom.DevicesResponseRecordVersion)
+	datum.UserID = pointer.FromString(test.RandomString())
+	datum.Records = RandomDevices(0, 3)
 	return datum
 }
 
@@ -17,7 +20,10 @@ func CloneDevicesResponse(datum *dexcom.DevicesResponse) *dexcom.DevicesResponse
 		return nil
 	}
 	clone := dexcom.NewDevicesResponse()
-	clone.Devices = CloneDevices(datum.Devices)
+	clone.RecordType = pointer.CloneString(datum.RecordType)
+	clone.RecordVersion = pointer.CloneString(datum.RecordVersion)
+	clone.UserID = pointer.CloneString(datum.UserID)
+	clone.Records = CloneDevices(datum.Records)
 	return clone
 }
 
@@ -43,7 +49,7 @@ func CloneDevices(datum *dexcom.Devices) *dexcom.Devices {
 func RandomDevice() *dexcom.Device {
 	datum := dexcom.NewDevice()
 	datum.LastUploadDate = RandomTime()
-	datum.AlertScheduleList = RandomAlertSchedules(1, 3)
+	datum.AlertSchedules = RandomAlertSchedules(1, 3)
 	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
 	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))
 	datum.DisplayDevice = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayDevices()))
@@ -56,7 +62,7 @@ func CloneDevice(datum *dexcom.Device) *dexcom.Device {
 	}
 	clone := dexcom.NewDevice()
 	clone.LastUploadDate = CloneTime(datum.LastUploadDate)
-	clone.AlertScheduleList = CloneAlertSchedules(datum.AlertScheduleList)
+	clone.AlertSchedules = CloneAlertSchedules(datum.AlertSchedules)
 	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
 	clone.TransmitterGeneration = pointer.CloneString(datum.TransmitterGeneration)
 	clone.DisplayDevice = pointer.CloneString(datum.DisplayDevice)

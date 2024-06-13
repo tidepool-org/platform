@@ -15,12 +15,8 @@ import (
 
 var _ = Describe("Event", func() {
 
-	It("EventUnitUnknown is expected", func() {
-		Expect(dexcom.EventUnitUnknown).To(Equal("unknown"))
-	})
-
-	It("EventUnitMgdL is expected", func() {
-		Expect(dexcom.EventUnitMgdL).To(Equal("mg/dL"))
+	It("EventUnitBGMgdL is expected", func() {
+		Expect(dexcom.EventUnitBGMgdL).To(Equal("mg/dL"))
 	})
 
 	It("EventUnitCarbsGrams is expected", func() {
@@ -69,14 +65,13 @@ var _ = Describe("Event", func() {
 	})
 
 	It("EventTypes returns expected", func() {
-		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "note", "notes", "unknown"}))
+		Expect(dexcom.EventTypes()).To(Equal([]string{"bloodGlucose", "carbs", "exercise", "health", "insulin", "notes", "unknown"}))
 		Expect(dexcom.EventTypes()).To(Equal([]string{
 			dexcom.EventTypeBG,
 			dexcom.EventTypeCarbs,
 			dexcom.EventTypeExercise,
 			dexcom.EventTypeHealth,
 			dexcom.EventTypeInsulin,
-			dexcom.EventTypeNote,
 			dexcom.EventTypeNotes,
 			dexcom.EventTypeUnknown,
 		}))
@@ -156,17 +151,17 @@ var _ = Describe("Event", func() {
 			}),
 			Entry("id to be set", func() *dexcom.Event {
 				event := test.RandomEvent(nil)
-				event.ID = nil
+				event.RecordID = nil
 				return event
 			}),
 			Entry("status to be set", func() *dexcom.Event {
 				event := test.RandomEvent(nil)
-				event.Status = nil
+				event.EventStatus = nil
 				return event
 			}),
 			Entry("type to be set", func() *dexcom.Event {
 				event := test.RandomEvent(nil)
-				event.Type = nil
+				event.EventType = nil
 				return event
 			}),
 			Entry("value to be set", func() *dexcom.Event {
@@ -240,7 +235,7 @@ var _ = Describe("Event", func() {
 			},
 			Entry("eventSubType to be set", func() *dexcom.Event {
 				event := test.RandomEvent(nil)
-				event.SubType = nil
+				event.EventSubType = nil
 				return event
 			}),
 			Entry("unit to be set when type is unknown", func() *dexcom.Event {
@@ -249,13 +244,18 @@ var _ = Describe("Event", func() {
 				return event
 			}),
 			Entry("unit to be set when type is notes", func() *dexcom.Event {
-				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNote))
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeNotes))
 				event.Unit = nil
 				return event
 			}),
 			Entry("unit to be set when type is health", func() *dexcom.Event {
 				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeHealth))
 				event.Unit = nil
+				return event
+			}),
+			Entry("value to be non-empty string when type is health", func() *dexcom.Event {
+				event := test.RandomEvent(pointer.FromString(dexcom.EventTypeHealth))
+				event.Value = pointer.FromString("")
 				return event
 			}),
 		)

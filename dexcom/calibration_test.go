@@ -29,8 +29,8 @@ var _ = Describe("Calibration", func() {
 	})
 
 	It("CalibrationUnits returns expected", func() {
-		Expect(dexcom.CalibrationUnits()).To(Equal([]string{"unknown", "mg/dL", "mmol/L"}))
-		Expect(dexcom.CalibrationUnits()).To(Equal([]string{dexcom.CalibrationUnitUnknown, dexcom.CalibrationUnitMgdL, dexcom.CalibrationUnitMmolL}))
+		Expect(dexcom.CalibrationUnits()).To(Equal([]string{"mg/dL", "mmol/L", "unknown"}))
+		Expect(dexcom.CalibrationUnits()).To(Equal([]string{dexcom.CalibrationUnitMgdL, dexcom.CalibrationUnitMmolL, dexcom.CalibrationUnitUnknown}))
 	})
 
 	Describe("Validate", func() {
@@ -43,7 +43,7 @@ var _ = Describe("Calibration", func() {
 			},
 			Entry("required id is not set", func() *dexcom.Calibration {
 				device := test.RandomCalibration()
-				device.ID = nil
+				device.RecordID = nil
 				return device
 			}),
 			Entry("required systemTime is not set", func() *dexcom.Calibration {
