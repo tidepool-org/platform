@@ -4,58 +4,61 @@ import (
 	"math"
 	"time"
 
-	"github.com/tidepool-org/platform/data"
-
-	"github.com/tidepool-org/platform/data/test"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
-	veryLowBloodGlucose  = 3.0
-	lowBloodGlucose      = 3.9
-	highBloodGlucose     = 10.0
-	veryHighBloodGlucose = 13.9
-	inTargetBloodGlucose = 5.0
-	units                = "mmol/L"
+	veryLowBloodGlucose     = 3.0
+	lowBloodGlucose         = 3.9
+	highBloodGlucose        = 10.0
+	veryHighBloodGlucose    = 13.9
+	extremeHighBloodGlucose = 19.425
+	inTargetBloodGlucose    = 5.0
 )
 
+var units = "mmol/L"
+
 type DataRanges struct {
-	Min      float64
-	Max      float64
-	Padding  float64
-	VeryLow  float64
-	Low      float64
-	High     float64
-	VeryHigh float64
+	Min         float64
+	Max         float64
+	Padding     float64
+	VeryLow     float64
+	Low         float64
+	High        float64
+	VeryHigh    float64
+	ExtremeHigh float64
 }
 
 func NewDataRanges() DataRanges {
 	return DataRanges{
-		Min:      1,
-		Max:      20,
-		Padding:  0.01,
-		VeryLow:  veryLowBloodGlucose,
-		Low:      lowBloodGlucose,
-		High:     highBloodGlucose,
-		VeryHigh: veryHighBloodGlucose,
+		Min:         1,
+		Max:         25,
+		Padding:     0.01,
+		VeryLow:     veryLowBloodGlucose,
+		Low:         lowBloodGlucose,
+		High:        highBloodGlucose,
+		VeryHigh:    veryHighBloodGlucose,
+		ExtremeHigh: extremeHighBloodGlucose,
 	}
 }
 
 func NewDataRangesSingle(value float64) DataRanges {
 	return DataRanges{
-		Min:      value,
-		Max:      value,
-		Padding:  0,
-		VeryLow:  value,
-		Low:      value,
-		High:     value,
-		VeryHigh: value,
+		Min:         value,
+		Max:         value,
+		Padding:     0,
+		VeryLow:     value,
+		Low:         value,
+		High:        value,
+		VeryHigh:    value,
+		ExtremeHigh: value,
 	}
 }
 

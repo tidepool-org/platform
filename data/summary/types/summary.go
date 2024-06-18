@@ -3,24 +3,17 @@ package types
 import (
 	"context"
 	"fmt"
-
-	"github.com/tidepool-org/platform/data/summary/fetcher"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
-	"github.com/tidepool-org/platform/data"
-
 	"time"
 
-	"github.com/tidepool-org/platform/pointer"
-
-	"github.com/tidepool-org/platform/errors"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-
+	mapset "github.com/deckarep/golang-set/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -29,11 +22,12 @@ const (
 	SummaryTypeContinuous = "continuous"
 	SchemaVersion         = 3
 
-	lowBloodGlucose      = 3.9
-	veryLowBloodGlucose  = 3.0
-	highBloodGlucose     = 10.0
-	veryHighBloodGlucose = 13.9
-	HoursAgoToKeep       = 60 * 24
+	lowBloodGlucose         = 3.9
+	veryLowBloodGlucose     = 3.0
+	highBloodGlucose        = 10.0
+	veryHighBloodGlucose    = 13.9
+	extremeHighBloodGlucose = 19.425
+	HoursAgoToKeep          = 60 * 24
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"

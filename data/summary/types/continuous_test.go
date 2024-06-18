@@ -4,37 +4,32 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tidepool-org/platform/data"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-
-	summaryTest "github.com/tidepool-org/platform/data/summary/types/test"
-	"github.com/tidepool-org/platform/data/test"
-	userTest "github.com/tidepool-org/platform/user/test"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/summary/types"
-
+	summaryTest "github.com/tidepool-org/platform/data/summary/types/test"
+	"github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/pointer"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-func NewDataSetDataRealtime(t string, startTime time.Time, hours float64, realtime bool) []data.Datum {
+func NewDataSetDataRealtime(typ string, startTime time.Time, hours float64, realtime bool) []data.Datum {
 	requiredRecords := int(hours * 2)
-	typ := pointer.FromAny(t)
+	dataSetData := make([]data.Datum, requiredRecords)
+	deviceId := "SummaryTestDevice"
+	uploadId := test.RandomSetID()
 
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var glucoseValue = inTargetBloodGlucose
-	var deviceId = "SummaryTestDevice"
-	var uploadId = test.RandomSetID()
+	glucoseValue := pointer.FromAny(inTargetBloodGlucose)
 
 	// generate X hours of data
 	for count := 0; count < requiredRecords; count += 1 {
 		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
 
-		datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
-		datum.Value = pointer.FromFloat64(glucoseValue)
+		datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
+		datum.Value = glucoseValue
 
 		if realtime {
 			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
