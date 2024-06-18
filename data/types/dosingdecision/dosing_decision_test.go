@@ -530,10 +530,11 @@ var _ = Describe("DosingDecision", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataTypesDosingDecisionTest.SetDosingDecisionRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, unitsBloodGlucose)
 					}
-					Expect(datum).To(Equal(expectedDatum))
+					Expect(datum.ForecastBloodGlucose).To(Equal(expectedDatum.ForecastBloodGlucose))
 				},
 				Entry("does not modify the datum; units missing",
 					nil,

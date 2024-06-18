@@ -718,6 +718,8 @@ var _ = Describe("Pump", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataBloodGlucoseTest.SetTargetRaw(expectedDatum.BloodGlucoseTarget, datum.BloodGlucoseTarget)
+					dataTypesDeviceOverrideSettingsPumpTest.SetUnitsRaw(expectedDatum.Units, datum.Units)
 					if expectator != nil {
 						expectator(datum, expectedDatum, unitsBloodGlucose)
 					}

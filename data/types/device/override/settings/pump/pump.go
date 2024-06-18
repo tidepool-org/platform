@@ -140,15 +140,11 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 
 	p.Device.Normalize(normalizer)
 
-	var unitsBloodGlucose *string
-	if p.Units != nil {
-		unitsBloodGlucose = p.Units.BloodGlucose
-	}
-
-	if p.BloodGlucoseTarget != nil {
-		p.BloodGlucoseTarget.Normalize(normalizer.WithReference("bgTarget"), unitsBloodGlucose)
-	}
 	if p.Units != nil {
 		p.Units.Normalize(normalizer.WithReference("units"))
+		if p.BloodGlucoseTarget != nil {
+			p.BloodGlucoseTarget.Normalize(normalizer.WithReference("bgTarget"), p.Units.RawBloodGlucose)
+		}
 	}
+
 }

@@ -136,6 +136,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						test.SetRawBloodGlucoseTargetStart(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
@@ -174,6 +175,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					test.SetRawBloodGlucoseTargetStart(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -344,6 +346,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						test.SetBloodGlucoseTargetScheduleRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
@@ -382,6 +385,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					test.SetBloodGlucoseTargetScheduleRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -610,6 +614,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						test.SetBloodGlucoseTargetSchedulesRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
@@ -652,6 +657,7 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					test.SetBloodGlucoseTargetSchedulesRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}

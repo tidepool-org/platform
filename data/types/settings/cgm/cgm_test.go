@@ -82,6 +82,7 @@ var _ = Describe("CGM", func() {
 			Expect(datum.SoftwareVersion).To(BeNil())
 			Expect(datum.TransmitterID).To(BeNil())
 			Expect(datum.Units).To(BeNil())
+			Expect(datum.RawUnits).To(BeNil())
 			Expect(datum.DefaultAlerts).To(BeNil())
 			Expect(datum.ScheduledAlerts).To(BeNil())
 			Expect(datum.HighLevelAlert).To(BeNil())
@@ -489,6 +490,7 @@ var _ = Describe("CGM", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.RawUnits = units
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -567,6 +569,7 @@ var _ = Describe("CGM", func() {
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						expectedDatum.RawUnits = units
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
