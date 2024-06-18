@@ -24,6 +24,13 @@ func CloneBloodGlucose(datum *dataTypesDosingDecision.BloodGlucose) *dataTypesDo
 	return clone
 }
 
+func SetBloodGlucoseRaw(datum *dataTypesDosingDecision.BloodGlucose, normalized *dataTypesDosingDecision.BloodGlucose) {
+	if datum != nil && normalized != nil {
+		datum.RawValue = normalized.RawValue
+	}
+
+}
+
 func NewObjectFromBloodGlucose(datum *dataTypesDosingDecision.BloodGlucose, objectFormat test.ObjectFormat) map[string]interface{} {
 	if datum == nil {
 		return nil
@@ -55,6 +62,14 @@ func CloneBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArra
 		*clone = append(*clone, CloneBloodGlucose(datum))
 	}
 	return clone
+}
+
+func SetBloodGlucoseArrayRaw(datumArray *dataTypesDosingDecision.BloodGlucoseArray, normalizedArray *dataTypesDosingDecision.BloodGlucoseArray) {
+	if datumArray != nil && normalizedArray != nil {
+		for i, datum := range *datumArray {
+			SetBloodGlucoseRaw(datum, (*normalizedArray)[i])
+		}
+	}
 }
 
 func NewArrayFromBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArray, objectFormat test.ObjectFormat) []interface{} {

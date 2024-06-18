@@ -195,6 +195,7 @@ var _ = Describe("Units", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.RawBloodGlucose = datum.RawBloodGlucose
 					if expectator != nil {
 						expectator(datum, expectedDatum)
 					}
@@ -220,18 +221,21 @@ var _ = Describe("Units", func() {
 					func(datum *dataTypesSettingsPump.Units) { datum.BloodGlucose = pointer.FromString("mmol/l") },
 					func(datum *dataTypesSettingsPump.Units, expectedDatum *dataTypesSettingsPump.Units) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.BloodGlucose, expectedDatum.BloodGlucose)
+						Expect(datum.RawBloodGlucose).To(Equal(expectedDatum.RawBloodGlucose))
 					},
 				),
 				Entry("modifies the datum; blood glucose mg/dL",
 					func(datum *dataTypesSettingsPump.Units) { datum.BloodGlucose = pointer.FromString("mg/dL") },
 					func(datum *dataTypesSettingsPump.Units, expectedDatum *dataTypesSettingsPump.Units) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.BloodGlucose, expectedDatum.BloodGlucose)
+						Expect(datum.RawBloodGlucose).To(Equal(expectedDatum.RawBloodGlucose))
 					},
 				),
 				Entry("modifies the datum; blood glucose mg/dl",
 					func(datum *dataTypesSettingsPump.Units) { datum.BloodGlucose = pointer.FromString("mg/dl") },
 					func(datum *dataTypesSettingsPump.Units, expectedDatum *dataTypesSettingsPump.Units) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.BloodGlucose, expectedDatum.BloodGlucose)
+						Expect(datum.RawBloodGlucose).To(Equal(expectedDatum.RawBloodGlucose))
 					},
 				),
 				Entry("does not modify the datum; carbohydrate missing",

@@ -49,10 +49,12 @@ func CloneTarget(datum *dataBloodGlucose.Target) *dataBloodGlucose.Target {
 }
 
 func SetTargetRaw(datum *dataBloodGlucose.Target, normalized *dataBloodGlucose.Target) *dataBloodGlucose.Target {
-	datum.RawHigh = pointer.CloneFloat64(normalized.RawHigh)
-	datum.RawLow = pointer.CloneFloat64(normalized.RawLow)
-	datum.RawRange = pointer.CloneFloat64(normalized.RawRange)
-	datum.RawTarget = pointer.CloneFloat64(normalized.RawTarget)
+	if datum != nil && normalized != nil {
+		datum.RawHigh = pointer.CloneFloat64(normalized.RawHigh)
+		datum.RawLow = pointer.CloneFloat64(normalized.RawLow)
+		datum.RawRange = pointer.CloneFloat64(normalized.RawRange)
+		datum.RawTarget = pointer.CloneFloat64(normalized.RawTarget)
+	}
 	return datum
 }
 

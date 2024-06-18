@@ -68,6 +68,15 @@ func CloneDosingDecision(datum *dataTypesDosingDecision.DosingDecision) *dataTyp
 	return clone
 }
 
+func SetDosingDecisionRaw(datum *dataTypesDosingDecision.DosingDecision, normalized *dataTypesDosingDecision.DosingDecision) {
+	if datum != nil && normalized != nil {
+		SetBloodGlucoseArrayRaw(datum.ForecastBloodGlucose, normalized.ForecastBloodGlucose)
+		SetBloodGlucoseArrayRaw(datum.HistoricalBloodGlucose, normalized.HistoricalBloodGlucose)
+		SetBloodGlucoseRaw(datum.SelfMonitoredBloodGlucose, normalized.SelfMonitoredBloodGlucose)
+		dataTypesSettingsPumpTest.SetBloodGlucoseTargetScheduleRaw(datum.BloodGlucoseTargetSchedule, normalized.BloodGlucoseTargetSchedule)
+	}
+}
+
 func NewObjectFromDosingDecision(datum *dataTypesDosingDecision.DosingDecision, objectFormat test.ObjectFormat) map[string]interface{} {
 	if datum == nil {
 		return nil

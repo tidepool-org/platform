@@ -30,6 +30,10 @@ func CloneBloodGlucoseTargetStart(datum *dataTypesSettingsPump.BloodGlucoseTarge
 	return clone
 }
 
+func SetRawBloodGlucoseTargetStart(datum *dataTypesSettingsPump.BloodGlucoseTargetStart, normalized *dataTypesSettingsPump.BloodGlucoseTargetStart) {
+	dataBloodGlucoseTest.SetTargetRaw(&datum.Target, &normalized.Target)
+}
+
 func NewObjectFromBloodGlucoseTargetStart(datum *dataTypesSettingsPump.BloodGlucoseTargetStart, objectFormat test.ObjectFormat) map[string]interface{} {
 	if datum == nil {
 		return nil
@@ -63,6 +67,14 @@ func CloneBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGl
 	return cloneArray
 }
 
+func SetBloodGlucoseTargetScheduleRaw(datumArray *dataTypesSettingsPump.BloodGlucoseTargetStartArray, normalizedArray *dataTypesSettingsPump.BloodGlucoseTargetStartArray) {
+	if datumArray != nil && normalizedArray != nil {
+		for i, datum := range *datumArray {
+			dataBloodGlucoseTest.SetTargetRaw(&datum.Target, &(*normalizedArray)[i].Target)
+		}
+	}
+}
+
 func NewArrayFromBloodGlucoseTargetStartArray(datumArray *dataTypesSettingsPump.BloodGlucoseTargetStartArray, objectFormat test.ObjectFormat) []interface{} {
 	if datumArray == nil {
 		return nil
@@ -91,6 +103,15 @@ func CloneBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.B
 		clone.Set(datumName, CloneBloodGlucoseTargetStartArray(datumArray))
 	}
 	return clone
+}
+
+func SetBloodGlucoseTargetSchedulesRaw(datumMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap, normalizedMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap) {
+	for name, datumArray := range *datumMap {
+		normalizedArray := (*normalizedMap)[name]
+		for i, datum := range *datumArray {
+			dataBloodGlucoseTest.SetTargetRaw(&datum.Target, &(*normalizedArray)[i].Target)
+		}
+	}
 }
 
 func NewObjectFromBloodGlucoseTargetStartArrayMap(datumArrayMap *dataTypesSettingsPump.BloodGlucoseTargetStartArrayMap, objectFormat test.ObjectFormat) map[string]interface{} {

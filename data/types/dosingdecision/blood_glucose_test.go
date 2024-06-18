@@ -253,6 +253,7 @@ var _ = Describe("BloodGlucose", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -499,6 +500,7 @@ var _ = Describe("BloodGlucose", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataTypesDosingDecisionTest.SetBloodGlucoseArrayRaw(datum, expectedDatum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}

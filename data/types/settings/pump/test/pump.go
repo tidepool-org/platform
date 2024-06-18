@@ -106,3 +106,21 @@ func ClonePump(datum *pump.Pump) *pump.Pump {
 	clone.Units = CloneUnits(datum.Units)
 	return clone
 }
+
+func SetPumpRaw(datum *pump.Pump, normalized *pump.Pump) {
+	SetBloodGlucoseTargetScheduleRaw(datum.BloodGlucoseTargetSchedule, normalized.BloodGlucoseTargetSchedule)
+	SetBloodGlucoseTargetSchedulesRaw(datum.BloodGlucoseTargetSchedules, normalized.BloodGlucoseTargetSchedules)
+	SetOverridePresetsRaw(datum.OverridePresets, normalized.OverridePresets)
+	setTargetRaw(datum.BloodGlucoseTargetPhysicalActivity, normalized.BloodGlucoseTargetPhysicalActivity)
+	setTargetRaw(datum.BloodGlucoseTargetPreprandial, normalized.BloodGlucoseTargetPreprandial)
+	datum.Units.RawBloodGlucose = normalized.Units.RawBloodGlucose
+}
+
+func setTargetRaw(datum *dataBloodGlucose.Target, normalized *dataBloodGlucose.Target) {
+	if datum != nil && normalized != nil {
+		datum.RawHigh = pointer.CloneFloat64(normalized.RawHigh)
+		datum.RawLow = pointer.CloneFloat64(normalized.RawLow)
+		datum.RawRange = pointer.CloneFloat64(normalized.RawRange)
+		datum.RawTarget = pointer.CloneFloat64(normalized.RawTarget)
+	}
+}

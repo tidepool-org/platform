@@ -52,6 +52,10 @@ func CloneOverridePreset(datum *dataTypesSettingsPump.OverridePreset) *dataTypes
 	return clone
 }
 
+func SetTargetRaw(datum *dataTypesSettingsPump.OverridePreset, normalized *dataTypesSettingsPump.OverridePreset) {
+	dataBloodGlucoseTest.SetTargetRaw(datum.BloodGlucoseTarget, normalized.BloodGlucoseTarget)
+}
+
 func NewObjectFromOverridePreset(datum *dataTypesSettingsPump.OverridePreset, objectFormat test.ObjectFormat) map[string]interface{} {
 	if datum == nil {
 		return nil
@@ -99,6 +103,15 @@ func CloneOverridePresetMap(datumMap *dataTypesSettingsPump.OverridePresetMap) *
 		clone.Set(datumName, CloneOverridePreset(datum))
 	}
 	return clone
+}
+
+func SetOverridePresetsRaw(datumMap *dataTypesSettingsPump.OverridePresetMap, normalizedMap *dataTypesSettingsPump.OverridePresetMap) {
+	if datumMap != nil && normalizedMap != nil {
+		for datumName, datum := range *datumMap {
+			normalized := (*normalizedMap)[datumName]
+			dataBloodGlucoseTest.SetTargetRaw(datum.BloodGlucoseTarget, normalized.BloodGlucoseTarget)
+		}
+	}
 }
 
 func NewObjectFromOverridePresetMap(datumMap *dataTypesSettingsPump.OverridePresetMap, objectFormat test.ObjectFormat) map[string]interface{} {
