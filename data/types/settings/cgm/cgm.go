@@ -38,6 +38,7 @@ type CGM struct {
 	SoftwareVersion *string   `json:"softwareVersion,omitempty" bson:"softwareVersion,omitempty"`
 	TransmitterID   *string   `json:"transmitterId,omitempty" bson:"transmitterId,omitempty"`
 	Units           *string   `json:"units,omitempty" bson:"units,omitempty"`
+	RawUnits        *string   `json:"rawUnits,omitempty" bson:"rawUnits,omitempty"`
 
 	DefaultAlerts   *Alerts          `json:"defaultAlerts,omitempty" bson:"defaultAlerts,omitempty"`
 	ScheduledAlerts *ScheduledAlerts `json:"scheduledAlerts,omitempty" bson:"scheduledAlerts,omitempty"`
@@ -132,27 +133,27 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 
 	c.Base.Normalize(normalizer)
 
-	units := c.Units
+	c.RawUnits = c.Units
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if c.Manufacturers != nil {
 			sort.Strings(*c.Manufacturers)
 		}
 
-		c.Units = dataBloodGlucose.NormalizeUnits(c.Units) // FUTURE: Do not normalize units after deprecated fields deleted
+		c.Units = dataBloodGlucose.NormalizeUnits(c.RawUnits) // FUTURE: Do not normalize units after deprecated fields deleted
 	}
 
 	if c.HighLevelAlert != nil {
-		c.HighLevelAlert.Normalize(normalizer.WithReference("highAlerts"), units)
+		c.HighLevelAlert.Normalize(normalizer.WithReference("highAlerts"), c.RawUnits)
 	}
 	if c.LowLevelAlert != nil {
-		c.LowLevelAlert.Normalize(normalizer.WithReference("lowAlerts"), units)
+		c.LowLevelAlert.Normalize(normalizer.WithReference("lowAlerts"), c.RawUnits)
 	}
 	if c.OutOfRangeAlert != nil {
 		c.OutOfRangeAlert.Normalize(normalizer.WithReference("outOfRangeAlerts"))
 	}
 	if c.RateAlerts != nil {
-		c.RateAlerts.Normalize(normalizer.WithReference("rateOfChangeAlerts"), units)
+		c.RateAlerts.Normalize(normalizer.WithReference("rateOfChangeAlerts"), c.RawUnits)
 	}
 }
 

@@ -46,6 +46,7 @@ func CloneCGM(datum *dataTypesSettingsCgm.CGM) *dataTypesSettingsCgm.CGM {
 	clone.SoftwareVersion = pointer.CloneString(datum.SoftwareVersion)
 	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
 	clone.Units = pointer.CloneString(datum.Units)
+	clone.RawUnits = pointer.CloneString(datum.RawUnits)
 	clone.DefaultAlerts = CloneAlerts(datum.DefaultAlerts)
 	clone.ScheduledAlerts = CloneScheduledAlerts(datum.ScheduledAlerts)
 	clone.HighLevelAlert = CloneHighLevelAlertDEPRECATED(datum.HighLevelAlert)
