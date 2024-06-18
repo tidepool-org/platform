@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -258,6 +259,6 @@ func MergeSortedDataSets(newDataSets, prevDataSets data.DataSets) data.DataSets 
 	return combined
 }
 
-func isTypeUpload(typ string) bool {
-	return strings.ToLower(typ) == strings.ToLower(upload.Type)
+func isTypeUpload(typ []string) bool {
+	return slices.Contains(typ, strings.ToLower(upload.Type))
 }

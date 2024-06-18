@@ -304,8 +304,8 @@ github.com/tdewolff/parse/v2 v2.7.11/go.mod h1:3FbJWZp3XT9OWVN3Hmfp0p/a08v4h8J9W
 github.com/tdewolff/test v1.0.11-0.20231101010635-f1265d231d52/go.mod h1:6DAvZliBAAnD7rhVgwaM7DE5/d9NMOAJ09SqYqeK4QE=
 github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739 h1:IkjBCtQOOjIn03u/dMQK9g+Iw9ewps4mCl1nB8Sscbo=
 github.com/tdewolff/test v1.0.11-0.20240106005702-7de5f7df4739/go.mod h1:XPuWBzvdUzhCuxWO1ojpXsyzsA5bFoS3tO/Q3kFuTG8=
-github.com/tidepool-org/clinic/client v0.0.0-20240412011046-bbcf4250e5c4 h1:HnUJlc2gkzE8zU5FdfhUXAvwnNYXYRCMSx0/P0iFGxs=
-github.com/tidepool-org/clinic/client v0.0.0-20240412011046-bbcf4250e5c4/go.mod h1:7BpAdFdGJNB3aw/xvCz5XnWjSWRoUtWIX4xcMc4Bsko=
+github.com/tidepool-org/clinic/client v0.0.0-20240530210435-ef04d62c1e39 h1:TLp+2KWOBPujBrWb6M1fM1CLk1LMzV0CqrdYmTuBbpE=
+github.com/tidepool-org/clinic/client v0.0.0-20240530210435-ef04d62c1e39/go.mod h1:7BpAdFdGJNB3aw/xvCz5XnWjSWRoUtWIX4xcMc4Bsko=
 github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0 h1:SnIsHwaJE2kltz9xMfjC+L9SWhQS3w6t+mSIIoFiwag=
 github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0/go.mod h1:pu8FmuhxtBbOyswB94Mr15l2heCxY357lVHOVVAEZq8=
 github.com/tidepool-org/go-common v0.12.1 h1:eh0xNl7P/W6n1oDpG60sqNnScUBYGr2uPRZTAPHX0Uk=

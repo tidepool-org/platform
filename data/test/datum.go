@@ -71,6 +71,8 @@ type Datum struct {
 	IsActiveOutputs                      []bool
 	SetProvenanceInvocations             int
 	SetProvenanceInputs                  []*data.Provenance
+	GetUploadIDInvocations               int
+	GetUploadIDOutputs                   []*string
 }
 
 func NewDatum() *Datum {
@@ -263,4 +265,13 @@ func (d *Datum) Expectations() {
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetOriginOutputs).To(gomega.BeEmpty())
+}
+
+func (d *Datum) GetUploadID() *string {
+	d.GetUploadIDInvocations++
+
+	output := d.GetUploadIDOutputs[0]
+	d.GetUploadIDOutputs = d.GetUploadIDOutputs[1:]
+
+	return output
 }

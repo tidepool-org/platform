@@ -176,28 +176,40 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	pagination.Size = batch
 
 	t.logger.Info("Searching for User CGM Summaries requiring Migration")
-	outdatedCGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
-	if err != nil {
-		return err
-	}
-
-	t.logger.Info("Searching for User BGM Summaries requiring Migration")
-	outdatedBGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
+	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
 	if err != nil {
 		return err
 	}
 
 	t.logger.Debug("Starting User CGM Summary Migration")
-	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
+	if err := t.UpdateCGMSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User CGM Summary Migration")
 
+	t.logger.Info("Searching for User BGM Summaries requiring Migration")
+	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
+	if err != nil {
+		return err
+	}
+
 	t.logger.Debug("Starting User BGM Summary Migration")
-	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
+	if err := t.UpdateBGMSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User BGM Summary Migration")
+
+	t.logger.Info("Searching for User Continuous Summaries requiring Migration")
+	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "continuous", pagination)
+	if err != nil {
+		return err
+	}
+
+	t.logger.Debug("Starting User Continuous Summary Migration")
+	if err := t.UpdateContinuousSummaries(outdatedUserIds); err != nil {
+		return err
+	}
+	t.logger.Debug("Finished User Continuous Summary Migration")
 
 	return nil
 }
@@ -252,6 +264,31 @@ func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 	return eg.Wait()
 }
 
+func (t *MigrationTaskRunner) UpdateContinuousSummaries(userIDs []string) error {
+	eg, ctx := errgroup.WithContext(t.context)
+
+	eg.Go(func() error {
+		sem := semaphore.NewWeighted(MigrationWorkerCount)
+		for _, userID := range userIDs {
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return err
+			}
+
+			// we can't pass arguments to errgroup goroutines
+			// we need to explicitly redefine the variables,
+			// because we're launching the goroutines in a loop
+			userID := userID
+			eg.Go(func() error {
+				defer sem.Release(1)
+				return t.UpdateContinuousUserSummary(userID)
+			})
+		}
+
+		return nil
+	})
+	return eg.Wait()
+}
+
 func (t *MigrationTaskRunner) UpdateCGMUserSummary(userID string) error {
 	t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
 
@@ -276,6 +313,20 @@ func (t *MigrationTaskRunner) UpdateBGMUserSummary(userID string) error {
 	}
 
 	t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
+
+	return nil
+}
+
+func (t *MigrationTaskRunner) UpdateContinuousUserSummary(userID string) error {
+	t.logger.WithField("UserID", userID).Debug("Updating User Continuous Summary")
+
+	// update summary
+	_, err := t.dataClient.UpdateContinuousSummary(t.context, userID)
+	if err != nil {
+		return err
+	}
+
+	t.logger.WithField("UserID", userID).Debug("Finished Updating User Continuous Summary")
 
 	return nil
 }

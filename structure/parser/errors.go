@@ -10,6 +10,7 @@ const (
 	ErrorCodeTypeNotTime      = "type-not-time"
 	ErrorCodeTypeNotObject    = "type-not-object"
 	ErrorCodeTypeNotArray     = "type-not-array"
+	ErrorCodeTypeNotJSON      = "type-not-json"
 	ErrorCodeValueNotParsable = "value-not-parsable"
 	ErrorCodeNotParsed        = "not-parsed"
 )
@@ -28,6 +29,10 @@ func ErrorTypeNotInt(value interface{}) error {
 
 func ErrorTypeNotString(value interface{}) error {
 	return errors.Preparedf(ErrorCodeTypeNotString, "type is not string", "type is not string, but %T", value)
+}
+
+func ErrorTypeNotJSON(value interface{}, err error) error {
+	return errors.Preparedf(ErrorCodeTypeNotJSON, "type is not parsable json", "type is not parsable json, error: %s, original value: %s", err, value)
 }
 
 func ErrorTypeNotTime(value interface{}) error {

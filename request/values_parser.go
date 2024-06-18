@@ -1,6 +1,7 @@
 package request
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -228,6 +229,22 @@ func (v *Values) Array(reference string) *[]interface{} {
 
 	v.base.WithReference(reference).ReportError(structureParser.ErrorTypeNotArray(rawValue))
 	return nil
+}
+
+func (v *Values) JSON(reference string, target any) {
+	rawValue, ok := v.raw(reference)
+	if !ok {
+		return
+	}
+
+	if rawValue == "" {
+		return
+	}
+
+	err := json.Unmarshal([]byte(rawValue), target)
+	if err != nil {
+		v.base.WithReference(reference).ReportError(structureParser.ErrorTypeNotJSON(rawValue, err))
+	}
 }
 
 func (v *Values) Interface(reference string) *interface{} {
