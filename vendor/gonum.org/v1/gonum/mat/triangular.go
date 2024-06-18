@@ -622,9 +622,10 @@ func (t *TriDense) sliceTri(i, k int) *TriDense {
 }
 
 // Norm returns the specified norm of the receiver. Valid norms are:
-//  1 - The maximum absolute column sum
-//  2 - The Frobenius norm, the square root of the sum of the squares of the elements
-//  Inf - The maximum absolute row sum
+//
+//	1 - The maximum absolute column sum
+//	2 - The Frobenius norm, the square root of the sum of the squares of the elements
+//	Inf - The maximum absolute row sum
 //
 // Norm will panic with ErrNormOrder if an illegal norm is specified and with
 // ErrZeroLength if the matrix has zero size.
@@ -777,4 +778,55 @@ func (t *TriDense) DoColNonZero(j int, fn func(i, j int, v float64)) {
 			fn(i, j, v)
 		}
 	}
+}
+
+// SolveTo solves a triangular system T * X = B or Tᵀ * X = B where T is an n×n
+// triangular matrix represented by the receiver and B is a given n×nrhs matrix.
+// If T is non-singular, the result will be stored into dst and nil will be
+// returned. If T is singular, the contents of dst will be undefined and a
+// Condition error will be returned.
+//
+// If dst is empty, SolveTo will resize it to n×nrhs. If dst is not empty,
+// SolveTo will panic if dst is not n×nrhs.
+func (t *TriDense) SolveTo(dst *Dense, trans bool, b Matrix) error {
+	n, nrhs := b.Dims()
+	if n != t.mat.N {
+		panic(ErrShape)
+	}
+
+	dst.reuseAsNonZeroed(n, nrhs)
+	bU, bTrans := untranspose(b)
+	if dst == bU {
+		if bTrans {
+			work := getDenseWorkspace(n, nrhs, false)
+			defer putDenseWorkspace(work)
+			work.Copy(b)
+			dst.Copy(work)
+		}
+	} else {
+		if rm, ok := bU.(RawMatrixer); ok {
+			dst.checkOverlap(rm.RawMatrix())
+		}
+		dst.Copy(b)
+	}
+
+	transT := blas.NoTrans
+	if trans {
+		transT = blas.Trans
+	}
+	ok := lapack64.Trtrs(transT, t.mat, dst.mat)
+	if !ok {
+		return Condition(math.Inf(1))
+	}
+
+	work := getFloat64s(3*n, false)
+	iwork := getInts(n, false)
+	cond := lapack64.Trcon(CondNorm, t.mat, work, iwork)
+	putFloat64s(work)
+	putInts(iwork)
+	if cond > ConditionTolerance {
+		return Condition(cond)
+	}
+
+	return nil
 }

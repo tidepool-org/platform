@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
-
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/reporters"

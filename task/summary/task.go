@@ -1,9 +1,8 @@
 package summary
 
 import (
-	"time"
-
 	"errors"
+	"time"
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"

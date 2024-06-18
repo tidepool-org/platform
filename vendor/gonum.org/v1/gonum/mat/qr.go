@@ -18,8 +18,40 @@ const badQR = "mat: invalid QR factorization"
 // QR is a type for creating and using the QR factorization of a matrix.
 type QR struct {
 	qr   *Dense
+	q    *Dense
 	tau  []float64
 	cond float64
+}
+
+// Dims returns the dimensions of the matrix.
+func (qr *QR) Dims() (r, c int) {
+	if qr.qr == nil {
+		return 0, 0
+	}
+	return qr.qr.Dims()
+}
+
+// At returns the element at row i, column j.
+func (qr *QR) At(i, j int) float64 {
+	m, n := qr.Dims()
+	if uint(i) >= uint(m) {
+		panic(ErrRowAccess)
+	}
+	if uint(j) >= uint(n) {
+		panic(ErrColAccess)
+	}
+
+	var val float64
+	for k := 0; k <= j; k++ {
+		val += qr.q.at(i, k) * qr.qr.at(k, j)
+	}
+	return val
+}
+
+// T performs an implicit transpose by returning the receiver inside a
+// Transpose.
+func (qr *QR) T() Matrix {
+	return Transpose{qr}
 }
 
 func (qr *QR) updateCond(norm lapack.MatrixNorm) {
@@ -55,18 +87,34 @@ func (qr *QR) factorize(a Matrix, norm lapack.MatrixNorm) {
 	if m < n {
 		panic(ErrShape)
 	}
-	k := min(m, n)
 	if qr.qr == nil {
 		qr.qr = &Dense{}
 	}
 	qr.qr.CloneFrom(a)
 	work := []float64{0}
-	qr.tau = make([]float64, k)
+	qr.tau = make([]float64, n)
 	lapack64.Geqrf(qr.qr.mat, qr.tau, work, -1)
 	work = getFloat64s(int(work[0]), false)
 	lapack64.Geqrf(qr.qr.mat, qr.tau, work, len(work))
 	putFloat64s(work)
 	qr.updateCond(norm)
+	qr.updateQ()
+}
+
+func (qr *QR) updateQ() {
+	m, _ := qr.Dims()
+	if qr.q == nil {
+		qr.q = NewDense(m, m, nil)
+	} else {
+		qr.q.reuseAsNonZeroed(m, m)
+	}
+	// Construct Q from the elementary reflectors.
+	qr.q.Copy(qr.qr)
+	work := []float64{0}
+	lapack64.Orgqr(qr.q.mat, qr.tau, work, -1)
+	work = getFloat64s(int(work[0]), false)
+	lapack64.Orgqr(qr.q.mat, qr.tau, work, len(work))
+	putFloat64s(work)
 }
 
 // isValid returns whether the receiver contains a factorization.
@@ -143,20 +191,8 @@ func (qr *QR) QTo(dst *Dense) {
 		if r != r2 || r != c2 {
 			panic(ErrShape)
 		}
-		dst.Zero()
 	}
-
-	// Set Q = I.
-	for i := 0; i < r*r; i += r + 1 {
-		dst.mat.Data[i] = 1
-	}
-
-	// Construct Q from the elementary reflectors.
-	work := []float64{0}
-	lapack64.Ormqr(blas.Left, blas.NoTrans, qr.qr.mat, qr.tau, dst.mat, work, -1)
-	work = getFloat64s(int(work[0]), false)
-	lapack64.Ormqr(blas.Left, blas.NoTrans, qr.qr.mat, qr.tau, dst.mat, work, len(work))
-	putFloat64s(work)
+	dst.Copy(qr.q)
 }
 
 // SolveTo finds a minimum-norm solution to a system of linear equations defined
@@ -165,8 +201,10 @@ func (qr *QR) QTo(dst *Dense) {
 // See the documentation for Condition for more information.
 //
 // The minimization problem solved depends on the input parameters.
-//  If trans == false, find X such that ||A*X - B||_2 is minimized.
-//  If trans == true, find the minimum norm solution of Aᵀ * X = B.
+//
+//	If trans == false, find X such that ||A*X - B||_2 is minimized.
+//	If trans == true, find the minimum norm solution of Aᵀ * X = B.
+//
 // The solution matrix, X, is stored in place into dst.
 // SolveTo will panic if the receiver does not contain a factorization.
 func (qr *QR) SolveTo(dst *Dense, trans bool, b Matrix) error {
@@ -232,7 +270,9 @@ func (qr *QR) SolveTo(dst *Dense, trans bool, b Matrix) error {
 }
 
 // SolveVecTo finds a minimum-norm solution to a system of linear equations,
-//  Ax = b.
+//
+//	Ax = b.
+//
 // See QR.SolveTo for the full documentation.
 // SolveVecTo will panic if the receiver does not contain a factorization.
 func (qr *QR) SolveVecTo(dst *VecDense, trans bool, b Vector) error {

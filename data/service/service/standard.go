@@ -7,7 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/clinics"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"

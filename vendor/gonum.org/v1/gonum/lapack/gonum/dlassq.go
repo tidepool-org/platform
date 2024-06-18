@@ -8,7 +8,9 @@ import "math"
 
 // Dlassq updates a sum of squares represented in scaled form. Dlassq returns
 // the values scl and smsq such that
-//  scl^2*smsq = X[0]^2 + ... + X[n-1]^2 + scale^2*sumsq
+//
+//	scl^2*smsq = X[0]^2 + ... + X[n-1]^2 + scale^2*sumsq
+//
 // The value of sumsq is assumed to be non-negative.
 //
 // Dlassq is an internal routine. It is exported for testing purposes.
@@ -75,21 +77,25 @@ func (impl Implementation) Dlassq(n int, x []float64, incx int, scale float64, s
 		ax := scale * math.Sqrt(sumsq)
 		switch {
 		case ax > dtbig:
-			// We assume scale >= sqrt( TINY*EPS ) / dsbig, that is, if the
-			// scaled sum is big then its scaling factor should not be too
-			// small.
-			v := scale * dsbig
-			abig += (v * v) * sumsq
+			if scale > 1 {
+				scale *= dsbig
+				abig += scale * (scale * sumsq)
+			} else {
+				// sumsq > dtbig^2 => (dsbig * (dsbig * sumsq)) is representable.
+				abig += scale * (scale * (dsbig * (dsbig * sumsq)))
+			}
 		case ax < dtsml:
 			if !isBig {
-				// We assume scale <= sqrt( HUGE ) / dssml, that is, if the
-				// scaled sum is small then its scaling factor should not be too
-				// big.
-				v := scale * dssml
-				asml += (v * v) * sumsq
+				if scale < 1 {
+					scale *= dssml
+					asml += scale * (scale * sumsq)
+				} else {
+					// sumsq < dtsml^2 => (dssml * (dssml * sumsq)) is representable.
+					asml += scale * (scale * (dssml * (dssml * sumsq)))
+				}
 			}
 		default:
-			amed += ax * ax
+			amed += scale * (scale * sumsq)
 		}
 	}
 	// Combine abig and amed or amed and asml if more than one accumulator was

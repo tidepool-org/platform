@@ -219,6 +219,17 @@ type ColNonZeroDoer interface {
 	DoColNonZero(j int, fn func(i, j int, v float64))
 }
 
+// A SolveToer can solve a linear system A⋅X = B or Aᵀ⋅X = B where A is a matrix
+// represented by the receiver and B is a given matrix, storing the result into
+// dst.
+//
+// If dst is empty, SolveTo will resize it to the correct size, otherwise it
+// must have the correct size. Individual implementations may impose other
+// restrictions on the input parameters, for example that A is a square matrix.
+type SolveToer interface {
+	SolveTo(dst *Dense, trans bool, b Matrix) error
+}
+
 // untranspose untransposes a matrix if applicable. If a is an Untransposer, then
 // untranspose returns the underlying matrix and true. If it is not, then it returns
 // the input matrix and false.
@@ -757,17 +768,19 @@ func Min(a Matrix) float64 {
 }
 
 // A Normer can compute a norm of the matrix. Valid norms are:
-//  1 - The maximum absolute column sum
-//  2 - The Frobenius norm, the square root of the sum of the squares of the elements
-//  Inf - The maximum absolute row sum
+//
+//	1 - The maximum absolute column sum
+//	2 - The Frobenius norm, the square root of the sum of the squares of the elements
+//	Inf - The maximum absolute row sum
 type Normer interface {
 	Norm(norm float64) float64
 }
 
 // Norm returns the specified norm of the matrix A. Valid norms are:
-//  1 - The maximum absolute column sum
-//  2 - The Frobenius norm, the square root of the sum of the squares of the elements
-//  Inf - The maximum absolute row sum
+//
+//	1 - The maximum absolute column sum
+//	2 - The Frobenius norm, the square root of the sum of the squares of the elements
+//	Inf - The maximum absolute row sum
 //
 // If a is a Normer, its Norm method will be used to calculate the norm.
 //
