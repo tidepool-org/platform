@@ -122,9 +122,9 @@ type LegacyPatientProfile struct {
 }
 
 type ClinicProfile struct {
-	Name      string   `json:"name"`
-	Role      []string `json:"role"`
-	Telephone string   `json:"telephone"`
+	Name      string `json:"name"`
+	Role      string `json:"role"`
+	Telephone string `json:"telephone"`
 }
 
 func (up *UserProfile) ToAttributes() map[string][]string {
