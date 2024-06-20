@@ -38,14 +38,14 @@ type Date string
 // somewhat redundantly as UserProfile instead of Profile because there already
 // exists a type Profile in this package.
 type UserProfile struct {
-	FullName       string     `json:"fullName"`
-	Birthday       Date       `json:"birthday"`
-	DiagnosisDate  Date       `json:"diagnosisDate"`
-	DiagnosisType  string     `json:"diagnosisType"`
-	TargetDevices  []string   `json:"targetDevices"`
-	TargetTimezone string     `json:"targetTimezone"`
-	About          string     `json:"about"`
-	MRN            string     `json:"mrn"`
+	FullName       string     `json:"fullName,omitempty"`
+	Birthday       Date       `json:"birthday,omitempty"`
+	DiagnosisDate  Date       `json:"diagnosisDate,omitempty"`
+	DiagnosisType  string     `json:"diagnosisType,omitempty"`
+	TargetDevices  []string   `json:"targetDevices,omitempty"`
+	TargetTimezone string     `json:"targetTimezone,omitempty"`
+	About          string     `json:"about,omitempty"`
+	MRN            string     `json:"mrn,omitempty"`
 	Custodian      *Custodian `json:"custodian,omitempty"`
 }
 
@@ -103,7 +103,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 
 // LegacyUserProfile represents the old seagull format for a profile.
 type LegacyUserProfile struct {
-	FullName        string                `json:"fullName"`
+	FullName        string                `json:"fullName,omitempty"`
 	Patient         *LegacyPatientProfile `json:"patient,omitempty"`
 	Clinic          *ClinicProfile        `json:"clinic,omitempty"`
 	MigrationStatus migrationStatus       `json:"-"`
@@ -111,20 +111,21 @@ type LegacyUserProfile struct {
 
 type LegacyPatientProfile struct {
 	FullName       string   `json:"fullName,omitempty"` // This is only non-empty if the user is also a fake child (has the patient.isOtherPerson field set)
-	Birthday       Date     `json:"birthday"`
-	DiagnosisDate  Date     `json:"diagnosisDate"`
-	DiagnosisType  string   `json:"diagnosisType"`
-	TargetDevices  []string `json:"targetDevices"`
-	TargetTimezone string   `json:"targetTimezone"`
-	About          string   `json:"about"`
+	Birthday       Date     `json:"birthday,omitempty"`
+	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
+	DiagnosisType  string   `json:"diagnosisType,omitempty"`
+	TargetDevices  []string `json:"targetDevices,omitempty"`
+	TargetTimezone string   `json:"targetTimezone,omitempty"`
+	About          string   `json:"about,omitempty"`
 	IsOtherPerson  bool     `json:"isOtherPerson,omitempty"`
-	MRN            string   `json:"mrn"`
+	MRN            string   `json:"mrn,omitempty"`
 }
 
 type ClinicProfile struct {
-	Name      string `json:"name"`
-	Role      string `json:"role"`
-	Telephone string `json:"telephone"`
+	Name      string `json:"name,omitempty"`
+	Role      string `json:"role,omitempty"`
+	Telephone string `json:"telephone,omitempty"`
+	NPI       string `json:"npi,omitempty"`
 }
 
 func (up *UserProfile) ToAttributes() map[string][]string {
