@@ -289,7 +289,7 @@ var _ = Describe("BGM Summary", func() {
 			})
 
 			It("Returns correct hourly stats for hours with different Time in Range", func() {
-				//var lastRecordTime time.Time
+				var lastRecordTime time.Time
 				userBGMSummary = types.Create[*types.BGMStats](userId)
 				veryLowRange := NewDataRangesSingle(veryLowBloodGlucose - 0.5)
 				lowRange := NewDataRangesSingle(lowBloodGlucose - 0.5)
@@ -327,9 +327,8 @@ var _ = Describe("BGM Summary", func() {
 					By(f)
 					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(6))
 
-					//lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - time.Minute*10)
-					// TODO
-					//Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - time.Minute*10)
+					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				By("very low records")

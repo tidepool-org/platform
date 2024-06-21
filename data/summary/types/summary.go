@@ -20,7 +20,7 @@ const (
 	SummaryTypeCGM        = "cgm"
 	SummaryTypeBGM        = "bgm"
 	SummaryTypeContinuous = "continuous"
-	SchemaVersion         = 3
+	SchemaVersion         = 4
 
 	lowBloodGlucose         = 3.9
 	veryLowBloodGlucose     = 3.0
