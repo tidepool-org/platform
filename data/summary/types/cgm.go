@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -831,6 +832,7 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMTotalStats
 			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(*newPeriod.AverageGlucoseMmol))
 		}
 
+		fmt.Println("Standard deviation inputs:", totalStats.TotalVariance, "/", float64(totalStats.TotalMinutes))
 		newPeriod.StandardDeviation = math.Sqrt(totalStats.TotalVariance / float64(totalStats.TotalMinutes))
 		newPeriod.CoefficientOfVariation = newPeriod.StandardDeviation / (*newPeriod.AverageGlucoseMmol)
 	}
