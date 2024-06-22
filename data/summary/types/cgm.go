@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -282,6 +281,11 @@ func (B *CGMBucketData) CalculateVariance(value float64, duration float64) float
 func (B *CGMBucketData) CombineVariance(newBucket *CGMBucketData) float64 {
 	n1 := float64(B.TotalMinutes)
 	n2 := float64(newBucket.TotalMinutes)
+
+	// if we have no values in any bucket, this will result in NaN, and cant be added anyway, return what we started with
+	if n1 == 0 || n2 == 0 {
+		return B.TotalVariance
+	}
 
 	n := n1 + n2
 	delta := newBucket.TotalGlucose/n2 - B.TotalGlucose/n1
@@ -832,7 +836,6 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMTotalStats
 			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(*newPeriod.AverageGlucoseMmol))
 		}
 
-		fmt.Println("Standard deviation inputs:", totalStats.TotalVariance, "/", float64(totalStats.TotalMinutes))
 		newPeriod.StandardDeviation = math.Sqrt(totalStats.TotalVariance / float64(totalStats.TotalMinutes))
 		newPeriod.CoefficientOfVariation = newPeriod.StandardDeviation / (*newPeriod.AverageGlucoseMmol)
 	}
