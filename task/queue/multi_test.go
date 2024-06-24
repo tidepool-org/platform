@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -131,39 +130,35 @@ var _ = Describe("multi queue", func() {
 
 			nonTerminalStates := []string{task.TaskStatePending, task.TaskStateRunning}
 
-			// Wait until completion (up to 10 seconds)
+			// Wait until completion (up to 15 seconds)
 			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-			ticker := time.NewTicker(200 * time.Millisecond)
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer ticker.Stop()
-				defer cancel()
+			defer cancel()
 
-				for {
-					select {
-					case <-tCtx.Done():
-						return
-					case <-ticker.C:
-						nonTerminatedTasks := 0
-						for _, state := range nonTerminalStates {
-							pending, err := str.NewTaskRepository().ListTasks(ctx, &task.TaskFilter{
-								State: &state,
-							}, &page.Pagination{
-								Page: 0,
-								Size: 10,
-							})
-							Expect(err).ToNot(HaveOccurred())
-							nonTerminatedTasks += len(pending)
-						}
-						if nonTerminatedTasks == 0 {
-							return
-						}
+			ticker := time.NewTicker(200 * time.Millisecond)
+			defer ticker.Stop()
+
+		loop:
+			for {
+				select {
+				case <-tCtx.Done():
+					break loop
+				case <-ticker.C:
+					nonTerminatedTasks := 0
+					for _, state := range nonTerminalStates {
+						pending, err := str.NewTaskRepository().ListTasks(ctx, &task.TaskFilter{
+							State: &state,
+						}, &page.Pagination{
+							Page: 0,
+							Size: 10,
+						})
+						Expect(err).ToNot(HaveOccurred())
+						nonTerminatedTasks += len(pending)
+					}
+					if nonTerminatedTasks == 0 {
+						break loop
 					}
 				}
-			}()
-			wg.Wait()
+			}
 
 			expected := map[string]int{}
 			for _, typ := range types {
