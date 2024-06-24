@@ -66,8 +66,7 @@ func extractSeagullValue(valueRaw string) (valueAsMap map[string]any, err error)
 // collection"), then returns the marshaled version of it. It returns
 // this new object as a raw string to be compatible with the seagull
 // collection. This is done to preserve any non profile fields that were
-// stored in the "value" field - TODO: is this even necessary? was any
-// non profile info just junk? TODO confirm
+// stored in the "value" field
 func AddProfileToSeagullValue(valueRaw string, profile *LegacyUserProfile) (updatedValueRaw string, err error) {
 	valueObj, err := extractSeagullValue(valueRaw)
 	// If there was an error, just make a new field "value" value.
