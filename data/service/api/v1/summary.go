@@ -151,7 +151,7 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if userSummary == nil {
-		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary created during update of user %s", types.GetTypeString[A](), id))
+		responder.Empty(http.StatusOK)
 	} else {
 		responder.Data(http.StatusOK, userSummary)
 	}
