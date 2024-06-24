@@ -38,15 +38,24 @@ type Date string
 // somewhat redundantly as UserProfile instead of Profile because there already
 // exists a type Profile in this package.
 type UserProfile struct {
-	FullName       string     `json:"fullName,omitempty"`
-	Birthday       Date       `json:"birthday,omitempty"`
-	DiagnosisDate  Date       `json:"diagnosisDate,omitempty"`
-	DiagnosisType  string     `json:"diagnosisType,omitempty"`
-	TargetDevices  []string   `json:"targetDevices,omitempty"`
-	TargetTimezone string     `json:"targetTimezone,omitempty"`
-	About          string     `json:"about,omitempty"`
-	MRN            string     `json:"mrn,omitempty"`
-	Custodian      *Custodian `json:"custodian,omitempty"`
+	FullName       string         `json:"fullName,omitempty"`
+	Birthday       Date           `json:"birthday,omitempty"`
+	DiagnosisDate  Date           `json:"diagnosisDate,omitempty"`
+	DiagnosisType  string         `json:"diagnosisType,omitempty"`
+	TargetDevices  []string       `json:"targetDevices,omitempty"`
+	TargetTimezone string         `json:"targetTimezone,omitempty"`
+	About          string         `json:"about,omitempty"`
+	MRN            string         `json:"mrn,omitempty"`
+	Custodian      *Custodian     `json:"custodian,omitempty"`
+	Clinic         *ClinicProfile `json:"-"` // This is not returned to users in any new user profile routes but needs to be saved as it's not known where the old seagull value.profile.clinic is read
+}
+
+type ClinicProfile struct {
+	Email     string `json:"email,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Role      string `json:"role,omitempty"`
+	Telephone string `json:"telephone,omitempty"`
+	NPI       string `json:"npi,omitempty"`
 }
 
 type Custodian struct {
@@ -64,6 +73,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			About:          up.About,
 			MRN:            up.MRN,
 		},
+		Clinic:          up.Clinic,
 		MigrationStatus: migrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
 	}
 	// only custodiaL fake child accounts have Patient.FullName set
@@ -78,6 +88,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 	up := &UserProfile{
 		FullName: p.FullName,
+		Clinic:   p.Clinic,
 	}
 	if p.Patient != nil {
 		up.FullName = p.Patient.FullName
@@ -121,13 +132,6 @@ type LegacyPatientProfile struct {
 	MRN            string   `json:"mrn,omitempty"`
 }
 
-type ClinicProfile struct {
-	Name      string `json:"name,omitempty"`
-	Role      string `json:"role,omitempty"`
-	Telephone string `json:"telephone,omitempty"`
-	NPI       string `json:"npi,omitempty"`
-}
-
 func (up *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
@@ -158,6 +162,24 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 	if up.MRN != "" {
 		addAttribute(attributes, "mrn", up.MRN)
+	}
+
+	if up.Clinic != nil {
+		if up.Clinic.Email != "" {
+			addAttribute(attributes, "clinic_email", up.Clinic.Email)
+		}
+		if up.Clinic.Name != "" {
+			addAttribute(attributes, "clinic_name", up.Clinic.Name)
+		}
+		if up.Clinic.Role != "" {
+			addAttribute(attributes, "clinic_role", up.Clinic.Role)
+		}
+		if up.Clinic.Telephone != "" {
+			addAttribute(attributes, "clinic_telephone", up.Clinic.Telephone)
+		}
+		if up.Clinic.NPI != "" {
+			addAttribute(attributes, "clinic_npi", up.Clinic.NPI)
+		}
 	}
 
 	return attributes
@@ -201,6 +223,33 @@ func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile
 	}
 	if val := getAttribute(attributes, "mrn"); val != "" {
 		up.MRN = val
+		ok = true
+	}
+
+	var clinicProfile ClinicProfile
+	var clinicOK bool
+	if val := getAttribute(attributes, "clinic_email"); val != "" {
+		clinicProfile.Email = val
+		clinicOK = true
+	}
+	if val := getAttribute(attributes, "clinic_name"); val != "" {
+		clinicProfile.Name = val
+		clinicOK = true
+	}
+	if val := getAttribute(attributes, "clinic_role"); val != "" {
+		clinicProfile.Role = val
+		clinicOK = true
+	}
+	if val := getAttribute(attributes, "clinic_telephone"); val != "" {
+		clinicProfile.Telephone = val
+		clinicOK = true
+	}
+	if val := getAttribute(attributes, "clinic_npi"); val != "" {
+		clinicProfile.NPI = val
+		clinicOK = true
+	}
+	if clinicOK {
+		up.Clinic = &clinicProfile
 		ok = true
 	}
 
