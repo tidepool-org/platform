@@ -166,7 +166,7 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	t.context = ctx
 	t.validator = structureValidator.New()
 
-	for _, typ := range []string{"bgm", "cgm", "continuous"} {
+	for _, typ := range []string{"continuous"} {
 		t.logger.Debugf("Starting User %s Summary Backfill", typ)
 		count, err := t.dataClient.BackfillSummaries(t.context, typ)
 		if err != nil {
