@@ -42,6 +42,7 @@ type Pump struct {
 	BloodGlucoseTargetSchedule         *BloodGlucoseTargetStartArray    `json:"bgTarget,omitempty" bson:"bgTarget,omitempty"`   // TODO: Move into BolusCalculator struct; rename bloodGlucoseTarget
 	BloodGlucoseTargetSchedules        *BloodGlucoseTargetStartArrayMap `json:"bgTargets,omitempty" bson:"bgTargets,omitempty"` // TODO: Move into BolusCalculator struct; rename bloodGlucoseTargets
 	Bolus                              *Bolus                           `json:"bolus,omitempty" bson:"bolus,omitempty"`
+	Boluses                            *BolusMap                        `json:"boluses,omitempty" bson:"boluses,omitempty"`
 	CarbohydrateRatioSchedule          *CarbohydrateRatioStartArray     `json:"carbRatio,omitempty" bson:"carbRatio,omitempty"`   // TODO: Move into BolusCalculator struct; rename carbohydrateRatio
 	CarbohydrateRatioSchedules         *CarbohydrateRatioStartArrayMap  `json:"carbRatios,omitempty" bson:"carbRatios,omitempty"` // TODO: Move into BolusCalculator struct; rename carbohydrateRatios
 	Display                            *Display                         `json:"display,omitempty" bson:"display,omitempty"`
@@ -57,6 +58,7 @@ type Pump struct {
 	OverridePresets                    *OverridePresetMap               `json:"overridePresets,omitempty" bson:"overridePresets,omitempty"`
 	ScheduleTimeZoneOffset             *int                             `json:"scheduleTimeZoneOffset,omitempty" bson:"scheduleTimeZoneOffset,omitempty"`
 	SerialNumber                       *string                          `json:"serialNumber,omitempty" bson:"serialNumber,omitempty"`
+	SleepSchedules                     *SleepScheduleMap                `json:"sleepSchedules,omitempty" bson:"sleepSchedules,omitempty"`
 	SoftwareVersion                    *string                          `json:"softwareVersion,omitempty" bson:"softwareVersion,omitempty"`
 	Units                              *Units                           `json:"units,omitempty" bson:"units,omitempty"` // TODO: Move into appropriate structs
 }
@@ -85,6 +87,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.BloodGlucoseTargetSchedule = ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTarget"))
 	p.BloodGlucoseTargetSchedules = ParseBloodGlucoseTargetStartArrayMap(parser.WithReferenceObjectParser("bgTargets"))
 	p.Bolus = ParseBolus(parser.WithReferenceObjectParser("bolus"))
+	p.Boluses = ParseBolusMap(parser.WithReferenceObjectParser("boluses"))
 	p.CarbohydrateRatioSchedule = ParseCarbohydrateRatioStartArray(parser.WithReferenceArrayParser("carbRatio"))
 	p.CarbohydrateRatioSchedules = ParseCarbohydrateRatioStartArrayMap(parser.WithReferenceObjectParser("carbRatios"))
 	p.Display = ParseDisplay(parser.WithReferenceObjectParser("display"))
@@ -99,6 +102,7 @@ func (p *Pump) Parse(parser structure.ObjectParser) {
 	p.Name = parser.String("name")
 	p.OverridePresets = ParseOverridePresetMap(parser.WithReferenceObjectParser("overridePresets"))
 	p.ScheduleTimeZoneOffset = parser.Int("scheduleTimeZoneOffset")
+	p.SleepSchedules = ParseSleepScheduleMap(parser.WithReferenceObjectParser("sleepSchedules"))
 	p.SerialNumber = parser.String("serialNumber")
 	p.SoftwareVersion = parser.String("softwareVersion")
 	p.Units = ParseUnits(parser.WithReferenceObjectParser("units"))
@@ -147,9 +151,16 @@ func (p *Pump) Validate(validator structure.Validator) {
 	} else if p.BloodGlucoseTargetSchedules != nil {
 		p.BloodGlucoseTargetSchedules.Validate(validator.WithReference("bgTargets"), unitsBloodGlucose)
 	}
+
 	if p.Bolus != nil {
 		p.Bolus.Validate(validator.WithReference("bolus"))
+		if p.Boluses != nil {
+			validator.WithReference("boluses").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if p.Boluses != nil {
+		p.Boluses.Validate(validator.WithReference("boluses"))
 	}
+
 	if p.CarbohydrateRatioSchedule != nil {
 		p.CarbohydrateRatioSchedule.Validate(validator.WithReference("carbRatio"))
 		if p.CarbohydrateRatioSchedules != nil {
@@ -184,6 +195,9 @@ func (p *Pump) Validate(validator structure.Validator) {
 	validator.String("name", p.Name).NotEmpty().LengthLessThanOrEqualTo(NameLengthMaximum)
 	if p.OverridePresets != nil {
 		p.OverridePresets.Validate(validator.WithReference("overridePresets"), unitsBloodGlucose)
+	}
+	if p.SleepSchedules != nil {
+		p.SleepSchedules.Validate(validator.WithReference("sleepSchedules"))
 	}
 	validator.Int("scheduleTimeZoneOffset", p.ScheduleTimeZoneOffset).InRange(ScheduleTimeZoneOffsetMinimum, ScheduleTimeZoneOffsetMaximum)
 	validator.String("serialNumber", p.SerialNumber).NotEmpty().LengthLessThanOrEqualTo(SerialNumberLengthMaximum)
@@ -232,6 +246,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	if p.Bolus != nil {
 		p.Bolus.Normalize(normalizer.WithReference("bolus"))
 	}
+	if p.Boluses != nil {
+		p.Boluses.Normalize(normalizer.WithReference("boluses"))
+	}
 	if p.CarbohydrateRatioSchedule != nil {
 		p.CarbohydrateRatioSchedule.Normalize(normalizer.WithReference("carbRatio"))
 	}
@@ -257,6 +274,9 @@ func (p *Pump) Normalize(normalizer data.Normalizer) {
 	}
 	if p.OverridePresets != nil {
 		p.OverridePresets.Normalize(normalizer.WithReference("overridePresets"), unitsBloodGlucose)
+	}
+	if p.SleepSchedules != nil {
+		p.SleepSchedules.Normalize(normalizer.WithReference("sleepSchedules"))
 	}
 	if p.Units != nil {
 		p.Units.Normalize(normalizer.WithReference("units"))
