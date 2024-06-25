@@ -2,6 +2,7 @@ package user
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/structure"
@@ -14,8 +15,7 @@ const (
 	migrationCompleted
 	migrationInProgress
 
-	maxAboutLength = 256
-	maxNameLength  = 256
+	maxProfileFieldLen = 256
 )
 
 var (
@@ -302,40 +302,95 @@ func containsAnyAttributeKeys(attributes map[string][]string, keys ...string) bo
 	return false
 }
 
-func (d Date) Validate(v structure.Validator) {
-	if d == "" {
+func (d *Date) Validate(v structure.Validator) {
+	if d == nil || *d == "" {
 		return
 	}
-	str := string(d)
+	str := string(*d)
 	v.String("date", &str).AsTime(time.DateOnly)
 }
 
+func (d *Date) Normalize(normalizer structure.Normalizer) {
+	if d == nil || *d == "" {
+		return
+	}
+	*d = Date(strings.TrimSpace(string(*d)))
+}
+
 func (up *UserProfile) Validate(v structure.Validator) {
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("diagnosisType", &up.DiagnosisType).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("targetTimezone", &up.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("about", &up.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("mrn", &up.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
+
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
-	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxNameLength)
 	if up.DiagnosisType != "" {
 		v.String("diagnosisType", &up.DiagnosisType).OneOf(diabetesTypes...)
 	}
 }
 
-func (p *ClinicProfile) Validate(v structure.Validator) {
-	// TODO: confirm: can be empty
-	v.String("name", &p.Name).NotEmpty().LengthLessThanOrEqualTo(maxNameLength)
+func (up *UserProfile) Normalize(normalizer structure.Normalizer) {
+	up.FullName = strings.TrimSpace(up.FullName)
+	up.DiagnosisType = strings.TrimSpace(up.DiagnosisType)
+	up.TargetTimezone = strings.TrimSpace(up.TargetTimezone)
+	up.About = strings.TrimSpace(up.About)
+	up.MRN = strings.TrimSpace(up.MRN)
+
+	up.Birthday.Normalize(normalizer.WithReference("birthday"))
+	up.DiagnosisDate.Normalize(normalizer.WithReference("diagnosisDate"))
+	if up.Clinic != nil {
+		up.Clinic.Normalize(normalizer.WithReference("clinic"))
+	}
+}
+
+func (p *ClinicProfile) Normalize(normalizer structure.Normalizer) {
+	p.Email = strings.TrimSpace(p.Email)
+	p.Name = strings.TrimSpace(p.Name)
+	p.Role = strings.TrimSpace(p.Role)
+	p.Telephone = strings.TrimSpace(p.Telephone)
+	p.NPI = strings.TrimSpace(p.NPI)
 }
 
 func (up *LegacyUserProfile) Validate(v structure.Validator) {
 	if up.Patient != nil {
 		up.Patient.Validate(v.WithReference("patient"))
 	}
-	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxNameLength)
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
+}
+
+func (up *LegacyUserProfile) Normalize(normalizer structure.Normalizer) {
+	up.FullName = strings.TrimSpace(up.FullName)
+	if up.Patient != nil {
+		up.Patient.Normalize(normalizer.WithReference("patient"))
+	}
+	if up.Clinic != nil {
+		up.Clinic.Normalize(normalizer.WithReference("clinic"))
+	}
 }
 
 func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	pp.Birthday.Validate(v.WithReference("birthday"))
 	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
-	v.String("fullName", &pp.FullName).LengthLessThanOrEqualTo(maxNameLength)
+
+	v.String("fullName", &pp.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("targetTimezone", &pp.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("about", &pp.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
+
 	if pp.DiagnosisType != "" {
 		v.String("diagnosisType", &pp.DiagnosisType).OneOf(diabetesTypes...)
 	}
+}
+
+func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
+	pp.Birthday.Normalize(normalizer.WithReference("birthday"))
+	pp.DiagnosisDate.Normalize(normalizer.WithReference("diagnosisDate"))
+
+	pp.FullName = strings.TrimSpace(pp.FullName)
+	pp.DiagnosisType = strings.TrimSpace(pp.DiagnosisType)
+	pp.TargetTimezone = strings.TrimSpace(pp.TargetTimezone)
+	pp.About = strings.TrimSpace(pp.About)
+	pp.MRN = strings.TrimSpace(pp.MRN)
 }
