@@ -32,3 +32,13 @@ GLOBAL OPTIONS:
 - run migration:
     `go run jellyfish_migration.go --user-id=924edd2e-b8fc-45ad-b3f4-3032bb6b0a45`
 
+
+- finding upload records with blobs
+
+```
+[
+  { "$match": { "deviceManufacturers": { "$in": ["Tandem", "Insulet"] }, "client.private.blobId": { "$exists": true }}},
+  { "$project": { "blobId": "$client.private.blobId", "_userId": 1, "deviceId": 1}},
+  { "$group": { "_id": "$_userId", "detail": { "$push": "$$ROOT" }}}
+]
+```
