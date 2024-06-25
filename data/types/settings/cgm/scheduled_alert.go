@@ -3,7 +3,7 @@ package cgm
 import (
 	"strconv"
 
-	"github.com/tidepool-org/platform/data/types/common"
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -88,7 +88,7 @@ func (s *ScheduledAlert) Parse(parser structure.ObjectParser) {
 
 func (s *ScheduledAlert) Validate(validator structure.Validator) {
 	validator.String("name", s.Name).NotEmpty().LengthLessThanOrEqualTo(ScheduledAlertNameLengthMaximum)
-	validator.StringArray("days", s.Days).Exists().EachOneOf(common.DaysOfWeek()...).EachUnique()
+	validator.StringArray("days", s.Days).Exists().EachOneOf(dataTypesCommon.DaysOfWeek()...).EachUnique()
 	validator.Int("start", s.Start).Exists().InRange(ScheduledAlertStartMinimum, ScheduledAlertStartMaximum)
 	validator.Int("end", s.End).Exists().InRange(ScheduledAlertEndMinimum, ScheduledAlertEndMaximum)
 	if alertsValidator := validator.WithReference("alerts"); s.Alerts != nil {

@@ -192,7 +192,7 @@ var _ = Describe("OverridePreset", func() {
 					func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, dataTypesSettingsPump.DurationMaximum), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
 				),
 				Entry("duration; in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -203,7 +203,7 @@ var _ = Describe("OverridePreset", func() {
 				Entry("duration; in range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string) {
-						datum.Duration = pointer.FromInt(dataTypesSettingsPump.DurationMaximum)
+						datum.Duration = pointer.FromInt(604800000)
 					},
 				),
 				Entry("duration; out of range (upper)",
@@ -211,7 +211,7 @@ var _ = Describe("OverridePreset", func() {
 					func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(604800001)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604800001, 0, dataTypesSettingsPump.DurationMaximum), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration"),
 				),
 				Entry("units mmol/L; blood glucose target missing",
 					pointer.FromString("mmol/L"),
@@ -388,7 +388,7 @@ var _ = Describe("OverridePreset", func() {
 						datum.InsulinSensitivityScaleFactor = pointer.FromFloat64(0.09)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/abbreviation"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, dataTypesSettingsPump.DurationMaximum), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/basalRateScaleFactor"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/carbRatioScaleFactor"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/insulinSensitivityScaleFactor"),

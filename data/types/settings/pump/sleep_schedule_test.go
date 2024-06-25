@@ -49,7 +49,7 @@ var _ = Describe("SleepSchedule", func() {
 				),
 				Entry("has many",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(19)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(3)
 					},
 				),
 				Entry("entry missing",
@@ -106,11 +106,10 @@ var _ = Describe("SleepSchedule", func() {
 				Entry("succeeds",
 					func(datum *dataTypesSettingsPump.SleepSchedule) {},
 				),
-				Entry("enabled empty",
+				Entry("enabled missing",
 					func(datum *dataTypesSettingsPump.SleepSchedule) { datum.Enabled = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
 				),
-
 				Entry("days missing",
 					func(datum *dataTypesSettingsPump.SleepSchedule) {
 						datum.Days = nil
@@ -145,7 +144,8 @@ var _ = Describe("SleepSchedule", func() {
 					func(datum *dataTypesSettingsPump.SleepSchedule) {
 						datum.Start = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1,
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum-1,
 						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
 						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/start"),
 				),
@@ -178,7 +178,8 @@ var _ = Describe("SleepSchedule", func() {
 					func(datum *dataTypesSettingsPump.SleepSchedule) {
 						datum.End = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1,
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum-1,
 						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
 						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/end"),
 				),

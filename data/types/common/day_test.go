@@ -67,7 +67,7 @@ var _ = Describe("Day", func() {
 			Entry("is tuesday", "tuesday", 3, nil),
 			Entry("is constant tuesday", common.DayTuesday, 3, nil),
 			Entry("is wednesday", "wednesday", 4, nil),
-			Entry("isconstant  wednesday", common.DayWednesday, 4, nil),
+			Entry("is constant  wednesday", common.DayWednesday, 4, nil),
 			Entry("is thursday", "thursday", 5, nil),
 			Entry("is constant thursday", common.DayThursday, 5, nil),
 			Entry("is friday", "friday", 6, nil),

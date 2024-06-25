@@ -288,17 +288,17 @@ var _ = Describe("Pump", func() {
 				Entry("bolus invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.Boluses = nil
 						datum.Bolus = pumpTest.NewRandomBolus()
 						datum.Bolus.Calculator.Enabled = nil
+						datum.Boluses = nil
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bolus/calculator/enabled", pumpTest.NewMeta()),
 				),
 				Entry("bolus valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.Boluses = nil
 						datum.Bolus = pumpTest.NewRandomBolus()
+						datum.Boluses = nil
 					},
 				),
 				Entry("boluses missing",
@@ -665,12 +665,6 @@ var _ = Describe("Pump", func() {
 						datum.SleepSchedules = pump.NewSleepScheduleMap()
 					},
 				),
-				Entry("sleep schedules valid",
-					pointer.FromString("mmol/L"),
-					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pumpTest.RandomSleepSchedules(3)
-					},
-				),
 				Entry("sleep schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
@@ -681,6 +675,12 @@ var _ = Describe("Pump", func() {
 						pump.SleepSchedulesMidnightOffsetMaximum+1, 0,
 						pump.SleepSchedulesMidnightOffsetMaximum),
 						fmt.Sprintf("/sleepSchedules/%s/end", pumpTest.SleepScheduleName(0)), pumpTest.NewMeta()),
+				),
+				Entry("sleep schedules valid",
+					pointer.FromString("mmol/L"),
+					func(datum *pump.Pump, unitsBloodGlucose *string) {
+						datum.SleepSchedules = pumpTest.RandomSleepSchedules(3)
+					},
 				),
 				Entry("software version missing",
 					pointer.FromString("mmol/L"),
@@ -737,9 +737,9 @@ var _ = Describe("Pump", func() {
 						datum.BloodGlucoseTargetSchedules = nil
 						datum.BloodGlucoseTargetPhysicalActivity = dataBloodGlucose.NewTarget()
 						datum.BloodGlucoseTargetPreprandial = dataBloodGlucose.NewTarget()
-						datum.Boluses = nil
 						datum.Bolus = pumpTest.NewRandomBolus()
 						datum.Bolus.Extended.Enabled = nil
+						datum.Boluses = nil
 						invalidCarbohydrateRatioSchedule := pumpTest.NewCarbohydrateRatioStartArray()
 						(*invalidCarbohydrateRatioSchedule)[0].Start = nil
 						datum.CarbohydrateRatioSchedule = invalidCarbohydrateRatioSchedule

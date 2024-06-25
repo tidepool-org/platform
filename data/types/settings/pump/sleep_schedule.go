@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/common"
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -106,7 +106,7 @@ func (s *SleepSchedule) Validate(validator structure.Validator) {
 	validator.Bool("enabled", s.Enabled).Exists()
 	if s.Enabled != nil {
 		if *s.Enabled {
-			validator.StringArray("days", s.Days).Exists().EachOneOf(common.DaysOfWeek()...).EachUnique()
+			validator.StringArray("days", s.Days).Exists().EachOneOf(dataTypesCommon.DaysOfWeek()...).EachUnique()
 			validator.Int("start", s.Start).Exists().InRange(SleepSchedulesMidnightOffsetMinimum, SleepSchedulesMidnightOffsetMaximum)
 			validator.Int("end", s.End).Exists().InRange(SleepSchedulesMidnightOffsetMinimum, SleepSchedulesMidnightOffsetMaximum)
 		}
@@ -115,6 +115,6 @@ func (s *SleepSchedule) Validate(validator structure.Validator) {
 
 func (s *SleepSchedule) Normalize(normalizer data.Normalizer) {
 	if s.Days != nil {
-		sort.Sort(common.DaysOfWeekByDayIndex(*s.Days))
+		sort.Sort(dataTypesCommon.DaysOfWeekByDayIndex(*s.Days))
 	}
 }
