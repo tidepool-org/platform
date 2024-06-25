@@ -170,6 +170,11 @@ func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob
 	return repository.List(ctx, userID, filter, pagination)
 }
 
+func (c *Client) GetDeviceLogContents(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
+	return repository.List(ctx, userID, filter, pagination)
+}
+
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	ctx = log.ContextWithField(ctx, "userId", userID)
 	repository := c.BlobStructuredStore().NewBlobRepository()
@@ -213,6 +218,36 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 		DigestMD5: result.DigestMD5,
 		MediaType: result.MediaType,
 	}, nil
+}
+
+func (c *Client) GetDeviceLogsContents(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) ([]*blob.DeviceLogsContentRaw, error) {
+	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
+	deviceLogsBlobs, err := repository.List(ctx, userID, filter, pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	contents := make([]*blob.DeviceLogsContentRaw, 0, len(deviceLogsBlobs))
+	store := c.DeviceLogsUnstructuredStore()
+	for _, deviceLogBlob := range deviceLogsBlobs {
+		reader, err := store.Get(ctx, userID, *deviceLogBlob.ID)
+		if err != nil {
+			return nil, err
+		}
+		defer reader.Close()
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+		contents = append(contents, &blob.DeviceLogsContentRaw{
+			Body:      data,
+			DigestMD5: deviceLogBlob.DigestMD5,
+			MediaType: deviceLogBlob.MediaType,
+			StartAt:   deviceLogBlob.StartAtTime,
+			EndAt:     deviceLogBlob.EndAtTime,
+		})
+	}
+	return contents, nil
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {

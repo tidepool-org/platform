@@ -47,6 +47,7 @@ func (r *Router) Routes() []*rest.Route {
 
 		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
 		rest.Get("/v1/users/:userId/device_logs", api.RequireMembership(r.permissionsClient, "userId", r.ListDeviceLogs)),
+		rest.Get("/v1/users/:userId/device_logs/contents", api.RequireMembership(r.permissionsClient, "userId", r.GetDeviceLogsContents)),
 
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
@@ -222,6 +223,27 @@ func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 	responder.Data(http.StatusOK, logs)
+}
+
+func (r *Router) GetDeviceLogsContents(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	filter := blob.NewDeviceLogsFilter()
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	contents, err := r.Provider.BlobClient().GetDeviceLogsContents(req.Context(), userID, filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	responder.Data(http.StatusOK, contents)
 }
 
 func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {

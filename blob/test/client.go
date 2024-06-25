@@ -168,6 +168,10 @@ func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob
 	panic("List has no output")
 }
 
+func (c *Client) GetDeviceLogsContents(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) ([]*blob.DeviceLogsContentRaw, error) {
+	return nil, nil
+}
+
 func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
 	c.CreateDeviceLogsInvocations++
 	c.CreateDeviceLogsInputs = append(c.CreateDeviceLogsInputs, CreateDeviceLogsInput{UserID: userID, Content: content})
