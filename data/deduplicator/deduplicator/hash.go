@@ -26,7 +26,7 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, hasher HashType) err
 				return errors.Wrap(err, "unable to generate identity hash for datum")
 			}
 		} else if hasher == LegacyHash {
-			fields, err := dataSetDatum.IdentityFields()
+			fields, err := dataSetDatum.LegacyIdentityFields()
 			if err != nil {
 				return errors.Wrap(err, "unable to gather legacy identity fields for datum")
 			}
