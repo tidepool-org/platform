@@ -145,11 +145,11 @@ type DeviceLogsContent struct {
 // DeviceLogsContentRaw is just the "read" / nonstreamed form of
 // DeviceLogsContent where the Body has already been read.
 type DeviceLogsContentRaw struct {
-	Body      []byte
-	DigestMD5 *string
-	MediaType *string
-	StartAt   *time.Time
-	EndAt     *time.Time
+	Body      []byte     `json:"body,omitempty"`
+	DigestMD5 *string    `json:"digestMD5,omitempty"`
+	MediaType *string    `json:"mediaType,omitempty"`
+	StartAt   *time.Time `json:"startAtTime,omitempty"`
+	EndAt     *time.Time `json:"endAtTime,omitempty"`
 }
 
 func NewDeviceLogsContent() *DeviceLogsContent {
@@ -208,8 +208,8 @@ func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 }
 
 type DeviceLogsFilter struct {
-	Start *time.Time `json:"start,omitempty"`
-	End   *time.Time `json:"end,omitempty"`
+	Start *time.Time `json:"startAtTime,omitempty"`
+	End   *time.Time `json:"endAtTime,omitempty"`
 }
 
 func NewDeviceLogsFilter() *DeviceLogsFilter {

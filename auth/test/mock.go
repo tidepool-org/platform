@@ -9,9 +9,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-
 	auth "github.com/tidepool-org/platform/auth"
 	page "github.com/tidepool-org/platform/page"
+	permission "github.com/tidepool-org/platform/permission"
 	request "github.com/tidepool-org/platform/request"
 )
 
@@ -195,6 +195,21 @@ func (m *MockClient) GetRestrictedToken(ctx context.Context, id string) (*auth.R
 func (mr *MockClientMockRecorder) GetRestrictedToken(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRestrictedToken", reflect.TypeOf((*MockClient)(nil).GetRestrictedToken), ctx, id)
+}
+
+// GetUserPermissions mocks base method.
+func (m *MockClient) GetUserPermissions(ctx context.Context, requestUserID, targetUserID string) (permission.Permissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserPermissions", ctx, requestUserID, targetUserID)
+	ret0, _ := ret[0].(permission.Permissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserPermissions indicates an expected call of GetUserPermissions.
+func (mr *MockClientMockRecorder) GetUserPermissions(ctx, requestUserID, targetUserID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserPermissions", reflect.TypeOf((*MockClient)(nil).GetUserPermissions), ctx, requestUserID, targetUserID)
 }
 
 // ListUserProviderSessions mocks base method.
