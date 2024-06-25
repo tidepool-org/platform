@@ -43,11 +43,11 @@ type Settings struct {
 	QueryBatchSize  int
 	QueryBatchLimit int
 
-	capacity    *int
+	RecordLimit *int
 	writeToDisk bool
 }
 
-func NewSettings(dryRun *bool, stopOnErr *bool, capacity *int, queryBatch *int, queryLimit *int, writeToDisk *bool) *Settings {
+func NewSettings(dryRun *bool, stopOnErr *bool, recordLimit *int, queryBatchSize *int, queryBatchLimit *int, writeToDisk *bool) *Settings {
 	settings := &Settings{
 		writeToDisk:     false,
 		DryRun:          true,
@@ -65,15 +65,15 @@ func NewSettings(dryRun *bool, stopOnErr *bool, capacity *int, queryBatch *int, 
 	if writeToDisk != nil {
 		settings.writeToDisk = *writeToDisk
 	}
-	if queryBatch != nil {
-		settings.QueryBatchSize = *queryBatch
+	if queryBatchSize != nil {
+		settings.QueryBatchSize = *queryBatchSize
 	}
-	if queryLimit != nil {
-		settings.QueryBatchLimit = *queryLimit
+	if queryBatchLimit != nil {
+		settings.QueryBatchLimit = *queryBatchLimit
 	}
-	if capacity != nil && *capacity > 0 {
-		settings.capacity = capacity
-		log.Printf("capped at %d items", *settings.capacity)
+	if recordLimit != nil && *recordLimit > 0 {
+		settings.RecordLimit = recordLimit
+		log.Printf("capped at %d items", *settings.RecordLimit)
 	}
 	return settings
 }
@@ -88,7 +88,7 @@ type DataMigration struct {
 	errorsCount          int
 	updatedCount         int
 	fetchedCount         int
-	lastUpdatedID        string
+	lastUpdatedID        *string
 	startedAt            time.Time
 	mongoInstanceChecker MongoInstanceCheck
 }
@@ -123,10 +123,9 @@ func NewMigration(ctx context.Context, settings *Settings, checker MongoInstance
 		updatedCount:         0,
 		fetchedCount:         0,
 		startedAt:            time.Now(),
+		lastUpdatedID:        lastID,
 	}
-	if lastID != nil {
-		m.lastUpdatedID = *lastID
-	}
+
 	return m, nil
 }
 
@@ -159,19 +158,19 @@ func (m *DataMigration) Execute(
 	for queryFn(m) {
 		count, err := updateFn(m)
 		if err != nil {
-			m.writeErrors(nil)
+			m.writeErrors()
 			return err
 		}
 		m.updatesApplied(count)
 		if m.completeUpdates() {
 			break
 		}
-		m.writeErrors(nil)
-		m.writeAudit(nil)
+		m.writeErrors()
+		m.writeAudit()
 	}
 	m.GetStats().report()
-	m.writeErrors(nil)
-	m.writeAudit(nil)
+	m.writeErrors()
+	m.writeAudit()
 	return nil
 }
 
@@ -196,16 +195,16 @@ func (m *DataMigration) updatesApplied(updatedCount int) {
 }
 
 func (m *DataMigration) completeUpdates() bool {
-	capacity := m.settings.capacity
-	if capacity != nil {
-		stats := m.GetStats()
+	recordLimit := m.settings.RecordLimit
+	stats := m.GetStats()
+	if recordLimit == nil {
+		log.Printf("updates applied [%d] fetched [%d]", stats.Applied, stats.Fetched)
+	} else {
+		percent := (float64(stats.Fetched) * float64(100)) / float64(*recordLimit)
+		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *recordLimit, stats.Applied)
 
-		percent := (float64(stats.Fetched) * float64(100)) / float64(*capacity)
-
-		log.Printf("processed %.0f %% of %d records and applied %d changes", percent, *capacity, stats.Applied)
-
-		if *capacity <= stats.Applied || *capacity <= stats.Fetched {
-			log.Printf("cap [%d] updates applied [%d] fetched [%d]", *capacity, stats.Applied, stats.Fetched)
+		if *recordLimit <= stats.Applied || *recordLimit <= stats.Fetched {
+			log.Printf("recordLimit [%d] updates applied [%d] fetched [%d]", *recordLimit, stats.Applied, stats.Fetched)
 			return true
 		}
 	}
@@ -217,8 +216,8 @@ func (m *DataMigration) GetUpdates() []mongo.WriteModel {
 }
 
 func (m *DataMigration) SetLastProcessed(lastID string) {
-	m.lastUpdatedID = lastID
-	m.writeLastProcessed(m.lastUpdatedID)
+	m.lastUpdatedID = &lastID
+	m.writeLastProcessed(*m.lastUpdatedID)
 }
 
 func (m *DataMigration) UpdateFetchedCount() {
@@ -235,17 +234,17 @@ func (m *DataMigration) GetStats() MigrationStats {
 	}
 }
 
-func (m *DataMigration) GetLastID() string {
+func (m *DataMigration) GetLastID() *string {
 	return m.lastUpdatedID
 }
 
 func (m *DataMigration) OnError(data ErrorData) {
-	m.errorsCount++
-	m.groupedErrors[data.ItemType] = append(m.groupedErrors[data.ItemType], data)
 	if m.settings.StopOnErr {
 		log.Printf("[_id=%s] %s %s\n", data.ItemID, data.Msg, data.Error.Error())
 		os.Exit(1)
 	}
+	m.errorsCount++
+	m.groupedErrors[data.ItemType] = append(m.groupedErrors[data.ItemType], data)
 }
 
 func (m *DataMigration) CheckMongoInstance() error {
@@ -266,16 +265,11 @@ func (c MigrationStats) report() {
 	log.Printf("elapsed [%s] for [%d] fetched [%d] updates applied with [%d] errors\n", c.Elapsed, c.Fetched, c.Applied, c.Errored)
 }
 
-func (m *DataMigration) writeErrors(groupLimit *int) {
+func (m *DataMigration) writeErrors() {
 	if !m.settings.writeToDisk {
 		m.groupedErrors = map[string][]ErrorData{}
 	}
 	for group, errors := range m.groupedErrors {
-		if groupLimit != nil {
-			if len(errors) < *groupLimit {
-				continue
-			}
-		}
 		f, err := m.createFile("error", group, "%s.log")
 		if err != nil {
 			log.Println(err)
@@ -294,17 +288,12 @@ func (m *DataMigration) writeErrors(groupLimit *int) {
 	}
 }
 
-func (m *DataMigration) writeAudit(groupLimit *int) {
+func (m *DataMigration) writeAudit() {
 	if !m.settings.writeToDisk || !m.settings.DryRun {
 		m.groupedDiffs = map[string][]UpdateData{}
 		return
 	}
 	for group, diffs := range m.groupedDiffs {
-		if groupLimit != nil {
-			if len(diffs) < *groupLimit {
-				continue
-			}
-		}
 		f, err := m.createFile("audit", group, "%s.json")
 		if err != nil {
 			log.Println(err)

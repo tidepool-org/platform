@@ -24,11 +24,12 @@ type Migration struct {
 }
 
 type config struct {
-	cap            int
-	uri            string
+	recordLimit    int
+	mongoURI       string
 	dryRun         bool
 	stopOnErr      bool
 	userID         string
+	uploadID       string
 	lastUpdatedID  string
 	nopPercent     int
 	queryBatchSize int
@@ -36,6 +37,15 @@ type config struct {
 }
 
 const DryRunFlag = "dry-run"
+const StopOnErrorFlag = "stop-on-error"
+const RecordLimitFlag = "record-limit"
+const NopPercentFlag = "nop-percent"
+const MongoURIFlag = "uri"
+const DatumIDFlag = "datum-id"
+const UserIDFlag = "user-id"
+const UploadIDFlag = "upload-id"
+const QueryLimitFlag = "query-limit"
+const QueryBatchFlag = "query-batch"
 
 func main() {
 	ctx := context.Background()
@@ -56,13 +66,14 @@ func NewJellyfishMigration(ctx context.Context) *Migration {
 
 func (c *config) report() string {
 	details := "\nMIGRATION DETAILS:\n"
-	details += fmt.Sprintf("- CAP\t\t\t[%d]\n", c.cap)
-	details += fmt.Sprintf("- AUDIT? \t\t[%t]\n", c.dryRun)
-	details += fmt.Sprintf("- STOP ON ERROR\t\t[%t]\n", c.stopOnErr)
-	details += fmt.Sprintf("- LAST PROCESSED ID\t[%s]\n", c.lastUpdatedID)
-	details += fmt.Sprintf("- USER ID\t\t[%s]\n", c.userID)
-	details += fmt.Sprintf("- QUERY BATCH\t\t[%d]\n", c.queryBatchSize)
-	details += fmt.Sprintf("- QUERY LIMIT\t\t[%d]\n", c.queryLimit)
+	details += fmt.Sprintf("- %s\t\t\t[%d]\n", RecordLimitFlag, c.recordLimit)
+	details += fmt.Sprintf("- %s? \t\t[%t]\n", DryRunFlag, c.dryRun)
+	details += fmt.Sprintf("- %s\t\t[%t]\n", StopOnErrorFlag, c.stopOnErr)
+	details += fmt.Sprintf("- %s\t[%s]\n", DatumIDFlag, c.lastUpdatedID)
+	details += fmt.Sprintf("- %s\t\t[%s]\n", UserIDFlag, c.userID)
+	details += fmt.Sprintf("- %s\t\t[%d]\n", QueryBatchFlag, c.queryBatchSize)
+	details += fmt.Sprintf("- %s\t\t[%d]\n", QueryLimitFlag, c.queryLimit)
+	details += fmt.Sprintf("- %s\t\t[%s]\n", UploadIDFlag, c.uploadID)
 	return details
 }
 
@@ -74,7 +85,7 @@ func (m *Migration) RunAndExit() {
 	m.CLI().Action = func(ctx *cli.Context) error {
 
 		var err error
-		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(strings.TrimSpace(m.config.uri)))
+		m.client, err = mongo.Connect(m.ctx, options.Client().ApplyURI(strings.TrimSpace(m.config.mongoURI)))
 		if err != nil {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
@@ -90,7 +101,7 @@ func (m *Migration) RunAndExit() {
 			utils.NewSettings(
 				&m.config.dryRun,
 				&m.config.stopOnErr,
-				&m.config.cap,
+				&m.config.recordLimit,
 				&m.config.queryBatchSize,
 				&m.config.queryLimit,
 				pointer.FromBool(true),
@@ -100,7 +111,7 @@ func (m *Migration) RunAndExit() {
 			&m.config.lastUpdatedID,
 		)
 
-		log.Printf("%s", m.config.report())
+		log.Println(m.config.report())
 
 		if err != nil {
 			return fmt.Errorf("unable to create migration utils : %w", err)
@@ -141,33 +152,33 @@ func (m *Migration) Initialize() error {
 			Destination: &m.config.dryRun,
 		},
 		cli.BoolFlag{
-			Name:        "stop-error",
+			Name:        StopOnErrorFlag,
 			Usage:       "stop migration on error",
 			Destination: &m.config.stopOnErr,
 		},
 		cli.IntFlag{
-			Name:        "cap",
+			Name:        RecordLimitFlag,
 			Usage:       "max number of records migrate",
-			Destination: &m.config.cap,
+			Destination: &m.config.recordLimit,
 			Required:    false,
 		},
 		cli.IntFlag{
-			Name:        "nop-percent",
+			Name:        NopPercentFlag,
 			Usage:       "how much of the oplog is NOP",
 			Destination: &m.config.nopPercent,
 			Value:       50,
 			Required:    false,
 		},
 		cli.StringFlag{
-			Name:        "uri",
+			Name:        MongoURIFlag,
 			Usage:       "mongo connection URI",
-			Destination: &m.config.uri,
+			Destination: &m.config.mongoURI,
 			Required:    false,
 			//uri string comes from file called `uri`
 			FilePath: "./uri",
 		},
 		cli.StringFlag{
-			Name:        "datum-id",
+			Name:        DatumIDFlag,
 			Usage:       "id of last datum updated",
 			Destination: &m.config.lastUpdatedID,
 			Required:    false,
@@ -175,20 +186,20 @@ func (m *Migration) Initialize() error {
 			FilePath: "./lastProcessedId",
 		},
 		cli.StringFlag{
-			Name:        "user-id",
+			Name:        UserIDFlag,
 			Usage:       "id of single user to migrate",
 			Destination: &m.config.userID,
 			Required:    false,
 		},
 		cli.IntFlag{
-			Name:        "query-limit",
+			Name:        QueryLimitFlag,
 			Usage:       "max number of items to return",
 			Destination: &m.config.queryLimit,
 			Value:       50000,
 			Required:    false,
 		},
 		cli.IntFlag{
-			Name:        "query-batch",
+			Name:        QueryBatchFlag,
 			Usage:       "max number of items in each query batch",
 			Destination: &m.config.queryBatchSize,
 			Value:       10000,

@@ -14,7 +14,7 @@
 ```
 GLOBAL OPTIONS:
    --dry-run, -n        dry run only; do not migrate
-   --stop-error         stop migration on error
+   --stop-on-error      stop migration on error
    --audit              run audit
    --cap value          max number of records migrate (default: 0)
    --nop-percent value  how much of the oplog is NOP (default: 50)
