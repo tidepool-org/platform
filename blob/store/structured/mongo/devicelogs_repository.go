@@ -33,9 +33,6 @@ func (d *DeviceLogsRepository) EnsureIndexes() error {
 					SetUnique(true),
 			},
 			{
-				Keys: bson.D{{Key: "userId", Value: 1}},
-			},
-			{
 				Keys: bson.D{
 					{Key: "userId", Value: 1},
 					{Key: "startAtTime", Value: 1},
