@@ -76,7 +76,10 @@ var _ = Describe("Mongo", func() {
 						"Unique": Equal(true),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("userId")),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("userId", "startAtTime")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("userId", "endAtTime")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("startAtTime")),

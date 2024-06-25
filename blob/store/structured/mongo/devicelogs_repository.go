@@ -38,8 +38,13 @@ func (d *DeviceLogsRepository) EnsureIndexes() error {
 			{
 				Keys: bson.D{
 					{Key: "userId", Value: 1},
-					{Key: "createdTime", Value: -1},
-					// TODO: find what is actually filtered on
+					{Key: "startAtTime", Value: 1},
+				},
+			},
+			{
+				Keys: bson.D{
+					{Key: "userId", Value: 1},
+					{Key: "endAtTime", Value: 1},
 				},
 			},
 			{
