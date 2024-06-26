@@ -72,16 +72,30 @@ func (a Alerts) Validate(validator structure.Validator) {
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
 	Enabled bool `json:"enabled" bson:"enabled"`
-	// Repeat is measured in minutes.
-	//
-	// A value of 0 (the default) disables repeat notifications.
-	Repeat DurationMinutes `json:"repeat,omitempty" bson:"repeat"`
+
+	// Activity tracks when events related to the alert occurred.
+	Activity `json:"-" bson:"activity,omitempty"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
-	dur := b.Repeat.Duration()
-	validator.Duration("repeat", &dur).Using(validateRepeat)
+}
+
+type Activity struct {
+	// Triggered records the last time this alert was triggered.
+	Triggered time.Time `json:"triggered" bson:"triggered"`
+	// Sent records the last time this alert was sent.
+	Sent time.Time `json:"sent" bson:"sent"`
+	// Resolved records the last time this alert was resolved.
+	Resolved time.Time `json:"resolved" bson:"resolved"`
+}
+
+func (a Activity) IsActive() bool {
+	return a.Triggered.After(a.Resolved)
+}
+
+func (a Activity) IsSent() bool {
+	return a.Sent.After(a.Triggered)
 }
 
 const (
@@ -110,7 +124,7 @@ type UrgentLowAlert struct {
 	Base `bson:",inline"`
 	// Threshold is compared the current value to determine if an alert should
 	// be triggered.
-	Threshold `json:"threshold"`
+	Threshold `json:"threshold" bson:"threshold"`
 }
 
 func (a UrgentLowAlert) Validate(validator structure.Validator) {
@@ -149,13 +163,19 @@ type LowAlert struct {
 	// be triggered.
 	Threshold `json:"threshold"`
 	Delay     DurationMinutes `json:"delay,omitempty"`
+	// Repeat is measured in minutes.
+	//
+	// A value of 0 (the default) disables repeat notifications.
+	Repeat DurationMinutes `json:"repeat,omitempty" bson:"repeat"`
 }
 
 func (a LowAlert) Validate(validator structure.Validator) {
 	a.Base.Validate(validator)
-	dur := a.Delay.Duration()
-	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
+	delayDur := a.Delay.Duration()
+	validator.Duration("delay", &delayDur).InRange(0, 2*time.Hour)
 	a.Threshold.Validate(validator)
+	repeatDur := a.Repeat.Duration()
+	validator.Duration("repeat", &repeatDur).Using(validateRepeat)
 }
 
 // HighAlert extends Base with a threshold and a delay.
@@ -165,13 +185,19 @@ type HighAlert struct {
 	// be triggered.
 	Threshold `json:"threshold"`
 	Delay     DurationMinutes `json:"delay,omitempty"`
+	// Repeat is measured in minutes.
+	//
+	// A value of 0 (the default) disables repeat notifications.
+	Repeat DurationMinutes `json:"repeat,omitempty" bson:"repeat"`
 }
 
 func (a HighAlert) Validate(validator structure.Validator) {
 	a.Base.Validate(validator)
 	a.Threshold.Validate(validator)
-	dur := a.Delay.Duration()
-	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
+	delayDur := a.Delay.Duration()
+	validator.Duration("delay", &delayDur).InRange(0, 6*time.Hour)
+	repeatDur := a.Repeat.Duration()
+	validator.Duration("repeat", &repeatDur).Using(validateRepeat)
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.
@@ -239,6 +265,7 @@ type Repository interface {
 	Get(ctx context.Context, conf *Config) (*Config, error)
 	Upsert(ctx context.Context, conf *Config) error
 	Delete(ctx context.Context, conf *Config) error
+	List(ctx context.Context, userID string) ([]*Config, error)
 
 	EnsureIndexes() error
 }

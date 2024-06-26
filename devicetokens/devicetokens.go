@@ -100,6 +100,7 @@ type AppleBlob []byte
 
 // Repository abstracts persistent storage for Token data.
 type Repository interface {
+	GetAllByUserID(ctx context.Context, userID string) ([]*Document, error)
 	Upsert(ctx context.Context, doc *Document) error
 
 	EnsureIndexes() error
