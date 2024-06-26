@@ -309,14 +309,16 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.Bolus = nil
-						datum.Boluses = pumpTest.NewRandomBolusMap(2, 2)
-						(*datum.Boluses)[pumpTest.BolusName(1)].AmountMaximum.Units = nil
-						(*datum.Boluses)[pumpTest.BolusName(2)].Extended.Enabled = nil
-						(*datum.Boluses)[pumpTest.BolusName(1)].Calculator.Enabled = nil
+						datum.Boluses = pumpTest.NewRandomBolusMap(1, 1)
+						for _, v := range *datum.Boluses {
+							v.AmountMaximum.Units = nil
+							v.Extended.Enabled = nil
+							v.Calculator.Enabled = nil
+						}
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/amountMaximum/units", pumpTest.BolusName(1)), pumpTest.NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/calculator/enabled", pumpTest.BolusName(1)), pumpTest.NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/extended/enabled", pumpTest.BolusName(2)), pumpTest.NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/boluses/%s/extended/enabled", pumpTest.BolusName(1)), pumpTest.NewMeta()),
 				),
 				Entry("boluses valid",
 					pointer.FromString("mmol/L"),
@@ -669,12 +671,12 @@ var _ = Describe("Pump", func() {
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
 						datum.SleepSchedules = pumpTest.RandomSleepSchedules(2)
-						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(0)].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
+						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(1)].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(
 						pump.SleepSchedulesMidnightOffsetMaximum+1, 0,
 						pump.SleepSchedulesMidnightOffsetMaximum),
-						fmt.Sprintf("/sleepSchedules/%s/end", pumpTest.SleepScheduleName(0)), pumpTest.NewMeta()),
+						fmt.Sprintf("/sleepSchedules/%s/end", pumpTest.SleepScheduleName(1)), pumpTest.NewMeta()),
 				),
 				Entry("sleep schedules valid",
 					pointer.FromString("mmol/L"),
