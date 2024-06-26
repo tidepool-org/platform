@@ -57,7 +57,11 @@ var _ = Describe("Day", func() {
 			func(day string, expectedIndex int, expectedErr error) {
 				actualIndex, actualError := common.DayIndex(day)
 				Expect(actualIndex).To(Equal(expectedIndex))
-				Expect(actualError).To(Equal(expectedErr))
+				if expectedErr == nil {
+					Expect(actualError).To(BeNil())
+				} else {
+					Expect(actualError).To(Equal(expectedErr))
+				}
 			},
 			Entry("is an empty string", "", 0, errors.New("invalid day of the week")),
 			Entry("is sunday", "sunday", 1, nil),
