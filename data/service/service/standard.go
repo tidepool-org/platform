@@ -2,15 +2,12 @@ package service
 
 import (
 	"context"
-	"log"
-	"os"
-
-	"github.com/tidepool-org/platform/clinics"
 
 	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
@@ -22,7 +19,7 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
@@ -85,6 +82,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeDataSourceClient(); err != nil {
+		return err
+	}
+	if err := s.initializeSaramaLogger(); err != nil {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
@@ -406,9 +406,8 @@ func (s *Standard) initializeServer() error {
 
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
 	handlers := []eventsCommon.EventHandler{handler}
 	runner := events.NewRunner(handlers)
@@ -417,5 +416,13 @@ func (s *Standard) initializeUserEventsHandler() error {
 	}
 	s.userEventsHandler = runner
 
+	return nil
+}
+
+func (s *Standard) initializeSaramaLogger() error {
+	// Multiple properties of Standard use the sarama package. This is
+	// intended to be the one place that the sarama Logger is initialized,
+	// before any of the properties that need it are run.
+	sarama.Logger = log.NewSarama(s.Logger())
 	return nil
 }
