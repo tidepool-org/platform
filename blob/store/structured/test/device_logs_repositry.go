@@ -98,6 +98,10 @@ func (d *DeviceLogsRepository) List(ctx context.Context, userID string, filter *
 	panic("List has no output")
 }
 
+func (d *DeviceLogsRepository) Get(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
+	return nil, nil
+}
+
 func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.DeviceLogsBlob, error) {
 	d.CreateInvocations++
 	d.CreateInputs = append(d.CreateInputs, CreateDeviceLogsInput{UserID: userID, Create: create})

@@ -47,10 +47,11 @@ func (r *Router) Routes() []*rest.Route {
 
 		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
 		rest.Get("/v1/users/:userId/device_logs", api.RequireMembership(r.permissionsClient, "userId", r.ListDeviceLogs)),
-		rest.Get("/v1/users/:userId/device_logs/contents", api.RequireMembership(r.permissionsClient, "userId", r.GetDeviceLogsContents)),
 
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
+		rest.Get("/v1/device_logs/:id", r.GetDeviceLogsBlob),
+		rest.Get("/v1/device_logs/:id/content", r.GetDeviceLogsContent),
 		rest.Delete("/v1/blobs/:id", r.Delete),
 	}
 }
@@ -225,25 +226,94 @@ func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusOK, logs)
 }
 
-func (r *Router) GetDeviceLogsContents(res rest.ResponseWriter, req *rest.Request) {
+func (r *Router) GetDeviceLogsBlob(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	blobClient := r.Provider.BlobClient()
+
+	deviceLogID, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	filter := blob.NewDeviceLogsFilter()
-	pagination := page.NewPagination()
-	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-	contents, err := r.Provider.BlobClient().GetDeviceLogsContents(req.Context(), userID, filter, pagination)
+
+	deviceLogMetadata, err := blobClient.GetDeviceLogsBlob(req.Context(), deviceLogID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
-	responder.Data(http.StatusOK, contents)
+	if deviceLogMetadata == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(deviceLogID))
+		return
+	}
+
+	allowed, err := api.CheckMembership(req, r.AuthClient(), *deviceLogMetadata.UserID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	if !allowed {
+		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
+	}
+	responder.Data(http.StatusOK, deviceLogMetadata)
+}
+
+func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	blobClient := r.Provider.BlobClient()
+
+	deviceLogID, err := request.DecodeRequestPathParameter(req, "id", blob.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	deviceLogMetadata, err := blobClient.GetDeviceLogsBlob(req.Context(), deviceLogID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	if deviceLogMetadata == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(deviceLogID))
+		return
+	}
+
+	allowed, err := api.CheckMembership(req, r.AuthClient(), *deviceLogMetadata.UserID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	if !allowed {
+		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
+	}
+
+	content, err := r.Provider.BlobClient().GetDeviceLogsContent(req.Context(), *deviceLogMetadata.ID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	if content == nil || content.Body == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(deviceLogID))
+		return
+	}
+	defer content.Body.Close()
+
+	mutators := []request.ResponseMutator{}
+	if content.DigestMD5 != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Digest", fmt.Sprintf("MD5=%s", *content.DigestMD5)))
+	}
+	if content.MediaType != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *content.MediaType))
+	}
+	if content.StartAt != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Start-At", content.StartAt.Format(time.RFC3339Nano)))
+	}
+	if content.EndAt != nil {
+		mutators = append(mutators, request.NewHeaderMutator("End-At", content.EndAt.Format(time.RFC3339Nano)))
+	}
+
+	responder.Reader(http.StatusOK, content.Body, mutators...)
 }
 
 func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {

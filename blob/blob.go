@@ -41,7 +41,8 @@ type Client interface {
 	DeleteAll(ctx context.Context, userID string) error
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
-	GetDeviceLogsContents(ctx context.Context, userID string, filter *DeviceLogsFilter, pagination *page.Pagination) ([]*DeviceLogsContentRaw, error)
+	GetDeviceLogsBlob(ctx context.Context, deviceLogID string) (*DeviceLogsBlob, error)
+	GetDeviceLogsContent(ctx context.Context, deviceLogID string) (*DeviceLogsContent, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 
@@ -142,16 +143,6 @@ type DeviceLogsContent struct {
 	EndAt     *time.Time
 }
 
-// DeviceLogsContentRaw is just the "read" / nonstreamed form of
-// DeviceLogsContent where the Body has already been read.
-type DeviceLogsContentRaw struct {
-	Body      []byte     `json:"body,omitempty"`
-	DigestMD5 *string    `json:"digestMD5,omitempty"`
-	MediaType *string    `json:"mediaType,omitempty"`
-	StartAt   *time.Time `json:"startAtTime,omitempty"`
-	EndAt     *time.Time `json:"endAtTime,omitempty"`
-}
-
 func NewDeviceLogsContent() *DeviceLogsContent {
 	return &DeviceLogsContent{}
 }
@@ -166,9 +157,9 @@ func (c *DeviceLogsContent) Validate(validator structure.Validator) {
 	validator.Time("endAt", c.EndAt).Exists().NotZero()
 }
 
-// DeviceLogsBlob is a document that is stored in the database that "references"
-// the actual content in some other place (such as S3) via the ID field which
-// is the DeviceLogsContent
+// DeviceLogsBlob is the metadata that is stored in the database that
+// "references" the actual content in some other place (such as S3) via the ID
+// field which is the DeviceLogsContent
 type DeviceLogsBlob struct {
 	ID          *string    `json:"id,omitempty" bson:"id,omitempty"`
 	UserID      *string    `json:"userId,omitempty" bson:"userId,omitempty"`

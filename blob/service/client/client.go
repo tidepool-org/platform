@@ -170,9 +170,33 @@ func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob
 	return repository.List(ctx, userID, filter, pagination)
 }
 
-func (c *Client) GetDeviceLogContents(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+func (c *Client) GetDeviceLogsBlob(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
 	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
-	return repository.List(ctx, userID, filter, pagination)
+	return repository.Get(ctx, deviceLogID)
+}
+
+func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (*blob.DeviceLogsContent, error) {
+	store := c.DeviceLogsUnstructuredStore()
+
+	logMetadata, err := c.GetDeviceLogsBlob(ctx, deviceLogID)
+	if err != nil {
+		return nil, err
+	} else if logMetadata == nil {
+		return nil, nil
+	}
+
+	reader, err := store.Get(ctx, *logMetadata.UserID, *logMetadata.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &blob.DeviceLogsContent{
+		Body:      reader,
+		DigestMD5: logMetadata.DigestMD5,
+		MediaType: logMetadata.MediaType,
+		StartAt:   logMetadata.StartAtTime,
+		EndAt:     logMetadata.EndAtTime,
+	}, nil
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
@@ -218,36 +242,6 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 		DigestMD5: result.DigestMD5,
 		MediaType: result.MediaType,
 	}, nil
-}
-
-func (c *Client) GetDeviceLogsContents(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) ([]*blob.DeviceLogsContentRaw, error) {
-	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
-	deviceLogsBlobs, err := repository.List(ctx, userID, filter, pagination)
-	if err != nil {
-		return nil, err
-	}
-
-	contents := make([]*blob.DeviceLogsContentRaw, 0, len(deviceLogsBlobs))
-	store := c.DeviceLogsUnstructuredStore()
-	for _, deviceLogBlob := range deviceLogsBlobs {
-		reader, err := store.Get(ctx, userID, *deviceLogBlob.ID)
-		if err != nil {
-			return nil, err
-		}
-		defer reader.Close()
-		data, err := io.ReadAll(reader)
-		if err != nil {
-			return nil, err
-		}
-		contents = append(contents, &blob.DeviceLogsContentRaw{
-			Body:      data,
-			DigestMD5: deviceLogBlob.DigestMD5,
-			MediaType: deviceLogBlob.MediaType,
-			StartAt:   deviceLogBlob.StartAtTime,
-			EndAt:     deviceLogBlob.EndAtTime,
-		})
-	}
-	return contents, nil
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {

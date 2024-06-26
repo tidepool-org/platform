@@ -81,20 +81,35 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 				request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 				return
 			}
-			if details.IsService() || details.UserID() == targetUserID {
-				handlerFunc(res, req)
-				return
-			}
-			hasPerms, err := permission.HasMembershipRelationship(ctx, permissionsClient(), details.UserID(), targetUserID)
+			hasMembership, err := CheckMembership(req, permissionsClient(), targetUserID)
 			if err != nil {
 				responder.InternalServerError(err)
 				return
 			}
-			if !hasPerms {
+			if !hasMembership {
 				responder.Empty(http.StatusForbidden)
 				return
 			}
 			handlerFunc(res, req)
 		}
 	}
+}
+
+func CheckMembership(req *rest.Request, client permission.Client, targetUserID string) (allowed bool, err error) {
+	ctx := req.Context()
+	details := request.GetAuthDetails(ctx)
+	if details == nil {
+		return false, nil
+	}
+	if details.IsService() || details.UserID() == targetUserID {
+		return true, nil
+	}
+	hasPerms, err := permission.HasMembershipRelationship(ctx, client, details.UserID(), targetUserID)
+	if err != nil {
+		return false, err
+	}
+	if !hasPerms {
+		return false, nil
+	}
+	return true, nil
 }

@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	stdErrs "errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -106,6 +107,28 @@ func (d *DeviceLogsRepository) List(ctx context.Context, userID string, filter *
 
 	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
 	return result, nil
+}
+
+func (d *DeviceLogsRepository) Get(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if deviceLogID == "" {
+		return nil, errors.New("deviceLogID is missing")
+	}
+
+	var result blob.DeviceLogsBlob
+	query := bson.M{
+		"id": deviceLogID,
+	}
+	err := d.Repository.FindOne(ctx, query).Decode(&result)
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.DeviceLogsBlob, error) {
