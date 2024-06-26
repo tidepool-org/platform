@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/Shopify/sarama"
-	eventsCommon "github.com/tidepool-org/go-common/events"
+	"github.com/kelseyhightower/envconfig"
 
+	eventsCommon "github.com/tidepool-org/go-common/events"
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
@@ -20,6 +20,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
@@ -27,6 +28,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/push"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -45,6 +47,7 @@ type Standard struct {
 	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
 	userEventsHandler         events.Runner
+	pusher                    Pusher
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -88,6 +91,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
+	if err := s.initializePusher(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -418,4 +424,35 @@ func (s *Standard) initializeUserEventsHandler() error {
 	s.userEventsHandler = runner
 
 	return nil
+}
+
+func (s *Standard) initializePusher() error {
+	var err error
+
+	apns2Config := &struct {
+		SigningKey []byte `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_SIGNING_KEY"`
+		KeyID      string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_KEY_ID"`
+		BundleID   string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_BUNDLE_ID"`
+		TeamID     string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_TEAM_ID"`
+	}{}
+	if err := envconfig.Process("", apns2Config); err != nil {
+		return errors.Wrap(err, "Unable to process APNs pusher config")
+	}
+
+	var pusher Pusher
+	pusher, err = push.NewAPNSPusherFromKeyData(apns2Config.SigningKey, apns2Config.KeyID,
+		apns2Config.TeamID, apns2Config.BundleID)
+	if err != nil {
+		s.Logger().WithError(err).Warn("falling back to logging of push notifications")
+		pusher = push.NewLogPusher(s.Logger())
+	}
+	s.pusher = pusher
+
+	return nil
+}
+
+// Pusher is a service-agnostic interface for sending push notifications.
+type Pusher interface {
+	// Push a notification to a device.
+	Push(context.Context, *devicetokens.DeviceToken, *push.Notification) error
 }
