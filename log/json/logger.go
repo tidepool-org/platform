@@ -2,6 +2,7 @@ package json
 
 import (
 	"io"
+	"os"
 
 	"github.com/tidepool-org/platform/log"
 )
@@ -15,4 +16,9 @@ func NewLogger(writer io.Writer, levelRanks log.LevelRanks, level log.Level) (lo
 	}
 
 	return log.NewLogger(serializer, levelRanks, level)
+}
+
+// NewWithDefaults calls NewLogger with default values.
+func NewWithDefaults() (log.Logger, error) {
+	return NewLogger(os.Stderr, log.DefaultLevelRanks(), log.DefaultLevel())
 }
