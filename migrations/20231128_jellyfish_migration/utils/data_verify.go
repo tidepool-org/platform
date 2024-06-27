@@ -40,11 +40,9 @@ func (m *DataVerify) Verify(ref string, a string, b string) error {
 	}
 
 	log.Printf("Compare [%s] vs [%s]", a, b)
-	difference, err := CompareDatasets(datasetA, datasetB)
+	_, err = CompareDatasets(datasetA, datasetB)
 	if err != nil {
 		return err
 	}
-	log.Println("Difference:")
-	log.Printf("%v", difference)
 	return nil
 }
