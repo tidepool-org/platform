@@ -3,7 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -43,6 +43,7 @@ func (m *DataVerify) Verify(ref string, a string, b string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%v", difference)
+	log.Printf("Difference [%s] vs [%s]", a, b)
+	log.Printf("%v", difference)
 	return nil
 }

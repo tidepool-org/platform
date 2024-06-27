@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/r3labs/diff/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func CompareDatasets(a []map[string]interface{}, b []map[string]interface{}) (map[string]string, error) {
@@ -67,22 +67,19 @@ func fetchDataSet(ctx context.Context, dataC *mongo.Collection, uploadID string)
 
 	dataset := []map[string]interface{}{}
 
+	log.Printf("fetch dataset [%s]", uploadID)
+
 	dDataCursor, err := dataC.Find(ctx, bson.M{
 		"uploadId": uploadID,
-	}, &options.FindOptions{
-		Sort: bson.M{"time": 1},
 	})
 	if err != nil {
 		return nil, err
 	}
 	defer dDataCursor.Close(ctx)
 
-	for dDataCursor.Next(ctx) {
-		var result map[string]interface{}
-		if err := dDataCursor.Decode(&result); err != nil {
-			return nil, err
-		}
-		dataset = append(dataset, result)
+	if err := dDataCursor.All(ctx, &dataset); err != nil {
+		return nil, err
 	}
+	log.Printf("got dataset [%s][%d] results", uploadID, len(dataset))
 	return dataset, nil
 }
