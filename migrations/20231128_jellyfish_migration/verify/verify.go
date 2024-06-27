@@ -101,7 +101,7 @@ func (m *Verify) Initialize() error {
 			Required:    true,
 		},
 		cli.StringFlag{
-			Name:        UploadIDOneFlag,
+			Name:        UploadIDTwoFlag,
 			Usage:       "uploadID of the second dataset",
 			Destination: &m.config.uploadTwoID,
 			Required:    true,
