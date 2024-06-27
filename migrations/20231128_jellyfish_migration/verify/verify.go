@@ -53,6 +53,7 @@ func NewVerifier(ctx context.Context) *Verify {
 
 func (m *Verify) RunAndExit() {
 	if err := m.Initialize(); err != nil {
+		log.Printf("error during Initialize [%s]", err.Error())
 		os.Exit(1)
 	}
 
@@ -81,6 +82,7 @@ func (m *Verify) RunAndExit() {
 		if m.client != nil {
 			m.client.Disconnect(m.ctx)
 		}
+		log.Printf("error during Run [%s]", err.Error())
 		os.Exit(1)
 	}
 }
