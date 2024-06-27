@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,10 +14,9 @@ type DataVerify struct {
 }
 
 func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, error) {
-	var err error
 
-	if dataC != nil {
-		return nil, err
+	if dataC == nil {
+		return nil, errors.New("missing required data collection")
 	}
 
 	m := &DataVerify{

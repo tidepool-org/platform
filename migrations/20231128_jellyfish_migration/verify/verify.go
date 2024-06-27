@@ -75,7 +75,11 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to create verification utils : %w", err)
 		}
 
-		return m.verificationUtil.Verify(m.config.ref, m.config.uploadOneID, m.config.uploadTwoID)
+		err = m.verificationUtil.Verify(m.config.ref, m.config.uploadOneID, m.config.uploadTwoID)
+		if err != nil {
+			log.Printf("error running verify : %s", err.Error())
+		}
+		return nil
 	}
 
 	if err := m.CLI().Run(os.Args); err != nil {
