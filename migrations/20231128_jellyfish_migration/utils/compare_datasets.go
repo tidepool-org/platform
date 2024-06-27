@@ -48,13 +48,16 @@ func CompareDatasets(a []map[string]interface{}, b []map[string]interface{}) (ma
 	// 	cleanedA = append(cleanedA, datum)
 	// }
 
-	changelog, err := diff.Diff(a, b, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true))
+	log.Println("start diffing")
+	changelog, err := diff.Diff(a, b, diff.AllowTypeMismatch(true))
 	if err != nil {
 		return nil, err
 	}
+	log.Println("diff created")
 
 	differences := map[string]string{}
 	for _, change := range changelog {
+
 		differences[fmt.Sprintf("[%s] %s", change.Type, strings.Join(change.Path, "."))] = fmt.Sprintf("expected:[%v] actual:[%v]", change.From, change.To)
 	}
 	return differences, nil
