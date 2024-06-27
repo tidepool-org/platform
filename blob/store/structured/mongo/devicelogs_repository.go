@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	stdErrs "errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,6 +13,7 @@ import (
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -32,7 +34,16 @@ func (d *DeviceLogsRepository) EnsureIndexes() error {
 					SetUnique(true),
 			},
 			{
-				Keys: bson.D{{Key: "userId", Value: 1}},
+				Keys: bson.D{
+					{Key: "userId", Value: 1},
+					{Key: "startAtTime", Value: 1},
+				},
+			},
+			{
+				Keys: bson.D{
+					{Key: "userId", Value: 1},
+					{Key: "endAtTime", Value: 1},
+				},
 			},
 			{
 				Keys: bson.D{{Key: "startAtTime", Value: 1}},
@@ -41,6 +52,83 @@ func (d *DeviceLogsRepository) EnsureIndexes() error {
 				Keys: bson.D{{Key: "endAtTime", Value: 1}},
 			},
 		})
+}
+
+func (d *DeviceLogsRepository) List(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errorUserIDMissing
+	}
+	if filter == nil {
+		filter = blob.NewDeviceLogsFilter()
+	} else if err := structureValidator.New().Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	now := time.Now()
+
+	var result blob.DeviceLogsBlobArray
+	query := bson.M{
+		"userId": userID,
+		"deletedTime": bson.M{
+			"$exists": false,
+		},
+	}
+	if filter.StartAtTime != nil {
+		query["startAtTime"] = bson.M{
+			"$gte": *filter.StartAtTime,
+		}
+	}
+	if filter.EndAtTime != nil {
+		query["endAtTime"] = bson.M{
+			"$lt": *filter.EndAtTime,
+		}
+	}
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := d.Find(ctx, query, opts)
+	if err != nil {
+		logger.WithError(err).Error("Unable to list device logs")
+		return nil, errors.Wrap(err, "unable to list device logs")
+	}
+
+	if err = cursor.All(ctx, &result); err != nil {
+		return nil, errors.Wrap(err, "unable to decode device logs")
+	}
+
+	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
+	return result, nil
+}
+
+func (d *DeviceLogsRepository) Get(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if deviceLogID == "" {
+		return nil, errors.New("deviceLogID is missing")
+	}
+
+	var result blob.DeviceLogsBlob
+	query := bson.M{
+		"id": deviceLogID,
+	}
+	err := d.Repository.FindOne(ctx, query).Decode(&result)
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.DeviceLogsBlob, error) {

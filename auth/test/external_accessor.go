@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -153,4 +154,8 @@ func (e *ExternalAccessor) AssertOutputsEmpty() {
 	if len(e.EnsureAuthorizedUserOutputs) > 0 {
 		panic("EnsureAuthorizedUserOutputs is not empty")
 	}
+}
+
+func (e *ExternalAccessor) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+	return permission.Permissions{}, nil
 }

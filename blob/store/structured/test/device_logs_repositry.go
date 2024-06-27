@@ -5,8 +5,20 @@ import (
 
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 )
+
+type ListDeviceLogsInput struct {
+	UserID     string
+	Filter     *blob.DeviceLogsFilter
+	Pagination *page.Pagination
+}
+
+type ListDeviceLogsOutput struct {
+	DeviceLogs blob.DeviceLogsBlobArray
+	Error      error
+}
 
 type CreateDeviceLogsInput struct {
 	UserID string
@@ -40,6 +52,12 @@ type DestroyDeviceLogsOutput struct {
 }
 
 type DeviceLogsRepository struct {
+	ListInvocations int
+	ListInputs      []ListDeviceLogsInput
+	ListStub        func(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error)
+	ListOutputs     []ListDeviceLogsOutput
+	ListOutput      *ListDeviceLogsOutput
+
 	CreateInvocations int
 	CreateInputs      []CreateDeviceLogsInput
 	CreateStub        func(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.DeviceLogsBlob, error)
@@ -61,6 +79,27 @@ type DeviceLogsRepository struct {
 
 func NewDeviceLogsRepository() *DeviceLogsRepository {
 	return &DeviceLogsRepository{}
+}
+
+func (d *DeviceLogsRepository) List(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	d.ListInvocations++
+	d.ListInputs = append(d.ListInputs, ListDeviceLogsInput{UserID: userID, Filter: filter, Pagination: pagination})
+	if d.ListStub != nil {
+		return d.ListStub(ctx, userID, filter, pagination)
+	}
+	if len(d.ListOutputs) > 0 {
+		output := d.ListOutputs[0]
+		d.ListOutputs = d.ListOutputs[1:]
+		return output.DeviceLogs, output.Error
+	}
+	if d.ListOutput != nil {
+		return d.ListOutput.DeviceLogs, d.ListOutput.Error
+	}
+	panic("List has no output")
+}
+
+func (d *DeviceLogsRepository) Get(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
+	return nil, nil
 }
 
 func (d *DeviceLogsRepository) Create(ctx context.Context, userID string, create *blobStoreStructured.Create) (*blob.DeviceLogsBlob, error) {

@@ -279,6 +279,34 @@ func (e *External) EnsureAuthorizedUser(ctx context.Context, targetUserID string
 	return "", request.ErrorUnauthorized()
 }
 
+// GetUserPermissions implements permission.Client
+// TODO: consolidate this, this is the same as the permissions client but is
+// known to be available to service/service.Authenticated. This is here for
+// convenience to not require PermissionsClient within existing Authenticated
+// services
+func (e *External) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if requestUserID == "" {
+		return nil, errors.New("request user id is missing")
+	}
+	if targetUserID == "" {
+		return nil, errors.New("target user id is missing")
+	}
+
+	url := e.client.ConstructURL("access", targetUserID, requestUserID)
+	result := permission.Permissions{}
+	if err := e.client.RequestData(ctx, "GET", url, nil, nil, &result); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, request.ErrorUnauthorized()
+		}
+		return nil, err
+	}
+
+	return permission.FixOwnerPermissions(result), nil
+}
+
 func (e *External) timeoutServerSessionToken(serverSessionTokenTimeout time.Duration) time.Duration {
 	if err := e.refreshServerSessionToken(); err != nil {
 		if serverSessionTokenTimeout == 0 || serverSessionTokenTimeout == e.serverSessionTokenTimeout {

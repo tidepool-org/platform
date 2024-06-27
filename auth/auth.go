@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -18,6 +19,7 @@ type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor
 	ExternalAccessor
+	permission.Client
 }
 
 type ExternalAccessor interface {

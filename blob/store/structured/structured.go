@@ -64,6 +64,8 @@ func (u *Update) IsEmpty() bool {
 }
 
 type DeviceLogsRepository interface {
+	List(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error)
+	Get(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error)
 	Create(ctx context.Context, userID string, create *Create) (*blob.DeviceLogsBlob, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *DeviceLogsUpdate) (*blob.DeviceLogsBlob, error)
 	Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error)
