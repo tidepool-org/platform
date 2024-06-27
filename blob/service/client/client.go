@@ -189,6 +189,9 @@ func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (
 	if err != nil {
 		return nil, err
 	}
+	if reader == nil {
+		return nil, request.ErrorResourceNotFoundWithID(*logMetadata.ID)
+	}
 
 	return &blob.DeviceLogsContent{
 		Body:      reader,

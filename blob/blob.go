@@ -198,9 +198,12 @@ func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
+// Note to self: By implementing structure.ObjectParsable interface
+// the name of the fields decoded will be in the Parse() method
+// hence the lack of any json tags.
 type DeviceLogsFilter struct {
-	Start *time.Time `json:"startAtTime,omitempty"`
-	End   *time.Time `json:"endAtTime,omitempty"`
+	StartAtTime *time.Time
+	EndAtTime   *time.Time
 }
 
 func NewDeviceLogsFilter() *DeviceLogsFilter {
@@ -208,8 +211,8 @@ func NewDeviceLogsFilter() *DeviceLogsFilter {
 }
 
 func (f *DeviceLogsFilter) Parse(parser structure.ObjectParser) {
-	f.Start = parser.Time("start", time.RFC3339Nano)
-	f.End = parser.Time("end", time.RFC3339Nano)
+	f.StartAtTime = parser.Time("startAtTime", time.RFC3339Nano)
+	f.EndAtTime = parser.Time("endAtTime", time.RFC3339Nano)
 }
 
 func (f *DeviceLogsFilter) Validate(validator structure.Validator) {
@@ -218,11 +221,11 @@ func (f *DeviceLogsFilter) Validate(validator structure.Validator) {
 
 func (f *DeviceLogsFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string][]string{}
-	if f.Start != nil {
-		parameters["start"] = []string{f.Start.Format(time.RFC3339Nano)}
+	if f.StartAtTime != nil {
+		parameters["startAtTime"] = []string{f.StartAtTime.Format(time.RFC3339Nano)}
 	}
-	if f.End != nil {
-		parameters["end"] = []string{f.End.Format(time.RFC3339Nano)}
+	if f.EndAtTime != nil {
+		parameters["endAtTime"] = []string{f.EndAtTime.Format(time.RFC3339Nano)}
 	}
 	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
