@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/r3labs/diff/v3"
+	"github.com/tidepool-org/platform/pointer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func CompareDatasets(a []map[string]interface{}, b []map[string]interface{}) (map[string]string, error) {
@@ -74,6 +76,9 @@ func fetchDataSet(ctx context.Context, dataC *mongo.Collection, uploadID string)
 
 	dDataCursor, err := dataC.Find(ctx, bson.M{
 		"uploadId": uploadID,
+	}, &options.FindOptions{
+		Sort:  bson.M{"time": 1},
+		Limit: pointer.FromInt64(100),
 	})
 	if err != nil {
 		return nil, err
