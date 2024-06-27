@@ -14,41 +14,41 @@ import (
 
 func CompareDatasets(a []map[string]interface{}, b []map[string]interface{}) (map[string]string, error) {
 
-	cleanedA := []map[string]interface{}{}
-	cleanedB := []map[string]interface{}{}
+	// cleanedA := []map[string]interface{}{}
+	// cleanedB := []map[string]interface{}{}
 
-	doNotCompare := []string{
-		"_active",
-		"_archivedTime",
-		"_groupId",
-		"_id",
-		"id",
-		"_schemaVersion",
-		"_userId",
-		"_version",
-		"createdTime",
-		"guid",
-		"modifiedTime",
-		"uploadId",
-		"deduplicator",
-		"time",
-	}
+	// doNotCompare := []string{
+	// 	"_active",
+	// 	"_archivedTime",
+	// 	"_groupId",
+	// 	"_id",
+	// 	"id",
+	// 	"_schemaVersion",
+	// 	"_userId",
+	// 	"_version",
+	// 	"createdTime",
+	// 	"guid",
+	// 	"modifiedTime",
+	// 	"uploadId",
+	// 	"deduplicator",
+	// 	"time",
+	// }
 
-	for _, datum := range b {
-		for _, key := range doNotCompare {
-			delete(datum, key)
-		}
-		cleanedB = append(cleanedB, datum)
-	}
+	// for _, datum := range b {
+	// 	for _, key := range doNotCompare {
+	// 		delete(datum, key)
+	// 	}
+	// 	cleanedB = append(cleanedB, datum)
+	// }
 
-	for _, datum := range a {
-		for _, key := range doNotCompare {
-			delete(datum, key)
-		}
-		cleanedA = append(cleanedA, datum)
-	}
+	// for _, datum := range a {
+	// 	for _, key := range doNotCompare {
+	// 		delete(datum, key)
+	// 	}
+	// 	cleanedA = append(cleanedA, datum)
+	// }
 
-	changelog, err := diff.Diff(cleanedA, cleanedB, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true))
+	changelog, err := diff.Diff(a, b, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true))
 	if err != nil {
 		return nil, err
 	}
