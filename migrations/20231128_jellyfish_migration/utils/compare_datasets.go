@@ -49,7 +49,7 @@ func CompareDatasets(a []map[string]interface{}, b []map[string]interface{}) (ma
 	// }
 
 	log.Println("start diffing")
-	changelog, err := diff.Diff(a, b, diff.AllowTypeMismatch(true))
+	changelog, err := diff.Diff(a, b, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
 	if err != nil {
 		return nil, err
 	}
