@@ -418,12 +418,9 @@ func (s *CGMStats) CalculateSummary() {
 				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalOffsetStats)
 				nextOffsetStopPoint++
 				totalOffsetStats = &CGMTotalStats{}
-			}
-
-			if i > 0 {
-				totalOffsetStats.TotalVariance = totalOffsetStats.CombineVariance(s.Buckets[currentIndex].Data)
-			} else {
 				totalOffsetStats.TotalVariance = s.Buckets[currentIndex].Data.TotalVariance
+			} else {
+				totalOffsetStats.TotalVariance = totalOffsetStats.CombineVariance(s.Buckets[currentIndex].Data)
 			}
 
 			totalOffsetStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
