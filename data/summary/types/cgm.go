@@ -358,26 +358,66 @@ func (s *CGMStats) CalculateSummary() {
 	dayCounted := false
 	offsetDayCounted := false
 
-	for i := 0; i < len(s.Buckets); i++ {
-		currentIndex := len(s.Buckets) - 1 - i
+	for i := 1; i <= len(s.Buckets); i++ {
+		currentIndex := len(s.Buckets) - i
 
-		// new day, reset day counting flag
-		if i%24 == 0 {
-			dayCounted = false
-			offsetDayCounted = false
+		// only add to offset stats when primary stop point is ahead of offset
+		if nextStopPoint > nextOffsetStopPoint && len(stopPoints) > nextOffsetStopPoint {
+			if totalOffsetStats.TotalVariance == 0 {
+				totalOffsetStats.TotalVariance = s.Buckets[currentIndex].Data.TotalVariance
+			} else {
+				totalOffsetStats.TotalVariance = totalOffsetStats.CombineVariance(s.Buckets[currentIndex].Data)
+			}
+
+			totalOffsetStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
+			totalOffsetStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+
+			totalOffsetStats.LowMinutes += s.Buckets[currentIndex].Data.LowMinutes
+			totalOffsetStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+
+			totalOffsetStats.VeryLowMinutes += s.Buckets[currentIndex].Data.VeryLowMinutes
+			totalOffsetStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+
+			totalOffsetStats.HighMinutes += s.Buckets[currentIndex].Data.HighMinutes
+			totalOffsetStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+
+			totalOffsetStats.VeryHighMinutes += s.Buckets[currentIndex].Data.VeryHighMinutes
+			totalOffsetStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+
+			totalOffsetStats.ExtremeHighMinutes += s.Buckets[currentIndex].Data.ExtremeHighMinutes
+			totalOffsetStats.ExtremeHighRecords += s.Buckets[currentIndex].Data.ExtremeHighRecords
+
+			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
+			totalOffsetStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
+			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+
+			if s.Buckets[currentIndex].Data.TotalRecords > 0 {
+				totalOffsetStats.HoursWithData++
+
+				if !offsetDayCounted {
+					totalOffsetStats.DaysWithData++
+					offsetDayCounted = true
+				}
+			}
+
+			// new day, reset day counting flag
+			if i%24 == 0 {
+				offsetDayCounted = false
+			}
+
+			if i == stopPoints[nextOffsetStopPoint]*24*2 {
+				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalOffsetStats)
+				nextOffsetStopPoint++
+				totalOffsetStats = &CGMTotalStats{}
+			}
 		}
 
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
-			if i == stopPoints[nextStopPoint]*24 {
-				s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
-				nextStopPoint++
-			}
-
-			if i > 0 {
-				totalStats.TotalVariance = totalStats.CombineVariance(s.Buckets[currentIndex].Data)
-			} else {
+			if totalStats.TotalVariance == 0 {
 				totalStats.TotalVariance = s.Buckets[currentIndex].Data.TotalVariance
+			} else {
+				totalStats.TotalVariance = totalStats.CombineVariance(s.Buckets[currentIndex].Data)
 			}
 
 			totalStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
@@ -410,50 +450,15 @@ func (s *CGMStats) CalculateSummary() {
 					dayCounted = true
 				}
 			}
-		}
 
-		// only add to offset stats when primary stop point is ahead of offset
-		if nextStopPoint > nextOffsetStopPoint && len(stopPoints) > nextOffsetStopPoint {
-			if i == stopPoints[nextOffsetStopPoint]*24*2 {
-				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalOffsetStats)
-				nextOffsetStopPoint++
-				totalOffsetStats = &CGMTotalStats{}
-				totalOffsetStats.TotalVariance = s.Buckets[currentIndex].Data.TotalVariance
-			} else {
-				totalOffsetStats.TotalVariance = totalOffsetStats.CombineVariance(s.Buckets[currentIndex].Data)
+			// end of day, reset day counting flag
+			if i > 0 && i%24 == 0 {
+				dayCounted = false
 			}
 
-			totalOffsetStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
-			totalOffsetStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
-
-			totalOffsetStats.LowMinutes += s.Buckets[currentIndex].Data.LowMinutes
-			totalOffsetStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
-
-			totalOffsetStats.VeryLowMinutes += s.Buckets[currentIndex].Data.VeryLowMinutes
-			totalOffsetStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
-
-			totalOffsetStats.HighMinutes += s.Buckets[currentIndex].Data.HighMinutes
-			totalOffsetStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
-
-			totalOffsetStats.VeryHighMinutes += s.Buckets[currentIndex].Data.VeryHighMinutes
-			totalOffsetStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
-
-			totalOffsetStats.ExtremeHighMinutes += s.Buckets[currentIndex].Data.ExtremeHighMinutes
-			totalOffsetStats.ExtremeHighRecords += s.Buckets[currentIndex].Data.ExtremeHighRecords
-
-			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
-			totalOffsetStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
-			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
-
-			totalOffsetStats.TotalVariance += s.Buckets[currentIndex].Data.TotalVariance
-
-			if s.Buckets[currentIndex].Data.TotalRecords > 0 {
-				totalOffsetStats.HoursWithData++
-
-				if !offsetDayCounted {
-					totalOffsetStats.DaysWithData++
-					offsetDayCounted = true
-				}
+			if i == stopPoints[nextStopPoint]*24 {
+				s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
+				nextStopPoint++
 			}
 		}
 	}

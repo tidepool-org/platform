@@ -11,7 +11,7 @@ github.com/apapsch/go-jsonmerge/v2
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/aws/aws-sdk-go v1.54.4
+# github.com/aws/aws-sdk-go v1.54.11
 ## explicit; go 1.19
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -156,7 +156,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240618054019-d3b898a103f8
+# github.com/google/pprof v0.0.0-20240625030939-27f56978b8b0
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/google/uuid v1.6.0
@@ -267,6 +267,9 @@ github.com/modern-go/reflect2
 # github.com/montanaflynn/stats v0.7.1
 ## explicit; go 1.13
 github.com/montanaflynn/stats
+# github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+## explicit
+github.com/munnerz/goautoneg
 # github.com/oapi-codegen/runtime v1.1.1
 ## explicit; go 1.20
 github.com/oapi-codegen/runtime
@@ -330,10 +333,9 @@ github.com/prometheus/client_golang/prometheus/testutil/promlint/validations
 # github.com/prometheus/client_model v0.6.1
 ## explicit; go 1.19
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.54.0
+# github.com/prometheus/common v0.55.0
 ## explicit; go 1.20
 github.com/prometheus/common/expfmt
-github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.15.1
 ## explicit; go 1.20
@@ -352,7 +354,7 @@ github.com/rinchsan/device-check-go
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/tidepool-org/clinic/client v0.0.0-20240613043638-0fb48115803f
+# github.com/tidepool-org/clinic/client v0.0.0-20240629033848-f5b71ae3132d
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
@@ -393,7 +395,7 @@ github.com/xdg/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76
 ## explicit; go 1.22
 github.com/youmark/pkcs8
-# go.mongodb.org/mongo-driver v1.15.1
+# go.mongodb.org/mongo-driver v1.16.0
 ## explicit; go 1.18
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -449,7 +451,7 @@ go.uber.org/dig/internal/digerror
 go.uber.org/dig/internal/digreflect
 go.uber.org/dig/internal/dot
 go.uber.org/dig/internal/graph
-# go.uber.org/fx v1.22.0
+# go.uber.org/fx v1.22.1
 ## explicit; go 1.20
 go.uber.org/fx
 go.uber.org/fx/fxevent
@@ -586,12 +588,12 @@ gonum.org/v1/gonum/lapack/gonum
 gonum.org/v1/gonum/lapack/lapack64
 gonum.org/v1/gonum/mat
 gonum.org/v1/gonum/stat
-# google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4
+# google.golang.org/genproto/googleapis/api v0.0.0-20240624140628-dc46fd24d27d
 ## explicit; go 1.20
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d
 ## explicit; go 1.20
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.64.0

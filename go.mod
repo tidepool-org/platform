@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/IBM/sarama v1.43.2
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.54.4
+	github.com/aws/aws-sdk-go v1.54.11
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -20,13 +20,13 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240613043638-0fb48115803f
+	github.com/tidepool-org/clinic/client v0.0.0-20240629033848-f5b71ae3132d
 	github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
 	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 	github.com/urfave/cli v1.22.15
-	go.mongodb.org/mongo-driver v1.15.1
-	go.uber.org/fx v1.22.0
+	go.mongodb.org/mongo-driver v1.16.0
+	go.uber.org/fx v1.22.1
 	golang.org/x/crypto v0.24.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
@@ -58,7 +58,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20240618054019-d3b898a103f8 // indirect
+	github.com/google/pprof v0.0.0-20240625030939-27f56978b8b0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -76,11 +76,12 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
+	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.54.0 // indirect
+	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/radovskyb/watcher v1.0.7 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
@@ -99,8 +100,8 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240624140628-dc46fd24d27d // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

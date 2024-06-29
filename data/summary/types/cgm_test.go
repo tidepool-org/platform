@@ -1109,6 +1109,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 
@@ -1371,6 +1372,7 @@ var _ = Describe("CGM Summary", func() {
 				}
 			})
 
+			//
 			//It("Returns correct record count when given single buckets in strange places", func() {
 			//	userCGMSummary = types.Create[*types.CGMStats](userId)
 			//
@@ -1517,7 +1519,6 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct SD/CV for stats 1d", func() {
 				var targetSD float64
 				userCGMSummary = types.Create[*types.CGMStats](userId)
-				// this test will fail if hours is ever greater than the final period, requested SD is not perfect
 				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24, 6, 20)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
@@ -1528,10 +1529,38 @@ var _ = Describe("CGM Summary", func() {
 
 				for _, period := range periodKeys {
 					By(fmt.Sprintf("checking period %s", period))
-					// the range for this value is quite large, as the result is still RNG, we check the precise result in the final period
 					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
 					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
 				}
+			})
+
+			It("Returns offset SD/CV for stats 1d", func() {
+				var targetSD float64
+				var targetSDNew float64
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				By(fmt.Sprintf("checking period %s", periodKeys[0]))
+				By(fmt.Sprintf("records %d", *userCGMSummary.Stats.Periods[periodKeys[0]].TotalRecords))
+				By(fmt.Sprintf("offset records %d", *userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].TotalRecords))
+				Expect(userCGMSummary.Stats.Periods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+				Expect(userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", 0, 0.00001))
+
+				// now we move the data 24h forward and check that 1d offset contains the previous SD
+				dataSetCGMData, targetSDNew = NewDataSetCGMVariance(datumTime.Add(24*time.Hour), 24, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				By(fmt.Sprintf("checking offset period %s", periodKeys[0]))
+				By(fmt.Sprintf("records %d", *userCGMSummary.Stats.Periods[periodKeys[0]].TotalRecords))
+				By(fmt.Sprintf("offset records %d", *userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].TotalRecords))
+				Expect(userCGMSummary.Stats.Periods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", targetSDNew, 0.00001))
+				Expect(userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
 			})
 
 			It("Returns correct SD/CV for stats 7d", func() {
@@ -1548,7 +1577,6 @@ var _ = Describe("CGM Summary", func() {
 
 				for _, period := range periodKeys[1:] {
 					By(fmt.Sprintf("checking period %s", period))
-					// the range for this value is quite large, as the result is still RNG, we check the precise result in the final period
 					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
 					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
 				}
@@ -1557,7 +1585,6 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct SD/CV for stats 14d", func() {
 				var targetSD float64
 				userCGMSummary = types.Create[*types.CGMStats](userId)
-				// this test will fail if hours is ever greater than the final period, requested SD is not perfect
 				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24*14, 6, 20)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
@@ -1568,7 +1595,6 @@ var _ = Describe("CGM Summary", func() {
 
 				for _, period := range periodKeys[2:] {
 					By(fmt.Sprintf("checking period %s", period))
-					// the range for this value is quite large, as the result is still RNG, we check the precise result in the final period
 					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
 					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
 				}
@@ -1577,7 +1603,6 @@ var _ = Describe("CGM Summary", func() {
 			It("Returns correct SD/CV for stats 30d", func() {
 				var targetSD float64
 				userCGMSummary = types.Create[*types.CGMStats](userId)
-				// this test will fail if hours is ever greater than the final period, requested SD is not perfect
 				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24*30, 6, 20)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
@@ -1588,7 +1613,6 @@ var _ = Describe("CGM Summary", func() {
 
 				for _, period := range periodKeys[3:] {
 					By(fmt.Sprintf("checking period %s", period))
-					// the range for this value is quite large, as the result is still RNG, we check the precise result in the final period
 					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
 					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
 				}
@@ -1596,7 +1620,6 @@ var _ = Describe("CGM Summary", func() {
 
 			It("Returns correct total days and hours for stats", func() {
 				userCGMSummary = types.Create[*types.CGMStats](userId)
-				// this test will fail if hours is ever greater than the final period, requested SD is not perfect
 				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 25, inTargetBloodGlucose)
 				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
 
@@ -1631,6 +1654,25 @@ var _ = Describe("CGM Summary", func() {
 					}
 					Expect(userCGMSummary.Stats.Periods[period].HoursWithData).To(Equal(expectHours))
 					Expect(userCGMSummary.Stats.Periods[period].DaysWithData).To(Equal(expectDays))
+				}
+			})
+
+			It("Returns correct total days and hours for offset periods", func() {
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 24*60, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				for i, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
+					Expect(userCGMSummary.Stats.Periods[period].DaysWithData).To(Equal(periodInts[i]))
+					Expect(userCGMSummary.Stats.Periods[period].HoursWithData).To(Equal(24 * periodInts[i]))
+
+					By(fmt.Sprintf("checking offset period %s", period))
+					Expect(userCGMSummary.Stats.OffsetPeriods[period].DaysWithData).To(Equal(periodInts[i]))
+					Expect(userCGMSummary.Stats.OffsetPeriods[period].HoursWithData).To(Equal(24 * periodInts[i]))
 				}
 			})
 		})
