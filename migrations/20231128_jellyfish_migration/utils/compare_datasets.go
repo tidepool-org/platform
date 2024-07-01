@@ -33,7 +33,9 @@ func CompareDatasets(a []map[string]interface{}, b []map[string]interface{}) (ma
 		"modifiedTime",
 		"uploadId",
 		"deduplicator",
+		"_deduplicator",
 		"time",
+		"provenance", //provenance.byUserID
 	}
 
 	for _, datum := range b {
