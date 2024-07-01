@@ -19,7 +19,7 @@ const (
 	lowBloodGlucose         = 3.9
 	highBloodGlucose        = 10.0
 	veryHighBloodGlucose    = 13.9
-	extremeHighBloodGlucose = 19.425
+	extremeHighBloodGlucose = 19.4
 	inTargetBloodGlucose    = 5.0
 )
 

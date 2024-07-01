@@ -26,7 +26,7 @@ const (
 	veryLowBloodGlucose     = 3.0
 	highBloodGlucose        = 10.0
 	veryHighBloodGlucose    = 13.9
-	extremeHighBloodGlucose = 19.425
+	extremeHighBloodGlucose = 19.4
 	HoursAgoToKeep          = 60 * 24
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
