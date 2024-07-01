@@ -6,13 +6,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/tidepool-org/platform/data/summary/fetcher"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-
 	"github.com/tidepool-org/platform/data"
-
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"

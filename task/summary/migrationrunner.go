@@ -2,11 +2,10 @@ package summary
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
-
-	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/sync/errgroup"

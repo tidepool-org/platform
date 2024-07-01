@@ -2,11 +2,11 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
-
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/reporters"
@@ -84,7 +84,7 @@ func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataServic
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if userSummary == nil {
-		responder.Empty(http.StatusNotFound)
+		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetTypeString[A](), id))
 	} else {
 		responder.Data(http.StatusOK, userSummary)
 	}

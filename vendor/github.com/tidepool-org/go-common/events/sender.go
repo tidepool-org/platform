@@ -2,7 +2,7 @@ package events
 
 import (
 	"context"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/cloudevents/sdk-go/protocol/kafka_sarama/v2"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/tidepool-org/go-common/errors"
@@ -40,7 +40,7 @@ func newKafkaCloudEventsProducerWithTopic(config *CloudEventsConfig, topic strin
 	// We are using a sync producer which requires setting the variables below
 	config.SaramaConfig.Producer.Return.Errors = true
 	config.SaramaConfig.Producer.Return.Successes = true
-	
+
 	sender, err := kafka_sarama.NewSender(config.KafkaBrokers, config.SaramaConfig, topic)
 	if err != nil {
 		return nil, err

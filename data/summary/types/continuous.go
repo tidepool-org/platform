@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary/fetcher"
-
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
 )

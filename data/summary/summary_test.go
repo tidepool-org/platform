@@ -4,42 +4,33 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary/reporters"
-
-	"github.com/tidepool-org/platform/data/test"
-
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
-
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-
-	baseDatum "github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"github.com/tidepool-org/platform/data/types/food"
-	"github.com/tidepool-org/platform/pointer"
-
-	"go.mongodb.org/mongo-driver/bson"
-
+	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
+	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/data/test"
+	baseDatum "github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/food"
+	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-
 	userTest "github.com/tidepool-org/platform/user/test"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/data/summary/types"
 )
 
 const units = "mmol/L"
