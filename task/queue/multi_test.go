@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -129,41 +128,49 @@ var _ = Describe("multi queue", func() {
 
 			multi.Start()
 
-			// Wait until completion (up to 10 seconds)
-			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-			ticker := time.NewTicker(200 * time.Millisecond)
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer ticker.Stop()
-				defer cancel()
+			nonTerminalStates := []string{task.TaskStatePending, task.TaskStateRunning}
 
-				for {
-					select {
-					case <-tCtx.Done():
-						return
-					case <-ticker.C:
-						state := task.TaskStatePending
+			// Wait until completion (up to 15 seconds)
+			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+			defer cancel()
+
+			ticker := time.NewTicker(200 * time.Millisecond)
+			defer ticker.Stop()
+
+		loop:
+			for {
+				select {
+				case <-tCtx.Done():
+					break loop
+				case <-ticker.C:
+					nonTerminatedTasks := 0
+					for _, state := range nonTerminalStates {
 						pending, err := str.NewTaskRepository().ListTasks(ctx, &task.TaskFilter{
 							State: &state,
 						}, &page.Pagination{
 							Page: 0,
 							Size: 10,
 						})
-						if err == nil && len(pending) == 0 {
-							return
-						}
 						Expect(err).ToNot(HaveOccurred())
+						nonTerminatedTasks += len(pending)
+					}
+					if nonTerminatedTasks == 0 {
+						break loop
 					}
 				}
-			}()
-			wg.Wait()
-
-			for _, runner := range runners {
-				// Check all tasks were processed
-				Expect(runner.GetCount()).To(Equal(tasksPerType))
 			}
+
+			expected := map[string]int{}
+			for _, typ := range types {
+				expected[typ] = tasksPerType
+			}
+			results := map[string]int{}
+			for _, runner := range runners {
+				results[runner.GetRunnerType()] = runner.GetCount()
+			}
+
+			Expect(results).To(Equal(expected))
+
 			for _, runner := range expectedNoopRunners {
 				// Check extra runners didn't do any work
 				Expect(runner.GetCount()).To(Equal(0))
