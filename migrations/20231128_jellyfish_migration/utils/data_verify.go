@@ -180,6 +180,7 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 			return err
 		}
 
+		log.Println("TYPE: ", dType)
 		for _, v := range differences {
 			log.Println(v)
 		}
