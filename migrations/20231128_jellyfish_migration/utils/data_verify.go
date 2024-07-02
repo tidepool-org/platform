@@ -187,7 +187,7 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 		"client.private.blobId": bson.M{"$exists": true},
 	}, &options.FindOptions{
 		Sort:       bson.D{{"deviceId", 1}, {"time", 1}},
-		Projection: bson.M{"_id": 0, "deviceId": 1, "deviceManufacturers": 1, "client.private.blobId": 1},
+		Projection: bson.M{"_id": 0, "deviceId": 1, "blobId": "$client.private.blobId"},
 	})
 	if err != nil {
 		return nil, err
