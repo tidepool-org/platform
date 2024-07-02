@@ -42,7 +42,6 @@ func main() {
 	defer cancel()
 	verifier := NewVerifier(ctx)
 	verifier.RunAndExit()
-	log.Println("finished verification")
 }
 
 func NewVerifier(ctx context.Context) *Verify {
@@ -69,13 +68,24 @@ func (m *Verify) RunAndExit() {
 		defer m.client.Disconnect(m.ctx)
 
 		if m.config.findBlobs {
-			if ids, err := m.verificationUtil.FetchBlobIDs(); err != nil {
-				return err
-			} else {
-				for i, v := range ids {
-					log.Printf("%d - %v", i, v)
-				}
+			m.verificationUtil, err = utils.NewVerifier(
+				m.ctx,
+				m.client.Database("data").Collection("deviceDataSets"),
+			)
+
+			if err != nil {
+				return fmt.Errorf("unable to create verification utils : %w", err)
 			}
+
+			ids, err := m.verificationUtil.FetchBlobIDs()
+			if err != nil {
+				return err
+			}
+			log.Println("BLOBS:")
+			for i, v := range ids {
+				log.Printf("%d - %v", i, v)
+			}
+
 			return nil
 		}
 
