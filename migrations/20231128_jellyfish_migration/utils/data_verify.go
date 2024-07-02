@@ -111,7 +111,7 @@ func (m *DataVerify) fetchDataSet(uploadID string) ([]map[string]interface{}, er
 	dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
 		"uploadId": uploadID,
 	}, &options.FindOptions{
-		Sort: bson.M{"time": 1, "type": 1},
+		Sort: bson.D{{Key: "time", Value: 1}, {Key: "type", Value: -1}},
 	})
 	if err != nil {
 		return nil, err
