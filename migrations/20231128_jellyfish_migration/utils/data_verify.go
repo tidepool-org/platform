@@ -20,7 +20,20 @@ type DataVerify struct {
 
 func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}) ([]string, error) {
 
-	batch := 100
+	if len(platformData) != len(jellyfishData) {
+		return nil, fmt.Errorf("datasets mismatch platform (%d) vs jellyfish (%d)", len(platformData), len(jellyfishData))
+	}
+
+	quater := len(platformData) / 4
+
+	batchStarts := []int{
+		0,
+		quater,
+		quater * 2,
+		quater * 3,
+	}
+
+	batch := 20
 	differences := []string{}
 
 	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) error {
@@ -74,16 +87,28 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 		return nil
 	}
 
-	for i := 0; i < len(platformData); i += batch {
-		j := i + batch
+	for _, startAt := range batchStarts {
+		j := startAt + batch
+
 		if j > len(platformData) {
 			j = len(platformData)
 		}
-		if err := processBatch(platformData[i:j], jellyfishData[i:j]); err != nil {
+		if err := processBatch(platformData[startAt:j], jellyfishData[startAt:j]); err != nil {
 			return nil, err
 		}
 
 	}
+
+	// for i := 0; i < len(platformData); i += batch {
+	// 	j := i + batch
+	// 	if j > len(platformData) {
+	// 		j = len(platformData)
+	// 	}
+	// 	if err := processBatch(platformData[i:j], jellyfishData[i:j]); err != nil {
+	// 		return nil, err
+	// 	}
+
+	// }
 	return differences, nil
 
 }
