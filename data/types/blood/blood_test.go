@@ -128,5 +128,15 @@ var _ = Describe("Blood", func() {
 				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, *datum.Units, strconv.FormatFloat(*datum.Value, 'f', -1, 64)}))
 			})
 		})
+
+		Context("LegacyIdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := dataTypesBloodTest.NewBlood()
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+			})
+		})
+
 	})
 })

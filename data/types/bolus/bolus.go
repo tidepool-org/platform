@@ -79,3 +79,7 @@ func (b *Bolus) IdentityFields() ([]string, error) {
 
 	return append(identityFields, b.SubType), nil
 }
+
+func (b *Bolus) LegacyIdentityFields() ([]string, error) {
+	return types.GetLegacyIdentityFields(&b.Base, types.TypeDeviceIDTimeFormat, &types.LegacyIdentityCustomField{Value: b.SubType, Name: "sub type"})
+}

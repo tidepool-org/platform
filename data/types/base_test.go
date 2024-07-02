@@ -966,6 +966,88 @@ var _ = Describe("Base", func() {
 			})
 		})
 
+		Context("LegacyIdentityFields", func() {
+
+			var datum *types.Base
+
+			BeforeEach(func() {
+				datum = dataTypesTest.RandomBase()
+			})
+
+			It("returns error if not implemented", func() {
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("function must be implemented on data type"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			Context("GetLegacyIdentityFields", func() {
+
+				It("returns error if type is empty", func() {
+					datum.Type = ""
+					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
+					Expect(err).To(MatchError("type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is missing", func() {
+					datum.DeviceID = nil
+					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
+					Expect(err).To(MatchError("device id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is empty", func() {
+					datum.DeviceID = pointer.FromString("")
+					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
+					Expect(err).To(MatchError("device id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is missing", func() {
+					datum.Time = nil
+					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
+					Expect(err).To(MatchError("time is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is empty", func() {
+					datum.Time = &time.Time{}
+					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
+					Expect(err).To(MatchError("time is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if extra is empty", func() {
+					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, &types.LegacyIdentityCustomField{Value: "", Name: "delivery type"})
+					Expect(err).To(MatchError("delivery type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				Context("with TypeDeviceIDTimeFormat", func() {
+					It("returns the expected legacy identity fields", func() {
+						identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeDeviceIDTimeFormat, nil)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(identityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+					})
+				})
+
+				Context("with TypeTimeDeviceIDFormat", func() {
+					It("returns the expected legacy identity fields", func() {
+						identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(identityFields).To(Equal([]string{datum.Type, (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
+					})
+				})
+				Context("with LegacyIdentityCustomField", func() {
+					It("returns the expected legacy identity fields", func() {
+						identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, &types.LegacyIdentityCustomField{Value: "some-sub-type", Name: "sub type"})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(identityFields).To(Equal([]string{datum.Type, "some-sub-type", (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
+					})
+				})
+			})
+		})
+
 		Context("GetPayload", func() {
 			It("gets the payload", func() {
 				Expect(datum.GetPayload()).To(Equal(datum.Payload))

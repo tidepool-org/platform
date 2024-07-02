@@ -1362,5 +1362,14 @@ var _ = Describe("Physical", func() {
 				),
 			)
 		})
+
+		Context("LegacyIdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := NewPhysical()
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+			})
+		})
 	})
 })

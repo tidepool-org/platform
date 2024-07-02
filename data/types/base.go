@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -25,6 +26,7 @@ const (
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339Nano
+	LegacyFieldTimeFormat   = "2006-01-02T15:04:05.999+07:00"
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionInternalMinimum  = 0
@@ -261,6 +263,62 @@ func (b *Base) IdentityFields() ([]string, error) {
 	}
 
 	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+}
+
+type LegacyIdentityFormat int
+
+const (
+	_ LegacyIdentityFormat = iota
+	TypeDeviceIDTimeFormat
+	TypeTimeDeviceIDFormat
+)
+
+type LegacyIdentityCustomField struct {
+	Value string
+	Name  string
+}
+
+func GetLegacyIdentityFields(base *Base, format LegacyIdentityFormat, opt *LegacyIdentityCustomField) ([]string, error) {
+	if base.Type == "" {
+		return nil, errors.New("type is empty")
+	}
+
+	if base.DeviceID == nil {
+		return nil, errors.New("device id is missing")
+	}
+
+	if *base.DeviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
+
+	if base.Time == nil {
+		return nil, errors.New("time is missing")
+	}
+
+	if (*base.Time).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+
+	if opt != nil {
+		if opt.Value == "" {
+			return nil, fmt.Errorf("%s is empty", opt.Name)
+		}
+	}
+
+	if format == TypeDeviceIDTimeFormat {
+		if opt != nil {
+			return []string{base.Type, opt.Value, *base.DeviceID, (*base.Time).Format(LegacyFieldTimeFormat)}, nil
+		}
+		return []string{base.Type, *base.DeviceID, (*base.Time).Format(LegacyFieldTimeFormat)}, nil
+	}
+	if opt != nil {
+		return []string{base.Type, opt.Value, (*base.Time).Format(LegacyFieldTimeFormat), *base.DeviceID}, nil
+	}
+	return []string{base.Type, (*base.Time).Format(LegacyFieldTimeFormat), *base.DeviceID}, nil
+}
+
+func (b *Base) LegacyIdentityFields() ([]string, error) {
+	return nil, errors.New("function must be implemented on data type")
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

@@ -43,3 +43,7 @@ func (b *Blood) IdentityFields() ([]string, error) {
 
 	return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil
 }
+
+func (b *Blood) LegacyIdentityFields() ([]string, error) {
+	return types.GetLegacyIdentityFields(&b.Base, types.TypeDeviceIDTimeFormat, nil)
+}

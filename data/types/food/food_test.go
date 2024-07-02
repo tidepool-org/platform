@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
@@ -430,6 +431,15 @@ var _ = Describe("Food", func() {
 					func(datum *dataTypesFood.Food) { datum.Nutrition = nil },
 				),
 			)
+		})
+
+		Context("LegacyIdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := dataTypesFoodTest.RandomFood(3)
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+			})
 		})
 	})
 })

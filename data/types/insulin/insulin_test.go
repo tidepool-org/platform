@@ -166,5 +166,14 @@ var _ = Describe("Insulin", func() {
 				),
 			)
 		})
+
+		Context("LegacyIdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := NewInsulin()
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+			})
+		})
 	})
 })
