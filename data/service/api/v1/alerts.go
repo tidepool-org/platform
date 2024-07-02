@@ -115,8 +115,13 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	a := &alerts.Alerts{}
-	if err := request.DecodeRequestBody(r.Request, a); err != nil {
+	incomingCfg := &alerts.Config{}
+	var bodyReceiver interface{} = &incomingCfg.Alerts
+	if authDetails.IsService() && authDetails.UserID() == "" {
+		// Accept upload id only from services.
+		bodyReceiver = incomingCfg
+	}
+	if err := request.DecodeRequestBody(r.Request, bodyReceiver); err != nil {
 		dCtx.RespondWithError(platform.ErrorJSONMalformed())
 		return
 	}
@@ -127,7 +132,12 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	cfg := &alerts.Config{UserID: path.UserID, FollowedUserID: path.FollowedUserID, Alerts: *a}
+	cfg := &alerts.Config{
+		UserID:         path.UserID,
+		FollowedUserID: path.FollowedUserID,
+		UploadID:       incomingCfg.UploadID,
+		Alerts:         incomingCfg.Alerts,
+	}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		lgr.WithError(err).Error("upserting alerts config")
