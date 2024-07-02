@@ -10,6 +10,11 @@ import (
 
 const (
 	Type = "bolus"
+
+	DeliveryContextDevice       = "device"
+	DeliveryContextAlgorithm    = "algorithm"
+	DeliveryContextRemote       = "remote"
+	DeliveryContextUndetermined = "undetermined"
 )
 
 type Bolus struct {
@@ -17,12 +22,17 @@ type Bolus struct {
 
 	SubType string `json:"subType,omitempty" bson:"subType,omitempty"`
 
+	DeliveryContext    *string              `json:"deliveryContext,omitempty" bson:"deliveryContext,omitempty"`
 	InsulinFormulation *insulin.Formulation `json:"insulinFormulation,omitempty" bson:"insulinFormulation,omitempty"`
 }
 
 type Meta struct {
 	Type    string `json:"type,omitempty"`
 	SubType string `json:"subType,omitempty"`
+}
+
+func DeliveryContext() []string {
+	return []string{DeliveryContextDevice, DeliveryContextAlgorithm, DeliveryContextRemote, DeliveryContextUndetermined}
 }
 
 func New(subType string) Bolus {
@@ -41,7 +51,7 @@ func (b *Bolus) Meta() interface{} {
 
 func (b *Bolus) Parse(parser structure.ObjectParser) {
 	b.Base.Parse(parser)
-
+	b.DeliveryContext = parser.String("deliveryContext")
 	b.InsulinFormulation = insulin.ParseFormulation(parser.WithReferenceObjectParser("insulinFormulation"))
 }
 
@@ -56,6 +66,10 @@ func (b *Bolus) Validate(validator structure.Validator) {
 
 	if b.InsulinFormulation != nil {
 		b.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
+	}
+
+	if b.DeliveryContext != nil {
+		validator.String("deliveryContext", b.DeliveryContext).Exists().OneOf(DeliveryContext()...)
 	}
 }
 
