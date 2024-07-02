@@ -101,28 +101,37 @@ func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, err
 	return m, nil
 }
 
-func (m *DataVerify) fetchDataSet(uploadID string) ([]map[string]interface{}, error) {
+func (m *DataVerify) fetchDataSet(uploadID string) (map[string][]map[string]interface{}, error) {
 	if m.dataC == nil {
 		return nil, errors.New("missing data collection")
 	}
 
-	dataset := []map[string]interface{}{}
+	dataTypes := []string{"cbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
 
-	dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
-		"uploadId": uploadID,
-	}, &options.FindOptions{
-		Sort: bson.D{{Key: "time", Value: 1}, {Key: "type", Value: -1}},
-	})
-	if err != nil {
-		return nil, err
-	}
-	defer dDataCursor.Close(m.ctx)
+	typeSet := map[string][]map[string]interface{}{}
 
-	if err := dDataCursor.All(m.ctx, &dataset); err != nil {
-		return nil, err
+	for _, dType := range dataTypes {
+
+		dset := []map[string]interface{}{}
+
+		dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
+			"uploadId": uploadID,
+			"type":     dType,
+		}, &options.FindOptions{
+			Sort: bson.M{"time": 1},
+		})
+		if err != nil {
+			return nil, err
+		}
+		defer dDataCursor.Close(m.ctx)
+
+		if err := dDataCursor.All(m.ctx, &dset); err != nil {
+			return nil, err
+		}
+		log.Printf("got dataset [%s][%s][%d] results", uploadID, dType, len(dset))
+		typeSet[dType] = dset
 	}
-	log.Printf("got dataset [%s][%d] results", uploadID, len(dataset))
-	return dataset, nil
+	return typeSet, nil
 }
 
 func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
@@ -163,13 +172,17 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 	}
 
 	log.Printf("Compare platform[%s] vs jellyfish[%s]", platformUploadID, jellyfishUploadID)
-	differences, err := CompareDatasets(platformDataset, jellyfishDataset)
-	if err != nil {
-		return err
-	}
 
-	for _, v := range differences {
-		log.Println(v)
+	for dType, jfSet := range jellyfishDataset {
+
+		differences, err := CompareDatasets(platformDataset[dType], jfSet)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range differences {
+			log.Println(v)
+		}
 	}
 
 	return nil
