@@ -25,7 +25,7 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 	}
 
 	// small batches or the diff takes to long
-	var processBatch = func(diffs []string, batchPlatform, batchJellyfish []map[string]interface{}) error {
+	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) ([]string, error) {
 
 		cleanedJellyfish := []map[string]interface{}{}
 		cleanedPlatform := []map[string]interface{}{}
@@ -67,12 +67,13 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 
 		changelog, err := diff.Diff(cleanedPlatform, cleanedJellyfish, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
 		if err != nil {
-			return err
+			return nil, err
 		}
+		diffs := []string{}
 		for _, change := range changelog {
 			diffs = append(diffs, fmt.Sprintf("%s => platform:[%v] jellyfish:[%v]", strings.Join(change.Path, "."), change.From, change.To))
 		}
-		return nil
+		return diffs, nil
 	}
 
 	var processAllData = func() ([]string, error) {
@@ -83,8 +84,10 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 			if j > len(platformData) {
 				j = len(platformData)
 			}
-			if err := processBatch(differences, platformData[i:j], jellyfishData[i:j]); err != nil {
+			if batchDiff, err := processBatch(platformData[i:j], jellyfishData[i:j]); err != nil {
 				return nil, err
+			} else {
+				differences = append(differences, batchDiff...)
 			}
 		}
 		return differences, nil
@@ -110,8 +113,10 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 			if j > len(platformData) {
 				j = len(platformData)
 			}
-			if err := processBatch(differences, platformData[startAt:j], jellyfishData[startAt:j]); err != nil {
+			if batchDiff, err := processBatch(platformData[startAt:j], jellyfishData[startAt:j]); err != nil {
 				return nil, err
+			} else {
+				differences = append(differences, batchDiff...)
 			}
 		}
 		return differences, nil
