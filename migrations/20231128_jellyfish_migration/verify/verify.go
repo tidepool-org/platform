@@ -23,16 +23,16 @@ type Verify struct {
 }
 
 type config struct {
-	mongoURI    string
-	ref         string
-	uploadOneID string
-	uploadTwoID string
+	mongoURI          string
+	findBlobs         bool
+	platformUploadID  string
+	jellyfishUploadID string
 }
 
 const MongoURIFlag = "uri"
-const UploadIDOneFlag = "upload-id-one"
-const UploadIDTwoFlag = "upload-id-two"
-const ReferenceFlag = "reference"
+const PlatformUploadIDFlag = "upload-id-platform"
+const JellyfishUploadIDFlag = "upload-id-jellyfish"
+const FindBlobFlag = "find-blobs"
 
 func main() {
 	ctx := context.Background()
@@ -66,6 +66,17 @@ func (m *Verify) RunAndExit() {
 		}
 		defer m.client.Disconnect(m.ctx)
 
+		if m.config.findBlobs {
+			if ids, err := m.verificationUtil.FetchBlobIDs(); err != nil {
+				return err
+			} else {
+				for i, v := range ids {
+					log.Printf("%d - %v", i, v)
+				}
+			}
+			return nil
+		}
+
 		m.verificationUtil, err = utils.NewVerifier(
 			m.ctx,
 			m.client.Database("data").Collection("deviceData"),
@@ -75,7 +86,7 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to create verification utils : %w", err)
 		}
 
-		err = m.verificationUtil.Verify(m.config.ref, m.config.uploadOneID, m.config.uploadTwoID)
+		err = m.verificationUtil.Verify("ref", m.config.platformUploadID, m.config.jellyfishUploadID)
 		if err != nil {
 			log.Printf("error running verify : %s", err.Error())
 		}
@@ -101,22 +112,21 @@ func (m *Verify) Initialize() error {
 	}
 	m.CLI().Flags = append(m.CLI().Flags,
 		cli.StringFlag{
-			Name:        UploadIDOneFlag,
-			Usage:       "uploadID of the first dataset",
-			Destination: &m.config.uploadOneID,
-			Required:    true,
+			Name:        PlatformUploadIDFlag,
+			Usage:       "uploadID of the first platform dataset",
+			Destination: &m.config.platformUploadID,
+			Required:    false,
 		},
 		cli.StringFlag{
-			Name:        UploadIDTwoFlag,
-			Usage:       "uploadID of the second dataset",
-			Destination: &m.config.uploadTwoID,
-			Required:    true,
+			Name:        JellyfishUploadIDFlag,
+			Usage:       "uploadID of the second jellyfish dataset",
+			Destination: &m.config.jellyfishUploadID,
+			Required:    false,
 		},
-		cli.StringFlag{
-			Name:        ReferenceFlag,
-			Usage:       "comparison reference",
-			Value:       "todo-reference",
-			Destination: &m.config.ref,
+		cli.BoolFlag{
+			Name:        FindBlobFlag,
+			Usage:       "find all blobs for running data verifcation with",
+			Destination: &m.config.findBlobs,
 			Required:    false,
 		},
 		cli.StringFlag{

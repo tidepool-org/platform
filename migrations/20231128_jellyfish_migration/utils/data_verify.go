@@ -18,15 +18,15 @@ type DataVerify struct {
 	dataC *mongo.Collection
 }
 
-func CompareDatasets(setA []map[string]interface{}, setB []map[string]interface{}) ([]string, error) {
+func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}) ([]string, error) {
 
 	batch := 100
 	differences := []string{}
 
-	var processBatch = func(batchA, batchB []map[string]interface{}) error {
+	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) error {
 
-		cleanedA := []map[string]interface{}{}
-		cleanedB := []map[string]interface{}{}
+		cleanedJellyfish := []map[string]interface{}{}
+		cleanedPlatform := []map[string]interface{}{}
 
 		doNotCompare := []string{
 			"_active",
@@ -43,25 +43,26 @@ func CompareDatasets(setA []map[string]interface{}, setB []map[string]interface{
 			"uploadId",
 			"deduplicator",
 			"_deduplicator",
+			"payload",
 			"time",
 			"provenance", //provenance.byUserID
 		}
 
-		for _, datum := range batchA {
+		for _, datum := range batchPlatform {
 			for _, key := range doNotCompare {
 				delete(datum, key)
 			}
-			cleanedB = append(cleanedB, datum)
+			cleanedPlatform = append(cleanedPlatform, datum)
 		}
 
-		for _, datum := range batchB {
+		for _, datum := range batchJellyfish {
 			for _, key := range doNotCompare {
 				delete(datum, key)
 			}
-			cleanedA = append(cleanedA, datum)
+			cleanedJellyfish = append(cleanedJellyfish, datum)
 		}
 
-		changelog, err := diff.Diff(cleanedA, cleanedB, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
+		changelog, err := diff.Diff(cleanedPlatform, cleanedJellyfish, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
 		if err != nil {
 			return err
 		}
@@ -72,12 +73,12 @@ func CompareDatasets(setA []map[string]interface{}, setB []map[string]interface{
 		return nil
 	}
 
-	for i := 0; i < len(setA); i += batch {
+	for i := 0; i < len(platformData); i += batch {
 		j := i + batch
-		if j > len(setA) {
-			j = len(setA)
+		if j > len(platformData) {
+			j = len(platformData)
 		}
-		if err := processBatch(setA[i:j], setB[i:j]); err != nil {
+		if err := processBatch(platformData[i:j], jellyfishData[i:j]); err != nil {
 			return nil, err
 		}
 
@@ -110,7 +111,7 @@ func (m *DataVerify) fetchDataSet(uploadID string) ([]map[string]interface{}, er
 	dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
 		"uploadId": uploadID,
 	}, &options.FindOptions{
-		Sort: bson.M{"time": 1},
+		Sort: bson.M{"time": 1, "type": 1},
 	})
 	if err != nil {
 		return nil, err
@@ -124,20 +125,45 @@ func (m *DataVerify) fetchDataSet(uploadID string) ([]map[string]interface{}, er
 	return dataset, nil
 }
 
-func (m *DataVerify) Verify(ref string, a string, b string) error {
+func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
+	if m.dataC == nil {
+		return nil, errors.New("missing data collection")
+	}
 
-	datasetA, err := m.fetchDataSet(a)
+	blobData := []map[string]interface{}{}
+
+	dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
+		"deviceManufacturers":   bson.M{"$in": []string{"Tandem", "Insulet"}},
+		"client.private.blobId": bson.M{"$exists": true},
+	}, &options.FindOptions{
+		Sort:       bson.M{"time": 1},
+		Projection: bson.M{"client.private.blobId": 1, "time": 1, "deviceManufacturers": 1},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer dDataCursor.Close(m.ctx)
+
+	if err := dDataCursor.All(m.ctx, &blobData); err != nil {
+		return nil, err
+	}
+	return blobData, nil
+}
+
+func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string) error {
+
+	platformDataset, err := m.fetchDataSet(platformUploadID)
 	if err != nil {
 		return err
 	}
 
-	datasetB, err := m.fetchDataSet(b)
+	jellyfishDataset, err := m.fetchDataSet(jellyfishUploadID)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Compare [%s] vs [%s]", a, b)
-	differences, err := CompareDatasets(datasetA, datasetB)
+	log.Printf("Compare platform[%s] vs jellyfish[%s]", platformUploadID, jellyfishUploadID)
+	differences, err := CompareDatasets(platformDataset, jellyfishDataset)
 	if err != nil {
 		return err
 	}
