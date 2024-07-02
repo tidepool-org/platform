@@ -27,12 +27,14 @@ type config struct {
 	findBlobs         bool
 	platformUploadID  string
 	jellyfishUploadID string
+	dataTypes         string
 }
 
 const MongoURIFlag = "uri"
 const PlatformUploadIDFlag = "upload-id-platform"
 const JellyfishUploadIDFlag = "upload-id-jellyfish"
 const FindBlobFlag = "find-blobs"
+const DataTypesFlag = "data-types"
 
 func main() {
 	ctx := context.Background()
@@ -86,7 +88,7 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to create verification utils : %w", err)
 		}
 
-		err = m.verificationUtil.Verify("ref", m.config.platformUploadID, m.config.jellyfishUploadID)
+		err = m.verificationUtil.Verify("ref", m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","))
 		if err != nil {
 			log.Printf("error running verify : %s", err.Error())
 		}
@@ -122,6 +124,13 @@ func (m *Verify) Initialize() error {
 			Usage:       "uploadID of the second jellyfish dataset",
 			Destination: &m.config.jellyfishUploadID,
 			Required:    false,
+		},
+		cli.StringFlag{
+			Name:        DataTypesFlag,
+			Usage:       "comma seperated list of data types to compare",
+			Destination: &m.config.dataTypes,
+			Required:    false,
+			Value:       strings.Join(utils.DatasetTypes, ","),
 		},
 		cli.BoolFlag{
 			Name:        FindBlobFlag,

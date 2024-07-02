@@ -101,12 +101,12 @@ func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, err
 	return m, nil
 }
 
-func (m *DataVerify) fetchDataSet(uploadID string) (map[string][]map[string]interface{}, error) {
+var DatasetTypes = []string{"cbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
+
+func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
 	if m.dataC == nil {
 		return nil, errors.New("missing data collection")
 	}
-
-	dataTypes := []string{"cbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
 
 	typeSet := map[string][]map[string]interface{}{}
 
@@ -159,14 +159,18 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 	return blobData, nil
 }
 
-func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string) error {
+func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
 
-	platformDataset, err := m.fetchDataSet(platformUploadID)
+	if len(dataTyes) == 0 {
+		dataTyes = DatasetTypes
+	}
+
+	platformDataset, err := m.fetchDataSet(platformUploadID, dataTyes)
 	if err != nil {
 		return err
 	}
 
-	jellyfishDataset, err := m.fetchDataSet(jellyfishUploadID)
+	jellyfishDataset, err := m.fetchDataSet(jellyfishUploadID, dataTyes)
 	if err != nil {
 		return err
 	}
@@ -179,10 +183,8 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 		if err != nil {
 			return err
 		}
-
-		log.Println("TYPE: ", dType)
 		for _, v := range differences {
-			log.Println(v)
+			log.Printf("%s: %s", strings.ToUpper(dType), v)
 		}
 	}
 
