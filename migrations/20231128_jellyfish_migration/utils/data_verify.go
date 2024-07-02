@@ -186,7 +186,7 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 		"deviceManufacturers":   bson.M{"$in": []string{"Tandem", "Insulet"}},
 		"client.private.blobId": bson.M{"$exists": true},
 	}, &options.FindOptions{
-		Sort:       bson.D{{"deviceId", 1}, {"time", 1}},
+		Sort:       bson.D{{Key: "deviceId", Value: 1}, {Key: "time", Value: 1}},
 		Projection: bson.M{"_id": 0, "deviceId": 1, "blobId": "$client.private.blobId"},
 	})
 	if err != nil {
