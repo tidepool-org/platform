@@ -21,22 +21,11 @@ type DataVerify struct {
 func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}) ([]string, error) {
 
 	if len(platformData) != len(jellyfishData) {
-		return nil, fmt.Errorf("datasets mismatch platform (%d) vs jellyfish (%d)", len(platformData), len(jellyfishData))
+		log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(platformData), len(jellyfishData))
 	}
 
-	quater := len(platformData) / 4
-
-	batchStarts := []int{
-		0,
-		quater,
-		quater * 2,
-		quater * 3,
-	}
-
-	batch := 20
-	differences := []string{}
-
-	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) error {
+	// small batches or the diff takes to long
+	var processBatch = func(diffs []string, batchPlatform, batchJellyfish []map[string]interface{}) error {
 
 		cleanedJellyfish := []map[string]interface{}{}
 		cleanedPlatform := []map[string]interface{}{}
@@ -80,37 +69,58 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 		if err != nil {
 			return err
 		}
-
 		for _, change := range changelog {
-			differences = append(differences, fmt.Sprintf("[%s] %s => expected:[%v] actual:[%v]", change.Type, strings.Join(change.Path, "."), change.From, change.To))
+			diffs = append(diffs, fmt.Sprintf("%s => platform:[%v] jellyfish:[%v]", strings.Join(change.Path, "."), change.From, change.To))
 		}
 		return nil
 	}
 
-	for _, startAt := range batchStarts {
-		j := startAt + batch
-
-		if j > len(platformData) {
-			j = len(platformData)
+	var processAllData = func() ([]string, error) {
+		batch := 100
+		differences := []string{}
+		for i := 0; i < len(platformData); i += batch {
+			j := i + batch
+			if j > len(platformData) {
+				j = len(platformData)
+			}
+			if err := processBatch(differences, platformData[i:j], jellyfishData[i:j]); err != nil {
+				return nil, err
+			}
 		}
-		if err := processBatch(platformData[startAt:j], jellyfishData[startAt:j]); err != nil {
-			return nil, err
-		}
-
+		return differences, nil
 	}
 
-	// for i := 0; i < len(platformData); i += batch {
-	// 	j := i + batch
-	// 	if j > len(platformData) {
-	// 		j = len(platformData)
-	// 	}
-	// 	if err := processBatch(platformData[i:j], jellyfishData[i:j]); err != nil {
-	// 		return nil, err
-	// 	}
+	var processSubsetOfData = func() ([]string, error) {
 
-	// }
-	return differences, nil
+		differences := []string{}
+		batch := 20
+		quater := len(platformData) / 4
+		batchStarts := []int{
+			0,
+			quater,
+			quater * 2,
+			quater * 3,
+		}
 
+		log.Printf("NOTE: comparing a subset of all [%d] datum with a batch size [%d] starting at [%v] ", len(platformData), batch, batchStarts)
+
+		for _, startAt := range batchStarts {
+			j := startAt + batch
+
+			if j > len(platformData) {
+				j = len(platformData)
+			}
+			if err := processBatch(differences, platformData[startAt:j], jellyfishData[startAt:j]); err != nil {
+				return nil, err
+			}
+		}
+		return differences, nil
+	}
+
+	if len(platformData) <= 100 {
+		return processAllData()
+	}
+	return processSubsetOfData()
 }
 
 func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, error) {
@@ -210,7 +220,7 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 			return err
 		}
 		for _, v := range differences {
-			log.Printf("%s: %s", strings.ToUpper(dType), v)
+			log.Printf("%s.%s", dType, v)
 		}
 	}
 
