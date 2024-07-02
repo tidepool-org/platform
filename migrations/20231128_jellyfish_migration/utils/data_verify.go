@@ -31,21 +31,22 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 		doNotCompare := []string{
 			"_active",
 			"_archivedTime",
-			"_groupId",
-			"_id",
-			"id",
-			"_schemaVersion",
-			"_userId",
-			"_version",
 			"createdTime",
-			"guid",
-			"modifiedTime",
-			"uploadId",
 			"deduplicator",
 			"_deduplicator",
+			"_groupId",
+			"guid",
+			"_id",
+			"id",
+			"modifiedTime",
 			"payload",
+			"provenance",
+			"revision",
+			"_schemaVersion",
 			"time",
-			"provenance", //provenance.byUserID
+			"_userId",
+			"uploadId",
+			"_version",
 		}
 
 		for _, datum := range batchPlatform {
