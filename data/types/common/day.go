@@ -1,6 +1,15 @@
 package common
 
-import "errors"
+import (
+	"errors"
+	"slices"
+	"strings"
+
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
+
+	platformErrors "github.com/tidepool-org/platform/errors"
+)
 
 const (
 	DaySunday    = "sunday"
@@ -64,4 +73,21 @@ func DayIndex(day string) (int, error) {
 	default:
 		return 0, errors.New("invalid day of the week")
 	}
+}
+
+func ErrorValueStringDayNotValid(value string) error {
+	return platformErrors.Preparedf(validator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as a day of the week", value)
+}
+
+func ValidateDayOfWeek(value string) error {
+	if value == "" {
+		return validator.ErrorValueEmpty()
+	} else if !slices.Contains(DaysOfWeek(), strings.ToLower(value)) {
+		return ErrorValueStringDayNotValid(value)
+	}
+	return nil
+}
+
+func DayOfWeekValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateDayOfWeek(value))
 }

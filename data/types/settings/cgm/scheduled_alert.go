@@ -88,7 +88,7 @@ func (s *ScheduledAlert) Parse(parser structure.ObjectParser) {
 
 func (s *ScheduledAlert) Validate(validator structure.Validator) {
 	validator.String("name", s.Name).NotEmpty().LengthLessThanOrEqualTo(ScheduledAlertNameLengthMaximum)
-	validator.StringArray("days", s.Days).Exists().EachOneOf(dataTypesCommon.DaysOfWeek()...).EachUnique()
+	validator.StringArray("days", s.Days).Exists().EachUsing(dataTypesCommon.DayOfWeekValidator).EachUnique()
 	validator.Int("start", s.Start).Exists().InRange(ScheduledAlertStartMinimum, ScheduledAlertStartMaximum)
 	validator.Int("end", s.End).Exists().InRange(ScheduledAlertEndMinimum, ScheduledAlertEndMaximum)
 	if alertsValidator := validator.WithReference("alerts"); s.Alerts != nil {
