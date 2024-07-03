@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/types/common"
+	"github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Day", func() {
@@ -79,6 +80,23 @@ var _ = Describe("Day", func() {
 			Entry("is saturday", "saturday", 7, nil),
 			Entry("is constant saturday", common.DaySaturday, 7, nil),
 			Entry("is an invalid string", "invalid", 0, errors.New("invalid day of the week")),
+		)
+	})
+
+	Context("ValidateDayOfWeek", func() {
+		DescribeTable("return error when invalid",
+			func(day string, expectedErr error) {
+				actualError := common.ValidateDayOfWeek(day)
+				if expectedErr == nil {
+					Expect(actualError).To(BeNil())
+				} else {
+					Expect(actualError.Error()).To(Equal(expectedErr.Error()))
+				}
+			},
+			Entry("ok when same case", "tuesday", nil),
+			Entry("ok when mixed case", "FriDAY", nil),
+			Entry("ok when uppercase", "SUNDAY", nil),
+			Entry("invalid when not a day of the week", "monday2", validator.ErrorValueStringNotOneOf("monday2", common.DaysOfWeek())),
 		)
 	})
 })
