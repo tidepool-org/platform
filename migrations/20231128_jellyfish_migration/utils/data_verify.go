@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 
 	"github.com/r3labs/diff/v3"
@@ -18,11 +19,7 @@ type DataVerify struct {
 	dataC *mongo.Collection
 }
 
-func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}) ([]string, error) {
-
-	if len(platformData) != len(jellyfishData) {
-		log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(platformData), len(jellyfishData))
-	}
+func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}, useSubset bool) ([]string, error) {
 
 	// small batches or the diff takes to long
 	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) ([]string, error) {
@@ -122,10 +119,10 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 		return differences, nil
 	}
 
-	if len(platformData) <= 100 {
-		return processAllData()
+	if useSubset && len(platformData) >= 100 {
+		return processSubsetOfData()
 	}
-	return processSubsetOfData()
+	return processAllData()
 }
 
 func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, error) {
@@ -200,7 +197,7 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 	return blobData, nil
 }
 
-func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
+func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string, useSubset bool) error {
 
 	if len(dataTyes) == 0 {
 		dataTyes = DatasetTypes
@@ -220,7 +217,21 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 
 	for dType, jfSet := range jellyfishDataset {
 
-		differences, err := CompareDatasets(platformDataset[dType], jfSet)
+		pfSet := platformDataset[dType]
+
+		if len(pfSet) != len(jfSet) {
+			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
+			compareDir := fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID)
+			jellyfishPath := filepath.Join(".", "compare", compareDir, fmt.Sprintf("jf_%s.json", jellyfishUploadID))
+			platformPath := filepath.Join(".", "compare", compareDir, fmt.Sprintf("pf_%s.json", platformUploadID))
+			log.Printf("jellyfish data written %s", jellyfishPath)
+			log.Printf("platform data written %s", platformPath)
+			writeFileData(jfSet, jellyfishPath)
+			writeFileData(pfSet, platformPath)
+			continue
+		}
+
+		differences, err := CompareDatasets(pfSet, jfSet, useSubset)
 		if err != nil {
 			return err
 		}

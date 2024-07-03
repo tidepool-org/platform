@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -270,20 +269,22 @@ func (m *DataMigration) writeErrors() {
 		m.groupedErrors = map[string][]ErrorData{}
 	}
 	for group, errors := range m.groupedErrors {
-		f, err := m.createFile("error", group, "%s.log")
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		defer f.Close()
-		for _, data := range errors {
-			errJSON, err := json.Marshal(data)
-			if err != nil {
-				log.Println(err)
-				os.Exit(1)
-			}
-			f.WriteString(string(errJSON) + "\n")
-		}
+		logPath := filepath.Join(".", "error", fmt.Sprintf("%s.log", group))
+		writeFileData(errors, logPath)
+		// f, err := m.createFile("error", group, "%s.log")
+		// if err != nil {
+		// 	log.Println(err)
+		// 	os.Exit(1)
+		// }
+		// defer f.Close()
+		// for _, data := range errors {
+		// 	errJSON, err := json.Marshal(data)
+		// 	if err != nil {
+		// 		log.Println(err)
+		// 		os.Exit(1)
+		// 	}
+		// 	f.WriteString(string(errJSON) + "\n")
+		// }
 		m.groupedErrors[group] = []ErrorData{}
 	}
 }
@@ -294,20 +295,24 @@ func (m *DataMigration) writeAudit() {
 		return
 	}
 	for group, diffs := range m.groupedDiffs {
-		f, err := m.createFile("audit", group, "%s.json")
-		if err != nil {
-			log.Println(err)
-			os.Exit(1)
-		}
-		defer f.Close()
-		for _, data := range diffs {
-			diffJSON, err := json.Marshal(data)
-			if err != nil {
-				log.Println(err)
-				os.Exit(1)
-			}
-			f.WriteString(string(diffJSON) + "\n")
-		}
+
+		logPath := filepath.Join(".", "audit", fmt.Sprintf("%s.json", group))
+		writeFileData(diffs, logPath)
+
+		// f, err := m.createFile("audit", group, "%s.json")
+		// if err != nil {
+		// 	log.Println(err)
+		// 	os.Exit(1)
+		// }
+		// defer f.Close()
+		// for _, data := range diffs {
+		// 	diffJSON, err := json.Marshal(data)
+		// 	if err != nil {
+		// 		log.Println(err)
+		// 		os.Exit(1)
+		// 	}
+		// 	f.WriteString(string(diffJSON) + "\n")
+		// }
 		m.groupedDiffs[group] = []UpdateData{}
 	}
 }
@@ -326,28 +331,28 @@ func (m *DataMigration) writeLastProcessed(itemID string) {
 	}
 }
 
-func (m *DataMigration) createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
+// func (m *DataMigration) createFile(fileType string, dataGroup string, logName string) (*os.File, error) {
 
-	var err error
-	if fileType == "" {
-		err = errors.Join(err, errors.New("missing file type"))
-	}
-	if dataGroup == "" {
-		err = errors.Join(err, errors.New("missing data group"))
-	}
-	if logName == "" {
-		err = errors.Join(err, errors.New("missing log group"))
-	}
-	if err != nil {
-		return nil, err
-	}
+// 	var err error
+// 	if fileType == "" {
+// 		err = errors.Join(err, errors.New("missing file type"))
+// 	}
+// 	if dataGroup == "" {
+// 		err = errors.Join(err, errors.New("missing data group"))
+// 	}
+// 	if logName == "" {
+// 		err = errors.Join(err, errors.New("missing log group"))
+// 	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	logName = fmt.Sprintf(logName, dataGroup)
-	logPath := filepath.Join(".", fileType)
-	err = os.MkdirAll(logPath, os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
+// 	logName = fmt.Sprintf(logName, dataGroup)
+// 	logPath := filepath.Join(".", fileType)
+// 	err = os.MkdirAll(logPath, os.ModePerm)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return os.OpenFile(logPath+"/"+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-}
+// 	return os.OpenFile(logPath+"/"+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+// }

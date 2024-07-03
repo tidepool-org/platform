@@ -25,6 +25,7 @@ type Verify struct {
 type config struct {
 	mongoURI          string
 	findBlobs         bool
+	useSubset         bool
 	platformUploadID  string
 	jellyfishUploadID string
 	dataTypes         string
@@ -35,6 +36,7 @@ const PlatformUploadIDFlag = "upload-id-platform"
 const JellyfishUploadIDFlag = "upload-id-jellyfish"
 const FindBlobFlag = "find-blobs"
 const DataTypesFlag = "data-types"
+const UseSubsetFlag = "use-subset"
 
 func main() {
 	ctx := context.Background()
@@ -98,7 +100,7 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to create verification utils : %w", err)
 		}
 
-		err = m.verificationUtil.Verify("ref", m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","))
+		err = m.verificationUtil.Verify("ref", m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","), m.config.useSubset)
 		if err != nil {
 			log.Printf("error running verify : %s", err.Error())
 		}
@@ -146,6 +148,12 @@ func (m *Verify) Initialize() error {
 			Name:        FindBlobFlag,
 			Usage:       "find all blobs for running data verifcation with",
 			Destination: &m.config.findBlobs,
+			Required:    false,
+		},
+		cli.BoolFlag{
+			Name:        UseSubsetFlag,
+			Usage:       "use a subset of data to compare",
+			Destination: &m.config.useSubset,
 			Required:    false,
 		},
 		cli.StringFlag{

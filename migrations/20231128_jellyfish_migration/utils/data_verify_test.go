@@ -15,14 +15,14 @@ var _ = Describe("CompareDatasets", func() {
 	It("will genterate a list of differences between two datasets", func() {
 		jfDataset := test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", 2)
 		platformDataset := test.BulkJellyfishData("test-device-88x89", "test-group-id_2", "test-user-id-987", 2)
-		changes, err := utils.CompareDatasets(jfDataset, platformDataset)
+		changes, err := utils.CompareDatasets(jfDataset, platformDataset, false)
 		Expect(err).To(BeNil())
 		Expect(changes).ToNot(BeEmpty())
 	})
 
 	It("will genterate no differences when the datasets are the same ", func() {
 		jfDataset := test.BulkJellyfishData("test-device-88x89", "test-group-id", "test-user-id-123", 100)
-		changes, err := utils.CompareDatasets(jfDataset, jfDataset)
+		changes, err := utils.CompareDatasets(jfDataset, jfDataset, false)
 		Expect(err).To(BeNil())
 		Expect(changes).To(BeEmpty())
 	})
@@ -38,7 +38,7 @@ var _ = Describe("CompareDatasets", func() {
 			datasetCopy = append(datasetCopy, datum)
 		}
 
-		changes, err := utils.CompareDatasets(jfDataset, datasetCopy)
+		changes, err := utils.CompareDatasets(jfDataset, datasetCopy, false)
 		Expect(err).To(BeNil())
 		Expect(changes).To(BeEmpty())
 	})
