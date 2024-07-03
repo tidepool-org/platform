@@ -221,13 +221,10 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
-			compareDir := fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID)
-			jellyfishPath := filepath.Join(".", "compare", compareDir, fmt.Sprintf("jf_%s.json", jellyfishUploadID))
-			platformPath := filepath.Join(".", "compare", compareDir, fmt.Sprintf("pf_%s.json", platformUploadID))
-			log.Printf("jellyfish data written %s", jellyfishPath)
-			log.Printf("platform data written %s", platformPath)
-			writeFileData(jfSet, jellyfishPath)
-			writeFileData(pfSet, platformPath)
+			comparePath := filepath.Join(".", "compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
+			log.Printf("data written to %s", comparePath)
+			writeFileData(jfSet, comparePath, fmt.Sprintf("jf_%s.json", jellyfishUploadID))
+			writeFileData(pfSet, comparePath, fmt.Sprintf("pf_%s.json", platformUploadID))
 			continue
 		}
 

@@ -2,12 +2,13 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 )
 
-func writeFileData(data interface{}, fileName string) {
-	if data == nil || fileName == "" {
+func writeFileData(data interface{}, path string, name string) {
+	if data == nil || path == "" || name == "" {
 		return
 	}
 
@@ -18,9 +19,9 @@ func writeFileData(data interface{}, fileName string) {
 		}
 	}
 
-	err := os.MkdirAll(fileName, os.ModePerm)
+	err := os.MkdirAll(path, os.ModePerm)
 	handleErr(err)
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(fmt.Sprintf("%s/%s", path, name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	handleErr(err)
 
 	defer f.Close()
