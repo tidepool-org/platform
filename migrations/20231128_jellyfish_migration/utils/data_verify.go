@@ -23,46 +23,7 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 
 	// small batches or the diff takes to long
 	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) ([]string, error) {
-
-		cleanedJellyfish := []map[string]interface{}{}
-		cleanedPlatform := []map[string]interface{}{}
-
-		doNotCompare := []string{
-			"_active",
-			"_archivedTime",
-			"createdTime",
-			"deduplicator",
-			"_deduplicator",
-			"_groupId",
-			"guid",
-			"_id",
-			"id",
-			"modifiedTime",
-			"payload",
-			"provenance",
-			"revision",
-			"_schemaVersion",
-			"time",
-			"_userId",
-			"uploadId",
-			"_version",
-		}
-
-		for _, datum := range batchPlatform {
-			for _, key := range doNotCompare {
-				delete(datum, key)
-			}
-			cleanedPlatform = append(cleanedPlatform, datum)
-		}
-
-		for _, datum := range batchJellyfish {
-			for _, key := range doNotCompare {
-				delete(datum, key)
-			}
-			cleanedJellyfish = append(cleanedJellyfish, datum)
-		}
-
-		changelog, err := diff.Diff(cleanedPlatform, cleanedJellyfish, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
+		changelog, err := diff.Diff(batchPlatform, batchJellyfish, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
 		if err != nil {
 			return nil, err
 		}
@@ -152,11 +113,41 @@ func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[stri
 
 		dset := []map[string]interface{}{}
 
-		dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
+		filter := bson.M{
 			"uploadId": uploadID,
 			"type":     dType,
-		}, &options.FindOptions{
-			Sort: bson.M{"time": 1},
+		}
+
+		sort := bson.D{{Key: "time", Value: 1}}
+
+		if dType == "deviceEvent" || dType == "bolus" {
+			sort = bson.D{{Key: "time", Value: 1}, {Key: "subType", Value: 1}}
+		}
+
+		excludedFeilds := bson.M{
+			"_active":        0,
+			"_archivedTime":  0,
+			"createdTime":    0,
+			"deduplicator":   0,
+			"_deduplicator":  0,
+			"_groupId":       0,
+			"guid":           0,
+			"_id":            0,
+			"id":             0,
+			"modifiedTime":   0,
+			"payload":        0,
+			"provenance":     0,
+			"revision":       0,
+			"_schemaVersion": 0,
+			"time":           0,
+			"_userId":        0,
+			"uploadId":       0,
+			"_version":       0,
+		}
+
+		dDataCursor, err := m.dataC.Find(m.ctx, filter, &options.FindOptions{
+			Sort:       sort,
+			Projection: excludedFeilds,
 		})
 		if err != nil {
 			return nil, err
@@ -221,7 +212,7 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
-			comparePath := filepath.Join(".", "compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
+			comparePath := filepath.Join(".", "_compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
 			log.Printf("data written to %s", comparePath)
 			writeFileData(jfSet, comparePath, fmt.Sprintf("jf_%s.json", jellyfishUploadID))
 			writeFileData(pfSet, comparePath, fmt.Sprintf("pf_%s.json", platformUploadID))
