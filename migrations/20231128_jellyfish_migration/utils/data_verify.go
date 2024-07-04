@@ -18,80 +18,22 @@ type DataVerify struct {
 	dataC *mongo.Collection
 }
 
-func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}, useSubset bool) (map[string]interface{}, error) {
-
+func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}) (map[string]interface{}, error) {
 	diffs := map[string]interface{}{}
-
-	// diffs := []string{}
-
-	// small batches or the diff takes to long
-	//var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) error {
-
-	// assumption is the items are ordered
 	for id, platformDatum := range platformData {
-
 		if jellyfishData[id] == nil {
 			log.Println("no matching value in the jellyfish data")
 			break
 		}
-
 		changelog, err := diff.Diff(platformDatum, jellyfishData[id], diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
 		if err != nil {
 			return nil, err
 		}
-		diffs[fmt.Sprintf("platform_%d", id)] = changelog
-
-		// for _, change := range changelog {
-		// 	diffs = append(diffs, fmt.Sprintf("%s => platform:[%v] jellyfish:[%v]", strings.Join(change.Path, "."), change.From, change.To))
-		// }
+		if len(changelog) > 0 {
+			diffs[fmt.Sprintf("platform_%d", id)] = changelog
+		}
 	}
 	return diffs, nil
-	//}
-
-	// var processAllData = func() ([]string, error) {
-	// 	batch := 100
-	// 	for i := 0; i < len(platformData); i += batch {
-	// 		j := i + batch
-	// 		if j > len(platformData) {
-	// 			j = len(platformData)
-	// 		}
-	// 		if err := processBatch(platformData[i:j], jellyfishData[i:j]); err != nil {
-	// 			return nil, err
-	// 		}
-	// 	}
-	// 	return diffs, nil
-	// }
-
-	// var processSubsetOfData = func() ([]string, error) {
-
-	// 	batch := 20
-	// 	quater := len(platformData) / 4
-	// 	batchStarts := []int{
-	// 		0,
-	// 		quater,
-	// 		quater * 2,
-	// 		quater * 3,
-	// 	}
-
-	// 	log.Printf("NOTE: comparing a subset of all [%d] datum with a batch size [%d] starting at [%v] ", len(platformData), batch, batchStarts)
-
-	// 	for _, startAt := range batchStarts {
-	// 		j := startAt + batch
-
-	// 		if j > len(platformData) {
-	// 			j = len(platformData)
-	// 		}
-	// 		if err := processBatch(platformData[startAt:j], jellyfishData[startAt:j]); err != nil {
-	// 			return nil, err
-	// 		}
-	// 	}
-	// 	return diffs, nil
-	// }
-
-	// if useSubset && len(platformData) >= 100 {
-	// 	return processSubsetOfData()
-	// }
-	// return processAllData()
 }
 
 func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, error) {
@@ -200,6 +142,21 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 	return blobData, nil
 }
 
+func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[string]interface{} {
+	missing := []map[string]interface{}{}
+	ma := make(map[string]bool, len(a))
+	for _, ka := range a {
+		ma[fmt.Sprintf("%v", ka["deviceTime"])] = true
+	}
+	for _, kb := range b {
+		if !ma[fmt.Sprintf("%v", kb["deviceTime"])] {
+			missing = append(missing, kb)
+		}
+	}
+	return missing
+
+}
+
 func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string, useSubset bool) error {
 
 	if len(dataTyes) == 0 {
@@ -224,10 +181,13 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 		log.Printf("data written to %s", comparePath)
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
+			missing := getMissing(pfSet, jfSet)
+			writeFileData(missing, comparePath, fmt.Sprintf("missing_%s.json", dType), true)
 			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jf_%s.json", dType, jellyfishUploadID), true)
 			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_pf_%s.json", dType, platformUploadID), true)
+			break
 		}
-		differences, err := CompareDatasets(pfSet, jfSet, useSubset)
+		differences, err := CompareDatasets(pfSet, jfSet)
 		if err != nil {
 			return err
 		}
