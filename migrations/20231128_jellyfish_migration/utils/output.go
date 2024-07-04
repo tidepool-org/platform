@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func writeFileData(data interface{}, path string, name string) {
+func writeFileData(data interface{}, path string, name string, asJSON bool) {
 	if data == nil || path == "" || name == "" {
 		return
 	}
@@ -25,7 +25,12 @@ func writeFileData(data interface{}, path string, name string) {
 	handleErr(err)
 
 	defer f.Close()
-	jsonData, err := json.Marshal(data)
-	handleErr(err)
-	f.WriteString(string(jsonData) + "\n")
+
+	if asJSON {
+		jsonData, err := json.Marshal(data)
+		handleErr(err)
+		f.WriteString(string(jsonData) + "\n")
+		return
+	}
+	f.WriteString(fmt.Sprintf("%v", data))
 }

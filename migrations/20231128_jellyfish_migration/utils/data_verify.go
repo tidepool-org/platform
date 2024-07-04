@@ -25,12 +25,22 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 
 	// small batches or the diff takes to long
 	var processBatch = func(batchPlatform, batchJellyfish []map[string]interface{}) error {
-		changelog, err := diff.Diff(batchPlatform, batchJellyfish, diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
-		if err != nil {
-			return err
-		}
-		for _, change := range changelog {
-			diffs = append(diffs, fmt.Sprintf("%s => platform:[%v] jellyfish:[%v]", strings.Join(change.Path, "."), change.From, change.To))
+
+		// assumption is the items are ordered
+		for id, platformDatum := range batchPlatform {
+
+			if batchJellyfish[id] == nil {
+				log.Println("no matching value in the jellyfish data")
+				break
+			}
+
+			changelog, err := diff.Diff(platformDatum, batchJellyfish[id], diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
+			if err != nil {
+				return err
+			}
+			for _, change := range changelog {
+				diffs = append(diffs, fmt.Sprintf("%s => platform:[%v] jellyfish:[%v]", strings.Join(change.Path, "."), change.From, change.To))
+			}
 		}
 		return nil
 	}
@@ -206,20 +216,19 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 	log.Printf("Compare platform[%s] vs jellyfish[%s]", platformUploadID, jellyfishUploadID)
 
 	for dType, jfSet := range jellyfishDataset {
-
 		pfSet := platformDataset[dType]
 		comparePath := filepath.Join(".", "_compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
 		log.Printf("data written to %s", comparePath)
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
-			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jf_%s.json", dType, jellyfishUploadID))
-			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_pf_%s.json", dType, platformUploadID))
+			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jf_%s.json", dType, jellyfishUploadID), true)
+			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_pf_%s.json", dType, platformUploadID), true)
 		}
 		differences, err := CompareDatasets(pfSet, jfSet, useSubset)
 		if err != nil {
 			return err
 		}
-		writeFileData(differences, comparePath, fmt.Sprintf("%sdiff.json", dType))
+		writeFileData(differences, comparePath, fmt.Sprintf("%s_diff.log", dType), false)
 	}
 
 	return nil

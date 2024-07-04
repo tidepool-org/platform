@@ -269,7 +269,7 @@ func (m *DataMigration) writeErrors() {
 		m.groupedErrors = map[string][]ErrorData{}
 	}
 	for group, errors := range m.groupedErrors {
-		writeFileData(errors, filepath.Join(".", "error"), fmt.Sprintf("%s.log", group))
+		writeFileData(errors, filepath.Join(".", "error"), fmt.Sprintf("%s.log", group), false)
 		m.groupedErrors[group] = []ErrorData{}
 	}
 }
@@ -280,7 +280,7 @@ func (m *DataMigration) writeAudit() {
 		return
 	}
 	for group, diffs := range m.groupedDiffs {
-		writeFileData(diffs, filepath.Join(".", "audit"), fmt.Sprintf("%s.json", group))
+		writeFileData(diffs, filepath.Join(".", "audit"), fmt.Sprintf("%s.json", group), true)
 		m.groupedDiffs[group] = []UpdateData{}
 	}
 }
