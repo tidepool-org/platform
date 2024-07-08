@@ -11,6 +11,7 @@ import (
 	"github.com/sideshow/apns2/payload"
 	"github.com/sideshow/apns2/token"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -19,6 +20,17 @@ import (
 // Notification models a provider-independent push notification.
 type Notification struct {
 	Message string
+}
+
+// String implements fmt.Stringer.
+func (n Notification) String() string {
+	return n.Message
+}
+
+func FromNote(note *alerts.Note) *Notification {
+	return &Notification{
+		Message: note.Message,
+	}
 }
 
 // APNSPusher implements push notifications via Apple APNs.
@@ -47,6 +59,22 @@ func NewAPNSPusher(client APNS2Client, bundleID string) *APNSPusher {
 //
 // https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns
 func NewAPNSPusherFromKeyData(signingKey []byte, keyID, teamID, bundleID string) (*APNSPusher, error) {
+	if len(signingKey) == 0 {
+		return nil, errors.New("Unable to build APNSPusher: APNs signing key is blank")
+	}
+
+	if bundleID == "" {
+		return nil, errors.New("Unable to build APNSPusher: bundleID is blank")
+	}
+
+	if keyID == "" {
+		return nil, errors.New("Unable to build APNSPusher: keyID is blank")
+	}
+
+	if teamID == "" {
+		return nil, errors.New("Unable to build APNSPusher: teamID is blank")
+	}
+
 	authKey, err := token.AuthKeyFromBytes(signingKey)
 	if err != nil {
 		return nil, err
