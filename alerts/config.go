@@ -6,10 +6,15 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"slices"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/blood/glucose"
+	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -50,6 +55,45 @@ func (c Config) Validate(validator structure.Validator) {
 	c.Alerts.Validate(validator)
 }
 
+// Evaluate alerts in the context of the provided data.
+//
+// While this method, or the methods it calls, can fail, there's no point in returning an
+// error. Instead errors are logged before continuing. This is to ensure that any possible alert
+// that should be triggered, will be triggered.
+func (c Config) Evaluate(ctx context.Context, gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Note {
+	n := c.Alerts.Evaluate(ctx, gd, dd)
+	if n != nil {
+		n.FollowedUserID = c.FollowedUserID
+		n.RecipientUserID = c.UserID
+	}
+	if lgr := log.LoggerFromContext(ctx); lgr != nil {
+		lgr.WithField("note", n).Info("evaluated alert")
+	}
+
+	return n
+}
+
+// LongestDelay of the delays set on enabled alerts.
+func (a Alerts) LongestDelay() time.Duration {
+	delays := []time.Duration{}
+	if a.Low != nil && a.Low.Enabled {
+		delays = append(delays, a.Low.Delay.Duration())
+	}
+	if a.High != nil && a.High.Enabled {
+		delays = append(delays, a.High.Delay.Duration())
+	}
+	if a.NotLooping != nil && a.NotLooping.Enabled {
+		delays = append(delays, a.NotLooping.Delay.Duration())
+	}
+	if a.NoCommunication != nil && a.NoCommunication.Enabled {
+		delays = append(delays, a.NoCommunication.Delay.Duration())
+	}
+	if len(delays) == 0 {
+		return 0
+	}
+	return slices.Max(delays)
+}
+
 func (a Alerts) Validate(validator structure.Validator) {
 	if a.UrgentLow != nil {
 		a.UrgentLow.Validate(validator)
@@ -68,6 +112,41 @@ func (a Alerts) Validate(validator structure.Validator) {
 	}
 }
 
+// Evaluate a user's data to determine if notifications are indicated.
+//
+// Evaluations are performed according to priority. The process is
+// "short-circuited" at the first indicated notification.
+func (a Alerts) Evaluate(ctx context.Context,
+	gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Note {
+
+	if a.NoCommunication != nil && a.NoCommunication.Enabled {
+		if n := a.NoCommunication.Evaluate(ctx, gd); n != nil {
+			return n
+		}
+	}
+	if a.UrgentLow != nil && a.UrgentLow.Enabled {
+		if n := a.UrgentLow.Evaluate(ctx, gd); n != nil {
+			return n
+		}
+	}
+	if a.Low != nil && a.Low.Enabled {
+		if n := a.Low.Evaluate(ctx, gd); n != nil {
+			return n
+		}
+	}
+	if a.High != nil && a.High.Enabled {
+		if n := a.High.Evaluate(ctx, gd); n != nil {
+			return n
+		}
+	}
+	if a.NotLooping != nil && a.NotLooping.Enabled {
+		if n := a.NotLooping.Evaluate(ctx, dd); n != nil {
+			return n
+		}
+	}
+	return nil
+}
+
 // Base describes the minimum specifics of a desired alert.
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
@@ -79,6 +158,13 @@ type Base struct {
 
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
+}
+
+func (b Base) Evaluate(ctx context.Context, data []*glucose.Glucose) *Note {
+	if lgr := log.LoggerFromContext(ctx); lgr != nil {
+		lgr.Warn("alerts.Base.Evaluate called, this shouldn't happen!")
+	}
+	return nil
 }
 
 type Activity struct {
@@ -132,6 +218,46 @@ func (a UrgentLowAlert) Validate(validator structure.Validator) {
 	a.Threshold.Validate(validator)
 }
 
+// Evaluate urgent low condition.
+//
+// Assumes data is pre-sorted in descending order by Time.
+func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+	lgr := log.LoggerFromContext(ctx)
+	if len(data) == 0 {
+		lgr.Debug("no data to evaluate for urgent low")
+		return nil
+	}
+	datum := data[0]
+	okDatum, okThreshold, err := validateGlucoseAlertDatum(datum, a.Threshold)
+	if err != nil {
+		lgr.WithError(err).Warn("Unable to evaluate urgent low")
+		return nil
+	}
+	defer func() { logGlucoseAlertEvaluation(lgr, "urgent low", note, okDatum, okThreshold) }()
+	active := okDatum < okThreshold
+	if !active {
+		if a.IsActive() {
+			a.Resolved = time.Now()
+		}
+		return nil
+	}
+	if !a.IsActive() {
+		a.Triggered = time.Now()
+	}
+	return &Note{Message: genGlucoseThresholdMessage("below urgent low")}
+}
+
+func validateGlucoseAlertDatum(datum *glucose.Glucose, t Threshold) (float64, float64, error) {
+	if datum.Blood.Units == nil || datum.Blood.Value == nil || datum.Blood.Time == nil {
+		return 0, 0, errors.Newf("Unable to evaluate datum: Units, Value, or Time is nil")
+	}
+	threshold := nontypesglucose.NormalizeValueForUnits(&t.Value, datum.Blood.Units)
+	if threshold == nil {
+		return 0, 0, errors.Newf("Unable to normalize threshold units: normalized to nil")
+	}
+	return *datum.Blood.Value, *threshold, nil
+}
+
 // NotLoopingAlert extends Base with a delay.
 type NotLoopingAlert struct {
 	Base  `bson:",inline"`
@@ -144,6 +270,16 @@ func (a NotLoopingAlert) Validate(validator structure.Validator) {
 	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
 }
 
+// Evaluate if the device is looping.
+func (a NotLoopingAlert) Evaluate(ctx context.Context, decisions []*dosingdecision.DosingDecision) (note *Note) {
+	// TODO will be implemented in the near future.
+	return nil
+}
+
+// DosingDecisionReasonLoop is specified in a [dosingdecision.DosingDecision] to indicate that
+// the decision is part of a loop adjustment (as opposed to bolus or something else).
+const DosingDecisionReasonLoop string = "loop"
+
 // NoCommunicationAlert extends Base with a delay.
 type NoCommunicationAlert struct {
 	Base  `bson:",inline"`
@@ -155,6 +291,26 @@ func (a NoCommunicationAlert) Validate(validator structure.Validator) {
 	dur := a.Delay.Duration()
 	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
 }
+
+// Evaluate if CGM data is being received by Tidepool.
+//
+// Assumes data is pre-sorted by Time in descending order.
+func (a NoCommunicationAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) *Note {
+	var newest time.Time
+	for _, d := range data {
+		if d != nil && d.Time != nil && !(*d.Time).IsZero() {
+			newest = *d.Time
+			break
+		}
+	}
+	if time.Since(newest) > a.Delay.Duration() {
+		return &Note{Message: NoCommunicationMessage}
+	}
+
+	return nil
+}
+
+const NoCommunicationMessage = "Tidepool is unable to communicate with a user's device"
 
 // LowAlert extends Base with threshold and a delay.
 type LowAlert struct {
@@ -178,6 +334,51 @@ func (a LowAlert) Validate(validator structure.Validator) {
 	validator.Duration("repeat", &repeatDur).Using(validateRepeat)
 }
 
+// Evaluate the given data to determine if an alert should be sent.
+//
+// Assumes data is pre-sorted in descending order by Time.
+func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+	lgr := log.LoggerFromContext(ctx)
+	if len(data) == 0 {
+		lgr.Debug("no data to evaluate for low")
+		return nil
+	}
+	var eventBegan time.Time
+	var okDatum, okThreshold float64
+	var err error
+	defer func() { logGlucoseAlertEvaluation(lgr, "low", note, okDatum, okThreshold) }()
+	for _, datum := range data {
+		okDatum, okThreshold, err = validateGlucoseAlertDatum(datum, a.Threshold)
+		if err != nil {
+			lgr.WithError(err).Debug("Skipping low alert datum evaluation")
+			continue
+		}
+		active := okDatum < okThreshold
+		if !active {
+			break
+		}
+		if (*datum.Time).Before(eventBegan) || eventBegan.IsZero() {
+			eventBegan = *datum.Time
+		}
+	}
+	if eventBegan.IsZero() {
+		if a.IsActive() {
+			a.Resolved = time.Now()
+		}
+		return nil
+	}
+	if !a.IsActive() {
+		if time.Since(eventBegan) > a.Delay.Duration() {
+			a.Triggered = time.Now()
+		}
+	}
+	return &Note{Message: genGlucoseThresholdMessage("below low")}
+}
+
+func genGlucoseThresholdMessage(alertType string) string {
+	return "Glucose reading " + alertType + " threshold"
+}
+
 // HighAlert extends Base with a threshold and a delay.
 type HighAlert struct {
 	Base `bson:",inline"`
@@ -198,6 +399,57 @@ func (a HighAlert) Validate(validator structure.Validator) {
 	validator.Duration("delay", &delayDur).InRange(0, 6*time.Hour)
 	repeatDur := a.Repeat.Duration()
 	validator.Duration("repeat", &repeatDur).Using(validateRepeat)
+}
+
+// Evaluate the given data to determine if an alert should be sent.
+//
+// Assumes data is pre-sorted in descending order by Time.
+func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+	lgr := log.LoggerFromContext(ctx)
+	if len(data) == 0 {
+		lgr.Debug("no data to evaluate for high")
+		return nil
+	}
+	var eventBegan time.Time
+	var okDatum, okThreshold float64
+	var err error
+	defer func() { logGlucoseAlertEvaluation(lgr, "high", note, okDatum, okThreshold) }()
+	for _, datum := range data {
+		okDatum, okThreshold, err = validateGlucoseAlertDatum(datum, a.Threshold)
+		if err != nil {
+			lgr.WithError(err).Debug("Skipping high alert datum evaluation")
+			continue
+		}
+		active := okDatum > okThreshold
+		if !active {
+			break
+		}
+		if (*datum.Time).Before(eventBegan) || eventBegan.IsZero() {
+			eventBegan = *datum.Time
+		}
+	}
+	if eventBegan.IsZero() {
+		if a.IsActive() {
+			a.Resolved = time.Now()
+		}
+		return nil
+	}
+	if !a.IsActive() {
+		if time.Since(eventBegan) > a.Delay.Duration() {
+			a.Triggered = time.Now()
+		}
+	}
+	return &Note{Message: genGlucoseThresholdMessage("above high")}
+}
+
+// logGlucoseAlertEvaluation is called during each glucose-based evaluation for record-keeping.
+func logGlucoseAlertEvaluation(lgr log.Logger, alertType string, note *Note, value, threshold float64) {
+	fields := log.Fields{
+		"isAlerting?": note != nil,
+		"threshold":   threshold,
+		"value":       value,
+	}
+	lgr.WithFields(fields).Info(alertType)
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.
@@ -227,7 +479,7 @@ func (m DurationMinutes) Duration() time.Duration {
 	return time.Duration(m)
 }
 
-// ValueWithUnits binds a value to its units.
+// ValueWithUnits binds a value with its units.
 //
 // Other types can extend it to parse and validate the Units.
 type ValueWithUnits struct {
@@ -240,20 +492,20 @@ type Threshold ValueWithUnits
 
 // Validate implements structure.Validatable
 func (t Threshold) Validate(v structure.Validator) {
-	v.String("units", &t.Units).OneOf(glucose.MgdL, glucose.MmolL)
+	v.String("units", &t.Units).OneOf(nontypesglucose.MgdL, nontypesglucose.MmolL)
 	// This is a sanity check. Client software will likely further constrain these values. The
 	// broadness of these values allows clients to change their own min and max values
 	// independently, and it sidesteps rounding and conversion conflicts between the backend and
 	// clients.
 	var max, min float64
 	switch t.Units {
-	case glucose.MgdL, glucose.Mgdl:
-		max = glucose.MgdLMaximum
-		min = glucose.MgdLMinimum
+	case nontypesglucose.MgdL, nontypesglucose.Mgdl:
+		max = nontypesglucose.MgdLMaximum
+		min = nontypesglucose.MgdLMinimum
 		v.Float64("value", &t.Value).InRange(min, max)
-	case glucose.MmolL, glucose.Mmoll:
-		max = glucose.MmolLMaximum
-		min = glucose.MmolLMinimum
+	case nontypesglucose.MmolL, nontypesglucose.Mmoll:
+		max = nontypesglucose.MmolLMaximum
+		min = nontypesglucose.MmolLMinimum
 		v.Float64("value", &t.Value).InRange(min, max)
 	default:
 		v.WithReference("value").ReportError(validator.ErrorValueNotValid())
