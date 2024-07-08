@@ -3,6 +3,8 @@ package user
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/tidepool-org/platform/pointer"
 )
 
 // LegacySeagullDocument is the database model representation of the legacy
@@ -37,6 +39,15 @@ func (doc *LegacySeagullDocument) ToLegacyProfile() (*LegacyUserProfile, error) 
 	var legacyProfile LegacyUserProfile
 	if err := MarshalThenUnmarshal(profileRaw, &legacyProfile); err != nil {
 		return nil, err
+	}
+
+	// Add some default names if it is an empty name for the fake child or parent of them
+	isFakeChild := legacyProfile.Patient != nil && legacyProfile.Patient.IsOtherPerson
+	if isFakeChild && pointer.ToString(legacyProfile.Patient.FullName) == "" {
+		legacyProfile.Patient.FullName = pointer.FromString(emptyFakeChildDefaultName)
+	}
+	if isFakeChild && legacyProfile.FullName == "" {
+		legacyProfile.FullName = emptyFakeChildCustodianName
 	}
 
 	legacyProfile.MigrationStatus = migrationUnmigrated
@@ -84,7 +95,7 @@ func AddProfileToSeagullValue(valueRaw string, profile *LegacyUserProfile) (upda
 // MarshalThenUnmarshal marshal's src into JSON, then Unmarshals that
 // JSON into dst. This is useful if src has some fields fields common to
 // dst but are defined explicitly or in the same way.
-func MarshalThenUnmarshal(src, dst any) error {
+func MarshalThenUnmarshal(src any, dst *LegacyUserProfile) error {
 	bytes, err := json.Marshal(src)
 	if err != nil {
 		return err
