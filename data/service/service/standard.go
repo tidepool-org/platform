@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
@@ -18,7 +19,6 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
@@ -44,8 +44,9 @@ type Standard struct {
 	dataClient                *Client
 	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
-	pusher                    Pusher
+	pusher                    dataEvents.Pusher
 	userEventsHandler         events.Runner
+	alertsEventsHandler       events.Runner
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -97,6 +98,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
+	if err := s.initializeAlertsEventsHandler(); err != nil {
+		return err
+	}
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
@@ -116,6 +120,13 @@ func (s *Standard) Terminate() {
 			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
 		}
 		s.userEventsHandler = nil
+	}
+	if s.alertsEventsHandler != nil {
+		s.Logger().Info("Terminating the alertsEventsHandler")
+		if err := s.alertsEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the alertsEventsHandler: %v", err)
+		}
+		s.alertsEventsHandler = nil
 	}
 	s.api = nil
 	s.dataClient = nil
@@ -146,6 +157,9 @@ func (s *Standard) Run() error {
 	errs := make(chan error)
 	go func() {
 		errs <- s.userEventsHandler.Run()
+	}()
+	go func() {
+		errs <- s.alertsEventsHandler.Run()
 	}()
 	go func() {
 		errs <- s.server.Serve()
@@ -434,12 +448,6 @@ func (s *Standard) initializeSaramaLogger() error {
 	return nil
 }
 
-// Pusher is a service-agnostic interface for sending push notifications.
-type Pusher interface {
-	// Push a notification to a device.
-	Push(context.Context, *devicetokens.DeviceToken, *push.Notification) error
-}
-
 func (s *Standard) initializePusher() error {
 	var err error
 
@@ -453,7 +461,7 @@ func (s *Standard) initializePusher() error {
 		return errors.Wrap(err, "Unable to process APNs pusher config")
 	}
 
-	var pusher Pusher
+	var pusher dataEvents.Pusher
 	pusher, err = push.NewAPNSPusherFromKeyData(apns2Config.SigningKey, apns2Config.KeyID,
 		apns2Config.TeamID, apns2Config.BundleID)
 	if err != nil {
@@ -461,6 +469,66 @@ func (s *Standard) initializePusher() error {
 		pusher = push.NewLogPusher(s.Logger())
 	}
 	s.pusher = pusher
+
+	return nil
+}
+
+func (s *Standard) initializeAlertsEventsHandler() error {
+	s.Logger().Debug("Initializing alerts events handler")
+
+	commonConfig := eventsCommon.NewConfig()
+	if err := commonConfig.LoadFromEnv(); err != nil {
+		return err
+	}
+
+	// In addition to the CloudEventsConfig, additional specific config values
+	// are needed.
+	config := &struct {
+		KafkaAlertsTopics  []string `envconfig:"KAFKA_ALERTS_TOPICS" default:"alerts,deviceData.alerts"`
+		KafkaAlertsGroupID string   `envconfig:"KAFKA_ALERTS_CONSUMER_GROUP" required:"true"`
+	}{}
+	if err := envconfig.Process("", config); err != nil {
+		return errors.Wrap(err, "Unable to process envconfig")
+	}
+
+	// Some kafka topics use a `<env>-` as a prefix. But MongoDB CDC topics are created with
+	// `<env>.`. This code is using CDC topics, so ensuring that a `.` is used for alerts events
+	// lines everything up as expected.
+	topicPrefix := strings.ReplaceAll(commonConfig.KafkaTopicPrefix, "-", ".")
+	prefixedTopics := make([]string, 0, len(config.KafkaAlertsTopics))
+	for _, topic := range config.KafkaAlertsTopics {
+		prefixedTopics = append(prefixedTopics, topicPrefix+topic)
+	}
+
+	alerts := s.dataStore.NewAlertsRepository()
+	dataRepo := s.dataStore.NewDataRepository()
+	s.Logger().WithField("permissionClient", s.permissionClient).Debug("yo!")
+	ec := &dataEvents.Consumer{
+		Alerts:       alerts,
+		Data:         dataRepo,
+		DeviceTokens: s.AuthClient(),
+		Evaluator:    dataEvents.NewAlertsEvaluator(alerts, dataRepo, s.permissionClient, s.AuthClient()),
+		Permissions:  s.permissionClient,
+		Pusher:       s.pusher,
+		Tokens:       s.AuthClient(),
+		Logger:       s.Logger(),
+	}
+
+	runnerCfg := dataEvents.SaramaRunnerConfig{
+		Brokers: commonConfig.KafkaBrokers,
+		GroupID: config.KafkaAlertsGroupID,
+		Logger:  s.Logger(),
+		Topics:  prefixedTopics,
+		Sarama:  commonConfig.SaramaConfig,
+		MessageConsumer: &dataEvents.AlertsEventsConsumer{
+			Consumer: ec,
+		},
+	}
+	runner := &dataEvents.SaramaRunner{Config: runnerCfg}
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "Unable to initialize alerts events handler runner")
+	}
+	s.alertsEventsHandler = runner
 
 	return nil
 }
