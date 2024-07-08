@@ -1,10 +1,12 @@
 package user
 
 import (
+	"cmp"
 	"slices"
 	"strings"
 	"time"
 
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -16,6 +18,13 @@ const (
 	migrationInProgress
 
 	maxProfileFieldLen = 256
+)
+
+const (
+	// emptyFakeChildDefaultName is a placeholder name to be used if a fake child account profile has no patient.fullName field
+	emptyFakeChildDefaultName = "Child User"
+	// emptyFakeChildCustodianName is a placeholder name to be used if a fake child account profile has no custodian / parent fullName field - seagull.value.profile.fullName
+	emptyFakeChildCustodianName = "Custodian User"
 )
 
 var (
@@ -79,7 +88,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	// only custodiaL fake child accounts have Patient.FullName set
 	if up.Custodian != nil {
 		legacyProfile.FullName = up.Custodian.FullName
-		legacyProfile.Patient.FullName = up.FullName
+		legacyProfile.Patient.FullName = pointer.FromString(cmp.Or(up.FullName, emptyFakeChildDefaultName))
 		legacyProfile.Patient.IsOtherPerson = true
 	}
 	return legacyProfile
@@ -87,19 +96,16 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 
 func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 	up := &UserProfile{
-		FullName: p.FullName,
+		FullName: cmp.Or(p.FullName, emptyFakeChildCustodianName),
 		Clinic:   p.Clinic,
 	}
 	if p.Patient != nil {
-		up.FullName = p.Patient.FullName
+		up.FullName = cmp.Or(pointer.ToString(p.Patient.FullName), p.FullName)
 		// Only users with isOtherPerson set has a patient.fullName field set so
 		// they have a custodian.
-		if p.Patient.FullName != "" || p.Patient.IsOtherPerson {
+		if p.Patient.IsOtherPerson {
 			up.Custodian = &Custodian{
-				FullName: p.FullName,
-			}
-			if up.Custodian.FullName == "" {
-				up.Custodian.FullName = p.FullName
+				FullName: cmp.Or(p.FullName, emptyFakeChildCustodianName),
 			}
 		}
 		up.Birthday = p.Patient.Birthday
@@ -114,14 +120,14 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 
 // LegacyUserProfile represents the old seagull format for a profile.
 type LegacyUserProfile struct {
-	FullName        string                `json:"fullName,omitempty"`
+	FullName        string                `json:"fullName,omitempty"` // string pointer because some old profiles have empty string as full name
 	Patient         *LegacyPatientProfile `json:"patient,omitempty"`
 	Clinic          *ClinicProfile        `json:"clinic,omitempty"`
 	MigrationStatus migrationStatus       `json:"-"`
 }
 
 type LegacyPatientProfile struct {
-	FullName       string   `json:"fullName,omitempty"` // This is only non-empty if the user is also a fake child (has the patient.isOtherPerson field set)
+	FullName       *string  `json:"fullName,omitempty"` // This is only non-empty if the user is also a fake child (has the patient.isOtherPerson field set - there are cases where it is an empty string but the field exists)
 	Birthday       Date     `json:"birthday,omitempty"`
 	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
 	DiagnosisType  string   `json:"diagnosisType,omitempty"`
@@ -374,7 +380,7 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	pp.Birthday.Validate(v.WithReference("birthday"))
 	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 
-	v.String("fullName", &pp.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("fullName", pp.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
 	v.String("targetTimezone", &pp.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
 	v.String("about", &pp.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
 	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
@@ -388,7 +394,9 @@ func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
 	pp.Birthday.Normalize(normalizer.WithReference("birthday"))
 	pp.DiagnosisDate.Normalize(normalizer.WithReference("diagnosisDate"))
 
-	pp.FullName = strings.TrimSpace(pp.FullName)
+	if pp.FullName != nil {
+		pp.FullName = pointer.FromString(strings.TrimSpace(pointer.ToString(pp.FullName)))
+	}
 	pp.DiagnosisType = strings.TrimSpace(pp.DiagnosisType)
 	pp.TargetTimezone = strings.TrimSpace(pp.TargetTimezone)
 	pp.About = strings.TrimSpace(pp.About)
