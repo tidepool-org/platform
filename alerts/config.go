@@ -269,3 +269,11 @@ type Repository interface {
 
 	EnsureIndexes() error
 }
+
+// Note gathers information necessary for sending an alert notification.
+type Note struct {
+	// Message communicates the alert to the recipient.
+	Message         string
+	RecipientUserID string
+	FollowedUserID  string
+}
