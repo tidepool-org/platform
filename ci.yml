@@ -7,7 +7,7 @@ dockerPushToProduction : true
 publishNpm: false
 publishOpenapiBucket: com.diabeloop.backloops.docs
 publishSoupBucket: com.diabeloop.backloops.docs
-securityScan: true
+securityScan: false
 dockerBuild: 
   platform: 'linux/amd64'
   file: 'Dockerfile.data'

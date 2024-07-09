@@ -83,6 +83,16 @@ func (w *Wizard) MapForWizard(event *calculator.Calculator) error {
 		w.InputTimestamp = *event.InputTime.InputTime
 	}
 
+	if event.InputMeal != nil {
+		i := &InputMeal{}
+		if event.InputMeal.Fat != nil {
+			i.Fat = *event.InputMeal.Fat
+		}
+		if event.InputMeal.Source != nil {
+			i.Source = *event.InputMeal.Source
+		}
+		w.InputMeal = i
+	}
 	// time infos mapping
 	w.Timezone = *event.TimeZoneName
 	w.TimezoneOffset = *event.TimeZoneOffset

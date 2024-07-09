@@ -132,15 +132,20 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	} else {
 		// update or insert in Hot Daily and Cold Daily
 		for _, collectionPrefix := range dailyPrefixCollections {
-			var collectionName string
-			//TODO: to enhance
+			// by default
+			collectionName := collectionPrefix + dataType
+
 			if dataType == "Alarm" || dataType == "Mode" ||
 				dataType == "Calibration" || dataType == "Flush" ||
 				dataType == "Prime" || dataType == "ReservoirChange" {
 				collectionName = collectionPrefix + "DeviceEvent"
-			} else {
-				collectionName = collectionPrefix + dataType
 			}
+			// All meals (represented by the Wizards object) and the rescue carbs (represented by the Food object)
+			// will go to the same collection
+			if dataType == "Wizard" || dataType == "Food" {
+				collectionName = collectionPrefix + "Food"
+			}
+
 			_, err := c.Collection(collectionName).BulkWrite(ctx, operations, &bulkOption)
 			if err != nil {
 				return err
@@ -596,23 +601,54 @@ func buildWizardUpdateOneModel(sample schema.ISample, userId *string, date strin
 	strUserId := *userId
 	var updates []mongo.WriteModel
 
-	// one operation because normally the event is sent once,
-	// indeed the meal with bolus is sent at the "end" and not modifiable
-	// the tricky part is that the wizard object could be used for sending meal
-	// then in that case this section will have to be updated
-	op := mongo.NewUpdateOneModel()
-	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
-	op.SetUpdate(bson.D{ // update
-		{Key: "$addToSet", Value: bson.D{
-			{Key: "samples", Value: sample}}},
+	// Insert the bucket if not exist and then insert the sample in it
+	firstOp := mongo.NewUpdateOneModel()
+	firstOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	firstOp.SetUpdate(bson.D{ // update
 		{Key: "$setOnInsert", Value: bson.D{
 			{Key: "_id", Value: strUserId + "_" + date},
 			{Key: "creationTimestamp", Value: creationTimestamp},
 			{Key: "day", Value: day},
-			{Key: "userId", Value: strUserId}}},
+			{Key: "userId", Value: strUserId},
+			{Key: "meals", Value: []schema.ISample{sample}},
+		},
+		},
 	})
-	op.SetUpsert(true)
-	updates = append(updates, op)
+	firstOp.SetUpsert(true)
+	updates = append(updates, firstOp)
+
+	// Update
+	elemfilter := sample.(schema.Wizard)
+	secondOp := mongo.NewUpdateOneModel()
+	secondOp.SetFilter(bson.D{
+		{Key: "_id", Value: strUserId + "_" + date},
+		{Key: "meals", Value: bson.D{
+			{Key: "$elemMatch", Value: bson.D{
+				{Key: "timestamp", Value: elemfilter.Timestamp},
+			},
+			},
+		},
+		},
+	})
+	secondOp.SetUpdate(bson.D{ // update
+		{Key: "$set", Value: bson.D{
+			{Key: "meals.$.carbInput", Value: elemfilter.CarbInput},
+			{Key: "meals.$.bolus", Value: elemfilter.BolusId},
+			{Key: "meals.$.inputTimestamp", Value: elemfilter.InputTimestamp},
+		},
+		},
+	})
+
+	updates = append(updates, secondOp)
+	// Otherwise we know that we did not update, so we guarantee an insertion
+	// in the array
+	thirdOp := mongo.NewUpdateOneModel()
+	thirdOp.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
+	thirdOp.SetUpdate(bson.D{ // update
+		{Key: "$addToSet", Value: bson.D{
+			{Key: "meals", Value: sample}}},
+	})
+	updates = append(updates, thirdOp)
 
 	return updates, nil
 }
@@ -631,7 +667,7 @@ func buildFoodUpdateOneModel(sample schema.ISample, userId *string, date string,
 	op.SetFilter(bson.D{{Key: "_id", Value: strUserId + "_" + date}})
 	op.SetUpdate(bson.D{ // update
 		{Key: "$addToSet", Value: bson.D{
-			{Key: "samples", Value: sample}}},
+			{Key: "rescueCarbs", Value: sample}}},
 		{Key: "$setOnInsert", Value: bson.D{
 			{Key: "_id", Value: strUserId + "_" + date},
 			{Key: "creationTimestamp", Value: creationTimestamp},
@@ -689,6 +725,7 @@ func buildPhysicalActivitiesUpdateOneModel(sample schema.ISample, userId *string
 			{Key: "$set", Value: bson.D{
 				{Key: "samples.$.duration", Value: elemfilter.Duration},
 				{Key: "samples.$.inputTimestamp", Value: elemfilter.InputTimestamp},
+				{Key: "samples.$.timestamp", Value: elemfilter.Timestamp},
 			},
 			},
 		})
