@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
@@ -41,6 +42,8 @@ func CloneSelfMonitored(datum *selfmonitored.SelfMonitored) *selfmonitored.SelfM
 	clone := selfmonitored.New()
 	clone.Glucose = *dataTypesBloodGlucoseTest.CloneGlucose(&datum.Glucose)
 	clone.SubType = pointer.CloneString(datum.SubType)
+	clone.RawUnits = pointer.CloneString(datum.RawUnits)
+	clone.RawValue = pointer.CloneFloat64(datum.RawValue)
 	return clone
 }
 
@@ -71,7 +74,9 @@ var _ = Describe("SelfMonitored", func() {
 			Expect(datum).ToNot(BeNil())
 			Expect(datum.Type).To(Equal("smbg"))
 			Expect(datum.Units).To(BeNil())
+			Expect(datum.RawUnits).To(BeNil())
 			Expect(datum.Value).To(BeNil())
+			Expect(datum.RawValue).To(BeNil())
 			Expect(datum.SubType).To(BeNil())
 		})
 	})
@@ -292,12 +297,12 @@ var _ = Describe("SelfMonitored", func() {
 					for _, origin := range structure.Origins() {
 						datum := NewSelfMonitored(units)
 						mutator(datum, units)
-						expectedDatum := CloneSelfMonitored(datum)
 						normalizer := dataNormalizer.New()
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						expectedDatum := CloneSelfMonitored(datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
@@ -361,6 +366,8 @@ var _ = Describe("SelfMonitored", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.RawUnits = pointer.CloneString(datum.RawUnits)
+					expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -388,6 +395,7 @@ var _ = Describe("SelfMonitored", func() {
 					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
 					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						Expect(datum.RawUnits).To(Equal(pointer.FromString("mmol/l")))
 					},
 				),
 				Entry("modifies the datum; units mg/dL",
@@ -396,6 +404,8 @@ var _ = Describe("SelfMonitored", func() {
 					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+						Expect(datum.RawUnits).To(Equal(pointer.FromString("mg/dL")))
+
 					},
 				),
 				Entry("modifies the datum; units mg/dL; value missing",
@@ -411,6 +421,7 @@ var _ = Describe("SelfMonitored", func() {
 					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+						Expect(datum.RawUnits).To(Equal(pointer.FromString("mg/dl")))
 					},
 				),
 				Entry("modifies the datum; units mg/dl; value missing",
@@ -418,6 +429,7 @@ var _ = Describe("SelfMonitored", func() {
 					func(datum *selfmonitored.SelfMonitored, units *string) { datum.Value = nil },
 					func(datum *selfmonitored.SelfMonitored, expectedDatum *selfmonitored.SelfMonitored, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+						Expect(datum.RawUnits).To(Equal(pointer.FromString("mg/dl")))
 					},
 				),
 			)
@@ -486,7 +498,10 @@ var _ = Describe("SelfMonitored", func() {
 			var datum *selfmonitored.SelfMonitored
 
 			BeforeEach(func() {
-				datum = NewSelfMonitored(pointer.FromString("mmol/l"))
+				datum = NewSelfMonitored(pointer.FromString("mg/dl"))
+				normalizer := dataNormalizer.New()
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 			})
 
 			It("returns error if device id is missing", func() {
@@ -518,16 +533,24 @@ var _ = Describe("SelfMonitored", func() {
 			})
 
 			It("returns error if value is missing", func() {
-				datum.Value = nil
+				datum.RawValue = nil
 				identityFields, err := datum.LegacyIdentityFields()
 				Expect(err).To(MatchError("value is missing"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns error if units are missing", func() {
+				datum.RawUnits = nil
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("units are missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns the expected legacy identity fields", func() {
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat), strconv.FormatFloat(*datum.Value, 'f', -1, 64)}))
+				expectedValue := dataBloodGlucose.NormalizeValueForUnitsWithFullPrecision(datum.RawValue, datum.RawUnits)
+				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat), strconv.FormatFloat(*expectedValue, 'f', -1, 64)}))
 			})
 		})
 	})

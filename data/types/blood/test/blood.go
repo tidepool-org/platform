@@ -25,5 +25,7 @@ func CloneBlood(datum *blood.Blood) *blood.Blood {
 	clone.Base = *dataTypesTest.CloneBase(&datum.Base)
 	clone.Units = pointer.CloneString(datum.Units)
 	clone.Value = pointer.CloneFloat64(datum.Value)
+	clone.RawUnits = pointer.CloneString(datum.RawUnits)
+	clone.RawValue = pointer.CloneFloat64(datum.RawValue)
 	return clone
 }
