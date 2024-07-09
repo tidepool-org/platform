@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -12,6 +13,11 @@ type Target struct {
 	Low    *float64 `json:"low,omitempty" bson:"low,omitempty"`
 	Range  *float64 `json:"range,omitempty" bson:"range,omitempty"`
 	Target *float64 `json:"target,omitempty" bson:"target,omitempty"`
+
+	RawHigh   *float64 `json:"rawHigh,omitempty" bson:"rawHigh,omitempty"`
+	RawLow    *float64 `json:"rawLow,omitempty" bson:"rawLow,omitempty"`
+	RawRange  *float64 `json:"rawRange,omitempty" bson:"rawRange,omitempty"`
+	RawTarget *float64 `json:"rawTarget,omitempty" bson:"rawTarget,omitempty"`
 }
 
 func ParseTarget(parser structure.ObjectParser) *Target {
@@ -64,6 +70,12 @@ func (t *Target) Validate(validator structure.Validator, units *string) {
 
 func (t *Target) Normalize(normalizer data.Normalizer, units *string) {
 	if normalizer.Origin() == structure.OriginExternal {
+
+		t.RawHigh = pointer.CloneFloat64(t.High)
+		t.RawLow = pointer.CloneFloat64(t.Low)
+		t.RawRange = pointer.CloneFloat64(t.Range)
+		t.RawTarget = pointer.CloneFloat64(t.Target)
+
 		t.High = NormalizeValueForUnits(t.High, units)
 		t.Low = NormalizeValueForUnits(t.Low, units)
 		t.Range = NormalizeValueForUnits(t.Range, units)

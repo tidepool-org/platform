@@ -26,9 +26,10 @@ func InsulinUnits() []string {
 }
 
 type Units struct {
-	BloodGlucose *string `json:"bg,omitempty" bson:"bg,omitempty"`     // TODO: Rename "bloodGlucose"
-	Carbohydrate *string `json:"carb,omitempty" bson:"carb,omitempty"` // TODO: Rename "carbohydrate"
-	Insulin      *string `json:"insulin,omitempty" bson:"insulin,omitempty"`
+	BloodGlucose    *string `json:"bg,omitempty" bson:"bg,omitempty"`                           // TODO: Rename "bloodGlucose"
+	RawBloodGlucose *string `json:"rawBloodGlucose,omitempty" bson:"rawBloodGlucose,omitempty"` // TODO: Rename "bloodGlucose"
+	Carbohydrate    *string `json:"carb,omitempty" bson:"carb,omitempty"`                       // TODO: Rename "carbohydrate"
+	Insulin         *string `json:"insulin,omitempty" bson:"insulin,omitempty"`
 }
 
 func ParseUnits(parser structure.ObjectParser) *Units {
@@ -58,6 +59,7 @@ func (u *Units) Validate(validator structure.Validator) {
 
 func (u *Units) Normalize(normalizer data.Normalizer) {
 	if normalizer.Origin() == structure.OriginExternal {
+		u.RawBloodGlucose = u.BloodGlucose
 		u.BloodGlucose = dataBloodGlucose.NormalizeUnits(u.BloodGlucose)
 	}
 }

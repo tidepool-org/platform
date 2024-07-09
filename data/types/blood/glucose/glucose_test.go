@@ -285,6 +285,7 @@ var _ = Describe("Glucose", func() {
 	Context("Normalize", func() {
 		DescribeTable("normalizes the datum",
 			func(units *string, mutator func(datum *glucose.Glucose, units *string), expectator func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string)) {
+
 				for _, origin := range structure.Origins() {
 					datum := dataTypesBloodGlucoseTest.NewGlucose(units)
 					mutator(datum, units)
@@ -294,6 +295,8 @@ var _ = Describe("Glucose", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
+					expectedDatum.RawUnits = pointer.CloneString(datum.RawUnits)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -332,6 +335,9 @@ var _ = Describe("Glucose", func() {
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
+				expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
+				expectedDatum.RawUnits = pointer.CloneString(datum.RawUnits)
+
 				if expectator != nil {
 					expectator(datum, expectedDatum, units)
 				}
@@ -418,6 +424,8 @@ var _ = Describe("Glucose", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.RawValue = pointer.CloneFloat64(datum.RawValue)
+					expectedDatum.RawUnits = pointer.CloneString(datum.RawUnits)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}

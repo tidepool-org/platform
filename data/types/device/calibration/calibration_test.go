@@ -42,7 +42,18 @@ func CloneCalibration(datum *calibration.Calibration) *calibration.Calibration {
 	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
 	clone.Units = pointer.CloneString(datum.Units)
 	clone.Value = pointer.CloneFloat64(datum.Value)
+	clone.RawUnits = pointer.CloneString(datum.RawUnits)
+	clone.RawValue = pointer.CloneFloat64(datum.RawValue)
+
 	return clone
+}
+
+func SetCalibrationRaw(datum *calibration.Calibration, normalized *calibration.Calibration) {
+	if datum == nil || normalized == nil {
+		return
+	}
+	datum.RawValue = pointer.CloneFloat64(normalized.RawValue)
+	datum.RawUnits = pointer.CloneString(normalized.RawUnits)
 }
 
 var _ = Describe("Calibration", func() {
@@ -276,6 +287,7 @@ var _ = Describe("Calibration", func() {
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						SetCalibrationRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}
@@ -314,6 +326,7 @@ var _ = Describe("Calibration", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					SetCalibrationRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -386,6 +399,7 @@ var _ = Describe("Calibration", func() {
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						SetCalibrationRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, units)
 						}

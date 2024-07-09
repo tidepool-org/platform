@@ -138,6 +138,7 @@ var _ = Describe("Units", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataTypesDeviceOverrideSettingsPumpTest.SetUnitsRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum)
 					}
@@ -166,6 +167,7 @@ var _ = Describe("Units", func() {
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
+				dataTypesDeviceOverrideSettingsPumpTest.SetUnitsRaw(expectedDatum, datum)
 				if expectator != nil {
 					expectator(datum, expectedDatum)
 				}
@@ -214,6 +216,7 @@ var _ = Describe("Units", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataTypesDeviceOverrideSettingsPumpTest.SetUnitsRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum)
 					}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -15,8 +16,9 @@ const (
 )
 
 type BloodGlucose struct {
-	Time  *time.Time `json:"time,omitempty" bson:"time,omitempty"`
-	Value *float64   `json:"value,omitempty" bson:"value,omitempty"`
+	Time     *time.Time `json:"time,omitempty" bson:"time,omitempty"`
+	Value    *float64   `json:"value,omitempty" bson:"value,omitempty"`
+	RawValue *float64   `json:"rawValue,omitempty" bson:"rawValue,omitempty"`
 }
 
 func ParseBloodGlucose(parser structure.ObjectParser) *BloodGlucose {
@@ -43,6 +45,7 @@ func (b *BloodGlucose) Validate(validator structure.Validator, units *string) {
 
 func (b *BloodGlucose) Normalize(normalizer data.Normalizer, units *string) {
 	if normalizer.Origin() == structure.OriginExternal {
+		b.RawValue = pointer.CloneFloat64(b.Value)
 		b.Value = dataBloodGlucose.NormalizeValueForUnits(b.Value, units)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -28,8 +29,10 @@ func (g *Glucose) Normalize(normalizer data.Normalizer) {
 	g.Blood.Normalize(normalizer)
 
 	if normalizer.Origin() == structure.OriginExternal {
-		units := g.Units
-		g.Units = dataBloodGlucose.NormalizeUnits(units)
-		g.Value = dataBloodGlucose.NormalizeValueForUnits(g.Value, units)
+		g.RawUnits = pointer.CloneString(g.Units)
+		g.RawValue = pointer.CloneFloat64(g.Value)
+
+		g.Units = dataBloodGlucose.NormalizeUnits(g.RawUnits)
+		g.Value = dataBloodGlucose.NormalizeValueForUnits(g.RawValue, g.RawUnits)
 	}
 }

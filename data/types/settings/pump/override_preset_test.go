@@ -399,6 +399,7 @@ var _ = Describe("OverridePreset", func() {
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum with origin external",
 				func(unitsBloodGlucose *string, mutator func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string), expectator func(datum *dataTypesSettingsPump.OverridePreset, expectedDatum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string)) {
+
 					datum := dataTypesSettingsPumpTest.RandomOverridePreset(unitsBloodGlucose)
 					mutator(datum, unitsBloodGlucose)
 					expectedDatum := dataTypesSettingsPumpTest.CloneOverridePreset(datum)
@@ -407,6 +408,7 @@ var _ = Describe("OverridePreset", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), unitsBloodGlucose)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataTypesSettingsPumpTest.SetTargetRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, unitsBloodGlucose)
 					}
@@ -473,6 +475,7 @@ var _ = Describe("OverridePreset", func() {
 						datum.Normalize(normalizer.WithOrigin(origin), unitsBloodGlucose)
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						dataTypesSettingsPumpTest.SetTargetRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, unitsBloodGlucose)
 						}
@@ -647,6 +650,7 @@ var _ = Describe("OverridePreset", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), unitsBloodGlucose)
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					dataTypesSettingsPumpTest.SetOverridePresetsRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, unitsBloodGlucose)
 					}

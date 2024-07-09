@@ -803,6 +803,7 @@ var _ = Describe("Pump", func() {
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					pumpTest.SetPumpRaw(expectedDatum, datum)
 					if expectator != nil {
 						expectator(datum, expectedDatum, unitsBloodGlucose)
 					}
@@ -939,6 +940,7 @@ var _ = Describe("Pump", func() {
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
 						Expect(normalizer.Data()).To(BeEmpty())
+						pumpTest.SetPumpRaw(expectedDatum, datum)
 						if expectator != nil {
 							expectator(datum, expectedDatum, unitsBloodGlucose)
 						}
