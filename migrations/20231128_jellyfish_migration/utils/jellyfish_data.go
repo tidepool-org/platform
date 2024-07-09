@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/data/deduplicator/deduplicator"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 func jellyfishQuery(settings Settings, userID *string, lastFetchedID *string) (bson.M, *options.FindOptions) {
@@ -52,7 +51,7 @@ var JellyfishDataQueryFn = func(m *DataMigration) bool {
 		selector, opts := jellyfishQuery(
 			settings,
 			nil,
-			pointer.FromString(m.GetLastID()),
+			m.GetLastID(),
 		)
 
 		opts.Projection = bson.M{"_id": 1}
@@ -139,7 +138,7 @@ var JellyfishUploadQueryFn = func(m *DataMigration) bool {
 		selector, opts := jellyfishQuery(
 			settings,
 			nil,
-			pointer.FromString(m.GetLastID()),
+			m.GetLastID(),
 		)
 
 		opts.Projection = bson.M{"_id": 1}

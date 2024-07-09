@@ -6,10 +6,12 @@ import (
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 
 	"github.com/google/uuid"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	testUtils "github.com/tidepool-org/platform/test"
 
 	userTest "github.com/tidepool-org/platform/user/test"
 
@@ -180,7 +182,7 @@ func RandomInitialSettings() *prescription.InitialSettings {
 
 func RandomCalculator() *prescription.Calculator {
 	return &prescription.Calculator{
-		Method:                        pointer.FromString(test.RandomStringFromArray(prescription.AllowedCalculatorMethods())),
+		Method:                        pointer.FromString(testUtils.RandomStringFromArray(prescription.AllowedCalculatorMethods())),
 		RecommendedBasalRate:          pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
 		RecommendedCarbohydrateRatio:  pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
 		RecommendedInsulinSensitivity: pointer.FromFloat64(test.RandomFloat64FromRange(0, 100)),
@@ -235,10 +237,10 @@ func RandomBloodGlucoseTargetStart(startMinimum int) *pump.BloodGlucoseTargetSta
 
 func RandomInsulinModel() *string {
 	validInsulinTypes := []string{
-		pump.InsulinModelModelTypeRapidAdult,
-		pump.InsulinModelModelTypeRapidChild,
+		dataTypesSettingsPump.InsulinModelModelTypeRapidAdult,
+		dataTypesSettingsPump.InsulinModelModelTypeRapidChild,
 	}
-	return pointer.FromString(test.RandomStringFromArray(validInsulinTypes))
+	return pointer.FromString(testUtils.RandomStringFromArray(validInsulinTypes))
 }
 
 func RandomDeviceID() string {

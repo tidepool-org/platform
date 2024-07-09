@@ -28,8 +28,8 @@ var DeviceDeactivateHashDeviceManufacturerDeviceModels = map[string][]string{
 }
 
 var DeviceDeactivateLegacyHasheManufacturerDeviceModels = map[string][]string{
-	"Tandem":         {"T:Slim"},
-	"InsuletOmniPod": {"Dash", "Eros"},
+	"Tandem":  {"T:Slim"},
+	"Insulet": {"Dash", "Eros"},
 	//TODO: other devices here
 }
 

@@ -6,8 +6,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/tidepool-org/platform/data/summary/types"
-
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -141,20 +139,20 @@ type ListUserDataSetsOutput struct {
 type GetLastUpdatedForUserInput struct {
 	Context     context.Context
 	UserID      string
-	Typ         string
+	Typ         []string
 	LastUpdated time.Time
 }
 
 type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated *types.UserLastUpdated
+	UserLastUpdated *data.UserDataStatus
 	Error           error
 }
 
 type GetDataRangeInput struct {
 	Context context.Context
 	UserId  string
-	Typ     string
-	Status  *types.UserLastUpdated
+	Typ     []string
+	Status  *data.UserDataStatus
 }
 
 type GetDataRangeOutput struct {
@@ -174,7 +172,7 @@ type GetUsersWithBGDataSinceOutput struct {
 
 type DistinctUserIDsInput struct {
 	Context context.Context
-	Typ     string
+	Typ     []string
 }
 
 type DistinctUserIDsOutput struct {
@@ -182,17 +180,14 @@ type DistinctUserIDsOutput struct {
 	Error   error
 }
 
-type CheckDataSetContainsTypeInRangeInput struct {
-	Context   context.Context
-	DataSetID string
-	Typ       string
-	StartTime time.Time
-	EndTime   time.Time
+type GetAlertableDataInput struct {
+	Context context.Context
+	Params  dataStore.AlertableParams
 }
 
-type CheckDataSetContainsTypeInRangeOutput struct {
-	Status bool
-	Error  error
+type GetAlertableDataOutput struct {
+	Response *dataStore.AlertableResponse
+	Error    error
 }
 
 type DataRepository struct {
@@ -265,9 +260,9 @@ type DataRepository struct {
 	DistinctUserIDsInputs      []DistinctUserIDsInput
 	DistinctUserIDsOutputs     []DistinctUserIDsOutput
 
-	CheckDataSetContainsTypeInRangeInvocations int
-	CheckDataSetContainsTypeInRangeInputs      []CheckDataSetContainsTypeInRangeInput
-	CheckDataSetContainsTypeInRangeOutputs     []CheckDataSetContainsTypeInRangeOutput
+	GetAlertableDataInvocations int
+	GetAlertableDataInputs      []GetAlertableDataInput
+	GetAlertableDataOutputs     []GetAlertableDataOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -485,7 +480,7 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	d.GetLastUpdatedForUserInvocations++
 
 	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ, LastUpdated: lastUpdated})
@@ -497,7 +492,7 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId strin
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
 	d.GetDataRangeInvocations++
 
 	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})
@@ -521,7 +516,7 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
 	d.DistinctUserIDsInvocations++
 
 	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})
@@ -533,16 +528,16 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ string) ([]str
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
-	d.CheckDataSetContainsTypeInRangeInvocations++
+func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.AlertableParams) (*dataStore.AlertableResponse, error) {
+	d.GetAlertableDataInvocations++
 
-	d.CheckDataSetContainsTypeInRangeInputs = append(d.CheckDataSetContainsTypeInRangeInputs, CheckDataSetContainsTypeInRangeInput{Context: ctx, Typ: typ, DataSetID: dataSetId, StartTime: startTime, EndTime: endTime})
+	d.GetAlertableDataInputs = append(d.GetAlertableDataInputs, GetAlertableDataInput{Context: ctx, Params: params})
 
-	gomega.Expect(d.CheckDataSetContainsTypeInRangeOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetAlertableDataOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.CheckDataSetContainsTypeInRangeOutputs[0]
-	d.CheckDataSetContainsTypeInRangeOutputs = d.CheckDataSetContainsTypeInRangeOutputs[1:]
-	return output.Status, output.Error
+	output := d.GetAlertableDataOutputs[0]
+	d.GetAlertableDataOutputs = d.GetAlertableDataOutputs[1:]
+	return output.Response, output.Error
 }
 
 func (d *DataRepository) Expectations() {

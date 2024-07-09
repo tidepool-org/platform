@@ -3,6 +3,10 @@ package context
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data/summary/reporters"
+
+	"github.com/tidepool-org/platform/clinics"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/alerts"
@@ -30,9 +34,11 @@ type Standard struct {
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
 	summarizerRegistry      *summary.SummarizerRegistry
+	summaryReporter         *reporters.PatientRealtimeDaysReporter
 	syncTaskStore           syncTaskStore.Store
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
+	clinicsClient           clinics.Client
 	dataSourceClient        dataSource.Client
 	alertsRepository        alerts.Repository
 }
@@ -117,6 +123,9 @@ func (s *Standard) Close() {
 	if s.summarizerRegistry != nil {
 		s.summarizerRegistry = nil
 	}
+	if s.summaryReporter != nil {
+		s.summaryReporter = nil
+	}
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
@@ -153,13 +162,17 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 }
 
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
-	dataRepo := s.DataRepository()
-	summaryRepo := s.SummaryRepository()
-
 	if s.summarizerRegistry == nil {
-		s.summarizerRegistry = summary.New(summaryRepo.GetStore(), dataRepo)
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.DataRepository())
 	}
 	return s.summarizerRegistry
+}
+
+func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	if s.summaryReporter == nil {
+		s.summaryReporter = reporters.NewReporter(s.SummarizerRegistry())
+	}
+	return s.summaryReporter
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
@@ -171,6 +184,18 @@ func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
 
 func (s *Standard) DataClient() dataClient.Client {
 	return s.dataClient
+}
+
+func (s *Standard) ClinicsClient() clinics.Client {
+	if s.clinicsClient == nil {
+		var err error
+		s.clinicsClient, err = clinics.NewClient(s.AuthClient())
+		if err != nil {
+			s.Logger().Error("unable to create clinics client")
+		}
+	}
+
+	return s.clinicsClient
 }
 
 func (s *Standard) DataSourceClient() dataSource.Client {

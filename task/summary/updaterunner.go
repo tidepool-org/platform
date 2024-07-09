@@ -28,11 +28,11 @@ const (
 	DefaultUpdateAvailableAfterDurationMinimum = 20 * time.Second
 	DefaultUpdateAvailableAfterDurationMaximum = 30 * time.Second
 	UpdateTaskDurationMaximum                  = 2 * time.Minute
-	DefaultUpdateWorkerBatchSize               = 500
+	DefaultUpdateWorkerBatchSize               = 250
 	UpdateWorkerCount                          = 10
 	UpdateType                                 = "org.tidepool.summary.update"
 
-	IterLimit = 4
+	IterLimit = 3
 )
 
 type UpdateRunner struct {
@@ -185,6 +185,11 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	// this loop is a bit odd looking, we are iterating until the end of the previous loop is past the target
 	// this avoids a round trip, and allows the default time zero value to work as a starter
 	for {
+		if iCount >= IterLimit {
+			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
+			break
+		}
+
 		t.logger.Info("Searching for User CGM Summaries requiring Update")
 		outdatedCGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
 		if err != nil {
@@ -193,11 +198,6 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 
 		if err = t.UpdateCGMSummaries(outdatedCGM.UserIds); err != nil {
 			return err
-		}
-
-		if iCount > IterLimit {
-			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
-			break
 		}
 
 		if outdatedCGM.End.After(targetTime) || outdatedCGM.End.IsZero() {
@@ -212,6 +212,11 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	t.logger.Debug("Starting User BGM Summary Update")
 	iCount = 0
 	for {
+		if iCount >= IterLimit {
+			t.logger.Warn("Exiting BGM batch loop early, too many iterations")
+			break
+		}
+
 		t.logger.Info("Searching for User BGM Summaries requiring Update")
 		outdatedBGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
 		if err != nil {
@@ -222,11 +227,6 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 			return err
 		}
 
-		if iCount > IterLimit {
-			t.logger.Warn("Exiting BGM batch loop early, too many iterations")
-			break
-		}
-
 		if outdatedBGM.End.After(targetTime) || outdatedBGM.End.IsZero() {
 			// we are sufficiently caught up
 			break
@@ -235,6 +235,33 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 		iCount++
 	}
 	t.logger.Debug("Finished User BGM Summary Update")
+
+	t.logger.Debug("Starting User Continuous Summary Update")
+	iCount = 0
+	for {
+		if iCount >= IterLimit {
+			t.logger.Warn("Exiting Continuous batch loop early, too many iterations")
+			break
+		}
+
+		t.logger.Info("Searching for User Continuous Summaries requiring Update")
+		outdatedContinuous, err := t.dataClient.GetOutdatedUserIDs(t.context, "continuous", pagination)
+		if err != nil {
+			return err
+		}
+
+		if err = t.UpdateContinuousSummaries(outdatedContinuous.UserIds); err != nil {
+			return err
+		}
+
+		if outdatedContinuous.End.After(targetTime) || outdatedContinuous.End.IsZero() {
+			// we are sufficiently caught up
+			break
+		}
+
+		iCount++
+	}
+	t.logger.Debug("Finished User Continuous Summary Update")
 
 	return nil
 }
@@ -299,6 +326,41 @@ func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 				}
 
 				t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
+
+				return nil
+			})
+		}
+
+		return nil
+	})
+	return eg.Wait()
+}
+
+func (t *UpdateTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) error {
+	eg, ctx := errgroup.WithContext(t.context)
+
+	eg.Go(func() error {
+		sem := semaphore.NewWeighted(UpdateWorkerCount)
+		for _, userID := range outdatedUserIds {
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return err
+			}
+
+			// we can't pass arguments to errgroup goroutines
+			// we need to explicitly redefine the variables,
+			// because we're launching the goroutines in a loop
+			userID := userID
+			eg.Go(func() error {
+				defer sem.Release(1)
+				t.logger.WithField("UserID", userID).Debug("Updating User Continuous Summary")
+
+				// update summary
+				_, err := t.dataClient.UpdateContinuousSummary(t.context, userID)
+				if err != nil {
+					return err
+				}
+
+				t.logger.WithField("UserID", userID).Debug("Finished Updating User Continuous Summary")
 
 				return nil
 			})

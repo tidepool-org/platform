@@ -78,14 +78,6 @@ func (b *BolusMap) Parse(parser structure.ObjectParser) {
 	}
 }
 
-func (b *BolusMap) Normalize(normalizer data.Normalizer) {
-	for _, name := range b.sortedNames() {
-		if datum := b.Get(name); datum != nil {
-			datum.Normalize(normalizer.WithReference(name))
-		}
-	}
-}
-
 func (b *BolusMap) Validate(validator structure.Validator) {
 	for _, name := range b.sortedNames() {
 		datumValidator := validator.WithReference(name)
@@ -97,9 +89,17 @@ func (b *BolusMap) Validate(validator structure.Validator) {
 	}
 }
 
+func (b *BolusMap) Normalize(normalizer data.Normalizer) {
+	for _, name := range b.sortedNames() {
+		if datum := b.Get(name); datum != nil {
+			datum.Normalize(normalizer.WithReference(name))
+		}
+	}
+}
+
 func (b *BolusMap) Get(name string) *Bolus {
-	if datumArray, exists := (*b)[name]; exists {
-		return datumArray
+	if datum, exists := (*b)[name]; exists {
+		return datum
 	}
 	return nil
 }

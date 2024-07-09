@@ -32,6 +32,7 @@ var _ = Describe("Bolus", func() {
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal(subType))
 			Expect(datum.InsulinFormulation).To(BeNil())
+			Expect(datum.DeliveryContext).To(BeNil())
 		})
 	})
 
@@ -83,6 +84,16 @@ var _ = Describe("Bolus", func() {
 				),
 				Entry("sub type valid",
 					func(datum *bolus.Bolus) { datum.SubType = dataTypesTest.NewType() },
+				),
+				Entry("delivery context missing",
+					func(datum *bolus.Bolus) { datum.DeliveryContext = nil },
+				),
+				Entry("delivery context invalid",
+					func(datum *bolus.Bolus) { datum.DeliveryContext = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", bolus.DeliveryContext()), "/deliveryContext"),
+				),
+				Entry("delivery context valid",
+					func(datum *bolus.Bolus) { datum.DeliveryContext = pointer.FromString(bolus.DeliveryContextAlgorithm) },
 				),
 				Entry("insulin formulation missing",
 					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },

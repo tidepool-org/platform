@@ -1,5 +1,14 @@
 package common
 
+import (
+	"errors"
+	"slices"
+	"strings"
+
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
+)
+
 const (
 	DaySunday    = "sunday"
 	DayMonday    = "monday"
@@ -32,26 +41,47 @@ func (d DaysOfWeekByDayIndex) Swap(i int, j int) {
 }
 
 func (d DaysOfWeekByDayIndex) Less(i int, j int) bool {
-	return DayIndex(d[i]) < DayIndex(d[j])
+	a, errA := DayIndex(d[i])
+	if errA != nil {
+		return false
+	}
+	b, errB := DayIndex(d[j])
+	if errB != nil {
+		return false
+	}
+	return a < b
 }
 
-func DayIndex(day string) int {
+func DayIndex(day string) (int, error) {
 	switch day {
 	case DaySunday:
-		return 1
+		return 1, nil
 	case DayMonday:
-		return 2
+		return 2, nil
 	case DayTuesday:
-		return 3
+		return 3, nil
 	case DayWednesday:
-		return 4
+		return 4, nil
 	case DayThursday:
-		return 5
+		return 5, nil
 	case DayFriday:
-		return 6
+		return 6, nil
 	case DaySaturday:
-		return 7
+		return 7, nil
 	default:
-		return 0
+		return 0, errors.New("invalid day of the week")
 	}
+}
+
+func ValidateDayOfWeek(value string) error {
+	if value == "" {
+		return validator.ErrorValueEmpty()
+	} else if !slices.Contains(DaysOfWeek(), strings.ToLower(value)) {
+		return validator.ErrorValueStringNotOneOf(value, DaysOfWeek())
+	}
+	return nil
+}
+
+func DayOfWeekValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateDayOfWeek(value))
 }
