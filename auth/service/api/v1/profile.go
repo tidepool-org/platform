@@ -2,11 +2,13 @@ package v1
 
 import (
 	"context"
-	"errors"
+	stdErrs "errors"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -65,6 +67,12 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		return
 	}
 
+	filter := parseUsersQuery(req.URL.Query())
+	if !isUsersQueryValid(filter) {
+		responder.Error(http.StatusBadRequest, errors.New("unable to parse users query"))
+		return
+	}
+	mergedUserPerms := map[string]*permission.TrustPermissions{}
 	trustorPerms, err := r.PermissionsClient().GroupsForUser(ctx, targetUserID)
 	if err != nil {
 		responder.InternalServerError(err)
@@ -76,6 +84,11 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			// Don't include own user in result
 			continue
 		}
+
+		mergedUserPerms[userID] = &permission.TrustPermissions{
+			TrustorPermissions: &perms,
+		}
+
 		if perms.HasReadPermissions() {
 			sharedUser, err := r.UserAccessor().FindUserById(ctx, userID)
 			if err != nil {
@@ -83,7 +96,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 				return
 			}
 			profile, err := r.getProfile(ctx, userID)
-			if err != nil && !errors.Is(err, user.ErrUserProfileNotFound) {
+			if err != nil && !stdErrs.Is(err, user.ErrUserProfileNotFound) {
 				r.handleProfileErr(responder, err)
 				return
 			}
@@ -173,7 +186,7 @@ func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) handleProfileErr(responder *request.Responder, err error) {
 	switch {
-	case errors.Is(err, user.ErrUserNotFound), errors.Is(err, user.ErrUserProfileNotFound):
+	case stdErrs.Is(err, user.ErrUserNotFound), stdErrs.Is(err, user.ErrUserProfileNotFound):
 		responder.Empty(http.StatusNotFound)
 		return
 	default:
