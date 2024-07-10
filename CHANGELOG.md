@@ -1,7 +1,7 @@
 # Platform 
 The data platform API
 
-## 0.26.0-rc1 - 2024-01-31
+## 0.26.0 - 2024-01-31
 ### Fixed 
 - YLP-3111 Restore missing field for wizard written in buckets
 - YLP-2939 I have a duplicate physical activities created when a update is sent

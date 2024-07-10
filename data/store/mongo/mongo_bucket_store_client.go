@@ -619,27 +619,31 @@ func buildWizardUpdateOneModel(sample schema.ISample, userId *string, date strin
 
 	// Update
 	elemfilter := sample.(schema.Wizard)
-	secondOp := mongo.NewUpdateOneModel()
-	secondOp.SetFilter(bson.D{
-		{Key: "_id", Value: strUserId + "_" + date},
-		{Key: "meals", Value: bson.D{
-			{Key: "$elemMatch", Value: bson.D{
-				{Key: "timestamp", Value: elemfilter.Timestamp},
+	if elemfilter.Guid != "" && elemfilter.DeviceId != "" {
+		secondOp := mongo.NewUpdateOneModel()
+		secondOp.SetFilter(bson.D{
+			{Key: "_id", Value: strUserId + "_" + date},
+			{Key: "meals", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "guid", Value: elemfilter.Guid},
+					{Key: "deviceId", Value: elemfilter.DeviceId},
+				},
+				},
 			},
 			},
-		},
-		},
-	})
-	secondOp.SetUpdate(bson.D{ // update
-		{Key: "$set", Value: bson.D{
-			{Key: "meals.$.carbInput", Value: elemfilter.CarbInput},
-			{Key: "meals.$.bolus", Value: elemfilter.BolusId},
-			{Key: "meals.$.inputTimestamp", Value: elemfilter.InputTimestamp},
-		},
-		},
-	})
+		})
+		secondOp.SetUpdate(bson.D{ // update
+			{Key: "$set", Value: bson.D{
+				{Key: "meals.$.carbInput", Value: elemfilter.CarbInput},
+				{Key: "meals.$.bolus", Value: elemfilter.BolusId},
+				{Key: "meals.$.inputTimestamp", Value: elemfilter.InputTimestamp},
+				{Key: "meals.$.uuid", Value: elemfilter.Uuid},
+			},
+			},
+		})
 
-	updates = append(updates, secondOp)
+		updates = append(updates, secondOp)
+	}
 	// Otherwise we know that we did not update, so we guarantee an insertion
 	// in the array
 	thirdOp := mongo.NewUpdateOneModel()
