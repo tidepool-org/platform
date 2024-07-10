@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/crypto"
@@ -23,6 +25,77 @@ const (
 	StatusAvailable = "available"
 	StatusCreated   = "created"
 )
+
+var (
+	ANY   = []string{"any"}
+	NONE  = []string{"none"}
+	TRUES = []string{"true", "yes", "y", "1"}
+)
+
+type parsedQueryPermissions []string
+
+// parsePermissions replicates the functionality of the seagull node.js
+// parsePermissions function which parses a query string value to a permissions
+// slice
+func parsePermissions(queryValuesOfKey string) parsedQueryPermissions {
+	queryValuesOfKey = strings.TrimSpace(queryValuesOfKey)
+	if queryValuesOfKey == "" {
+		return nil
+	}
+	var vals []string
+	for _, val := range strings.Split(queryValuesOfKey, ",") {
+		val = strings.TrimSpace(val)
+		// Remove falsey values that are strings
+		if val == "0" || val == "false" || val == "" {
+			continue
+		}
+		vals = append(vals, val)
+	}
+	if slices.Compare(vals, ANY) == 0 {
+		return slices.Clone(ANY)
+	}
+	if slices.Compare(vals, NONE) == 0 {
+		return slices.Clone(NONE)
+	}
+	for _, val := range vals {
+		nonEmpty := val != ""
+		if !nonEmpty {
+			return vals
+		}
+	}
+	return nil
+}
+
+func arePermissionsValid(perms parsedQueryPermissions) bool {
+	if len(perms) > 1 {
+		union := append(ANY, NONE...)
+		for _, perm := range perms {
+			// quadratic time complexity but very few elements so don't care
+			if slices.Contains(union, perm) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func arePermissionsSatisfied(queryPermissions, userPermissions parsedQueryPermissions) bool {
+	if slices.Compare(queryPermissions, ANY) == 0 {
+		nonEmpty := len(userPermissions) > 0
+		return nonEmpty
+	}
+	if slices.Compare(queryPermissions, NONE) == 0 {
+		empty := len(userPermissions) == 0
+		return empty
+	}
+	// Todo: really test this part
+	for _, userPerm := range userPermissions {
+		if !slices.Contains(queryPermissions, userPerm) {
+			return false
+		}
+	}
+	return true
+}
 
 func Statuses() []string {
 	return []string{
