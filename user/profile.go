@@ -57,6 +57,7 @@ type UserProfile struct {
 	MRN            string         `json:"mrn,omitempty"`
 	Custodian      *Custodian     `json:"custodian,omitempty"`
 	Clinic         *ClinicProfile `json:"-"` // This is not returned to users in any new user profile routes but needs to be saved as it's not known where the old seagull value.profile.clinic is read
+	BiologicalSex  string         `json:"biologicalSex,omitempty"`
 }
 
 type ClinicProfile struct {
@@ -81,6 +82,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			TargetTimezone: up.TargetTimezone,
 			About:          up.About,
 			MRN:            up.MRN,
+			BiologicalSex:  up.BiologicalSex,
 		},
 		Clinic:          up.Clinic,
 		MigrationStatus: migrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
@@ -114,6 +116,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.TargetTimezone = p.Patient.TargetTimezone
 		up.About = p.Patient.About
 		up.MRN = p.Patient.MRN
+		up.BiologicalSex = p.Patient.BiologicalSex
 	}
 	return up
 }
@@ -136,6 +139,7 @@ type LegacyPatientProfile struct {
 	About          string   `json:"about,omitempty"`
 	IsOtherPerson  bool     `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
+	BiologicalSex  string   `json:"biologicalSex,omitempty"`
 }
 
 func (up *UserProfile) ToAttributes() map[string][]string {
@@ -168,6 +172,9 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 	if up.MRN != "" {
 		addAttribute(attributes, "mrn", up.MRN)
+	}
+	if up.BiologicalSex != "" {
+		addAttribute(attributes, "biological_sex", up.BiologicalSex)
 	}
 
 	if up.Clinic != nil {
@@ -229,6 +236,10 @@ func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile
 	}
 	if val := getAttribute(attributes, "mrn"); val != "" {
 		up.MRN = val
+		ok = true
+	}
+	if val := getAttribute(attributes, "biological_sex"); val != "" {
+		up.BiologicalSex = val
 		ok = true
 	}
 
@@ -329,6 +340,7 @@ func (up *UserProfile) Validate(v structure.Validator) {
 	v.String("targetTimezone", &up.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
 	v.String("about", &up.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
 	v.String("mrn", &up.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("biologicalSex", &up.BiologicalSex).LengthLessThanOrEqualTo(maxProfileFieldLen)
 
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
@@ -343,6 +355,7 @@ func (up *UserProfile) Normalize(normalizer structure.Normalizer) {
 	up.TargetTimezone = strings.TrimSpace(up.TargetTimezone)
 	up.About = strings.TrimSpace(up.About)
 	up.MRN = strings.TrimSpace(up.MRN)
+	up.BiologicalSex = strings.TrimSpace(up.BiologicalSex)
 
 	up.Birthday.Normalize(normalizer.WithReference("birthday"))
 	up.DiagnosisDate.Normalize(normalizer.WithReference("diagnosisDate"))
@@ -401,4 +414,5 @@ func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
 	pp.TargetTimezone = strings.TrimSpace(pp.TargetTimezone)
 	pp.About = strings.TrimSpace(pp.About)
 	pp.MRN = strings.TrimSpace(pp.MRN)
+	pp.BiologicalSex = strings.TrimSpace(pp.BiologicalSex)
 }
