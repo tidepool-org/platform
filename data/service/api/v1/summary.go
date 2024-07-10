@@ -150,8 +150,6 @@ func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataSer
 	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if userSummary == nil {
-		responder.Empty(http.StatusNotFound)
 	} else {
 		responder.Data(http.StatusOK, userSummary)
 	}
