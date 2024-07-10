@@ -7,25 +7,20 @@ import (
 	"strconv"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/mongo"
+	"gonum.org/v1/gonum/stat"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/fetcher"
-
-	"go.mongodb.org/mongo-driver/mongo"
-
+	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/test"
-
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-
-	userTest "github.com/tidepool-org/platform/user/test"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/data/summary/types"
-
 	"github.com/tidepool-org/platform/pointer"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 func CGMCursorFetcher(c *mongo.Cursor) fetcher.DeviceDataCursor {
@@ -34,11 +29,10 @@ func CGMCursorFetcher(c *mongo.Cursor) fetcher.DeviceDataCursor {
 
 func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []data.Datum {
 	requiredRecords := int(hours * 12)
-	typ := pointer.FromString("cbg")
-
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var deviceId = "SummaryTestDevice"
-	var uploadId = test.RandomSetID()
+	typ := "cbg"
+	dataSetData := make([]data.Datum, requiredRecords)
+	deviceId := "SummaryTestDevice"
+	uploadId := test.RandomSetID()
 
 	// generate X hours of data
 	for count := 0; count < requiredRecords; count += 2 {
@@ -49,8 +43,8 @@ func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []
 		for i, glucoseValue := range glucoseValues {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
-			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromFloat64(glucoseValue)
+			datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(glucoseValue)
 
 			dataSetData[requiredRecords-count-i-1] = datum
 		}
@@ -60,38 +54,62 @@ func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []
 }
 
 // creates a dataset with random values evenly divided between ranges
-// NOTE: only generates 98.9% CGMUse, due to needing to be divisible by 5
 func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRanges) []data.Datum {
-	requiredRecords := int(hours * 10)
-	typ := pointer.FromString("cbg")
-	var gapCompensation time.Duration
+	perHour := 12.0
+	requiredRecords := int(hours * perHour)
+	typ := "cbg"
+	dataSetData := make([]data.Datum, requiredRecords)
+	uploadId := test.RandomSetID()
+	deviceId := "SummaryTestDevice"
 
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var uploadId = test.RandomSetID()
-	var deviceId = "SummaryTestDevice"
-
-	glucoseBrackets := [5][2]float64{
+	glucoseBrackets := [6][2]float64{
 		{ranges.Min, ranges.VeryLow - ranges.Padding},
 		{ranges.VeryLow, ranges.Low - ranges.Padding},
 		{ranges.Low, ranges.High - ranges.Padding},
 		{ranges.High, ranges.VeryHigh - ranges.Padding},
-		{ranges.VeryHigh, ranges.Max},
+		{ranges.VeryHigh, ranges.ExtremeHigh - ranges.Padding},
+		{ranges.ExtremeHigh, ranges.Max},
 	}
 
 	// generate requiredRecords of data
-	for count := 0; count < requiredRecords; count += 5 {
-		gapCompensation = 10 * time.Minute * time.Duration(int(float64(count+1)/10))
+	for count := 0; count < requiredRecords; count += 6 {
 		for i, bracket := range glucoseBrackets {
-			datumTime := startTime.Add(time.Duration(-(count+i+1))*time.Minute*5 - gapCompensation)
+			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
-			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
+			datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
 
 			dataSetData[requiredRecords-count-i-1] = datum
 		}
 	}
 
 	return dataSetData
+}
+
+func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, StandardDeviation float64) ([]data.Datum, float64) {
+	requiredRecords := hours * perHour
+	typ := "cbg"
+	dataSetData := make([]data.Datum, requiredRecords)
+	uploadId := test.RandomSetID()
+	deviceId := "SummaryTestDevice"
+
+	var values []float64
+
+	// generate requiredRecords of data
+	for count := 0; count < requiredRecords; count += perHour {
+		for inHour := 0; inHour < perHour; inHour++ {
+			datumTime := startTime.Add(time.Duration(-(count + inHour + 1)) * time.Hour / time.Duration(perHour))
+
+			datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(rand.NormFloat64()*StandardDeviation + veryHighBloodGlucose)
+
+			values = append(values, *datum.Value)
+
+			dataSetData[requiredRecords-(count+inHour+1)] = datum
+		}
+	}
+
+	return dataSetData, stat.PopStdDev(values, nil)
 }
 
 var _ = Describe("CGM Summary", func() {
@@ -195,18 +213,18 @@ var _ = Describe("CGM Summary", func() {
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(12))
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(1*time.Hour), 1, NewDataRangesSingle(highBloodGlucose+0.5))
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(12))
 
 				dataSetCGMData = NewDataSetCGMDataRanges(datumTime.Add(24*60*time.Hour), 1, NewDataRangesSingle(inTargetBloodGlucose-0.5))
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMData)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(userCGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(12))
 
 				for i := 0; i < len(userCGMSummary.Stats.Buckets); i++ {
 					Expect(userCGMSummary.Stats.Buckets[i]).ToNot(BeNil())
@@ -353,12 +371,14 @@ var _ = Describe("CGM Summary", func() {
 				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
 				highRange := NewDataRangesSingle(highBloodGlucose + 0.5)
 				veryHighRange := NewDataRangesSingle(veryHighBloodGlucose + 0.5)
+				extremeHighRange := NewDataRangesSingle(extremeHighBloodGlucose + 0.5)
 
-				dataSetCGMDataOne := NewDataSetCGMDataRanges(datumTime.Add(-4*time.Hour), 1, veryLowRange)
-				dataSetCGMDataTwo := NewDataSetCGMDataRanges(datumTime.Add(-3*time.Hour), 1, lowRange)
-				dataSetCGMDataThree := NewDataSetCGMDataRanges(datumTime.Add(-2*time.Hour), 1, inRange)
-				dataSetCGMDataFour := NewDataSetCGMDataRanges(datumTime.Add(-1*time.Hour), 1, highRange)
-				dataSetCGMDataFive := NewDataSetCGMDataRanges(datumTime, 1, veryHighRange)
+				dataSetCGMDataOne := NewDataSetCGMDataRanges(datumTime.Add(-5*time.Hour), 1, veryLowRange)
+				dataSetCGMDataTwo := NewDataSetCGMDataRanges(datumTime.Add(-4*time.Hour), 1, lowRange)
+				dataSetCGMDataThree := NewDataSetCGMDataRanges(datumTime.Add(-3*time.Hour), 1, inRange)
+				dataSetCGMDataFour := NewDataSetCGMDataRanges(datumTime.Add(-2*time.Hour), 1, highRange)
+				dataSetCGMDataFive := NewDataSetCGMDataRanges(datumTime.Add(-1*time.Hour), 1, veryHighRange)
+				dataSetCGMDataSix := NewDataSetCGMDataRanges(datumTime, 1, extremeHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataOne)
@@ -371,89 +391,117 @@ var _ = Describe("CGM Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
+				err = types.AddData(&userCGMSummary.Stats.Buckets, dataSetCGMDataSix)
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(5))
+				Expect(len(userCGMSummary.Stats.Buckets)).To(Equal(6))
 
 				By("check record counters for insurance")
 				for i := len(userCGMSummary.Stats.Buckets) - 1; i >= 0; i-- {
 					f := fmt.Sprintf("hour %d", i+1)
 					By(f)
-					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(10))
-					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes).To(Equal(50))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(12))
+					Expect(userCGMSummary.Stats.Buckets[i].Data.TotalMinutes).To(Equal(60))
 
 					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userCGMSummary.Stats.Buckets)-i-1) - time.Minute*5)
 					Expect(userCGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				By("very low minutes")
-				Expect(userCGMSummary.Stats.Buckets[0].Data.VeryLowMinutes).To(Equal(50))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.VeryLowMinutes).To(Equal(60))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.LowMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.TargetMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.HighMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.VeryHighMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.ExtremeHighMinutes).To(Equal(0))
 
 				By("very low records")
-				Expect(userCGMSummary.Stats.Buckets[0].Data.VeryLowRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.VeryLowRecords).To(Equal(12))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.TargetRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[0].Data.VeryHighRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[0].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("low minutes")
 				Expect(userCGMSummary.Stats.Buckets[1].Data.VeryLowMinutes).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[1].Data.LowMinutes).To(Equal(50))
+				Expect(userCGMSummary.Stats.Buckets[1].Data.LowMinutes).To(Equal(60))
 				Expect(userCGMSummary.Stats.Buckets[1].Data.TargetMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[1].Data.HighMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[1].Data.VeryHighMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[1].Data.ExtremeHighMinutes).To(Equal(0))
 
 				By("low records")
 				Expect(userCGMSummary.Stats.Buckets[1].Data.VeryLowRecords).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[1].Data.LowRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[1].Data.LowRecords).To(Equal(12))
 				Expect(userCGMSummary.Stats.Buckets[1].Data.TargetRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[1].Data.HighRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[1].Data.VeryHighRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[1].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("in-range minutes")
 				Expect(userCGMSummary.Stats.Buckets[2].Data.VeryLowMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[2].Data.LowMinutes).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[2].Data.TargetMinutes).To(Equal(50))
+				Expect(userCGMSummary.Stats.Buckets[2].Data.TargetMinutes).To(Equal(60))
 				Expect(userCGMSummary.Stats.Buckets[2].Data.HighMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[2].Data.VeryHighMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[2].Data.ExtremeHighMinutes).To(Equal(0))
 
 				By("in-range records")
 				Expect(userCGMSummary.Stats.Buckets[2].Data.VeryLowRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[2].Data.LowRecords).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[2].Data.TargetRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[2].Data.TargetRecords).To(Equal(12))
 				Expect(userCGMSummary.Stats.Buckets[2].Data.HighRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[2].Data.VeryHighRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[2].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("high minutes")
 				Expect(userCGMSummary.Stats.Buckets[3].Data.VeryLowMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[3].Data.LowMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[3].Data.TargetMinutes).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[3].Data.HighMinutes).To(Equal(50))
+				Expect(userCGMSummary.Stats.Buckets[3].Data.HighMinutes).To(Equal(60))
 				Expect(userCGMSummary.Stats.Buckets[3].Data.VeryHighMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[3].Data.ExtremeHighMinutes).To(Equal(0))
 
 				By("high records")
 				Expect(userCGMSummary.Stats.Buckets[3].Data.VeryLowRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[3].Data.LowRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[3].Data.TargetRecords).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[3].Data.HighRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[3].Data.HighRecords).To(Equal(12))
 				Expect(userCGMSummary.Stats.Buckets[3].Data.VeryHighRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[3].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("very high minutes")
 				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryLowMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.LowMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.TargetMinutes).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.HighMinutes).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryHighMinutes).To(Equal(50))
+				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryHighMinutes).To(Equal(60))
+				Expect(userCGMSummary.Stats.Buckets[4].Data.ExtremeHighMinutes).To(Equal(0))
 
 				By("very high records")
 				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryLowRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.LowRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.TargetRecords).To(Equal(0))
 				Expect(userCGMSummary.Stats.Buckets[4].Data.HighRecords).To(Equal(0))
-				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(10))
+				Expect(userCGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(12))
+				Expect(userCGMSummary.Stats.Buckets[4].Data.ExtremeHighRecords).To(Equal(0))
+
+				By("extreme high minutes")
+				Expect(userCGMSummary.Stats.Buckets[5].Data.VeryLowMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.LowMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.TargetMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.HighMinutes).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.VeryHighMinutes).To(Equal(60))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.ExtremeHighMinutes).To(Equal(60))
+
+				By("extreme high records")
+				Expect(userCGMSummary.Stats.Buckets[5].Data.VeryLowRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.LowRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.TargetRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.HighRecords).To(Equal(0))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.VeryHighRecords).To(Equal(12))
+				Expect(userCGMSummary.Stats.Buckets[5].Data.ExtremeHighRecords).To(Equal(12))
 			})
 
 			It("Returns correct hourly stats for days uploaded in reverse", func() {
@@ -872,7 +920,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetRecords).To(Equal(48 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInTargetPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInTargetPercent).To(Equal(1.0 / 6.0))
 
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowMinutes).To(Equal(240 * v))
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowMinutes).To(BeTrue())
@@ -881,7 +929,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowRecords).To(Equal(48 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(1.0 / 6.0))
 
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInAnyLowMinutes).To(Equal(240 * 2 * v))
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowMinutes).To(BeTrue())
@@ -890,7 +938,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInAnyLowRecords).To(Equal(48 * 2 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInAnyLowPercent).To(Equal(0.400))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInAnyLowPercent).To(Equal(2.0 / 6.0))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInLowMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowMinutes).To(Equal(240 * v))
@@ -899,7 +947,7 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowRecords).To(Equal(48 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInLowPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInLowPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInHighMinutes).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighMinutes).To(Equal(240 * v))
@@ -908,41 +956,56 @@ var _ = Describe("CGM Summary", func() {
 					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighRecords).To(Equal(48 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInHighPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInHighPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighMinutes).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighMinutes).To(Equal(240 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighMinutes).To(Equal(480 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighRecords).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(48 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(96 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(2.0 / 6.0))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInExtremeHighMinutes).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInExtremeHighMinutes).To(Equal(240 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInExtremeHighRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInExtremeHighRecords).To(Equal(48 * v))
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInExtremeHighPercent).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInExtremeHighPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighMinutes).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighMinutes).To(Equal(240 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighMinutes).To(Equal(480 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighRecords).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(48 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(96 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighPercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(0.200))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(2.0 / 6.0))
+
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInAnyHighMinutes).To(Equal(240 * 3 * v))
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInAnyHighMinutes).To(BeTrue())
+
+					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowRecords).To(BeTrue())
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeInAnyLowRecords).To(Equal(48 * 2 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTotalRecords).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(240 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(288 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasAverageDailyRecords).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 240))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 288))
 
 					// ranges calc only generates 83.3% of an hour, each hour needs to be divisible by 5
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUseMinutes).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseMinutes).To(Equal(1200 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseMinutes).To(Equal(1440 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUseRecords).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseRecords).To(Equal(240 * v))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUseRecords).To(Equal(288 * v))
 
 					Expect(userCGMSummary.Stats.Periods[periodKey].HasTimeCGMUsePercent).To(BeTrue())
-					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUsePercent).To(BeNumerically("~", 0.833, 0.001))
+					Expect(*userCGMSummary.Stats.Periods[periodKey].TimeCGMUsePercent).To(BeNumerically("~", 1, 0.001))
 				}
 			})
 
@@ -1046,6 +1109,7 @@ var _ = Describe("CGM Summary", func() {
 				Expect(userCGMSummary.Stats.TotalHours).To(Equal(720))
 
 				for i, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
 					Expect(userCGMSummary.Stats.Periods[period].HasTimeCGMUsePercent).To(BeTrue())
 					Expect(*userCGMSummary.Stats.Periods[period].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.005))
 
@@ -1308,6 +1372,7 @@ var _ = Describe("CGM Summary", func() {
 				}
 			})
 
+			//
 			//It("Returns correct record count when given single buckets in strange places", func() {
 			//	userCGMSummary = types.Create[*types.CGMStats](userId)
 			//
@@ -1449,6 +1514,166 @@ var _ = Describe("CGM Summary", func() {
 
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].AverageGlucoseMmol).To(BeNumerically("~", inTargetBloodGlucose, 0.001))
 				Expect(*userCGMSummary.Stats.OffsetPeriods["30d"].TotalRecords).To(Equal(288))
+			})
+
+			It("Returns correct SD/CV for stats 1d", func() {
+				var targetSD float64
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				targetCV := targetSD / (*userCGMSummary.Stats.Periods[periodKeys[0]].AverageGlucoseMmol)
+
+				for _, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
+					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
+				}
+			})
+
+			It("Returns offset SD/CV for stats 1d", func() {
+				var targetSD float64
+				var targetSDNew float64
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				By(fmt.Sprintf("checking period %s", periodKeys[0]))
+				By(fmt.Sprintf("records %d", *userCGMSummary.Stats.Periods[periodKeys[0]].TotalRecords))
+				By(fmt.Sprintf("offset records %d", *userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].TotalRecords))
+				Expect(userCGMSummary.Stats.Periods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+				Expect(userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", 0, 0.00001))
+
+				// now we move the data 24h forward and check that 1d offset contains the previous SD
+				dataSetCGMData, targetSDNew = NewDataSetCGMVariance(datumTime.Add(24*time.Hour), 24, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				By(fmt.Sprintf("checking offset period %s", periodKeys[0]))
+				By(fmt.Sprintf("records %d", *userCGMSummary.Stats.Periods[periodKeys[0]].TotalRecords))
+				By(fmt.Sprintf("offset records %d", *userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].TotalRecords))
+				Expect(userCGMSummary.Stats.Periods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", targetSDNew, 0.00001))
+				Expect(userCGMSummary.Stats.OffsetPeriods[periodKeys[0]].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+			})
+
+			It("Returns correct SD/CV for stats 7d", func() {
+				var targetSD float64
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				// this test will fail if hours is ever greater than the final period, requested SD is not perfect
+				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24*7, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				targetCV := targetSD / (*userCGMSummary.Stats.Periods[periodKeys[1]].AverageGlucoseMmol)
+
+				for _, period := range periodKeys[1:] {
+					By(fmt.Sprintf("checking period %s", period))
+					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
+				}
+			})
+
+			It("Returns correct SD/CV for stats 14d", func() {
+				var targetSD float64
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24*14, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				targetCV := targetSD / (*userCGMSummary.Stats.Periods[periodKeys[2]].AverageGlucoseMmol)
+
+				for _, period := range periodKeys[2:] {
+					By(fmt.Sprintf("checking period %s", period))
+					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
+				}
+			})
+
+			It("Returns correct SD/CV for stats 30d", func() {
+				var targetSD float64
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData, targetSD = NewDataSetCGMVariance(datumTime, 24*30, 6, 20)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				targetCV := targetSD / (*userCGMSummary.Stats.Periods[periodKeys[3]].AverageGlucoseMmol)
+
+				for _, period := range periodKeys[3:] {
+					By(fmt.Sprintf("checking period %s", period))
+					Expect(userCGMSummary.Stats.Periods[period].StandardDeviation).To(BeNumerically("~", targetSD, 0.00001))
+					Expect(userCGMSummary.Stats.Periods[period].CoefficientOfVariation).To(BeNumerically("~", targetCV, 0.00001))
+				}
+			})
+
+			It("Returns correct total days and hours for stats", func() {
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 25, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				for i, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
+					expectHours := 25
+					expectDays := 2
+					if i == 0 {
+						expectHours = 24
+						expectDays = 1
+					}
+					Expect(userCGMSummary.Stats.Periods[period].HoursWithData).To(Equal(expectHours))
+					Expect(userCGMSummary.Stats.Periods[period].DaysWithData).To(Equal(expectDays))
+				}
+
+				dataSetCGMData = NewDataSetCGMDataAvg(datumTime.AddDate(0, 0, 5), 25, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				for i, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
+					expectHours := 25 * 2
+					expectDays := 4
+					if i == 0 {
+						expectHours = 24
+						expectDays = 1
+					}
+					Expect(userCGMSummary.Stats.Periods[period].HoursWithData).To(Equal(expectHours))
+					Expect(userCGMSummary.Stats.Periods[period].DaysWithData).To(Equal(expectDays))
+				}
+			})
+
+			It("Returns correct total days and hours for offset periods", func() {
+				userCGMSummary = types.Create[*types.CGMStats](userId)
+				dataSetCGMData = NewDataSetCGMDataAvg(datumTime, 24*60, inTargetBloodGlucose)
+				dataSetCGMDataCursor, err = mongo.NewCursorFromDocuments(ConvertToIntArray(dataSetCGMData), nil, nil)
+
+				err = userCGMSummary.Stats.Update(ctx, CGMCursorFetcher(dataSetCGMDataCursor))
+				Expect(err).ToNot(HaveOccurred())
+
+				for i, period := range periodKeys {
+					By(fmt.Sprintf("checking period %s", period))
+					Expect(userCGMSummary.Stats.Periods[period].DaysWithData).To(Equal(periodInts[i]))
+					Expect(userCGMSummary.Stats.Periods[period].HoursWithData).To(Equal(24 * periodInts[i]))
+
+					By(fmt.Sprintf("checking offset period %s", period))
+					Expect(userCGMSummary.Stats.OffsetPeriods[period].DaysWithData).To(Equal(periodInts[i]))
+					Expect(userCGMSummary.Stats.OffsetPeriods[period].HoursWithData).To(Equal(24 * periodInts[i]))
+				}
 			})
 		})
 

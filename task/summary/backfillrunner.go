@@ -2,13 +2,12 @@ package summary
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-
-	"errors"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"

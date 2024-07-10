@@ -12,7 +12,7 @@
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPSignalE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
@@ -46,8 +46,9 @@ func (sig ShutdownSignal) String() string {
 
 func newSignalReceivers() signalReceivers {
 	return signalReceivers{
-		notify:  signal.Notify,
-		signals: make(chan os.Signal, 1),
+		notify:     signal.Notify,
+		stopNotify: signal.Stop,
+		signals:    make(chan os.Signal, 1),
 	}
 }
 
@@ -64,7 +65,8 @@ type signalReceivers struct {
 	finished chan struct{}
 
 	// this stub allows us to unit test signal relay functionality
-	notify func(c chan<- os.Signal, sig ...os.Signal)
+	notify     func(c chan<- os.Signal, sig ...os.Signal)
+	stopNotify func(c chan<- os.Signal)
 
 	// last will contain a pointer to the last ShutdownSignal received, or
 	// nil if none, if a new channel is created by Wait or Done, this last
@@ -79,7 +81,7 @@ type signalReceivers struct {
 	wait []chan ShutdownSignal
 }
 
-func (recv *signalReceivers) relayer(ctx context.Context) {
+func (recv *signalReceivers) relayer() {
 	defer func() {
 		recv.finished <- struct{}{}
 	}()
@@ -100,7 +102,7 @@ func (recv *signalReceivers) running() bool {
 	return recv.shutdown != nil && recv.finished != nil
 }
 
-func (recv *signalReceivers) Start(ctx context.Context) {
+func (recv *signalReceivers) Start() {
 	recv.m.Lock()
 	defer recv.m.Unlock()
 
@@ -112,12 +114,13 @@ func (recv *signalReceivers) Start(ctx context.Context) {
 	recv.finished = make(chan struct{}, 1)
 	recv.shutdown = make(chan struct{}, 1)
 	recv.notify(recv.signals, os.Interrupt, _sigINT, _sigTERM)
-	go recv.relayer(ctx)
+	go recv.relayer()
 }
 
 func (recv *signalReceivers) Stop(ctx context.Context) error {
 	recv.m.Lock()
 	defer recv.m.Unlock()
+	recv.stopNotify(recv.signals)
 
 	// if the relayer is not running; return nil error
 	if !recv.running() {
