@@ -69,6 +69,26 @@ func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permi
 	return permission.FixGroupedOwnerPermissions(result), nil
 }
 
+func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.GroupedPermissions, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if sharerID == "" {
+		return nil, errors.New("user id is missing")
+	}
+
+	url := c.client.ConstructURL("access", sharerID)
+	result := permission.GroupedPermissions{}
+	if err := c.client.RequestData(ctx, "GET", url, nil, nil, &result); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, request.ErrorUnauthorized()
+		}
+		return nil, err
+	}
+
+	return permission.FixGroupedOwnerPermissions(result), nil
+}
+
 func (c *Client) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
 	fromTo, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
 	if err != nil {

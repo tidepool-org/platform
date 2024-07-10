@@ -54,8 +54,9 @@ type User struct {
 	Profile              *UserProfile        `json:"-"`
 	FirstName            string              `json:"firstName,omitempty"`
 	LastName             string              `json:"lastName,omitempty"`
-	// TrustorPermissions is only returned for the route that returns users that have shared their data w/ another user
-	TrustorPermissions *permission.Permissions `json:"trustorPermissions,omitempty"`
+	// The following 2 properties are only returned for the route that returns users that have shared their data w/ another user
+	TrustorPermissions *permission.Permission `json:"trustorPermissions,omitempty"`
+	TrusteePermissions *permission.Permission `json:"trusteePermissions,omitempty"`
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
