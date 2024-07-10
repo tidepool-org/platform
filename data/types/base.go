@@ -265,56 +265,36 @@ func (b *Base) IdentityFields() ([]string, error) {
 	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
 }
 
-type LegacyIdentityFormat int
-
-const (
-	_ LegacyIdentityFormat = iota
-	TypeDeviceIDTimeFormat
-	TypeTimeDeviceIDFormat
-)
-
-type LegacyIdentityCustomField struct {
-	Value string
+type LegacyIDField struct {
+	Value *string
 	Name  string
 }
 
-func GetLegacyIdentityFields(base *Base, format LegacyIdentityFormat, opt *LegacyIdentityCustomField) ([]string, error) {
-	if base.Type == "" {
-		return nil, errors.New("type is empty")
+func GetLegacyTimeField(t *time.Time) LegacyIDField {
+	if t == nil {
+		return LegacyIDField{Name: "time", Value: nil}
+	}
+	tVal := ""
+	if (*t).IsZero() {
+		return LegacyIDField{Name: "time", Value: &tVal}
 	}
 
-	if base.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
+	tVal = (*t).Format(LegacyFieldTimeFormat)
+	return LegacyIDField{Name: "time", Value: &tVal}
+}
 
-	if *base.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-
-	if base.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-
-	if (*base.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-
-	if opt != nil {
-		if opt.Value == "" {
+func GetLegacyIDFields(fields ...LegacyIDField) ([]string, error) {
+	identityFields := []string{}
+	for _, opt := range fields {
+		if opt.Value == nil {
+			return nil, fmt.Errorf("%s is missing", opt.Name)
+		}
+		if *opt.Value == "" {
 			return nil, fmt.Errorf("%s is empty", opt.Name)
 		}
+		identityFields = append(identityFields, *opt.Value)
 	}
-
-	if format == TypeDeviceIDTimeFormat {
-		if opt != nil {
-			return []string{base.Type, opt.Value, *base.DeviceID, (*base.Time).Format(LegacyFieldTimeFormat)}, nil
-		}
-		return []string{base.Type, *base.DeviceID, (*base.Time).Format(LegacyFieldTimeFormat)}, nil
-	}
-	if opt != nil {
-		return []string{base.Type, opt.Value, (*base.Time).Format(LegacyFieldTimeFormat), *base.DeviceID}, nil
-	}
-	return []string{base.Type, (*base.Time).Format(LegacyFieldTimeFormat), *base.DeviceID}, nil
+	return identityFields, nil
 }
 
 func (b *Base) LegacyIdentityFields() ([]string, error) {

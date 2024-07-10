@@ -975,75 +975,32 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns error if not implemented", func() {
-				identityFields, err := datum.LegacyIdentityFields()
+				legacyIDFields, err := datum.LegacyIdentityFields()
 				Expect(err).To(MatchError("function must be implemented on data type"))
-				Expect(identityFields).To(BeEmpty())
+				Expect(legacyIDFields).To(BeEmpty())
 			})
 
-			Context("GetLegacyIdentityFields", func() {
-
-				It("returns error if type is empty", func() {
-					datum.Type = ""
-					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
-					Expect(err).To(MatchError("type is empty"))
-					Expect(identityFields).To(BeEmpty())
+			Context("GetLegacyIDFields", func() {
+				It("returns error if value is empty", func() {
+					legacyIDFields, err := types.GetLegacyIDFields(types.LegacyIDField{Name: "first field", Value: pointer.FromString("")})
+					Expect(err).To(MatchError("first field is empty"))
+					Expect(legacyIDFields).To(BeEmpty())
 				})
 
-				It("returns error if device id is missing", func() {
-					datum.DeviceID = nil
-					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
-					Expect(err).To(MatchError("device id is missing"))
-					Expect(identityFields).To(BeEmpty())
+				It("returns legacy id fields if valid", func() {
+					legacyIDFields, err := types.GetLegacyIDFields(types.LegacyIDField{Name: "first field", Value: pointer.FromString("some-thing")})
+					Expect(err).To(BeNil())
+					Expect(legacyIDFields).To(Equal([]string{"some-thing"}))
 				})
 
-				It("returns error if device id is empty", func() {
-					datum.DeviceID = pointer.FromString("")
-					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
-					Expect(err).To(MatchError("device id is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				It("returns error if time is missing", func() {
-					datum.Time = nil
-					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
-					Expect(err).To(MatchError("time is missing"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				It("returns error if time is empty", func() {
-					datum.Time = &time.Time{}
-					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
-					Expect(err).To(MatchError("time is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				It("returns error if extra is empty", func() {
-					identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, &types.LegacyIdentityCustomField{Value: "", Name: "delivery type"})
-					Expect(err).To(MatchError("delivery type is empty"))
-					Expect(identityFields).To(BeEmpty())
-				})
-
-				Context("with TypeDeviceIDTimeFormat", func() {
-					It("returns the expected legacy identity fields", func() {
-						identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeDeviceIDTimeFormat, nil)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(identityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
-					})
-				})
-
-				Context("with TypeTimeDeviceIDFormat", func() {
-					It("returns the expected legacy identity fields", func() {
-						identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, nil)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(identityFields).To(Equal([]string{datum.Type, (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
-					})
-				})
-				Context("with LegacyIdentityCustomField", func() {
-					It("returns the expected legacy identity fields", func() {
-						identityFields, err := types.GetLegacyIdentityFields(datum, types.TypeTimeDeviceIDFormat, &types.LegacyIdentityCustomField{Value: "some-sub-type", Name: "sub type"})
-						Expect(err).ToNot(HaveOccurred())
-						Expect(identityFields).To(Equal([]string{datum.Type, "some-sub-type", (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
-					})
+				It("returns legacy id with all fields if valid", func() {
+					legacyIDFields, err := types.GetLegacyIDFields(
+						types.LegacyIDField{Name: "first field", Value: pointer.FromString("one")},
+						types.LegacyIDField{Name: "second field", Value: pointer.FromString("two")},
+						types.LegacyIDField{Name: "third field", Value: pointer.FromString("three")},
+					)
+					Expect(err).To(BeNil())
+					Expect(legacyIDFields).To(Equal([]string{"one", "two", "three"}))
 				})
 			})
 		})

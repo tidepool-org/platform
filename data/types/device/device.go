@@ -59,5 +59,10 @@ func (d *Device) IdentityFields() ([]string, error) {
 }
 
 func (d *Device) LegacyIdentityFields() ([]string, error) {
-	return types.GetLegacyIdentityFields(&d.Base, types.TypeTimeDeviceIDFormat, &types.LegacyIdentityCustomField{Value: d.SubType, Name: "sub type"})
+	return types.GetLegacyIDFields(
+		types.LegacyIDField{Name: "type", Value: &d.Type},
+		types.LegacyIDField{Name: "sub type", Value: &d.SubType},
+		types.GetLegacyTimeField(d.Time),
+		types.LegacyIDField{Name: "device id", Value: d.DeviceID},
+	)
 }
