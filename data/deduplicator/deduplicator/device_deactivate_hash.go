@@ -28,9 +28,15 @@ var DeviceDeactivateHashDeviceManufacturerDeviceModels = map[string][]string{
 }
 
 var DeviceDeactivateLegacyHasheManufacturerDeviceModels = map[string][]string{
-	"Tandem":  {"T:Slim"},
-	"Insulet": {"Dash", "Eros"},
-	//TODO: other devices here
+	"Arkray":    {"GlucocardExpression"},
+	"Bayer":     {"Contour Next Link", "Contour Next Link 2.4", "Contour Next", "Contour USB", "Contour Next USB", "Contour Next One", "Contour", "Contour Next EZ", "Contour Plus", "Contour Plus Blue"},
+	"Dexcom":    {"G5 touchscreen receiver", "G6 touchscreen receiver"},
+	"GlucoRx":   {"Nexus", "HCT", "Nexus Mini Ultra", "Go"},
+	"Insulet":   {"Dash", "Eros"},
+	"i-SENS":    {"CareSens"},
+	"MicroTech": {"Equil"},
+	"Roche":     {"Aviva Connect", "Performa Connect", "Guide", "Instant (single-button)", "Guide Me", "Instant (two-button)", "Instant S (single-button)", "ReliOn Platinum"},
+	"Tandem":    {"T:Slim"},
 }
 
 type DeviceDeactivateHash struct {
