@@ -163,7 +163,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,11 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 		"archivedDatasetId": 1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("OriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to archive data set data")
 		return fmt.Errorf("unable to archive data set data: %w", err)
@@ -243,7 +247,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -267,7 +271,11 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 		"deletedUserId":     1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("OriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete data set data")
 		return fmt.Errorf("unable to delete data set data: %w", err)
@@ -284,7 +292,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -296,7 +304,11 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	selector["uploadId"] = dataSet.UploadID
 	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
-	changeInfo, err := d.DeleteMany(ctx, selector)
+	opts := options.Delete()
+	if hasOriginID {
+		opts.SetHint("OriginId")
+	}
+	changeInfo, err := d.DeleteMany(ctx, selector, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy deleted data set data")
 		return fmt.Errorf("unable to destroy deleted data set data: %w", err)
@@ -313,7 +325,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -486,11 +498,11 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
+func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
-		return bson.M{}, nil
+		return bson.M{}, false, nil
 	} else if err := structureValidator.New().Validate(selectors); err != nil {
-		return nil, errors.Join(ErrSelectorsInvalid, err)
+		return nil, false, errors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string
@@ -500,6 +512,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 			if selector.ID != nil {
 				selectorIDs = append(selectorIDs, *selector.ID)
 			} else if selector.Origin != nil && selector.Origin.ID != nil {
+				hasOriginID = true
 				selectorOriginIDs = append(selectorOriginIDs, *selector.Origin.ID)
 			}
 		}
@@ -518,10 +531,10 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	}
 
 	if len(selector) == 0 {
-		return nil, errors.New("selectors is invalid")
+		return nil, false, errors.New("selectors is invalid")
 	}
 
-	return selector, nil
+	return selector, hasOriginID, nil
 }
 
 func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
