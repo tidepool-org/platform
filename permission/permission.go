@@ -7,7 +7,7 @@ import (
 type Permission map[string]interface{}
 type Permissions map[string]Permission
 
-// GroupedPermissions are permissions that are keyed by userID.
+// GroupedPermissions are permissions that are keyed by userID. As an example a response may be {"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa":{"root":{}},"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb":{"note":{},"upload":{},"view":{}}}
 type GroupedPermissions map[string]Permissions
 
 const (

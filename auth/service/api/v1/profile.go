@@ -88,8 +88,13 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 				return
 			}
 			sharedUser.Profile = profile
+			// Seems no sharedUser.Sanitize call to filter out "protected" fields in seagull except sanitizeUser to remove "passwordExists" field
 			perms := perms
 			sharedUser.TrustorPermissions = &perms
+			if len(perms) == 0 && profile != nil {
+				sharedUser.Profile = nil
+			}
+
 			results = append(results, sharedUser)
 		}
 	}
