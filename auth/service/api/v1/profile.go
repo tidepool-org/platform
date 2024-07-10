@@ -15,6 +15,7 @@ import (
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/profile", r.requireMembership("userId", r.GetProfile)),
+		rest.Get("/v1/users/:userId/users", r.requireMembership("userId", r.GetUsersWithProfiles)),
 		rest.Get("/v1/users/legacy/:userId/profile", r.requireMembership("userId", r.GetLegacyProfile)),
 		rest.Put("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
 		rest.Put("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
@@ -54,6 +55,45 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 	responder.Data(http.StatusOK, profile)
+}
+
+func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
+	targetUserID := req.PathParam("userId")
+	if r.handledUserNotExists(ctx, responder, targetUserID) {
+		return
+	}
+
+	trustorPerms, err := r.PermissionsClient().GroupsForUser(ctx, targetUserID)
+	if err != nil {
+		responder.InternalServerError(err)
+		return
+	}
+	results := make([]*user.User, 0, len(trustorPerms))
+	for userID, perms := range trustorPerms {
+		if userID == targetUserID {
+			// Don't include own user in result
+			continue
+		}
+		if perms.HasReadPermissions() {
+			sharedUser, err := r.UserAccessor().FindUserById(ctx, userID)
+			if err != nil {
+				responder.InternalServerError(err)
+				return
+			}
+			profile, err := r.getProfile(ctx, userID)
+			if err != nil && !errors.Is(err, user.ErrUserProfileNotFound) {
+				r.handleProfileErr(responder, err)
+				return
+			}
+			sharedUser.Profile = profile
+			perms := perms
+			sharedUser.TrustorPermissions = &perms
+			results = append(results, sharedUser)
+		}
+	}
+	responder.Data(http.StatusOK, results)
 }
 
 func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {

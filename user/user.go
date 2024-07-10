@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -53,6 +54,8 @@ type User struct {
 	Profile              *UserProfile        `json:"-"`
 	FirstName            string              `json:"firstName,omitempty"`
 	LastName             string              `json:"lastName,omitempty"`
+	// TrustorPermissions is only returned for the route that returns users that have shared their data w/ another user
+	TrustorPermissions *permission.Permissions `json:"trustorPermissions,omitempty"`
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
