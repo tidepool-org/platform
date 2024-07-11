@@ -1,10 +1,10 @@
 package selfmonitored
 
 import (
-	"errors"
 	"strconv"
 
 	"github.com/tidepool-org/platform/data"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -66,7 +66,11 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
 		normalizer = normalizer.WithMeta(s.Meta())
 	}
 
-	s.Glucose.Normalize(normalizer)
+	if normalizer.Origin() == structure.OriginExternal {
+		s.SetRawValueAndUnits(s.Value, s.Units)
+		s.Value = dataBloodGlucose.NormalizeValueForUnits(s.Value, s.Units)
+		s.Units = dataBloodGlucose.NormalizeUnits(s.Units)
+	}
 }
 
 func (s *SelfMonitored) LegacyIdentityFields() ([]string, error) {
@@ -74,10 +78,10 @@ func (s *SelfMonitored) LegacyIdentityFields() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if s.Value == nil {
-		return nil, errors.New("value is missing")
+	value, units, err := s.GetRawValueAndUnits()
+	if err != nil {
+		return nil, err
 	}
-
-	return append(identityFields, strconv.FormatFloat(*s.Value, 'f', -1, 64)), nil
+	fullPrecisionValue := dataBloodGlucose.NormalizeValueForUnitsWithFullPrecision(value, units)
+	return append(identityFields, strconv.FormatFloat(*fullPrecisionValue, 'f', -1, 64)), nil
 }

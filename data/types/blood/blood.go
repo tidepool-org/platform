@@ -5,14 +5,16 @@ import (
 
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Blood struct {
 	types.Base `bson:",inline"`
 
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units *string            `json:"units,omitempty" bson:"units,omitempty"`
+	Value *float64           `json:"value,omitempty" bson:"value,omitempty"`
+	Raw   *metadata.Metadata `json:"raw,omitempty" bson:"raw,omitempty"`
 }
 
 func New(typ string) Blood {
@@ -50,4 +52,47 @@ func (b *Blood) LegacyIdentityFields() ([]string, error) {
 		types.LegacyIDField{Name: "device id", Value: b.DeviceID},
 		types.GetLegacyTimeField(b.Time),
 	)
+}
+
+func (b *Blood) GetRawValueAndUnits() (*float64, *string, error) {
+	if b.Raw == nil {
+		return nil, nil, errors.New("raw data is missing")
+	}
+
+	rUnits := b.Raw.Get("units")
+	if rUnits == nil {
+		return nil, nil, errors.New("raw units are missing")
+	}
+
+	units, ok := rUnits.(string)
+	if !ok {
+		return nil, nil, errors.New("raw units are invalid")
+	}
+
+	rValue := b.Raw.Get("value")
+	if rValue == nil {
+		return nil, nil, errors.New("raw value is missing")
+	}
+
+	value, ok := rValue.(float64)
+	if !ok {
+		return nil, nil, errors.New("raw value is invalid")
+	}
+
+	return &value, &units, nil
+
+}
+
+func (b *Blood) SetRawValueAndUnits(value *float64, units *string) {
+	if b.Raw == nil {
+		b.Raw = metadata.NewMetadata()
+	}
+
+	if units != nil {
+		b.Raw.Set("units", *units)
+	}
+
+	if value != nil {
+		b.Raw.Set("value", *value)
+	}
 }
