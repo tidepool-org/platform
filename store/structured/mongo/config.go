@@ -37,6 +37,7 @@ type Config struct {
 	Password         *string       `json:"-" envconfig:"TIDEPOOL_STORE_PASSWORD"`
 	Timeout          time.Duration `json:"timeout" envconfig:"TIDEPOOL_STORE_TIMEOUT" default:"60s"`
 	OptParams        *string       `json:"optParams" envconfig:"TIDEPOOL_STORE_OPT_PARAMS"`
+	AppName          *string       `json:"appName" envconfig:"TIDEPOOL_STORE_APP_NAME"`
 }
 
 // AsConnectionString constructs a MongoDB connection string from a Config
@@ -66,6 +67,9 @@ func (c *Config) AsConnectionString() string {
 	}
 	if c.OptParams != nil && *c.OptParams != "" {
 		connectionString += fmt.Sprintf("&%s", *c.OptParams)
+	}
+	if c.AppName != nil && *c.AppName != "" {
+		connectionString += fmt.Sprintf("&appName=%s", url.QueryEscape(*c.AppName))
 	}
 
 	return connectionString
