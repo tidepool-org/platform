@@ -3,30 +3,23 @@ package types_test
 import (
 	"context"
 	"fmt"
-
-	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/fetcher"
-
-	"github.com/tidepool-org/platform/data/test"
-
 	"math/rand"
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
-	"github.com/tidepool-org/platform/log"
-	logTest "github.com/tidepool-org/platform/log/test"
-
-	userTest "github.com/tidepool-org/platform/user/test"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/summary/types"
-
+	"github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 func BGMCursorFetcher(c *mongo.Cursor) fetcher.DeviceDataCursor {
@@ -35,10 +28,9 @@ func BGMCursorFetcher(c *mongo.Cursor) fetcher.DeviceDataCursor {
 
 func NewDataSetBGMDataAvg(deviceId string, startTime time.Time, hours float64, reqAvg float64) []data.Datum {
 	requiredRecords := int(hours * 6)
-	typ := pointer.FromString("smbg")
-
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var uploadId = test.RandomSetID()
+	typ := "smbg"
+	dataSetData := make([]data.Datum, requiredRecords)
+	uploadId := test.RandomSetID()
 
 	// generate X hours of data
 	for count := 0; count < requiredRecords; count += 2 {
@@ -49,8 +41,8 @@ func NewDataSetBGMDataAvg(deviceId string, startTime time.Time, hours float64, r
 		for i, glucoseValue := range glucoseValues {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 10)
 
-			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromFloat64(glucoseValue)
+			datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(glucoseValue)
 
 			dataSetData[requiredRecords-count-i-1] = datum
 		}
@@ -60,27 +52,27 @@ func NewDataSetBGMDataAvg(deviceId string, startTime time.Time, hours float64, r
 }
 
 func NewDataSetBGMDataRanges(deviceId string, startTime time.Time, hours float64, ranges DataRanges) []data.Datum {
-	requiredRecords := int(hours * 5)
-	typ := pointer.FromString("smbg")
+	requiredRecords := int(hours * 6)
+	typ := "smbg"
+	dataSetData := make([]data.Datum, requiredRecords)
+	uploadId := test.RandomSetID()
 
-	var dataSetData = make([]data.Datum, requiredRecords)
-	var uploadId = test.RandomSetID()
-
-	glucoseBrackets := [5][2]float64{
+	glucoseBrackets := [6][2]float64{
 		{ranges.Min, ranges.VeryLow - ranges.Padding},
 		{ranges.VeryLow, ranges.Low - ranges.Padding},
 		{ranges.Low, ranges.High - ranges.Padding},
 		{ranges.High, ranges.VeryHigh - ranges.Padding},
-		{ranges.VeryHigh, ranges.Max},
+		{ranges.VeryHigh, ranges.ExtremeHigh - ranges.Padding},
+		{ranges.ExtremeHigh, ranges.Max},
 	}
 
 	// generate requiredRecords of data
-	for count := 0; count < requiredRecords; count += 5 {
+	for count := 0; count < requiredRecords; count += 6 {
 		for i, bracket := range glucoseBrackets {
-			datumTime := startTime.Add(-time.Duration(count+i+1) * time.Minute * 12)
+			datumTime := startTime.Add(-time.Duration(count+i+1) * time.Minute * 10)
 
-			datum := NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
+			datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
 
 			dataSetData[requiredRecords-count-i-1] = datum
 		}
@@ -304,12 +296,14 @@ var _ = Describe("BGM Summary", func() {
 				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
 				highRange := NewDataRangesSingle(highBloodGlucose + 0.5)
 				veryHighRange := NewDataRangesSingle(veryHighBloodGlucose + 0.5)
+				extremeHighRange := NewDataRangesSingle(extremeHighBloodGlucose + 0.5)
 
-				dataSetBGMDataOne := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-4*time.Hour), 1, veryLowRange)
-				dataSetBGMDataTwo := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-3*time.Hour), 1, lowRange)
-				dataSetBGMDataThree := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-2*time.Hour), 1, inRange)
-				dataSetBGMDataFour := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-1*time.Hour), 1, highRange)
-				dataSetBGMDataFive := NewDataSetBGMDataRanges(deviceId, datumTime, 1, veryHighRange)
+				dataSetBGMDataOne := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-5*time.Hour), 1, veryLowRange)
+				dataSetBGMDataTwo := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-4*time.Hour), 1, lowRange)
+				dataSetBGMDataThree := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-3*time.Hour), 1, inRange)
+				dataSetBGMDataFour := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-2*time.Hour), 1, highRange)
+				dataSetBGMDataFive := NewDataSetBGMDataRanges(deviceId, datumTime.Add(-1*time.Hour), 1, veryHighRange)
+				dataSetBGMDataSix := NewDataSetBGMDataRanges(deviceId, datumTime, 1, extremeHighRange)
 
 				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataOne)
@@ -322,53 +316,68 @@ var _ = Describe("BGM Summary", func() {
 				Expect(err).ToNot(HaveOccurred())
 				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataFive)
 				Expect(err).ToNot(HaveOccurred())
+				err = types.AddData(&userBGMSummary.Stats.Buckets, dataSetBGMDataSix)
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(5))
+				Expect(len(userBGMSummary.Stats.Buckets)).To(Equal(6))
 
 				By("check record counters for insurance")
 				for i := len(userBGMSummary.Stats.Buckets) - 1; i >= 0; i-- {
 					f := fmt.Sprintf("hour %d", i+1)
 					By(f)
-					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(5))
+					Expect(userBGMSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(6))
 
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - time.Minute*12)
+					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userBGMSummary.Stats.Buckets)-i-1) - time.Minute*10)
 					Expect(userBGMSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
 				}
 
 				By("very low records")
-				Expect(userBGMSummary.Stats.Buckets[0].Data.VeryLowRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.VeryLowRecords).To(Equal(6))
 				Expect(userBGMSummary.Stats.Buckets[0].Data.LowRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[0].Data.TargetRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[0].Data.HighRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[0].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[0].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("low records")
 				Expect(userBGMSummary.Stats.Buckets[1].Data.VeryLowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.Buckets[1].Data.LowRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.LowRecords).To(Equal(6))
 				Expect(userBGMSummary.Stats.Buckets[1].Data.TargetRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[1].Data.HighRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[1].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[1].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("in-range records")
 				Expect(userBGMSummary.Stats.Buckets[2].Data.VeryLowRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[2].Data.LowRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.Buckets[2].Data.TargetRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.TargetRecords).To(Equal(6))
 				Expect(userBGMSummary.Stats.Buckets[2].Data.HighRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[2].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[2].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("high records")
 				Expect(userBGMSummary.Stats.Buckets[3].Data.VeryLowRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[3].Data.LowRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[3].Data.TargetRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.Buckets[3].Data.HighRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.HighRecords).To(Equal(6))
 				Expect(userBGMSummary.Stats.Buckets[3].Data.VeryHighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[3].Data.ExtremeHighRecords).To(Equal(0))
 
 				By("very high records")
 				Expect(userBGMSummary.Stats.Buckets[4].Data.VeryLowRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[4].Data.LowRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[4].Data.TargetRecords).To(Equal(0))
 				Expect(userBGMSummary.Stats.Buckets[4].Data.HighRecords).To(Equal(0))
-				Expect(userBGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(5))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.VeryHighRecords).To(Equal(6))
+				Expect(userBGMSummary.Stats.Buckets[4].Data.ExtremeHighRecords).To(Equal(0))
+
+				By("extreme high records")
+				Expect(userBGMSummary.Stats.Buckets[5].Data.VeryLowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[5].Data.LowRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[5].Data.TargetRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[5].Data.HighRecords).To(Equal(0))
+				Expect(userBGMSummary.Stats.Buckets[5].Data.VeryHighRecords).To(Equal(6))
+				Expect(userBGMSummary.Stats.Buckets[5].Data.ExtremeHighRecords).To(Equal(6))
 			})
 		})
 
@@ -636,49 +645,55 @@ var _ = Describe("BGM Summary", func() {
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInTargetRecords).To(Equal(24 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInTargetPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInTargetPercent).To(Equal(0.200))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInTargetPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowRecords).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryLowRecords).To(Equal(24 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInVeryLowPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(0.200))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryLowPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowRecords).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyLowRecords).To(Equal(24 * 2 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyLowPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyLowPercent).To(Equal(0.400))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyLowPercent).To(Equal(2.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInLowRecords).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInLowRecords).To(Equal(24 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInLowPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInLowPercent).To(Equal(0.200))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInLowPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInHighRecords).To(BeTrue())
 					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInHighRecords).To(Equal(24 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInHighPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInHighPercent).To(Equal(0.200))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInHighPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighRecords).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(24 * v))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryHighRecords).To(Equal(48 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInVeryHighPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(0.200))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInVeryHighPercent).To(Equal(2.0 / 6.0))
+
+					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInExtremeHighRecords).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInExtremeHighRecords).To(Equal(24 * v))
+
+					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInExtremeHighPercent).To(BeTrue())
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInExtremeHighPercent).To(Equal(1.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyHighRecords).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyHighRecords).To(Equal(24 * 2 * v))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyHighRecords).To(Equal(36 * 2 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTimeInAnyHighPercent).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyHighPercent).To(Equal(0.400))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TimeInAnyHighPercent).To(Equal(3.0 / 6.0))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasTotalRecords).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(120 * v))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].TotalRecords).To(Equal(144 * v))
 
 					Expect(userBGMSummary.Stats.Periods[periodKey].HasAverageDailyRecords).To(BeTrue())
-					Expect(*userBGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 120))
+					Expect(*userBGMSummary.Stats.Periods[periodKey].AverageDailyRecords).To(BeNumerically("==", 144))
 				}
 			})
 
