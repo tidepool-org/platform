@@ -81,14 +81,14 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 	selector := bson.M{
 		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
+		// "type":     bson.M{"$ne": "upload"}, // xtype
 	}
 	removeInfo, err = d.DatumRepository.DeleteMany(ctx, selector)
 	if err == nil {
 		selector = bson.M{
-			"_userId":       dataSet.UserID,
-			"uploadId":      dataSet.UploadID,
-			"type":          "upload",
+			"_userId":  dataSet.UserID,
+			"uploadId": dataSet.UploadID,
+			// "type":          "upload", // xtype
 			"deletedTime":   bson.M{"$exists": false},
 			"deletedUserId": bson.M{"$exists": false},
 		}
@@ -136,15 +136,15 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 		"_userId":  dataSet.UserID,
 		"deviceId": *dataSet.DeviceID,
 		"uploadId": bson.M{"$ne": dataSet.UploadID},
-		"type":     bson.M{"$ne": "upload"},
+		"type":     bson.M{"$ne": "upload"}, // xtype
 	}
 	removeInfo, err = d.DatumRepository.DeleteMany(ctx, selector)
 	if err == nil {
 		selector = bson.M{
-			"_userId":       dataSet.UserID,
-			"deviceId":      *dataSet.DeviceID,
-			"uploadId":      bson.M{"$ne": dataSet.UploadID},
-			"type":          "upload",
+			"_userId":  dataSet.UserID,
+			"deviceId": *dataSet.DeviceID,
+			"uploadId": bson.M{"$ne": dataSet.UploadID},
+			// "type":          "upload", // xtype
 			"deletedTime":   bson.M{"$exists": false},
 			"deletedUserId": bson.M{"$exists": false},
 		}

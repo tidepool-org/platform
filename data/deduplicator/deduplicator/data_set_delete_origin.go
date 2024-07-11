@@ -2,6 +2,8 @@ package deduplicator
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -79,6 +81,15 @@ func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.
 		if err := repository.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
 			return err
 		}
+		// Even though doing an unordered bulkwrite in AddData there is some benefit in sorting this for our origin.id index
+		slices.SortFunc(dataSetData, func(a, b data.Datum) int {
+			originA, originB := a.GetOrigin(), b.GetOrigin()
+			if originA != nil && originA.ID != nil && originB != nil && originB.ID != nil {
+				return strings.Compare(pointer.ToString(originA.ID), pointer.ToString(originB.ID))
+			}
+			timeA, timeB := a.GetTime(), b.GetTime()
+			return pointer.ToTime(timeA).Compare(pointer.ToTime(timeB))
+		})
 		if err := d.Base.AddData(ctx, repository, dataSet, dataSetData); err != nil {
 			return err
 		}

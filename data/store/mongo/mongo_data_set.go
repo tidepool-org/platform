@@ -34,17 +34,14 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
 			Keys: bson.D{
 				{Key: "origin.id", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
@@ -60,15 +57,14 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				SetUnique(true).
 				SetName("UniqueUploadId"),
 		},
+		// TODO UploadId and UniqueUploadId is always unique in deviceDataSets so remove one or the other.
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
 		},
 		{
@@ -80,13 +76,24 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
 					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
 				}).
 				SetName("DeduplicatorHash"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "client.name", Value: 1},
+			},
+			Options: options.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: "client.name", Value: bson.D{{Key: "$exists", Value: true}}},
+				}).
+				SetName("ClientName"),
 		},
 	})
 }
@@ -261,7 +268,6 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	selector := bson.M{
 		"_active": true,
 		"_userId": userID,
-		"type":    "upload",
 	}
 	if filter.ClientName != nil {
 		selector["client.name"] = *filter.ClientName
@@ -315,7 +321,6 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 	selector := bson.M{
 		"_active": true,
 		"_userId": userID,
-		"type":    "upload",
 	}
 	if !filter.Deleted {
 		selector["deletedTime"] = bson.M{"$exists": false}
@@ -324,14 +329,14 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := d.Find(ctx, selector, opts)
 
-	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
-
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get data sets for user by id")
 	}
 
-	if err = cursor.All(ctx, &dataSets); err != nil {
+	err = cursor.All(ctx, &dataSets)
+	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
+	if err != nil {
 		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
 	}
 
