@@ -208,7 +208,6 @@ func (e *evaluator) Evaluate(ctx context.Context, followedUserID string) (
 	if err != nil {
 		return nil, err
 	}
-	e.logger(ctx).Debugf("%d alerts configs found", len(alertsConfigs))
 
 	alertsConfigsByUploadID := e.mapAlertsConfigsByUploadID(alertsConfigs)
 
@@ -242,9 +241,7 @@ func (e *evaluator) gatherAlertsConfigs(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	e.logger(ctx).Debugf("after List, %d alerts configs", len(alertsConfigs))
 	alertsConfigs = slices.DeleteFunc(alertsConfigs, e.authDenied(ctx))
-	e.logger(ctx).Debugf("after perms check, %d alerts configs", len(alertsConfigs))
 	return alertsConfigs, nil
 }
 
@@ -293,7 +290,6 @@ func (e *evaluator) gatherData(ctx context.Context, followedUserID, uploadID str
 		return cmp.Compare(i.LongestDelay(), j.LongestDelay())
 	}).LongestDelay()
 	longestDelay = max(5*time.Minute, longestDelay)
-	e.logger(ctx).WithField("longestDelay", longestDelay).Debug("here it is")
 	params := store.AlertableParams{
 		UserID:   followedUserID,
 		UploadID: uploadID,
