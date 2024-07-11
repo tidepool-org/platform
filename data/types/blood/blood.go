@@ -54,7 +54,7 @@ func (b *Blood) LegacyIdentityFields() ([]string, error) {
 	)
 }
 
-func (b *Blood) GetRawUnitsAndValue() (*string, *float64, error) {
+func (b *Blood) GetRawValueAndUnits() (*float64, *string, error) {
 	if b.Raw == nil {
 		return nil, nil, errors.New("raw data is missing")
 	}
@@ -79,11 +79,11 @@ func (b *Blood) GetRawUnitsAndValue() (*string, *float64, error) {
 		return nil, nil, errors.New("raw value is invalid")
 	}
 
-	return &units, &value, nil
+	return &value, &units, nil
 
 }
 
-func (b *Blood) SetRawUnitsAndValue(units *string, value *float64) {
+func (b *Blood) SetRawValueAndUnits(value *float64, units *string) {
 	if b.Raw == nil {
 		b.Raw = metadata.NewMetadata()
 	}

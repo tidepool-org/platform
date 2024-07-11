@@ -559,7 +559,7 @@ var _ = Describe("SelfMonitored", func() {
 			It("returns the expected legacy identity fields", func() {
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				units, value, err := datum.GetRawUnitsAndValue()
+				value, units, err := datum.GetRawValueAndUnits()
 				Expect(err).ToNot(HaveOccurred())
 				fullPrecisionValue := dataBloodGlucose.NormalizeValueForUnitsWithFullPrecision(value, units)
 				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat), strconv.FormatFloat(*fullPrecisionValue, 'f', -1, 64)}))

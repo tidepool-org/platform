@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -68,13 +67,9 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
 	}
 
 	if normalizer.Origin() == structure.OriginExternal {
-
-		rawUnits := pointer.CloneString(s.Units)
-		rawValue := pointer.CloneFloat64(s.Value)
-		s.SetRawUnitsAndValue(rawUnits, rawValue)
-
-		s.Units = dataBloodGlucose.NormalizeUnits(rawUnits)
-		s.Value = dataBloodGlucose.NormalizeValueForUnits(rawValue, rawUnits)
+		s.SetRawValueAndUnits(s.Value, s.Units)
+		s.Value = dataBloodGlucose.NormalizeValueForUnits(s.Value, s.Units)
+		s.Units = dataBloodGlucose.NormalizeUnits(s.Units)
 	}
 }
 
@@ -83,7 +78,7 @@ func (s *SelfMonitored) LegacyIdentityFields() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	units, value, err := s.GetRawUnitsAndValue()
+	value, units, err := s.GetRawValueAndUnits()
 	if err != nil {
 		return nil, err
 	}
