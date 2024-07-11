@@ -14,7 +14,7 @@ import (
 	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/log"
 	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -136,7 +136,7 @@ var _ = Describe("Config", func() {
 		Context("when a note is returned", func() {
 			It("injects the userIDs", func() {
 				ctx := contextWithTestLogger()
-				mockGlucoseData := []*glucose.Glucose{
+				mockGlucoseData := []*Glucose{
 					{
 						Blood: blood.Blood{
 							Base: types.Base{
@@ -218,18 +218,6 @@ var _ = Describe("Config", func() {
 		})
 	})
 
-	var testGlucoseDatum = func(v float64) *glucose.Glucose {
-		return &glucose.Glucose{
-			Blood: blood.Blood{
-				Base: types.Base{
-					Time: pointer.FromAny(time.Now()),
-				},
-				Units: pointer.FromAny(nontypesglucose.MmolL),
-				Value: pointer.FromAny(v),
-			},
-		}
-	}
-
 	Context("UrgentLowAlert", func() {
 		Context("Threshold", func() {
 			It("accepts values between 0 and 1000 mg/dL", func() {
@@ -272,7 +260,7 @@ var _ = Describe("Config", func() {
 				alert := testUrgentLow()
 
 				Expect(func() {
-					note = alert.Evaluate(ctx, []*glucose.Glucose{})
+					note = alert.Evaluate(ctx, []*Glucose{})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 				Expect(func() {
@@ -283,7 +271,7 @@ var _ = Describe("Config", func() {
 
 			It("logs evaluation results", func() {
 				ctx := contextWithTestLogger()
-				data := []*glucose.Glucose{testGlucoseDatum(1.1)}
+				data := []*Glucose{testGlucoseDatum(1.1)}
 
 				alert := testUrgentLow()
 
@@ -307,11 +295,11 @@ var _ = Describe("Config", func() {
 					alert := testUrgentLow()
 
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(1.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(BeZero())
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).ToNot(BeZero())
 				})
@@ -324,16 +312,16 @@ var _ = Describe("Config", func() {
 					alert := testUrgentLow()
 
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(1.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(BeZero())
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).ToNot(BeZero())
 					was := alert.Resolved
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(Equal(was))
 				})
@@ -345,11 +333,11 @@ var _ = Describe("Config", func() {
 				alert := testUrgentLow()
 
 				Expect(func() {
-					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 				}).ToNot(Panic())
 				Expect(alert.Triggered).To(BeZero())
 				Expect(func() {
-					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+					alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(1.0)})
 				}).ToNot(Panic())
 				Expect(alert.Triggered).ToNot(BeZero())
 			})
@@ -359,28 +347,28 @@ var _ = Describe("Config", func() {
 				var note *Note
 
 				Expect(func() {
-					note = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1)})
+					note = testUrgentLow().Evaluate(ctx, []*Glucose{testGlucoseDatum(1)})
 				}).ToNot(Panic())
 				Expect(note).ToNot(BeNil())
 
 				badUnits := testGlucoseDatum(1)
 				badUnits.Units = nil
 				Expect(func() {
-					note = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{badUnits})
+					note = testUrgentLow().Evaluate(ctx, []*Glucose{badUnits})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
 				badValue := testGlucoseDatum(1)
 				badValue.Value = nil
 				Expect(func() {
-					note = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{badValue})
+					note = testUrgentLow().Evaluate(ctx, []*Glucose{badValue})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
 				badTime := testGlucoseDatum(1)
 				badTime.Time = nil
 				Expect(func() {
-					note = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{badTime})
+					note = testUrgentLow().Evaluate(ctx, []*Glucose{badTime})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
@@ -463,7 +451,7 @@ var _ = Describe("Config", func() {
 				alert := testLow()
 
 				Expect(func() {
-					note = alert.Evaluate(ctx, []*glucose.Glucose{})
+					note = alert.Evaluate(ctx, []*Glucose{})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 				Expect(func() {
@@ -474,7 +462,7 @@ var _ = Describe("Config", func() {
 
 			It("logs evaluation results", func() {
 				ctx := contextWithTestLogger()
-				data := []*glucose.Glucose{testGlucoseDatum(1.1)}
+				data := []*Glucose{testGlucoseDatum(1.1)}
 
 				alert := testLow()
 
@@ -498,11 +486,11 @@ var _ = Describe("Config", func() {
 					alert := testLow()
 
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(1.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(BeZero())
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).ToNot(BeZero())
 				})
@@ -515,16 +503,16 @@ var _ = Describe("Config", func() {
 					alert := testLow()
 
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(1.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(BeZero())
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).ToNot(BeZero())
 					was := alert.Resolved
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(Equal(was))
 				})
@@ -536,11 +524,11 @@ var _ = Describe("Config", func() {
 				alert := testLow()
 
 				Expect(func() {
-					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 				}).ToNot(Panic())
 				Expect(alert.Triggered).To(BeZero())
 				Expect(func() {
-					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+					alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(1.0)})
 				}).ToNot(Panic())
 				Expect(alert.Triggered).ToNot(BeZero())
 			})
@@ -550,28 +538,28 @@ var _ = Describe("Config", func() {
 				var note *Note
 
 				Expect(func() {
-					note = testLow().Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1)})
+					note = testLow().Evaluate(ctx, []*Glucose{testGlucoseDatum(1)})
 				}).ToNot(Panic())
 				Expect(note).ToNot(BeNil())
 
 				badUnits := testGlucoseDatum(1)
 				badUnits.Units = nil
 				Expect(func() {
-					note = testLow().Evaluate(ctx, []*glucose.Glucose{badUnits})
+					note = testLow().Evaluate(ctx, []*Glucose{badUnits})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
 				badValue := testGlucoseDatum(1)
 				badValue.Value = nil
 				Expect(func() {
-					note = testLow().Evaluate(ctx, []*glucose.Glucose{badValue})
+					note = testLow().Evaluate(ctx, []*Glucose{badValue})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
 				badTime := testGlucoseDatum(1)
 				badTime.Time = nil
 				Expect(func() {
-					note = testLow().Evaluate(ctx, []*glucose.Glucose{badTime})
+					note = testLow().Evaluate(ctx, []*Glucose{badTime})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 			})
@@ -646,7 +634,7 @@ var _ = Describe("Config", func() {
 				alert := testHigh()
 
 				Expect(func() {
-					note = alert.Evaluate(ctx, []*glucose.Glucose{})
+					note = alert.Evaluate(ctx, []*Glucose{})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 				Expect(func() {
@@ -657,7 +645,7 @@ var _ = Describe("Config", func() {
 
 			It("logs evaluation results", func() {
 				ctx := contextWithTestLogger()
-				data := []*glucose.Glucose{testGlucoseDatum(21.1)}
+				data := []*Glucose{testGlucoseDatum(21.1)}
 
 				alert := testHigh()
 
@@ -681,11 +669,11 @@ var _ = Describe("Config", func() {
 					alert := testHigh()
 
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(21.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(BeZero())
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).ToNot(BeZero())
 				})
@@ -698,16 +686,16 @@ var _ = Describe("Config", func() {
 					alert := testHigh()
 
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(21.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(BeZero())
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).ToNot(BeZero())
 					was := alert.Resolved
 					Expect(func() {
-						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+						alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 					}).ToNot(Panic())
 					Expect(alert.Resolved).To(Equal(was))
 				})
@@ -719,11 +707,11 @@ var _ = Describe("Config", func() {
 				alert := testHigh()
 
 				Expect(func() {
-					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(5.0)})
 				}).ToNot(Panic())
 				Expect(alert.Triggered).To(BeZero())
 				Expect(func() {
-					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21.0)})
+					alert.Evaluate(ctx, []*Glucose{testGlucoseDatum(21.0)})
 				}).ToNot(Panic())
 				Expect(alert.Triggered).ToNot(BeZero())
 			})
@@ -733,28 +721,28 @@ var _ = Describe("Config", func() {
 				var note *Note
 
 				Expect(func() {
-					note = testHigh().Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21)})
+					note = testHigh().Evaluate(ctx, []*Glucose{testGlucoseDatum(21)})
 				}).ToNot(Panic())
 				Expect(note).ToNot(BeNil())
 
 				badUnits := testGlucoseDatum(1)
 				badUnits.Units = nil
 				Expect(func() {
-					note = testHigh().Evaluate(ctx, []*glucose.Glucose{badUnits})
+					note = testHigh().Evaluate(ctx, []*Glucose{badUnits})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
 				badValue := testGlucoseDatum(1)
 				badValue.Value = nil
 				Expect(func() {
-					note = testHigh().Evaluate(ctx, []*glucose.Glucose{badValue})
+					note = testHigh().Evaluate(ctx, []*Glucose{badValue})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 
 				badTime := testGlucoseDatum(1)
 				badTime.Time = nil
 				Expect(func() {
-					note = testHigh().Evaluate(ctx, []*glucose.Glucose{badTime})
+					note = testHigh().Evaluate(ctx, []*Glucose{badTime})
 				}).ToNot(Panic())
 				Expect(note).To(BeNil())
 			})
@@ -810,7 +798,166 @@ var _ = Describe("Config", func() {
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 2h0m1s is not between 0s and 2h0m0s"))
 			})
+		})
 
+		Context("Evaluate", func() {
+			testNotLooping := func() *NotLoopingAlert {
+				return &NotLoopingAlert{}
+			}
+			pastDecision := func(dur time.Duration) *DosingDecision {
+				if dur > 0 {
+					dur *= -1
+				}
+				return &DosingDecision{
+					Base: types.Base{
+						Time: pointer.FromAny(time.Now().Add(dur)),
+					},
+					Reason: pointer.FromAny(DosingDecisionReasonLoop),
+					Errors: nil,
+				}
+			}
+
+			It("handles being passed empty data", func() {
+				ctx := contextWithTestLogger()
+				var note *Note
+				alert := testNotLooping()
+
+				Expect(func() {
+					note = alert.Evaluate(ctx, nil)
+				}).ToNot(Panic())
+				Expect(note).To(BeNil())
+				Expect(func() {
+					note = alert.Evaluate(ctx, []*DosingDecision{})
+				}).ToNot(Panic())
+				Expect(note).ToNot(BeNil())
+				Expect(note.Message).To(ContainSubstring(NotLoopingMessage))
+			})
+
+			It("isn't interested in dosing decisions with errors", func() {
+				ctx := contextWithTestLogger()
+				decisionWithError := &DosingDecision{
+					Reason: pointer.FromAny(DosingDecisionReasonLoop),
+					Errors: &dosingdecision.IssueArray{{}},
+				}
+				alert := testNotLooping()
+
+				note := alert.Evaluate(ctx, []*DosingDecision{decisionWithError})
+				Expect(note).ToNot(BeNil())
+				Expect(note.Message).To(ContainSubstring(NotLoopingMessage))
+			})
+
+			It("isn't interested in dosing decisions with reasons other than \"loop\"", func() {
+				ctx := contextWithTestLogger()
+				decisionWithOtherReason := &DosingDecision{
+					Reason: pointer.FromAny("test"),
+					Errors: nil,
+				}
+				alert := testNotLooping()
+
+				note := alert.Evaluate(ctx, []*DosingDecision{decisionWithOtherReason})
+				Expect(note).ToNot(BeNil())
+				Expect(note.Message).To(ContainSubstring(NotLoopingMessage))
+			})
+
+			It("uses the most recent loop decision", func() {
+				ctx := contextWithTestLogger()
+				olderDecision := pastDecision(-25 * time.Minute)
+				newerDecision := pastDecision(-time.Minute)
+				wayOldDecision := pastDecision(-45 * time.Minute)
+				alert := testNotLooping()
+
+				note := alert.Evaluate(ctx, []*DosingDecision{newerDecision, olderDecision})
+				Expect(note).To(BeNil())
+				note = alert.Evaluate(ctx, []*DosingDecision{olderDecision, newerDecision})
+				Expect(note).To(BeNil())
+				note = alert.Evaluate(ctx, []*DosingDecision{wayOldDecision, olderDecision})
+				if Expect(note).ToNot(BeNil()) {
+					Expect(note.Message).To(ContainSubstring(NotLoopingMessage))
+				}
+			})
+
+			It("logs evaluation results", func() {
+				ctx := contextWithTestLogger()
+				data := []*DosingDecision{testDecisionDatum("loop", time.Now())}
+				alert := testNotLooping()
+
+				Expect(func() {
+					alert.Evaluate(ctx, data)
+				}).ToNot(Panic())
+				Expect(func() {
+					lgr := log.LoggerFromContext(ctx).(*logtest.Logger)
+					lgr.AssertLog(log.InfoLevel, "not looping", log.Fields{
+						"isAlerting?": false,
+					})
+				}).ToNot(Panic())
+			})
+
+			Context("when currently active", func() {
+				It("marks itself resolved", func() {
+					ctx := contextWithTestLogger()
+					longAgo := time.Now().Add(-time.Hour)
+					data := []*DosingDecision{
+						testDecisionDatum("loop", longAgo),
+					}
+					alert := testNotLooping()
+
+					Expect(func() {
+						alert.Evaluate(ctx, data)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, append(data, testDecisionDatum("loop", time.Now())))
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+				})
+			})
+
+			Context("when currently INactive", func() {
+				It("doesn't re-mark itself resolved", func() {
+					ctx := contextWithTestLogger()
+					longAgo := time.Now().Add(-time.Hour)
+					data := []*DosingDecision{
+						testDecisionDatum("loop", longAgo),
+					}
+					alert := testNotLooping()
+
+					Expect(func() {
+						alert.Evaluate(ctx, data)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, append(data, testDecisionDatum("loop", time.Now())))
+					}).ToNot(Panic())
+					Expect(alert.IsActive()).To(BeFalse())
+					was := alert.Resolved
+					Expect(func() {
+						alert.Evaluate(ctx, append(data, testDecisionDatum("loop", time.Now())))
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(Equal(was))
+				})
+			})
+
+			It("marks itself triggered", func() {
+				ctx := contextWithTestLogger()
+				justNow := time.Now().Add(-time.Minute)
+				dataBefore := []*DosingDecision{
+					testDecisionDatum("loop", justNow),
+				}
+				longAgo := time.Now().Add(-time.Hour)
+				dataNow := []*DosingDecision{
+					testDecisionDatum("loop", longAgo),
+				}
+				alert := testNotLooping()
+
+				Expect(func() {
+					alert.Evaluate(ctx, dataBefore)
+				}).ToNot(Panic())
+				Expect(alert.Triggered).To(BeZero())
+				Expect(func() {
+					alert.Evaluate(ctx, dataNow)
+				}).ToNot(Panic())
+				Expect(alert.Triggered).ToNot(BeZero())
+			})
 		})
 	})
 
@@ -960,7 +1107,7 @@ var (
 			Base: Base{Enabled: true},
 		}
 	}
-	testNoCommunicationDatum = &glucose.Glucose{
+	testNoCommunicationDatum = &Glucose{
 		Blood: blood.Blood{
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
@@ -969,7 +1116,7 @@ var (
 			Value: pointer.FromAny(11.0),
 		},
 	}
-	testHighDatum = &glucose.Glucose{
+	testHighDatum = &Glucose{
 		Blood: blood.Blood{
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
@@ -978,7 +1125,7 @@ var (
 			Value: pointer.FromAny(11.0),
 		},
 	}
-	testLowDatum = &glucose.Glucose{
+	testLowDatum = &Glucose{
 		Blood: blood.Blood{
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
@@ -987,7 +1134,7 @@ var (
 			Value: pointer.FromAny(3.9),
 		},
 	}
-	testUrgentLowDatum = &glucose.Glucose{
+	testUrgentLowDatum = &Glucose{
 		Blood: blood.Blood{
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
@@ -1063,7 +1210,7 @@ var _ = Describe("Alerts", func() {
 		Context("when not communicating", func() {
 			It("returns only NoCommunication alerts", func() {
 				ctx := contextWithTestLogger()
-				data := []*glucose.Glucose{testNoCommunicationDatum}
+				data := []*Glucose{testNoCommunicationDatum}
 				data[0].Value = pointer.FromAny(0.0)
 				a := Alerts{
 					NoCommunication: testNoCommunicationAlert(),
@@ -1084,7 +1231,7 @@ var _ = Describe("Alerts", func() {
 
 		It("detects low data", func() {
 			ctx := contextWithTestLogger()
-			data := []*glucose.Glucose{testLowDatum}
+			data := []*Glucose{testLowDatum}
 			a := Alerts{
 				Low: testLowAlert(),
 			}
@@ -1097,7 +1244,7 @@ var _ = Describe("Alerts", func() {
 
 		It("detects high data", func() {
 			ctx := contextWithTestLogger()
-			data := []*glucose.Glucose{testHighDatum}
+			data := []*Glucose{testHighDatum}
 			a := Alerts{
 				High: testHighAlert(),
 			}
@@ -1111,7 +1258,7 @@ var _ = Describe("Alerts", func() {
 		Context("with both low and urgent low alerts detected", func() {
 			It("prefers urgent low", func() {
 				ctx := contextWithTestLogger()
-				data := []*glucose.Glucose{testUrgentLowDatum}
+				data := []*Glucose{testUrgentLowDatum}
 				a := Alerts{
 					Low:       testLowAlert(),
 					UrgentLow: testUrgentLowAlert(),
@@ -1203,4 +1350,25 @@ func buff(format string, args ...interface{}) *bytes.Buffer {
 func contextWithTestLogger() context.Context {
 	lgr := logtest.NewLogger()
 	return log.NewContextWithLogger(context.Background(), lgr)
+}
+
+func testGlucoseDatum(v float64) *Glucose {
+	return &Glucose{
+		Blood: blood.Blood{
+			Base: types.Base{
+				Time: pointer.FromAny(time.Now()),
+			},
+			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Value: pointer.FromAny(v),
+		},
+	}
+}
+
+func testDecisionDatum(reason string, t time.Time) *DosingDecision {
+	return &DosingDecision{
+		Base: types.Base{
+			Time: &t,
+		},
+		Reason: &reason,
+	}
 }

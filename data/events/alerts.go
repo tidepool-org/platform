@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data/store"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/devicetokens"
@@ -94,8 +95,9 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 func (c *Consumer) consumeDeviceData(ctx context.Context,
 	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) (err error) {
 
-	datum := &Glucose{}
-	if err := unmarshalMessageValue(msg.Value, datum); err != nil {
+	datum := &dataTypes.Base{}
+	err = unmarshalMessageValue(msg.Value, datum)
+	if err != nil {
 		return err
 	}
 	lgr := c.logger(ctx)
@@ -289,7 +291,7 @@ func (e *evaluator) gatherData(ctx context.Context, followedUserID, uploadID str
 	longestDelay := slices.MaxFunc(alertsConfigs, func(i, j *alerts.Config) int {
 		return cmp.Compare(i.LongestDelay(), j.LongestDelay())
 	}).LongestDelay()
-	longestDelay = max(5*time.Minute, longestDelay)
+	longestDelay = max(alerts.NotLoopingTriggeredAfter, longestDelay)
 	params := store.AlertableParams{
 		UserID:   followedUserID,
 		UploadID: uploadID,

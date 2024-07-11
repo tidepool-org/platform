@@ -20,6 +20,12 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
+// DosingDecision removes a stutter to improve readability.
+type DosingDecision = dosingdecision.DosingDecision
+
+// Glucose removes a stutter to improve readability.
+type Glucose = glucose.Glucose
+
 // Config wraps Alerts to include user relationships.
 //
 // As a wrapper type, Config provides a clear demarcation of what a user
@@ -60,7 +66,7 @@ func (c Config) Validate(validator structure.Validator) {
 // While this method, or the methods it calls, can fail, there's no point in returning an
 // error. Instead errors are logged before continuing. This is to ensure that any possible alert
 // that should be triggered, will be triggered.
-func (c Config) Evaluate(ctx context.Context, gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Note {
+func (c Config) Evaluate(ctx context.Context, gd []*Glucose, dd []*DosingDecision) *Note {
 	n := c.Alerts.Evaluate(ctx, gd, dd)
 	if n != nil {
 		n.FollowedUserID = c.FollowedUserID
@@ -117,7 +123,7 @@ func (a Alerts) Validate(validator structure.Validator) {
 // Evaluations are performed according to priority. The process is
 // "short-circuited" at the first indicated notification.
 func (a Alerts) Evaluate(ctx context.Context,
-	gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Note {
+	gd []*Glucose, dd []*DosingDecision) *Note {
 
 	if a.NoCommunication != nil && a.NoCommunication.Enabled {
 		if n := a.NoCommunication.Evaluate(ctx, gd); n != nil {
@@ -160,7 +166,7 @@ func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
 }
 
-func (b Base) Evaluate(ctx context.Context, data []*glucose.Glucose) *Note {
+func (b Base) Evaluate(ctx context.Context, data []*Glucose) *Note {
 	if lgr := log.LoggerFromContext(ctx); lgr != nil {
 		lgr.Warn("alerts.Base.Evaluate called, this shouldn't happen!")
 	}
@@ -221,7 +227,7 @@ func (a UrgentLowAlert) Validate(validator structure.Validator) {
 // Evaluate urgent low condition.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*Glucose) (note *Note) {
 	lgr := log.LoggerFromContext(ctx)
 	if len(data) == 0 {
 		lgr.Debug("no data to evaluate for urgent low")
@@ -247,7 +253,7 @@ func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) 
 	return &Note{Message: genGlucoseThresholdMessage("below urgent low")}
 }
 
-func validateGlucoseAlertDatum(datum *glucose.Glucose, t Threshold) (float64, float64, error) {
+func validateGlucoseAlertDatum(datum *Glucose, t Threshold) (float64, float64, error) {
 	if datum.Blood.Units == nil || datum.Blood.Value == nil || datum.Blood.Time == nil {
 		return 0, 0, errors.Newf("Unable to evaluate datum: Units, Value, or Time is nil")
 	}
@@ -270,11 +276,60 @@ func (a NotLoopingAlert) Validate(validator structure.Validator) {
 	validator.Duration("delay", &dur).InRange(0, 2*time.Hour)
 }
 
-// Evaluate if the device is looping.
-func (a NotLoopingAlert) Evaluate(ctx context.Context, decisions []*dosingdecision.DosingDecision) (note *Note) {
-	// TODO will be implemented in the near future.
+// Evaluate if the user's device is looping.
+//
+// If no decisions are present, that indicates a not looping condition. It's the lack of any
+// non-errored loop decisions that indicates an alert is warranted.
+func (a *NotLoopingAlert) Evaluate(ctx context.Context, decisions []*DosingDecision) (note *Note) {
+	lgr := log.LoggerFromContext(ctx)
+	if decisions == nil {
+		lgr.Debug("no data to evaluate for not looping")
+		return nil
+	}
+	defer func() { lgr.WithField("isAlerting?", note != nil).Info("not looping") }()
+	var lastLooped time.Time
+	for _, decision := range decisions {
+		if !a.isInteresting(decision) {
+			continue
+		}
+		if decision.Time.After(lastLooped) {
+			lastLooped = *decision.Time
+		}
+	}
+	alerting := time.Since(lastLooped) > NotLoopingTriggeredAfter+a.Delay.Duration()
+	if alerting {
+		if !a.IsActive() {
+			a.Triggered = time.Now()
+		}
+		return &Note{Message: NotLoopingMessage}
+	}
+	if a.IsActive() {
+		a.Resolved = time.Now()
+	}
+
 	return nil
 }
+
+func (a NotLoopingAlert) isInteresting(decision *DosingDecision) bool {
+	// Only dosing decisions for loop are of interest.
+	if decision.Reason == nil || *decision.Reason != DosingDecisionReasonLoop {
+		return false
+	}
+	// Dosing decisions with errors can't indicate a loop.
+	if decision.Errors != nil && len(*decision.Errors) != 0 {
+		return false
+	}
+	if decision.Time == nil || (decision.Time).IsZero() {
+		return false
+	}
+	return true
+}
+
+// NotLoopingTriggeredAfter is the minimum time before a device is considered "not looping".
+const NotLoopingTriggeredAfter = 20 * time.Minute
+
+// NotLoopingMessage is delivered via push notifications.
+const NotLoopingMessage = "A user's Loop isn't looping"
 
 // DosingDecisionReasonLoop is specified in a [dosingdecision.DosingDecision] to indicate that
 // the decision is part of a loop adjustment (as opposed to bolus or something else).
@@ -295,7 +350,7 @@ func (a NoCommunicationAlert) Validate(validator structure.Validator) {
 // Evaluate if CGM data is being received by Tidepool.
 //
 // Assumes data is pre-sorted by Time in descending order.
-func (a NoCommunicationAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) *Note {
+func (a NoCommunicationAlert) Evaluate(ctx context.Context, data []*Glucose) *Note {
 	var newest time.Time
 	for _, d := range data {
 		if d != nil && d.Time != nil && !(*d.Time).IsZero() {
@@ -337,7 +392,7 @@ func (a LowAlert) Validate(validator structure.Validator) {
 // Evaluate the given data to determine if an alert should be sent.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+func (a *LowAlert) Evaluate(ctx context.Context, data []*Glucose) (note *Note) {
 	lgr := log.LoggerFromContext(ctx)
 	if len(data) == 0 {
 		lgr.Debug("no data to evaluate for low")
@@ -404,7 +459,7 @@ func (a HighAlert) Validate(validator structure.Validator) {
 // Evaluate the given data to determine if an alert should be sent.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+func (a *HighAlert) Evaluate(ctx context.Context, data []*Glucose) (note *Note) {
 	lgr := log.LoggerFromContext(ctx)
 	if len(data) == 0 {
 		lgr.Debug("no data to evaluate for high")
