@@ -128,6 +128,9 @@ message BasalRatesGuardRail {
 
   // Device specific absolute bounds. Some pumps might have different increments for different ranges.
   repeated AbsoluteBounds absoluteBounds = 3;
+
+  // Maximum number of time segments
+  optional int32 maxSegments = 4;
 }
 
 message CarbohydrateRatioGuardRail {
