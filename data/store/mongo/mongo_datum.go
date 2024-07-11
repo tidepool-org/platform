@@ -512,7 +512,6 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, ha
 			if selector.ID != nil {
 				selectorIDs = append(selectorIDs, *selector.ID)
 			} else if selector.Origin != nil && selector.Origin.ID != nil {
-				hasOriginID = true
 				selectorOriginIDs = append(selectorOriginIDs, *selector.Origin.ID)
 			}
 		}
@@ -534,7 +533,7 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, ha
 		return nil, false, errors.New("selectors is invalid")
 	}
 
-	return selector, hasOriginID, nil
+	return selector, len(selectorOriginIDs) > 0 && len(selectorIDs) == 0, nil
 }
 
 func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
