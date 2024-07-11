@@ -24,7 +24,7 @@ type (
 		BolusId        string       `bson:"bolus,omitempty"`
 		BolusIds       []string     `bson:"bolusIds,omitempty"`
 		CarbInput      float64      `bson:"carbInput,omitempty"`
-		InputMeal      *InputMeal   `bson:"inputMeal,omitempty"`
+		InputMeal      *InputMeal   `bson:"inputMeal"`
 		Recommended    *Recommended `bson:"recommended,omitempty"`
 		Units          string       `bson:"units,omitempty"`
 		InputTimestamp string       `bson:"inputTimestamp,omitempty"`

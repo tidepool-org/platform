@@ -637,7 +637,7 @@ func buildWizardUpdateOneModel(sample schema.ISample, userId *string, date strin
 				{Key: "meals.$.carbInput", Value: elemfilter.CarbInput},
 				{Key: "meals.$.bolus", Value: elemfilter.BolusId},
 				{Key: "meals.$.inputTimestamp", Value: elemfilter.InputTimestamp},
-				{Key: "meals.$.uuid", Value: elemfilter.Uuid},
+				{Key: "meals.$.inputMeal", Value: elemfilter.InputMeal},
 			},
 			},
 		})

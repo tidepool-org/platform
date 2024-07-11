@@ -9,3 +9,4 @@
 /soup/
 .cache
 **/junit-report
+.idea

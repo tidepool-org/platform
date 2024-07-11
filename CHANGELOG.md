@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.27.0 - 2024-07-11
+### Engineering
+- YLP-3143 DBLG1 meal is created twice
+
 ## 0.26.0 - 2024-01-31
 ### Fixed 
 - YLP-3111 Restore missing field for wizard written in buckets
