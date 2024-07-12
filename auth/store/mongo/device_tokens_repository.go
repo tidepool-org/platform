@@ -23,7 +23,7 @@ func (r *deviceTokenRepo) GetAllByUserID(ctx context.Context, userID string) ([]
 		return nil, err
 	}
 	defer cursor.Close(ctx)
-	docs := make([]*devicetokens.Document, 0, cursor.RemainingBatchLength())
+	var docs []*devicetokens.Document
 	if err := cursor.All(ctx, &docs); err != nil {
 		return nil, err
 	}
