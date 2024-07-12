@@ -144,11 +144,20 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 
 func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[string]interface{} {
 	missing := []map[string]interface{}{}
-	ma := make(map[string]bool, len(a))
-	for _, ka := range a {
+
+	more := a
+	less := b
+
+	if len(b) > len(a) {
+		more = b
+		less = a
+	}
+
+	ma := make(map[string]bool, len(less))
+	for _, ka := range less {
 		ma[fmt.Sprintf("%v", ka["deviceTime"])] = true
 	}
-	for _, kb := range b {
+	for _, kb := range more {
 		if !ma[fmt.Sprintf("%v", kb["deviceTime"])] {
 			missing = append(missing, kb)
 		}

@@ -84,7 +84,8 @@ func (m *Verify) RunAndExit() {
 				return err
 			}
 			for i, v := range ids {
-				log.Printf("%d - %v", i, v)
+				blobPath := fmt.Sprintf("/blobs/%v/%v/", v["_userId"], v["blobId"])
+				log.Printf("%d - [%v] %v", i, v["deviceId"], blobPath)
 			}
 
 			return nil
