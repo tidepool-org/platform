@@ -27,9 +27,9 @@ func (n Notification) String() string {
 	return n.Message
 }
 
-func FromNote(note *alerts.Note) *Notification {
+func FromAlertsNotification(notification *alerts.Notification) *Notification {
 	return &Notification{
-		Message: note.Message,
+		Message: notification.Message,
 	}
 }
 
@@ -88,14 +88,16 @@ func NewAPNSPusherFromKeyData(signingKey []byte, keyID, teamID, bundleID string)
 	return NewAPNSPusher(client, bundleID), nil
 }
 
-func (p *APNSPusher) Push(ctx context.Context, deviceToken *devicetokens.DeviceToken, note *Notification) error {
+func (p *APNSPusher) Push(ctx context.Context, deviceToken *devicetokens.DeviceToken,
+	notification *Notification) error {
+
 	if deviceToken.Apple == nil {
 		return errors.New("Unable to push notification: APNSPusher can only use Apple device tokens but the Apple token is nil")
 	}
 
 	hexToken := hex.EncodeToString(deviceToken.Apple.Token)
-	appleNote := p.buildAppleNotification(hexToken, note)
-	resp, err := p.safePush(ctx, deviceToken.Apple.Environment, appleNote)
+	appleNotification := p.buildAppleNotification(hexToken, notification)
+	resp, err := p.safePush(ctx, deviceToken.Apple.Environment, appleNotification)
 	if err != nil {
 		return errors.Wrap(err, "Unable to push notification")
 	}
@@ -115,7 +117,9 @@ func (p *APNSPusher) Push(ctx context.Context, deviceToken *devicetokens.DeviceT
 //
 // This prevents the environment from being changed out from under
 // you. Unlikely, but better safe than sorry.
-func (p *APNSPusher) safePush(ctx context.Context, env string, note *apns2.Notification) (*apns2.Response, error) {
+func (p *APNSPusher) safePush(ctx context.Context, env string, notification *apns2.Notification) (
+	*apns2.Response, error) {
+
 	p.clientMu.Lock()
 	defer p.clientMu.Unlock()
 	if env == devicetokens.AppleEnvProduction {
@@ -123,13 +127,13 @@ func (p *APNSPusher) safePush(ctx context.Context, env string, note *apns2.Notif
 	} else {
 		p.client.Development()
 	}
-	return p.client.PushWithContext(ctx, note)
+	return p.client.PushWithContext(ctx, notification)
 }
 
-func (p *APNSPusher) buildAppleNotification(hexToken string, note *Notification) *apns2.Notification {
+func (p *APNSPusher) buildAppleNotification(hexToken string, notification *Notification) *apns2.Notification {
 	payload := payload.NewPayload().
-		Alert(note.Message).
-		AlertBody(note.Message)
+		Alert(notification.Message).
+		AlertBody(notification.Message)
 	return &apns2.Notification{
 		DeviceToken: hexToken,
 		Payload:     payload,
