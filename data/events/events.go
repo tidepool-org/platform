@@ -183,7 +183,6 @@ func CappedExponentialBinaryDelay(cap time.Duration) func(int) time.Duration {
 	}
 }
 
-// TODO: implement me!!
 type AlertsEventsConsumer struct {
 	Consumer asyncevents.SaramaMessageConsumer
 }
