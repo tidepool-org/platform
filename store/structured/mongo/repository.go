@@ -15,15 +15,25 @@ import (
 
 type Repository struct {
 	*mongo.Collection
+	config RepositoryConfig
 }
 
-func NewRepository(collection *mongo.Collection) *Repository {
+type RepositoryConfig struct {
+	DisableIndexCreation bool
+}
+
+func NewRepository(collection *mongo.Collection, config RepositoryConfig) *Repository {
 	return &Repository{
 		collection,
+		config,
 	}
 }
 
 func (r *Repository) CreateAllIndexes(ctx context.Context, indexes []mongo.IndexModel) error {
+	if r.config.DisableIndexCreation {
+		return nil
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
