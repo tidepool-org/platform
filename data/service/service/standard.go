@@ -502,7 +502,6 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 
 	alerts := s.dataStore.NewAlertsRepository()
 	dataRepo := s.dataStore.NewDataRepository()
-	s.Logger().WithField("permissionClient", s.permissionClient).Debug("yo!")
 	ec := &dataEvents.Consumer{
 		Alerts:       alerts,
 		Data:         dataRepo,
