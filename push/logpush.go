@@ -30,10 +30,12 @@ func NewLogPusher(l log.Logger) *LogPusher {
 }
 
 // Push implements [service.Pusher].
-func (p *LogPusher) Push(ctx context.Context, deviceToken *devicetokens.DeviceToken, note *Notification) error {
+func (p *LogPusher) Push(ctx context.Context, deviceToken *devicetokens.DeviceToken,
+	notification *Notification) error {
+
 	p.Logger.WithFields(log.Fields{
-		"deviceToken": deviceToken,
-		"note":        note,
+		"deviceToken":  deviceToken,
+		"notification": notification,
 	}).Info("logging push notification")
 	return nil
 }
