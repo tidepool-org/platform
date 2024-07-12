@@ -83,7 +83,6 @@ func (m *Verify) RunAndExit() {
 			if err != nil {
 				return err
 			}
-			log.Println("BLOBS:")
 			for i, v := range ids {
 				log.Printf("%d - %v", i, v)
 			}
