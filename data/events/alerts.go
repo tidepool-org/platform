@@ -121,21 +121,21 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 	return nil
 }
 
-func (c *Consumer) pushNotes(ctx context.Context, notes []*alerts.Note) {
+func (c *Consumer) pushNotes(ctx context.Context, notifications []*alerts.Notification) {
 	lgr := c.logger(ctx)
 
 	// Notes could be pushed into a Kafka topic to have a more durable retry,
 	// but that can be added later.
-	for _, note := range notes {
-		lgr := lgr.WithField("recipientUserID", note.RecipientUserID)
-		tokens, err := c.DeviceTokens.GetDeviceTokens(ctx, note.RecipientUserID)
+	for _, notification := range notifications {
+		lgr := lgr.WithField("recipientUserID", notification.RecipientUserID)
+		tokens, err := c.DeviceTokens.GetDeviceTokens(ctx, notification.RecipientUserID)
 		if err != nil {
 			lgr.WithError(err).Info("Unable to retrieve device tokens")
 		}
 		if len(tokens) == 0 {
 			lgr.Debug("no device tokens found, won't push any notifications")
 		}
-		pushNote := push.FromNote(note)
+		pushNote := push.FromAlertsNotification(notification)
 		for _, token := range tokens {
 			if err := c.Pusher.Push(ctx, token, pushNote); err != nil {
 				lgr.WithError(err).Info("Unable to push notification")
@@ -163,7 +163,7 @@ func (c *Consumer) logger(ctx context.Context) log.Logger {
 }
 
 type AlertsEvaluator interface {
-	Evaluate(ctx context.Context, followedUserID string) ([]*alerts.Note, error)
+	Evaluate(ctx context.Context, followedUserID string) ([]*alerts.Notification, error)
 }
 
 func NewAlertsEvaluator(alerts AlertsClient, data store.DataRepository,
@@ -202,7 +202,7 @@ func (e *evaluator) logger(ctx context.Context) log.Logger {
 
 // Evaluate followers' alerts.Configs to generate alert notifications.
 func (e *evaluator) Evaluate(ctx context.Context, followedUserID string) (
-	[]*alerts.Note, error) {
+	[]*alerts.Notification, error) {
 
 	alertsConfigs, err := e.gatherAlertsConfigs(ctx, followedUserID)
 	if err != nil {
@@ -211,16 +211,16 @@ func (e *evaluator) Evaluate(ctx context.Context, followedUserID string) (
 
 	alertsConfigsByUploadID := e.mapAlertsConfigsByUploadID(alertsConfigs)
 
-	notes := []*alerts.Note{}
+	notifications := []*alerts.Notification{}
 	for uploadID, cfgs := range alertsConfigsByUploadID {
 		resp, err := e.gatherData(ctx, followedUserID, uploadID, cfgs)
 		if err != nil {
 			return nil, err
 		}
-		notes = slices.Concat(notes, e.generateNotes(ctx, cfgs, resp))
+		notifications = slices.Concat(notifications, e.generateNotes(ctx, cfgs, resp))
 	}
 
-	return notes, nil
+	return notifications, nil
 }
 
 func (e *evaluator) mapAlertsConfigsByUploadID(cfgs []*alerts.Config) map[string][]*alerts.Config {
@@ -304,14 +304,14 @@ func (e *evaluator) gatherData(ctx context.Context, followedUserID, uploadID str
 }
 
 func (e *evaluator) generateNotes(ctx context.Context,
-	alertsConfigs []*alerts.Config, resp *store.AlertableResponse) []*alerts.Note {
+	alertsConfigs []*alerts.Config, resp *store.AlertableResponse) []*alerts.Notification {
 
 	if len(alertsConfigs) == 0 {
 		return nil
 	}
 
 	lgr := e.logger(ctx)
-	notes := []*alerts.Note{}
+	notifications := []*alerts.Notification{}
 	for _, alertsConfig := range alertsConfigs {
 		l := lgr.WithFields(log.Fields{
 			"userID":         alertsConfig.UserID,
@@ -321,12 +321,12 @@ func (e *evaluator) generateNotes(ctx context.Context,
 		c := log.NewContextWithLogger(ctx, l)
 		note := alertsConfig.Evaluate(c, resp.Glucose, resp.DosingDecisions)
 		if note != nil {
-			notes = append(notes, note)
+			notifications = append(notifications, note)
 			continue
 		}
 	}
 
-	return notes
+	return notifications
 }
 
 func unmarshalMessageValue[A any](b []byte, payload *A) error {

@@ -304,8 +304,8 @@ type mockEvaluator struct {
 }
 
 type mockEvaluatorResponse struct {
-	Notes []*alerts.Note
-	Error error
+	Notifications []*alerts.Notification
+	Error         error
 }
 
 func newMockEvaluator() *mockEvaluator {
@@ -315,7 +315,9 @@ func newMockEvaluator() *mockEvaluator {
 	}
 }
 
-func (e *mockEvaluator) Evaluate(ctx context.Context, followedUserID string) ([]*alerts.Note, error) {
+func (e *mockEvaluator) Evaluate(ctx context.Context, followedUserID string) (
+	[]*alerts.Notification, error) {
+
 	if _, found := e.Evaluations[followedUserID]; !found {
 		return nil, nil
 	}
@@ -327,7 +329,7 @@ func (e *mockEvaluator) Evaluate(ctx context.Context, followedUserID string) ([]
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
-	return resp.Notes, nil
+	return resp.Notifications, nil
 }
 
 func (e *mockEvaluator) EvaluateCallsTotal() int {
@@ -350,7 +352,9 @@ func newMockStaticEvaluator() *mockStaticEvaluator {
 	return &mockStaticEvaluator{newMockEvaluator()}
 }
 
-func (e *mockStaticEvaluator) Evaluate(ctx context.Context, followedUserID string) ([]*alerts.Note, error) {
+func (e *mockStaticEvaluator) Evaluate(ctx context.Context, followedUserID string) (
+	[]*alerts.Notification, error) {
+
 	e.EvaluateCalls[followedUserID] += 1
 	return nil, nil
 }

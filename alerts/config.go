@@ -60,17 +60,17 @@ func (c Config) Validate(validator structure.Validator) {
 // While this method, or the methods it calls, can fail, there's no point in returning an
 // error. Instead errors are logged before continuing. This is to ensure that any possible alert
 // that should be triggered, will be triggered.
-func (c Config) Evaluate(ctx context.Context, gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Note {
-	n := c.Alerts.Evaluate(ctx, gd, dd)
-	if n != nil {
-		n.FollowedUserID = c.FollowedUserID
-		n.RecipientUserID = c.UserID
+func (c Config) Evaluate(ctx context.Context, gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Notification {
+	notification := c.Alerts.Evaluate(ctx, gd, dd)
+	if notification != nil {
+		notification.FollowedUserID = c.FollowedUserID
+		notification.RecipientUserID = c.UserID
 	}
 	if lgr := log.LoggerFromContext(ctx); lgr != nil {
-		lgr.WithField("note", n).Info("evaluated alert")
+		lgr.WithField("notification", notification).Info("evaluated alert")
 	}
 
-	return n
+	return notification
 }
 
 // LongestDelay of the delays set on enabled alerts.
@@ -117,7 +117,7 @@ func (a Alerts) Validate(validator structure.Validator) {
 // Evaluations are performed according to priority. The process is
 // "short-circuited" at the first indicated notification.
 func (a Alerts) Evaluate(ctx context.Context,
-	gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Note {
+	gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Notification {
 
 	if a.NoCommunication != nil && a.NoCommunication.Enabled {
 		if n := a.NoCommunication.Evaluate(ctx, gd); n != nil {
@@ -160,7 +160,7 @@ func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
 }
 
-func (b Base) Evaluate(ctx context.Context, data []*glucose.Glucose) *Note {
+func (b Base) Evaluate(ctx context.Context, data []*glucose.Glucose) *Notification {
 	if lgr := log.LoggerFromContext(ctx); lgr != nil {
 		lgr.Warn("alerts.Base.Evaluate called, this shouldn't happen!")
 	}
@@ -221,7 +221,7 @@ func (a UrgentLowAlert) Validate(validator structure.Validator) {
 // Evaluate urgent low condition.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (notification *Notification) {
 	lgr := log.LoggerFromContext(ctx)
 	if len(data) == 0 {
 		lgr.Debug("no data to evaluate for urgent low")
@@ -233,7 +233,9 @@ func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) 
 		lgr.WithError(err).Warn("Unable to evaluate urgent low")
 		return nil
 	}
-	defer func() { logGlucoseAlertEvaluation(lgr, "urgent low", note, okDatum, okThreshold) }()
+	defer func() {
+		logGlucoseAlertEvaluation(lgr, "urgent low", notification, okDatum, okThreshold)
+	}()
 	active := okDatum < okThreshold
 	if !active {
 		if a.IsActive() {
@@ -244,7 +246,7 @@ func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) 
 	if !a.IsActive() {
 		a.Triggered = time.Now()
 	}
-	return &Note{Message: genGlucoseThresholdMessage("below urgent low")}
+	return &Notification{Message: genGlucoseThresholdMessage("below urgent low")}
 }
 
 func validateGlucoseAlertDatum(datum *glucose.Glucose, t Threshold) (float64, float64, error) {
@@ -271,7 +273,7 @@ func (a NotLoopingAlert) Validate(validator structure.Validator) {
 }
 
 // Evaluate if the device is looping.
-func (a NotLoopingAlert) Evaluate(ctx context.Context, decisions []*dosingdecision.DosingDecision) (note *Note) {
+func (a NotLoopingAlert) Evaluate(ctx context.Context, decisions []*dosingdecision.DosingDecision) (notifcation *Notification) {
 	// TODO will be implemented in the near future.
 	return nil
 }
@@ -295,7 +297,7 @@ func (a NoCommunicationAlert) Validate(validator structure.Validator) {
 // Evaluate if CGM data is being received by Tidepool.
 //
 // Assumes data is pre-sorted by Time in descending order.
-func (a NoCommunicationAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) *Note {
+func (a NoCommunicationAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) *Notification {
 	var newest time.Time
 	for _, d := range data {
 		if d != nil && d.Time != nil && !(*d.Time).IsZero() {
@@ -304,7 +306,7 @@ func (a NoCommunicationAlert) Evaluate(ctx context.Context, data []*glucose.Gluc
 		}
 	}
 	if time.Since(newest) > a.Delay.Duration() {
-		return &Note{Message: NoCommunicationMessage}
+		return &Notification{Message: NoCommunicationMessage}
 	}
 
 	return nil
@@ -337,7 +339,7 @@ func (a LowAlert) Validate(validator structure.Validator) {
 // Evaluate the given data to determine if an alert should be sent.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (notification *Notification) {
 	lgr := log.LoggerFromContext(ctx)
 	if len(data) == 0 {
 		lgr.Debug("no data to evaluate for low")
@@ -346,7 +348,7 @@ func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note 
 	var eventBegan time.Time
 	var okDatum, okThreshold float64
 	var err error
-	defer func() { logGlucoseAlertEvaluation(lgr, "low", note, okDatum, okThreshold) }()
+	defer func() { logGlucoseAlertEvaluation(lgr, "low", notification, okDatum, okThreshold) }()
 	for _, datum := range data {
 		okDatum, okThreshold, err = validateGlucoseAlertDatum(datum, a.Threshold)
 		if err != nil {
@@ -372,7 +374,7 @@ func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note 
 			a.Triggered = time.Now()
 		}
 	}
-	return &Note{Message: genGlucoseThresholdMessage("below low")}
+	return &Notification{Message: genGlucoseThresholdMessage("below low")}
 }
 
 func genGlucoseThresholdMessage(alertType string) string {
@@ -404,7 +406,7 @@ func (a HighAlert) Validate(validator structure.Validator) {
 // Evaluate the given data to determine if an alert should be sent.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note *Note) {
+func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (notification *Notification) {
 	lgr := log.LoggerFromContext(ctx)
 	if len(data) == 0 {
 		lgr.Debug("no data to evaluate for high")
@@ -413,7 +415,7 @@ func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note
 	var eventBegan time.Time
 	var okDatum, okThreshold float64
 	var err error
-	defer func() { logGlucoseAlertEvaluation(lgr, "high", note, okDatum, okThreshold) }()
+	defer func() { logGlucoseAlertEvaluation(lgr, "high", notification, okDatum, okThreshold) }()
 	for _, datum := range data {
 		okDatum, okThreshold, err = validateGlucoseAlertDatum(datum, a.Threshold)
 		if err != nil {
@@ -439,13 +441,15 @@ func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (note
 			a.Triggered = time.Now()
 		}
 	}
-	return &Note{Message: genGlucoseThresholdMessage("above high")}
+	return &Notification{Message: genGlucoseThresholdMessage("above high")}
 }
 
 // logGlucoseAlertEvaluation is called during each glucose-based evaluation for record-keeping.
-func logGlucoseAlertEvaluation(lgr log.Logger, alertType string, note *Note, value, threshold float64) {
+func logGlucoseAlertEvaluation(lgr log.Logger, alertType string, notification *Notification,
+	value, threshold float64) {
+
 	fields := log.Fields{
-		"isAlerting?": note != nil,
+		"isAlerting?": notification != nil,
 		"threshold":   threshold,
 		"value":       value,
 	}
@@ -522,8 +526,8 @@ type Repository interface {
 	EnsureIndexes() error
 }
 
-// Note gathers information necessary for sending an alert notification.
-type Note struct {
+// Notification gathers information necessary for sending an alert notification.
+type Notification struct {
 	// Message communicates the alert to the recipient.
 	Message         string
 	RecipientUserID string
