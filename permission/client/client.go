@@ -49,7 +49,7 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 
 // GroupsForUser returns what users have shared permissions with the user with an id of granteeUserID.
 // The GroupedPermissions are keyed by the id of the user who shared their permissions with granteeUserID.
-func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permission.GroupedPermissions, error) {
+func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -58,7 +58,7 @@ func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permi
 	}
 
 	url := c.client.ConstructURL("access", "groups", granteeUserID)
-	result := permission.GroupedPermissions{}
+	result := permission.Permissions{}
 	if err := c.client.RequestData(ctx, "GET", url, nil, nil, &result); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, request.ErrorUnauthorized()
@@ -66,10 +66,10 @@ func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permi
 		return nil, err
 	}
 
-	return permission.FixGroupedOwnerPermissions(result), nil
+	return result, nil
 }
 
-func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.GroupedPermissions, error) {
+func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.Permissions, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -78,7 +78,7 @@ func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.
 	}
 
 	url := c.client.ConstructURL("access", sharerID)
-	result := permission.GroupedPermissions{}
+	result := permission.Permissions{}
 	if err := c.client.RequestData(ctx, "GET", url, nil, nil, &result); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, request.ErrorUnauthorized()
@@ -86,7 +86,7 @@ func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.
 		return nil, err
 	}
 
-	return permission.FixGroupedOwnerPermissions(result), nil
+	return result, nil
 }
 
 func (c *Client) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
