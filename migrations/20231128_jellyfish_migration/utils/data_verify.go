@@ -30,23 +30,15 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 			return nil, err
 		}
 		if len(changelog) > 0 {
-
-			reportChanges := []interface{}{}
-
 			if ignoredPaths != nil {
-				changelog = changelog.FilterOut(ignoredPaths)
-			}
-
-			for _, v := range changelog {
-				// NOTE: many changes reported where From = <int> and To = <int>
-				if fmt.Sprintf("%v", v.From) == fmt.Sprintf("%v", v.To) {
-					if v.Type == diff.UPDATE {
-						continue
-					}
+				for _, path := range ignoredPaths {
+					changelog = changelog.FilterOut([]string{path})
 				}
-				reportChanges = append(reportChanges, v)
+				if len(changelog) == 0 {
+					continue
+				}
 			}
-			diffs[fmt.Sprintf("platform_%d", id)] = reportChanges
+			diffs[fmt.Sprintf("platform_%d", id)] = changelog
 		}
 	}
 	return diffs, nil
@@ -183,8 +175,10 @@ func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[st
 }
 
 var dataTypePathIgnored = map[string][]string{
-	"smbg": {"raw", "value"},
-	"cbg":  {"value"},
+	"smbg":  {"raw", "value"},
+	"cbg":   {"value"},
+	"basal": {"rate"},
+	"bolus": {"normal"},
 }
 
 func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
