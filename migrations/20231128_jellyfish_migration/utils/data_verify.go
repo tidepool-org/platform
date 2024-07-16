@@ -125,9 +125,9 @@ func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[stri
 	return typeSet, nil
 }
 
-func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
+func (m *DataVerify) WriteBlobIDs() error {
 	if m.dataC == nil {
-		return nil, errors.New("missing data collection")
+		return errors.New("missing data collection")
 	}
 
 	blobData := []map[string]interface{}{}
@@ -140,14 +140,31 @@ func (m *DataVerify) FetchBlobIDs() ([]map[string]interface{}, error) {
 		Projection: bson.M{"_id": 0, "deviceId": 1, "blobId": "$client.private.blobId", "_userId": 1, "time": 1},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer dDataCursor.Close(m.ctx)
 
 	if err := dDataCursor.All(m.ctx, &blobData); err != nil {
-		return nil, err
+		return err
 	}
-	return blobData, nil
+
+	type Blob struct {
+		DeviceID string `json:"deviceId"`
+		Path     string `json:"path"`
+	}
+
+	blobs := []Blob{}
+
+	for _, v := range blobData {
+		blobs = append(blobs, Blob{
+			Path:     fmt.Sprintf("/blobs/%v/%v/", v["_userId"], v["blobId"]),
+			DeviceID: fmt.Sprintf("%v", v["deviceId"])})
+	}
+
+	blobPath := filepath.Join(".", "_blobs")
+	log.Printf("blob data written to %s", blobPath)
+	writeFileData(blobs, blobPath, "device_blobs.json", true)
+	return nil
 }
 
 func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[string]interface{} {

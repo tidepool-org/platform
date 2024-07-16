@@ -77,17 +77,7 @@ func (m *Verify) RunAndExit() {
 			if err != nil {
 				return fmt.Errorf("unable to create verification utils : %w", err)
 			}
-
-			ids, err := m.verificationUtil.FetchBlobIDs()
-			if err != nil {
-				return err
-			}
-			for i, v := range ids {
-				blobPath := fmt.Sprintf("/blobs/%v/%v/", v["_userId"], v["blobId"])
-				log.Printf("%d - [%v] %v", i, v["deviceId"], blobPath)
-			}
-
-			return nil
+			return m.verificationUtil.WriteBlobIDs()
 		}
 
 		m.verificationUtil, err = utils.NewVerifier(
