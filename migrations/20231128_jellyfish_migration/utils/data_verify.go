@@ -25,7 +25,7 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 			log.Println("no matching value in the jellyfish data")
 			break
 		}
-		changelog, err := diff.Diff(platformDatum, jellyfishData[id], diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
+		changelog, err := diff.Diff(platformDatum, jellyfishData[id], diff.ConvertCompatibleTypes(), diff.StructMapKeySupport(), diff.AllowTypeMismatch(true), diff.FlattenEmbeddedStructs(), diff.SliceOrdering(false))
 		if err != nil {
 			return nil, err
 		}
