@@ -18,7 +18,7 @@ type DataVerify struct {
 	dataC *mongo.Collection
 }
 
-func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}) (map[string]interface{}, error) {
+func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}, ignoredPaths ...string) (map[string]interface{}, error) {
 	diffs := map[string]interface{}{}
 	for id, platformDatum := range platformData {
 		if jellyfishData[id] == nil {
@@ -30,7 +30,23 @@ func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[
 			return nil, err
 		}
 		if len(changelog) > 0 {
-			diffs[fmt.Sprintf("platform_%d", id)] = changelog
+
+			reportChanges := []interface{}{}
+
+			if ignoredPaths != nil {
+				changelog = changelog.FilterOut(ignoredPaths)
+			}
+
+			for _, v := range changelog {
+				// NOTE: many changes reported where From = <int> and To = <int>
+				if fmt.Sprintf("%v", v.From) == fmt.Sprintf("%v", v.To) {
+					if v.Type == diff.UPDATE {
+						continue
+					}
+				}
+				reportChanges = append(reportChanges, v)
+			}
+			diffs[fmt.Sprintf("platform_%d", id)] = reportChanges
 		}
 	}
 	return diffs, nil
@@ -50,7 +66,7 @@ func NewVerifier(ctx context.Context, dataC *mongo.Collection) (*DataVerify, err
 	return m, nil
 }
 
-var DatasetTypes = []string{"cbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
+var DatasetTypes = []string{"cbg", "smbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
 
 func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
 	if m.dataC == nil {
@@ -166,7 +182,12 @@ func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[st
 
 }
 
-func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string, useSubset bool) error {
+var dataTypePathIgnored = map[string][]string{
+	"smbg": {"raw", "value"},
+	"cbg":  {"value"},
+}
+
+func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
 
 	if len(dataTyes) == 0 {
 		dataTyes = DatasetTypes
@@ -196,7 +217,8 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_pf_%s.json", dType, platformUploadID), true)
 			break
 		}
-		differences, err := CompareDatasets(pfSet, jfSet)
+
+		differences, err := CompareDatasets(pfSet, jfSet, dataTypePathIgnored[dType]...)
 		if err != nil {
 			return err
 		}
