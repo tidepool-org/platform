@@ -5,15 +5,21 @@ import (
 	stdErrs "errors"
 	"maps"
 	"net/http"
+	"sync"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	"golang.org/x/sync/errgroup"
 
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
+
+type trustPermissions struct {
+	TrustorPermissions *permission.Permission
+	TrusteePermissions *permission.Permission
+}
 
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
@@ -68,12 +74,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		return
 	}
 
-	filter := parseUsersQuery(req.URL.Query())
-	if !isUsersQueryValid(filter) {
-		responder.Error(http.StatusBadRequest, errors.New("unable to parse users query"))
-		return
-	}
-	mergedUserPerms := map[string]*permission.TrustPermissions{}
+	mergedUserPerms := map[string]*trustPermissions{}
 	trustorPerms, err := r.PermissionsClient().GroupsForUser(ctx, targetUserID)
 	if err != nil {
 		responder.InternalServerError(err)
@@ -86,7 +87,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		}
 
 		clone := maps.Clone(perms)
-		mergedUserPerms[userID] = &permission.TrustPermissions{
+		mergedUserPerms[userID] = &trustPermissions{
 			TrustorPermissions: &clone,
 		}
 	}
@@ -103,64 +104,58 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		}
 
 		if _, ok := mergedUserPerms[userID]; !ok {
-			mergedUserPerms[userID] = &permission.TrustPermissions{}
+			mergedUserPerms[userID] = &trustPermissions{}
 		}
 		clone := maps.Clone(perms)
 		mergedUserPerms[userID].TrusteePermissions = &clone
 	}
-	filteredUserPerms := make(map[string]*permission.TrustPermissions, len(mergedUserPerms))
 
-	for userID, trustPerms := range mergedUserPerms {
-		if userMatchesQueryOnPermissions(*trustPerms, filter) {
-			filteredUserPerms[userID] = trustPerms
-		}
-	}
-
+	lock := &sync.Mutex{}
 	results := make([]*user.User, 0, len(mergedUserPerms))
-	// just doing sequentially fetching of users for now
-	for userID, trustPerms := range filteredUserPerms {
-		// Does this mean all users should already be migrated
-		// to keycloak before this call? Or should UserAccessor have a "fallback" like shoreline's legacy mongodb repo?
-		sharedUser, err := r.UserAccessor().FindUserById(ctx, userID)
-		if stdErrs.Is(err, user.ErrUserNotFound) || sharedUser == nil {
-			// According to seagull code, "It's possible for a user profile to be deleted before the sharing permissions", so we can ignore if user or profile not found.
-			continue
-		}
-		if err != nil {
-			responder.InternalServerError(err)
-			return
-		}
-		if !userMatchesQueryOnUser(sharedUser, filter) {
-			continue
-		}
-		profile, err := r.getProfile(ctx, userID)
-		if stdErrs.Is(err, user.ErrUserProfileNotFound) || profile == nil {
-			continue
-		}
-		if err != nil {
-			r.handleProfileErr(responder, err)
-			return
-		}
-		trustorPerms := trustPerms.TrustorPermissions
-		if trustorPerms == nil || len(*trustorPerms) == 0 {
-			profile = profile.ClearPatientInfo()
-		} else {
-
-			if trustorPerms.HasAny(permission.Custodian, permission.Read, permission.Write) {
-				// TODO: need to read seagull.value.settings
+	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(20) // do up to 20 concurrent requests like seagull did
+	for userID, trustPerms := range mergedUserPerms {
+		userID, trustPerms := userID, trustPerms
+		group.Go(func() error {
+			sharedUser, err := r.UserAccessor().FindUserById(ctx, userID)
+			if stdErrs.Is(err, user.ErrUserNotFound) || sharedUser == nil {
+				// According to seagull code, "It's possible for a user profile to be deleted before the sharing permissions", so we can ignore if user or profile not found.
+				return nil
 			}
-			if trustorPerms.Has(permission.Custodian) {
-				// TODO: need to read seagull.value.preferences
+			if err != nil {
+				return err
 			}
-		}
-		sharedUser.Profile = profile
-		sharedUser.TrusteePermissions = trustPerms.TrusteePermissions
-		sharedUser.TrustorPermissions = trustPerms.TrustorPermissions
-		// Seems no sharedUser.Sanitize call to filter out "protected" fields in seagull except sanitizeUser to remove "passwordExists" field - which doesn't exist in current platform/user.User
-		matchedUser := userMatchingQuery(sharedUser, filter)
-		if matchedUser != nil {
-			results = append(results, matchedUser)
-		}
+			profile, err := r.getProfile(ctx, userID)
+			if stdErrs.Is(err, user.ErrUserProfileNotFound) || profile == nil {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			trustorPerms := trustPerms.TrustorPermissions
+			if trustorPerms == nil || len(*trustorPerms) == 0 {
+				profile = profile.ClearPatientInfo()
+			} else {
+				if trustorPerms.HasAny(permission.Custodian, permission.Read, permission.Write) {
+					// TODO: need to read seagull.value.settings - confirm this is actually used
+				}
+				if trustorPerms.Has(permission.Custodian) {
+					// TODO: need to read seagull.value.preferences - confirm this is actually used
+				}
+			}
+			sharedUser.Profile = profile
+			sharedUser.TrusteePermissions = trustPerms.TrusteePermissions
+			sharedUser.TrustorPermissions = trustPerms.TrustorPermissions
+			// Seems no sharedUser.Sanitize call to filter out "protected" fields in seagull except sanitizeUser to remove "passwordExists" field - which doesn't exist in current platform/user.User
+			lock.Lock()
+			results = append(results, sharedUser)
+			lock.Unlock()
+			return nil
+		})
+	}
+	if err := group.Wait(); err != nil {
+		r.handleProfileErr(responder, err)
+		return
 	}
 
 	responder.Data(http.StatusOK, results)
