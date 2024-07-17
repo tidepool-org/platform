@@ -135,9 +135,10 @@ func (m *DataVerify) WriteBlobIDs() error {
 	dDataCursor, err := m.dataC.Find(m.ctx, bson.M{
 		"deviceManufacturers":   bson.M{"$in": []string{"Tandem", "Insulet"}},
 		"client.private.blobId": bson.M{"$exists": true},
+		"_active":               true,
 	}, &options.FindOptions{
 		Sort:       bson.D{{Key: "deviceId", Value: 1}, {Key: "time", Value: 1}},
-		Projection: bson.M{"_id": 0, "deviceId": 1, "blobId": "$client.private.blobId", "_userId": 1, "time": 1},
+		Projection: bson.M{"_id": 0, "deviceId": 1, "blobId": "$client.private.blobId", "time": 1},
 	})
 	if err != nil {
 		return err
@@ -150,14 +151,14 @@ func (m *DataVerify) WriteBlobIDs() error {
 
 	type Blob struct {
 		DeviceID string `json:"deviceId"`
-		Path     string `json:"path"`
+		BlobID   string `json:"blobId"`
 	}
 
 	blobs := []Blob{}
 
 	for _, v := range blobData {
 		blobs = append(blobs, Blob{
-			Path:     fmt.Sprintf("/blobs/%v/%v/", v["_userId"], v["blobId"]),
+			BlobID:   fmt.Sprintf("%v", v["blobId"]),
 			DeviceID: fmt.Sprintf("%v", v["deviceId"])})
 	}
 
