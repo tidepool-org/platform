@@ -17,11 +17,6 @@ type Permission map[string]interface{}
 //	Permissions{"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa":{"root":{}},"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb":{"note":{},"upload":{},"view":{}}}
 type Permissions map[string]Permission
 
-type TrustPermissions struct {
-	TrustorPermissions *Permission
-	TrusteePermissions *Permission
-}
-
 const (
 	Follow    = "follow"
 	Custodian = "custodian"
