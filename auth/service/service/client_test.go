@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/auth/client"
 	"github.com/tidepool-org/platform/auth/service/service"
 	"github.com/tidepool-org/platform/auth/store"
+	storetest "github.com/tidepool-org/platform/auth/store/test"
 	platformclient "github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/devicetokens"
 	logtest "github.com/tidepool-org/platform/log/test"
@@ -47,14 +48,14 @@ var _ = Describe("Client", func() {
 		name := "test auth client"
 		logger := logtest.NewLogger()
 		if authStore == nil {
+			repo := storetest.NewDeviceTokenRepository()
+			repo.Tokens = map[string][]*devicetokens.DeviceToken{
+				testUserID: {
+					testDeviceToken1,
+				}}
+
 			authStore = &mockAuthStore{
-				DeviceTokenRepository: &mockDeviceTokenRepository{
-					Tokens: map[string][]*devicetokens.DeviceToken{
-						testUserID: {
-							testDeviceToken1,
-						},
-					},
-				},
+				DeviceTokenRepository: repo,
 			}
 		}
 		providerFactory := &mockProviderFactory{}
@@ -81,10 +82,10 @@ var _ = Describe("Client", func() {
 			ctx := context.Background()
 			server := NewServer()
 			defer server.Close()
+			repo := storetest.NewDeviceTokenRepository()
+			repo.Error = fmt.Errorf("test error")
 			authStore := &mockAuthStore{
-				DeviceTokenRepository: &mockDeviceTokenRepository{
-					Error: fmt.Errorf("test error"),
-				},
+				DeviceTokenRepository: repo,
 			}
 			serviceClient := newTestServiceClient(server.URL(), authStore)
 
@@ -119,38 +120,4 @@ type mockProviderFactory struct{}
 
 func (f *mockProviderFactory) Get(typ string, name string) (provider.Provider, error) {
 	return nil, nil
-}
-
-type mockDeviceTokenRepository struct {
-	Error  error
-	Tokens map[string][]*devicetokens.DeviceToken
-}
-
-func (r *mockDeviceTokenRepository) GetAllByUserID(ctx context.Context, userID string) ([]*devicetokens.Document, error) {
-	if r.Error != nil {
-		return nil, r.Error
-	}
-
-	if tokens, ok := r.Tokens[userID]; ok {
-		docs := make([]*devicetokens.Document, 0, len(tokens))
-		for _, token := range tokens {
-			docs = append(docs, &devicetokens.Document{DeviceToken: *token})
-		}
-		return docs, nil
-	}
-	return nil, nil
-}
-
-func (r *mockDeviceTokenRepository) Upsert(ctx context.Context, doc *devicetokens.Document) error {
-	if r.Error != nil {
-		return r.Error
-	}
-	return nil
-}
-
-func (r *mockDeviceTokenRepository) EnsureIndexes() error {
-	if r.Error != nil {
-		return r.Error
-	}
-	return nil
 }
