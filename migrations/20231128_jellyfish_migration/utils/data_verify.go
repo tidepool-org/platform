@@ -179,13 +179,15 @@ func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[st
 		less = a
 	}
 
-	ma := make(map[string]bool, len(less))
-	for _, ka := range less {
-		ma[fmt.Sprintf("%v", ka["deviceTime"])] = true
+	ma := map[string]bool{}
+
+	for _, datum := range less {
+		ma[fmt.Sprintf("%v", datum["deviceTime"])] = true
 	}
-	for _, kb := range more {
-		if !ma[fmt.Sprintf("%v", kb["deviceTime"])] {
-			missing = append(missing, kb)
+
+	for _, datum := range more {
+		if !ma[fmt.Sprintf("%v", datum["deviceTime"])] {
+			missing = append(missing, datum)
 		}
 	}
 	return missing
