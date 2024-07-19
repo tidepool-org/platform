@@ -93,15 +93,14 @@ var _ = Describe("Device tokens endpoints", func() {
 
 		It("may return multiple documents", func() {
 			repo := &storetest.DeviceTokenRepository{
-				Documents: []*devicetokens.Document{
-					{
-						DeviceToken: devicetokens.DeviceToken{},
-					},
-					{
-						DeviceToken: devicetokens.DeviceToken{},
+				Tokens: map[string][]*devicetokens.DeviceToken{
+					test.TestUserID1: {
+						&devicetokens.DeviceToken{},
+						&devicetokens.DeviceToken{},
 					},
 				},
 			}
+
 			raw := rtr.Service.AuthStore().(*storetest.Store)
 			raw.NewDeviceTokenRepositoryImpl = repo
 			res := test.NewMockRestResponseWriter()

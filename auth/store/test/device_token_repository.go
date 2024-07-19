@@ -10,6 +10,7 @@ import (
 type DeviceTokenRepository struct {
 	*authTest.DeviceTokenAccessor
 	Documents []*devicetokens.Document
+	Tokens    map[string][]*devicetokens.DeviceToken
 	Error     error
 }
 
@@ -27,8 +28,12 @@ func (r *DeviceTokenRepository) GetAllByUserID(ctx context.Context, userID strin
 	if r.Error != nil {
 		return nil, r.Error
 	}
-	if len(r.Documents) > 0 {
-		return r.Documents, nil
+	if tokens, ok := r.Tokens[userID]; ok {
+		docs := make([]*devicetokens.Document, 0, len(tokens))
+		for _, token := range tokens {
+			docs = append(docs, &devicetokens.Document{DeviceToken: *token})
+		}
+		return docs, nil
 	}
 	return nil, nil
 }
