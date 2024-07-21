@@ -168,9 +168,8 @@ func (m *DataVerify) WriteBlobIDs() error {
 	return nil
 }
 
-func getMissing(a []map[string]interface{}, b []map[string]interface{}) []map[string]interface{} {
+func GetMissing(a []map[string]interface{}, b []map[string]interface{}) []map[string]interface{} {
 	missing := []map[string]interface{}{}
-
 	more := a
 	less := b
 
@@ -225,7 +224,7 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 		log.Printf("data written to %s", comparePath)
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
-			missing := getMissing(pfSet, jfSet)
+			missing := GetMissing(pfSet, jfSet)
 			writeFileData(missing, comparePath, fmt.Sprintf("missing_%s.json", dType), true)
 			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jf_%s.json", dType, jellyfishUploadID), true)
 			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_pf_%s.json", dType, platformUploadID), true)
