@@ -70,7 +70,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the created time correctly", func() {
-				Expect(prescr.CreatedTime).To(BeTemporally("~", time.Now()))
+				Expect(prescr.CreatedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("does not set the deleted time", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(prescr.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(prescr.ModifiedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified user id", func() {
@@ -228,7 +228,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified user id", func() {

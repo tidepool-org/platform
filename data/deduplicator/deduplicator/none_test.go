@@ -25,6 +25,10 @@ var _ = Describe("None", func() {
 		Expect(dataDeduplicatorDeduplicator.NoneName).To(Equal("org.tidepool.deduplicator.none"))
 	})
 
+	It("NoneVersion is expected", func() {
+		Expect(dataDeduplicatorDeduplicator.NoneVersion).To(Equal("1.0.0"))
+	})
+
 	Context("NewNone", func() {
 		It("returns succesfully", func() {
 			Expect(dataDeduplicatorDeduplicator.NewNone()).ToNot(BeNil())

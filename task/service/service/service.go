@@ -298,7 +298,7 @@ func (s *Service) initializeTaskQueue() error {
 	if s.dexcomClient != nil {
 		s.Logger().Debug("Creating dexcom fetch runner")
 
-		rnnr, rnnrErr := dexcomFetch.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
+		rnnr, rnnrErr := dexcomFetch.NewRunner(s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
 		if rnnrErr != nil {
 			return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
 		}

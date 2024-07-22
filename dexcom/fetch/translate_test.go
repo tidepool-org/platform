@@ -73,7 +73,7 @@ var _ = Describe("Translate", func() {
 					Expect(*datum.DeviceTime).To(Equal(calculatedDeviceTime.Format(data.DeviceTimeFormat)))
 				}
 			},
-			Entry("system time is missing zone; display time is missing",
+			Entry("systemTime is missing zone; displayTime is missing",
 				systemTimeMissingZone,
 				nil,
 				&dataTypes.Base{
@@ -84,7 +84,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: nil,
 				},
 			),
-			Entry("system time is missing zone; display time is the same as system time UTC",
+			Entry("systemTime is missing zone; displayTime is the same as systemTime UTC",
 				systemTimeMissingZone,
 				&systemTimeUTC,
 				&dataTypes.Base{
@@ -95,7 +95,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: nil,
 				},
 			),
-			Entry("system time is missing zone; display time is ahead system time and missing zone",
+			Entry("systemTime is missing zone; displayTime is ahead systemTime and missing zone",
 				systemTimeMissingZone,
 				&displayTimeAheadMissingZone,
 				&dataTypes.Base{
@@ -106,7 +106,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3 * 24 * 60 * 60 * 1000),
 				},
 			),
-			Entry("system time is missing zone; display time is ahead system time and UTC",
+			Entry("systemTime is missing zone; displayTime is ahead systemTime and UTC",
 				systemTimeMissingZone,
 				&displayTimeAheadUTC,
 				&dataTypes.Base{
@@ -117,7 +117,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3*24*60*60*1000 + 5*60*60*1000),
 				},
 			),
-			Entry("system time is missing zone; display time is ahead system time and not UTC",
+			Entry("systemTime is missing zone; displayTime is ahead systemTime and not UTC",
 				systemTimeMissingZone,
 				&displayTimeAheadNotUTC,
 				&dataTypes.Base{
@@ -128,7 +128,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3*24*60*60*1000 + 11*60*60*1000),
 				},
 			),
-			Entry("system time is missing zone; display time is behind system time and missing zone",
+			Entry("systemTime is missing zone; displayTime is behind systemTime and missing zone",
 				systemTimeMissingZone,
 				&displayTimeBehindMissingZone,
 				&dataTypes.Base{
@@ -139,7 +139,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2 * 24 * 60 * 60 * 1000),
 				},
 			),
-			Entry("system time is missing zone; display time is behind system time and UTC",
+			Entry("systemTime is missing zone; displayTime is behind systemTime and UTC",
 				systemTimeMissingZone,
 				&displayTimeBehindUTC,
 				&dataTypes.Base{
@@ -150,7 +150,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2*24*60*60*1000 - 6.5*60*60*1000),
 				},
 			),
-			Entry("system time is missing zone; display time is behind system time and not UTC",
+			Entry("systemTime is missing zone; displayTime is behind systemTime and not UTC",
 				systemTimeMissingZone,
 				&displayTimeBehindNotUTC,
 				&dataTypes.Base{
@@ -161,7 +161,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2*24*60*60*1000 - 30*60*1000),
 				},
 			),
-			Entry("system time is UTC; display time is missing",
+			Entry("systemTime is UTC; displayTime is missing",
 				systemTimeUTC,
 				nil,
 				&dataTypes.Base{
@@ -172,7 +172,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: nil,
 				},
 			),
-			Entry("system time is UTC; display time is the same as system time UTC",
+			Entry("systemTime is UTC; displayTime is the same as systemTime UTC",
 				systemTimeUTC,
 				&systemTimeUTC,
 				&dataTypes.Base{
@@ -183,7 +183,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: nil,
 				},
 			),
-			Entry("system time is UTC; display time is ahead system time and missing zone",
+			Entry("systemTime is UTC; displayTime is ahead systemTime and missing zone",
 				systemTimeUTC,
 				&displayTimeAheadMissingZone,
 				&dataTypes.Base{
@@ -194,7 +194,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3 * 24 * 60 * 60 * 1000),
 				},
 			),
-			Entry("system time is UTC; display time is ahead system time and UTC",
+			Entry("systemTime is UTC; displayTime is ahead systemTime and UTC",
 				systemTimeUTC,
 				&displayTimeAheadUTC,
 				&dataTypes.Base{
@@ -205,7 +205,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3*24*60*60*1000 + 5*60*60*1000),
 				},
 			),
-			Entry("system time is UTC; display time is ahead system time and not UTC",
+			Entry("systemTime is UTC; displayTime is ahead systemTime and not UTC",
 				systemTimeUTC,
 				&displayTimeAheadNotUTC,
 				&dataTypes.Base{
@@ -216,7 +216,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3*24*60*60*1000 + 11*60*60*1000),
 				},
 			),
-			Entry("system time is UTC; display time is behind system time and missing zone",
+			Entry("systemTime is UTC; displayTime is behind systemTime and missing zone",
 				systemTimeUTC,
 				&displayTimeBehindMissingZone,
 				&dataTypes.Base{
@@ -227,7 +227,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2 * 24 * 60 * 60 * 1000),
 				},
 			),
-			Entry("system time is UTC; display time is behind system time and UTC",
+			Entry("systemTime is UTC; displayTime is behind systemTime and UTC",
 				systemTimeUTC,
 				&displayTimeBehindUTC,
 				&dataTypes.Base{
@@ -238,7 +238,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2*24*60*60*1000 - 6.5*60*60*1000),
 				},
 			),
-			Entry("system time is UTC; display time is behind system time and not UTC",
+			Entry("systemTime is UTC; displayTime is behind systemTime and not UTC",
 				systemTimeUTC,
 				&displayTimeBehindNotUTC,
 				&dataTypes.Base{
@@ -249,7 +249,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2*24*60*60*1000 - 30*60*1000),
 				},
 			),
-			Entry("system time is not UTC; display time is missing",
+			Entry("systemTime is not UTC; displayTime is missing",
 				systemTimeNotUTC,
 				nil,
 				&dataTypes.Base{
@@ -260,7 +260,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: nil,
 				},
 			),
-			Entry("system time is not UTC; display time is the same as system time",
+			Entry("systemTime is not UTC; displayTime is the same as systemTime",
 				systemTimeNotUTC,
 				&systemTimeNotUTC,
 				&dataTypes.Base{
@@ -271,7 +271,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: nil,
 				},
 			),
-			Entry("system time is not UTC; display time is ahead system time and missing zone",
+			Entry("systemTime is not UTC; displayTime is ahead systemTime and missing zone",
 				systemTimeNotUTC,
 				&displayTimeAheadMissingZone,
 				&dataTypes.Base{
@@ -282,7 +282,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3 * 24 * 60 * 60 * 1000),
 				},
 			),
-			Entry("system time is not UTC; display time is ahead system time and UTC",
+			Entry("systemTime is not UTC; displayTime is ahead systemTime and UTC",
 				systemTimeNotUTC,
 				&displayTimeAheadUTC,
 				&dataTypes.Base{
@@ -293,7 +293,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3*24*60*60*1000 + 5*60*60*1000),
 				},
 			),
-			Entry("system time is not UTC; display time is ahead system time and not UTC",
+			Entry("systemTime is not UTC; displayTime is ahead systemTime and not UTC",
 				systemTimeNotUTC,
 				&displayTimeAheadNotUTC,
 				&dataTypes.Base{
@@ -304,7 +304,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(3*24*60*60*1000 + 11*60*60*1000),
 				},
 			),
-			Entry("system time is not UTC; display time is behind system time and missing zone",
+			Entry("systemTime is not UTC; displayTime is behind systemTime and missing zone",
 				systemTimeNotUTC,
 				&displayTimeBehindMissingZone,
 				&dataTypes.Base{
@@ -315,7 +315,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2 * 24 * 60 * 60 * 1000),
 				},
 			),
-			Entry("system time is not UTC; display time is behind system time and UTC",
+			Entry("systemTime is not UTC; displayTime is behind systemTime and UTC",
 				systemTimeNotUTC,
 				&displayTimeBehindUTC,
 				&dataTypes.Base{
@@ -326,7 +326,7 @@ var _ = Describe("Translate", func() {
 					ConversionOffset: pointer.FromInt(-2*24*60*60*1000 - 6.5*60*60*1000),
 				},
 			),
-			Entry("system time is not UTC; display time is behind system time and not UTC",
+			Entry("systemTime is not UTC; displayTime is behind systemTime and not UTC",
 				systemTimeNotUTC,
 				&displayTimeBehindNotUTC,
 				&dataTypes.Base{

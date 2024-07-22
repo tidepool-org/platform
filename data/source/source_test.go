@@ -1873,6 +1873,48 @@ var _ = Describe("Source", func() {
 				})
 			})
 		})
+
+		Context("HasError", func() {
+			It("returns false if the error wrapper is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = nil
+				Expect(source.HasError()).To(BeFalse())
+			})
+
+			It("returns false if the error is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{}
+				Expect(source.HasError()).To(BeFalse())
+			})
+
+			It("returns false if the error is not nil", func() {
+				testErr := errorsTest.RandomError()
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{Error: testErr}
+				Expect(source.HasError()).To(BeTrue())
+			})
+		})
+
+		Context("GetError", func() {
+			It("returns nil if the error wrapper is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = nil
+				Expect(source.GetError()).To(BeNil())
+			})
+
+			It("returns nil if the error is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{}
+				Expect(source.GetError()).To(BeNil())
+			})
+
+			It("returns the error if the error is not nil", func() {
+				testErr := errorsTest.RandomError()
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{Error: testErr}
+				Expect(source.GetError()).To(Equal(testErr))
+			})
+		})
 	})
 
 	Context("SourceArray", func() {

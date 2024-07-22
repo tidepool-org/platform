@@ -18,7 +18,7 @@ import (
 var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 	It("OutOfRangeAlertDEPRECATEDThresholds returns expected", func() {
 		Expect(dataTypesSettingsCgm.OutOfRangeAlertDEPRECATEDThresholds()).To(Equal([]int{
-			1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
+			0, 60000, 1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
 			3600000, 3900000, 4200000, 4500000, 4800000, 5100000, 5400000, 5700000,
 			6000000, 6300000, 6600000, 6900000, 7200000, 7500000, 7800000, 8100000,
 			8400000, 8700000, 9000000, 9300000, 9600000, 9900000, 10200000,
@@ -72,6 +72,16 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 				Entry("threshold valid",
 					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
 						datum.Threshold = pointer.FromInt(1200000)
+					},
+				),
+				Entry("threshold valid (0)",
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
+						datum.Threshold = pointer.FromInt(0)
+					},
+				),
+				Entry("threshold valid (60000)",
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
+						datum.Threshold = pointer.FromInt(60000)
 					},
 				),
 				Entry("multiple errors",

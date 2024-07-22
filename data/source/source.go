@@ -250,6 +250,17 @@ func (s *Source) Sanitize(details request.AuthDetails) error {
 	return nil
 }
 
+func (s *Source) HasError() bool {
+	return s.Error != nil && s.Error.Error != nil
+}
+
+func (s *Source) GetError() error {
+	if s.Error != nil {
+		return s.Error.Error
+	}
+	return nil
+}
+
 type SourceArray []*Source
 
 func (s SourceArray) Sanitize(details request.AuthDetails) error {

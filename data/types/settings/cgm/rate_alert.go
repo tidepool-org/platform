@@ -11,11 +11,11 @@ const (
 	RateAlertUnitsMmolLMinute = "mmol/L/minute"
 
 	FallAlertRateMgdLMinuteMaximum  = 10.0
-	FallAlertRateMgdLMinuteMinimum  = 1.0
+	FallAlertRateMgdLMinuteMinimum  = 0.0
 	FallAlertRateMmolLMinuteMaximum = 0.55507
 	FallAlertRateMmolLMinuteMinimum = 0.05551
 	RiseAlertRateMgdLMinuteMaximum  = 10.0
-	RiseAlertRateMgdLMinuteMinimum  = 1.0
+	RiseAlertRateMgdLMinuteMinimum  = 0.0
 	RiseAlertRateMmolLMinuteMaximum = 0.55507
 	RiseAlertRateMmolLMinuteMinimum = 0.05551
 )
