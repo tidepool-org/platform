@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("DataVerify", func() {
 
-	var _ = Describe("CompareDatasets", func() {
+	var _ = Describe("CompareDatasetDatums", func() {
 
 		var datasetOne = []map[string]interface{}{}
 		var datasetTwo = []map[string]interface{}{}
@@ -43,19 +43,19 @@ var _ = Describe("DataVerify", func() {
 		})
 
 		It("will genterate a list of differences between two datasets", func() {
-			changes, err := utils.CompareDatasets(datasetOne, datasetTwo)
+			changes, err := utils.CompareDatasetDatums(datasetOne, datasetTwo)
 			Expect(err).To(BeNil())
 			Expect(changes).ToNot(BeEmpty())
 		})
 
 		It("will genterate no differences when the datasets are the same ", func() {
-			changes, err := utils.CompareDatasets(datasetOne, datasetOne)
+			changes, err := utils.CompareDatasetDatums(datasetOne, datasetOne)
 			Expect(err).To(BeNil())
 			Expect(changes).To(BeEmpty())
 		})
 
 		It("changes will contain each diff", func() {
-			changes, err := utils.CompareDatasets(datasetOne, datasetTwo)
+			changes, err := utils.CompareDatasetDatums(datasetOne, datasetTwo)
 			Expect(err).To(BeNil())
 			Expect(changes).To(Equal(map[string]interface{}{
 				"platform_0": diff.Changelog{{Type: diff.UPDATE, Path: []string{"one"}, From: 1, To: "one"}},
@@ -64,7 +64,7 @@ var _ = Describe("DataVerify", func() {
 		})
 
 		It("can filter based on path", func() {
-			changes, err := utils.CompareDatasets(datasetOne, datasetTwo, "more")
+			changes, err := utils.CompareDatasetDatums(datasetOne, datasetTwo, "more")
 			Expect(err).To(BeNil())
 			Expect(changes).To(Equal(map[string]interface{}{
 				"platform_0": diff.Changelog{{Type: diff.UPDATE, Path: []string{"one"}, From: 1, To: "one"}},
@@ -72,89 +72,54 @@ var _ = Describe("DataVerify", func() {
 		})
 
 		It("can filter multiple based on path", func() {
-			changes, err := utils.CompareDatasets(datasetOne, datasetTwo, "more", "one")
+			changes, err := utils.CompareDatasetDatums(datasetOne, datasetTwo, "more", "one")
 			Expect(err).To(BeNil())
 			Expect(changes).To(BeEmpty())
 		})
 
 	})
-	var _ = Describe("GetMissing", func() {
+	var _ = Describe("CompareDatasets", func() {
 
-		var dOne = []map[string]interface{}{}
-		var dLarge = []map[string]interface{}{}
-		var dLargeTwo = []map[string]interface{}{}
+		It("will have no differences when that same and no dups", func() {
+			missing, duplicates, extras := utils.CompareDatasets(test.JFBolusSet, test.JFBolusSet)
+			Expect(len(duplicates)).To(Equal(0))
+			Expect(len(extras)).To(Equal(0))
+			Expect(len(missing)).To(Equal(0))
+		})
 
-		BeforeEach(func() {
+		It("will find duplicates in the platform dataset", func() {
+			missing, duplicates, extras := utils.CompareDatasets(test.PlatformBolusSet, test.JFBolusSet)
+			Expect(len(duplicates)).To(Equal(395))
+			Expect(len(extras)).To(Equal(0))
+			Expect(len(missing)).To(Equal(0))
+		})
 
-			dOne = []map[string]interface{}{
-				{
-					"one":        1,
-					"value":      2,
-					"deviceTime": "2023-01-18T00:00:00",
-				},
-				{
-					"three":      3,
-					"more":       true,
-					"deviceTime": "2023-01-18T01:00:00",
-				},
+		It("will find extras in the platform dataset", func() {
+
+			expectedExtra := map[string]interface{}{
+				"extra":      3,
+				"deviceTime": "2023-01-18T12:00:00",
 			}
 
-			dLargeTwo = []map[string]interface{}{
-				{
-					"one":        1,
-					"value":      2,
-					"deviceTime": "2023-01-18T00:00:00",
-				},
-				{
-					"three":      3,
-					"more":       true,
-					"deviceTime": "2023-01-18T01:00:00",
-				},
-				{
-					"four":       44,
-					"more":       true,
-					"deviceTime": "2023-01-18T02:00:00",
-				},
+			missing, duplicates, extras := utils.CompareDatasets(append(test.PlatformBolusSet, expectedExtra), test.JFBolusSet)
+			Expect(len(duplicates)).To(Equal(395))
+			Expect(len(extras)).To(Equal(1))
+			Expect(extras[0]).To(Equal(expectedExtra))
+			Expect(len(missing)).To(Equal(0))
+		})
+
+		It("will find missing in the platform dataset", func() {
+
+			expectedMissing := map[string]interface{}{
+				"missing":    3,
+				"deviceTime": "2023-01-18T12:00:00",
 			}
 
-			dLarge = test.BulkJellyfishUploadData("test-device-id", "group-id", "user-id", 2112)
-
-		})
-
-		It("will be empty when the two datasets match for large amount of data ", func() {
-			missing := utils.GetMissing(dLarge, dLarge)
-			Expect(missing).To(BeEmpty())
-		})
-
-		It("will return the missing datum when no match", func() {
-			missing := utils.GetMissing(dOne, dLargeTwo)
-			Expect(missing).To(Equal([]map[string]interface{}{{
-				"four":       44,
-				"more":       true,
-				"deviceTime": "2023-01-18T02:00:00",
-			}}))
-		})
-
-		var _ = Describe("order of datasets", func() {
-
-			It("shows missing if largest set first", func() {
-				dLargeTwo = []map[string]interface{}{}
-				for i := 10; i < len(dLarge); i++ {
-					dLargeTwo = append(dLargeTwo, dLarge[i])
-				}
-				missing := utils.GetMissing(dLarge, dLargeTwo)
-				Expect(len(missing)).To(Equal(10))
-			})
-
-			It("shows missing if largest set second", func() {
-				dLargeTwo = []map[string]interface{}{}
-				for i := 10; i < len(dLarge); i++ {
-					dLargeTwo = append(dLargeTwo, dLarge[i])
-				}
-				missing := utils.GetMissing(dLargeTwo, dLarge)
-				Expect(len(missing)).To(Equal(10))
-
-			})
+			missing, duplicates, extras := utils.CompareDatasets(test.PlatformBolusSet, append(test.JFBolusSet, expectedMissing))
+			Expect(len(duplicates)).To(Equal(395))
+			Expect(len(extras)).To(Equal(0))
+			Expect(len(missing)).To(Equal(1))
+			Expect(missing[0]).To(Equal(expectedMissing))
 		})
 
 	})

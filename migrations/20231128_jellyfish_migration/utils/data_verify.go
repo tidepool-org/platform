@@ -18,7 +18,7 @@ type DataVerify struct {
 	dataC *mongo.Collection
 }
 
-func CompareDatasets(platformData []map[string]interface{}, jellyfishData []map[string]interface{}, ignoredPaths ...string) (map[string]interface{}, error) {
+func CompareDatasetDatums(platformData []map[string]interface{}, jellyfishData []map[string]interface{}, ignoredPaths ...string) (map[string]interface{}, error) {
 	diffs := map[string]interface{}{}
 	for id, platformDatum := range platformData {
 		if jellyfishData[id] == nil {
@@ -168,29 +168,38 @@ func (m *DataVerify) WriteBlobIDs() error {
 	return nil
 }
 
-func GetMissing(a []map[string]interface{}, b []map[string]interface{}) []map[string]interface{} {
-	missing := []map[string]interface{}{}
-	more := a
-	less := b
+func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[string]interface{}) ([]map[string]interface{}, []map[string]interface{}, []map[string]interface{}) {
+	platformMissing := []map[string]interface{}{}
+	platformExtras := []map[string]interface{}{}
+	platformDuplicates := []map[string]interface{}{}
+	pfCounts := map[string]int{}
 
-	if len(b) > len(a) {
-		more = b
-		less = a
+	jfCounts := map[string]int{}
+
+	for _, jDatum := range jellyfishSet {
+		jfCounts[fmt.Sprintf("%v", jDatum["deviceTime"])] += 1
 	}
 
-	ma := map[string]bool{}
-
-	for _, datum := range less {
-		ma[fmt.Sprintf("%v", datum["deviceTime"])] = true
-	}
-
-	for _, datum := range more {
-		if !ma[fmt.Sprintf("%v", datum["deviceTime"])] {
-			missing = append(missing, datum)
+	for _, pDatum := range platformSet {
+		pfCounts[fmt.Sprintf("%v", pDatum["deviceTime"])] += 1
+		if pfCounts[fmt.Sprintf("%v", pDatum["deviceTime"])] > 1 {
+			platformDuplicates = append(platformDuplicates, pDatum)
+			continue
+		}
+		// jellyfish does not have platform dp then its an extra
+		if jfCounts[fmt.Sprintf("%v", pDatum["deviceTime"])] == 0 {
+			platformExtras = append(platformExtras, pDatum)
 		}
 	}
-	return missing
 
+	for _, jDatum := range jellyfishSet {
+		if pfCounts[fmt.Sprintf("%v", jDatum["deviceTime"])] >= 1 {
+			continue
+		}
+		platformMissing = append(platformMissing, jDatum)
+	}
+
+	return platformMissing, platformDuplicates, platformExtras
 }
 
 var dataTypePathIgnored = map[string][]string{
@@ -222,20 +231,29 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 		pfSet := platformDataset[dType]
 		comparePath := filepath.Join(".", "_compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
 		log.Printf("data written to %s", comparePath)
+		missing, duplicates, extras := CompareDatasets(pfSet, jfSet)
+		if len(missing) > 0 {
+			writeFileData(missing, comparePath, fmt.Sprintf("platform_missing_%s.json", dType), true)
+		}
+		if len(duplicates) > 0 {
+			writeFileData(duplicates, comparePath, fmt.Sprintf("platform_duplicates_%s.json", dType), true)
+		}
+		if len(extras) > 0 {
+			writeFileData(extras, comparePath, fmt.Sprintf("platform_extra_%s.json", dType), true)
+		}
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
-			missing := GetMissing(pfSet, jfSet)
-			writeFileData(missing, comparePath, fmt.Sprintf("missing_%s.json", dType), true)
-			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jf_%s.json", dType, jellyfishUploadID), true)
-			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_pf_%s.json", dType, platformUploadID), true)
+			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jellyfish_%s.json", dType, jellyfishUploadID), true)
+			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_platform_%s.json", dType, platformUploadID), true)
 			break
 		}
-
-		differences, err := CompareDatasets(pfSet, jfSet, dataTypePathIgnored[dType]...)
+		differences, err := CompareDatasetDatums(pfSet, jfSet, dataTypePathIgnored[dType]...)
 		if err != nil {
 			return err
 		}
-		writeFileData(differences, comparePath, fmt.Sprintf("%s_diff.json", dType), true)
+		if len(differences) > 0 {
+			writeFileData(differences, comparePath, fmt.Sprintf("%s_datum_diff.json", dType), true)
+		}
 	}
 
 	return nil
