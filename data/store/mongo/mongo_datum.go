@@ -766,7 +766,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 
 	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
 	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && timeMin.After(lowerTimeBound) {
-		findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+		findOptions.SetHint("TestUserIdActiveTypeModifiedTimeTime")
 	}
 	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
@@ -827,7 +827,8 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 			"$gt": status.LastUpdated,
 		}
 		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && timeMin.After(lowerTimeBound) {
-			findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+			// has blocking sort, but more selective so usually performs better.
+			findOptions.SetHint("TestUserIdActiveTypeModifiedTimeTime")
 		}
 	}
 
