@@ -557,7 +557,7 @@ func translateEventInsulinToDatum(ctx context.Context, event *dexcom.Event) data
 	return datum
 }
 
-func translateEventBGToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
+func translateEventBloodGlucoseToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesBloodGlucoseSelfMonitored.New()
 
 	if event.Value != nil && event.Unit != nil {
@@ -576,7 +576,7 @@ func translateEventBGToDatum(ctx context.Context, event *dexcom.Event) data.Datu
 	return datum
 }
 
-func translateEventNoteToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
+func translateEventNotesToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesStateReported.New()
 
 	if event.EventSubType != nil {

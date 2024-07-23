@@ -474,23 +474,9 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 }
 
 func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
-	devices, devicesDatumArray, err := t.fetchDevices(startTime, endTime)
+	devicesDatumArray, err := t.fetchDevices(startTime, endTime)
 	if err != nil {
 		return err
-	}
-
-	// Ensure there is at least one device in the time range. However, per Dexcom, the Dexcom API
-	// does not guarantee to return a device for G5 Mobile if time range is less than 24 hours.
-	if endTime.Sub(startTime) > 24*time.Hour {
-		if len(devices) == 0 {
-			return nil // No devices means no data
-		}
-	} else {
-		if err = t.preloadDataSet(); err != nil {
-			return err
-		} else if t.dataSet == nil {
-			return nil
-		}
 	}
 
 	datumArray, err := t.fetchData(startTime, endTime)
@@ -517,10 +503,10 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 	return nil
 }
 
-func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (dexcom.Devices, data.Data, error) {
+func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.Data, error) {
 	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
 	if err = t.handleDexcomClientError(err); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	var devices dexcom.Devices
@@ -543,7 +529,7 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (dexco
 		}
 	}
 
-	return devices, devicesDatumArray, nil
+	return devicesDatumArray, nil
 }
 
 func (t *TaskRunner) preloadDataSet() error {
@@ -707,9 +693,9 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 				case dexcom.EventTypeInsulin:
 					datumArray = append(datumArray, translateEventInsulinToDatum(t.context, e))
 				case dexcom.EventTypeBloodGlucose:
-					datumArray = append(datumArray, translateEventBGToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventBloodGlucoseToDatum(t.context, e))
 				case dexcom.EventTypeNotes:
-					datumArray = append(datumArray, translateEventNoteToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventNotesToDatum(t.context, e))
 				}
 			}
 		case dexcom.EventStatusUpdated, dexcom.EventStatusDeleted:
