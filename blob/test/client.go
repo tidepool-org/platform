@@ -60,6 +60,16 @@ type GetContentOutput struct {
 	Error   error
 }
 
+type GetDeviceLogsBlobOutput struct {
+	Blob  *blob.DeviceLogsBlob
+	Error error
+}
+
+type GetDeviceLogsContentOutput struct {
+	Content *blob.DeviceLogsContent
+	Error   error
+}
+
 type DeleteInput struct {
 	ID        string
 	Condition *request.Condition
@@ -106,6 +116,12 @@ type Client struct {
 	GetContentStub              func(ctx context.Context, id string) (*blob.Content, error)
 	GetContentOutputs           []GetContentOutput
 	GetContentOutput            *GetContentOutput
+	GetDeviceLogsBlobStub       func(ctx context.Context, id string) (*blob.DeviceLogsContent, error)
+	GetDeviceLogsBlobOutputs    []GetDeviceLogsBlobOutput
+	GetDeviceLogsBlobOutput     *GetDeviceLogsBlobOutput
+	GetDeviceLogsContentStub    func(ctx context.Context, id string) (*blob.DeviceLogsContent, error)
+	GetDeviceLogsContentOutputs []GetDeviceLogsContentOutput
+	GetDeviceLogsContentOutput  *GetDeviceLogsContentOutput
 	DeleteInvocations           int
 	DeleteInputs                []DeleteInput
 	DeleteStub                  func(ctx context.Context, id string, condition *request.Condition) (bool, error)
@@ -169,11 +185,35 @@ func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob
 }
 
 func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (*blob.DeviceLogsContent, error) {
-	return nil, nil
+	if c.GetDeviceLogsContentStub != nil {
+		return c.GetDeviceLogsContentStub(ctx, deviceLogID)
+	}
+	if len(c.GetDeviceLogsContentOutputs) > 0 {
+		output := c.GetDeviceLogsContentOutputs[0]
+		c.GetDeviceLogsContentOutputs = c.GetDeviceLogsContentOutputs[1:]
+		c.GetDeviceLogsContentOutput = &output
+		return output.Content, output.Error
+	}
+	if c.GetDeviceLogsContentOutput != nil {
+		return c.GetDeviceLogsContentOutput.Content, c.GetDeviceLogsContentOutput.Error
+	}
+	panic("GetDeviceLogsContent has no output")
 }
 
 func (c *Client) GetDeviceLogsBlob(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
-	return nil, nil
+	if c.GetDeviceLogsBlobStub != nil {
+		return c.GetDeviceLogsBlob(ctx, deviceLogID)
+	}
+	if len(c.GetDeviceLogsBlobOutputs) > 0 {
+		output := c.GetDeviceLogsBlobOutputs[0]
+		c.GetDeviceLogsBlobOutputs = c.GetDeviceLogsBlobOutputs[1:]
+		c.GetDeviceLogsBlobOutput = &output
+		return output.Blob, output.Error
+	}
+	if c.GetDeviceLogsBlobOutput != nil {
+		return c.GetDeviceLogsBlobOutput.Blob, c.GetDeviceLogsBlobOutput.Error
+	}
+	panic("GetDeviceLogsBlob has no output")
 }
 
 func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {

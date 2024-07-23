@@ -325,6 +325,7 @@ var _ = Describe("V1", func() {
 						})
 					})
 				})
+
 				Context("ListDeviceLogs", func() {
 					BeforeEach(func() {
 						req.Method = http.MethodGet
@@ -395,14 +396,18 @@ var _ = Describe("V1", func() {
 							})
 
 							Context("with user details", func() {
-								var granteeToGrantorPerms map[string]map[string]permission.Permissions
+								var sharerUserID string
 								BeforeEach(func() {
+									sharerUserID = userTest.RandomID()
 									details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 									req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
-									granteeToGrantorPerms = map[string]map[string]permission.Permissions{
+									granteeToGrantorPerms := map[string]map[string]permission.Permissions{
 										userID: {
 											userID: permission.Permissions{
 												permission.Owner: permission.Permission{},
+											},
+											sharerUserID: permission.Permissions{
+												permission.Read: permission.Permission{},
 											},
 										},
 									}
@@ -432,16 +437,8 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds successfully when user has access to another person's device logs", func() {
-									otherUserID := userTest.RandomID()
 									req.Method = http.MethodGet
-									req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", otherUserID)
-									granteeToGrantorPerms = map[string]map[string]permission.Permissions{
-										userID: {
-											otherUserID: permission.Permissions{
-												permission.Custodian: permission.Permission{},
-											},
-										},
-									}
+									req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", sharerUserID)
 									logs := blobTest.RandomDeviceLogsArray(1, 4)
 									client.ListDeviceLogsOutputs = []blobTest.ListDeviceLogsOutput{{DeviceLogs: logs, Error: nil}}
 									handlerFunc(res, req)
@@ -451,13 +448,190 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds with forbidden when user doesn't have access to another person's device logs", func() {
-									provider.BlobClientOutputs = nil
 									otherUserID := userTest.RandomID()
+									provider.BlobClientOutputs = nil
 									req.Method = http.MethodGet
 									req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", otherUserID)
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 									res.WriteOutputs = nil
+								})
+							})
+						})
+					})
+				})
+
+				Context("GetDeviceLogsContent", func() {
+					var id string
+					BeforeEach(func() {
+						id = blobTest.RandomID()
+						req.Method = http.MethodGet
+						req.URL.Path = fmt.Sprintf("/v1/device_logs/%s/content", id)
+					})
+
+					When("responds", func() {
+						BeforeEach(func() {
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+						})
+
+						Context("with clients", func() {
+							var authClient *authTest.Client
+							var client *blobTest.Client
+							var details request.AuthDetails
+
+							BeforeEach(func() {
+								authClient = authTest.NewClient()
+								client = blobTest.NewClient()
+								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = []auth.Client{authClient}
+							})
+
+							AfterEach(func() {
+								authClient.AssertOutputsEmpty()
+								client.AssertOutputsEmpty()
+							})
+
+							When("unauthenticated", func() {
+								It("responds with an unauthenticated error", func() {
+									provider.BlobClientOutputs = nil
+									provider.AuthClientOutputs = nil
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorUnauthenticated(), res.WriteInputs[0])
+								})
+							})
+
+							When("with server details", func() {
+
+								BeforeEach(func() {
+									details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+									req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+								})
+
+								It("responds with not found error when the client does not return a blob", func() {
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									provider.AuthClientOutputs = nil
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
+								})
+
+								It("responds successfully with headers", func() {
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
+									content := blob.NewDeviceLogsContent()
+									body := test.RandomBytes()
+									content.Body = io.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.MediaType = pointer.FromString(netTest.RandomMediaType())
+									content.StartAt = pointer.FromTime(test.RandomTime())
+									content.EndAt = pointer.FromTime(test.RandomTime())
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Content: content}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{
+										"Content-Type": []string{*content.MediaType},
+										"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+										"Start-At":     []string{content.StartAt.Format(time.RFC3339Nano)},
+										"End-At":       []string{content.EndAt.Format(time.RFC3339Nano)},
+									}))
+								})
+							})
+
+							When("with user details", func() {
+								var userID string
+								var sharerUserID string
+								BeforeEach(func() {
+									userID = userTest.RandomID()
+									sharerUserID = userTest.RandomID()
+									details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
+									req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+									granteeToGrantorPerms := map[string]map[string]permission.Permissions{
+										userID: {
+											userID: permission.Permissions{
+												permission.Owner: permission.Permission{},
+											},
+											sharerUserID: permission.Permissions{
+												permission.Read: permission.Permission{},
+											},
+										},
+									}
+									authClient.GetUserPermissionsStub = func(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+										if perms, ok := granteeToGrantorPerms[requestUserID]; ok {
+											return perms[targetUserID], nil
+										}
+										return nil, nil
+									}
+								})
+
+								It("responds with not found error when the client does not return a blob", func() {
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+									provider.AuthClientOutputs = nil
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
+								})
+
+								It("responds successfully with headers for user's own logs", func() {
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
+									deviceLogsBlob.UserID = pointer.FromString(userID)
+									content := blob.NewDeviceLogsContent()
+									body := test.RandomBytes()
+									content.Body = io.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.MediaType = pointer.FromString(netTest.RandomMediaType())
+									content.StartAt = pointer.FromTime(test.RandomTime())
+									content.EndAt = pointer.FromTime(test.RandomTime())
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Content: content}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{
+										"Content-Type": []string{*content.MediaType},
+										"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+										"Start-At":     []string{content.StartAt.Format(time.RFC3339Nano)},
+										"End-At":       []string{content.EndAt.Format(time.RFC3339Nano)},
+									}))
+								})
+
+								It("responds successfully when user has access to another person's device logs content", func() {
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
+									deviceLogsBlob.UserID = pointer.FromString(sharerUserID)
+									content := blob.NewDeviceLogsContent()
+									body := test.RandomBytes()
+									content.Body = io.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.MediaType = pointer.FromString(netTest.RandomMediaType())
+									content.StartAt = pointer.FromTime(test.RandomTime())
+									content.EndAt = pointer.FromTime(test.RandomTime())
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Content: content}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{
+										"Content-Type": []string{*content.MediaType},
+										"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+										"Start-At":     []string{content.StartAt.Format(time.RFC3339Nano)},
+										"End-At":       []string{content.EndAt.Format(time.RFC3339Nano)},
+									}))
 								})
 							})
 						})

@@ -51,7 +51,7 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
 		rest.Get("/v1/device_logs/:id", r.GetDeviceLogsBlob),
-		rest.Get("/v1/device_logs/:id/content", r.GetDeviceLogsContent),
+		rest.Get("/v1/device_logs/:id/content", api.RequireAuth(r.GetDeviceLogsContent)),
 		rest.Delete("/v1/blobs/:id", r.Delete),
 	}
 }
@@ -284,11 +284,11 @@ func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request
 		return
 	}
 	if !allowed {
-		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(deviceLogID))
 		return
 	}
 
-	content, err := r.Provider.BlobClient().GetDeviceLogsContent(req.Context(), *deviceLogMetadata.ID)
+	content, err := blobClient.GetDeviceLogsContent(req.Context(), *deviceLogMetadata.ID)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
