@@ -18,8 +18,8 @@ else
 	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
 endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
-VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
-VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
+VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD || echo "dev")
+VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD || echo "dev")
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
 GO_BUILD_FLAGS:=-buildvcs=false
