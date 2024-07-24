@@ -81,17 +81,17 @@ var _ = Describe("DataVerify", func() {
 	var _ = Describe("CompareDatasets", func() {
 
 		It("will have no differences when that same and no dups", func() {
-			missing, duplicates, extras := utils.CompareDatasets(test.JFBolusSet, test.JFBolusSet)
-			Expect(len(duplicates)).To(Equal(0))
-			Expect(len(extras)).To(Equal(0))
-			Expect(len(missing)).To(Equal(0))
+			dSetDifference := utils.CompareDatasets(test.JFBolusSet, test.JFBolusSet)
+			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(0))
+			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(0))
+			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(0))
 		})
 
 		It("will find duplicates in the platform dataset", func() {
-			missing, duplicates, extras := utils.CompareDatasets(test.PlatformBolusSet, test.JFBolusSet)
-			Expect(len(duplicates)).To(Equal(395))
-			Expect(len(extras)).To(Equal(0))
-			Expect(len(missing)).To(Equal(0))
+			dSetDifference := utils.CompareDatasets(test.PlatformBolusSet, test.JFBolusSet)
+			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(395))
+			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(0))
+			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(0))
 		})
 
 		It("will find extras in the platform dataset", func() {
@@ -101,11 +101,11 @@ var _ = Describe("DataVerify", func() {
 				"deviceTime": "2023-01-18T12:00:00",
 			}
 
-			missing, duplicates, extras := utils.CompareDatasets(append(test.PlatformBolusSet, expectedExtra), test.JFBolusSet)
-			Expect(len(duplicates)).To(Equal(395))
-			Expect(len(extras)).To(Equal(1))
-			Expect(extras[0]).To(Equal(expectedExtra))
-			Expect(len(missing)).To(Equal(0))
+			dSetDifference := utils.CompareDatasets(append(test.PlatformBolusSet, expectedExtra), test.JFBolusSet)
+			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(395))
+			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(1))
+			Expect(dSetDifference[utils.PlatformExtra][0]).To(Equal(expectedExtra))
+			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(0))
 		})
 
 		It("will find missing in the platform dataset", func() {
@@ -115,11 +115,12 @@ var _ = Describe("DataVerify", func() {
 				"deviceTime": "2023-01-18T12:00:00",
 			}
 
-			missing, duplicates, extras := utils.CompareDatasets(test.PlatformBolusSet, append(test.JFBolusSet, expectedMissing))
-			Expect(len(duplicates)).To(Equal(395))
-			Expect(len(extras)).To(Equal(0))
-			Expect(len(missing)).To(Equal(1))
-			Expect(missing[0]).To(Equal(expectedMissing))
+			dSetDifference := utils.CompareDatasets(test.PlatformBolusSet, append(test.JFBolusSet, expectedMissing))
+
+			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(395))
+			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(0))
+			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(1))
+			Expect(dSetDifference[utils.PlatformMissing][0]).To(Equal(expectedMissing))
 		})
 
 	})

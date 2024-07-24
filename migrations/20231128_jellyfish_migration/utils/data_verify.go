@@ -168,38 +168,56 @@ func (m *DataVerify) WriteBlobIDs() error {
 	return nil
 }
 
-func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[string]interface{}) ([]map[string]interface{}, []map[string]interface{}, []map[string]interface{}) {
-	platformMissing := []map[string]interface{}{}
-	platformExtras := []map[string]interface{}{}
-	platformDuplicates := []map[string]interface{}{}
-	pfCounts := map[string]int{}
+const (
+	PlatformExtra     = "extra"
+	PlatformDuplicate = "duplicate"
+	PlatformMissing   = "missing"
+)
 
+func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[string]interface{}) map[string][]map[string]interface{} {
+
+	diffs := map[string][]map[string]interface{}{
+		PlatformExtra:     {},
+		PlatformDuplicate: {},
+		PlatformMissing:   {},
+	}
+	const deviceTimeName = "deviceTime"
+
+	pfCounts := map[string][]map[string]interface{}{}
 	jfCounts := map[string]int{}
 
 	for _, jDatum := range jellyfishSet {
-		jfCounts[fmt.Sprintf("%v", jDatum["deviceTime"])] += 1
+		jfCounts[fmt.Sprintf("%v", jDatum[deviceTimeName])] += 1
 	}
 
 	for _, pDatum := range platformSet {
-		pfCounts[fmt.Sprintf("%v", pDatum["deviceTime"])] += 1
-		if pfCounts[fmt.Sprintf("%v", pDatum["deviceTime"])] > 1 {
-			platformDuplicates = append(platformDuplicates, pDatum)
-			continue
+
+		strDatumTime := fmt.Sprintf("%v", pDatum[deviceTimeName])
+
+		if len(pfCounts[strDatumTime]) == 0 {
+			pfCounts[strDatumTime] = []map[string]interface{}{pDatum}
+		} else if len(pfCounts[strDatumTime]) >= 1 {
+			pfCounts[strDatumTime] = append(pfCounts[strDatumTime], pDatum)
+
+			for _, existingPDatum := range pfCounts[strDatumTime] {
+				if fmt.Sprintf("%v", existingPDatum) == fmt.Sprintf("%v", pDatum) {
+					diffs[PlatformDuplicate] = append(diffs[PlatformDuplicate], pDatum)
+					break
+				}
+			}
 		}
-		// jellyfish does not have platform dp then its an extra
-		if jfCounts[fmt.Sprintf("%v", pDatum["deviceTime"])] == 0 {
-			platformExtras = append(platformExtras, pDatum)
+		if jfCounts[fmt.Sprintf("%v", pDatum[deviceTimeName])] == 0 {
+			diffs[PlatformExtra] = append(diffs[PlatformExtra], pDatum)
 		}
 	}
 
 	for _, jDatum := range jellyfishSet {
-		if pfCounts[fmt.Sprintf("%v", jDatum["deviceTime"])] >= 1 {
+		if len(pfCounts[fmt.Sprintf("%v", jDatum[deviceTimeName])]) >= 1 {
 			continue
 		}
-		platformMissing = append(platformMissing, jDatum)
+		diffs[PlatformMissing] = append(diffs[PlatformMissing], jDatum)
 	}
-
-	return platformMissing, platformDuplicates, platformExtras
+	return diffs
 }
 
 var dataTypePathIgnored = map[string][]string{
@@ -231,20 +249,20 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 		pfSet := platformDataset[dType]
 		comparePath := filepath.Join(".", "_compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
 		log.Printf("data written to %s", comparePath)
-		missing, duplicates, extras := CompareDatasets(pfSet, jfSet)
-		if len(missing) > 0 {
-			writeFileData(missing, comparePath, fmt.Sprintf("platform_missing_%s.json", dType), true)
+		setDifferences := CompareDatasets(pfSet, jfSet)
+		if len(setDifferences[PlatformMissing]) > 0 {
+			writeFileData(setDifferences[PlatformMissing], comparePath, fmt.Sprintf("%s_platform_missing.json", dType), true)
 		}
-		if len(duplicates) > 0 {
-			writeFileData(duplicates, comparePath, fmt.Sprintf("platform_duplicates_%s.json", dType), true)
+		if len(setDifferences[PlatformDuplicate]) > 0 {
+			writeFileData(setDifferences[PlatformDuplicate], comparePath, fmt.Sprintf("%s_platform_duplicates.json", dType), true)
 		}
-		if len(extras) > 0 {
-			writeFileData(extras, comparePath, fmt.Sprintf("platform_extra_%s.json", dType), true)
+		if len(setDifferences[PlatformExtra]) > 0 {
+			writeFileData(setDifferences[PlatformExtra], comparePath, fmt.Sprintf("%s_platform_extra.json", dType), true)
 		}
 		if len(pfSet) != len(jfSet) {
 			log.Printf("NOTE: datasets mismatch platform (%d) vs jellyfish (%d)", len(pfSet), len(jfSet))
-			writeFileData(jfSet, comparePath, fmt.Sprintf("raw_%s_jellyfish_%s.json", dType, jellyfishUploadID), true)
-			writeFileData(pfSet, comparePath, fmt.Sprintf("raw_%s_platform_%s.json", dType, platformUploadID), true)
+			writeFileData(jfSet, comparePath, fmt.Sprintf("%s_jellyfish_datums.json", dType), true)
+			writeFileData(pfSet, comparePath, fmt.Sprintf("%s_platform_datums.json", dType), true)
 			break
 		}
 		differences, err := CompareDatasetDatums(pfSet, jfSet, dataTypePathIgnored[dType]...)
