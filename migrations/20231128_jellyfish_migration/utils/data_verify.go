@@ -197,14 +197,18 @@ func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[st
 		if len(pfCounts[strDatumTime]) == 0 {
 			pfCounts[strDatumTime] = []map[string]interface{}{pDatum}
 		} else if len(pfCounts[strDatumTime]) >= 1 {
-			pfCounts[strDatumTime] = append(pfCounts[strDatumTime], pDatum)
 
-			for _, existingPDatum := range pfCounts[strDatumTime] {
-				if fmt.Sprintf("%v", existingPDatum) == fmt.Sprintf("%v", pDatum) {
+			currentItems := pfCounts[strDatumTime]
+			for _, item := range currentItems {
+				if fmt.Sprintf("%v", item) == fmt.Sprintf("%v", pDatum) {
 					diffs[PlatformDuplicate] = append(diffs[PlatformDuplicate], pDatum)
+					continue
+				} else {
+					diffs[PlatformExtra] = append(diffs[PlatformExtra], pDatum)
 					break
 				}
 			}
+			pfCounts[strDatumTime] = append(pfCounts[strDatumTime], pDatum)
 		}
 		if jfCounts[fmt.Sprintf("%v", pDatum[deviceTimeName])] == 0 {
 			diffs[PlatformExtra] = append(diffs[PlatformExtra], pDatum)

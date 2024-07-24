@@ -94,6 +94,19 @@ var _ = Describe("DataVerify", func() {
 			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(0))
 		})
 
+		It("will find extras in the platform dataset that have duplicate timestamp but not data", func() {
+
+			duplicateTimeStamp := map[string]interface{}{
+				"extra":      true,
+				"deviceTime": "2018-01-03T13:07:10",
+			}
+
+			dSetDifference := utils.CompareDatasets(append(test.PlatformBolusSet, duplicateTimeStamp), test.JFBolusSet)
+			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(395))
+			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(1))
+			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(0))
+		})
+
 		It("will find extras in the platform dataset", func() {
 
 			expectedExtra := map[string]interface{}{
