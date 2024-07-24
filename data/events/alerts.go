@@ -52,9 +52,9 @@ func (c *Consumer) Consume(ctx context.Context,
 	}
 
 	switch {
-	case strings.HasSuffix(msg.Topic, ".data.alerts"):
+	case strings.Contains(msg.Topic, ".data.alerts"):
 		return c.consumeAlertsConfigs(ctx, session, msg)
-	case strings.HasSuffix(msg.Topic, ".data.deviceData.alerts"):
+	case strings.Contains(msg.Topic, ".data.deviceData.alerts"):
 		return c.consumeDeviceData(ctx, session, msg)
 	default:
 		c.logger(ctx).WithField("topic", msg.Topic).
