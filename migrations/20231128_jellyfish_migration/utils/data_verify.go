@@ -182,12 +182,19 @@ func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[st
 		PlatformMissing:   {},
 	}
 	const deviceTimeName = "deviceTime"
+	type deviceTimeDatums map[string][]map[string]interface{}
 
-	pfCounts := map[string][]map[string]interface{}{}
-	jfCounts := map[string]int{}
+	pfCounts := deviceTimeDatums{}
+	jfCounts := deviceTimeDatums{}
 
 	for _, jDatum := range jellyfishSet {
-		jfCounts[fmt.Sprintf("%v", jDatum[deviceTimeName])] += 1
+		strDatumTime := fmt.Sprintf("%v", jDatum[deviceTimeName])
+
+		if len(jfCounts[strDatumTime]) == 0 {
+			jfCounts[strDatumTime] = []map[string]interface{}{jDatum}
+		} else if len(jfCounts[strDatumTime]) >= 1 {
+			jfCounts[strDatumTime] = append(jfCounts[strDatumTime], jDatum)
+		}
 	}
 
 	for _, pDatum := range platformSet {
@@ -210,16 +217,18 @@ func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[st
 			}
 			pfCounts[strDatumTime] = append(pfCounts[strDatumTime], pDatum)
 		}
-		if jfCounts[fmt.Sprintf("%v", pDatum[deviceTimeName])] == 0 {
+		if len(jfCounts[fmt.Sprintf("%v", pDatum[deviceTimeName])]) == 0 {
 			diffs[PlatformExtra] = append(diffs[PlatformExtra], pDatum)
 		}
 	}
 
-	for _, jDatum := range jellyfishSet {
-		if len(pfCounts[fmt.Sprintf("%v", jDatum[deviceTimeName])]) >= 1 {
-			continue
+	for jfDeviceTimeStr, jDatums := range jfCounts {
+		if len(pfCounts[jfDeviceTimeStr]) < len(jfCounts[jfDeviceTimeStr]) {
+			//NOTE: more of an indicator there are missing records ...
+			for i := len(pfCounts[jfDeviceTimeStr]); i < len(jfCounts[jfDeviceTimeStr]); i++ {
+				diffs[PlatformMissing] = append(diffs[PlatformMissing], jDatums[i])
+			}
 		}
-		diffs[PlatformMissing] = append(diffs[PlatformMissing], jDatum)
 	}
 	return diffs
 }
@@ -277,6 +286,5 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 			writeFileData(differences, comparePath, fmt.Sprintf("%s_datum_diff.json", dType), true)
 		}
 	}
-
 	return nil
 }

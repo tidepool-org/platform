@@ -95,7 +95,6 @@ var _ = Describe("DataVerify", func() {
 		})
 
 		It("will find extras in the platform dataset that have duplicate timestamp but not data", func() {
-
 			duplicateTimeStamp := map[string]interface{}{
 				"extra":      true,
 				"deviceTime": "2018-01-03T13:07:10",
@@ -108,7 +107,6 @@ var _ = Describe("DataVerify", func() {
 		})
 
 		It("will find extras in the platform dataset", func() {
-
 			expectedExtra := map[string]interface{}{
 				"extra":      3,
 				"deviceTime": "2023-01-18T12:00:00",
@@ -121,19 +119,17 @@ var _ = Describe("DataVerify", func() {
 			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(0))
 		})
 
-		It("will find missing in the platform dataset", func() {
+		It("will find datums that are missing in the platform dataset", func() {
+			platformBasals := test.GetPlatformBasalData()
+			jellyfishBasals := test.GetJFBasalData()
 
-			expectedMissing := map[string]interface{}{
-				"missing":    3,
-				"deviceTime": "2023-01-18T12:00:00",
-			}
+			Expect(len(platformBasals)).To(Equal(3123))
+			Expect(len(jellyfishBasals)).To(Equal(3386))
 
-			dSetDifference := utils.CompareDatasets(test.PlatformBolusSet, append(test.JFBolusSet, expectedMissing))
-
-			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(395))
-			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(0))
-			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(1))
-			Expect(dSetDifference[utils.PlatformMissing][0]).To(Equal(expectedMissing))
+			dSetDifference := utils.CompareDatasets(platformBasals, jellyfishBasals)
+			Expect(len(dSetDifference[utils.PlatformDuplicate])).To(Equal(5))
+			Expect(len(dSetDifference[utils.PlatformExtra])).To(Equal(4))
+			Expect(len(dSetDifference[utils.PlatformMissing])).To(Equal(263))
 		})
 
 	})
