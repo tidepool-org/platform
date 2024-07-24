@@ -2,6 +2,7 @@ package fetch_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +12,7 @@ import (
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
+	dexcomTest "github.com/tidepool-org/platform/dexcom/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -338,5 +340,66 @@ var _ = Describe("Translate", func() {
 				},
 			),
 		)
+	})
+
+	Context("TranslateDeviceIDFromTransmitter", func() {
+		It("returns nil if the transmitter generation is nil", func() {
+			Expect(dexcomFetch.TranslateDeviceIDFromTransmitter(nil, pointer.FromString(dexcomTest.RandomTransmitterID()))).To(BeNil())
+		})
+
+		It("returns nil if the transmitter generation is invalid", func() {
+			Expect(dexcomFetch.TranslateDeviceIDFromTransmitter(pointer.FromString("invalid"), pointer.FromString(dexcomTest.RandomTransmitterID()))).To(BeNil())
+		})
+
+		It("returns nil if the transmitter id is nil", func() {
+			Expect(dexcomFetch.TranslateDeviceIDFromTransmitter(pointer.FromString(dexcom.DeviceTransmitterGenerationUnknown), nil)).To(BeNil())
+		})
+
+		It("returns nil if the transmitter id is empty", func() {
+			Expect(dexcomFetch.TranslateDeviceIDFromTransmitter(pointer.FromString(dexcom.DeviceTransmitterGenerationUnknown), pointer.FromString(""))).To(BeNil())
+		})
+
+		DescribeTable("returns translated device id if transmitter generation is",
+			func(transmitterGeneration string, expectedDeviceIDPrefix string) {
+				transmitterID := dexcomTest.RandomTransmitterID()
+				deviceID := dexcomFetch.TranslateDeviceIDFromTransmitter(pointer.FromString(transmitterGeneration), pointer.FromString(transmitterID))
+				Expect(deviceID).ToNot(BeNil())
+				Expect(*deviceID).To(Equal(fmt.Sprintf("%s_%s", expectedDeviceIDPrefix, transmitterID)))
+			},
+			Entry("DeviceTransmitterGenerationUnknown", dexcom.DeviceTransmitterGenerationUnknown, "Dexcom"),
+			Entry("DeviceTransmitterGenerationG4", dexcom.DeviceTransmitterGenerationG4, "DexcomG4"),
+			Entry("DeviceTransmitterGenerationG5", dexcom.DeviceTransmitterGenerationG5, "DexcomG5"),
+			Entry("DeviceTransmitterGenerationG6", dexcom.DeviceTransmitterGenerationG6, "DexcomG6"),
+			Entry("DeviceTransmitterGenerationG6Pro", dexcom.DeviceTransmitterGenerationG6Pro, "DexcomG6Pro"),
+			Entry("DeviceTransmitterGenerationG6Plus", dexcom.DeviceTransmitterGenerationG6Plus, "DexcomG6Plus"),
+			Entry("DeviceTransmitterGenerationPro", dexcom.DeviceTransmitterGenerationPro, "DexcomPro"),
+			Entry("DeviceTransmitterGenerationG7", dexcom.DeviceTransmitterGenerationG7, "DexcomG7"),
+		)
+	})
+
+	Context("TranslateDeviceIDPrefixFromTransmitterGeneration", func() {
+		It("returns nil if the transmitter generation is nil", func() {
+			Expect(dexcomFetch.TranslateDeviceIDPrefixFromTransmitterGeneration(nil)).To(BeNil())
+		})
+
+		DescribeTable("returns translated device id if transmitter generation is",
+			func(transmitterGeneration string, expectedDeviceIDPrefix string) {
+				deviceIDPrefix := dexcomFetch.TranslateDeviceIDPrefixFromTransmitterGeneration(pointer.FromString(transmitterGeneration))
+				Expect(deviceIDPrefix).ToNot(BeNil())
+				Expect(*deviceIDPrefix).To(Equal(expectedDeviceIDPrefix))
+			},
+			Entry("DeviceTransmitterGenerationUnknown", dexcom.DeviceTransmitterGenerationUnknown, "Dexcom"),
+			Entry("DeviceTransmitterGenerationG4", dexcom.DeviceTransmitterGenerationG4, "DexcomG4"),
+			Entry("DeviceTransmitterGenerationG5", dexcom.DeviceTransmitterGenerationG5, "DexcomG5"),
+			Entry("DeviceTransmitterGenerationG6", dexcom.DeviceTransmitterGenerationG6, "DexcomG6"),
+			Entry("DeviceTransmitterGenerationG6Pro", dexcom.DeviceTransmitterGenerationG6Pro, "DexcomG6Pro"),
+			Entry("DeviceTransmitterGenerationG6Plus", dexcom.DeviceTransmitterGenerationG6Plus, "DexcomG6Plus"),
+			Entry("DeviceTransmitterGenerationPro", dexcom.DeviceTransmitterGenerationPro, "DexcomPro"),
+			Entry("DeviceTransmitterGenerationG7", dexcom.DeviceTransmitterGenerationG7, "DexcomG7"),
+		)
+
+		It("returns nil if the transmitter generation is invalid", func() {
+			Expect(dexcomFetch.TranslateDeviceIDPrefixFromTransmitterGeneration(pointer.FromString("invalid"))).To(BeNil())
+		})
 	})
 })

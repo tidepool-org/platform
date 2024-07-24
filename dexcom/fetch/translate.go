@@ -3,17 +3,15 @@ package fetch
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
-	"github.com/tidepool-org/platform/log"
-
 	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-
 	dataTypesBloodGlucoseSelfMonitored "github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
@@ -21,6 +19,7 @@ import (
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
 	"github.com/tidepool-org/platform/dexcom"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/pointer"
@@ -112,6 +111,7 @@ func TranslateTime(ctx context.Context, systemTime *dexcom.Time, displayTime *de
 func translateCalibrationToDatum(ctx context.Context, calibration *dexcom.Calibration) data.Datum {
 	datum := dataTypesDeviceCalibration.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(calibration.TransmitterGeneration, calibration.TransmitterID)
 	datum.Value = pointer.CloneFloat64(calibration.Value)
 	datum.Units = pointer.CloneString(calibration.Unit)
 	datum.Payload = metadata.NewMetadata()
@@ -138,6 +138,7 @@ func translateCalibrationToDatum(ctx context.Context, calibration *dexcom.Calibr
 func translateDeviceToDatum(_ context.Context, device *dexcom.Device) data.Datum {
 	datum := dataTypesSettingsCgm.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(device.TransmitterGeneration, device.TransmitterID)
 	datum.Manufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	datum.TransmitterID = pointer.CloneString(device.TransmitterID)
 	//TODO: potenially not true in the future. Currently the v3 API returns only MgdL but it does also have MmolL as valid units although it doesn't return them
@@ -353,6 +354,7 @@ func translateAlertSettingUnitToRateAlertUnits(unit *string) *string {
 func translateAlertToDatum(ctx context.Context, alert *dexcom.Alert, version *string) data.Datum {
 	datum := dataTypesAlert.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(alert.TransmitterGeneration, alert.TransmitterID)
 	datum.Payload = metadata.NewMetadata()
 
 	if alert.AlertState != nil {
@@ -383,6 +385,7 @@ func translateAlertToDatum(ctx context.Context, alert *dexcom.Alert, version *st
 func translateEGVToDatum(ctx context.Context, egv *dexcom.EGV) data.Datum {
 	datum := dataTypesBloodGlucoseContinuous.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(egv.TransmitterGeneration, egv.TransmitterID)
 	datum.Value = pointer.CloneFloat64(egv.Value)
 	datum.Units = pointer.CloneString(egv.Unit)
 	datum.Payload = metadata.NewMetadata()
@@ -454,6 +457,7 @@ func translateEGVToDatum(ctx context.Context, egv *dexcom.EGV) data.Datum {
 func translateEventCarbsToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesFood.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(event.TransmitterGeneration, event.TransmitterID)
 	if event.Value != nil && event.Unit != nil {
 		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
 		datum.Nutrition = &dataTypesFood.Nutrition{
@@ -474,6 +478,7 @@ func translateEventCarbsToDatum(ctx context.Context, event *dexcom.Event) data.D
 func translateEventExerciseToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesActivityPhysical.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(event.TransmitterGeneration, event.TransmitterID)
 	if event.EventSubType != nil {
 		switch *event.EventSubType {
 		case dexcom.EventSubTypeExerciseLight:
@@ -504,6 +509,7 @@ func translateEventExerciseToDatum(ctx context.Context, event *dexcom.Event) dat
 func translateEventHealthToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesStateReported.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(event.TransmitterGeneration, event.TransmitterID)
 	if event.EventSubType != nil {
 		switch *event.EventSubType {
 		case dexcom.EventSubTypeHealthIllness:
@@ -531,6 +537,7 @@ func translateEventHealthToDatum(ctx context.Context, event *dexcom.Event) data.
 func translateEventInsulinToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesInsulin.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(event.TransmitterGeneration, event.TransmitterID)
 	if event.EventSubType != nil {
 		switch *event.EventSubType {
 		case dexcom.EventSubTypeInsulinFastActing:
@@ -560,6 +567,7 @@ func translateEventInsulinToDatum(ctx context.Context, event *dexcom.Event) data
 func translateEventBloodGlucoseToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesBloodGlucoseSelfMonitored.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(event.TransmitterGeneration, event.TransmitterID)
 	if event.Value != nil && event.Unit != nil {
 		floatVal, err := strconv.ParseFloat(*event.Value, 64)
 		if err == nil {
@@ -579,6 +587,7 @@ func translateEventBloodGlucoseToDatum(ctx context.Context, event *dexcom.Event)
 func translateEventNotesToDatum(ctx context.Context, event *dexcom.Event) data.Datum {
 	datum := dataTypesStateReported.New()
 
+	datum.DeviceID = TranslateDeviceIDFromTransmitter(event.TransmitterGeneration, event.TransmitterID)
 	if event.EventSubType != nil {
 		switch *event.EventSubType {
 		case dexcom.EventSubTypeHealthIllness:
@@ -605,4 +614,39 @@ func translateEventNotesToDatum(ctx context.Context, event *dexcom.Event) data.D
 
 	TranslateTime(ctx, event.SystemTime, event.DisplayTime, &datum.Base)
 	return datum
+}
+
+func TranslateDeviceIDFromTransmitter(transmitterGeneration *string, transmitterID *string) *string {
+	prefix := TranslateDeviceIDPrefixFromTransmitterGeneration(transmitterGeneration)
+	if prefix == nil || transmitterID == nil || *transmitterID == "" {
+		return nil
+	}
+	return pointer.FromString(strings.Join([]string{*prefix, *transmitterID}, "_"))
+}
+
+func TranslateDeviceIDPrefixFromTransmitterGeneration(transmitterGeneration *string) *string {
+	if transmitterGeneration == nil {
+		return nil
+	}
+
+	switch *transmitterGeneration {
+	case dexcom.DeviceTransmitterGenerationUnknown:
+		return pointer.FromString("Dexcom")
+	case dexcom.DeviceTransmitterGenerationG4:
+		return pointer.FromString("DexcomG4")
+	case dexcom.DeviceTransmitterGenerationG5:
+		return pointer.FromString("DexcomG5")
+	case dexcom.DeviceTransmitterGenerationG6:
+		return pointer.FromString("DexcomG6")
+	case dexcom.DeviceTransmitterGenerationG6Pro:
+		return pointer.FromString("DexcomG6Pro")
+	case dexcom.DeviceTransmitterGenerationG6Plus:
+		return pointer.FromString("DexcomG6Plus")
+	case dexcom.DeviceTransmitterGenerationPro:
+		return pointer.FromString("DexcomPro")
+	case dexcom.DeviceTransmitterGenerationG7:
+		return pointer.FromString("DexcomG7")
+	default:
+		return nil
+	}
 }
