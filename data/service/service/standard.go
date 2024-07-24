@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
@@ -516,14 +517,16 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	runnerCfg := dataEvents.SaramaRunnerConfig{
 		Brokers: commonConfig.KafkaBrokers,
 		GroupID: config.KafkaAlertsGroupID,
-		Logger:  s.Logger(),
 		Topics:  prefixedTopics,
 		Sarama:  commonConfig.SaramaConfig,
 		MessageConsumer: &dataEvents.AlertsEventsConsumer{
 			Consumer: ec,
 		},
 	}
-	runner := &dataEvents.SaramaRunner{Config: runnerCfg}
+
+	eventsRunner := dataEvents.NewShiftingSaramaEventsRunner(runnerCfg, s.Logger(),
+		[]time.Duration{0, 1 * time.Second, 2 * time.Second, 3 * time.Second, 5 * time.Second})
+	runner := dataEvents.NewSaramaRunner(eventsRunner)
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "Unable to initialize alerts events handler runner")
 	}
