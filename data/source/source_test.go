@@ -1887,7 +1887,7 @@ var _ = Describe("Source", func() {
 				Expect(source.HasError()).To(BeFalse())
 			})
 
-			It("returns false if the error is not nil", func() {
+			It("returns true if the error is not nil", func() {
 				testErr := errorsTest.RandomError()
 				source := dataSourceTest.RandomSource()
 				source.Error = &errors.Serializable{Error: testErr}
