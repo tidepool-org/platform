@@ -2,15 +2,14 @@ package service
 
 import (
 	"context"
-	"log"
-	"os"
-
-	"github.com/tidepool-org/platform/clinics"
+	"strings"
 
 	"github.com/IBM/sarama"
+	"github.com/kelseyhightower/envconfig"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
@@ -22,11 +21,12 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/push"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -44,7 +44,9 @@ type Standard struct {
 	dataClient                *Client
 	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
+	pusher                    dataEvents.Pusher
 	userEventsHandler         events.Runner
+	alertsEventsHandler       events.Runner
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -87,7 +89,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeSaramaLogger(); err != nil {
+		return err
+	}
+	if err := s.initializePusher(); err != nil {
+		return err
+	}
 	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
+	if err := s.initializeAlertsEventsHandler(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -109,6 +120,13 @@ func (s *Standard) Terminate() {
 			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
 		}
 		s.userEventsHandler = nil
+	}
+	if s.alertsEventsHandler != nil {
+		s.Logger().Info("Terminating the alertsEventsHandler")
+		if err := s.alertsEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the alertsEventsHandler: %v", err)
+		}
+		s.alertsEventsHandler = nil
 	}
 	s.api = nil
 	s.dataClient = nil
@@ -139,6 +157,9 @@ func (s *Standard) Run() error {
 	errs := make(chan error)
 	go func() {
 		errs <- s.userEventsHandler.Run()
+	}()
+	go func() {
+		errs <- s.alertsEventsHandler.Run()
 	}()
 	go func() {
 		errs <- s.server.Serve()
@@ -406,9 +427,8 @@ func (s *Standard) initializeServer() error {
 
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
 	handlers := []eventsCommon.EventHandler{handler}
 	runner := events.NewRunner(handlers)
@@ -416,6 +436,98 @@ func (s *Standard) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize user events handler runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Standard) initializeSaramaLogger() error {
+	// Multiple properties of Standard use the sarama package. This is
+	// intended to be the one place that the sarama Logger is initialized,
+	// before any of the properties that need it are run.
+	sarama.Logger = log.NewSarama(s.Logger())
+	return nil
+}
+
+func (s *Standard) initializePusher() error {
+	var err error
+
+	apns2Config := &struct {
+		SigningKey []byte `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_SIGNING_KEY"`
+		KeyID      string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_KEY_ID"`
+		BundleID   string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_BUNDLE_ID"`
+		TeamID     string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_TEAM_ID"`
+	}{}
+	if err := envconfig.Process("", apns2Config); err != nil {
+		return errors.Wrap(err, "Unable to process APNs pusher config")
+	}
+
+	var pusher dataEvents.Pusher
+	pusher, err = push.NewAPNSPusherFromKeyData(apns2Config.SigningKey, apns2Config.KeyID,
+		apns2Config.TeamID, apns2Config.BundleID)
+	if err != nil {
+		s.Logger().WithError(err).Warn("falling back to logging of push notifications")
+		pusher = push.NewLogPusher(s.Logger())
+	}
+	s.pusher = pusher
+
+	return nil
+}
+
+func (s *Standard) initializeAlertsEventsHandler() error {
+	s.Logger().Debug("Initializing alerts events handler")
+
+	commonConfig := eventsCommon.NewConfig()
+	if err := commonConfig.LoadFromEnv(); err != nil {
+		return err
+	}
+
+	// In addition to the CloudEventsConfig, additional specific config values
+	// are needed.
+	config := &struct {
+		KafkaAlertsTopics  []string `envconfig:"KAFKA_ALERTS_TOPICS" default:"alerts,deviceData.alerts"`
+		KafkaAlertsGroupID string   `envconfig:"KAFKA_ALERTS_CONSUMER_GROUP" required:"true"`
+	}{}
+	if err := envconfig.Process("", config); err != nil {
+		return errors.Wrap(err, "Unable to process envconfig")
+	}
+
+	// Some kafka topics use a `<env>-` as a prefix. But MongoDB CDC topics are created with
+	// `<env>.`. This code is using CDC topics, so ensuring that a `.` is used for alerts events
+	// lines everything up as expected.
+	topicPrefix := strings.ReplaceAll(commonConfig.KafkaTopicPrefix, "-", ".")
+	prefixedTopics := make([]string, 0, len(config.KafkaAlertsTopics))
+	for _, topic := range config.KafkaAlertsTopics {
+		prefixedTopics = append(prefixedTopics, topicPrefix+topic)
+	}
+
+	alerts := s.dataStore.NewAlertsRepository()
+	dataRepo := s.dataStore.NewDataRepository()
+	ec := &dataEvents.Consumer{
+		Alerts:       alerts,
+		Data:         dataRepo,
+		DeviceTokens: s.AuthClient(),
+		Evaluator:    dataEvents.NewAlertsEvaluator(alerts, dataRepo, s.permissionClient, s.AuthClient()),
+		Permissions:  s.permissionClient,
+		Pusher:       s.pusher,
+		Tokens:       s.AuthClient(),
+		Logger:       s.Logger(),
+	}
+
+	runnerCfg := dataEvents.SaramaRunnerConfig{
+		Brokers: commonConfig.KafkaBrokers,
+		GroupID: config.KafkaAlertsGroupID,
+		Logger:  s.Logger(),
+		Topics:  prefixedTopics,
+		Sarama:  commonConfig.SaramaConfig,
+		MessageConsumer: &dataEvents.AlertsEventsConsumer{
+			Consumer: ec,
+		},
+	}
+	runner := &dataEvents.SaramaRunner{Config: runnerCfg}
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "Unable to initialize alerts events handler runner")
+	}
+	s.alertsEventsHandler = runner
 
 	return nil
 }
