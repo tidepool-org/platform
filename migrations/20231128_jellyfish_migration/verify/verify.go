@@ -7,11 +7,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 )
 
 type Verify struct {
@@ -19,7 +18,7 @@ type Verify struct {
 	cli              *cli.App
 	config           *config
 	client           *mongo.Client
-	verificationUtil *utils.DataVerify
+	verificationUtil *DataVerify
 }
 
 type config struct {
@@ -69,7 +68,7 @@ func (m *Verify) RunAndExit() {
 		defer m.client.Disconnect(m.ctx)
 
 		if m.config.findBlobs {
-			m.verificationUtil, err = utils.NewVerifier(
+			m.verificationUtil, err = NewDataVerify(
 				m.ctx,
 				m.client.Database("data").Collection("deviceDataSets"),
 			)
@@ -80,7 +79,7 @@ func (m *Verify) RunAndExit() {
 			return m.verificationUtil.WriteBlobIDs()
 		}
 
-		m.verificationUtil, err = utils.NewVerifier(
+		m.verificationUtil, err = NewDataVerify(
 			m.ctx,
 			m.client.Database("data").Collection("deviceData"),
 		)

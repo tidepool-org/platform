@@ -24,7 +24,14 @@ jq -c '.[]' $JSON_FILE | while read i; do
     BLOB_ID=$(jq -r '.blobId' <<<"$i")
     check_val $BLOB_ID "BLOB_ID"
 
-    OUTPUT_FILE="$OUTPUT_DIR/$DEVICE_ID"_blob.gz
+
+    if [[ "$DEVICE_ID" =~ .*"tandem".* ]]; then
+        OUTPUT_FILE="$OUTPUT_DIR/$DEVICE_ID/$BLOB_ID"_blob.gz
+    else
+        OUTPUT_FILE="$OUTPUT_DIR/$DEVICE_ID/$BLOB_ID"_blob.ibf
+    fi
+
+    mkdir -p "$OUTPUT_DIR/$DEVICE_ID"
 
     check_val $OUTPUT_FILE "OUTPUT_FILE"
 
@@ -37,7 +44,12 @@ jq -c '.[]' $JSON_FILE | while read i; do
         echo "$http_response error downloading blob $BLOB_ID for device $DEVICE_ID"
         rm -rf $OUTPUT_FILE
     else
-        echo "status $http_response done downloading blob $BLOB_ID"
+        if [[ "$DEVICE_ID" =~ .*"tandem".* ]]; then
+            echo "status $http_response done downloading tandem blob $OUTPUT_FILE"
+        else
+            gzip $OUTPUT_FILE
+            echo "status $http_response done downloading omnipod blob $OUTPUT_FILE"
+        fi
     fi
 
 done
