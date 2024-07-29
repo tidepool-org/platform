@@ -103,6 +103,7 @@ func (p *ParametersMutator) MutateRequest(req *http.Request) error {
 	return nil
 }
 
+// ArrayParametersMutator mutates a request by modifying its query string to contain Parameters.
 type ArrayParametersMutator struct {
 	Parameters map[string][]string
 }

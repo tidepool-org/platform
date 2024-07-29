@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -24,6 +25,11 @@ type EnsureAuthorizedUserInput struct {
 type EnsureAuthorizedUserOutput struct {
 	AuthorizedUserID string
 	Error            error
+}
+
+type UserPermissionsOutput struct {
+	Permissions permission.Permissions
+	Error       error
 }
 
 type ExternalAccessor struct {
@@ -49,6 +55,9 @@ type ExternalAccessor struct {
 	EnsureAuthorizedUserStub           func(ctx context.Context, targetUserID string, authorizedPermission string) (string, error)
 	EnsureAuthorizedUserOutputs        []EnsureAuthorizedUserOutput
 	EnsureAuthorizedUserOutput         *EnsureAuthorizedUserOutput
+	GetUserPermissionsOutputs          []UserPermissionsOutput
+	GetUserPermissionsOutput           *UserPermissionsOutput
+	GetUserPermissionsStub             func(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error)
 }
 
 func NewExternalAccessor() *ExternalAccessor {
@@ -153,4 +162,20 @@ func (e *ExternalAccessor) AssertOutputsEmpty() {
 	if len(e.EnsureAuthorizedUserOutputs) > 0 {
 		panic("EnsureAuthorizedUserOutputs is not empty")
 	}
+}
+
+func (e *ExternalAccessor) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+	if e.GetUserPermissionsStub != nil {
+		return e.GetUserPermissionsStub(ctx, requestUserID, targetUserID)
+	}
+	if len(e.GetUserPermissionsOutputs) > 0 {
+		output := e.GetUserPermissionsOutputs[0]
+		e.GetUserPermissionsOutputs = e.GetUserPermissionsOutputs[1:]
+		e.GetUserPermissionsOutput = &output
+		return output.Permissions, output.Error
+	}
+	if e.GetUserPermissionsOutput != nil {
+		return e.GetUserPermissionsOutput.Permissions, e.GetUserPermissionsOutput.Error
+	}
+	panic("GetUserPermissions no output")
 }
