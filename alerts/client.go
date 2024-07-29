@@ -44,7 +44,7 @@ type PlatformClient interface {
 		requestBody interface{}, responseBody interface{}, inspectors ...request.ResponseInspector) error
 }
 
-// TokenProvider retrieves session tokens for calling the alerts API.
+// TokenProvider retrieves session tokens needed for calling the alerts API.
 //
 // client.External is one implementation
 type TokenProvider interface {

@@ -1,6 +1,7 @@
 # github.com/IBM/sarama v1.43.2
 ## explicit; go 1.19
 github.com/IBM/sarama
+github.com/IBM/sarama/mocks
 # github.com/ant0ine/go-json-rest v3.3.2+incompatible
 ## explicit
 github.com/ant0ine/go-json-rest/rest
