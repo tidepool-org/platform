@@ -16,15 +16,9 @@ const (
 	migrationUnmigrated migrationStatus = iota
 	migrationCompleted
 	migrationInProgress
+	migrationError
 
 	maxProfileFieldLen = 256
-)
-
-const (
-	// emptyFakeChildDefaultName is a placeholder name to be used if a fake child account profile has no patient.fullName field
-	emptyFakeChildDefaultName = "Child User"
-	// emptyFakeChildCustodianName is a placeholder name to be used if a fake child account profile has no custodian / parent fullName field - seagull.value.profile.fullName
-	emptyFakeChildCustodianName = "Custodian User"
 )
 
 var (
@@ -58,10 +52,11 @@ type UserProfile struct {
 	Custodian      *Custodian     `json:"custodian,omitempty"`
 	Clinic         *ClinicProfile `json:"-"` // This is not returned to users in any new user profile routes but needs to be saved as it's not known where the old seagull value.profile.clinic is read
 	BiologicalSex  string         `json:"biologicalSex,omitempty"`
+	Email          string         `json:"-"` // This is used when returning profiles in the legacy format. It is not stored in the profile, but is populated from the keycloak username and not returned in the new profiles route.
 }
 
 type ClinicProfile struct {
-	Email     string `json:"email,omitempty"`
+	// Email     string `json:"email,omitempty"` // only found a handle of fake profiles w/ email in clinic, but will confirm doesn't exist
 	Name      string `json:"name,omitempty"`
 	Role      string `json:"role,omitempty"`
 	Telephone string `json:"telephone,omitempty"`
@@ -72,10 +67,24 @@ type Custodian struct {
 	FullName string `json:"fullName"`
 }
 
+// IsPatientProfile returns true if the profile is associated with a patient - note that this is not mutually exclusive w/ a clinician, as some users have both
+func (up *UserProfile) IsPatientProfile() bool {
+	return up.DiagnosisDate != "" || up.DiagnosisType != "" || len(up.TargetDevices) > 0 || up.MRN != "" || up.About != "" || up.BiologicalSex != "" || up.Birthday != "" || up.Custodian != nil
+}
+
+// IsClinicianProfile returns true if the profile is associated with a clinician - note that this is not mutually exclusive w/ a patient, as some users have both
+func (up *UserProfile) IsClinicianProfile() bool {
+	return up.Clinic != nil
+}
+
 func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	legacyProfile := &LegacyUserProfile{
-		FullName: up.FullName,
-		Patient: &LegacyPatientProfile{
+		FullName:        up.FullName,
+		MigrationStatus: migrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
+	}
+
+	if up.IsPatientProfile() {
+		legacyProfile.Patient = &LegacyPatientProfile{
 			Birthday:       up.Birthday,
 			DiagnosisDate:  up.DiagnosisDate,
 			TargetDevices:  up.TargetDevices,
@@ -83,15 +92,23 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			About:          up.About,
 			MRN:            up.MRN,
 			BiologicalSex:  up.BiologicalSex,
-		},
-		Clinic:          up.Clinic,
-		MigrationStatus: migrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
+		}
+		if up.Email != "" {
+			legacyProfile.Patient.Email = up.Email
+			legacyProfile.Patient.Emails = []string{up.Email}
+			legacyProfile.Email = up.Email
+			legacyProfile.Emails = []string{up.Email}
+		}
 	}
 	// only custodiaL fake child accounts have Patient.FullName set
 	if up.Custodian != nil {
-		legacyProfile.FullName = up.Custodian.FullName
-		legacyProfile.Patient.FullName = pointer.FromString(cmp.Or(up.FullName, emptyFakeChildDefaultName))
 		legacyProfile.Patient.IsOtherPerson = true
+		// Handle case where Custodian user (contains fake child) and one of the FullName's is empty.
+		legacyProfile.FullName = cmp.Or(up.Custodian.FullName, up.FullName)
+		legacyProfile.Patient.FullName = pointer.FromString(cmp.Or(up.FullName, up.Custodian.FullName))
+	}
+	if up.IsClinicianProfile() {
+		legacyProfile.Clinic = up.Clinic
 	}
 	return legacyProfile
 }
@@ -107,25 +124,27 @@ func (up *UserProfile) ClearPatientInfo() *UserProfile {
 	newProfile.About = ""
 	newProfile.MRN = ""
 	newProfile.BiologicalSex = ""
-
-	// TODO: should these be cleared out?
 	newProfile.Custodian = nil
 	newProfile.Clinic = nil
 	return &newProfile
 }
 
 func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
+	fullName := p.FullName
 	up := &UserProfile{
-		FullName: cmp.Or(p.FullName, emptyFakeChildCustodianName),
-		Clinic:   p.Clinic,
+		Clinic: p.Clinic,
 	}
 	if p.Patient != nil {
 		up.FullName = cmp.Or(pointer.ToString(p.Patient.FullName), p.FullName)
 		// Only users with isOtherPerson set has a patient.fullName field set so
 		// they have a custodian.
 		if p.Patient.IsOtherPerson {
+			// Handle the few cases where one of either the fake child fullName or the profile fullName is empty (neither are both empty)
+			if fullName == "" {
+				fullName = pointer.ToString(p.Patient.FullName)
+			}
 			up.Custodian = &Custodian{
-				FullName: cmp.Or(p.FullName, emptyFakeChildCustodianName),
+				FullName: cmp.Or(p.FullName, fullName),
 			}
 		}
 		up.Birthday = p.Patient.Birthday
@@ -136,6 +155,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.MRN = p.Patient.MRN
 		up.BiologicalSex = p.Patient.BiologicalSex
 	}
+	up.FullName = fullName
 	return up
 }
 
@@ -145,6 +165,9 @@ type LegacyUserProfile struct {
 	Patient         *LegacyPatientProfile `json:"patient,omitempty"`
 	Clinic          *ClinicProfile        `json:"clinic,omitempty"`
 	MigrationStatus migrationStatus       `json:"-"`
+	// The Email and Emails fields are legacy properties that will be populated from the keycloak user if the profile is finished migrating, otherwise from the seagull collection
+	Email  string   `json:"email,omitempty"`
+	Emails []string `json:"emails,omitempty"`
 }
 
 type LegacyPatientProfile struct {
@@ -158,6 +181,9 @@ type LegacyPatientProfile struct {
 	IsOtherPerson  bool     `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
 	BiologicalSex  string   `json:"biologicalSex,omitempty"`
+	// The Email and Emails fields are legacy properties that will be populated from the keycloak user if the profile is finished migrating, otherwise from the seagull collection
+	Email  string   `json:"email,omitempty"`
+	Emails []string `json:"emails,omitempty"`
 }
 
 func (up *UserProfile) ToAttributes() map[string][]string {
@@ -196,9 +222,9 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 
 	if up.Clinic != nil {
-		if up.Clinic.Email != "" {
-			addAttribute(attributes, "clinic_email", up.Clinic.Email)
-		}
+		// if up.Clinic.Email != "" {
+		// 	addAttribute(attributes, "clinic_email", up.Clinic.Email)
+		// }
 		if up.Clinic.Name != "" {
 			addAttribute(attributes, "clinic_name", up.Clinic.Name)
 		}
@@ -216,8 +242,10 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	return attributes
 }
 
-func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile, ok bool) {
-	up := &UserProfile{}
+func ProfileFromAttributes(username string, attributes map[string][]string) (profile *UserProfile, ok bool) {
+	up := &UserProfile{
+		Email: username,
+	}
 	if val := getAttribute(attributes, "full_name"); val != "" {
 		up.FullName = val
 		ok = true
@@ -263,10 +291,10 @@ func ProfileFromAttributes(attributes map[string][]string) (profile *UserProfile
 
 	var clinicProfile ClinicProfile
 	var clinicOK bool
-	if val := getAttribute(attributes, "clinic_email"); val != "" {
-		clinicProfile.Email = val
-		clinicOK = true
-	}
+	// if val := getAttribute(attributes, "clinic_email"); val != "" {
+	// 	clinicProfile.Email = val
+	// 	clinicOK = true
+	// }
 	if val := getAttribute(attributes, "clinic_name"); val != "" {
 		clinicProfile.Name = val
 		clinicOK = true
@@ -383,7 +411,7 @@ func (up *UserProfile) Normalize(normalizer structure.Normalizer) {
 }
 
 func (p *ClinicProfile) Normalize(normalizer structure.Normalizer) {
-	p.Email = strings.TrimSpace(p.Email)
+	// p.Email = strings.TrimSpace(p.Email)
 	p.Name = strings.TrimSpace(p.Name)
 	p.Role = strings.TrimSpace(p.Role)
 	p.Telephone = strings.TrimSpace(p.Telephone)
@@ -405,6 +433,7 @@ func (up *LegacyUserProfile) Normalize(normalizer structure.Normalizer) {
 	if up.Clinic != nil {
 		up.Clinic.Normalize(normalizer.WithReference("clinic"))
 	}
+	// Email and Emails are read-only so they are ignored in normalizing / validation
 }
 
 func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
