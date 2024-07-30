@@ -85,7 +85,9 @@ func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[stri
 		}
 
 		excludedFeilds := bson.M{
-			"_active":          0,
+			// include to check dedup
+			// "_active":  0,
+			// "uploadId": 0,
 			"_archivedTime":    0,
 			"createdTime":      0,
 			"clockDriftOffset": 0,
@@ -105,7 +107,6 @@ func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[stri
 			"timezoneOffset":   0,
 			"type":             0,
 			"_userId":          0,
-			"uploadId":         0,
 			"_version":         0,
 		}
 
