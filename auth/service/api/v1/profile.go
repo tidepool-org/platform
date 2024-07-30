@@ -50,6 +50,7 @@ func (r *Router) getProfile(ctx context.Context, userID string) (*user.UserProfi
 	return profile, nil
 }
 
+// GetProfile returns the user's profile in the new, non seagull, format
 func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
@@ -161,6 +162,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 	responder.Data(http.StatusOK, results)
 }
 
+// GetLegacyProfile returns user profiles in the legacy seagull format.
 func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()

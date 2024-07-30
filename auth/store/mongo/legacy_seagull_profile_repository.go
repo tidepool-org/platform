@@ -71,12 +71,18 @@ func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, 
 		return err
 	}
 	var doc user.LegacySeagullDocument
-	selector := bson.M{"userId": userID}
+	selector := bson.M{
+		"userId": userID,
+	}
 	err := p.FindOne(ctx, selector).Decode(&doc)
-
 	// A user can have no profile set - see seagull/lib/routes/seagullApi.js `if (err.statusCode == 404 && addIfNotThere)`
 	if err != nil && !stdErrors.Is(err, mongo.ErrNoDocuments) {
 		return err
+	}
+	hasExistingProfile := err == nil
+	// We need to make a distinction b/t a seagull profile not existing (in which case we can upsert) versus a seagull profile actively being migrated, which is why we need to actually read the document.
+	if hasExistingProfile && doc.IsMigrating() {
+		return user.ErrUserProfileMigrationInProgress
 	}
 
 	// This will create a new value even if doc.Value is empty
@@ -85,16 +91,26 @@ func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, 
 		return err
 	}
 
-	uselector := bson.M{"userId": userID}
+	uopts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	uselector := bson.M{
+		"userId": userID,
+	}
 	update := bson.M{
 		"$set": bson.M{
 			"value":  updatedValueRaw,
 			"userId": userID, // Set because of possible upsert
 		},
 	}
-	uopts := options.Update().SetUpsert(true)
-	_, err = p.UpdateOne(ctx, uselector, update, uopts)
-	return err
+	var updatedDoc user.LegacySeagullDocument
+	err = p.FindOneAndUpdate(ctx, uselector, update, uopts).Decode(&updatedDoc)
+	if err != nil {
+		return err
+	}
+	// Handle case where a migration was started in between the start of this function and the update
+	if updatedDoc.IsMigrating() {
+		return user.ErrUserProfileMigrationInProgress
+	}
+	return nil
 }
 
 func (p *LegacySeagullProfileRepository) DeleteUserProfile(ctx context.Context, userID string) error {

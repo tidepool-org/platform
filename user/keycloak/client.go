@@ -460,7 +460,7 @@ func newKeycloakUser(gocloakUser *gocloak.User) *keycloakUser {
 		if ts, ok := attrs[termsAcceptedAttribute]; ok {
 			user.Attributes.TermsAcceptedDate = ts
 		}
-		if prof, ok := userLib.ProfileFromAttributes(attrs); ok {
+		if prof, ok := userLib.ProfileFromAttributes(pointer.ToString(gocloakUser.Username), attrs); ok {
 			user.Attributes.Profile = prof
 		}
 	}
