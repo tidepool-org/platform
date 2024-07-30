@@ -36,7 +36,7 @@ var DeviceDeactivateLegacyHasheManufacturerDeviceModels = map[string][]string{
 	"i-SENS":    {"CareSens"},
 	"MicroTech": {"Equil"},
 	"Roche":     {"Aviva Connect", "Performa Connect", "Guide", "Instant (single-button)", "Guide Me", "Instant (two-button)", "Instant S (single-button)", "ReliOn Platinum"},
-	"Tandem":    {"T:Slim"},
+	"Tandem":    {"1002717"},
 }
 
 type DeviceDeactivateHash struct {
