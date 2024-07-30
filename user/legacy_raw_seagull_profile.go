@@ -1,10 +1,16 @@
 package user
 
 import (
+	"cmp"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/tidepool-org/platform/pointer"
+)
+
+var (
+	ErrSeagullFieldNotFound = errors.New("seagull field not found within value object string")
 )
 
 // LegacySeagullDocument is the database model representation of the legacy
@@ -21,7 +27,7 @@ type LegacySeagullDocument struct {
 	MigrationStart *time.Time `bson:"_migrationStart,omitempty"`
 	// The presence of migrationEnd means the profile is fully migrated and all reads / writes to a user profile should go through keycloak
 	MigrationEnd       *time.Time `bson:"_migrationEnd,omitempty"`
-	MigrationError     string     `bson:"_migrationError,omitempty"`
+	MigrationError     *string    `bson:"_migrationError,omitempty"`
 	MigrationErrorTime *time.Time `bson:"_migrationErrorTime,omitempty"`
 }
 
@@ -43,20 +49,20 @@ func (doc *LegacySeagullDocument) ToLegacyProfile() (*LegacyUserProfile, error) 
 
 	// Add some default names if it is an empty name for the fake child or parent of them
 	isFakeChild := legacyProfile.Patient != nil && legacyProfile.Patient.IsOtherPerson
-	if isFakeChild && pointer.ToString(legacyProfile.Patient.FullName) == "" {
-		legacyProfile.Patient.FullName = pointer.FromString(emptyFakeChildDefaultName)
-	}
-	if isFakeChild && legacyProfile.FullName == "" {
-		legacyProfile.FullName = emptyFakeChildCustodianName
+	if isFakeChild {
+		// Some fake child accounts have profiles w/ an empty patient fullName or profile fullName (but not both).
+		// In this case, use the non empty name for both.
+		parentName := legacyProfile.FullName
+		childName := pointer.ToString(legacyProfile.Patient.FullName)
+		var fullName string
+		if parentName == "" || childName == "" {
+			fullName = cmp.Or(parentName, childName)
+			legacyProfile.Patient.FullName = &fullName
+			legacyProfile.FullName = fullName
+		}
 	}
 
-	legacyProfile.MigrationStatus = migrationUnmigrated
-	if doc.MigrationStart != nil && doc.MigrationEnd != nil {
-		legacyProfile.MigrationStatus = migrationCompleted
-	}
-	if doc.MigrationStart != nil && doc.MigrationEnd == nil && doc.MigrationError == "" {
-		legacyProfile.MigrationStatus = migrationInProgress
-	}
+	legacyProfile.MigrationStatus = doc.MigrationStatus()
 	return &legacyProfile, nil
 }
 
@@ -101,4 +107,21 @@ func MarshalThenUnmarshal(src any, dst *LegacyUserProfile) error {
 		return err
 	}
 	return json.Unmarshal(bytes, dst)
+}
+
+func (doc *LegacySeagullDocument) MigrationStatus() migrationStatus {
+	if doc.MigrationStart != nil && doc.MigrationEnd != nil {
+		return migrationCompleted
+	}
+	if doc.MigrationStart != nil && doc.MigrationEnd == nil && doc.MigrationError == nil {
+		return migrationInProgress
+	}
+	if doc.MigrationStart != nil && doc.MigrationError != nil {
+		return migrationError
+	}
+	return migrationUnmigrated
+}
+
+func (doc *LegacySeagullDocument) IsMigrating() bool {
+	return doc.MigrationStatus() != migrationUnmigrated
 }
