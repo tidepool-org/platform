@@ -62,6 +62,48 @@ func NewDataVerify(ctx context.Context, dataC *mongo.Collection) (*DataVerify, e
 
 var DatasetTypes = []string{"cbg", "smbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
 
+//archivedDatasetId
+
+func (m *DataVerify) fetchDataSetNotDeduped(uploadID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
+	if m.dataC == nil {
+		return nil, errors.New("missing data collection")
+	}
+
+	typeSet := map[string][]map[string]interface{}{}
+
+	for _, dType := range dataTypes {
+
+		dset := []map[string]interface{}{}
+
+		filter := bson.M{
+			"uploadId": uploadID,
+			"type":     dType,
+			"_active":  true,
+		}
+
+		sort := bson.D{{Key: "time", Value: 1}}
+
+		if dType == "deviceEvent" || dType == "bolus" {
+			sort = bson.D{{Key: "time", Value: 1}, {Key: "subType", Value: 1}}
+		}
+
+		dDataCursor, err := m.dataC.Find(m.ctx, filter, &options.FindOptions{
+			Sort: sort,
+		})
+		if err != nil {
+			return nil, err
+		}
+		defer dDataCursor.Close(m.ctx)
+
+		if err := dDataCursor.All(m.ctx, &dset); err != nil {
+			return nil, err
+		}
+		log.Printf("got dataset [%s][%s][%d] results", uploadID, dType, len(dset))
+		typeSet[dType] = dset
+	}
+	return typeSet, nil
+}
+
 func (m *DataVerify) fetchDataSet(uploadID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
 	if m.dataC == nil {
 		return nil, errors.New("missing data collection")
@@ -243,7 +285,7 @@ var dataTypePathIgnored = map[string][]string{
 	"bolus": {"normal"},
 }
 
-func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
+func (m *DataVerify) VerifyAPIDifferences(platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
 
 	if len(dataTyes) == 0 {
 		dataTyes = DatasetTypes
@@ -287,6 +329,28 @@ func (m *DataVerify) Verify(ref string, platformUploadID string, jellyfishUpload
 		}
 		if len(differences) > 0 {
 			writeFileData(differences, comparePath, fmt.Sprintf("%s_datum_diff.json", dType), true)
+		}
+	}
+	return nil
+}
+
+func (m *DataVerify) VerifyDeduped(uploadID string, dataTyes []string) error {
+
+	if len(dataTyes) == 0 {
+		dataTyes = DatasetTypes
+	}
+	dataset, err := m.fetchDataSetNotDeduped(uploadID, dataTyes)
+	if err != nil {
+		return err
+	}
+
+	if len(dataset) != 0 {
+		log.Printf("dataset should have been deduped but [%d] records are active", len(dataset))
+		notDedupedPath := filepath.Join(".", "_not_deduped", uploadID)
+		for dType, dTypeItems := range dataset {
+			if len(dTypeItems) > 0 {
+				writeFileData(dTypeItems, notDedupedPath, fmt.Sprintf("%s_not_deduped_datums.json", dType), true)
+			}
 		}
 	}
 	return nil

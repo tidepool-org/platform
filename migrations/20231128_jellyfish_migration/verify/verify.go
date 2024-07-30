@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tidepool-org/platform/migrations/20231128_jellyfish_migration/utils"
 	"github.com/urfave/cli"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,8 +23,10 @@ type Verify struct {
 type config struct {
 	mongoURI          string
 	findBlobs         bool
+	verifyDeduped     bool
 	platformUploadID  string
 	jellyfishUploadID string
+	uploadIdDeduped   string
 	dataTypes         string
 }
 
@@ -33,6 +34,8 @@ const MongoURIFlag = "uri"
 const PlatformUploadIDFlag = "upload-id-platform"
 const JellyfishUploadIDFlag = "upload-id-jellyfish"
 const FindBlobFlag = "find-blobs"
+const VerifyDedupedFlag = "verify-deduped"
+const UploadIdDedupedFlag = "upload-id"
 const DataTypesFlag = "data-types"
 const UseSubsetFlag = "use-subset"
 
@@ -79,6 +82,18 @@ func (m *Verify) RunAndExit() {
 			return m.verificationUtil.WriteBlobIDs()
 		}
 
+		if m.config.verifyDeduped {
+			m.verificationUtil, err = NewDataVerify(
+				m.ctx,
+				m.client.Database("data").Collection("deviceData"),
+			)
+
+			if err != nil {
+				return fmt.Errorf("unable to create verification utils : %w", err)
+			}
+			return m.verificationUtil.VerifyDeduped(m.config.uploadIdDeduped, strings.Split(m.config.dataTypes, ","))
+		}
+
 		m.verificationUtil, err = NewDataVerify(
 			m.ctx,
 			m.client.Database("data").Collection("deviceData"),
@@ -88,7 +103,7 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to create verification utils : %w", err)
 		}
 
-		err = m.verificationUtil.Verify("ref", m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","))
+		err = m.verificationUtil.VerifyAPIDifferences(m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","))
 		if err != nil {
 			log.Printf("error running verify : %s", err.Error())
 		}
@@ -126,16 +141,28 @@ func (m *Verify) Initialize() error {
 			Required:    false,
 		},
 		cli.StringFlag{
+			Name:        UploadIdDedupedFlag,
+			Usage:       "uploadID of the dataset to check deduping of",
+			Destination: &m.config.uploadIdDeduped,
+			Required:    false,
+		},
+		cli.StringFlag{
 			Name:        DataTypesFlag,
 			Usage:       "comma seperated list of data types to compare",
 			Destination: &m.config.dataTypes,
 			Required:    false,
-			Value:       strings.Join(utils.DatasetTypes, ","),
+			Value:       strings.Join(DatasetTypes, ","),
 		},
 		cli.BoolFlag{
 			Name:        FindBlobFlag,
 			Usage:       "find all blobs for running data verifcation with",
 			Destination: &m.config.findBlobs,
+			Required:    false,
+		},
+		cli.BoolFlag{
+			Name:        VerifyDedupedFlag,
+			Usage:       "verify that a dataset has been deduplicated",
+			Destination: &m.config.verifyDeduped,
 			Required:    false,
 		},
 		cli.StringFlag{
