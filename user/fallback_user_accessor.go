@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 // FallbackLegacyUserAccessor acts as an intermediary between seagulls
@@ -42,12 +43,32 @@ func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, id str
 }
 
 func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, id string, profile *UserProfile) error {
+	// retry in case a migration happens during this call - a migration should not take more than a few seconds
+	// so this is acceptable IMO.
+	retryLimit := 3
+	var err error
+	for i := 0; i < retryLimit; i++ {
+		err = f.updateUserProfile(ctx, id, profile)
+		if errors.Is(err, ErrUserProfileMigrationInProgress) {
+			time.Sleep(time.Second * time.Duration(i+1))
+			continue
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func (f *FallbackLegacyUserAccessor) updateUserProfile(ctx context.Context, id string, profile *UserProfile) error {
 	seagullProfile, err := f.legacy.FindUserProfile(ctx, id)
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return err
 	}
 	// An unmigrated profile should be returned until the profile has been migrated
 	if seagullProfile != nil && seagullProfile.MigrationStatus == migrationUnmigrated {
+		// During an attempt to update a seagull profile, the migration process may have started in b/t the previous call and the attempt to update.
+		// In this we will retry as the migration time.
 		return f.legacy.UpdateUserProfile(ctx, id, profile)
 	}
 	return f.accessor.UpdateUserProfile(ctx, id, profile)
