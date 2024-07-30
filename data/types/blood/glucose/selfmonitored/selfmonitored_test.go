@@ -1,13 +1,11 @@
 package selfmonitored_test
 
 import (
-	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types"
@@ -35,6 +33,12 @@ func NewSelfMonitored(units *string) *selfmonitored.SelfMonitored {
 	datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
 	datum.Type = "smbg"
 	datum.SubType = pointer.FromString(test.RandomStringFromArray(selfmonitored.SubTypes()))
+	return datum
+}
+
+func NewSelfMonitoredWithValue(units *string, val *float64) *selfmonitored.SelfMonitored {
+	datum := NewSelfMonitored(units)
+	datum.Value = pointer.FromFloat64(*val)
 	return datum
 }
 
@@ -501,7 +505,7 @@ var _ = Describe("SelfMonitored", func() {
 			var datum *selfmonitored.SelfMonitored
 
 			BeforeEach(func() {
-				datum = NewSelfMonitored(pointer.FromString("mg/dl"))
+				datum = NewSelfMonitoredWithValue(pointer.FromString("mg/dl"), pointer.FromFloat64(144))
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
@@ -559,10 +563,7 @@ var _ = Describe("SelfMonitored", func() {
 			It("returns the expected legacy identity fields", func() {
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				value, units, err := datum.GetRawValueAndUnits()
-				Expect(err).ToNot(HaveOccurred())
-				fullPrecisionValue := dataBloodGlucose.NormalizeValueForUnitsWithFullPrecision(value, units)
-				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat), strconv.FormatFloat(*fullPrecisionValue, 'f', -1, 64)}))
+				Expect(legacyIdentityFields).To(Equal([]string{"smbg", *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat), "7.993077107105568"}))
 			})
 		})
 	})

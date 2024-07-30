@@ -1003,6 +1003,18 @@ var _ = Describe("Base", func() {
 					Expect(legacyIDFields).To(Equal([]string{"one", "two", "three"}))
 				})
 			})
+
+			Context("GetLegacyTimeField", func() {
+				It("returns expected format", func() {
+					Expect(types.LegacyFieldTimeFormat).To(Equal("2006-01-02T15:04:05.999Z"))
+				})
+				It("returns expected legacy field details", func() {
+					t := time.Date(2015, time.July, 31, 23, 59, 59, 999999999, time.UTC)
+					legacyTimeField := types.GetLegacyTimeField(&t)
+					Expect(legacyTimeField.Name).To(Equal("time"))
+					Expect(*legacyTimeField.Value).To(Equal("2015-07-31T23:59:59.999Z"))
+				})
+			})
 		})
 
 		Context("GetPayload", func() {

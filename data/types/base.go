@@ -26,7 +26,7 @@ const (
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339Nano
-	LegacyFieldTimeFormat   = "2006-01-02T15:04:05.999+07:00"
+	LegacyFieldTimeFormat   = "2006-01-02T15:04:05.999Z"
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionInternalMinimum  = 0
