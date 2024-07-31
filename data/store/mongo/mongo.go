@@ -20,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/bolus/biphasic"
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	"github.com/tidepool-org/platform/data/types/bolus/pen"
 	"github.com/tidepool-org/platform/data/types/calculator"
 	"github.com/tidepool-org/platform/data/types/device/alarm"
 	"github.com/tidepool-org/platform/data/types/device/calibration"
@@ -477,6 +478,12 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 				var s = &schema.BolusSample{}
 				s.MapForBiphasicBolus(event)
 				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add biphasic bolus in bucket")
+				allSamples["Bolus"] = append(allSamples["Bolus"], *s)
+			case *pen.Pen:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a pen bolus entry")
+				var s = &schema.BolusSample{}
+				s.MapForPenBolus(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add pen bolus in bucket")
 				allSamples["Bolus"] = append(allSamples["Bolus"], *s)
 			case *alarm.Alarm:
 				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a alarm entry")

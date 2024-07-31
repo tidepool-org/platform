@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/bolus/biphasic"
 	"github.com/tidepool-org/platform/data/types/bolus/normal"
+	"github.com/tidepool-org/platform/data/types/bolus/pen"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -43,6 +44,45 @@ func (s *BolusSample) MapForNormalBolus(event *normal.Normal) error {
 	s.Normal = *event.Normal
 	if event.NormalExpected != nil {
 		s.ExpectedNormal = *event.NormalExpected
+	}
+
+	// map
+	s.Timezone = *event.TimeZoneName
+	s.TimezoneOffset = *event.TimeZoneOffset
+
+	strTime := *event.Time
+	s.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
+	if err != nil {
+		return errors.Wrap(err, ErrEventTime)
+	}
+
+	return nil
+}
+
+func (s *BolusSample) MapForPenBolus(event *pen.Pen) error {
+	var err error
+	// assign an uuid for keeping a link between the two collection
+	s.Uuid = *event.ID
+
+	if event.GUID != nil {
+		s.Guid = *event.GUID
+	}
+
+	if event.DeviceID != nil {
+		s.DeviceId = *event.DeviceID
+	}
+	// bolus struct field
+	s.BolusType = "pen"
+	if event.InsulinOnBoard != nil && event.InsulinOnBoard.InsulinOnBoard != nil {
+		s.InsulinOnBoard = *event.InsulinOnBoard.InsulinOnBoard
+	}
+	if event.Prescriptor != nil && event.Prescriptor.Prescriptor != nil {
+		s.Prescriptor = *event.Prescriptor.Prescriptor
+	}
+
+	// normal field
+	if event.Normal != nil {
+		s.Normal = *event.Normal
 	}
 
 	// map
