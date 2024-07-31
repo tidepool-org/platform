@@ -66,6 +66,10 @@ func (doc *LegacySeagullDocument) ToLegacyProfile() (*LegacyUserProfile, error) 
 	return &legacyProfile, nil
 }
 
+func (doc *LegacySeagullDocument) RawValue() (valueAsMap map[string]any, err error) {
+	return extractSeagullValue(doc.Value)
+}
+
 // extractSeagullValue unmarshals the jsonified string field "value" in the
 // seagull collection to a map[string]any - the reason the fields aren't
 // explicitly defined is because there is / was no defined schema at the
