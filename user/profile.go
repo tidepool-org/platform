@@ -51,18 +51,19 @@ type Date string
 // somewhat redundantly as UserProfile instead of Profile because there already
 // exists a type Profile in this package.
 type UserProfile struct {
-	FullName       string         `json:"fullName,omitempty"`
-	Birthday       Date           `json:"birthday,omitempty"`
-	DiagnosisDate  Date           `json:"diagnosisDate,omitempty"`
-	DiagnosisType  string         `json:"diagnosisType,omitempty"`
-	TargetDevices  []string       `json:"targetDevices,omitempty"`
-	TargetTimezone string         `json:"targetTimezone,omitempty"`
-	About          string         `json:"about,omitempty"`
-	MRN            string         `json:"mrn,omitempty"`
-	Custodian      *Custodian     `json:"custodian,omitempty"`
-	Clinic         *ClinicProfile `json:"-"` // This is not returned to users in any new user profile routes but needs to be saved as it's not known where the old seagull value.profile.clinic is read
-	BiologicalSex  string         `json:"biologicalSex,omitempty"`
-	Email          string         `json:"-"` // This is used when returning profiles in the legacy format. It is not stored in the profile, but is populated from the keycloak username and not returned in the new profiles route.
+	FullName       string   `json:"fullName,omitempty"`
+	Birthday       Date     `json:"birthday,omitempty"`
+	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
+	DiagnosisType  string   `json:"diagnosisType,omitempty"`
+	TargetDevices  []string `json:"targetDevices,omitempty"`
+	TargetTimezone string   `json:"targetTimezone,omitempty"`
+	About          string   `json:"about,omitempty"`
+	MRN            string   `json:"mrn,omitempty"`
+	BiologicalSex  string   `json:"biologicalSex,omitempty"`
+
+	Custodian *Custodian     `json:"custodian,omitempty"`
+	Clinic    *ClinicProfile `json:"-"` // This is not returned to users in any new user profile routes but needs to be saved as it's not known where the old seagull value.profile.clinic is read
+	Email     string         `json:"-"` // This is used when returning profiles in the legacy format. It is not stored in the profile, but is populated from the keycloak username and not returned in the new profiles route.
 }
 
 type ClinicProfile struct {
@@ -97,6 +98,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 		legacyProfile.Patient = &LegacyPatientProfile{
 			Birthday:       up.Birthday,
 			DiagnosisDate:  up.DiagnosisDate,
+			DiagnosisType:  up.DiagnosisType,
 			TargetDevices:  up.TargetDevices,
 			TargetTimezone: up.TargetTimezone,
 			About:          up.About,
@@ -159,6 +161,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		}
 		up.Birthday = p.Patient.Birthday
 		up.DiagnosisDate = p.Patient.DiagnosisDate
+		up.DiagnosisType = p.Patient.DiagnosisType
 		up.TargetDevices = p.Patient.TargetDevices
 		up.TargetTimezone = p.Patient.TargetTimezone
 		up.About = p.Patient.About
