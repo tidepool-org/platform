@@ -561,9 +561,17 @@ var _ = Describe("SelfMonitored", func() {
 			})
 
 			It("returns the expected legacy identity fields", func() {
+				datum = NewSelfMonitoredWithValue(pointer.FromString("mg/dl"), pointer.FromFloat64(220))
+				normalizer := dataNormalizer.New()
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+				datum.DeviceID = pointer.FromString("some-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{"smbg", *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat), "7.993077107105568"}))
+				Expect(legacyIdentityFields).To(Equal([]string{"smbg", "some-device", "2023-05-13T15:51:58Z", "12.211645580300173"}))
 			})
 		})
 	})

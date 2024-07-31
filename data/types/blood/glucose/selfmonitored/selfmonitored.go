@@ -83,5 +83,6 @@ func (s *SelfMonitored) LegacyIdentityFields() ([]string, error) {
 		return nil, err
 	}
 	fullPrecisionValue := dataBloodGlucose.NormalizeValueForUnitsWithFullPrecision(value, units)
-	return append(identityFields, strconv.FormatFloat(*fullPrecisionValue, 'f', -1, 64)), nil
+	identityFields = append(identityFields, strconv.FormatFloat(*fullPrecisionValue, 'f', -1, 64))
+	return identityFields, nil
 }

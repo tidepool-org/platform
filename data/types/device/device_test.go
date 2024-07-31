@@ -142,9 +142,14 @@ var _ = Describe("Device", func() {
 			})
 
 			It("returns the expected legacy identity fields", func() {
+				datum.DeviceID = pointer.FromString("some-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				datum.SubType = "some-sub-type"
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, datum.SubType, (*datum.Time).Format(types.LegacyFieldTimeFormat), *datum.DeviceID}))
+				Expect(legacyIdentityFields).To(Equal([]string{"deviceEvent", "some-sub-type", "2023-05-13T15:51:58Z", "some-device"}))
 			})
 		})
 	})

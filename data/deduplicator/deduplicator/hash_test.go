@@ -134,16 +134,30 @@ var _ = Describe("Hash", func() {
 			Expect(hash).To(BeEmpty())
 		})
 
-		It("successfully returns same hash as legacy smbg expects", func() {
-			Expect(dataDeduplicatorDeduplicator.GenerateLegacyIdentityHash([]string{"smbg", "tools", "2014-06-11T11:12:43.029Z", "5.550747991045533"})).To(Equal("e2ihon9nqcro96c4uugb4ftdnr07nqok"))
-		})
+		DescribeTable("hash from legacy identity tests",
+			func(fields []string, expectedHash string, expectedErr error) {
+				actualHash, actualErr := dataDeduplicatorDeduplicator.GenerateLegacyIdentityHash(fields)
+				if expectedErr != nil {
+					Expect(actualErr).To(Equal(expectedErr))
+				} else {
+					Expect(actualHash).To(Equal(expectedHash))
+					Expect(actualErr).To(BeNil())
+				}
+			},
+			Entry("smbg id", []string{"smbg", "tools", "2014-06-11T11:12:43.029Z", "5.550747991045533"}, "e2ihon9nqcro96c4uugb4ftdnr07nqok", nil),
+			Entry("smbg id", []string{"smbg", "tools", "2014-06-11T17:57:01.703Z", "4.5"}, "c14eds071pp5gsirfmgmsclbcahs8th0", nil),
+			Entry("smbg id", []string{"smbg", "tools", "2015-07-04T10:13:00.000Z", "4.9"}, "rk2htms97m7hipdu5lrso7ufd3pedm6n", nil),
+			Entry("smbg id", []string{"smbg", "tools", "2015-07-04T10:13:00.000Z", "4.8"}, "urrkdln86rl4vhqckps6gnupg5njqk6n", nil),
 
-		It("successfully returns same hash as legacy basal expects", func() {
-			Expect(dataDeduplicatorDeduplicator.GenerateLegacyIdentityHash([]string{"basal", "scheduled", "tools", "2014-06-11T06:00:00.000Z"})).To(Equal("cjou7vscvp8ogv34d6vejootulqfn3jd"))
-		})
+			Entry("cbg id", []string{"cbg", "tools", "2014-06-11T11:12:43.029Z"}, "eb12p6h892pmd0hhccpt2r17muc407o0", nil),
+			Entry("cbg id", []string{"cbg", "tools", "2014-06-11T17:57:01.703Z"}, "ha2ogn1kenqqhseed504sqnanhnclg5s", nil),
+			Entry("cbg id", []string{"cbg", "tools", "2014-06-12T11:12:43.029Z"}, "i922lobl3kron3t81pjap31anopkspvb", nil),
+			Entry("cbg id", []string{"cbg", "DexHealthKit_Dexcom:com.dexcom.Share2:3.0.4.17", "2015-12-21T11:23:08Z"}, "nsikjhfaprplpq78hc7di2lu5qpt1e3k", nil),
 
-		It("successfully returns same hash as legacy cbg expects", func() {
-			Expect(dataDeduplicatorDeduplicator.GenerateLegacyIdentityHash([]string{"cbg", "DexHealthKit_Dexcom:com.dexcom.Share2:3.0.4.17", "2015-12-21T11:23:08Z"})).To(Equal("nsikjhfaprplpq78hc7di2lu5qpt1e3k"))
-		})
+			Entry("basal id", []string{"basal", "scheduled", "tools", "2014-06-11T00:00:00.000Z"}, "kmm427pfbrc6rugtmbuli8j4q61u17uk", nil),
+			Entry("basal id", []string{"basal", "scheduled", "tools", "2014-06-11T06:00:00.000Z"}, "cjou7vscvp8ogv34d6vejootulqfn3jd", nil),
+			Entry("basal id", []string{"basal", "temp", "tools", "2014-06-11T09:00:00.000Z"}, "tn33bjb0241j9qh4jg9vdnf1g6k1g9r8", nil),
+			Entry("basal id", []string{"basal", "scheduled", "tools", "2014-06-11T19:00:00.000Z"}, "kftn188l8rjuvma3qkd3iqg34t0plajp", nil),
+		)
 	})
 })

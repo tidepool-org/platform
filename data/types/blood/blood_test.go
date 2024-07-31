@@ -132,9 +132,14 @@ var _ = Describe("Blood", func() {
 		Context("LegacyIdentityFields", func() {
 			It("returns the expected legacy identity fields", func() {
 				datum := dataTypesBloodTest.NewBlood()
+				datum.Type = "bg"
+				datum.DeviceID = pointer.FromString("some-bg-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyFieldTimeFormat)}))
+				Expect(legacyIdentityFields).To(Equal([]string{"bg", "some-bg-device", "2023-05-13T15:51:58Z"}))
 			})
 		})
 
