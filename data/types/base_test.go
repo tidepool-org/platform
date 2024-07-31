@@ -1006,7 +1006,7 @@ var _ = Describe("Base", func() {
 
 			Context("GetLegacyTimeField", func() {
 				It("returns expected legacy field details", func() {
-					t := time.Date(2015, time.July, 31, 23, 59, 59, 999999999, time.UTC)
+					t, _ := time.Parse(time.RFC3339Nano, "2015-07-31T23:59:59.999Z")
 					legacyTimeField := types.GetLegacyTimeField(&t)
 					Expect(legacyTimeField.Name).To(Equal("time"))
 					Expect(*legacyTimeField.Value).To(Equal("2015-07-31T23:59:59.999Z"))
