@@ -21,15 +21,25 @@ const (
 	maxProfileFieldLen = 256
 )
 
+const (
+	DiabetesTypeType1       = "type1"
+	DiabetesTypeType2       = "type2"
+	DiabetesTypeGestational = "gestational"
+	DiabetesTypeLada        = "lada"
+	DiabetesTypeOther       = "other"
+	DiabetesTypePrediabetes = "prediabetes"
+	DiabetesTypeMody        = "mody"
+)
+
 var (
-	diabetesTypes = []string{
-		"type1",
-		"type2",
-		"gestational",
-		"lada",
-		"other",
-		"prediabetes",
-		"mody",
+	DiabetesTypes = []string{
+		DiabetesTypeType1,
+		DiabetesTypeType2,
+		DiabetesTypeGestational,
+		DiabetesTypeLada,
+		DiabetesTypeOther,
+		DiabetesTypePrediabetes,
+		DiabetesTypeMody,
 	}
 )
 
@@ -391,7 +401,7 @@ func (up *UserProfile) Validate(v structure.Validator) {
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 	if up.DiagnosisType != "" {
-		v.String("diagnosisType", &up.DiagnosisType).OneOf(diabetesTypes...)
+		v.String("diagnosisType", &up.DiagnosisType).OneOf(DiabetesTypes...)
 	}
 }
 
@@ -446,7 +456,7 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
 
 	if pp.DiagnosisType != "" {
-		v.String("diagnosisType", &pp.DiagnosisType).OneOf(diabetesTypes...)
+		v.String("diagnosisType", &pp.DiagnosisType).OneOf(DiabetesTypes...)
 	}
 }
 

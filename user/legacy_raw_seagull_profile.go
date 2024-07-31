@@ -70,6 +70,22 @@ func (doc *LegacySeagullDocument) RawValue() (valueAsMap map[string]any, err err
 	return extractSeagullValue(doc.Value)
 }
 
+// SetRawValueProfile updates the document's jsonified Value field to contain a "profile" field with the given profile
+func (doc *LegacySeagullDocument) SetRawValueProfile(profile map[string]any) error {
+	valueObj, err := doc.RawValue()
+	// If there was an error, just make a new field "value" value.
+	if err != nil {
+		valueObj = map[string]any{}
+	}
+	valueObj["profile"] = profile
+	bytes, err := json.Marshal(valueObj)
+	if err != nil {
+		return err
+	}
+	doc.Value = string(bytes)
+	return nil
+}
+
 // extractSeagullValue unmarshals the jsonified string field "value" in the
 // seagull collection to a map[string]any - the reason the fields aren't
 // explicitly defined is because there is / was no defined schema at the
